@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.CategoriasController"
+      fx:id="rootPane" spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-teal">
+        <!-- Icon badge -->
+        <StackPane styleClass="page-header-icon page-header-icon-teal">
+            <Label text="🏷" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Categorías de Bienes" styleClass="page-title"/>
+            <Label text="Clasificaciones para organizar el inventario patrimonial" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
+                           visible="false" managed="false"/>
+        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+            <tooltip><Tooltip text="Actualizar lista de categorías (F5)"/></tooltip>
+        </Button>
+        <Button fx:id="btnNueva" text="＋ Nueva Categoría" onAction="#onNuevaCategoria" styleClass="btn-primary">
+            <tooltip><Tooltip text="Crear una nueva categoría de bienes  (Ctrl+N)"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar-teal"/>
+        <Label text="LISTADO DE CATEGORÍAS" styleClass="dash-section-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblTotal" text="0 categorías" styleClass="muted"/>
+    </HBox>
+
+    <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+        <StackPane prefWidth="330">
+            <TextField fx:id="searchField"
+                       promptText="🔍  Buscar por nombre o descripción..."
+                       maxWidth="Infinity" styleClass="search-field"/>
+            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+        </StackPane>
+        <Region HBox.hgrow="ALWAYS"/>
+    </HBox>
+
+    <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
+        <columns>
+            <TableColumn fx:id="colColor"       text="Color"       prefWidth="80"  sortable="false"/>
+            <TableColumn fx:id="colIcono"       text="Ícono"       prefWidth="70"  sortable="false"/>
+            <TableColumn fx:id="colNombre"      text="Nombre"      prefWidth="200" sortable="true"/>
+            <TableColumn fx:id="colDescripcion" text="Descripción" prefWidth="310" sortable="true"/>
+            <TableColumn fx:id="colProductos"   text="Bienes"      prefWidth="80"  sortable="true"/>
+        </columns>
+        <placeholder>
+            <VBox alignment="CENTER" spacing="8">
+                <Label text="🏷" styleClass="empty-icon-lg"/>
+                <Label text="No hay categorías registradas" styleClass="empty-state-msg"/>
+                <Label text="Usa ＋ Nueva Categoría para clasificar tus bienes patrimoniales" styleClass="empty-state-hint"/>
+            </VBox>
+        </placeholder>
+    </TableView>
+
+    <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
+    <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="bottom-action-bar">
+        <Label text="Selecciona una categoría para editar o eliminar"
+               styleClass="muted-sm" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnEditCat"   text="✏  Editar"   onAction="#onEdit"   styleClass="btn-secondary" disable="true">
+            <tooltip><Tooltip text="Editar la categoría seleccionada"/></tooltip>
+        </Button>
+        <Button fx:id="btnDeleteCat" text="✕  Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true">
+            <tooltip><Tooltip text="Eliminar categoría (solo si no tiene bienes asignados)"/></tooltip>
+        </Button>
+    </HBox>
+</VBox>

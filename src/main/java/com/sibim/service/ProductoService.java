@@ -1,0 +1,98 @@
+package com.sibim.service;
+
+import com.sibim.model.Producto;
+import com.sibim.model.enums.EstadoProducto;
+import com.sibim.repository.ProductoRepository;
+import com.sibim.session.SessionManager;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+public class ProductoService {
+
+    private final ProductoRepository productoRepo = new ProductoRepository();
+
+    public List<Producto> getAll() throws SQLException {
+        return productoRepo.findAll();
+    }
+
+    public List<Producto> search(String query, String categoriaId, String area) throws SQLException {
+        return productoRepo.search(query, categoriaId, area);
+    }
+
+    public Optional<Producto> findById(String id) throws SQLException {
+        return productoRepo.findById(id);
+    }
+
+    public List<Producto> getAgotados() throws SQLException {
+        return productoRepo.findAll().stream()
+            .filter(p -> p.getEstado() == EstadoProducto.AGOTADO)
+            .collect(Collectors.toList());
+    }
+
+    public List<Producto> getBajoStock() throws SQLException {
+        return productoRepo.findAll().stream()
+            .filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK)
+            .collect(Collectors.toList());
+    }
+
+    public List<Producto> getVencidosProximos(int dias) throws SQLException {
+        return productoRepo.findAll().stream()
+            .filter(p -> {
+                if (p.getFechaVencimiento() == null) return false;
+                long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
+                    java.time.LocalDate.now(), p.getFechaVencimiento());
+                return daysLeft <= dias;
+            })
+            .sorted((a, b) -> {
+                long dA = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), a.getFechaVencimiento());
+                long dB = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), b.getFechaVencimiento());
+                return Long.compare(dA, dB);
+            })
+            .collect(Collectors.toList());
+    }
+
+    public Producto save(Producto p) throws SQLException, ValidationException {
+        validate(p);
+        return productoRepo.save(p);
+    }
+
+    public void delete(String id) throws SQLException {
+        productoRepo.delete(id);
+    }
+
+    public long countAll() throws SQLException {
+        return productoRepo.findAll().size();
+    }
+
+    private void validate(Producto p) throws ValidationException, SQLException {
+        if (p.getNombre() == null || p.getNombre().isBlank())
+            throw new ValidationException("El nombre es obligatorio");
+        if (p.getCodigo() == null || p.getCodigo().isBlank())
+            throw new ValidationException("El codigo es obligatorio");
+        if (productoRepo.existsByCodigo(p.getCodigo(), p.getId()))
+            throw new ValidationException("Ya existe un bien con ese codigo");
+        if (p.getCategoriaId() == null || p.getCategoriaId().isBlank())
+            throw new ValidationException("La categoria es obligatoria");
+        if (p.getArea() == null || p.getArea().isBlank())
+            throw new ValidationException("El area es obligatoria");
+        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+            throw new ValidationException("No tienes acceso a esa area");
+        if (p.getPrecioCompra() == null || p.getPrecioCompra().signum() < 0)
+            throw new ValidationException("El precio de compra no puede ser negativo");
+        if (p.getPrecioVenta() == null || p.getPrecioVenta().signum() < 0)
+            throw new ValidationException("El precio de venta no puede ser negativo");
+        if (p.getStockActual() < 0)
+            throw new ValidationException("El stock no puede ser negativo");
+        if (p.getStockMinimo() < 0)
+            throw new ValidationException("El stock minimo no puede ser negativo");
+        if (p.getStockMaximo() < 0)
+            throw new ValidationException("El stock maximo no puede ser negativo");
+    }
+
+    public static class ValidationException extends Exception {
+        public ValidationException(String msg) { super(msg); }
+    }
+}

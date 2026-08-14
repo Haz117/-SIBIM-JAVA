@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane fx:id="splashRoot" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.sibim.controller.SplashController"
+           styleClass="splash-root" opacity="0">
+
+    <!-- Decorative accent ring top-right -->
+    <StackPane styleClass="splash-deco-ring-tr"
+               StackPane.alignment="TOP_RIGHT"/>
+
+    <!-- Decorative accent ring bottom-left -->
+    <StackPane styleClass="splash-deco-ring-bl"
+               StackPane.alignment="BOTTOM_LEFT"/>
+
+    <!-- ── Centro ─────────────────────────────────────────────── -->
+    <VBox alignment="CENTER" spacing="24" maxWidth="380">
+
+        <!-- Logo badge -->
+        <StackPane styleClass="splash-logo-badge" alignment="CENTER">
+            <StackPane styleClass="splash-logo-inner" alignment="CENTER">
+                <Label text="S" styleClass="splash-logo-letter"/>
+            </StackPane>
+        </StackPane>
+
+        <!-- Brand text -->
+        <VBox alignment="CENTER" spacing="7">
+            <Label text="SIBIM" styleClass="splash-title"/>
+            <Label text="Sistema Integral de Bienes Municipales"
+                   styleClass="splash-subtitle" wrapText="true" maxWidth="360"
+                   textAlignment="CENTER"/>
+            <Label text="H. Ayuntamiento de Huejutla · Hidalgo"
+                   styleClass="splash-org"/>
+        </VBox>
+
+        <!-- Progress section -->
+        <VBox alignment="CENTER" spacing="9">
+            <padding><Insets top="6"/></padding>
+            <ProgressBar fx:id="progressBar" prefWidth="230" prefHeight="5"
+                         styleClass="splash-progress"/>
+            <Label fx:id="lblStatus" text="Iniciando..." styleClass="splash-status"/>
+        </VBox>
+
+    </VBox>
+
+    <!-- Version watermark -->
+    <Label text="SIBIM  v1.0" styleClass="splash-version"
+           StackPane.alignment="BOTTOM_RIGHT"/>
+
+</StackPane>

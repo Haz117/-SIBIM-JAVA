@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.ProductosController"
+      fx:id="rootPane" spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header">
+        <!-- Icon badge -->
+        <StackPane styleClass="page-header-icon page-header-icon-indigo">
+            <Label text="📦" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Bienes Patrimoniales" styleClass="page-title"/>
+            <Label text="Inventario de bienes del H. Ayuntamiento de Huejutla" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
+        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+            <tooltip><Tooltip text="Actualizar lista (F5)"/></tooltip>
+        </Button>
+        <Button text="＋ Nuevo Bien" onAction="#onNuevoBien" styleClass="btn-primary">
+            <tooltip><Tooltip text="Registrar un nuevo bien en el inventario  (Ctrl+N)"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="RESUMEN DEL INVENTARIO" styleClass="dash-section-label"/>
+    </HBox>
+
+    <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <!-- Total de Bienes — indigo -->
+        <VBox styleClass="rich-stat-card"
+              style="-fx-background-color: #4F46E5; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="📦" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
+                <Label text="TOTAL DE BIENES" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="lblStatTotal" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="bienes patrimoniales" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+        </VBox>
+
+        <!-- Valor del Inventario — teal -->
+        <VBox styleClass="rich-stat-card"
+              style="-fx-background-color: #0891B2; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="💰" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
+                <Label text="VALOR DEL INVENTARIO" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="lblStatValor" text="—" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="precio unitario × stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+        </VBox>
+
+        <!-- Bienes con Alerta — amber -->
+        <VBox fx:id="cardAlertas" styleClass="rich-stat-card"
+              style="-fx-background-color: #D97706; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="⚠" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
+                <Label text="BIENES CON ALERTA" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="lblStatAlertas" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="agotados · bajo stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ BUSCAR Y FILTRAR ════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
+    </HBox>
+
+    <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+        <StackPane prefWidth="260">
+            <TextField fx:id="searchField"
+                       promptText="🔍  Buscar por nombre, código, proveedor..."
+                       maxWidth="Infinity" styleClass="search-field"/>
+            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+        </StackPane>
+        <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="165"/>
+        <Separator orientation="VERTICAL"/>
+        <!-- Status filter chips (populated by controller) -->
+        <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnClearFilters" text="✕  Limpiar filtros" onAction="#onClearFilters"
+                styleClass="btn-secondary" visible="false" managed="false">
+            <tooltip><Tooltip text="Quitar todos los filtros activos"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
+            <tooltip><Tooltip text="Exportar inventario filtrado a CSV"/></tooltip>
+        </Button>
+        <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
+            <tooltip><Tooltip text="Exportar inventario filtrado a Excel (.xlsx)"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
+        <columns>
+            <TableColumn fx:id="colFoto"      text=""                prefWidth="54"  minWidth="54" maxWidth="54"  sortable="false" resizable="false"/>
+            <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="215" sortable="true"/>
+            <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="105" sortable="true"/>
+            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="135" sortable="true"/>
+            <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="160" sortable="true"/>
+            <TableColumn fx:id="colStock"     text="Stock"           prefWidth="72"  sortable="true"/>
+            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="110" sortable="true"/>
+            <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="110" sortable="true"/>
+        </columns>
+        <placeholder>
+            <VBox alignment="CENTER" spacing="8">
+                <Label text="📦" styleClass="empty-icon-lg"/>
+                <Label text="No hay bienes registrados" styleClass="empty-state-msg"/>
+                <Label text="Usa el botón ＋ Nuevo Bien para registrar el primer activo" styleClass="empty-state-hint"/>
+            </VBox>
+        </placeholder>
+    </TableView>
+
+    <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
+        <Label fx:id="lblTotal" text="0 resultados" styleClass="muted"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnEditar"   text="✏  Editar"   onAction="#onEdit"   styleClass="btn-secondary">
+            <tooltip><Tooltip text="Editar el bien seleccionado (o doble clic)"/></tooltip>
+        </Button>
+        <Button fx:id="btnEliminar" text="✕  Eliminar" onAction="#onDelete" styleClass="btn-danger">
+            <tooltip><Tooltip text="Eliminar el bien seleccionado del inventario"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnPrev" text="‹" onAction="#onPrev" styleClass="pagination-btn"/>
+        <Label fx:id="lblPage" text="Página 1" styleClass="pagination-lbl"/>
+        <Button fx:id="btnNext" text="›" onAction="#onNext" styleClass="pagination-btn"/>
+        <ComboBox fx:id="pageSizeBox" prefWidth="82">
+            <tooltip><Tooltip text="Bienes por página"/></tooltip>
+        </ComboBox>
+    </HBox>
+</VBox>

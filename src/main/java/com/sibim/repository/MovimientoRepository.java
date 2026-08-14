@@ -1,0 +1,192 @@
+package com.sibim.repository;
+
+import com.sibim.db.DatabaseConfig;
+import com.sibim.db.DemoDataStore;
+import com.sibim.model.Movimiento;
+import com.sibim.model.enums.TipoMovimiento;
+
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public class MovimientoRepository {
+
+    private static final String BASE_SELECT = """
+        SELECT m.*, p.nombre AS producto_nombre, c.color AS categoria_color
+        FROM movements m
+        JOIN products p ON p.id = m.producto_id
+        LEFT JOIN categories c ON c.id = p.categoria_id
+        """;
+
+    public List<Movimiento> findAll() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllMovimientos();
+        String sql = BASE_SELECT + " ORDER BY m.created_at DESC";
+        return query(sql);
+    }
+
+    public List<Movimiento> findByProducto(String productoId) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByProducto(productoId);
+        String sql = BASE_SELECT + " WHERE m.producto_id = ? ORDER BY m.created_at DESC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productoId);
+            return executeQuery(ps);
+        }
+    }
+
+    public List<Movimiento> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByDateRange(desde, hasta);
+        String sql = BASE_SELECT +
+            " WHERE (? IS NULL OR m.created_at >= ?) AND (? IS NULL OR m.created_at <= ?)" +
+            " ORDER BY m.created_at DESC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            Timestamp tsDesde = desde != null ? Timestamp.valueOf(desde.atStartOfDay()) : null;
+            Timestamp tsHasta = hasta != null ? Timestamp.valueOf(hasta.atTime(23, 59, 59)) : null;
+            ps.setTimestamp(1, tsDesde);
+            ps.setTimestamp(2, tsDesde);
+            ps.setTimestamp(3, tsHasta);
+            ps.setTimestamp(4, tsHasta);
+            return executeQuery(ps);
+        }
+    }
+
+    public List<Movimiento> findToday() throws SQLException {
+        return findByDateRange(LocalDate.now(), LocalDate.now());
+    }
+
+    public List<Movimiento> findLastNDays(int days) throws SQLException {
+        return findByDateRange(LocalDate.now().minusDays(days - 1), LocalDate.now());
+    }
+
+    /**
+     * Atomically inserts the movement and updates product stock in a single transaction.
+     */
+    public Movimiento addMovimientoAtomic(Movimiento m) throws SQLException {
+        if (m.getId() == null) m.setId(UUID.randomUUID().toString());
+        if (DatabaseConfig.isDemoMode()) {
+            if (m.getCreadoEn() == null) m.setCreadoEn(java.time.LocalDateTime.now());
+            DemoDataStore.addMovimiento(m);
+            return m;
+        }
+        String insertMov = """
+            INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
+                motivo, referencia, usuario_id, usuario_nombre, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """;
+        String updateStock = "UPDATE products SET stock_actual = ?, updated_at = NOW() WHERE id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(insertMov)) {
+                    ps.setString(1, m.getId());
+                    ps.setString(2, m.getProductoId());
+                    ps.setString(3, m.getTipo().getCodigo());
+                    ps.setInt(4, m.getCantidad());
+                    ps.setInt(5, m.getStockAnterior());
+                    ps.setInt(6, m.getStockNuevo());
+                    ps.setString(7, m.getMotivo());
+                    ps.setString(8, m.getReferencia());
+                    ps.setString(9, m.getUsuarioId());
+                    ps.setString(10, m.getUsuarioNombre());
+                    ps.setTimestamp(11, Timestamp.valueOf(LocalDateTime.now()));
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(updateStock)) {
+                    ps.setInt(1, m.getStockNuevo());
+                    ps.setString(2, m.getProductoId());
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+        return m;
+    }
+
+    /**
+     * Atomically deletes the movement and restores product stock.
+     */
+    public void deleteMovimientoAtomic(String movimientoId) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            DemoDataStore.deleteMovimiento(movimientoId);
+            return;
+        }
+        String getStockAnterior = "SELECT producto_id, stock_anterior FROM movements WHERE id = ?";
+        String deleteMov = "DELETE FROM movements WHERE id = ?";
+        String restoreStock = "UPDATE products SET stock_actual = ?, updated_at = NOW() WHERE id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                String productoId;
+                int stockAnterior;
+                try (PreparedStatement ps = conn.prepareStatement(getStockAnterior)) {
+                    ps.setString(1, movimientoId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Movimiento no encontrado: " + movimientoId);
+                        productoId = rs.getString("producto_id");
+                        stockAnterior = rs.getInt("stock_anterior");
+                    }
+                }
+                try (PreparedStatement ps = conn.prepareStatement(deleteMov)) {
+                    ps.setString(1, movimientoId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(restoreStock)) {
+                    ps.setInt(1, stockAnterior);
+                    ps.setString(2, productoId);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    private List<Movimiento> query(String sql) throws SQLException {
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            return executeQuery(ps);
+        }
+    }
+
+    private List<Movimiento> executeQuery(PreparedStatement ps) throws SQLException {
+        List<Movimiento> list = new ArrayList<>();
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        }
+        return list;
+    }
+
+    private Movimiento mapRow(ResultSet rs) throws SQLException {
+        Movimiento m = new Movimiento();
+        m.setId(rs.getString("id"));
+        m.setProductoId(rs.getString("producto_id"));
+        m.setProductoNombre(rs.getString("producto_nombre"));
+        m.setCategoriaColor(rs.getString("categoria_color"));
+        m.setTipo(TipoMovimiento.fromCodigo(rs.getString("tipo")));
+        m.setCantidad(rs.getInt("cantidad"));
+        m.setStockAnterior(rs.getInt("stock_anterior"));
+        m.setStockNuevo(rs.getInt("stock_nuevo"));
+        m.setMotivo(rs.getString("motivo"));
+        m.setReferencia(rs.getString("referencia"));
+        m.setUsuarioId(rs.getString("usuario_id"));
+        m.setUsuarioNombre(rs.getString("usuario_nombre"));
+        Timestamp ts = rs.getTimestamp("created_at");
+        if (ts != null) m.setCreadoEn(ts.toLocalDateTime());
+        return m;
+    }
+}

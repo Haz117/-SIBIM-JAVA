@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.OrganigramaController"
+      spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-blue">
+        <StackPane styleClass="page-header-icon page-header-icon-blue">
+            <Label text="🏛" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Organigrama Municipal" styleClass="page-title"/>
+            <Label text="Distribución de bienes por secretaría y dirección" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24"
+                           visible="false" managed="false"/>
+        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+            <tooltip><Tooltip text="Recargar distribución de bienes por área (F5)"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- ══ SEARCH BAR ════════════════════════════════════════════════ -->
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+        <StackPane HBox.hgrow="ALWAYS">
+            <TextField fx:id="searchField"
+                       promptText="🔍  Buscar área, secretaría o departamento..."
+                       maxWidth="Infinity" styleClass="search-field"/>
+            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+        </StackPane>
+        <Label text="Expande cada sección para ver los bienes asignados"
+               styleClass="muted-sm"/>
+    </HBox>
+
+    <!-- ══ ORG TREE ═══════════════════════════════════════════════════ -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="page-scroll page-scroll-inner">
+        <VBox fx:id="orgTree" spacing="8">
+            <padding><Insets top="4" right="0" bottom="8" left="0"/></padding>
+        </VBox>
+    </ScrollPane>
+</VBox>

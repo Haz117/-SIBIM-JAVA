@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sibim.controller.ReportesController"
+            fitToWidth="true" styleClass="page-scroll">
+<VBox spacing="20">
+    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-emerald">
+        <StackPane styleClass="page-header-icon page-header-icon-emerald">
+            <Label text="📄" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Reportes y Exportaciones" styleClass="page-title"/>
+            <Label text="Exporta inventario, movimientos y alertas en PDF, Excel y CSV" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
+    </HBox>
+
+    <!-- ══ SELECTOR DE PERÍODO ═══════════════════════════════════════ -->
+    <VBox styleClass="card" spacing="12">
+        <padding><Insets top="18" right="22" bottom="18" left="22"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="📅" styleClass="card-icon-lg"/>
+            <Label text="Período del reporte" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label text="Opcional — deja vacío para incluir todos los registros"
+                   styleClass="report-hint"/>
+        </HBox>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Desde:" styleClass="form-label"/>
+            <DatePicker fx:id="desdeField" prefWidth="145">
+                <tooltip><Tooltip text="Fecha de inicio del período"/></tooltip>
+            </DatePicker>
+            <Label text="Hasta:" styleClass="form-label"/>
+            <DatePicker fx:id="hastaField" prefWidth="145">
+                <tooltip><Tooltip text="Fecha de fin del período"/></tooltip>
+            </DatePicker>
+            <Button text="Hoy"   onAction="#onReportHoy"    styleClass="btn-preset">
+                <tooltip><Tooltip text="Solo el día de hoy"/></tooltip>
+            </Button>
+            <Button text="Semana" onAction="#onReportSemana" styleClass="btn-preset">
+                <tooltip><Tooltip text="Últimos 7 días"/></tooltip>
+            </Button>
+            <Button text="Mes"   onAction="#onReportMes"    styleClass="btn-preset">
+                <tooltip><Tooltip text="Mes actual (del 1 al hoy)"/></tooltip>
+            </Button>
+            <Button text="Año"   onAction="#onReportAnio"   styleClass="btn-preset">
+                <tooltip><Tooltip text="Año actual (del 1/enero al hoy)"/></tooltip>
+            </Button>
+            <Button text="Todo"  onAction="#onReportTodo"   styleClass="btn-preset">
+                <tooltip><Tooltip text="Sin restricción de fecha"/></tooltip>
+            </Button>
+        </HBox>
+    </VBox>
+
+    <!-- ══ CARDS DE REPORTES ═══════════════════════════════════════════
+         Separador visual
+         ══════════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar-green"/>
+        <Label text="TIPOS DE REPORTE DISPONIBLES" styleClass="dash-section-label"/>
+    </HBox>
+
+    <!-- Grid 2×2 -->
+    <GridPane hgap="16" vgap="16">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="50"/>
+            <ColumnConstraints percentWidth="50"/>
+        </columnConstraints>
+
+        <!-- ── Inventario General — indigo ── -->
+        <VBox styleClass="report-card" spacing="10"
+              GridPane.columnIndex="0" GridPane.rowIndex="0">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label text="📦" styleClass="report-icon"/>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Inventario General" styleClass="report-title"/>
+                    <Label text="Bienes · stock · valor · estado"
+                           styleClass="report-card-tag report-card-tag-indigo"/>
+                </VBox>
+            </HBox>
+            <Label text="Listado completo de todos los bienes patrimoniales con existencias, valor unitario y estado actual."
+                   styleClass="report-desc" wrapText="true"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="📄 PDF"   onAction="#onInventarioPdf"   styleClass="btn-pdf">
+                    <tooltip><Tooltip text="Exportar inventario completo en PDF"/></tooltip>
+                </Button>
+                <Button text="📊 Excel" onAction="#onInventarioExcel" styleClass="btn-excel">
+                    <tooltip><Tooltip text="Exportar inventario completo en Excel (.xlsx)"/></tooltip>
+                </Button>
+                <Button text="CSV"      onAction="#onInventarioCsv"   styleClass="btn-csv">
+                    <tooltip><Tooltip text="Exportar inventario en CSV"/></tooltip>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ── Movimientos — teal ── -->
+        <VBox styleClass="report-card report-card-teal" spacing="10"
+              GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label text="↕" styleClass="report-icon"/>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Registro de Movimientos" styleClass="report-title"/>
+                    <Label text="Entradas · salidas · ajustes · transferencias"
+                           styleClass="report-card-tag report-card-tag-teal"/>
+                </VBox>
+            </HBox>
+            <Label text="Historial de entradas, salidas, ajustes y transferencias en el período seleccionado."
+                   styleClass="report-desc" wrapText="true"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="📄 PDF"   onAction="#onMovimientosPdf"   styleClass="btn-pdf">
+                    <tooltip><Tooltip text="Exportar movimientos del período en PDF"/></tooltip>
+                </Button>
+                <Button text="📊 Excel" onAction="#onMovimientosExcel" styleClass="btn-excel">
+                    <tooltip><Tooltip text="Exportar movimientos del período en Excel (.xlsx)"/></tooltip>
+                </Button>
+                <Button text="CSV"      onAction="#onMovimientosCsv"   styleClass="btn-csv">
+                    <tooltip><Tooltip text="Exportar movimientos en CSV"/></tooltip>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ── Alertas de Stock — amber ── -->
+        <VBox styleClass="report-card report-card-amber" spacing="10"
+              GridPane.columnIndex="0" GridPane.rowIndex="1">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label text="⚠" styleClass="report-icon"/>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Alertas de Stock" styleClass="report-title"/>
+                    <Label text="Agotados · bajo stock · garantías vencidas"
+                           styleClass="report-card-tag report-card-tag-amber"/>
+                </VBox>
+            </HBox>
+            <Label text="Bienes agotados, con existencias bajas y garantías próximas a vencer — para gestión inmediata."
+                   styleClass="report-desc" wrapText="true"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="📄 PDF"   onAction="#onAlertasPdf"   styleClass="btn-pdf">
+                    <tooltip><Tooltip text="Exportar alertas de stock en PDF"/></tooltip>
+                </Button>
+                <Button text="📊 Excel" onAction="#onAlertasExcel" styleClass="btn-excel">
+                    <tooltip><Tooltip text="Exportar bienes con alertas activas a Excel"/></tooltip>
+                </Button>
+                <Button text="CSV"      onAction="#onAlertasCsv"   styleClass="btn-csv">
+                    <tooltip><Tooltip text="Exportar alertas de stock en CSV"/></tooltip>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ── Distribución por Área — emerald ── -->
+        <VBox styleClass="report-card report-card-green" spacing="10"
+              GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label text="🏛" styleClass="report-icon"/>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Distribución por Área" styleClass="report-title"/>
+                    <Label text="Secretarías · direcciones · dependencias"
+                           styleClass="report-card-tag report-card-tag-green"/>
+                </VBox>
+            </HBox>
+            <Label text="Bienes patrimoniales agrupados por secretaría y dirección municipal del Ayuntamiento de Huejutla."
+                   styleClass="report-desc" wrapText="true"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="📄 PDF"   onAction="#onDistribucionPdf"   styleClass="btn-pdf">
+                    <tooltip><Tooltip text="Exportar distribución por área en PDF"/></tooltip>
+                </Button>
+                <Button text="📊 Excel" onAction="#onDistribucionExcel" styleClass="btn-excel">
+                    <tooltip><Tooltip text="Exportar distribución de bienes por área a Excel"/></tooltip>
+                </Button>
+            </HBox>
+        </VBox>
+    </GridPane>
+
+</VBox>
+</ScrollPane>

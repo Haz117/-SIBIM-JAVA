@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sibim.controller.DashboardController"
+            fitToWidth="true" styleClass="page-scroll">
+<VBox spacing="18">
+    <padding><Insets top="22" right="24" bottom="24" left="24"/></padding>
+
+    <!-- ══════════════════════════════════════════════════════════
+         WELCOME BANNER
+         ══════════════════════════════════════════════════════════ -->
+    <VBox styleClass="dashboard-banner" spacing="0">
+        <padding><Insets top="24" right="28" bottom="0" left="28"/></padding>
+
+        <!-- Greeting row -->
+        <HBox alignment="CENTER_LEFT" spacing="0">
+            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <Label fx:id="lblBienvenida" styleClass="banner-greeting"/>
+                <Label fx:id="lblUsuario"    styleClass="banner-name"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Label text="🏛" styleClass="banner-brand-icon"/>
+                    <Label text="H. Ayuntamiento de Huejutla  ·  Bienes Municipales"
+                           styleClass="banner-org"/>
+                </HBox>
+            </VBox>
+            <!-- Date widget -->
+            <VBox alignment="CENTER_RIGHT" spacing="2" styleClass="banner-date-widget">
+                <Label fx:id="lblFechaDia"  styleClass="banner-date-day"/>
+                <Label fx:id="lblFechaMes"  styleClass="banner-date-month"/>
+            </VBox>
+        </HBox>
+
+        <!-- Separator -->
+        <Separator styleClass="banner-sep">
+            <VBox.margin><Insets top="14"/></VBox.margin>
+        </Separator>
+
+        <!-- Quick actions row -->
+        <HBox spacing="0" alignment="CENTER">
+            <VBox fx:id="qaProductos" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+                  alignment="CENTER" spacing="6" onMouseClicked="#onVerProductos">
+                <padding><Insets top="15" bottom="17"/></padding>
+                <Label text="📦" styleClass="qa-icon"/>
+                <Label text="Inventario" styleClass="qa-label"/>
+            </VBox>
+            <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
+            <VBox fx:id="qaMovimiento" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+                  alignment="CENTER" spacing="6" onMouseClicked="#onVerMovimientos">
+                <padding><Insets top="15" bottom="17"/></padding>
+                <Label text="↕" styleClass="qa-icon"/>
+                <Label text="Movimientos" styleClass="qa-label"/>
+            </VBox>
+            <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
+            <VBox fx:id="qaAlertas" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+                  alignment="CENTER" spacing="6" onMouseClicked="#onVerAlertas">
+                <padding><Insets top="15" bottom="17"/></padding>
+                <Label text="⚠" styleClass="qa-icon"/>
+                <Label text="Alertas" styleClass="qa-label"/>
+            </VBox>
+            <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
+            <VBox fx:id="qaReportes" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+                  alignment="CENTER" spacing="6" onMouseClicked="#onVerReportes">
+                <padding><Insets top="15" bottom="17"/></padding>
+                <Label text="📄" styleClass="qa-icon"/>
+                <Label text="Reportes" styleClass="qa-label"/>
+            </VBox>
+        </HBox>
+    </VBox>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ALERT BANNER (condicional)
+         ══════════════════════════════════════════════════════════ -->
+    <HBox fx:id="alertBanner" styleClass="alert-banner" spacing="10" alignment="CENTER_LEFT"
+          visible="false" managed="false" onMouseClicked="#onVerAlertas">
+        <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
+        <Label text="⚠" styleClass="alert-banner-icon"/>
+        <Label text="Hay bienes con stock bajo o agotados que requieren atención."
+               wrapText="true" HBox.hgrow="ALWAYS"/>
+        <Label text="Ver alertas →" styleClass="alert-banner-cta"/>
+    </HBox>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: RESUMEN DEL INVENTARIO
+         ══════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="RESUMEN DEL INVENTARIO" styleClass="dash-section-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblStatsActualizacion" text="" styleClass="muted"/>
+    </HBox>
+
+    <!-- Stats grid 3×2 -->
+    <GridPane fx:id="statsGrid" hgap="14" vgap="14">
+        <columnConstraints>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="33.3"/>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="33.3"/>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="33.3"/>
+        </columnConstraints>
+
+        <!-- Total de Bienes — Indigo -->
+        <HBox styleClass="stat-card stat-card-clickable"
+              style="-fx-background-color: #4F46E5; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerProductos"
+              GridPane.columnIndex="0" GridPane.rowIndex="0">
+            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <VBox HBox.hgrow="ALWAYS" spacing="5">
+                <Label text="TOTAL DE BIENES" style="-fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.82);"/>
+                <Label fx:id="lblTotalBienes" text="—" style="-fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label text="Ver inventario →" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.58);"/>
+            </VBox>
+            <Label text="📦" style="-fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8;"/>
+        </HBox>
+
+        <!-- Valor Patrimonial — Teal -->
+        <HBox styleClass="stat-card"
+              style="-fx-background-color: #0891B2; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              alignment="CENTER_LEFT"
+              GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <VBox HBox.hgrow="ALWAYS" spacing="5">
+                <Label text="VALOR PATRIMONIAL" style="-fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.82);"/>
+                <Label fx:id="lblValorTotal" text="—" style="-fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label text="Valor total registrado" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.58);"/>
+            </VBox>
+            <Label text="💰" style="-fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8;"/>
+        </HBox>
+
+        <!-- Existencias Bajas — Amber -->
+        <HBox styleClass="stat-card stat-card-clickable"
+              style="-fx-background-color: #D97706; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerBajoStock"
+              GridPane.columnIndex="2" GridPane.rowIndex="0">
+            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <VBox HBox.hgrow="ALWAYS" spacing="5">
+                <Label text="EXISTENCIAS BAJAS" style="-fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.82);"/>
+                <Label fx:id="lblBajoStock" text="—" style="-fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label text="Ver alertas →" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.58);"/>
+            </VBox>
+            <Label text="⚠" style="-fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8;"/>
+        </HBox>
+
+        <!-- Agotados — Rose -->
+        <HBox styleClass="stat-card stat-card-clickable"
+              style="-fx-background-color: #E11D48; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerAgotados"
+              GridPane.columnIndex="0" GridPane.rowIndex="1">
+            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <VBox HBox.hgrow="ALWAYS" spacing="5">
+                <Label text="BIENES AGOTADOS" style="-fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.82);"/>
+                <Label fx:id="lblAgotados" text="—" style="-fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label text="Ver alertas →" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.58);"/>
+            </VBox>
+            <Label text="🚫" style="-fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8;"/>
+        </HBox>
+
+        <!-- Movimientos Hoy — Violet -->
+        <HBox styleClass="stat-card stat-card-clickable"
+              style="-fx-background-color: #7C3AED; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerMovimientos"
+              GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <VBox HBox.hgrow="ALWAYS" spacing="5">
+                <Label text="MOVIMIENTOS HOY" style="-fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.82);"/>
+                <Label fx:id="lblMovimientosHoy" text="—" style="-fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label text="Ver historial →" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.58);"/>
+            </VBox>
+            <Label text="🔄" style="-fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8;"/>
+        </HBox>
+
+        <!-- Categorías — Indigo oscuro -->
+        <HBox styleClass="stat-card"
+              style="-fx-background-color: #3730A3; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              alignment="CENTER_LEFT"
+              GridPane.columnIndex="2" GridPane.rowIndex="1">
+            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <VBox HBox.hgrow="ALWAYS" spacing="5">
+                <Label text="CATEGORÍAS ACTIVAS" style="-fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.82);"/>
+                <Label fx:id="lblCategorias" text="—" style="-fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label text="Clasificaciones" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.58);"/>
+            </VBox>
+            <Label text="🏷" style="-fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8;"/>
+        </HBox>
+    </GridPane>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ESTADO DEL INVENTARIO (health bar)
+         ══════════════════════════════════════════════════════════ -->
+    <VBox fx:id="healthSection" styleClass="dash-health-card" spacing="10"
+          visible="false" managed="false">
+        <padding><Insets top="14" right="18" bottom="14" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <Label text="Estado del Inventario" styleClass="dash-health-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblHealthDetail" text="" styleClass="muted"/>
+        </HBox>
+        <!-- Segmented bar -->
+        <HBox fx:id="healthBar" prefHeight="10" spacing="2" styleClass="dash-health-bar"/>
+        <HBox spacing="20">
+            <HBox spacing="5" alignment="CENTER_LEFT">
+                <Label fx:id="dotActivo" text="●" styleClass="dot-green"/>
+                <Label fx:id="lblHealthActivos" text="Activos — 0" styleClass="dash-health-legend"/>
+            </HBox>
+            <HBox spacing="5" alignment="CENTER_LEFT">
+                <Label fx:id="dotBajo" text="●" styleClass="dot-amber"/>
+                <Label fx:id="lblHealthBajo" text="Bajo Stock — 0" styleClass="dash-health-legend"/>
+            </HBox>
+            <HBox spacing="5" alignment="CENTER_LEFT">
+                <Label fx:id="dotAgotado" text="●" styleClass="dot-red"/>
+                <Label fx:id="lblHealthAgotado" text="Agotados — 0" styleClass="dash-health-legend"/>
+            </HBox>
+            <HBox spacing="5" alignment="CENTER_LEFT">
+                <Label fx:id="dotVencido" text="●" styleClass="dot-violet"/>
+                <Label fx:id="lblHealthVencido" text="Vencidos — 0" styleClass="dash-health-legend"/>
+            </HBox>
+        </HBox>
+    </VBox>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: ANÁLISIS DE INVENTARIO
+         ══════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ANÁLISIS DE INVENTARIO" styleClass="dash-section-label"/>
+        <Label text="Últimos 7 días" styleClass="dash-section-badge"/>
+    </HBox>
+
+    <!-- Charts row -->
+    <HBox spacing="14">
+        <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
+            <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label text="↕" styleClass="card-icon-indigo"/>
+                <Label text="Movimientos Semanales" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+                <Label text="7 días" styleClass="dash-section-badge"/>
+            </HBox>
+            <LineChart fx:id="chartMovimientos" prefHeight="220" animated="false">
+                <xAxis><CategoryAxis label="Día"/></xAxis>
+                <yAxis><NumberAxis label="Unidades"/></yAxis>
+            </LineChart>
+        </VBox>
+
+        <VBox styleClass="card" spacing="10" prefWidth="300">
+            <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label text="🏷" styleClass="card-icon"/>
+                <Label text="Valor por Categoría" styleClass="card-title"/>
+            </HBox>
+            <StackPane VBox.vgrow="ALWAYS">
+                <PieChart fx:id="chartValorCategoria" prefHeight="220"
+                          labelsVisible="true" animated="false"/>
+                <VBox fx:id="pieEmptyState" alignment="CENTER" spacing="6"
+                      visible="false" managed="false" styleClass="pie-empty-state">
+                    <Label text="🏷" styleClass="pie-empty-icon"/>
+                    <Label text="Sin datos de categorías" styleClass="empty-state-msg"/>
+                </VBox>
+            </StackPane>
+        </VBox>
+    </HBox>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: ACTIVIDAD RECIENTE
+         ══════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ACTIVIDAD RECIENTE" styleClass="dash-section-label"/>
+        <Label fx:id="lblCountReciente" text="" styleClass="dash-activity-badge"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Ver todos →" onAction="#onVerMovimientos"
+                styleClass="btn-secondary btn-sm"/>
+    </HBox>
+
+    <!-- Recent activity table inside a card -->
+    <VBox styleClass="card" spacing="0">
+        <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table recent-table">
+            <placeholder>
+                <VBox alignment="CENTER" spacing="8">
+                    <Label text="↕" styleClass="empty-icon-lg"/>
+                    <Label text="Sin movimientos recientes" styleClass="empty-state-msg"/>
+                    <Label text="Los movimientos registrados aparecerán aquí" styleClass="empty-state-hint"/>
+                </VBox>
+            </placeholder>
+        </TableView>
+    </VBox>
+
+</VBox>
+</ScrollPane>

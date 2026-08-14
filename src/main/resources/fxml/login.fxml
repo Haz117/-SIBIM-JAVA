@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.Rectangle?>
+
+<HBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.LoginController"
+      prefWidth="960" prefHeight="620" styleClass="login-root">
+
+    <!-- ── Left: Brand panel ── -->
+    <StackPane fx:id="brandPanel" styleClass="login-brand" prefWidth="400" minWidth="400">
+
+        <!-- Decorative blobs -->
+        <Circle radius="220" fill="#FFFFFF08" StackPane.alignment="BOTTOM_RIGHT"
+                translateX="100" translateY="100"/>
+        <Circle radius="140" fill="#FFFFFF06" StackPane.alignment="TOP_LEFT"
+                translateX="-55" translateY="-55"/>
+        <Circle radius="90"  fill="#FFFFFF0A" StackPane.alignment="CENTER"
+                translateX="60" translateY="-80"/>
+        <Circle radius="50"  fill="#FFFFFF0D" StackPane.alignment="BOTTOM_LEFT"
+                translateX="30" translateY="-30"/>
+
+        <!-- Content -->
+        <VBox alignment="CENTER_LEFT" spacing="0" StackPane.alignment="CENTER">
+            <padding><Insets top="52" right="44" bottom="52" left="44"/></padding>
+
+            <!-- Logo badge -->
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label text="S" styleClass="brand-logo-badge"/>
+                <VBox spacing="1">
+                    <Label text="SIBIM" styleClass="brand-title"/>
+                    <Label text="Sistema Integral de Bienes Municipales"
+                           styleClass="brand-system-name"/>
+                </VBox>
+            </HBox>
+
+            <Region prefHeight="28"/>
+
+            <!-- Feature list -->
+            <VBox spacing="10">
+                <Label text="✓  Inventario patrimonial centralizado" styleClass="brand-feature"/>
+                <Label text="✓  Control por roles y áreas municipales" styleClass="brand-feature"/>
+                <Label text="✓  Alertas automáticas de stock" styleClass="brand-feature"/>
+                <Label text="✓  Reportes en PDF y Excel" styleClass="brand-feature"/>
+            </VBox>
+
+            <Region prefHeight="32"/>
+            <Separator styleClass="brand-divider"/>
+            <Region prefHeight="20"/>
+
+            <!-- Quick-access accounts -->
+            <Label text="CUENTAS DE PRUEBA" styleClass="brand-hint"/>
+            <Region prefHeight="10"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="Admin" onAction="#fillAdmin" styleClass="test-btn"/>
+                <Button text="Secretario" onAction="#fillSecretario" styleClass="test-btn"/>
+                <Button text="Dirección" onAction="#fillDireccion" styleClass="test-btn"/>
+            </HBox>
+        </VBox>
+    </StackPane>
+
+    <!-- ── Right: Form panel ── -->
+    <VBox fx:id="formPanel" styleClass="login-form-panel" alignment="CENTER" spacing="0" HBox.hgrow="ALWAYS">
+        <padding><Insets top="64" right="64" bottom="64" left="64"/></padding>
+
+        <!-- Header -->
+        <Label text="Bienvenido de nuevo" styleClass="login-subtitle"/>
+        <Region prefHeight="6"/>
+        <Label text="Iniciar sesión" styleClass="login-title"/>
+        <Region prefHeight="32"/>
+
+        <!-- Username -->
+        <VBox spacing="7">
+            <Label text="Usuario" styleClass="form-label"/>
+            <TextField fx:id="usernameField" promptText="nombre.apellido"
+                       onAction="#handleLogin"
+                       styleClass="form-input" maxWidth="Infinity"/>
+        </VBox>
+
+        <Region prefHeight="18"/>
+
+        <!-- Password -->
+        <VBox spacing="7">
+            <Label text="Contraseña" styleClass="form-label"/>
+            <PasswordField fx:id="passwordField" promptText="••••••••"
+                           onAction="#handleLogin"
+                           styleClass="form-input" maxWidth="Infinity"/>
+        </VBox>
+
+        <Region prefHeight="6"/>
+
+        <!-- Error label -->
+        <Label fx:id="errorLabel" styleClass="error-label" wrapText="true"
+               visible="false" managed="false" maxWidth="Infinity"/>
+
+        <Region prefHeight="22"/>
+
+        <!-- Submit -->
+        <Button fx:id="loginButton" text="Ingresar al sistema" onAction="#handleLogin"
+                styleClass="login-btn" maxWidth="Infinity"/>
+
+        <Region prefHeight="16"/>
+
+        <!-- Spinner -->
+        <ProgressIndicator fx:id="spinner" prefWidth="32" prefHeight="32"
+                           visible="false" managed="false"/>
+
+        <Region prefHeight="18"/>
+
+        <!-- Security badge -->
+        <Label text="🔒  Sesión encriptada y segura" styleClass="login-secure-badge"
+               maxWidth="Infinity"/>
+    </VBox>
+</HBox>

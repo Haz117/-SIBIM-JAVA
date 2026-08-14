@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sibim.controller.ConfiguracionController"
+            fitToWidth="true" styleClass="page-scroll">
+<VBox spacing="20">
+    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-slate">
+        <StackPane styleClass="page-header-icon page-header-icon-slate">
+            <Label text="⚙" styleClass="page-icon-symbol"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Configuración del Sistema" styleClass="page-title"/>
+            <Label text="Perfil de usuario y administración de accesos" styleClass="page-subtitle"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ PROFILE CARD ═════════════════════════════════════════════ -->
+    <VBox styleClass="card" spacing="0">
+
+        <!-- Gradient header con avatar -->
+        <HBox styleClass="profile-card-header" spacing="22" alignment="CENTER_LEFT">
+            <padding><Insets top="28" right="28" bottom="28" left="28"/></padding>
+
+            <StackPane styleClass="profile-avatar-lg">
+                <Label fx:id="lblAvatarPerfil" text="U" styleClass="profile-avatar-lg-text"/>
+            </StackPane>
+
+            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                <Label fx:id="lblNombreUsuario" text="—" styleClass="profile-name-lg"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Label fx:id="lblRolUsuario" text="—" styleClass="profile-role-chip"/>
+                </HBox>
+            </VBox>
+
+            <!-- Decorative badge -->
+            <VBox alignment="CENTER_RIGHT" spacing="4" styleClass="profile-deco-badge">
+                <Label text="🏛" styleClass="profile-deco-icon"/>
+                <Label text="H. Ayuntamiento" styleClass="profile-deco-name"/>
+                <Label text="de Huejutla" styleClass="profile-deco-sub"/>
+            </VBox>
+        </HBox>
+
+        <!-- Profile fields -->
+        <VBox spacing="0">
+            <padding><Insets top="22" right="28" bottom="24" left="28"/></padding>
+
+            <HBox spacing="0">
+                <!-- Usuario -->
+                <VBox spacing="5" HBox.hgrow="ALWAYS" styleClass="profile-field-col-left">
+                    <Label text="USUARIO" styleClass="profile-field-key"/>
+                    <Label fx:id="lblUsernameUsuario" text="—" styleClass="profile-value"/>
+                </VBox>
+                <!-- Área -->
+                <VBox spacing="5" HBox.hgrow="ALWAYS" styleClass="profile-field-col-right">
+                    <Label text="ÁREA / DEPENDENCIA" styleClass="profile-field-key"/>
+                    <Label fx:id="lblAreaUsuario" text="—" styleClass="profile-value" wrapText="true"/>
+                </VBox>
+            </HBox>
+        </VBox>
+    </VBox>
+
+    <!-- ══ INFORMACIÓN DEL SISTEMA ═════════════════════════════════════ -->
+    <VBox styleClass="card" spacing="10">
+        <padding><Insets top="16" right="20" bottom="18" left="20"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Region styleClass="dash-section-bar"/>
+            <Label text="INFORMACIÓN DEL SISTEMA" styleClass="dash-section-label"/>
+        </HBox>
+        <HBox spacing="0">
+            <!-- Versión -->
+            <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col">
+                <Label text="VERSIÓN" styleClass="profile-field-key"/>
+                <Label text="SIBIM v1.0" styleClass="sys-info-value"/>
+            </VBox>
+            <!-- Modo -->
+            <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col">
+                <Label text="MODO" styleClass="profile-field-key"/>
+                <Label fx:id="lblSistemaModo" text="—" styleClass="sys-info-value"/>
+            </VBox>
+            <!-- Sesión -->
+            <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col sys-info-col-last">
+                <Label text="INICIO DE SESIÓN" styleClass="profile-field-key"/>
+                <Label fx:id="lblSistemaHora" text="—" styleClass="sys-info-value"/>
+            </VBox>
+        </HBox>
+    </VBox>
+
+    <!-- ══ GESTIÓN DE USUARIOS (solo ADMIN) ══════════════════════════ -->
+    <VBox fx:id="adminSection" styleClass="card" spacing="12">
+        <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>
+
+        <HBox alignment="CENTER_LEFT" spacing="12">
+            <StackPane styleClass="section-icon-badge">
+                <Label text="👥" styleClass="page-icon-emoji"/>
+            </StackPane>
+            <VBox spacing="2" HBox.hgrow="ALWAYS">
+                <Label text="Gestión de Usuarios" styleClass="card-title"/>
+                <Label text="Crea, edita y administra cuentas de acceso al sistema"
+                       styleClass="page-subtitle"/>
+            </VBox>
+            <Button text="＋ Nuevo Usuario" onAction="#onNuevoUsuario" styleClass="btn-primary">
+                <tooltip><Tooltip text="Registrar un nuevo usuario en el sistema"/></tooltip>
+            </Button>
+        </HBox>
+
+        <Separator/>
+
+        <TableView fx:id="usersTable" prefHeight="290" styleClass="data-table">
+            <columns>
+                <TableColumn fx:id="colNombre"   text="Nombre completo" prefWidth="195" sortable="true"/>
+                <TableColumn fx:id="colUsername" text="Usuario"         prefWidth="130" sortable="true"/>
+                <TableColumn fx:id="colCargo"    text="Cargo"           prefWidth="160" sortable="true"/>
+                <TableColumn fx:id="colRol"      text="Rol"             prefWidth="110" sortable="true"/>
+                <TableColumn fx:id="colArea"     text="Área"            prefWidth="210" sortable="true"/>
+            </columns>
+            <placeholder>
+                <VBox alignment="CENTER" spacing="10">
+                    <Label text="👤" styleClass="empty-icon-lg"/>
+                    <Label text="No hay usuarios registrados" styleClass="empty-state-msg"/>
+                </VBox>
+            </placeholder>
+        </TableView>
+
+        <HBox spacing="8" alignment="CENTER_RIGHT">
+            <Label text="Selecciona un usuario para gestionar" styleClass="muted" HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnEditUser"     text="✏  Editar"      onAction="#onEditUsuario"     styleClass="btn-secondary" disable="true">
+                <tooltip><Tooltip text="Editar datos del usuario seleccionado"/></tooltip>
+            </Button>
+            <Button fx:id="btnPasswordUser" text="🔑  Contraseña" onAction="#onCambiarPassword" styleClass="btn-secondary" disable="true">
+                <tooltip><Tooltip text="Cambiar contraseña del usuario seleccionado"/></tooltip>
+            </Button>
+            <Button fx:id="btnDeleteUser"   text="✕  Eliminar"   onAction="#onDeleteUsuario"    styleClass="btn-danger"    disable="true">
+                <tooltip><Tooltip text="Eliminar usuario del sistema"/></tooltip>
+            </Button>
+        </HBox>
+    </VBox>
+
+</VBox>
+</ScrollPane>

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.MovimientosController"
+      fx:id="rootPane" spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-purple">
+        <!-- Icon badge -->
+        <StackPane styleClass="page-header-icon page-header-icon-purple">
+            <Label text="↕" styleClass="page-icon-symbol"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Movimientos de Stock" styleClass="page-title"/>
+            <Label text="Historial de entradas, salidas, ajustes y transferencias" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
+        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+            <tooltip><Tooltip text="Actualizar desde la base de datos (F5)"/></tooltip>
+        </Button>
+        <Button fx:id="btnNuevo" text="＋ Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary">
+            <tooltip><Tooltip text="Registrar entrada, salida, ajuste o transferencia  (Ctrl+N)"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar-purple"/>
+        <Label text="RESUMEN DE MOVIMIENTOS" styleClass="dash-section-label"/>
+    </HBox>
+
+    <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <!-- Total movimientos — purple -->
+        <VBox styleClass="rich-stat-card"
+              style="-fx-background-color: #7C3AED; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="↕" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
+                <Label text="TOTAL MOVIMIENTOS" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="lblStatTotalMov" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="en el período filtrado" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+        </VBox>
+
+        <!-- Entradas — green -->
+        <VBox styleClass="rich-stat-card"
+              style="-fx-background-color: #16A34A; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="⬆" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
+                <Label text="ENTRADAS" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="lblStatEntradas" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="incrementan el stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+        </VBox>
+
+        <!-- Salidas — red -->
+        <VBox styleClass="rich-stat-card"
+              style="-fx-background-color: #DC2626; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="⬇" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
+                <Label text="SALIDAS" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="lblStatSalidas" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="reducen el stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+        </VBox>
+
+        <!-- Ajustes / Transferencias — amber -->
+        <VBox styleClass="rich-stat-card"
+              style="-fx-background-color: #D97706; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="⇄" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
+                <Label text="AJUSTES / TRANSF." style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="lblStatAjustes" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="ajustes y transferencias" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ BUSCAR Y FILTRAR ════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar-purple"/>
+        <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
+    </HBox>
+
+    <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-purple">
+        <StackPane prefWidth="250">
+            <TextField fx:id="searchField"
+                       promptText="🔍  Buscar por producto, motivo o referencia..."
+                       maxWidth="Infinity" styleClass="search-field"/>
+            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+        </StackPane>
+        <Separator orientation="VERTICAL"/>
+        <!-- Tipo filter chips (populated by controller) -->
+        <HBox fx:id="tipoChipsBar" spacing="5" alignment="CENTER_LEFT"/>
+        <Separator orientation="VERTICAL"/>
+        <Label text="Desde:" styleClass="muted"/>
+        <DatePicker fx:id="desdeFilter" prefWidth="130" promptText="dd/mm/aaaa">
+            <tooltip><Tooltip text="Fecha inicial del rango"/></tooltip>
+        </DatePicker>
+        <Label text="Hasta:" styleClass="muted"/>
+        <DatePicker fx:id="hastaFilter" prefWidth="130" promptText="dd/mm/aaaa">
+            <tooltip><Tooltip text="Fecha final del rango"/></tooltip>
+        </DatePicker>
+        <Button fx:id="btnPresetHoy"    text="Hoy"    onAction="#onPresetHoy"    styleClass="btn-preset">
+            <tooltip><Tooltip text="Ver movimientos de hoy"/></tooltip>
+        </Button>
+        <Button fx:id="btnPresetSemana" text="Semana" onAction="#onPresetSemana" styleClass="btn-preset">
+            <tooltip><Tooltip text="Ver movimientos de los últimos 7 días"/></tooltip>
+        </Button>
+        <Button fx:id="btnPresetMes"    text="Mes"    onAction="#onPresetMes"    styleClass="btn-preset">
+            <tooltip><Tooltip text="Ver movimientos del mes actual"/></tooltip>
+        </Button>
+        <Button text="✕" onAction="#onLimpiarFechas" styleClass="btn-preset-clear">
+            <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
+        </Button>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
+            <tooltip><Tooltip text="Exportar movimientos filtrados a CSV"/></tooltip>
+        </Button>
+        <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
+            <tooltip><Tooltip text="Exportar movimientos filtrados a Excel (.xlsx)"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
+        <columns>
+            <TableColumn fx:id="colProducto"   text="Bien / Producto"    prefWidth="200" sortable="true"/>
+            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="115" sortable="true"/>
+            <TableColumn fx:id="colCantidad"   text="Cantidad"           prefWidth="80"  sortable="true"/>
+            <TableColumn fx:id="colStock"      text="Stock Ant. → Nuevo" prefWidth="148" sortable="false"/>
+            <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="165" sortable="true"/>
+            <TableColumn fx:id="colReferencia" text="Referencia"         prefWidth="108" sortable="true"/>
+            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="128" sortable="true"/>
+            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="130" sortable="true"/>
+        </columns>
+        <placeholder>
+            <VBox alignment="CENTER" spacing="8">
+                <Label text="↕" styleClass="empty-icon-lg"/>
+                <Label text="No hay movimientos que mostrar" styleClass="empty-state-msg"/>
+                <Label text="Ajusta los filtros o registra un nuevo movimiento con ＋" styleClass="empty-state-hint"/>
+            </VBox>
+        </placeholder>
+    </TableView>
+
+    <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
+        <Label fx:id="lblTotal" text="0 movimientos" styleClass="muted"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnDelete" text="✕  Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true">
+            <tooltip><Tooltip text="Eliminar el movimiento seleccionado (irreversible)"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnPrev" text="‹" onAction="#onPrev" styleClass="pagination-btn"/>
+        <Label fx:id="lblPage" text="Página 1" styleClass="pagination-lbl"/>
+        <Button fx:id="btnNext" text="›" onAction="#onNext" styleClass="pagination-btn"/>
+        <ComboBox fx:id="pageSizeBox" prefWidth="82">
+            <tooltip><Tooltip text="Movimientos por página"/></tooltip>
+        </ComboBox>
+    </HBox>
+</VBox>

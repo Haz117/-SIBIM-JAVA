@@ -1,0 +1,30 @@
+# ── Credenciales y entorno ────────────────────────────────────────
+.env
+*.env.local
+
+# ── Build de Maven ────────────────────────────────────────────────
+target/
+dependency-reduced-pom.xml
+
+# ── IDE ───────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+nbproject/
+nb-configuration.xml
+
+# ── Claude Code ───────────────────────────────────────────────────
+.claude/
+
+# ── Sistema operativo ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ──────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Imágenes subidas por el usuario (datos locales) ───────────────
+data/

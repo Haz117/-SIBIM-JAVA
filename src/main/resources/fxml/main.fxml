@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.MainController"
+      prefWidth="1300" prefHeight="820">
+
+    <!-- ── Main row: sidebar + content ── -->
+    <HBox VBox.vgrow="ALWAYS">
+
+        <!-- ── Sidebar ── -->
+        <VBox styleClass="sidebar" prefWidth="228" spacing="3">
+            <padding><Insets top="18" right="10" bottom="18" left="10"/></padding>
+
+            <!-- Logo -->
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="sidebar-logo-area">
+                <Label text="S" styleClass="sidebar-logo-badge"/>
+                <VBox spacing="0">
+                    <Label text="SIBIM" styleClass="sidebar-logo"/>
+                    <Label text="Bienes Municipales" styleClass="sidebar-app-sub"/>
+                </VBox>
+            </HBox>
+
+            <Region prefHeight="14"/>
+
+            <!-- User card -->
+            <HBox spacing="11" alignment="CENTER_LEFT" styleClass="sidebar-user-box">
+                <StackPane styleClass="user-avatar">
+                    <Label fx:id="userAvatarLabel" text="U" styleClass="user-avatar-text"/>
+                </StackPane>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label fx:id="userNameLabel" styleClass="sidebar-username" wrapText="true"/>
+                    <Label fx:id="userRolLabel" styleClass="sidebar-userrole"/>
+                </VBox>
+            </HBox>
+
+            <Region prefHeight="10"/>
+            <Separator styleClass="sidebar-divider"/>
+            <Region prefHeight="6"/>
+
+            <!-- Navigation -->
+            <Label text="NAVEGACIÓN" styleClass="nav-section-label"/>
+
+            <Button fx:id="btnDashboard"   text="📊  Dashboard"    onAction="#onDashboard"    styleClass="nav-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Dashboard  (Ctrl+1)"/></tooltip>
+            </Button>
+            <Button fx:id="btnOrganigrama" text="🏛  Organigrama"  onAction="#onOrganigrama"  styleClass="nav-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Organigrama  (Ctrl+2)"/></tooltip>
+            </Button>
+            <Button fx:id="btnProductos"   text="📦  Bienes"        onAction="#onProductos"    styleClass="nav-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Inventario de bienes  (Ctrl+3)"/></tooltip>
+            </Button>
+            <Button fx:id="btnCategorias"  text="🏷  Categorías"    onAction="#onCategorias"   styleClass="nav-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Categorías de bienes  (Ctrl+4)"/></tooltip>
+            </Button>
+
+            <Region prefHeight="4"/>
+            <Separator styleClass="sidebar-divider"/>
+            <Region prefHeight="4"/>
+            <Label text="OPERACIONES" styleClass="nav-section-label"/>
+
+            <Button fx:id="btnMovimientos" text="↕  Movimientos"   onAction="#onMovimientos"  styleClass="nav-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Historial de movimientos  (Ctrl+5)"/></tooltip>
+            </Button>
+
+            <!-- Alertas con badge -->
+            <StackPane maxWidth="Infinity" alignment="CENTER_RIGHT">
+                <Button fx:id="btnAlertas" text="⚠  Alertas" onAction="#onAlertas"
+                        styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER">
+                    <tooltip><Tooltip text="Alertas de inventario  (Ctrl+6)"/></tooltip>
+                </Button>
+                <Label fx:id="alertBadge" text="0"
+                       styleClass="alert-nav-badge"
+                       visible="false" managed="false"
+                       StackPane.alignment="CENTER_RIGHT"/>
+            </StackPane>
+
+            <Button fx:id="btnReportes"    text="📄  Reportes"     onAction="#onReportes"     styleClass="nav-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
+            </Button>
+
+            <Region prefHeight="4"/>
+            <Separator styleClass="sidebar-divider"/>
+            <Region prefHeight="4"/>
+            <Label text="SISTEMA" styleClass="nav-section-label"/>
+
+            <Button fx:id="btnConfiguracion" text="⚙  Configuración" onAction="#onConfiguracion" styleClass="nav-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Configuración  (Ctrl+8)"/></tooltip>
+            </Button>
+
+            <Region VBox.vgrow="ALWAYS"/>
+            <Separator styleClass="sidebar-divider"/>
+            <Region prefHeight="6"/>
+            <Button text="⬅  Cerrar sesión" onAction="#onLogout" styleClass="logout-btn" maxWidth="Infinity">
+                <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
+            </Button>
+            <Region prefHeight="4"/>
+            <Label text="SIBIM v1.0 · 2026" styleClass="sidebar-version" maxWidth="Infinity"/>
+        </VBox>
+
+        <!-- ── Main content ── -->
+        <StackPane fx:id="contentArea" HBox.hgrow="ALWAYS" styleClass="content-area"/>
+    </HBox>
+
+    <!-- ── Status bar ── -->
+    <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="16">
+        <padding><Insets top="5" right="16" bottom="5" left="16"/></padding>
+        <Label fx:id="statusDbLabel" text="⬤  Conectado" styleClass="status-dot-ok"/>
+        <Separator orientation="VERTICAL" styleClass="status-separator"/>
+        <Label fx:id="statusUserLabel" text="—" styleClass="status-text"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label text="H. Ayuntamiento de Huejutla" styleClass="status-text"/>
+        <Separator orientation="VERTICAL" styleClass="status-separator"/>
+        <Label fx:id="statusTimeLabel" text="00:00" styleClass="status-time"/>
+    </HBox>
+</VBox>
