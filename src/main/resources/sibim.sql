@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS movements (
     id              TEXT PRIMARY KEY,
-    producto_id     TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    producto_id     TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
     tipo            TEXT NOT NULL,
     cantidad        INTEGER NOT NULL,
     stock_anterior  INTEGER NOT NULL,

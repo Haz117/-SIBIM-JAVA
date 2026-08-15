@@ -59,6 +59,7 @@ public class MainController {
     @FXML private Label statusTimeLabel;
 
     private Button activeButton;
+    private Object currentController;
     private final ProductoService alertProductoService = new ProductoService();
 
     @FXML
@@ -111,8 +112,12 @@ public class MainController {
             button.getStyleClass().add("nav-active");
             activeButton = button;
 
-            Node node = FXMLLoader.load(Objects.requireNonNull(
+            FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
+            Node node = loader.load();
+
+            if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
+            currentController = loader.getController();
 
             if (!contentArea.getChildren().isEmpty()) {
                 Node current = contentArea.getChildren().get(0);

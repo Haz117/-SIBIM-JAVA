@@ -556,6 +556,7 @@ public class MovimientosController {
             fCantidad.setEditable(true);
             fCantidad.setMaxWidth(Double.MAX_VALUE);
             fCantidad.getStyleClass().add("form-input");
+            DialogUtil.commitOnFocusLoss(fCantidad);
 
             // Stock preview card
             HBox stockPreview = new HBox(16);
@@ -635,6 +636,7 @@ public class MovimientosController {
 
             Optional<ButtonType> result = dialog.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
+                DialogUtil.commitSpinner(fCantidad);
                 Producto p = fProducto.getValue();
                 DialogUtil.runAsync(
                     () -> movimientoService.registrar(

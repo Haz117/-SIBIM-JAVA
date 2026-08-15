@@ -48,7 +48,8 @@ public class MovimientoService {
             throw new ValidationException("La cantidad debe ser mayor a cero");
         if (tipo == TipoMovimiento.AJUSTE && cantidad < 0)
             throw new ValidationException("El ajuste no puede ser negativo");
-        if (tipo == TipoMovimiento.SALIDA && cantidad > producto.getStockActual())
+        if ((tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.TRANSFERENCIA)
+                && cantidad > producto.getStockActual())
             throw new ValidationException("La cantidad supera el stock disponible (" + producto.getStockActual() + ")");
 
         int stockNuevo = ProductoUtils.calcularStockNuevo(tipo.getCodigo(), producto.getStockActual(), cantidad);

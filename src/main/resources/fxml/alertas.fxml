@@ -74,8 +74,8 @@
             <HBox alignment="CENTER_RIGHT" spacing="8">
                 <Label text="Selecciona un bien y registra la reposición de stock"
                        styleClass="muted" HBox.hgrow="ALWAYS"/>
-                <Button fx:id="btnReponerTodos" text="📥 Reponer todos" onAction="#onReponerTodosAgotados" styleClass="btn-secondary">
-                    <tooltip><Tooltip text="Registrar entrada para todos los bienes agotados en secuencia"/></tooltip>
+                <Button fx:id="btnReponerTodos" text="📥 Reponer siguiente" onAction="#onReponerTodosAgotados" styleClass="btn-secondary">
+                    <tooltip><Tooltip text="Abre el formulario de entrada para el primer bien agotado pendiente"/></tooltip>
                 </Button>
                 <Button fx:id="btnReponerAgotado" text="⬆ Reponer seleccionado" onAction="#onReponerAgotado" styleClass="btn-primary" disable="true">
                     <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado"/></tooltip>

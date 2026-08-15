@@ -542,7 +542,8 @@ public class ProductosController {
                 applyFilters();
                 NotificacionUtil.exito(table.getScene(), "Bien \"" + nombre + "\" eliminado correctamente");
             },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo eliminar el bien")
+            e -> NotificacionUtil.error(table.getScene(),
+                e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo eliminar el bien")
         );
     }
 
@@ -698,12 +699,15 @@ public class ProductosController {
             Spinner<Integer> fStock    = new Spinner<>(0, Integer.MAX_VALUE, existing != null ? existing.getStockActual() : 0);
             fStock.setEditable(true); fStock.setMaxWidth(Double.MAX_VALUE);
             fStock.getStyleClass().add("form-input");
+            DialogUtil.commitOnFocusLoss(fStock);
             Spinner<Integer> fStockMin = new Spinner<>(0, Integer.MAX_VALUE, existing != null ? existing.getStockMinimo() : 0);
             fStockMin.setEditable(true); fStockMin.setMaxWidth(Double.MAX_VALUE);
             fStockMin.getStyleClass().add("form-input");
+            DialogUtil.commitOnFocusLoss(fStockMin);
             Spinner<Integer> fStockMax = new Spinner<>(0, Integer.MAX_VALUE, existing != null ? existing.getStockMaximo() : 100);
             fStockMax.setEditable(true); fStockMax.setMaxWidth(Double.MAX_VALUE);
             fStockMax.getStyleClass().add("form-input");
+            DialogUtil.commitOnFocusLoss(fStockMax);
             ComboBox<UnidadMedida> fUnidad = new ComboBox<>(
                 FXCollections.observableArrayList(UnidadMedida.values()));
             fUnidad.setValue(existing != null ? existing.getUnidad() : UnidadMedida.PIEZA);
@@ -755,7 +759,12 @@ public class ProductosController {
                 else fArea.getStyleClass().remove("field-error");
                 if (invalid) return null;
 
+                DialogUtil.commitSpinner(fStock);
+                DialogUtil.commitSpinner(fStockMin);
+                DialogUtil.commitSpinner(fStockMax);
+
                 Producto p = existing != null ? existing : new Producto();
+                if (p.getId() == null) p.setId(java.util.UUID.randomUUID().toString());
                 p.setNombre(fNombre.getText().trim());
                 p.setCodigo(fCodigo.getText().trim());
                 p.setDescripcion(fDesc.getText().trim());

@@ -111,6 +111,27 @@ public final class DialogUtil {
         return l;
     }
 
+    // ── Spinner ──────────────────────────────────────────────────────────
+
+    /**
+     * Works around a known JavaFX bug (JDK-8150946): an editable Spinner does not
+     * commit its editor text unless Enter or the arrow buttons are used. This commits
+     * the typed value when the spinner loses focus (e.g. clicking a dialog's OK button).
+     */
+    public static void commitOnFocusLoss(Spinner<Integer> spinner) {
+        spinner.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+            if (!isNowFocused) commitSpinner(spinner);
+        });
+    }
+
+    /** Force-commits the spinner's editor text into its value factory right now. */
+    public static void commitSpinner(Spinner<Integer> spinner) {
+        var vf = spinner.getValueFactory();
+        if (vf == null) return;
+        Integer value = vf.getConverter().fromString(spinner.getEditor().getText());
+        if (value != null) vf.setValue(value);
+    }
+
     // ── Async pattern ────────────────────────────────────────────────────
 
     /** Runnable variant that allows checked exceptions — usable as a lambda. */

@@ -57,12 +57,13 @@ public class AlertasController {
     private List<Producto> allAgotados  = List.of();
     private List<Producto> allBajoStock = List.of();
     private List<Producto> allGarantias = List.of();
+    private Timeline autoRefresh;
 
     @FXML
     public void initialize() {
         setupColumns();
         loadData();
-        Timeline autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
+        autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
         autoRefresh.play();
         tableAgotados.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
@@ -244,9 +245,7 @@ public class AlertasController {
     @FXML
     private void onReponerTodosAgotados() {
         if (allAgotados.isEmpty()) return;
-        NotificacionUtil.info(tableAgotados.getScene(),
-            "Selecciona cada bien agotado y usa 'Reponer seleccionado' — " + allAgotados.size() + " bienes pendientes");
-        if (!allAgotados.isEmpty()) tableAgotados.getSelectionModel().select(allAgotados.get(0));
+        openMovimientoForm(allAgotados.get(0).getId(), TipoMovimiento.ENTRADA);
     }
 
     @FXML
@@ -313,5 +312,10 @@ public class AlertasController {
 
         dlg.getDialogPane().setContent(new VBox(0, header, grid));
         dlg.showAndWait();
+    }
+
+    /** Stops the auto-refresh timer. Must be called before this controller's view is discarded. */
+    public void stopAutoRefresh() {
+        if (autoRefresh != null) autoRefresh.stop();
     }
 }

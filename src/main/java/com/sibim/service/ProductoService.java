@@ -61,7 +61,13 @@ public class ProductoService {
         Producto p = opt.get();
         if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
-        productoRepo.delete(id);
+        try {
+            productoRepo.delete(id);
+        } catch (SQLException e) {
+            if ("23503".equals(e.getSQLState()))
+                throw new ValidationException("No se puede eliminar: este bien tiene movimientos registrados en su historial");
+            throw e;
+        }
     }
 
     public long countAll() throws SQLException {
