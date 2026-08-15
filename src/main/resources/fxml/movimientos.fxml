@@ -36,55 +36,51 @@
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
     <HBox spacing="12">
         <!-- Total movimientos — purple -->
-        <VBox styleClass="rich-stat-card"
-              style="-fx-background-color: #7C3AED; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+        <VBox styleClass="rich-stat-card, rich-stat-purple"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="↕" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
-                <Label text="TOTAL MOVIMIENTOS" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+                <Label text="↕" styleClass="rich-stat-icon"/>
+                <Label text="TOTAL MOVIMIENTOS" styleClass="rich-stat-label"/>
             </HBox>
-            <Label fx:id="lblStatTotalMov" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="en el período filtrado" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+            <Label fx:id="lblStatTotalMov" text="—" styleClass="rich-stat-value"/>
+            <Label text="en el período filtrado" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Entradas — green -->
-        <VBox styleClass="rich-stat-card"
-              style="-fx-background-color: #16A34A; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+        <VBox styleClass="rich-stat-card, rich-stat-green"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⬆" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
-                <Label text="ENTRADAS" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+                <Label text="⬆" styleClass="rich-stat-icon"/>
+                <Label text="ENTRADAS" styleClass="rich-stat-label"/>
             </HBox>
-            <Label fx:id="lblStatEntradas" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="incrementan el stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+            <Label fx:id="lblStatEntradas" text="—" styleClass="rich-stat-value"/>
+            <Label text="incrementan el stock" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Salidas — red -->
-        <VBox styleClass="rich-stat-card"
-              style="-fx-background-color: #DC2626; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+        <VBox styleClass="rich-stat-card, rich-stat-red"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⬇" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
-                <Label text="SALIDAS" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+                <Label text="⬇" styleClass="rich-stat-icon"/>
+                <Label text="SALIDAS" styleClass="rich-stat-label"/>
             </HBox>
-            <Label fx:id="lblStatSalidas" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="reducen el stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+            <Label fx:id="lblStatSalidas" text="—" styleClass="rich-stat-value"/>
+            <Label text="reducen el stock" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Ajustes / Transferencias — amber -->
-        <VBox styleClass="rich-stat-card"
-              style="-fx-background-color: #D97706; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+        <VBox styleClass="rich-stat-card, rich-stat-amber"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⇄" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
-                <Label text="AJUSTES / TRANSF." style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+                <Label text="⇄" styleClass="rich-stat-icon"/>
+                <Label text="AJUSTES / TRANSF." styleClass="rich-stat-label"/>
             </HBox>
-            <Label fx:id="lblStatAjustes" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="ajustes y transferencias" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+            <Label fx:id="lblStatAjustes" text="—" styleClass="rich-stat-value"/>
+            <Label text="ajustes y transferencias" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
 

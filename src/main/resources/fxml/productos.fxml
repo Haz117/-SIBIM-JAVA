@@ -16,7 +16,7 @@
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Bienes Patrimoniales" styleClass="page-title"/>
-            <Label text="Inventario de bienes del H. Ayuntamiento de Huejutla" styleClass="page-subtitle"/>
+            <Label text="Inventario de bienes del H. Ayuntamiento de Ixmiquilpan" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
         <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
@@ -36,42 +36,39 @@
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
     <HBox spacing="12">
         <!-- Total de Bienes — indigo -->
-        <VBox styleClass="rich-stat-card"
-              style="-fx-background-color: #4F46E5; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+        <VBox styleClass="rich-stat-card, rich-stat-indigo"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="📦" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
-                <Label text="TOTAL DE BIENES" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+                <Label text="📦" styleClass="rich-stat-icon"/>
+                <Label text="TOTAL DE BIENES" styleClass="rich-stat-label"/>
             </HBox>
-            <Label fx:id="lblStatTotal" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="bienes patrimoniales" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+            <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
+            <Label text="bienes patrimoniales" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Valor del Inventario — teal -->
-        <VBox styleClass="rich-stat-card"
-              style="-fx-background-color: #0891B2; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+        <VBox styleClass="rich-stat-card, rich-stat-teal"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="💰" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
-                <Label text="VALOR DEL INVENTARIO" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+                <Label text="💰" styleClass="rich-stat-icon"/>
+                <Label text="VALOR DEL INVENTARIO" styleClass="rich-stat-label"/>
             </HBox>
-            <Label fx:id="lblStatValor" text="—" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="precio unitario × stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+            <Label fx:id="lblStatValor" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
+            <Label text="precio unitario × stock" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Bienes con Alerta — amber -->
-        <VBox fx:id="cardAlertas" styleClass="rich-stat-card"
-              style="-fx-background-color: #D97706; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);"
+        <VBox fx:id="cardAlertas" styleClass="rich-stat-card, rich-stat-amber"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⚠" style="-fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85;"/>
-                <Label text="BIENES CON ALERTA" style="-fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold;"/>
+                <Label text="⚠" styleClass="rich-stat-icon"/>
+                <Label text="BIENES CON ALERTA" styleClass="rich-stat-label"/>
             </HBox>
-            <Label fx:id="lblStatAlertas" text="—" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="agotados · bajo stock" style="-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60);"/>
+            <Label fx:id="lblStatAlertas" text="—" styleClass="rich-stat-value"/>
+            <Label text="agotados · bajo stock" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
 

@@ -33,6 +33,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.util.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -45,6 +47,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class ProductosController {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductosController.class);
 
     @FXML private VBox rootPane;
     @FXML private TextField searchField;
@@ -364,19 +368,18 @@ public class ProductosController {
     }
 
     private void setupFilters() {
-        new Thread(() -> {
-            try {
-                List<Categoria> cats = categoriaRepo.findAll();
-                Platform.runLater(() -> {
-                    categoriaFilter.getItems().add(null);
-                    categoriaFilter.getItems().addAll(cats);
-                    categoriaFilter.setConverter(new javafx.util.StringConverter<>() {
-                        public String toString(Categoria c) { return c == null ? "Todas" : c.getNombre(); }
-                        public Categoria fromString(String s) { return null; }
-                    });
+        DialogUtil.runAsync(
+            () -> categoriaRepo.findAll(),
+            cats -> {
+                categoriaFilter.getItems().add(null);
+                categoriaFilter.getItems().addAll(cats);
+                categoriaFilter.setConverter(new javafx.util.StringConverter<>() {
+                    public String toString(Categoria c) { return c == null ? "Todas" : c.getNombre(); }
+                    public Categoria fromString(String s) { return null; }
                 });
-            } catch (Exception e) { e.printStackTrace(); }
-        }).start();
+            },
+            e -> log.error("No se pudieron cargar las categorías para el filtro", e)
+        );
 
         PauseTransition searchDebounce = new PauseTransition(Duration.millis(280));
         searchField.textProperty().addListener((obs, o, n) -> {
@@ -531,49 +534,40 @@ public class ProductosController {
         }
         if (!ConfirmacionUtil.confirmarEliminar(seleccionado.getNombre())) return;
         String nombre = seleccionado.getNombre();
-        new Thread(() -> {
-            try {
-                productoService.delete(seleccionado.getId());
-                Platform.runLater(() -> {
-                    allData.remove(seleccionado);
-                    updateStats();
-                    applyFilters();
-                    NotificacionUtil.exito(table.getScene(), "Bien \"" + nombre + "\" eliminado correctamente");
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo eliminar el bien"));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> productoService.delete(seleccionado.getId()),
+            () -> {
+                allData.remove(seleccionado);
+                updateStats();
+                applyFilters();
+                NotificacionUtil.exito(table.getScene(), "Bien \"" + nombre + "\" eliminado correctamente");
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo eliminar el bien")
+        );
     }
 
     @FXML
     private void onExportCsv() {
-        new Thread(() -> {
-            try {
-                File file = reporteService.exportInventarioCsv(null, null);
-                Platform.runLater(() -> {
-                    NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
-                    openFile(file);
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV"));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> reporteService.exportInventarioCsv(null, null),
+            file -> {
+                NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
+                openFile(file);
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
+        );
     }
 
     @FXML
     private void onExportExcel() {
-        new Thread(() -> {
-            try {
-                File file = reporteService.exportInventarioExcel(null, null);
-                Platform.runLater(() -> {
-                    NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
-                    openFile(file);
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel"));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> reporteService.exportInventarioExcel(null, null),
+            file -> {
+                NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
+                openFile(file);
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
+        );
     }
 
     private void showProductDialog(Producto existing) {
@@ -801,23 +795,20 @@ public class ProductosController {
 
             Optional<Producto> result = dialog.showAndWait();
             boolean isNew = existing == null;
-            result.ifPresent(p -> new Thread(() -> {
-                try {
-                    Producto saved = productoService.save(p);
-                    Platform.runLater(() -> {
-                        if (isNew) {
-                            allData.add(saved);
-                            NotificacionUtil.exito(table.getScene(), "Bien registrado exitosamente");
-                        } else {
-                            NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
-                        }
-                        updateStats();
-                        applyFilters();
-                    });
-                } catch (Exception e) {
-                    Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo guardar el bien: " + e.getMessage()));
-                }
-            }).start());
+            result.ifPresent(p -> DialogUtil.runAsync(
+                () -> productoService.save(p),
+                saved -> {
+                    if (isNew) {
+                        allData.add(saved);
+                        NotificacionUtil.exito(table.getScene(), "Bien registrado exitosamente");
+                    } else {
+                        NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
+                    }
+                    updateStats();
+                    applyFilters();
+                },
+                e -> NotificacionUtil.error(table.getScene(), "No se pudo guardar el bien: " + e.getMessage())
+            ));
 
         } catch (Exception e) {
             NotificacionUtil.error(table.getScene(), "Error al abrir el formulario");

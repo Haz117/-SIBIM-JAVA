@@ -53,22 +53,18 @@ public class OrganigramaController {
 
     private void loadData() {
         spinner.setVisible(true); spinner.setManaged(true);
-        new Thread(() -> {
-            try {
-                List<Producto> todos = productoRepo.findAll();
-                productosPorArea = todos.stream()
-                    .collect(Collectors.groupingBy(Producto::getArea));
-                Platform.runLater(() -> {
-                    spinner.setVisible(false); spinner.setManaged(false);
-                    buildTree(searchField.getText() != null ? searchField.getText() : "");
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    spinner.setVisible(false); spinner.setManaged(false);
-                    NotificacionUtil.error(searchField.getScene(), "No se pudo cargar el organigrama");
-                });
+        DialogUtil.runAsync(
+            () -> productoRepo.findAll().stream().collect(Collectors.groupingBy(Producto::getArea)),
+            porArea -> {
+                productosPorArea = porArea;
+                spinner.setVisible(false); spinner.setManaged(false);
+                buildTree(searchField.getText() != null ? searchField.getText() : "");
+            },
+            e -> {
+                spinner.setVisible(false); spinner.setManaged(false);
+                NotificacionUtil.error(searchField.getScene(), "No se pudo cargar el organigrama");
             }
-        }).start();
+        );
     }
 
     private void buildTree(String filter) {

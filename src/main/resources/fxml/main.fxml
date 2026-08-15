@@ -111,7 +111,7 @@
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusUserLabel" text="—" styleClass="status-text"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Label text="H. Ayuntamiento de Huejutla" styleClass="status-text"/>
+        <Label text="H. Ayuntamiento de Ixmiquilpan" styleClass="status-text"/>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusTimeLabel" text="00:00" styleClass="status-time"/>
     </HBox>

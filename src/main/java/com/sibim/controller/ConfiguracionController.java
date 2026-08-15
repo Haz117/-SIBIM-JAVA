@@ -148,14 +148,11 @@ public class ConfiguracionController {
     }
 
     private void loadUsers() {
-        new Thread(() -> {
-            try {
-                List<Usuario> users = usuarioRepo.findAll();
-                Platform.runLater(() -> usersTable.setItems(FXCollections.observableArrayList(users)));
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar la lista de usuarios"));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> usuarioRepo.findAll(),
+            users -> usersTable.setItems(FXCollections.observableArrayList(users)),
+            e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar la lista de usuarios")
+        );
     }
 
     @FXML
@@ -190,17 +187,14 @@ public class ConfiguracionController {
             return;
         }
         if (!ConfirmacionUtil.confirmarEliminar(sel.getNombre())) return;
-        new Thread(() -> {
-            try {
-                usuarioRepo.delete(sel.getId());
-                Platform.runLater(() -> {
-                    loadUsers();
-                    NotificacionUtil.exito(usersTable.getScene(), "Usuario \"" + sel.getNombre() + "\" eliminado");
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(usersTable.getScene(), "No se pudo eliminar el usuario"));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> usuarioRepo.delete(sel.getId()),
+            () -> {
+                loadUsers();
+                NotificacionUtil.exito(usersTable.getScene(), "Usuario \"" + sel.getNombre() + "\" eliminado");
+            },
+            e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo eliminar el usuario")
+        );
     }
 
     private void showUserDialog(Usuario existing, boolean passwordOnly) {
@@ -299,22 +293,25 @@ public class ConfiguracionController {
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
-            new Thread(() -> {
-                try {
-                    if (passwordOnly) {
+            if (passwordOnly) {
+                DialogUtil.runAsync(
+                    () -> {
                         String hash = BCrypt.withDefaults().hashToString(12, fPassword.getText().toCharArray());
                         usuarioRepo.updatePassword(existing.getId(), hash);
-                        Platform.runLater(() -> {
-                            loadUsers();
-                            NotificacionUtil.exito(usersTable.getScene(), "Contraseña actualizada correctamente");
-                        });
-                    } else {
+                    },
+                    () -> {
+                        loadUsers();
+                        NotificacionUtil.exito(usersTable.getScene(), "Contraseña actualizada correctamente");
+                    },
+                    e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo guardar el usuario")
+                );
+            } else {
+                DialogUtil.runAsync(
+                    () -> {
                         String usernameVal = fUsername.getText().trim().toLowerCase();
                         String excludeId = existing != null ? existing.getId() : null;
                         if (usuarioRepo.existsByUsername(usernameVal, excludeId)) {
-                            Platform.runLater(() -> NotificacionUtil.advertencia(usersTable.getScene(),
-                                "Ya existe un usuario con ese nombre de usuario"));
-                            return;
+                            throw new IllegalStateException("Ya existe un usuario con ese nombre de usuario");
                         }
                         Usuario u = existing != null ? existing : new Usuario();
                         if (u.getId() == null) {
@@ -330,18 +327,24 @@ public class ConfiguracionController {
                             u.setPasswordHash(BCrypt.withDefaults().hashToString(12, fPassword.getText().toCharArray()));
                         }
                         usuarioRepo.save(u);
+                        return u;
+                    },
+                    u -> {
                         boolean editedSelf = !isNew && u.getId().equals(SessionManager.getCurrentUser().getId());
-                        Platform.runLater(() -> {
-                            loadUsers();
-                            NotificacionUtil.exito(usersTable.getScene(),
-                                isNew ? "Usuario registrado exitosamente" : "Usuario actualizado correctamente");
-                            if (editedSelf) refreshProfileCard(u);
-                        });
+                        loadUsers();
+                        NotificacionUtil.exito(usersTable.getScene(),
+                            isNew ? "Usuario registrado exitosamente" : "Usuario actualizado correctamente");
+                        if (editedSelf) refreshProfileCard(u);
+                    },
+                    e -> {
+                        if (e instanceof IllegalStateException) {
+                            NotificacionUtil.advertencia(usersTable.getScene(), e.getMessage());
+                        } else {
+                            NotificacionUtil.error(usersTable.getScene(), "No se pudo guardar el usuario");
+                        }
                     }
-                } catch (Exception e) {
-                    Platform.runLater(() -> NotificacionUtil.error(usersTable.getScene(), "No se pudo guardar el usuario"));
-                }
-            }).start();
+                );
+            }
         }
     }
 }

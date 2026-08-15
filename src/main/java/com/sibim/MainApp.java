@@ -1,5 +1,6 @@
 package com.sibim;
 
+import atlantafx.base.theme.PrimerLight;
 import com.sibim.util.AnimationUtils;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
@@ -18,6 +19,7 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
         primaryStage = stage;
         showSplash();
     }

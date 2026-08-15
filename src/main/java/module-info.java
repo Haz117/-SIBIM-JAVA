@@ -13,6 +13,7 @@ module com.sibim {
     requires itextpdf;
     requires org.slf4j;
     requires io.github.cdimascio.dotenv.java;
+    requires atlantafx.base;
 
     opens com.sibim to javafx.fxml;
     opens com.sibim.controller to javafx.fxml;

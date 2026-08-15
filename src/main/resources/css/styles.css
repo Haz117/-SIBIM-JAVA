@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    SIBIM  Design System  v2.3
-   Sistema Integral de Bienes Municipales — H. Ayuntamiento de Huejutla
+   Sistema Integral de Bienes Municipales — H. Ayuntamiento de Ixmiquilpan
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── Base ──────────────────────────────────────────────────────── */
@@ -404,6 +404,7 @@
 .stat-card .stat-icon  { -fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8; }
 .stat-card .stat-label { -fx-text-fill: rgba(255,255,255,0.82); -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-padding: 0 0 2 0; }
 .stat-card .stat-value { -fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: white; }
+.stat-card .stat-value-currency { -fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: white; }
 .stat-card .stat-hint  { -fx-text-fill: rgba(255,255,255,0.58); -fx-font-size: 10.5px; }
 /* Keep single-class fallbacks for sizing */
 .stat-icon  { -fx-font-size: 34px; -fx-padding: 0 4 0 8; }
@@ -2147,6 +2148,7 @@
 .rich-stat-card .rich-stat-icon  { -fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85; }
 .rich-stat-card .rich-stat-label { -fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold; }
 .rich-stat-card .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white; }
+.rich-stat-card .rich-stat-value.rich-stat-value-sm { -fx-font-size: 18px; }
 .rich-stat-card .rich-stat-hint  { -fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60); }
 /* Single-class fallbacks for sizing only */
 .rich-stat-label { -fx-font-size: 10.5px; -fx-font-weight: bold; }

@@ -31,7 +31,7 @@
             <Label text="Sistema Integral de Bienes Municipales"
                    styleClass="splash-subtitle" wrapText="true" maxWidth="360"
                    textAlignment="CENTER"/>
-            <Label text="H. Ayuntamiento de Huejutla · Hidalgo"
+            <Label text="H. Ayuntamiento de Ixmiquilpan · Hidalgo"
                    styleClass="splash-org"/>
         </VBox>
 

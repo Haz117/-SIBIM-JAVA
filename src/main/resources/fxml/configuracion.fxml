@@ -42,7 +42,7 @@
             <VBox alignment="CENTER_RIGHT" spacing="4" styleClass="profile-deco-badge">
                 <Label text="🏛" styleClass="profile-deco-icon"/>
                 <Label text="H. Ayuntamiento" styleClass="profile-deco-name"/>
-                <Label text="de Huejutla" styleClass="profile-deco-sub"/>
+                <Label text="de Ixmiquilpan" styleClass="profile-deco-sub"/>
             </VBox>
         </HBox>
 

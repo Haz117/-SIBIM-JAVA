@@ -1,8 +1,8 @@
 package com.sibim.controller;
 
 import com.sibim.service.ReporteService;
+import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -99,24 +99,21 @@ public class ReportesController {
     private void exportar(ExportTask task) {
         spinner.setVisible(true);
         spinner.setManaged(true);
-        new Thread(() -> {
-            try {
-                File file = task.run();
-                Platform.runLater(() -> {
-                    spinner.setVisible(false);
-                    spinner.setManaged(false);
-                    NotificacionUtil.exito(spinner.getScene(), "Reporte generado — " + file.getName());
-                    try { Desktop.getDesktop().open(file); }
-                    catch (Exception ignored) { /* file already notified */ }
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    spinner.setVisible(false);
-                    spinner.setManaged(false);
-                    NotificacionUtil.error(spinner.getScene(), "Error al generar el reporte");
-                });
+        DialogUtil.runAsync(
+            task::run,
+            file -> {
+                spinner.setVisible(false);
+                spinner.setManaged(false);
+                NotificacionUtil.exito(spinner.getScene(), "Reporte generado — " + file.getName());
+                try { Desktop.getDesktop().open(file); }
+                catch (Exception ignored) { /* file already notified */ }
+            },
+            e -> {
+                spinner.setVisible(false);
+                spinner.setManaged(false);
+                NotificacionUtil.error(spinner.getScene(), "Error al generar el reporte");
             }
-        }).start();
+        );
     }
 
     @FunctionalInterface

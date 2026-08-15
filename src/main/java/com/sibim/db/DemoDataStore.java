@@ -182,22 +182,6 @@ public final class DemoDataStore {
                        && !p.getId().equals(excludeId != null ? excludeId : ""));
     }
 
-    public static List<Producto> searchProductos(String query, String categoriaId, String area,
-                                                  Set<String> accessibleAreas) {
-        String q = query != null ? query.toLowerCase() : "";
-        return PRODUCTOS.stream()
-            .filter(p -> accessibleAreas == null || accessibleAreas.contains(p.getArea()))
-            .filter(p -> q.isBlank() ||
-                p.getNombre().toLowerCase().contains(q) ||
-                p.getCodigo().toLowerCase().contains(q) ||
-                (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(q)) ||
-                (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(q)))
-            .filter(p -> categoriaId == null || categoriaId.isBlank() || categoriaId.equals(p.getCategoriaId()))
-            .filter(p -> area == null || area.isBlank() || area.equals(p.getArea()))
-            .sorted(Comparator.comparing(Producto::getNombre))
-            .collect(Collectors.toList());
-    }
-
     public static void saveProducto(Producto p) {
         PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
         PRODUCTOS.add(p);

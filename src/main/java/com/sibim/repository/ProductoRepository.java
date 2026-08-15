@@ -23,9 +23,15 @@ public class ProductoRepository {
     public List<Producto> findAll() throws SQLException {
         if (DatabaseConfig.isDemoMode())
             return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
-        String where = buildAreaWhere();
-        String sql = BASE_SELECT + where + " ORDER BY p.nombre";
-        return query(sql, null);
+        StringBuilder sb = new StringBuilder(BASE_SELECT);
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null) {
+            sb.append(" WHERE p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        sb.append(" ORDER BY p.nombre");
+        return queryDynamic(sb.toString(), params);
     }
 
     public List<Producto> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
@@ -74,44 +80,6 @@ public class ProductoRepository {
         String sql = BASE_SELECT + " WHERE p.codigo = ?";
         List<Producto> results = query(sql, codigo);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
-    }
-
-    public List<Producto> search(String query, String categoriaId, String area) throws SQLException {
-        if (DatabaseConfig.isDemoMode())
-            return DemoDataStore.searchProductos(query, categoriaId, area,
-                SessionManager.getAccessibleAreas());
-        StringBuilder sb = new StringBuilder(BASE_SELECT);
-        List<Object> params = new ArrayList<>();
-        List<String> conditions = new ArrayList<>();
-
-        // Area restriction from session
-        Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
-            sb.append(" WHERE p.area = ANY(?) ");
-            params.add(accessible.toArray(new String[0]));
-        }
-
-        if (query != null && !query.isBlank()) {
-            String like = "%" + query.toLowerCase() + "%";
-            conditions.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ?)");
-            params.add(like); params.add(like); params.add(like); params.add(like);
-        }
-        if (categoriaId != null && !categoriaId.isBlank()) {
-            conditions.add("p.categoria_id = ?");
-            params.add(categoriaId);
-        }
-        if (area != null && !area.isBlank()) {
-            conditions.add("p.area = ?");
-            params.add(area);
-        }
-
-        if (!conditions.isEmpty()) {
-            sb.append(accessible != null ? " AND " : " WHERE ");
-            sb.append(String.join(" AND ", conditions));
-        }
-        sb.append(" ORDER BY p.nombre");
-
-        return queryDynamic(sb.toString(), params);
     }
 
     public Producto save(Producto p) throws SQLException {
@@ -212,14 +180,6 @@ public class ProductoRepository {
     }
 
     // --- Internal helpers ---
-
-    private String buildAreaWhere() {
-        Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible == null) return "";
-        return " WHERE p.area = ANY(ARRAY[" +
-               accessible.stream().map(a -> "'" + a.replace("'", "''") + "'")
-                         .reduce((a, b) -> a + "," + b).orElse("''") + "])";
-    }
 
     private List<Producto> query(String sql, String param) throws SQLException {
         List<Producto> list = new ArrayList<>();

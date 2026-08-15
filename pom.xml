@@ -85,6 +85,13 @@
             <artifactId>dotenv-java</artifactId>
             <version>3.0.2</version>
         </dependency>
+
+        <!-- AtlantaFX - modern JavaFX theme base (replaces default Modena stylesheet) -->
+        <dependency>
+            <groupId>io.github.mkpaz</groupId>
+            <artifactId>atlantafx-base</artifactId>
+            <version>2.0.1</version>
+        </dependency>
     </dependencies>
 
     <build>

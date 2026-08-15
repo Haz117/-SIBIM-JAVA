@@ -165,7 +165,7 @@
                            styleClass="report-card-tag report-card-tag-green"/>
                 </VBox>
             </HBox>
-            <Label text="Bienes patrimoniales agrupados por secretaría y dirección municipal del Ayuntamiento de Huejutla."
+            <Label text="Bienes patrimoniales agrupados por secretaría y dirección municipal del Ayuntamiento de Ixmiquilpan."
                    styleClass="report-desc" wrapText="true"/>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Button text="📄 PDF"   onAction="#onDistribucionPdf"   styleClass="btn-pdf">

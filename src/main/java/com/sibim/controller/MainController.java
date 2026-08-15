@@ -30,12 +30,16 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 public class MainController {
+
+    private static final Logger log = LoggerFactory.getLogger(MainController.class);
 
     @FXML private StackPane contentArea;
     @FXML private Label userNameLabel;
@@ -97,7 +101,7 @@ public class MainController {
     private void onLogout() {
         if (!ConfirmacionUtil.confirmar("Cerrar sesión", "¿Deseas cerrar tu sesión?")) return;
         SessionManager.logout();
-        try { MainApp.showLogin(); } catch (Exception e) { e.printStackTrace(); }
+        try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
     }
 
     private void navigateTo(String view, Button button) {
@@ -125,38 +129,35 @@ public class MainController {
                 AnimationUtils.pageIn(node);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("No se pudo cargar la vista: {}", view, e);
             NotificacionUtil.error(contentArea.getScene(), "No se pudo cargar la vista: " + view);
         }
     }
 
     private void loadAlertBadge() {
-        new Thread(() -> {
-            try {
-                int agotados  = alertProductoService.getAgotados().size();
-                int bajoStock = alertProductoService.getBajoStock().size();
-                int total = agotados + bajoStock;
-                javafx.application.Platform.runLater(() -> {
-                    if (alertBadge == null) return;
-                    if (total > 0) {
-                        alertBadge.setText(total > 99 ? "99+" : String.valueOf(total));
-                        boolean wasHidden = !alertBadge.isVisible();
-                        alertBadge.setVisible(true);
-                        alertBadge.setManaged(true);
-                        if (wasHidden) {
-                            ScaleTransition pop = new ScaleTransition(Duration.millis(320), alertBadge);
-                            pop.setFromX(0.3); pop.setFromY(0.3);
-                            pop.setToX(1.0);   pop.setToY(1.0);
-                            pop.setInterpolator(Interpolator.EASE_OUT);
-                            pop.play();
-                        }
-                    } else {
-                        alertBadge.setVisible(false);
-                        alertBadge.setManaged(false);
+        DialogUtil.runAsync(
+            () -> alertProductoService.getAgotados().size() + alertProductoService.getBajoStock().size(),
+            total -> {
+                if (alertBadge == null) return;
+                if (total > 0) {
+                    alertBadge.setText(total > 99 ? "99+" : String.valueOf(total));
+                    boolean wasHidden = !alertBadge.isVisible();
+                    alertBadge.setVisible(true);
+                    alertBadge.setManaged(true);
+                    if (wasHidden) {
+                        ScaleTransition pop = new ScaleTransition(Duration.millis(320), alertBadge);
+                        pop.setFromX(0.3); pop.setFromY(0.3);
+                        pop.setToX(1.0);   pop.setToY(1.0);
+                        pop.setInterpolator(Interpolator.EASE_OUT);
+                        pop.play();
                     }
-                });
-            } catch (Exception e) { /* silently ignore — badge is decorative */ }
-        }).start();
+                } else {
+                    alertBadge.setVisible(false);
+                    alertBadge.setManaged(false);
+                }
+            },
+            e -> { /* silently ignore — badge is decorative */ }
+        );
     }
 
     private void updateStatusBar() {

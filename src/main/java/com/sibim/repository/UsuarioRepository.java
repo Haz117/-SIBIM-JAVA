@@ -4,6 +4,7 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
+import com.sibim.session.SessionManager;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -13,6 +14,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class UsuarioRepository {
+
+    private void requireAdmin() {
+        if (!SessionManager.isAdmin()) {
+            throw new SecurityException("Solo el administrador puede gestionar usuarios");
+        }
+    }
 
     public Optional<Usuario> findByUsername(String username) throws SQLException {
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findUserByUsername(username);
@@ -54,6 +61,7 @@ public class UsuarioRepository {
     }
 
     public Usuario save(Usuario u) throws SQLException {
+        requireAdmin();
         if (u.getId() == null) u.setId(UUID.randomUUID().toString());
         if (DatabaseConfig.isDemoMode()) {
             if (u.getCreadoEn() == null) u.setCreadoEn(java.time.LocalDateTime.now());
@@ -89,6 +97,7 @@ public class UsuarioRepository {
     }
 
     public void updatePassword(String userId, String newHash) throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.updateUsuarioPassword(userId, newHash);
             return;
@@ -103,6 +112,7 @@ public class UsuarioRepository {
     }
 
     public void delete(String userId) throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.deleteUsuario(userId);
             return;

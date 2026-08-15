@@ -18,10 +18,6 @@ public class ProductoService {
         return productoRepo.findAll();
     }
 
-    public List<Producto> search(String query, String categoriaId, String area) throws SQLException {
-        return productoRepo.search(query, categoriaId, area);
-    }
-
     public Optional<Producto> findById(String id) throws SQLException {
         return productoRepo.findById(id);
     }
@@ -59,7 +55,12 @@ public class ProductoService {
         return productoRepo.save(p);
     }
 
-    public void delete(String id) throws SQLException {
+    public void delete(String id) throws SQLException, ValidationException {
+        Optional<Producto> opt = productoRepo.findById(id);
+        if (opt.isEmpty()) return;
+        Producto p = opt.get();
+        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+            throw new ValidationException("No tienes acceso a esa area");
         productoRepo.delete(id);
     }
 

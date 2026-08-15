@@ -472,52 +472,43 @@ public class MovimientosController {
             return;
         }
         if (!ConfirmacionUtil.confirmarEliminar("este movimiento")) return;
-        new Thread(() -> {
-            try {
-                movimientoService.eliminar(sel.getId());
-                Platform.runLater(() -> {
-                    allData.remove(sel);
-                    applyFilters();
-                    NotificacionUtil.exito(table.getScene(), "Movimiento eliminado");
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo eliminar el movimiento"));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> movimientoService.eliminar(sel.getId()),
+            () -> {
+                allData.remove(sel);
+                applyFilters();
+                NotificacionUtil.exito(table.getScene(), "Movimiento eliminado");
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo eliminar el movimiento")
+        );
     }
 
     @FXML
     private void onExportCsv() {
-        new Thread(() -> {
-            try {
-                File file = reporteService.exportMovimientosCsv(
-                    desdeFilter != null ? desdeFilter.getValue() : null,
-                    hastaFilter != null ? hastaFilter.getValue() : null);
-                Platform.runLater(() -> {
-                    NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
-                    openFile(file);
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo exportar: " + e.getMessage()));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> reporteService.exportMovimientosCsv(
+                desdeFilter != null ? desdeFilter.getValue() : null,
+                hastaFilter != null ? hastaFilter.getValue() : null),
+            file -> {
+                NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
+                openFile(file);
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar: " + e.getMessage())
+        );
     }
 
     @FXML
     private void onExportExcel() {
-        new Thread(() -> {
-            try {
-                File file = reporteService.exportMovimientosExcel(
-                    desdeFilter != null ? desdeFilter.getValue() : null,
-                    hastaFilter != null ? hastaFilter.getValue() : null);
-                Platform.runLater(() -> {
-                    NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
-                    openFile(file);
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo exportar: " + e.getMessage()));
-            }
-        }).start();
+        DialogUtil.runAsync(
+            () -> reporteService.exportMovimientosExcel(
+                desdeFilter != null ? desdeFilter.getValue() : null,
+                hastaFilter != null ? hastaFilter.getValue() : null),
+            file -> {
+                NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
+                openFile(file);
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar: " + e.getMessage())
+        );
     }
 
     public void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo) {
@@ -645,27 +636,24 @@ public class MovimientosController {
             Optional<ButtonType> result = dialog.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 Producto p = fProducto.getValue();
-                new Thread(() -> {
-                    try {
-                        Movimiento m = movimientoService.registrar(
-                            p.getId(), fTipo.getValue(), fCantidad.getValue(),
-                            fMotivo.getText().trim(), fRef.getText().trim());
-                        Platform.runLater(() -> {
-                            if (table != null) {
-                                allData.add(0, m);
-                                currentPage = 0;
-                                applyFilters();
-                                if (table.getScene() != null)
-                                    NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
-                            }
-                        });
-                    } catch (Exception e) {
-                        Platform.runLater(() -> {
-                            if (table != null && table.getScene() != null)
-                                NotificacionUtil.error(table.getScene(), e.getMessage());
-                        });
+                DialogUtil.runAsync(
+                    () -> movimientoService.registrar(
+                        p.getId(), fTipo.getValue(), fCantidad.getValue(),
+                        fMotivo.getText().trim(), fRef.getText().trim()),
+                    m -> {
+                        if (table != null) {
+                            allData.add(0, m);
+                            currentPage = 0;
+                            applyFilters();
+                            if (table.getScene() != null)
+                                NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
+                        }
+                    },
+                    e -> {
+                        if (table != null && table.getScene() != null)
+                            NotificacionUtil.error(table.getScene(), e.getMessage());
                     }
-                }).start();
+                );
             }
         } catch (Exception e) {
             if (table != null && table.getScene() != null)

@@ -143,21 +143,18 @@ public class CategoriasController {
 
     private void loadData() {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        new Thread(() -> {
-            try {
-                List<Categoria> cats = categoriaRepo.findAll();
-                Platform.runLater(() -> {
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                    allData.setAll(cats);
-                    applyFilter(searchField.getText());
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                    NotificacionUtil.error(table.getScene(), "No se pudo cargar las categorías");
-                });
+        DialogUtil.runAsync(
+            () -> categoriaRepo.findAll(),
+            cats -> {
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                allData.setAll(cats);
+                applyFilter(searchField.getText());
+            },
+            e -> {
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                NotificacionUtil.error(table.getScene(), "No se pudo cargar las categorías");
             }
-        }).start();
+        );
     }
 
     private void applyFilter(String query) {
@@ -191,23 +188,21 @@ public class CategoriasController {
         Categoria sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) return;
         if (!ConfirmacionUtil.confirmarEliminar(sel.getNombre())) return;
-        new Thread(() -> {
-            try {
+        DialogUtil.runAsync(
+            () -> {
                 if (categoriaRepo.tieneProductos(sel.getId())) {
-                    Platform.runLater(() -> NotificacionUtil.error(table.getScene(),
-                        "No se puede eliminar: hay bienes asignados a esta categoria"));
-                    return;
+                    throw new IllegalStateException("No se puede eliminar: hay bienes asignados a esta categoria");
                 }
                 categoriaRepo.delete(sel.getId());
-                Platform.runLater(() -> {
-                    allData.remove(sel);
-                    applyFilter(searchField.getText());
-                    NotificacionUtil.exito(table.getScene(), "Categoría \"" + sel.getNombre() + "\" eliminada");
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo eliminar la categoría"));
-            }
-        }).start();
+            },
+            () -> {
+                allData.remove(sel);
+                applyFilter(searchField.getText());
+                NotificacionUtil.exito(table.getScene(), "Categoría \"" + sel.getNombre() + "\" eliminada");
+            },
+            e -> NotificacionUtil.error(table.getScene(),
+                e instanceof IllegalStateException ? e.getMessage() : "No se pudo eliminar la categoría")
+        );
     }
 
     private void showDialog(Categoria existing) {

@@ -7,8 +7,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SplashController {
+
+    private static final Logger log = LoggerFactory.getLogger(SplashController.class);
 
     @FXML private StackPane splashRoot;
     @FXML private ProgressBar progressBar;
@@ -52,7 +56,7 @@ public class SplashController {
             try {
                 MainApp.showLogin();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("No se pudo cargar la pantalla de login tras el splash", ex);
             }
         });
 

@@ -8,7 +8,6 @@ import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
 import javafx.util.Duration;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -178,34 +177,33 @@ public class AlertasController {
         });
     }
 
+    private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias) {}
+
     private void loadData() {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        new Thread(() -> {
-            try {
-                List<Producto> agotados = productoService.getAgotados();
-                List<Producto> bajoStock = productoService.getBajoStock();
-                List<Producto> garantias = productoService.getVencidosProximos(7);
-
-                Platform.runLater(() -> {
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                    allAgotados  = agotados;
-                    allBajoStock = bajoStock;
-                    allGarantias = garantias;
-                    if (btnReponerTodos != null) btnReponerTodos.setDisable(agotados.isEmpty());
-                    String query = searchField != null ? searchField.getText() : "";
-                    applySearch(query);
-                    if (lblActualizado != null)
-                        lblActualizado.setText("Actualizado " +
-                            java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                    if (tableAgotados.getScene() != null)
-                        NotificacionUtil.error(tableAgotados.getScene(), "No se pudo cargar las alertas de inventario");
-                });
+        DialogUtil.runAsync(
+            () -> new AlertasData(
+                productoService.getAgotados(),
+                productoService.getBajoStock(),
+                productoService.getVencidosProximos(7)),
+            data -> {
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                allAgotados  = data.agotados();
+                allBajoStock = data.bajoStock();
+                allGarantias = data.garantias();
+                if (btnReponerTodos != null) btnReponerTodos.setDisable(data.agotados().isEmpty());
+                String query = searchField != null ? searchField.getText() : "";
+                applySearch(query);
+                if (lblActualizado != null)
+                    lblActualizado.setText("Actualizado " +
+                        java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
+            },
+            e -> {
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                if (tableAgotados.getScene() != null)
+                    NotificacionUtil.error(tableAgotados.getScene(), "No se pudo cargar las alertas de inventario");
             }
-        }).start();
+        );
     }
 
     private void applySearch(String query) {
