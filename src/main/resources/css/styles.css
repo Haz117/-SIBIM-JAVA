@@ -38,6 +38,10 @@
 .login-brand {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #1E1B4B, #3730A3, #6D28D9);
 }
+.login-deco-circle-1 { -fx-fill: #FFFFFF08; }
+.login-deco-circle-2 { -fx-fill: #FFFFFF06; }
+.login-deco-circle-3 { -fx-fill: #FFFFFF0A; }
+.login-deco-circle-4 { -fx-fill: #FFFFFF0D; }
 .brand-logo-badge {
     -fx-background-color: rgba(255,255,255,0.22);
     -fx-background-radius: 12;
@@ -198,7 +202,7 @@
 }
 .sidebar-app-sub {
     -fx-font-size: 9px;
-    -fx-text-fill: rgba(255,255,255,0.32);
+    -fx-text-fill: rgba(255,255,255,0.55);
     -fx-padding: 0 0 0 1;
 }
 
@@ -312,7 +316,6 @@
     -fx-font-size: 12.5px;
     -fx-text-fill: #64748B;
 }
-.page-greeting { -fx-font-size: 13px; -fx-text-fill: #64748B; }
 .muted         { -fx-text-fill: #94A3B8; -fx-font-size: 12px; }
 .card-title {
     -fx-font-size: 14px;
@@ -412,19 +415,6 @@
 .stat-value { -fx-font-size: 33px; -fx-font-weight: bold; }
 .stat-value-sm { -fx-font-size: 21px; }
 .stat-hint  { -fx-font-size: 10.5px; }
-
-/* ═══════════════════════════════════════════════════════════════════
-   TABLE BOTTOM ACTION BAR
-   ═══════════════════════════════════════════════════════════════════ */
-.table-bottom-bar {
-    -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-border-color: #E0E4ED;
-    -fx-border-width: 1;
-    -fx-border-radius: 10;
-    -fx-padding: 9 14;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 6, 0, 0, 1);
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    BOTONES
@@ -826,7 +816,6 @@
 
 .badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: #DC2626; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
 .badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #D97706; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
-.badge-info    { -fx-background-color: #EDE9FE; -fx-text-fill: #7C3AED; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
 
 /* ─── Row tints (movimientos por tipo) ─── */
 .data-table .table-row-cell.row-entrada            { -fx-background-color: #F6FEF9; }
@@ -841,23 +830,6 @@
 .data-table .table-row-cell.row-ajuste:hover       { -fx-background-color: #FEF9C3; }
 .data-table .table-row-cell.row-transferencia      { -fx-background-color: #F0F6FF; }
 .data-table .table-row-cell.row-transferencia:hover { -fx-background-color: #DBEAFE; }
-
-/* ─── Inventory stat card color modifiers (movimientos) ─── */
-.inv-stat-card-entrada {
-    -fx-border-color: #BBF7D0 #E2E8F0 #E2E8F0 #BBF7D0;
-    -fx-border-width: 0 1 1 4;
-}
-.inv-stat-card-salida {
-    -fx-border-color: #FCA5A5 #E2E8F0 #E2E8F0 #FCA5A5;
-    -fx-border-width: 0 1 1 4;
-}
-.inv-stat-card-ajuste {
-    -fx-border-color: #FDE68A #E2E8F0 #E2E8F0 #FDE68A;
-    -fx-border-width: 0 1 1 4;
-}
-.inv-stat-value-entrada { -fx-text-fill: #059669; }
-.inv-stat-value-salida  { -fx-text-fill: #DC2626; }
-.inv-stat-value-ajuste  { -fx-text-fill: #D97706; }
 
 /* ─── Report card color variants ─── */
 .report-card-teal {
@@ -1119,18 +1091,6 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ACCENT LABEL  — small colored keyword badge (reusable)
-   ═══════════════════════════════════════════════════════════════════ */
-.accent-chip {
-    -fx-background-color: #EEF2FF;
-    -fx-background-radius: 6;
-    -fx-text-fill: #4338CA;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-padding: 2 8;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
    TABLE BOTTOM BAR  — actions & pagination wrapper
    ═══════════════════════════════════════════════════════════════════ */
 .bottom-action-bar {
@@ -1166,10 +1126,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    EMPTY STATE  — placeholder con icono grande
    ═══════════════════════════════════════════════════════════════════ */
-.empty-state-icon {
-    -fx-font-size: 42px;
-    -fx-opacity: 0.45;
-}
 .empty-state-msg {
     -fx-font-size: 14.5px;
     -fx-text-fill: #64748B;
@@ -1241,18 +1197,10 @@
     -fx-text-fill: #374151;
     -fx-font-size: 12.5px;
 }
-.org-child-count {
-    -fx-text-fill: #6B7280;
-    -fx-font-size: 12px;
-}
 .org-product-code {
     -fx-text-fill: #7C3AED;
     -fx-font-family: monospace;
     -fx-font-size: 11px;
-}
-.org-more-label {
-    -fx-font-style: italic;
-    -fx-padding: 2 0 2 16;
 }
 .org-more-link {
     -fx-text-fill: #6366F1;
@@ -1288,9 +1236,6 @@
 }
 
 /* ─── Organigrama child-area card hover ─── */
-.org-child-card-hover:hover {
-    -fx-background-color: #F5F3FF;
-}
 .org-child-header {
     -fx-cursor: hand;
     -fx-background-color: transparent;
@@ -1403,6 +1348,14 @@
     -fx-text-fill: #94A3B8;
     -fx-font-size: 11px;
 }
+.status-shortcut-hint {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+.status-shortcut-hint:hover {
+    -fx-text-fill: #C7D2FE;
+}
 .status-time {
     -fx-text-fill: #C7D2FE;
     -fx-font-size: 11px;
@@ -1485,43 +1438,6 @@
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.7), 0, 0, 0, 0),
                 innershadow(gaussian, rgba(99,102,241,0.35), 6, 0, 0, 0);
 }
-
-/* ═══════════════════════════════════════════════════════════════════
-   INVENTORY STATS BAR  — productos section summary cards
-   ═══════════════════════════════════════════════════════════════════ */
-.inv-stat-card {
-    -fx-background-color: white;
-    -fx-background-radius: 12;
-    -fx-border-color: #E2E8F0;
-    -fx-border-width: 1;
-    -fx-border-radius: 12;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.06), 8, 0, 0, 2);
-    -fx-cursor: hand;
-}
-.inv-stat-card:hover {
-    -fx-border-color: #818CF8;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.16), 12, 0, 0, 3);
-    -fx-translate-y: -1;
-}
-.inv-stat-card-alert {
-    -fx-border-color: #FDE68A #E2E8F0 #E2E8F0 #FDE68A;
-    -fx-border-width: 1;
-}
-.inv-stat-card-alert-active {
-    -fx-border-color: #F59E0B #E2E8F0 #E2E8F0 #F59E0B;
-    -fx-border-width: 0 1 1 4;
-}
-.inv-stat-label {
-    -fx-font-size: 10px;
-    -fx-text-fill: #94A3B8;
-    -fx-font-weight: bold;
-}
-.inv-stat-value {
-    -fx-font-size: 28px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #1E293B;
-}
-.inv-stat-value-sm { -fx-font-size: 17px; }
 
 /* ═══════════════════════════════════════════════════════════════════
    FILTER CHIPS  — quick status toggle buttons (ToggleButton style)
@@ -1610,25 +1526,6 @@
 .combo-box-popup .list-view .list-cell:filled:hover {
     -fx-background-color: #EEF2FF;
     -fx-text-fill: #4338CA;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   PRODUCTOS — stat card left-accent variants
-   ═══════════════════════════════════════════════════════════════════ */
-.prod-stat-indigo {
-    -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1;
-    -fx-border-width: 0 1 1 4;
-}
-.prod-stat-teal {
-    -fx-border-color: #0891B2 #E2E8F0 #E2E8F0 #0891B2;
-    -fx-border-width: 0 1 1 4;
-}
-.prod-stat-value-indigo { -fx-text-fill: #4338CA; -fx-font-weight: bold; }
-.prod-stat-value-teal   { -fx-text-fill: #0E7490; -fx-font-weight: bold; }
-.prod-stat-value-amber  { -fx-text-fill: #92400E; -fx-font-weight: bold; }
-.prod-stat-label-icon {
-    -fx-font-size: 16px;
-    -fx-padding: 0 6 0 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1808,21 +1705,6 @@
     -fx-border-radius: 12;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   MOVIMIENTOS / INVENTARIO — stat card icon colors
-   ═══════════════════════════════════════════════════════════════════ */
-.inv-stat-card-total   { -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1; -fx-border-width: 0 1 1 4; }
-.inv-stat-card-entrada { -fx-border-color: #059669 #E2E8F0 #E2E8F0 #059669; -fx-border-width: 0 1 1 4; }
-.inv-stat-card-salida  { -fx-border-color: #DC2626 #E2E8F0 #E2E8F0 #DC2626; -fx-border-width: 0 1 1 4; }
-.inv-stat-card-ajuste  { -fx-border-color: #D97706 #E2E8F0 #E2E8F0 #D97706; -fx-border-width: 0 1 1 4; }
-.inv-stat-value-total   { -fx-text-fill: #3730A3; }
-.inv-stat-value-entrada { -fx-text-fill: #047857; }
-.inv-stat-value-salida  { -fx-text-fill: #B91C1C; }
-.inv-stat-value-ajuste  { -fx-text-fill: #92400E; }
-.inv-stat-icon-indigo  { -fx-font-size: 15px; -fx-text-fill: #6366F1; }
-.inv-stat-icon-green   { -fx-font-size: 14px; -fx-text-fill: #059669; }
-.inv-stat-icon-red     { -fx-font-size: 14px; -fx-text-fill: #DC2626; }
-.inv-stat-icon-amber   { -fx-font-size: 14px; -fx-text-fill: #D97706; }
 
 /* Pagination page label */
 .pagination-lbl { -fx-font-size: 12px; -fx-text-fill: #475569; }
@@ -1937,11 +1819,6 @@
     -fx-background-color: #0891B2;
     -fx-min-width: 3; -fx-min-height: 16;
     -fx-background-radius: 2;
-}
-
-/* Glow effect on amber alert stat card when there are active alerts */
-.stat-card-alert-glow {
-    -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.85), 28, 0, 0, 8);
 }
 
 /* Transparent inner ScrollPane (organigrama tree) */
@@ -2079,8 +1956,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    SEARCH CLEAR BUTTON — overlaid ✕ inside search TextField
    ═══════════════════════════════════════════════════════════════════ */
-.search-clear-btn,
-.btn-icon-clear {
+.search-clear-btn {
     -fx-background-color: transparent;
     -fx-text-fill: #94A3B8;
     -fx-padding: 0 8 0 0;
@@ -2089,8 +1965,7 @@
     -fx-effect: none;
     -fx-border-color: transparent;
 }
-.search-clear-btn:hover,
-.btn-icon-clear:hover { -fx-text-fill: #475569; }
+.search-clear-btn:hover { -fx-text-fill: #475569; }
 
 /* ═══════════════════════════════════════════════════════════════════
    SHORTCUT HELP DIALOG
@@ -2450,7 +2325,7 @@
 /* Org line */
 .splash-org {
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(255,255,255,0.32);
+    -fx-text-fill: rgba(255,255,255,0.55);
     -fx-font-family: 'Segoe UI';
     -fx-padding: 2 0 0 0;
 }
@@ -2473,7 +2348,7 @@
 /* Status text below progress */
 .splash-status {
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(255,255,255,0.32);
+    -fx-text-fill: rgba(255,255,255,0.55);
     -fx-font-family: 'Segoe UI';
 }
 

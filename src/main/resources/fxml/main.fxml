@@ -113,6 +113,10 @@
         <Region HBox.hgrow="ALWAYS"/>
         <Label text="H. Ayuntamiento de Ixmiquilpan" styleClass="status-text"/>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
+        <Label text="⌨ Atajos (F1)" styleClass="status-shortcut-hint" onMouseClicked="#onShowShortcuts">
+            <tooltip><Tooltip text="Ver todos los atajos de teclado"/></tooltip>
+        </Label>
+        <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusTimeLabel" text="00:00" styleClass="status-time"/>
     </HBox>
 </VBox>

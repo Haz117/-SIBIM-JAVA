@@ -97,6 +97,8 @@ public class ProductoService {
             throw new ValidationException("El stock minimo no puede ser negativo");
         if (p.getStockMaximo() < 0)
             throw new ValidationException("El stock maximo no puede ser negativo");
+        if (p.getStockMinimo() > p.getStockMaximo())
+            throw new ValidationException("El stock minimo no puede ser mayor al stock maximo");
     }
 
     public static class ValidationException extends Exception {

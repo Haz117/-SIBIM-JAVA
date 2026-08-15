@@ -54,8 +54,8 @@ public class ProductoRepository {
             conditions.add("p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
-        if (desde != null) { conditions.add("DATE(p.created_at) >= ?"); params.add(desde); }
-        if (hasta != null) { conditions.add("DATE(p.created_at) <= ?"); params.add(hasta); }
+        if (desde != null) { conditions.add("p.created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { conditions.add("p.created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
         if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
         sb.append(" ORDER BY p.nombre");
         return queryDynamic(sb.toString(), params);
@@ -77,7 +77,7 @@ public class ProductoRepository {
 
     public Optional<Producto> findByCodigo(String codigo) throws SQLException {
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findProductoByCodigo(codigo);
-        String sql = BASE_SELECT + " WHERE p.codigo = ?";
+        String sql = BASE_SELECT + " WHERE LOWER(p.codigo) = LOWER(?)";
         List<Producto> results = query(sql, codigo);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
@@ -168,7 +168,7 @@ public class ProductoRepository {
 
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.existsByCodigo(codigo, excludeId);
-        String sql = "SELECT 1 FROM products WHERE codigo = ? AND id != ?";
+        String sql = "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, codigo);

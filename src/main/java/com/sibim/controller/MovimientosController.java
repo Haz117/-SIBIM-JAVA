@@ -11,7 +11,8 @@ import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
-import javafx.animation.PauseTransition;
+import com.sibim.util.PaginationUtils;
+import com.sibim.util.SearchUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -25,7 +26,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -141,6 +141,7 @@ public class MovimientosController {
     }
 
     private void setupTable() {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         colProducto.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getProductoNombre() != null ? c.getValue().getProductoNombre() : ""));
         colProducto.setCellFactory(col -> new TableCell<>() {
@@ -317,11 +318,7 @@ public class MovimientosController {
     }
 
     private void setupFilters() {
-        PauseTransition searchDebounce = new PauseTransition(Duration.millis(280));
-        searchField.textProperty().addListener((o, a, b) -> {
-            searchDebounce.setOnFinished(e -> { currentPage = 0; applyFilters(); });
-            searchDebounce.playFromStart();
-        });
+        SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
         desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); setActivePreset(null); });
         hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); setActivePreset(null); });
     }
@@ -414,19 +411,8 @@ public class MovimientosController {
     }
 
     private void updateTablePage() {
-        int total = filteredData.size();
-        int from = currentPage * pageSize;
-        int to = Math.min(from + pageSize, total);
-        int totalPages = (int) Math.ceil((double) total / pageSize);
-        if (totalPages == 0) totalPages = 1;
-
-        table.setItems(FXCollections.observableArrayList(filteredData.subList(from, to)));
-
-        if (lblTotal != null) lblTotal.setText(total + (total == 1 ? " movimiento" : " movimientos"));
-        if (lblPage  != null) lblPage.setText(total == 0 ? "—"
-            : "Pág " + (currentPage + 1) + " de " + Math.max(1, totalPages) + "  ·  " + (from + 1) + "–" + to);
-        if (btnPrev  != null) btnPrev.setDisable(currentPage == 0);
-        if (btnNext  != null) btnNext.setDisable(currentPage >= totalPages - 1);
+        PaginationUtils.updatePage(table, filteredData, currentPage, pageSize,
+            lblTotal, lblPage, btnPrev, btnNext, "movimiento", "movimientos");
     }
 
     @FXML private void onPrev() { if (currentPage > 0) { currentPage--; updateTablePage(); } }
@@ -493,7 +479,7 @@ public class MovimientosController {
                 NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
                 openFile(file);
             },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar: " + e.getMessage())
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
         );
     }
 
@@ -507,7 +493,7 @@ public class MovimientosController {
                 NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
                 openFile(file);
             },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar: " + e.getMessage())
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
         );
     }
 
@@ -610,12 +596,23 @@ public class MovimientosController {
             fRef.setMaxWidth(Double.MAX_VALUE);
             fRef.getStyleClass().add("form-input");
 
+            Label lblFormError = new Label();
+            lblFormError.getStyleClass().add("field-error-label");
+            lblFormError.setVisible(false);
+            lblFormError.setManaged(false);
+            lblFormError.setWrapText(true);
+
             // Disable OK until product selected and quantity valid
             if (okBtn != null) {
                 Runnable validateOk = () -> {
                     boolean noProduct = fProducto.getValue() == null;
                     boolean badQty = fCantidad.getValue() <= 0 && fTipo.getValue() != TipoMovimiento.AJUSTE;
                     okBtn.setDisable(noProduct || badQty);
+                    boolean showHint = noProduct || badQty;
+                    lblFormError.setText(noProduct ? "Selecciona un bien del inventario"
+                        : "La cantidad debe ser mayor a cero");
+                    lblFormError.setVisible(showHint);
+                    lblFormError.setManaged(showHint);
                 };
                 validateOk.run();
                 fProducto.valueProperty().addListener((obs, o, n) -> validateOk.run());
@@ -631,7 +628,7 @@ public class MovimientosController {
             grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);
             grid.add(DialogUtil.fieldLabel("Referencia"),    0, row); grid.add(fRef,         1, row);
 
-            dialog.getDialogPane().setContent(new VBox(0, header, grid));
+            dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError));
             Platform.runLater(() -> fProducto.requestFocus());
 
             Optional<ButtonType> result = dialog.showAndWait();
@@ -653,13 +650,14 @@ public class MovimientosController {
                     },
                     e -> {
                         if (table != null && table.getScene() != null)
-                            NotificacionUtil.error(table.getScene(), e.getMessage());
+                            NotificacionUtil.error(table.getScene(),
+                                e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo registrar el movimiento");
                     }
                 );
             }
         } catch (Exception e) {
             if (table != null && table.getScene() != null)
-                NotificacionUtil.error(table.getScene(), e.getMessage());
+                NotificacionUtil.error(table.getScene(), "Error al abrir el formulario de movimiento");
         }
     }
 

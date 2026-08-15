@@ -35,7 +35,7 @@ public final class Areas {
                 "Direccion de Noticias",
                 "Direccion de Registro Civil",
                 "Coordinacion de Gestion",
-                "Subdirección Juridica"
+                "Subdireccion Juridica"
             )
         ),
         new SecretariaInfo(

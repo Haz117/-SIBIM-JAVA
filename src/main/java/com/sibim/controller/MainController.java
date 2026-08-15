@@ -202,6 +202,9 @@ public class MainController {
         if (activeButton != null) activeButton.fire();
     }
 
+    @FXML
+    private void onShowShortcuts() { showShortcutHelp(); }
+
     private void showShortcutHelp() {
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);

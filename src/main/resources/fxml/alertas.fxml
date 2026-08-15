@@ -33,7 +33,9 @@
                 <tooltip><Tooltip text="Filtrar las alertas por nombre o código del bien"/></tooltip>
             </TextField>
             <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch"/>
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch">
+                <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+            </Button>
         </StackPane>
         <Label fx:id="lblActualizado" text="" styleClass="muted"/>
     </HBox>

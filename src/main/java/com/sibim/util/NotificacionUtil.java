@@ -16,6 +16,9 @@ public class NotificacionUtil {
 
     public enum Tipo { EXITO, ERROR, INFO, ADVERTENCIA }
 
+    private static int activeToasts = 0;
+    private static final double TOAST_OFFSET = 64;
+
     public static void mostrar(Scene scene, String mensaje, Tipo tipo) {
         if (scene == null) return;
         Platform.runLater(() -> show(scene.getWindow(), mensaje, tipo));
@@ -69,7 +72,8 @@ public class NotificacionUtil {
         popup.getContent().add(box);
 
         double x = owner.getX() + (owner.getWidth() - 500) / 2.0;
-        double y = owner.getY() + 22;
+        double y = owner.getY() + 22 + (activeToasts * TOAST_OFFSET);
+        activeToasts++;
         popup.show(owner, x, y);
 
         FadeTransition fadeIn = new FadeTransition(Duration.millis(200), box);
@@ -83,7 +87,7 @@ public class NotificacionUtil {
 
         FadeTransition fadeOut = new FadeTransition(Duration.millis(250), box);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
-        fadeOut.setOnFinished(e -> popup.hide());
+        fadeOut.setOnFinished(e -> { popup.hide(); activeToasts--; });
 
         SequentialTransition seq = new SequentialTransition(
             new ParallelTransition(fadeIn, slideIn), pause, fadeOut);
@@ -93,7 +97,7 @@ public class NotificacionUtil {
             seq.stop();
             FadeTransition quickFade = new FadeTransition(Duration.millis(150), box);
             quickFade.setFromValue(box.getOpacity()); quickFade.setToValue(0);
-            quickFade.setOnFinished(ev -> popup.hide());
+            quickFade.setOnFinished(ev -> { popup.hide(); activeToasts--; });
             quickFade.play();
         });
     }

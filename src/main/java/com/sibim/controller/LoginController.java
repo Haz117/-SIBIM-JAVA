@@ -79,7 +79,7 @@ public class LoginController {
             @Override protected void succeeded() {
                 setLoading(false);
                 try { MainApp.showMain(); }
-                catch (Exception e) { showError("Error al cargar la pantalla principal: " + e.getMessage()); }
+                catch (Exception e) { showError("No se pudo cargar la pantalla principal"); }
             }
             @Override protected void failed() {
                 setLoading(false);

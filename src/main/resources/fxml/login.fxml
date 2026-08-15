@@ -13,13 +13,13 @@
     <StackPane fx:id="brandPanel" styleClass="login-brand" prefWidth="400" minWidth="400">
 
         <!-- Decorative blobs -->
-        <Circle radius="220" fill="#FFFFFF08" StackPane.alignment="BOTTOM_RIGHT"
+        <Circle radius="220" styleClass="login-deco-circle-1" StackPane.alignment="BOTTOM_RIGHT"
                 translateX="100" translateY="100"/>
-        <Circle radius="140" fill="#FFFFFF06" StackPane.alignment="TOP_LEFT"
+        <Circle radius="140" styleClass="login-deco-circle-2" StackPane.alignment="TOP_LEFT"
                 translateX="-55" translateY="-55"/>
-        <Circle radius="90"  fill="#FFFFFF0A" StackPane.alignment="CENTER"
+        <Circle radius="90"  styleClass="login-deco-circle-3" StackPane.alignment="CENTER"
                 translateX="60" translateY="-80"/>
-        <Circle radius="50"  fill="#FFFFFF0D" StackPane.alignment="BOTTOM_LEFT"
+        <Circle radius="50"  styleClass="login-deco-circle-4" StackPane.alignment="BOTTOM_LEFT"
                 translateX="30" translateY="-30"/>
 
         <!-- Content -->

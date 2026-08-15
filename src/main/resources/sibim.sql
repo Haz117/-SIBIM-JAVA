@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS products (
     nombre              TEXT NOT NULL,
     codigo              TEXT UNIQUE NOT NULL,
     descripcion         TEXT,
-    categoria_id        TEXT REFERENCES categories(id),
+    categoria_id        TEXT NOT NULL REFERENCES categories(id),
     precio_compra       NUMERIC(12,2) NOT NULL DEFAULT 0,
     precio_venta        NUMERIC(12,2) NOT NULL DEFAULT 0,
     stock_actual        INTEGER NOT NULL DEFAULT 0,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS movements (
     id              TEXT PRIMARY KEY,
     producto_id     TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-    tipo            TEXT NOT NULL,
+    tipo            TEXT NOT NULL CHECK (tipo IN ('entrada','salida','ajuste','transferencia')),
     cantidad        INTEGER NOT NULL,
     stock_anterior  INTEGER NOT NULL,
     stock_nuevo     INTEGER NOT NULL,
@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS movements (
 CREATE INDEX IF NOT EXISTS idx_products_area        ON products(area);
 CREATE INDEX IF NOT EXISTS idx_products_categoria   ON products(categoria_id);
 CREATE INDEX IF NOT EXISTS idx_products_codigo      ON products(codigo);
+CREATE INDEX IF NOT EXISTS idx_products_vencimiento ON products(fecha_vencimiento);
 CREATE INDEX IF NOT EXISTS idx_movements_producto   ON movements(producto_id);
 CREATE INDEX IF NOT EXISTS idx_movements_created    ON movements(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_movements_usuario    ON movements(usuario_id);

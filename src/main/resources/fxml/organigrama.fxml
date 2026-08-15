@@ -31,7 +31,9 @@
                        promptText="🔍  Buscar área, secretaría o departamento..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+            </Button>
         </StackPane>
         <Label text="Expande cada sección para ver los bienes asignados"
                styleClass="muted-sm"/>

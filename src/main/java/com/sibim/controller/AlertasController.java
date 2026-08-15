@@ -6,6 +6,7 @@ import com.sibim.service.ProductoService;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
+import com.sibim.util.SearchUtils;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
@@ -74,12 +75,10 @@ public class AlertasController {
         });
 
         if (searchField != null) {
-            javafx.animation.PauseTransition debounce = new javafx.animation.PauseTransition(Duration.millis(260));
-            searchField.textProperty().addListener((obs, o, n) -> {
-                if (btnClearSearch != null) btnClearSearch.setVisible(!n.isBlank());
-                debounce.setOnFinished(e -> applySearch(n));
-                debounce.playFromStart();
-            });
+            if (btnClearSearch != null) {
+                searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
+            }
+            SearchUtils.debounce(searchField, 260, this::applySearch);
         }
         tableAgotados.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {

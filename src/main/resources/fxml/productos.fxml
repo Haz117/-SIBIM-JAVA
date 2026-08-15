@@ -85,7 +85,9 @@
                        promptText="🔍  Buscar por nombre, código, proveedor..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+            </Button>
         </StackPane>
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="165"/>
         <Separator orientation="VERTICAL"/>

@@ -7,7 +7,7 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
-import javafx.animation.PauseTransition;
+import com.sibim.util.SearchUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -16,7 +16,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.util.Duration;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,11 +37,7 @@ public class OrganigramaController {
 
     @FXML
     public void initialize() {
-        PauseTransition debounce = new PauseTransition(Duration.millis(280));
-        searchField.textProperty().addListener((obs, old, val) -> {
-            debounce.setOnFinished(e -> buildTree(val));
-            debounce.playFromStart();
-        });
+        SearchUtils.debounce(searchField, 280, this::buildTree);
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
@@ -70,20 +65,32 @@ public class OrganigramaController {
     private void buildTree(String filter) {
         orgTree.getChildren().clear();
         String q = filter == null ? "" : filter.toLowerCase();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
 
         // Presidencia
-        addAreaSection("Despacho de la Presidencia", Areas.DIRECCIONES_PRESIDENCIA, q, true);
+        if (accessible == null || accessible.contains(Areas.PRESIDENCIA) || anyAccessible(accessible, Areas.DIRECCIONES_PRESIDENCIA)) {
+            addAreaSection(Areas.PRESIDENCIA, Areas.DIRECCIONES_PRESIDENCIA, q, true, accessible);
+        }
 
         // Secretarías
         for (Areas.SecretariaInfo sec : Areas.SECRETARIAS) {
-            addAreaSection(sec.nombre(), sec.direcciones(), q, false);
+            if (accessible == null || accessible.contains(sec.nombre()) || anyAccessible(accessible, sec.direcciones())) {
+                addAreaSection(sec.nombre(), sec.direcciones(), q, false, accessible);
+            }
         }
 
         // Autónomos
-        addAreaSection("Organismos Autónomos", Areas.AUTONOMOS, q, false);
+        if (accessible == null || anyAccessible(accessible, Areas.AUTONOMOS)) {
+            addAreaSection("Organismos Autónomos", Areas.AUTONOMOS, q, false, accessible);
+        }
     }
 
-    private void addAreaSection(String parentName, List<String> children, String filter, boolean expanded) {
+    /** True if any of {@code areas} is in {@code accessible} (or {@code accessible} is null = admin). */
+    private boolean anyAccessible(Set<String> accessible, List<String> areas) {
+        return accessible == null || areas.stream().anyMatch(accessible::contains);
+    }
+
+    private void addAreaSection(String parentName, List<String> children, String filter, boolean expanded, Set<String> accessible) {
         if (!filter.isBlank()
                 && !parentName.toLowerCase().contains(filter)
                 && children.stream().noneMatch(c -> c.toLowerCase().contains(filter))) {
@@ -148,6 +155,7 @@ public class OrganigramaController {
 
         // ── Child areas as expandable mini-cards ──────────────────────
         for (String child : children) {
+            if (accessible != null && !accessible.contains(child)) continue;
             if (!filter.isBlank() && !child.toLowerCase().contains(filter)) continue;
             List<Producto> childProds = productosPorArea.getOrDefault(child, List.of());
 

@@ -24,7 +24,7 @@ public enum UnidadMedida {
         for (UnidadMedida u : values()) {
             if (u.codigo.equalsIgnoreCase(codigo)) return u;
         }
-        return PIEZA;
+        throw new IllegalArgumentException("Unidad de medida desconocida: " + codigo);
     }
 
     @Override

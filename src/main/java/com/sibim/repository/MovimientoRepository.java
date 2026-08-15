@@ -4,12 +4,14 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
 import com.sibim.model.Movimiento;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.session.SessionManager;
 
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class MovimientoRepository {
@@ -22,36 +24,48 @@ public class MovimientoRepository {
         """;
 
     public List<Movimiento> findAll() throws SQLException {
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllMovimientos();
-        String sql = BASE_SELECT + " ORDER BY m.created_at DESC";
-        return query(sql);
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllMovimientos(accessible);
+        StringBuilder sb = new StringBuilder(BASE_SELECT);
+        List<Object> params = new ArrayList<>();
+        if (accessible != null) {
+            sb.append(" WHERE p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        sb.append(" ORDER BY m.created_at DESC");
+        return queryDynamic(sb.toString(), params);
     }
 
     public List<Movimiento> findByProducto(String productoId) throws SQLException {
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByProducto(productoId);
-        String sql = BASE_SELECT + " WHERE m.producto_id = ? ORDER BY m.created_at DESC";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productoId);
-            return executeQuery(ps);
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByProducto(productoId, accessible);
+        List<String> conditions = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+        conditions.add("m.producto_id = ?");
+        params.add(productoId);
+        if (accessible != null) {
+            conditions.add("p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
         }
+        String sql = BASE_SELECT + " WHERE " + String.join(" AND ", conditions) + " ORDER BY m.created_at DESC";
+        return queryDynamic(sql, params);
     }
 
     public List<Movimiento> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByDateRange(desde, hasta);
-        String sql = BASE_SELECT +
-            " WHERE (? IS NULL OR m.created_at >= ?) AND (? IS NULL OR m.created_at <= ?)" +
-            " ORDER BY m.created_at DESC";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            Timestamp tsDesde = desde != null ? Timestamp.valueOf(desde.atStartOfDay()) : null;
-            Timestamp tsHasta = hasta != null ? Timestamp.valueOf(hasta.atTime(23, 59, 59)) : null;
-            ps.setTimestamp(1, tsDesde);
-            ps.setTimestamp(2, tsDesde);
-            ps.setTimestamp(3, tsHasta);
-            ps.setTimestamp(4, tsHasta);
-            return executeQuery(ps);
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByDateRange(desde, hasta, accessible);
+        List<String> conditions = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+        if (accessible != null) {
+            conditions.add("p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
         }
+        if (desde != null) { conditions.add("m.created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { conditions.add("m.created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
+        StringBuilder sb = new StringBuilder(BASE_SELECT);
+        if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
+        sb.append(" ORDER BY m.created_at DESC");
+        return queryDynamic(sb.toString(), params);
     }
 
     public List<Movimiento> findToday() throws SQLException {
@@ -156,9 +170,17 @@ public class MovimientoRepository {
         }
     }
 
-    private List<Movimiento> query(String sql) throws SQLException {
+    private List<Movimiento> queryDynamic(String sql, List<Object> params) throws SQLException {
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof String[] arr) {
+                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
+                } else {
+                    ps.setObject(i + 1, p);
+                }
+            }
             return executeQuery(ps);
         }
     }

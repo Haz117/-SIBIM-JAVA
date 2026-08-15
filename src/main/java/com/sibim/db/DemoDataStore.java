@@ -217,21 +217,24 @@ public final class DemoDataStore {
 
     // ── Movimientos ───────────────────────────────────────────────────────
 
-    public static List<Movimiento> findAllMovimientos() {
-        List<Movimiento> list = new ArrayList<>(MOVIMIENTOS);
-        list.sort(Comparator.comparing(Movimiento::getCreadoEn).reversed());
-        return list;
-    }
-
-    public static List<Movimiento> findMovimientosByProducto(String productoId) {
+    public static List<Movimiento> findAllMovimientos(Set<String> accessibleAreas) {
         return MOVIMIENTOS.stream()
-            .filter(m -> productoId.equals(m.getProductoId()))
+            .filter(m -> accessibleAreas == null || accessibleAreas.contains(areaOfProducto(m.getProductoId())))
             .sorted(Comparator.comparing(Movimiento::getCreadoEn).reversed())
             .collect(Collectors.toList());
     }
 
-    public static List<Movimiento> findMovimientosByDateRange(LocalDate desde, LocalDate hasta) {
+    public static List<Movimiento> findMovimientosByProducto(String productoId, Set<String> accessibleAreas) {
         return MOVIMIENTOS.stream()
+            .filter(m -> productoId.equals(m.getProductoId()))
+            .filter(m -> accessibleAreas == null || accessibleAreas.contains(areaOfProducto(m.getProductoId())))
+            .sorted(Comparator.comparing(Movimiento::getCreadoEn).reversed())
+            .collect(Collectors.toList());
+    }
+
+    public static List<Movimiento> findMovimientosByDateRange(LocalDate desde, LocalDate hasta, Set<String> accessibleAreas) {
+        return MOVIMIENTOS.stream()
+            .filter(m -> accessibleAreas == null || accessibleAreas.contains(areaOfProducto(m.getProductoId())))
             .filter(m -> {
                 if (m.getCreadoEn() == null) return false;
                 LocalDate d = m.getCreadoEn().toLocalDate();
@@ -241,6 +244,10 @@ public final class DemoDataStore {
             })
             .sorted(Comparator.comparing(Movimiento::getCreadoEn).reversed())
             .collect(Collectors.toList());
+    }
+
+    private static String areaOfProducto(String productoId) {
+        return findProductoById(productoId).map(Producto::getArea).orElse(null);
     }
 
     public static void addMovimiento(Movimiento m) {

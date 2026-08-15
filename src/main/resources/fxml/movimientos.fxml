@@ -97,7 +97,9 @@
                        promptText="🔍  Buscar por producto, motivo o referencia..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+            </Button>
         </StackPane>
         <Separator orientation="VERTICAL"/>
         <!-- Tipo filter chips (populated by controller) -->

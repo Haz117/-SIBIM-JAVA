@@ -11,8 +11,10 @@ import com.sibim.session.SessionManager;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.ImageUtils;
 import com.sibim.util.NotificacionUtil;
-import javafx.animation.PauseTransition;
+import com.sibim.util.PaginationUtils;
+import com.sibim.util.SearchUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -32,7 +34,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,14 +42,16 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ProductosController {
 
     private static final Logger log = LoggerFactory.getLogger(ProductosController.class);
+    private static final Map<String, Image> THUMBNAIL_CACHE = new ConcurrentHashMap<>();
 
     @FXML private VBox rootPane;
     @FXML private TextField searchField;
@@ -120,6 +123,7 @@ public class ProductosController {
     }
 
     private void setupTable() {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         // Image thumbnail column
         colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getFotoUrl()));
         colFoto.setCellFactory(col -> new TableCell<>() {
@@ -140,7 +144,9 @@ public class ProductosController {
                 if (empty) return;
                 if (url != null && !url.isBlank()) {
                     try {
-                        iv.setImage(new Image(Path.of(url).toUri().toString(), 38, 38, true, true, true));
+                        Image cached = THUMBNAIL_CACHE.computeIfAbsent(url,
+                            u -> new Image(Path.of(u).toUri().toString(), 38, 38, true, true, true));
+                        iv.setImage(cached);
                         iv.setVisible(true); lbl.setVisible(false);
                     } catch (Exception ex) { iv.setVisible(false); lbl.setVisible(true); }
                 } else {
@@ -381,11 +387,7 @@ public class ProductosController {
             e -> log.error("No se pudieron cargar las categorías para el filtro", e)
         );
 
-        PauseTransition searchDebounce = new PauseTransition(Duration.millis(280));
-        searchField.textProperty().addListener((obs, o, n) -> {
-            searchDebounce.setOnFinished(e -> { currentPage = 0; applyFilters(); });
-            searchDebounce.playFromStart();
-        });
+        SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
         categoriaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
     }
 
@@ -479,19 +481,8 @@ public class ProductosController {
     }
 
     private void updateTablePage() {
-        int total = filteredData.size();
-        int from = currentPage * pageSize;
-        int to = Math.min(from + pageSize, total);
-        int totalPages = (int) Math.ceil((double) total / pageSize);
-
-        table.setItems(FXCollections.observableArrayList(
-            filteredData.subList(from, to)));
-
-        lblTotal.setText(total + (total == 1 ? " resultado" : " resultados"));
-        lblPage.setText(total == 0 ? "—"
-            : "Pág " + (currentPage + 1) + " de " + Math.max(1, totalPages) + "  ·  " + (from + 1) + "–" + to);
-        btnPrev.setDisable(currentPage == 0);
-        btnNext.setDisable(currentPage >= totalPages - 1);
+        PaginationUtils.updatePage(table, filteredData, currentPage, pageSize,
+            lblTotal, lblPage, btnPrev, btnNext, "resultado", "resultados");
     }
 
     @FXML private void onPrev() { if (currentPage > 0) { currentPage--; updateTablePage(); } }
@@ -646,7 +637,7 @@ public class ProductosController {
             Runnable loadImg = () -> {
                 if (fotoHolder[0] != null && !fotoHolder[0].isBlank()) {
                     try {
-                        Image img = new Image(Path.of(fotoHolder[0]).toUri().toString(), 150, 112, true, true);
+                        Image img = new Image(Path.of(fotoHolder[0]).toUri().toString(), 150, 112, true, true, true);
                         imgPreview.setImage(img);
                         imgPlaceholder.setVisible(false);
                     } catch (Exception ignored) { imgPlaceholder.setVisible(true); }
@@ -742,11 +733,35 @@ public class ProductosController {
             tabs.getTabs().addAll(tabInfo, tabStock);
             tabs.getStyleClass().add("dlg-tabpane");
 
-            VBox dialogContent = new VBox(0, dialogHeader, tabs);
+            Label lblFormError = new Label();
+            lblFormError.getStyleClass().add("field-error-label");
+            lblFormError.setVisible(false);
+            lblFormError.setManaged(false);
+            lblFormError.setWrapText(true);
+
+            VBox dialogContent = new VBox(0, dialogHeader, tabs, lblFormError);
             dialog.getDialogPane().setContent(dialogContent);
-            fNombre.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fNombre.getStyleClass().remove("field-error"); });
-            fCodigo.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fCodigo.getStyleClass().remove("field-error"); });
-            fArea.valueProperty().addListener((o, a, b) -> { if (b != null && !b.isBlank()) fArea.getStyleClass().remove("field-error"); });
+
+            Runnable hideFormError = () -> { lblFormError.setVisible(false); lblFormError.setManaged(false); };
+            fNombre.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fNombre.getStyleClass().remove("field-error"); hideFormError.run(); });
+            fCodigo.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fCodigo.getStyleClass().remove("field-error"); hideFormError.run(); });
+            fArea.valueProperty().addListener((o, a, b) -> { if (b != null && !b.isBlank()) fArea.getStyleClass().remove("field-error"); hideFormError.run(); });
+            fCat.valueProperty().addListener((o, a, b) -> { if (b != null) fCat.getStyleClass().remove("field-error"); hideFormError.run(); });
+            fPrecioC.textProperty().addListener((o, a, b) -> { fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
+            fPrecioV.textProperty().addListener((o, a, b) -> { fPrecioV.getStyleClass().remove("field-error"); hideFormError.run(); });
+
+            if (okBtn != null) {
+                Runnable checkOk = () -> okBtn.setDisable(
+                    fNombre.getText().isBlank() || fCodigo.getText().isBlank()
+                        || fArea.getValue() == null || fArea.getValue().isBlank()
+                        || fCat.getValue() == null);
+                checkOk.run();
+                fNombre.textProperty().addListener((o, a, b) -> checkOk.run());
+                fCodigo.textProperty().addListener((o, a, b) -> checkOk.run());
+                fArea.valueProperty().addListener((o, a, b) -> checkOk.run());
+                fCat.valueProperty().addListener((o, a, b) -> checkOk.run());
+            }
+
             Platform.runLater(() -> fNombre.requestFocus());
             dialog.setResultConverter(btn -> {
                 if (btn != ButtonType.OK) return null;
@@ -757,7 +772,29 @@ public class ProductosController {
                 else fCodigo.getStyleClass().remove("field-error");
                 if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); invalid = true; }
                 else fArea.getStyleClass().remove("field-error");
-                if (invalid) return null;
+                if (fCat.getValue() == null) { fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); invalid = true; }
+                else fCat.getStyleClass().remove("field-error");
+
+                BigDecimal precioCompra = null, precioVenta = null;
+                try {
+                    precioCompra = new BigDecimal(fPrecioC.getText().trim());
+                    fPrecioC.getStyleClass().remove("field-error");
+                } catch (Exception ex) {
+                    fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
+                }
+                try {
+                    precioVenta = new BigDecimal(fPrecioV.getText().trim());
+                    fPrecioV.getStyleClass().remove("field-error");
+                } catch (Exception ex) {
+                    fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
+                }
+
+                if (invalid) {
+                    lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos (ej. 1500.00).");
+                    lblFormError.setVisible(true);
+                    lblFormError.setManaged(true);
+                    return null;
+                }
 
                 DialogUtil.commitSpinner(fStock);
                 DialogUtil.commitSpinner(fStockMin);
@@ -773,8 +810,8 @@ public class ProductosController {
                     p.setCategoriaNombre(fCat.getValue().getNombre());
                     p.setCategoriaColor(fCat.getValue().getColor());
                 }
-                try { p.setPrecioCompra(new BigDecimal(fPrecioC.getText().trim())); } catch (Exception ignored) {}
-                try { p.setPrecioVenta(new BigDecimal(fPrecioV.getText().trim())); } catch (Exception ignored) {}
+                p.setPrecioCompra(precioCompra);
+                p.setPrecioVenta(precioVenta);
                 p.setStockActual(fStock.getValue());
                 p.setStockMinimo(fStockMin.getValue());
                 p.setStockMaximo(fStockMax.getValue());
@@ -787,14 +824,16 @@ public class ProductosController {
                     try {
                         Path imgDir = imgDir();
                         Files.createDirectories(imgDir);
-                        String ext = fotoHolder[0].contains(".")
-                            ? fotoHolder[0].substring(fotoHolder[0].lastIndexOf('.')) : ".jpg";
-                        Path dest = imgDir.resolve(p.getId() + ext);
+                        Path dest = imgDir.resolve(p.getId() + ".jpg");
                         Path src = Path.of(fotoHolder[0]);
-                        if (!src.equals(dest)) Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+                        if (!src.equals(dest)) {
+                            ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                            THUMBNAIL_CACHE.remove(dest.toString());
+                        }
                         p.setFotoUrl(dest.toString());
-                    } catch (Exception ignored) {
-                        p.setFotoUrl(fotoHolder[0]);
+                    } catch (Exception ex) {
+                        log.error("No se pudo procesar la imagen del bien '{}', se conserva la foto anterior", p.getNombre(), ex);
+                        p.setFotoUrl(existing != null ? existing.getFotoUrl() : null);
                     }
                 } else {
                     p.setFotoUrl(null);
@@ -816,7 +855,8 @@ public class ProductosController {
                     updateStats();
                     applyFilters();
                 },
-                e -> NotificacionUtil.error(table.getScene(), "No se pudo guardar el bien: " + e.getMessage())
+                e -> NotificacionUtil.error(table.getScene(),
+                    e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo guardar el bien")
             ));
 
         } catch (Exception e) {
@@ -854,7 +894,7 @@ public class ProductosController {
         if (p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) {
             try {
                 ImageView iv = new ImageView(
-                    new Image(Path.of(p.getFotoUrl()).toUri().toString(), 52, 52, true, true));
+                    new Image(Path.of(p.getFotoUrl()).toUri().toString(), 52, 52, true, true, true));
                 iv.setFitWidth(52); iv.setFitHeight(52); iv.setPreserveRatio(true);
                 thumbPane.getChildren().add(iv);
                 thumbPane.getStyleClass().add("dlg-thumb-photo");

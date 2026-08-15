@@ -23,7 +23,7 @@ public class UsuarioRepository {
 
     public Optional<Usuario> findByUsername(String username) throws SQLException {
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findUserByUsername(username);
-        String sql = "SELECT * FROM users WHERE username = ?";
+        String sql = "SELECT * FROM users WHERE LOWER(username) = LOWER(?)";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -131,7 +131,7 @@ public class UsuarioRepository {
                 .anyMatch(u -> u.getUsername().equalsIgnoreCase(username)
                             && !u.getId().equals(excludeId != null ? excludeId : ""));
         }
-        String sql = "SELECT 1 FROM users WHERE username = ? AND id != ?";
+        String sql = "SELECT 1 FROM users WHERE LOWER(username) = LOWER(?) AND id != ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);

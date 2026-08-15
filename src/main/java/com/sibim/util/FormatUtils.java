@@ -1,6 +1,7 @@
 package com.sibim.util;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ public final class FormatUtils {
 
     private static final Locale LOCALE_MX = new Locale("es", "MX");
     private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(LOCALE_MX);
+    static { CURRENCY_FORMAT.setRoundingMode(RoundingMode.HALF_UP); }
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 

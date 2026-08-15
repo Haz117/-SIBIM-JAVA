@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.service.ReporteService;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -46,41 +47,41 @@ public class ReportesController {
     }
 
     // ─── Inventario ───
-    @FXML private void onInventarioPdf() {
+    @FXML private void onInventarioPdf(ActionEvent event) {
         if (!validarFechas()) return;
-        exportar(() -> reporteService.exportInventarioPdf(getDesde(), getHasta()));
+        exportar(event, () -> reporteService.exportInventarioPdf(getDesde(), getHasta()));
     }
-    @FXML private void onInventarioExcel() {
+    @FXML private void onInventarioExcel(ActionEvent event) {
         if (!validarFechas()) return;
-        exportar(() -> reporteService.exportInventarioExcel(getDesde(), getHasta()));
+        exportar(event, () -> reporteService.exportInventarioExcel(getDesde(), getHasta()));
     }
-    @FXML private void onInventarioCsv() {
+    @FXML private void onInventarioCsv(ActionEvent event) {
         if (!validarFechas()) return;
-        exportar(() -> reporteService.exportInventarioCsv(getDesde(), getHasta()));
+        exportar(event, () -> reporteService.exportInventarioCsv(getDesde(), getHasta()));
     }
 
     // ─── Movimientos ───
-    @FXML private void onMovimientosPdf() {
+    @FXML private void onMovimientosPdf(ActionEvent event) {
         if (!validarFechas()) return;
-        exportar(() -> reporteService.exportMovimientosPdf(getDesde(), getHasta()));
+        exportar(event, () -> reporteService.exportMovimientosPdf(getDesde(), getHasta()));
     }
-    @FXML private void onMovimientosExcel() {
+    @FXML private void onMovimientosExcel(ActionEvent event) {
         if (!validarFechas()) return;
-        exportar(() -> reporteService.exportMovimientosExcel(getDesde(), getHasta()));
+        exportar(event, () -> reporteService.exportMovimientosExcel(getDesde(), getHasta()));
     }
-    @FXML private void onMovimientosCsv() {
+    @FXML private void onMovimientosCsv(ActionEvent event) {
         if (!validarFechas()) return;
-        exportar(() -> reporteService.exportMovimientosCsv(getDesde(), getHasta()));
+        exportar(event, () -> reporteService.exportMovimientosCsv(getDesde(), getHasta()));
     }
 
     // ─── Alertas ───
-    @FXML private void onAlertasPdf()   { exportar(() -> reporteService.exportAlertasPdf()); }
-    @FXML private void onAlertasExcel() { exportar(() -> reporteService.exportAlertasExcel()); }
-    @FXML private void onAlertasCsv()   { exportar(() -> reporteService.exportAlertasCsv()); }
+    @FXML private void onAlertasPdf(ActionEvent event)   { exportar(event, () -> reporteService.exportAlertasPdf()); }
+    @FXML private void onAlertasExcel(ActionEvent event) { exportar(event, () -> reporteService.exportAlertasExcel()); }
+    @FXML private void onAlertasCsv(ActionEvent event)   { exportar(event, () -> reporteService.exportAlertasCsv()); }
 
     // ─── Distribución ───
-    @FXML private void onDistribucionPdf()   { exportar(() -> reporteService.exportDistribucionPdf()); }
-    @FXML private void onDistribucionExcel() { exportar(() -> reporteService.exportDistribucionExcel()); }
+    @FXML private void onDistribucionPdf(ActionEvent event)   { exportar(event, () -> reporteService.exportDistribucionPdf()); }
+    @FXML private void onDistribucionExcel(ActionEvent event) { exportar(event, () -> reporteService.exportDistribucionExcel()); }
 
     private LocalDate getDesde() { return desdeField.getValue(); }
     private LocalDate getHasta() { return hastaField.getValue(); }
@@ -96,12 +97,15 @@ public class ReportesController {
         return true;
     }
 
-    private void exportar(ExportTask task) {
+    private void exportar(ActionEvent event, ExportTask task) {
+        Button source = event != null && event.getSource() instanceof Button b ? b : null;
+        if (source != null) source.setDisable(true);
         spinner.setVisible(true);
         spinner.setManaged(true);
         DialogUtil.runAsync(
             task::run,
             file -> {
+                if (source != null) source.setDisable(false);
                 spinner.setVisible(false);
                 spinner.setManaged(false);
                 NotificacionUtil.exito(spinner.getScene(), "Reporte generado — " + file.getName());
@@ -109,6 +113,7 @@ public class ReportesController {
                 catch (Exception ignored) { /* file already notified */ }
             },
             e -> {
+                if (source != null) source.setDisable(false);
                 spinner.setVisible(false);
                 spinner.setManaged(false);
                 NotificacionUtil.error(spinner.getScene(), "Error al generar el reporte");

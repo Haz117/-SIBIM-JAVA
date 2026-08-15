@@ -37,13 +37,15 @@
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-teal">
         <StackPane prefWidth="330">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por nombre o descripción..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"/>
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+            </Button>
         </StackPane>
         <Region HBox.hgrow="ALWAYS"/>
     </HBox>
