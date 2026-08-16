@@ -7,7 +7,7 @@
             fx:controller="com.sibim.controller.ReportesController"
             fitToWidth="true" styleClass="page-scroll">
 <VBox spacing="20">
-    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-emerald">
@@ -39,19 +39,19 @@
             <DatePicker fx:id="hastaField" prefWidth="145">
                 <tooltip><Tooltip text="Fecha de fin del período"/></tooltip>
             </DatePicker>
-            <Button text="Hoy"   onAction="#onReportHoy"    styleClass="btn-preset">
+            <Button fx:id="btnPresetHoy" text="Hoy"   onAction="#onReportHoy"    styleClass="btn-preset">
                 <tooltip><Tooltip text="Solo el día de hoy"/></tooltip>
             </Button>
-            <Button text="Semana" onAction="#onReportSemana" styleClass="btn-preset">
+            <Button fx:id="btnPresetSemana" text="Semana" onAction="#onReportSemana" styleClass="btn-preset">
                 <tooltip><Tooltip text="Últimos 7 días"/></tooltip>
             </Button>
-            <Button text="Mes"   onAction="#onReportMes"    styleClass="btn-preset">
+            <Button fx:id="btnPresetMes" text="Mes"   onAction="#onReportMes"    styleClass="btn-preset">
                 <tooltip><Tooltip text="Mes actual (del 1 al hoy)"/></tooltip>
             </Button>
-            <Button text="Año"   onAction="#onReportAnio"   styleClass="btn-preset">
+            <Button fx:id="btnPresetAnio" text="Año"   onAction="#onReportAnio"   styleClass="btn-preset">
                 <tooltip><Tooltip text="Año actual (del 1/enero al hoy)"/></tooltip>
             </Button>
-            <Button text="Todo"  onAction="#onReportTodo"   styleClass="btn-preset">
+            <Button fx:id="btnPresetTodo" text="Todo"  onAction="#onReportTodo"   styleClass="btn-preset">
                 <tooltip><Tooltip text="Sin restricción de fecha"/></tooltip>
             </Button>
         </HBox>
@@ -77,7 +77,9 @@
               GridPane.columnIndex="0" GridPane.rowIndex="0">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <Label text="📦" styleClass="report-icon"/>
+                <StackPane styleClass="report-icon-badge, report-icon-badge-indigo">
+                    <Label text="📦" styleClass="report-icon"/>
+                </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Inventario General" styleClass="report-title"/>
                     <Label text="Bienes · stock · valor · estado"
@@ -104,7 +106,9 @@
               GridPane.columnIndex="1" GridPane.rowIndex="0">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <Label text="↕" styleClass="report-icon"/>
+                <StackPane styleClass="report-icon-badge, report-icon-badge-teal">
+                    <Label text="↕" styleClass="report-icon"/>
+                </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Registro de Movimientos" styleClass="report-title"/>
                     <Label text="Entradas · salidas · ajustes · transferencias"
@@ -131,7 +135,9 @@
               GridPane.columnIndex="0" GridPane.rowIndex="1">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <Label text="⚠" styleClass="report-icon"/>
+                <StackPane styleClass="report-icon-badge, report-icon-badge-amber">
+                    <Label text="⚠" styleClass="report-icon"/>
+                </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Alertas de Stock" styleClass="report-title"/>
                     <Label text="Agotados · bajo stock · garantías vencidas"
@@ -158,7 +164,9 @@
               GridPane.columnIndex="1" GridPane.rowIndex="1">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <Label text="🏛" styleClass="report-icon"/>
+                <StackPane styleClass="report-icon-badge, report-icon-badge-green">
+                    <Label text="🏛" styleClass="report-icon"/>
+                </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Distribución por Área" styleClass="report-title"/>
                     <Label text="Secretarías · direcciones · dependencias"
@@ -173,6 +181,9 @@
                 </Button>
                 <Button text="📊 Excel" onAction="#onDistribucionExcel" styleClass="btn-excel">
                     <tooltip><Tooltip text="Exportar distribución de bienes por área a Excel"/></tooltip>
+                </Button>
+                <Button text="CSV"   onAction="#onDistribucionCsv"   styleClass="btn-csv">
+                    <tooltip><Tooltip text="Exportar resumen de distribución por área a CSV"/></tooltip>
                 </Button>
             </HBox>
         </VBox>

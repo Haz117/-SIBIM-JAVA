@@ -250,6 +250,13 @@ public final class DemoDataStore {
         return findProductoById(productoId).map(Producto::getArea).orElse(null);
     }
 
+    public static Optional<String> findProductoIdByMovimientoId(String movimientoId) {
+        return MOVIMIENTOS.stream()
+            .filter(m -> m.getId().equals(movimientoId))
+            .map(Movimiento::getProductoId)
+            .findFirst();
+    }
+
     public static void addMovimiento(Movimiento m) {
         MOVIMIENTOS.add(0, m);
         updateProductoStock(m.getProductoId(), m.getStockNuevo());

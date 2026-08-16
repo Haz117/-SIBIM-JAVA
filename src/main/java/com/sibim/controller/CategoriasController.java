@@ -101,6 +101,7 @@ public class CategoriasController {
     }
 
     private void setupTable() {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colDescripcion.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getDescripcion() != null ? c.getValue().getDescripcion() : ""));
@@ -234,44 +235,77 @@ public class CategoriasController {
         fDesc.setPromptText("Descripción opcional de la categoría");
 
         String initColor = existing != null ? existing.getColor() : "#6366F1";
-        TextField fColor = new TextField(initColor);
-        fColor.setPromptText("#RRGGBB");
-        fColor.setMaxWidth(Double.MAX_VALUE);
+        String[] selectedColor = { initColor };
 
+        // ── Color: a curated swatch palette, not a raw hex/RGBA field —
+        // clicking a swatch is the only way to set it, so the value is
+        // always a valid, on-brand color. ──
+        String[] colorPalette = {
+            "#6366F1", "#8B5CF6", "#3B82F6", "#0EA5E9", "#10B981", "#14B8A6",
+            "#F59E0B", "#F97316", "#EF4444", "#EC4899", "#64748B", "#111827"
+        };
         javafx.scene.shape.Circle colorDot = new javafx.scene.shape.Circle(10);
         colorDot.setEffect(new javafx.scene.effect.DropShadow(4, 0, 1,
             javafx.scene.paint.Color.color(0, 0, 0, 0.18)));
+        Label hexLabel = new Label();
+        hexLabel.getStyleClass().add("cat-hex-label");
         Runnable updateDot = () -> {
-            try { colorDot.setFill(javafx.scene.paint.Color.web(fColor.getText().trim())); }
+            try { colorDot.setFill(javafx.scene.paint.Color.web(selectedColor[0])); }
             catch (Exception ignored) { colorDot.setFill(javafx.scene.paint.Color.LIGHTGRAY); }
+            hexLabel.setText(selectedColor[0]);
         };
-        updateDot.run();
-        fColor.textProperty().addListener((obs, o, n) -> updateDot.run());
 
         Label previewBadge = new Label(
             (existing != null && !existing.getNombre().isBlank()) ? existing.getNombre() : "Nombre");
         previewBadge.getStyleClass().add("cat-preview-badge");
         Runnable updatePreview = () -> {
             String name = fNombre.getText().isBlank() ? "Nombre" : fNombre.getText();
-            String col = initColor;
-            try { javafx.scene.paint.Color.web(fColor.getText().trim()); col = fColor.getText().trim(); }
-            catch (Exception ignored) {}
             previewBadge.setText(name);
-            previewBadge.setStyle("-fx-background-color: " + col + "22; -fx-text-fill: " + col + ";");
+            previewBadge.setStyle("-fx-background-color: " + selectedColor[0] + "22; -fx-text-fill: " + selectedColor[0] + ";");
         };
         fNombre.textProperty().addListener((o, a, b) -> updatePreview.run());
-        fColor.textProperty().addListener((o, a, b) -> updatePreview.run());
+
+        ToggleGroup colorGroup = new ToggleGroup();
+        javafx.scene.layout.FlowPane colorSwatches = new javafx.scene.layout.FlowPane(8, 8);
+        for (String hex : colorPalette) {
+            ToggleButton swatch = new ToggleButton();
+            swatch.setToggleGroup(colorGroup);
+            swatch.getStyleClass().add("color-swatch");
+            swatch.setStyle("-fx-background-color: " + hex + ";");
+            if (hex.equalsIgnoreCase(selectedColor[0])) swatch.setSelected(true);
+            swatch.setOnAction(e -> { selectedColor[0] = hex; updateDot.run(); updatePreview.run(); });
+            colorSwatches.getChildren().add(swatch);
+        }
+        updateDot.run();
         updatePreview.run();
 
-        HBox colorRow = new HBox(8);
-        colorRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        colorRow.getChildren().addAll(colorDot, fColor);
-        HBox.setHgrow(fColor, Priority.ALWAYS);
+        HBox colorPreviewRow = new HBox(8, colorDot, hexLabel);
+        colorPreviewRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        VBox colorSection = new VBox(8, colorSwatches, colorPreviewRow);
 
-        TextField fIcono = new TextField(existing != null && existing.getIcono() != null
-            ? existing.getIcono() : "");
-        fIcono.setPromptText("Emoji o código, ej. 🖥 📦 🪑");
-        fIcono.setMaxWidth(Double.MAX_VALUE);
+        // ── Ícono: a preset grid, not free-text — guarantees every category
+        // gets a real, consistent icon instead of a blank/mistyped field. ──
+        String[] iconoHolder = { existing != null && existing.getIcono() != null ? existing.getIcono() : "" };
+        String[] iconPalette = {
+            "🪑", "🚗", "💻", "🖨", "🔧", "📷", "📦", "🏷",
+            "📁", "🔌", "🖥", "📱", "🧰", "🎨", "📚", "🏗", "⚙", "🚒"
+        };
+        ToggleGroup iconGroup = new ToggleGroup();
+        javafx.scene.layout.FlowPane iconGrid = new javafx.scene.layout.FlowPane(6, 6);
+        ToggleButton noneIcon = new ToggleButton("—");
+        noneIcon.setToggleGroup(iconGroup);
+        noneIcon.getStyleClass().add("icon-swatch");
+        noneIcon.setSelected(iconoHolder[0].isBlank());
+        noneIcon.setOnAction(e -> iconoHolder[0] = "");
+        iconGrid.getChildren().add(noneIcon);
+        for (String ic : iconPalette) {
+            ToggleButton btn = new ToggleButton(ic);
+            btn.setToggleGroup(iconGroup);
+            btn.getStyleClass().add("icon-swatch");
+            if (ic.equals(iconoHolder[0])) btn.setSelected(true);
+            btn.setOnAction(e -> iconoHolder[0] = ic);
+            iconGrid.getChildren().add(btn);
+        }
 
         HBox previewRow = new HBox(8);
         previewRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
@@ -288,11 +322,11 @@ public class CategoriasController {
         }
 
         int r = 0;
-        grid.add(DialogUtil.fieldLabel("Nombre *"),    0, r); grid.add(fNombre,    1, r++);
-        grid.add(DialogUtil.fieldLabel("Descripción"), 0, r); grid.add(fDesc,      1, r++);
-        grid.add(DialogUtil.fieldLabel("Color *"),     0, r); grid.add(colorRow,   1, r++);
-        grid.add(DialogUtil.fieldLabel("Ícono"),       0, r); grid.add(fIcono,     1, r++);
-        grid.add(new Label(),                          0, r); grid.add(previewRow, 1, r);
+        grid.add(DialogUtil.fieldLabel("Nombre *"),    0, r); grid.add(fNombre,      1, r++);
+        grid.add(DialogUtil.fieldLabel("Descripción"), 0, r); grid.add(fDesc,        1, r++);
+        grid.add(DialogUtil.fieldLabel("Color *"),     0, r); grid.add(colorSection, 1, r++);
+        grid.add(DialogUtil.fieldLabel("Ícono"),       0, r); grid.add(iconGrid,     1, r++);
+        grid.add(new Label(),                          0, r); grid.add(previewRow,   1, r);
 
         dialog.getDialogPane().setContent(new VBox(0, header, grid));
         Platform.runLater(() -> fNombre.requestFocus());
@@ -303,17 +337,12 @@ public class CategoriasController {
                 fNombre.getStyleClass().add("field-error");
                 return null;
             }
-            String colorVal = fColor.getText().trim();
-            if (!colorVal.isEmpty() && !colorVal.matches("^#[0-9A-Fa-f]{6}$")) {
-                NotificacionUtil.advertencia(fColor.getScene(), "Color inválido — usa formato #RRGGBB");
-                return null;
-            }
             Categoria c = existing != null ? existing : new Categoria();
             if (c.getId() == null) { c.setId(UUID.randomUUID().toString()); c.setCreadoEn(LocalDateTime.now()); }
             c.setNombre(fNombre.getText().trim());
             c.setDescripcion(fDesc.getText().trim());
-            c.setColor(colorVal);
-            c.setIcono(fIcono.getText().trim());
+            c.setColor(selectedColor[0]);
+            c.setIcono(iconoHolder[0]);
             return c;
         });
 

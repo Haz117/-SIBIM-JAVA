@@ -6,7 +6,7 @@
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.ProductosController"
       fx:id="rootPane" spacing="12">
-    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header">
@@ -39,8 +39,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-indigo"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="📦" styleClass="rich-stat-icon"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <Label text="📦" styleClass="rich-stat-icon"/>
+                </StackPane>
                 <Label text="TOTAL DE BIENES" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
@@ -51,8 +53,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-teal"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="💰" styleClass="rich-stat-icon"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <Label text="💰" styleClass="rich-stat-icon"/>
+                </StackPane>
                 <Label text="VALOR DEL INVENTARIO" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatValor" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
@@ -63,8 +67,10 @@
         <VBox fx:id="cardAlertas" styleClass="rich-stat-card, rich-stat-amber"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⚠" styleClass="rich-stat-icon"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <Label text="⚠" styleClass="rich-stat-icon"/>
+                </StackPane>
                 <Label text="BIENES CON ALERTA" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatAlertas" text="—" styleClass="rich-stat-value"/>
@@ -79,8 +85,8 @@
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
-        <StackPane prefWidth="260">
+    <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
+        <StackPane prefWidth="280">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por nombre, código, proveedor..."
                        maxWidth="Infinity" styleClass="search-field"/>
@@ -93,7 +99,6 @@
         <Separator orientation="VERTICAL"/>
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
-        <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnClearFilters" text="✕  Limpiar filtros" onAction="#onClearFilters"
                 styleClass="btn-secondary" visible="false" managed="false">
             <tooltip><Tooltip text="Quitar todos los filtros activos"/></tooltip>
@@ -105,7 +110,7 @@
         <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
             <tooltip><Tooltip text="Exportar inventario filtrado a Excel (.xlsx)"/></tooltip>
         </Button>
-    </HBox>
+    </FlowPane>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">

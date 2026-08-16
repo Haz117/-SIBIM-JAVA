@@ -13,6 +13,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
+import javafx.animation.TranslateTransition;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -105,11 +106,34 @@ public class MainController {
         try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
     }
 
+    private static final double ACTIVE_PILL_OFFSET_X = 8;
+
+    /** Slides the active nav button {@code ACTIVE_PILL_OFFSET_X}px to the
+     *  right so its rounded pill (see .nav-btn.nav-active in styles.css)
+     *  visibly overlaps into the content area, and slides the previously
+     *  active one back to 0. translateX doesn't affect layout — the sidebar
+     *  VBox is drawn above the content row (see main.fxml), so the part of
+     *  the button that crosses x=220 paints over the content instead of
+     *  being clipped by it. */
+    private void animateActivePill(Button newActive, Button oldActive) {
+        if (oldActive != null && oldActive != newActive) {
+            TranslateTransition back = new TranslateTransition(Duration.millis(180), oldActive);
+            back.setInterpolator(Interpolator.EASE_OUT);
+            back.setToX(0);
+            back.play();
+        }
+        TranslateTransition forward = new TranslateTransition(Duration.millis(190), newActive);
+        forward.setInterpolator(Interpolator.EASE_OUT);
+        forward.setToX(ACTIVE_PILL_OFFSET_X);
+        forward.play();
+    }
+
     private void navigateTo(String view, Button button) {
         try {
             // Update nav state immediately for instant visual feedback
             if (activeButton != null) activeButton.getStyleClass().remove("nav-active");
             button.getStyleClass().add("nav-active");
+            animateActivePill(button, activeButton);
             activeButton = button;
 
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(

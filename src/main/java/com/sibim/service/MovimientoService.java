@@ -44,6 +44,9 @@ public class MovimientoService {
         if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
         Producto producto = opt.get();
 
+        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(producto.getArea()))
+            throw new ValidationException("No tienes acceso a esa area");
+
         if (cantidad <= 0 && tipo != TipoMovimiento.AJUSTE)
             throw new ValidationException("La cantidad debe ser mayor a cero");
         if (tipo == TipoMovimiento.AJUSTE && cantidad < 0)
@@ -70,7 +73,14 @@ public class MovimientoService {
         return movimientoRepo.addMovimientoAtomic(m);
     }
 
-    public void eliminar(String movimientoId) throws SQLException {
+    public void eliminar(String movimientoId) throws SQLException, ValidationException {
+        Optional<String> productoId = movimientoRepo.findProductoIdById(movimientoId);
+        if (productoId.isPresent()) {
+            Optional<Producto> producto = productoRepo.findById(productoId.get());
+            if (producto.isPresent() && !SessionManager.isAdmin()
+                    && !SessionManager.isAreaAccessible(producto.get().getArea()))
+                throw new ValidationException("No tienes acceso a esa area");
+        }
         movimientoRepo.deleteMovimientoAtomic(movimientoId);
     }
 

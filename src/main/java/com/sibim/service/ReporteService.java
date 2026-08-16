@@ -1,16 +1,16 @@
 package com.sibim.service;
 
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.Phrase;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
@@ -34,7 +34,7 @@ public class ReporteService {
     private final ProductoRepository productoRepo = new ProductoRepository();
     private final MovimientoRepository movimientoRepo = new MovimientoRepository();
 
-    private static final BaseColor COLOR_HEADER = new BaseColor(76, 29, 149); // purple-900
+    private static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // ───────────────────────────── EXCEL ─────────────────────────────
@@ -150,6 +150,27 @@ public class ReporteService {
         return file;
     }
 
+    public File exportDistribucionCsv() throws Exception {
+        List<Producto> productos = productoRepo.findAll();
+        Map<String, List<Producto>> porArea = productos.stream()
+            .collect(Collectors.groupingBy(p -> p.getArea() != null ? p.getArea() : "Sin área"));
+
+        File file = tempFile("distribucion", ".csv");
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println("Área,Total Bienes,Valor Total,Agotados,Bajo Stock");
+            for (Map.Entry<String, List<Producto>> entry : porArea.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey()).toList()) {
+                List<Producto> ps = entry.getValue();
+                long agotados  = ps.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
+                long bajoStock = ps.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
+                BigDecimal valor = ps.stream().map(Producto::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+                pw.printf("\"%s\",%d,%.2f,%d,%d%n",
+                    esc(entry.getKey()), ps.size(), valor, agotados, bajoStock);
+            }
+        }
+        return file;
+    }
+
     public File exportAlertasCsv() throws Exception {
         List<Producto> agotados  = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
         List<Producto> bajoStock = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
@@ -172,35 +193,33 @@ public class ReporteService {
         List<Producto> agotados  = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
         List<Producto> bajoStock = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
         File file = tempFile("alertas", ".pdf");
-        Document doc = new Document(PageSize.A4);
-        PdfWriter.getInstance(doc, new FileOutputStream(file));
-        doc.open();
-        addPdfHeader(doc, "Alertas de Stock", null, null);
-        com.itextpdf.text.Font sectionFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, new BaseColor(185, 28, 28));
-        doc.add(new Paragraph("Bienes Agotados (" + agotados.size() + ")", sectionFont));
-        doc.add(Chunk.NEWLINE);
-        String[] headers = {"Nombre", "Código", "Stock", "Mínimo", "Área"};
-        float[] widths = {3f, 1.5f, 1f, 1f, 2f};
-        PdfPTable t1 = createPdfTable(headers, widths);
-        for (Producto p : agotados) {
-            t1.addCell(p.getNombre()); t1.addCell(p.getCodigo());
-            t1.addCell(String.valueOf(p.getStockActual())); t1.addCell(String.valueOf(p.getStockMinimo()));
-            t1.addCell(p.getArea() != null ? p.getArea() : "");
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4)) {
+            addPdfHeader(doc, "Alertas de Stock", null, null);
+            PdfFont sectionFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+            doc.add(new Paragraph("Bienes Agotados (" + agotados.size() + ")")
+                .setFont(sectionFont).setFontSize(11).setFontColor(new DeviceRgb(185, 28, 28)));
+            String[] headers = {"Nombre", "Código", "Stock", "Mínimo", "Área"};
+            float[] widths = {3f, 1.5f, 1f, 1f, 2f};
+            Table t1 = createPdfTable(headers, widths);
+            for (Producto p : agotados) {
+                t1.addCell(cell(p.getNombre())); t1.addCell(cell(p.getCodigo()));
+                t1.addCell(cell(String.valueOf(p.getStockActual()))); t1.addCell(cell(String.valueOf(p.getStockMinimo())));
+                t1.addCell(cell(p.getArea() != null ? p.getArea() : ""));
+            }
+            doc.add(t1);
+            doc.add(new Paragraph("Existencias Bajas (" + bajoStock.size() + ")")
+                .setFont(sectionFont).setFontSize(11).setFontColor(new DeviceRgb(180, 83, 9)));
+            Table t2 = createPdfTable(headers, widths);
+            for (Producto p : bajoStock) {
+                t2.addCell(cell(p.getNombre())); t2.addCell(cell(p.getCodigo()));
+                t2.addCell(cell(String.valueOf(p.getStockActual()))); t2.addCell(cell(String.valueOf(p.getStockMinimo())));
+                t2.addCell(cell(p.getArea() != null ? p.getArea() : ""));
+            }
+            doc.add(t2);
+            addPdfFooter(doc, agotados.size() + bajoStock.size());
         }
-        doc.add(t1);
-        doc.add(Chunk.NEWLINE);
-        com.itextpdf.text.Font sectionFont2 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, new BaseColor(180, 83, 9));
-        doc.add(new Paragraph("Existencias Bajas (" + bajoStock.size() + ")", sectionFont2));
-        doc.add(Chunk.NEWLINE);
-        PdfPTable t2 = createPdfTable(headers, widths);
-        for (Producto p : bajoStock) {
-            t2.addCell(p.getNombre()); t2.addCell(p.getCodigo());
-            t2.addCell(String.valueOf(p.getStockActual())); t2.addCell(String.valueOf(p.getStockMinimo()));
-            t2.addCell(p.getArea() != null ? p.getArea() : "");
-        }
-        doc.add(t2);
-        addPdfFooter(doc, agotados.size() + bajoStock.size());
-        doc.close();
         return file;
     }
 
@@ -209,28 +228,28 @@ public class ReporteService {
         Map<String, List<Producto>> porArea = productos.stream()
             .collect(Collectors.groupingBy(p -> p.getArea() != null ? p.getArea() : "Sin área"));
         File file = tempFile("distribucion", ".pdf");
-        Document doc = new Document(PageSize.A4.rotate());
-        PdfWriter.getInstance(doc, new FileOutputStream(file));
-        doc.open();
-        addPdfHeader(doc, "Distribución por Área", null, null);
-        String[] headers = {"Área", "Total Bienes", "Valor Total", "Agotados", "Bajo Stock"};
-        float[] widths = {3f, 1.5f, 2f, 1.2f, 1.5f};
-        PdfPTable table = createPdfTable(headers, widths);
-        porArea.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
-            List<Producto> ps = entry.getValue();
-            long agotados  = ps.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
-            long bajo      = ps.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
-            java.math.BigDecimal valor = ps.stream().map(Producto::getValorTotal)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-            table.addCell(entry.getKey());
-            table.addCell(String.valueOf(ps.size()));
-            table.addCell(FormatUtils.formatCurrency(valor));
-            table.addCell(String.valueOf(agotados));
-            table.addCell(String.valueOf(bajo));
-        });
-        doc.add(table);
-        addPdfFooter(doc, porArea.size());
-        doc.close();
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
+            addPdfHeader(doc, "Distribución por Área", null, null);
+            String[] headers = {"Área", "Total Bienes", "Valor Total", "Agotados", "Bajo Stock"};
+            float[] widths = {3f, 1.5f, 2f, 1.2f, 1.5f};
+            Table table = createPdfTable(headers, widths);
+            porArea.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+                List<Producto> ps = entry.getValue();
+                long agotados  = ps.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
+                long bajo      = ps.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
+                java.math.BigDecimal valor = ps.stream().map(Producto::getValorTotal)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                table.addCell(cell(entry.getKey()));
+                table.addCell(cell(String.valueOf(ps.size())));
+                table.addCell(cell(FormatUtils.formatCurrency(valor)));
+                table.addCell(cell(String.valueOf(agotados)));
+                table.addCell(cell(String.valueOf(bajo)));
+            });
+            doc.add(table);
+            addPdfFooter(doc, porArea.size());
+        }
         return file;
     }
 
@@ -266,50 +285,50 @@ public class ReporteService {
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll();
         File file = tempFile("inventario", ".pdf");
-        Document doc = new Document(PageSize.A4.rotate());
-        PdfWriter.getInstance(doc, new FileOutputStream(file));
-        doc.open();
-        addPdfHeader(doc, "Inventario General", desde, hasta);
-        String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Stock", "Valor", "Estado"};
-        float[] widths = {3f, 1.5f, 1.5f, 2f, 1f, 1.5f, 1.2f};
-        PdfPTable table = createPdfTable(headers, widths);
-        for (Producto p : productos) {
-            table.addCell(p.getNombre());
-            table.addCell(p.getCodigo());
-            table.addCell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "");
-            table.addCell(p.getArea());
-            table.addCell(String.valueOf(p.getStockActual()));
-            table.addCell(FormatUtils.formatCurrency(p.getValorTotal()));
-            table.addCell(p.getEstado().getEtiqueta());
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
+            addPdfHeader(doc, "Inventario General", desde, hasta);
+            String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Stock", "Valor", "Estado"};
+            float[] widths = {3f, 1.5f, 1.5f, 2f, 1f, 1.5f, 1.2f};
+            Table table = createPdfTable(headers, widths);
+            for (Producto p : productos) {
+                table.addCell(cell(p.getNombre()));
+                table.addCell(cell(p.getCodigo()));
+                table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
+                table.addCell(cell(p.getArea()));
+                table.addCell(cell(String.valueOf(p.getStockActual())));
+                table.addCell(cell(FormatUtils.formatCurrency(p.getValorTotal())));
+                table.addCell(cell(p.getEstado().getEtiqueta()));
+            }
+            doc.add(table);
+            addPdfFooter(doc, productos.size());
         }
-        doc.add(table);
-        addPdfFooter(doc, productos.size());
-        doc.close();
         return file;
     }
 
     public File exportMovimientosPdf(LocalDate desde, LocalDate hasta) throws Exception {
         List<Movimiento> movimientos = movimientoRepo.findByDateRange(desde, hasta);
         File file = tempFile("movimientos", ".pdf");
-        Document doc = new Document(PageSize.A4.rotate());
-        PdfWriter.getInstance(doc, new FileOutputStream(file));
-        doc.open();
-        addPdfHeader(doc, "Registro de Movimientos", desde, hasta);
-        String[] headers = {"Producto", "Tipo", "Cantidad", "Ant.", "Nuevo", "Usuario", "Fecha"};
-        float[] widths = {3f, 1.5f, 1f, 1f, 1f, 2f, 2f};
-        PdfPTable table = createPdfTable(headers, widths);
-        for (Movimiento m : movimientos) {
-            table.addCell(m.getProductoNombre());
-            table.addCell(m.getTipo().getEtiqueta());
-            table.addCell(String.valueOf(m.getCantidad()));
-            table.addCell(String.valueOf(m.getStockAnterior()));
-            table.addCell(String.valueOf(m.getStockNuevo()));
-            table.addCell(m.getUsuarioNombre());
-            table.addCell(FormatUtils.formatDateTime(m.getCreadoEn()));
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
+            addPdfHeader(doc, "Registro de Movimientos", desde, hasta);
+            String[] headers = {"Producto", "Tipo", "Cantidad", "Ant.", "Nuevo", "Usuario", "Fecha"};
+            float[] widths = {3f, 1.5f, 1f, 1f, 1f, 2f, 2f};
+            Table table = createPdfTable(headers, widths);
+            for (Movimiento m : movimientos) {
+                table.addCell(cell(m.getProductoNombre()));
+                table.addCell(cell(m.getTipo().getEtiqueta()));
+                table.addCell(cell(String.valueOf(m.getCantidad())));
+                table.addCell(cell(String.valueOf(m.getStockAnterior())));
+                table.addCell(cell(String.valueOf(m.getStockNuevo())));
+                table.addCell(cell(m.getUsuarioNombre()));
+                table.addCell(cell(FormatUtils.formatDateTime(m.getCreadoEn())));
+            }
+            doc.add(table);
+            addPdfFooter(doc, movimientos.size());
         }
-        doc.add(table);
-        addPdfFooter(doc, movimientos.size());
-        doc.close();
         return file;
     }
 
@@ -393,43 +412,50 @@ public class ReporteService {
         r.createCell(4).setCellValue(p.getEstado().getEtiqueta());
     }
 
-    private void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta)
-            throws DocumentException {
-        com.itextpdf.text.Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.WHITE);
-        PdfPTable header = new PdfPTable(1);
-        header.setWidthPercentage(100);
-        PdfPCell cell = new PdfPCell(new Phrase("SIBIM — " + titulo, titleFont));
-        cell.setBackgroundColor(COLOR_HEADER);
-        cell.setPadding(10);
-        header.addCell(cell);
+    private void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta) throws IOException {
+        PdfFont titleFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        Table header = new Table(1).useAllAvailableWidth();
+        com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell().add(new Paragraph("SIBIM — " + titulo)
+            .setFont(titleFont).setFontSize(16).setFontColor(ColorConstants.WHITE));
+        headerCell.setBackgroundColor(COLOR_HEADER);
+        headerCell.setPadding(10);
+        header.addCell(headerCell);
         doc.add(header);
         if (desde != null || hasta != null) {
             String periodo = (desde != null ? desde.format(FMT) : "inicio") + " — "
                            + (hasta != null ? hasta.format(FMT) : "hoy");
-            doc.add(new Paragraph("Periodo: " + periodo,
-                FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY)));
+            PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+            doc.add(new Paragraph("Periodo: " + periodo)
+                .setFont(regularFont).setFontSize(10).setFontColor(ColorConstants.DARK_GRAY));
         }
-        doc.add(Chunk.NEWLINE);
     }
 
-    private PdfPTable createPdfTable(String[] headers, float[] widths) throws DocumentException {
-        PdfPTable table = new PdfPTable(headers.length);
-        table.setWidthPercentage(100);
-        table.setWidths(widths);
-        com.itextpdf.text.Font hFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
+    private Table createPdfTable(String[] headers, float[] widths) throws IOException {
+        Table table = new Table(widths).useAllAvailableWidth();
+        PdfFont hFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         for (String h : headers) {
-            PdfPCell cell = new PdfPCell(new Phrase(h, hFont));
-            cell.setBackgroundColor(COLOR_HEADER);
-            cell.setPadding(5);
-            table.addCell(cell);
+            com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell().add(new Paragraph(h)
+                .setFont(hFont).setFontSize(9).setFontColor(ColorConstants.WHITE));
+            headerCell.setBackgroundColor(COLOR_HEADER);
+            headerCell.setPadding(5);
+            table.addCell(headerCell);
         }
         return table;
     }
 
-    private void addPdfFooter(Document doc, int count) throws DocumentException {
-        doc.add(Chunk.NEWLINE);
-        doc.add(new Paragraph("Total de registros: " + count + "   |   SIBIM — Sistema Integral de Bienes Municipales",
-            FontFactory.getFont(FontFactory.HELVETICA, 8, BaseColor.GRAY)));
+    private void addPdfFooter(Document doc, int count) throws IOException {
+        PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+        doc.add(new Paragraph("Total de registros: " + count + "   |   SIBIM — Sistema Integral de Bienes Municipales")
+            .setFont(font).setFontSize(8).setFontColor(ColorConstants.GRAY));
+    }
+
+    /** Wraps plain text in a Cell+Paragraph for Table.addCell — itext7's Table
+     *  has no addCell(String) overload, unlike itext5's PdfPTable. Fully
+     *  qualified: "Cell" bare would resolve to POI's org.apache.poi.ss.
+     *  usermodel.Cell via the wildcard import used by the Excel export code
+     *  below, not itext7's com.itextpdf.layout.element.Cell. */
+    private static com.itextpdf.layout.element.Cell cell(String text) {
+        return new com.itextpdf.layout.element.Cell().add(new Paragraph(text == null ? "" : text));
     }
 
     private String esc(String s) {

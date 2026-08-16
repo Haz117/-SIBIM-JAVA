@@ -8,35 +8,37 @@
            styleClass="splash-root" opacity="0">
 
     <!-- Decorative accent ring top-right -->
-    <StackPane styleClass="splash-deco-ring-tr"
+    <StackPane fx:id="ringTr" styleClass="splash-deco-ring-tr"
                StackPane.alignment="TOP_RIGHT"/>
 
     <!-- Decorative accent ring bottom-left -->
-    <StackPane styleClass="splash-deco-ring-bl"
+    <StackPane fx:id="ringBl" styleClass="splash-deco-ring-bl"
                StackPane.alignment="BOTTOM_LEFT"/>
 
     <!-- ── Centro ─────────────────────────────────────────────── -->
     <VBox alignment="CENTER" spacing="24" maxWidth="380">
 
         <!-- Logo badge -->
-        <StackPane styleClass="splash-logo-badge" alignment="CENTER">
+        <StackPane fx:id="logoBadge" styleClass="splash-logo-badge" alignment="CENTER">
             <StackPane styleClass="splash-logo-inner" alignment="CENTER">
                 <Label text="S" styleClass="splash-logo-letter"/>
             </StackPane>
         </StackPane>
 
-        <!-- Brand text -->
-        <VBox alignment="CENTER" spacing="7">
+        <!-- Brand text — each line kept to a single row (no wrapText) so the
+             three lines form one clean centered block instead of the
+             subtitle wrapping into an uneven two-line shape next to the
+             single-line title/org. -->
+        <VBox fx:id="brandBox" alignment="CENTER" spacing="7">
             <Label text="SIBIM" styleClass="splash-title"/>
             <Label text="Sistema Integral de Bienes Municipales"
-                   styleClass="splash-subtitle" wrapText="true" maxWidth="360"
-                   textAlignment="CENTER"/>
+                   styleClass="splash-subtitle"/>
             <Label text="H. Ayuntamiento de Ixmiquilpan · Hidalgo"
                    styleClass="splash-org"/>
         </VBox>
 
         <!-- Progress section -->
-        <VBox alignment="CENTER" spacing="9">
+        <VBox fx:id="progressBox" alignment="CENTER" spacing="9">
             <padding><Insets top="6"/></padding>
             <ProgressBar fx:id="progressBar" prefWidth="230" prefHeight="5"
                          styleClass="splash-progress"/>

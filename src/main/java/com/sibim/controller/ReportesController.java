@@ -16,34 +16,59 @@ public class ReportesController {
     @FXML private DatePicker desdeField;
     @FXML private DatePicker hastaField;
     @FXML private ProgressIndicator spinner;
+    @FXML private Button btnPresetHoy;
+    @FXML private Button btnPresetSemana;
+    @FXML private Button btnPresetMes;
+    @FXML private Button btnPresetAnio;
+    @FXML private Button btnPresetTodo;
 
     private final ReporteService reporteService = new ReporteService();
+    private boolean updatingFromPreset = false;
 
     @FXML
     public void initialize() {
         spinner.setVisible(false);
         spinner.setManaged(false);
+        desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
+        hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         onReportMes(); // default to current month
+    }
+
+    private void setPresetActive(Button active) {
+        for (Button b : new Button[]{btnPresetHoy, btnPresetSemana, btnPresetMes, btnPresetAnio, btnPresetTodo}) {
+            if (b != null) b.getStyleClass().remove("btn-preset-active");
+        }
+        if (active != null) active.getStyleClass().add("btn-preset-active");
+    }
+
+    private void clearPresetActive() { setPresetActive(null); }
+
+    private void applyPreset(Button source, LocalDate desde, LocalDate hasta) {
+        updatingFromPreset = true;
+        desdeField.setValue(desde);
+        hastaField.setValue(hasta);
+        updatingFromPreset = false;
+        setPresetActive(source);
     }
 
     @FXML private void onReportHoy() {
         LocalDate hoy = LocalDate.now();
-        desdeField.setValue(hoy); hastaField.setValue(hoy);
+        applyPreset(btnPresetHoy, hoy, hoy);
     }
     @FXML private void onReportSemana() {
         LocalDate hoy = LocalDate.now();
-        desdeField.setValue(hoy.minusDays(6)); hastaField.setValue(hoy);
+        applyPreset(btnPresetSemana, hoy.minusDays(6), hoy);
     }
     @FXML private void onReportMes() {
         LocalDate hoy = LocalDate.now();
-        desdeField.setValue(hoy.withDayOfMonth(1)); hastaField.setValue(hoy);
+        applyPreset(btnPresetMes, hoy.withDayOfMonth(1), hoy);
     }
     @FXML private void onReportAnio() {
         LocalDate hoy = LocalDate.now();
-        desdeField.setValue(hoy.withDayOfYear(1)); hastaField.setValue(hoy);
+        applyPreset(btnPresetAnio, hoy.withDayOfYear(1), hoy);
     }
     @FXML private void onReportTodo() {
-        desdeField.setValue(null); hastaField.setValue(null);
+        applyPreset(btnPresetTodo, null, null);
     }
 
     // ─── Inventario ───
@@ -82,6 +107,7 @@ public class ReportesController {
     // ─── Distribución ───
     @FXML private void onDistribucionPdf(ActionEvent event)   { exportar(event, () -> reporteService.exportDistribucionPdf()); }
     @FXML private void onDistribucionExcel(ActionEvent event) { exportar(event, () -> reporteService.exportDistribucionExcel()); }
+    @FXML private void onDistribucionCsv(ActionEvent event)   { exportar(event, () -> reporteService.exportDistribucionCsv()); }
 
     private LocalDate getDesde() { return desdeField.getValue(); }
     private LocalDate getHasta() { return hastaField.getValue(); }

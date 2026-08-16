@@ -12,8 +12,8 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
 - **Organigrama** — bienes distribuidos por secretaría y dirección municipal
-- **Gestión de usuarios** — roles Admin y Dirección con control de acceso
-- **Pantalla de inicio animada** con progreso de carga
+- **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área
+- **Pantalla de inicio animada** con progreso de carga y transiciones tipo cross-fade entre splash → login → sistema
 - **Notificaciones toast** en tiempo real
 
 ---
@@ -26,7 +26,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | UI | JavaFX 21 + FXML + CSS + AtlantaFX |
 | Base de datos | PostgreSQL |
 | Conexión BD | HikariCP (pool de conexiones) |
-| Reportes PDF | iText 5 |
+| Reportes PDF | iText 7 |
 | Reportes Excel | Apache POI |
 | Cifrado | jBCrypt |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
@@ -86,6 +86,7 @@ SIBIM-Java/
 │   └── main/
 │       ├── java/com/sibim/
 │       │   ├── controller/    # Controladores JavaFX por módulo
+│       │   │   └── dialogs/   # Formularios de diálogo extraídos (alta/edición)
 │       │   ├── model/         # Entidades del dominio
 │       │   ├── repository/    # Acceso a base de datos
 │       │   ├── service/       # Lógica de negocio
@@ -111,8 +112,8 @@ SIBIM-Java/
 | Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría y paginación |
 | Movimientos | Registro de entradas/salidas/ajustes/transferencias con vista previa del stock resultante |
 | Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer |
-| Categorías | Gestión de clasificaciones con color personalizado |
-| Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento |
+| Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
+| Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes |
 | Reportes | Exportación multi-formato con selector de período |
 | Configuración | Perfil de usuario y gestión de cuentas (solo Admin) |
 

@@ -6,7 +6,7 @@
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.MovimientosController"
       fx:id="rootPane" spacing="12">
-    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-purple">
@@ -39,8 +39,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-purple"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="↕" styleClass="rich-stat-icon"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
+                    <Label text="↕" styleClass="rich-stat-icon"/>
+                </StackPane>
                 <Label text="TOTAL MOVIMIENTOS" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatTotalMov" text="—" styleClass="rich-stat-value"/>
@@ -51,8 +53,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-green"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⬆" styleClass="rich-stat-icon"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
+                    <Label text="⬆" styleClass="rich-stat-icon"/>
+                </StackPane>
                 <Label text="ENTRADAS" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatEntradas" text="—" styleClass="rich-stat-value"/>
@@ -63,8 +67,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-red"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⬇" styleClass="rich-stat-icon"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
+                    <Label text="⬇" styleClass="rich-stat-icon"/>
+                </StackPane>
                 <Label text="SALIDAS" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatSalidas" text="—" styleClass="rich-stat-value"/>
@@ -75,8 +81,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-amber"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="⇄" styleClass="rich-stat-icon"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <Label text="⇄" styleClass="rich-stat-icon"/>
+                </StackPane>
                 <Label text="AJUSTES / TRANSF." styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatAjustes" text="—" styleClass="rich-stat-value"/>
@@ -91,8 +99,8 @@
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-purple">
-        <StackPane prefWidth="250">
+    <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-purple">
+        <StackPane prefWidth="280">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por producto, motivo o referencia..."
                        maxWidth="Infinity" styleClass="search-field"/>
@@ -125,14 +133,14 @@
         <Button text="✕" onAction="#onLimpiarFechas" styleClass="btn-preset-clear">
             <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
         </Button>
-        <Region HBox.hgrow="ALWAYS"/>
+        <Separator orientation="VERTICAL"/>
         <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
             <tooltip><Tooltip text="Exportar movimientos filtrados a CSV"/></tooltip>
         </Button>
         <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
             <tooltip><Tooltip text="Exportar movimientos filtrados a Excel (.xlsx)"/></tooltip>
         </Button>
-    </HBox>
+    </FlowPane>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">

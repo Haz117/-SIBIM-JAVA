@@ -107,8 +107,8 @@
 }
 .form-input {
     -fx-background-color: #F8FAFC;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
     -fx-border-color: #E2E8F0;
     -fx-border-width: 1.5;
     -fx-padding: 11 14;
@@ -169,12 +169,21 @@
 /* ═══════════════════════════════════════════════════════════════════
    SIDEBAR
    ═══════════════════════════════════════════════════════════════════ */
+/* Rounded only on the right side — the sidebar isn't a floating card (it's
+   edge-to-edge, no margins), but a fully square silhouette reads as a rigid
+   block butted against the content. .sidebar-backdrop behind it is colored
+   to match, so the corner cut doesn't show a mismatched gap. */
 .sidebar {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6366F1, #8B5CF6),
                           linear-gradient(from 0% 0% to 0% 100%, #0F1724, #111827);
     -fx-background-insets: 0, 4 0 0 0;
-    -fx-border-color: transparent rgba(99,102,241,0.22) transparent transparent;
-    -fx-border-width: 0 1 0 0;
+    -fx-background-radius: 0 24 24 0;
+}
+
+/* Fills the strip the sidebar sits on top of, so its rounded right corners
+   (see .sidebar above) don't reveal a mismatched gap behind them. */
+.sidebar-backdrop {
+    -fx-background-color: #111827;
 }
 
 /* Logo area */
@@ -263,16 +272,26 @@
     -fx-border-color: transparent;
     -fx-border-width: 0 0 0 3;
     -fx-border-insets: 0;
+    /* Prevent AtlantaFX from painting its own accent-colored focus ring over
+       our background when a nav button holds keyboard focus. */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
 }
 .nav-btn.nav-active,
-.nav-btn.nav-active:hover {
-    -fx-background-color: rgba(99,102,241,0.20);
-    -fx-text-fill: #EEF2FF;
+.nav-btn.nav-active:hover,
+.nav-btn.nav-active:focused,
+.nav-btn.nav-active:armed {
+    -fx-background-color: white;
+    -fx-text-fill: #4338CA;
     -fx-font-weight: bold;
-    -fx-border-color: transparent transparent transparent #818CF8;
-    -fx-border-width: 0 0 0 3;
-    -fx-background-radius: 0 8 8 0;
-    -fx-effect: dropshadow(gaussian, #6366F1, 18, 0.12, 0, 0);
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    /* Full pill radius on every corner (not just the left side) — combined
+       with the translateX nudge in MainController#animateActivePill, this is
+       what reads as a floating capsule invading the content area rather than
+       a flat rectangle flush against the sidebar's own edge. */
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.30), 12, 0.18, 0, 3);
 }
 
 .sidebar-divider .line {
@@ -316,7 +335,7 @@
     -fx-font-size: 12.5px;
     -fx-text-fill: #64748B;
 }
-.muted         { -fx-text-fill: #94A3B8; -fx-font-size: 12px; }
+.muted         { -fx-text-fill: #64748B; -fx-font-size: 12px; }
 .card-title {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
@@ -343,13 +362,10 @@
    CARDS  — gradient top accent stripe
    ═══════════════════════════════════════════════════════════════════ */
 .card {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6366F1, #8B5CF6), white;
-    -fx-background-insets: 0, 3 0 0 0;
-    -fx-background-radius: 14, 11 11 14 14;
-    -fx-border-color: transparent #E0E4ED #E0E4ED #E0E4ED;
-    -fx-border-width: 0 1 1 1;
-    -fx-border-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.09), 12, 0, 0, 3);
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 20, 0, 0, 6);
 }
 .card:hover {
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.22), 22, 0, 0, 5);
@@ -359,10 +375,10 @@
 /* Filter bar — left-accent in brand color */
 .filter-bar {
     -fx-background-color: white;
-    -fx-background-radius: 10;
+    -fx-background-radius: 12;
     -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1;
     -fx-border-width: 0 1 1 3;
-    -fx-border-radius: 10;
+    -fx-border-radius: 12;
     -fx-padding: 10 14;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 6, 0, 0, 1);
     -fx-transition: -fx-border-color 0.2s;
@@ -382,35 +398,40 @@
    STAT CARDS (Dashboard)
    ═══════════════════════════════════════════════════════════════════ */
 .stat-card {
-    -fx-background-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 20, 0, 0, 6);
     -fx-min-width: 160;
     -fx-min-height: 105;
     -fx-cursor: default;
 }
 
-/* Color variants — compound selector (2 classes = higher specificity, always wins) */
-.stat-card.stat-card-indigo      { -fx-background-color: #4F46E5; }
-.stat-card.stat-card-teal        { -fx-background-color: #0891B2; }
-.stat-card.stat-card-amber       { -fx-background-color: #D97706; }
-.stat-card.stat-card-rose        { -fx-background-color: #E11D48; }
-.stat-card.stat-card-violet      { -fx-background-color: #7C3AED; }
-.stat-card.stat-card-dark-indigo { -fx-background-color: #3730A3; }
-
 /* Clickable stat card */
 .stat-card-clickable { -fx-cursor: hand; }
 .stat-card-clickable:hover {
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.42), 26, 0, 0, 10);
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.22), 24, 0, 0, 8);
     -fx-translate-y: -4;
 }
-/* Descendant selectors (0,0,2,0 specificity) — guarantee white text on colored cards */
-.stat-card .stat-icon  { -fx-font-size: 34px; -fx-text-fill: white; -fx-opacity: 0.80; -fx-padding: 0 4 0 8; }
-.stat-card .stat-label { -fx-text-fill: rgba(255,255,255,0.82); -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-padding: 0 0 2 0; }
-.stat-card .stat-value { -fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: white; }
-.stat-card .stat-value-currency { -fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: white; }
-.stat-card .stat-hint  { -fx-text-fill: rgba(255,255,255,0.58); -fx-font-size: 10.5px; }
+
+/* Circular icon badge — the color lives here now, not on the whole card */
+.stat-icon-badge {
+    -fx-min-width: 44; -fx-min-height: 44;
+    -fx-max-width: 44; -fx-max-height: 44;
+    -fx-background-radius: 999;
+}
+.stat-icon-badge .stat-icon { -fx-font-size: 19px; -fx-text-fill: white; -fx-padding: 0; }
+.stat-icon-badge-indigo      { -fx-background-color: #4F46E5; }
+.stat-icon-badge-teal        { -fx-background-color: #0891B2; }
+.stat-icon-badge-amber       { -fx-background-color: #D97706; }
+.stat-icon-badge-rose        { -fx-background-color: #E11D48; }
+.stat-icon-badge-violet      { -fx-background-color: #7C3AED; }
+.stat-icon-badge-dark-indigo { -fx-background-color: #3730A3; }
+
+.stat-card .stat-label { -fx-text-fill: #64748B; -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-padding: 0 0 2 0; }
+.stat-card .stat-value { -fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: #1E293B; }
+.stat-card .stat-value-currency { -fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: #1E293B; }
+.stat-card .stat-hint  { -fx-text-fill: #64748B; -fx-font-size: 10.5px; }
 /* Keep single-class fallbacks for sizing */
-.stat-icon  { -fx-font-size: 34px; -fx-padding: 0 4 0 8; }
 .stat-label { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-padding: 0 0 2 0; }
 .stat-value { -fx-font-size: 33px; -fx-font-weight: bold; }
 .stat-value-sm { -fx-font-size: 21px; }
@@ -422,7 +443,7 @@
 .btn-primary {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6366F1, #7C3AED);
     -fx-text-fill: white;
-    -fx-background-radius: 8;
+    -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 8 18;
     -fx-font-weight: bold;
@@ -441,8 +462,8 @@
     -fx-text-fill: #374151;
     -fx-border-color: #D1D9E6;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 7 14;
     -fx-font-size: 13px;
@@ -459,7 +480,7 @@
 .btn-danger {
     -fx-background-color: #EF4444;
     -fx-text-fill: white;
-    -fx-background-radius: 8;
+    -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 8 16;
     -fx-font-size: 13px;
@@ -472,7 +493,7 @@
 .btn-warning {
     -fx-background-color: #F59E0B;
     -fx-text-fill: white;
-    -fx-background-radius: 8;
+    -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 8 16;
     -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.30), 6, 0, 0, 2);
@@ -536,7 +557,7 @@
     -fx-font-size: 13px;
 }
 .data-table .placeholder .label {
-    -fx-text-fill: #94A3B8;
+    -fx-text-fill: #64748B;
     -fx-font-size: 14px;
     -fx-font-style: italic;
 }
@@ -546,8 +567,8 @@
     -fx-background-color: white;
     -fx-border-color: #D1D9E6;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
     -fx-padding: 7 12;
     -fx-prompt-text-fill: #94A3B8;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.04), 4, 0, 0, 1);
@@ -563,8 +584,8 @@
     -fx-background-color: white;
     -fx-border-color: #D1D9E6;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
     -fx-padding: 1 4;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.04), 4, 0, 0, 1);
 }
@@ -583,8 +604,8 @@
     -fx-background-color: white;
     -fx-border-color: #D1D9E6;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.04), 4, 0, 0, 1);
 }
 .date-picker .text-field {
@@ -597,7 +618,7 @@
 .date-picker:focused, .date-picker .text-field:focused { -fx-border-color: #6366F1; }
 
 /* Spinner */
-.spinner { -fx-border-color: #D1D9E6; -fx-border-radius: 8; -fx-background-radius: 8; }
+.spinner { -fx-border-color: #D1D9E6; -fx-border-radius: 10; -fx-background-radius: 10; }
 .spinner .text-field { -fx-border-color: transparent; -fx-effect: none; }
 .spinner .increment-arrow-button,
 .spinner .decrement-arrow-button { -fx-background-color: #F4F6FA; -fx-cursor: hand; }
@@ -620,7 +641,7 @@
 /* ─── Charts — consolidated ─────────────────────────────────────── */
 .chart                   { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
 .chart-content           { -fx-padding: 0; }
-.chart-plot-background   { -fx-background-color: #F8FAFC; -fx-background-radius: 8; }
+.chart-plot-background   { -fx-background-color: #F8FAFC; -fx-background-radius: 10; }
 .chart-legend            { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
 .chart-legend-item-symbol { -fx-padding: 4; }
 .chart-alternative-row-fill { -fx-fill: transparent; }
@@ -727,19 +748,28 @@
    REPORTES
    ═══════════════════════════════════════════════════════════════════ */
 .report-card {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6366F1, #8B5CF6), white;
-    -fx-background-insets: 0, 3 0 0 0;
-    -fx-background-radius: 14, 11 11 14 14;
-    -fx-border-color: transparent #E0E4ED #E0E4ED #E0E4ED;
-    -fx-border-width: 0 1 1 1;
-    -fx-border-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 10, 0, 0, 2);
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
     -fx-cursor: hand;
 }
 .report-card:hover {
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.28), 22, 0, 0, 6);
     -fx-translate-y: -3;
 }
+
+/* Circular icon badge — the color lives here now, not on the whole card */
+.report-icon-badge {
+    -fx-min-width: 44; -fx-min-height: 44;
+    -fx-max-width: 44; -fx-max-height: 44;
+    -fx-background-radius: 999;
+}
+.report-icon-badge .report-icon { -fx-font-size: 19px; -fx-text-fill: white; -fx-padding: 0; }
+.report-icon-badge-indigo { -fx-background-color: #6366F1; }
+.report-icon-badge-teal   { -fx-background-color: #0891B2; }
+.report-icon-badge-amber  { -fx-background-color: #D97706; }
+.report-icon-badge-green  { -fx-background-color: #059669; }
 .report-title {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
@@ -831,22 +861,6 @@
 .data-table .table-row-cell.row-transferencia      { -fx-background-color: #F0F6FF; }
 .data-table .table-row-cell.row-transferencia:hover { -fx-background-color: #DBEAFE; }
 
-/* ─── Report card color variants ─── */
-.report-card-teal {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #0891B2, #0E7490), white;
-    -fx-background-insets: 0, 3 0 0 0;
-    -fx-background-radius: 14, 11 11 14 14;
-}
-.report-card-amber {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #D97706, #B45309), white;
-    -fx-background-insets: 0, 3 0 0 0;
-    -fx-background-radius: 14, 11 11 14 14;
-}
-.report-card-green {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #059669, #047857), white;
-    -fx-background-insets: 0, 3 0 0 0;
-    -fx-background-radius: 14, 11 11 14 14;
-}
 .report-card-tag {
     -fx-font-size: 10.5px;
     -fx-font-weight: bold;
@@ -898,6 +912,43 @@
 .cat-count-active { -fx-text-fill: #059669; -fx-font-weight: bold; }
 .cat-hex-label    { -fx-font-size: 11.5px; -fx-text-fill: #475569; }
 
+/* Category dialog: color swatch picker (replaces raw hex/RGBA entry) */
+.color-swatch {
+    -fx-min-width: 30; -fx-min-height: 30;
+    -fx-max-width: 30; -fx-max-height: 30;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-border-color: transparent;
+    -fx-border-width: 2.5;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+.color-swatch:hover  { -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.35), 6, 0.1, 0, 1); }
+.color-swatch:selected {
+    -fx-border-color: #1E293B;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.3), 5, 0.2, 0, 1);
+}
+
+/* Category dialog: preset icon picker (replaces free-text emoji entry) */
+.icon-swatch {
+    -fx-min-width: 34; -fx-min-height: 34;
+    -fx-max-width: 34; -fx-max-height: 34;
+    -fx-font-size: 15px;
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1.5;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+.icon-swatch:hover    { -fx-background-color: #F1F5F9; }
+.icon-swatch:selected {
+    -fx-background-color: #EEF2FF;
+    -fx-border-color: #6366F1;
+    -fx-text-fill: #4338CA;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    TOOLTIP
    ═══════════════════════════════════════════════════════════════════ */
@@ -915,8 +966,8 @@
    ═══════════════════════════════════════════════════════════════════ */
 .dialog-pane {
     -fx-background-color: white;
-    -fx-border-radius: 14;
-    -fx-background-radius: 14;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.28), 44, 0, 0, 14);
 }
 .dialog-pane > .content { -fx-background-color: white; -fx-padding: 0; }
@@ -1110,9 +1161,9 @@
     -fx-background-color: white;
     -fx-border-color: #D1D9E6;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
-    -fx-padding: 7 12;
+    -fx-border-radius: 999;
+    -fx-background-radius: 999;
+    -fx-padding: 7 16;
     -fx-prompt-text-fill: #94A3B8;
 }
 .search-field:hover {
@@ -1796,10 +1847,10 @@
    MISC UTILITIES
    ═══════════════════════════════════════════════════════════════════ */
 /* Subdued helper text (smaller than .muted) */
-.muted-sm { -fx-font-size: 11px; -fx-text-fill: #94A3B8; }
+.muted-sm { -fx-font-size: 11px; -fx-text-fill: #64748B; }
 
 /* Period picker hint label inside report card */
-.report-hint { -fx-font-size: 11px; -fx-text-fill: #94A3B8; }
+.report-hint { -fx-font-size: 11px; -fx-text-fill: #64748B; }
 
 /* Medium card icon (calendar, etc.) */
 .card-icon-lg { -fx-font-size: 17px; }
@@ -1831,8 +1882,8 @@
 /* ═══════════════════════════════════════════════════════════════════
    DIALOG — stock preview widget (Movimientos) & product detail (Productos)
    ═══════════════════════════════════════════════════════════════════ */
-.dlg-stock-preview   { -fx-background-color: #F8FAFC; -fx-background-radius: 8; -fx-border-color: #E2E8F0; -fx-border-width: 1; -fx-border-radius: 8; }
-.dlg-stock-tit       { -fx-font-size: 9.5px; -fx-font-weight: bold; -fx-text-fill: #94A3B8; }
+.dlg-stock-preview   { -fx-background-color: #F8FAFC; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-width: 1; -fx-border-radius: 12; }
+.dlg-stock-tit       { -fx-font-size: 9.5px; -fx-font-weight: bold; -fx-text-fill: #64748B; }
 .dlg-stock-val       { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #374151; }
 .dlg-stock-new-ok    { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #10B981; }
 .dlg-stock-new-warn  { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #F59E0B; }
@@ -1842,8 +1893,8 @@
 .dlg-stock-arrow-down { -fx-font-size: 18px; -fx-text-fill: #EF4444; }
 
 /* Product detail dialog header card */
-.dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1; -fx-border-width: 0 1 1 4; -fx-background-radius: 8; -fx-border-radius: 8; }
-.dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-border-width: 1; }
+.dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
+.dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-border-width: 1; }
 .dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
 .dlg-detail-code   { -fx-font-size: 12px; -fx-text-fill: #64748B; }
 
@@ -1860,8 +1911,8 @@
 .dlg-detail-total      { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
 
 /* Image picker widget inside product form dialog */
-.dlg-img-placeholder { -fx-text-fill: #94A3B8; -fx-font-size: 12px; -fx-text-alignment: center; -fx-alignment: center; }
-.dlg-img-box         { -fx-background-color: #F1F5F9; -fx-background-radius: 8; -fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-border-width: 1; }
+.dlg-img-placeholder { -fx-text-fill: #64748B; -fx-font-size: 12px; -fx-text-alignment: center; -fx-alignment: center; }
+.dlg-img-box         { -fx-background-color: #F1F5F9; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-border-width: 1; }
 /* Dialog tab pane — full brand styling */
 .dlg-tabpane > .tab-header-area > .tab-header-background {
     -fx-background-color: #F8FAFC;
@@ -1923,7 +1974,7 @@
 }
 .btn-preset-clear {
     -fx-background-color: transparent;
-    -fx-text-fill: #94A3B8;
+    -fx-text-fill: #64748B;
     -fx-background-radius: 20;
     -fx-padding: 4 10;
     -fx-font-size: 11.5px;
@@ -1951,14 +2002,14 @@
 .cat-badge       { -fx-background-radius: 5; -fx-padding: 2 9; -fx-font-size: 11.5px; -fx-font-weight: bold; }
 .cat-preview-badge { -fx-background-radius: 5; -fx-padding: 3 10; -fx-font-size: 12px; -fx-font-weight: bold; }
 .dlg-monogram      { -fx-font-size: 22px; -fx-font-weight: bold; }
-.dlg-thumb-monogram { -fx-background-radius: 8; }
+.dlg-thumb-monogram { -fx-background-radius: 12; }
 
 /* ═══════════════════════════════════════════════════════════════════
    SEARCH CLEAR BUTTON — overlaid ✕ inside search TextField
    ═══════════════════════════════════════════════════════════════════ */
 .search-clear-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #94A3B8;
+    -fx-text-fill: #64748B;
     -fx-padding: 0 8 0 0;
     -fx-font-size: 13px;
     -fx-cursor: hand;
@@ -2001,16 +2052,24 @@
    Fondo tintado claro + borde grueso de color + número en el acento
    ═══════════════════════════════════════════════════════════════════ */
 .rich-stat-card {
-    -fx-background-radius: 12;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 14, 0, 0, 5);
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
 }
-/* Color variants — compound selector (2 classes = higher specificity, always wins) */
-.rich-stat-card.rich-stat-indigo { -fx-background-color: #5253E5; }
-.rich-stat-card.rich-stat-teal   { -fx-background-color: #0891B2; }
-.rich-stat-card.rich-stat-amber  { -fx-background-color: #D97706; }
-.rich-stat-card.rich-stat-purple { -fx-background-color: #7C3AED; }
-.rich-stat-card.rich-stat-green  { -fx-background-color: #16A34A; }
-.rich-stat-card.rich-stat-red    { -fx-background-color: #DC2626; }
+
+/* Circular icon badge — the color lives here now, not on the whole card */
+.rich-stat-icon-badge {
+    -fx-min-width: 30; -fx-min-height: 30;
+    -fx-max-width: 30; -fx-max-height: 30;
+    -fx-background-radius: 999;
+}
+.rich-stat-icon-badge .rich-stat-icon { -fx-font-size: 13px; -fx-text-fill: white; -fx-opacity: 1; -fx-padding: 0; }
+.rich-stat-icon-badge-indigo { -fx-background-color: #5253E5; }
+.rich-stat-icon-badge-teal   { -fx-background-color: #0891B2; }
+.rich-stat-icon-badge-amber  { -fx-background-color: #D97706; }
+.rich-stat-icon-badge-purple { -fx-background-color: #7C3AED; }
+.rich-stat-icon-badge-green  { -fx-background-color: #16A34A; }
+.rich-stat-icon-badge-red    { -fx-background-color: #DC2626; }
 
 /* Alert active — amber card pulses with stronger border+glow */
 .rich-stat-card-alert-active {
@@ -2019,12 +2078,11 @@
     -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.40), 18, 0, 0, 4);
 }
 
-/* Descendant selectors (0,0,2,0) — guarantee white text on colored rich-stat-cards */
-.rich-stat-card .rich-stat-icon  { -fx-font-size: 15px; -fx-text-fill: white; -fx-opacity: 0.85; }
-.rich-stat-card .rich-stat-label { -fx-font-size: 10.5px; -fx-text-fill: rgba(255,255,255,0.82); -fx-font-weight: bold; }
-.rich-stat-card .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white; }
+/* Descendant selectors (0,0,2,0) — dark text now that the card is white */
+.rich-stat-card .rich-stat-label { -fx-font-size: 10.5px; -fx-text-fill: #64748B; -fx-font-weight: bold; }
+.rich-stat-card .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1E293B; }
 .rich-stat-card .rich-stat-value.rich-stat-value-sm { -fx-font-size: 18px; }
-.rich-stat-card .rich-stat-hint  { -fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.60); }
+.rich-stat-card .rich-stat-hint  { -fx-font-size: 11px; -fx-text-fill: #64748B; }
 /* Single-class fallbacks for sizing only */
 .rich-stat-label { -fx-font-size: 10.5px; -fx-font-weight: bold; }
 .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; }
@@ -2099,8 +2157,8 @@
    CARD — table inside card fits corner radius
    ═══════════════════════════════════════════════════════════════════ */
 .card > .data-table {
-    -fx-border-radius: 0 0 12 12;
-    -fx-background-radius: 0 0 12 12;
+    -fx-border-radius: 0 0 20 20;
+    -fx-background-radius: 0 0 20 20;
     -fx-border-color: transparent;
     -fx-effect: none;
 }

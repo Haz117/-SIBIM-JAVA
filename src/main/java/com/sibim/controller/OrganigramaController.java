@@ -26,6 +26,9 @@ public class OrganigramaController {
     @FXML private Button btnClearSearch;
     @FXML private VBox orgTree;
     @FXML private ProgressIndicator spinner;
+    @FXML private Label lblStatAreas;
+    @FXML private Label lblStatBienes;
+    @FXML private Label lblStatTopArea;
 
     private final ProductoRepository productoRepo = new ProductoRepository();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
@@ -54,12 +57,25 @@ public class OrganigramaController {
                 productosPorArea = porArea;
                 spinner.setVisible(false); spinner.setManaged(false);
                 buildTree(searchField.getText() != null ? searchField.getText() : "");
+                updateStats();
             },
             e -> {
                 spinner.setVisible(false); spinner.setManaged(false);
                 NotificacionUtil.error(searchField.getScene(), "No se pudo cargar el organigrama");
             }
         );
+    }
+
+    private void updateStats() {
+        if (lblStatAreas == null) return;
+        lblStatAreas.setText(String.valueOf(productosPorArea.size()));
+        int totalBienes = productosPorArea.values().stream().mapToInt(List::size).sum();
+        lblStatBienes.setText(String.valueOf(totalBienes));
+        productosPorArea.entrySet().stream()
+            .max(Comparator.comparingInt(e -> e.getValue().size()))
+            .ifPresentOrElse(
+                e -> lblStatTopArea.setText(e.getKey()),
+                () -> lblStatTopArea.setText("—"));
     }
 
     private void buildTree(String filter) {
@@ -83,6 +99,24 @@ public class OrganigramaController {
         if (accessible == null || anyAccessible(accessible, Areas.AUTONOMOS)) {
             addAreaSection("Organismos Autónomos", Areas.AUTONOMOS, q, false, accessible);
         }
+
+        if (orgTree.getChildren().isEmpty()) {
+            VBox empty = new VBox(6);
+            empty.setAlignment(Pos.CENTER);
+            empty.setPadding(new Insets(40, 0, 40, 0));
+            Label icon = new Label("🏛");
+            icon.getStyleClass().add("empty-icon-lg");
+            Label msg = new Label(q.isBlank() ? "No hay áreas para mostrar" : "No se encontraron áreas para \"" + filter + "\"");
+            msg.getStyleClass().add("empty-state-msg");
+            empty.getChildren().addAll(icon, msg);
+            orgTree.getChildren().add(empty);
+        }
+    }
+
+    @FXML private void onExpandAll() {
+        for (javafx.scene.Node n : orgTree.getChildren()) {
+            if (n instanceof TitledPane pane) pane.setExpanded(true);
+        }
     }
 
     /** True if any of {@code areas} is in {@code accessible} (or {@code accessible} is null = admin). */
@@ -98,7 +132,7 @@ public class OrganigramaController {
         }
 
         TitledPane section = new TitledPane();
-        section.setExpanded(expanded);
+        section.setExpanded(expanded || !filter.isBlank());
 
         // ── Header graphic ─────────────────────────────────────────────
         HBox header = new HBox(10);

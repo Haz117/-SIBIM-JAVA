@@ -10,7 +10,9 @@ module com.sibim {
     requires bcrypt;
 
     requires org.apache.poi.ooxml;
-    requires itextpdf;
+    requires kernel;
+    requires layout;
+    requires io;
     requires org.slf4j;
     requires io.github.cdimascio.dotenv.java;
     requires atlantafx.base;

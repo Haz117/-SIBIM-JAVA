@@ -7,7 +7,7 @@
             fx:controller="com.sibim.controller.ConfiguracionController"
             fitToWidth="true" styleClass="page-scroll">
 <VBox spacing="20">
-    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-slate">
@@ -81,7 +81,10 @@
             <!-- Modo -->
             <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col">
                 <Label text="MODO" styleClass="profile-field-key"/>
-                <Label fx:id="lblSistemaModo" text="—" styleClass="sys-info-value"/>
+                <HBox spacing="5" alignment="CENTER_LEFT">
+                    <Label fx:id="dotSistemaModo" text="●"/>
+                    <Label fx:id="lblSistemaModo" text="—" styleClass="sys-info-value"/>
+                </HBox>
             </VBox>
             <!-- Sesión -->
             <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col sys-info-col-last">

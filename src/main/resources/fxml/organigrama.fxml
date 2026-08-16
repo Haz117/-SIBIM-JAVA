@@ -6,7 +6,7 @@
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.OrganigramaController"
       spacing="12">
-    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-blue">
@@ -24,6 +24,48 @@
         </Button>
     </HBox>
 
+    <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <VBox styleClass="rich-stat-card, rich-stat-indigo"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <Label text="🏛" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="ÁREAS CON BIENES" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblStatAreas" text="—" styleClass="rich-stat-value"/>
+            <Label text="de la estructura municipal" styleClass="rich-stat-hint"/>
+        </VBox>
+
+        <VBox styleClass="rich-stat-card, rich-stat-teal"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <Label text="📦" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="BIENES DISTRIBUIDOS" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblStatBienes" text="—" styleClass="rich-stat-value"/>
+            <Label text="en todas las áreas" styleClass="rich-stat-hint"/>
+        </VBox>
+
+        <VBox styleClass="rich-stat-card, rich-stat-amber"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <Label text="⭐" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="ÁREA CON MÁS BIENES" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblStatTopArea" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
+            <Label text="mayor concentración de inventario" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+
     <!-- ══ SEARCH BAR ════════════════════════════════════════════════ -->
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
         <StackPane HBox.hgrow="ALWAYS">
@@ -37,6 +79,9 @@
         </StackPane>
         <Label text="Expande cada sección para ver los bienes asignados"
                styleClass="muted-sm"/>
+        <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary btn-sm">
+            <tooltip><Tooltip text="Expande todas las secciones visibles"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- ══ ORG TREE ═══════════════════════════════════════════════════ -->

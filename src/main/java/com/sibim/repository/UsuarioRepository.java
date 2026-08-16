@@ -121,7 +121,14 @@ public class UsuarioRepository {
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, userId);
-            ps.executeUpdate();
+            try {
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                if ("23503".equals(e.getSQLState()))
+                    throw new IllegalStateException(
+                        "No se puede eliminar: este usuario tiene movimientos registrados en su historial");
+                throw e;
+            }
         }
     }
 

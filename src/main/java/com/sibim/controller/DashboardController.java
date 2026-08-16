@@ -221,8 +221,11 @@ public class DashboardController {
 
         LocalDate today = LocalDate.now();
         List<String> labels = new ArrayList<>();
-        for (int i = 6; i >= 0; i--)
-            labels.add(today.minusDays(i).getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es")));
+        for (int i = 6; i >= 0; i--) {
+            String raw = today.minusDays(i).getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es"))
+                .replace(".", "");
+            labels.add(raw.substring(0, 1).toUpperCase() + raw.substring(1));
+        }
 
         Map<LocalDate, Integer> entMap = new HashMap<>(), salMap = new HashMap<>();
         for (Movimiento m : movimientos) {
@@ -240,6 +243,10 @@ public class DashboardController {
             salidas.getData().add(new XYChart.Data<>(label, salMap.getOrDefault(day, 0)));
         }
         chartMovimientos.getData().addAll(entradas, salidas);
+        for (XYChart.Data<String, Number> d : entradas.getData())
+            if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Entradas " + d.getXValue() + ": " + d.getYValue()));
+        for (XYChart.Data<String, Number> d : salidas.getData())
+            if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Salidas " + d.getXValue() + ": " + d.getYValue()));
     }
 
     private void buildCategoriaChart(List<Producto> productos) {
@@ -252,6 +259,13 @@ public class DashboardController {
             .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) > 0)
             .forEach(e -> chartValorCategoria.getData().add(
                 new PieChart.Data(e.getKey(), e.getValue().doubleValue())));
+
+        for (PieChart.Data d : chartValorCategoria.getData()) {
+            if (d.getNode() != null) {
+                Tooltip.install(d.getNode(), new Tooltip(
+                    d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()))));
+            }
+        }
 
         boolean hasData = !chartValorCategoria.getData().isEmpty();
         chartValorCategoria.setVisible(hasData);

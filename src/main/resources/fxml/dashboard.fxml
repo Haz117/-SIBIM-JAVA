@@ -8,7 +8,7 @@
             fx:controller="com.sibim.controller.DashboardController"
             fitToWidth="true" styleClass="page-scroll">
 <VBox spacing="18">
-    <padding><Insets top="22" right="24" bottom="24" left="24"/></padding>
+    <padding><Insets top="22" right="24" bottom="24" left="34"/></padding>
 
     <!-- ══════════════════════════════════════════════════════════
          WELCOME BANNER
@@ -102,81 +102,93 @@
         </columnConstraints>
 
         <!-- Total de Bienes — Indigo -->
-        <HBox styleClass="stat-card, stat-card-clickable, stat-card-indigo"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerProductos"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerProductos" spacing="14"
               GridPane.columnIndex="0" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <StackPane styleClass="stat-icon-badge, stat-icon-badge-indigo">
+                <Label text="📦" styleClass="stat-icon"/>
+            </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="TOTAL DE BIENES" styleClass="stat-label"/>
                 <Label fx:id="lblTotalBienes" text="—" styleClass="stat-value"/>
                 <Label text="Ver inventario →" styleClass="stat-hint"/>
             </VBox>
-            <Label text="📦" styleClass="stat-icon"/>
         </HBox>
 
         <!-- Valor Patrimonial — Teal -->
-        <HBox styleClass="stat-card, stat-card-teal"
-              alignment="CENTER_LEFT"
+        <HBox styleClass="stat-card"
+              alignment="CENTER_LEFT" spacing="14"
               GridPane.columnIndex="1" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <StackPane styleClass="stat-icon-badge, stat-icon-badge-teal">
+                <Label text="💰" styleClass="stat-icon"/>
+            </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="VALOR PATRIMONIAL" styleClass="stat-label"/>
                 <Label fx:id="lblValorTotal" text="—" styleClass="stat-value-currency"/>
                 <Label text="Valor total registrado" styleClass="stat-hint"/>
             </VBox>
-            <Label text="💰" styleClass="stat-icon"/>
         </HBox>
 
         <!-- Existencias Bajas — Amber -->
-        <HBox styleClass="stat-card, stat-card-clickable, stat-card-amber"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerBajoStock"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerBajoStock" spacing="14"
               GridPane.columnIndex="2" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <StackPane styleClass="stat-icon-badge, stat-icon-badge-amber">
+                <Label text="⚠" styleClass="stat-icon"/>
+            </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="EXISTENCIAS BAJAS" styleClass="stat-label"/>
                 <Label fx:id="lblBajoStock" text="—" styleClass="stat-value"/>
                 <Label text="Ver alertas →" styleClass="stat-hint"/>
             </VBox>
-            <Label text="⚠" styleClass="stat-icon"/>
         </HBox>
 
         <!-- Agotados — Rose -->
-        <HBox styleClass="stat-card, stat-card-clickable, stat-card-rose"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerAgotados"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerAgotados" spacing="14"
               GridPane.columnIndex="0" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <StackPane styleClass="stat-icon-badge, stat-icon-badge-rose">
+                <Label text="🚫" styleClass="stat-icon"/>
+            </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="BIENES AGOTADOS" styleClass="stat-label"/>
                 <Label fx:id="lblAgotados" text="—" styleClass="stat-value"/>
                 <Label text="Ver alertas →" styleClass="stat-hint"/>
             </VBox>
-            <Label text="🚫" styleClass="stat-icon"/>
         </HBox>
 
         <!-- Movimientos Hoy — Violet -->
-        <HBox styleClass="stat-card, stat-card-clickable, stat-card-violet"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerMovimientos"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerMovimientos" spacing="14"
               GridPane.columnIndex="1" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <StackPane styleClass="stat-icon-badge, stat-icon-badge-violet">
+                <Label text="🔄" styleClass="stat-icon"/>
+            </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="MOVIMIENTOS HOY" styleClass="stat-label"/>
                 <Label fx:id="lblMovimientosHoy" text="—" styleClass="stat-value"/>
                 <Label text="Ver historial →" styleClass="stat-hint"/>
             </VBox>
-            <Label text="🔄" styleClass="stat-icon"/>
         </HBox>
 
         <!-- Categorías — Indigo oscuro -->
-        <HBox styleClass="stat-card, stat-card-dark-indigo"
-              alignment="CENTER_LEFT"
+        <HBox styleClass="stat-card"
+              alignment="CENTER_LEFT" spacing="14"
               GridPane.columnIndex="2" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
+            <StackPane styleClass="stat-icon-badge, stat-icon-badge-dark-indigo">
+                <Label text="🏷" styleClass="stat-icon"/>
+            </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="CATEGORÍAS ACTIVAS" styleClass="stat-label"/>
                 <Label fx:id="lblCategorias" text="—" styleClass="stat-value"/>
                 <Label text="Clasificaciones" styleClass="stat-hint"/>
             </VBox>
-            <Label text="🏷" styleClass="stat-icon"/>
         </HBox>
     </GridPane>
 
@@ -229,7 +241,6 @@
             <HBox alignment="CENTER_LEFT" spacing="8">
                 <Label text="↕" styleClass="card-icon-indigo"/>
                 <Label text="Movimientos Semanales" styleClass="card-title" HBox.hgrow="ALWAYS"/>
-                <Label text="7 días" styleClass="dash-section-badge"/>
             </HBox>
             <LineChart fx:id="chartMovimientos" prefHeight="220" animated="false">
                 <xAxis><CategoryAxis label="Día"/></xAxis>

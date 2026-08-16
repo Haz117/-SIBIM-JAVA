@@ -7,7 +7,7 @@
             fx:controller="com.sibim.controller.AlertasController"
             fitToWidth="true" styleClass="page-scroll">
 <VBox spacing="20">
-    <padding><Insets top="20" right="22" bottom="20" left="22"/></padding>
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-danger">

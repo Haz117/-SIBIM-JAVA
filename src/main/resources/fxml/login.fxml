@@ -28,7 +28,7 @@
 
             <!-- Logo badge -->
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <Label text="S" styleClass="brand-logo-badge"/>
+                <Label fx:id="brandLogoBadge" text="S" styleClass="brand-logo-badge"/>
                 <VBox spacing="1">
                     <Label text="SIBIM" styleClass="brand-title"/>
                     <Label text="Sistema Integral de Bienes Municipales"
@@ -39,7 +39,7 @@
             <Region prefHeight="28"/>
 
             <!-- Feature list -->
-            <VBox spacing="10">
+            <VBox fx:id="featureList" spacing="10">
                 <Label text="✓  Inventario patrimonial centralizado" styleClass="brand-feature"/>
                 <Label text="✓  Control por roles y áreas municipales" styleClass="brand-feature"/>
                 <Label text="✓  Alertas automáticas de stock" styleClass="brand-feature"/>
@@ -50,14 +50,18 @@
             <Separator styleClass="brand-divider"/>
             <Region prefHeight="20"/>
 
-            <!-- Quick-access accounts -->
-            <Label text="CUENTAS DE PRUEBA" styleClass="brand-hint"/>
-            <Region prefHeight="10"/>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="Admin" onAction="#fillAdmin" styleClass="test-btn"/>
-                <Button text="Secretario" onAction="#fillSecretario" styleClass="test-btn"/>
-                <Button text="Dirección" onAction="#fillDireccion" styleClass="test-btn"/>
-            </HBox>
+            <!-- Quick-access accounts — only shown in demo mode (see
+                 LoginController#initialize); a real deployment against
+                 production Postgres has no seeded test accounts to fill. -->
+            <VBox fx:id="testAccountsBox" spacing="0">
+                <Label text="CUENTAS DE PRUEBA" styleClass="brand-hint"/>
+                <Region prefHeight="10"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Button text="Admin" onAction="#fillAdmin" styleClass="test-btn"/>
+                    <Button text="Secretario" onAction="#fillSecretario" styleClass="test-btn"/>
+                    <Button text="Dirección" onAction="#fillDireccion" styleClass="test-btn"/>
+                </HBox>
+            </VBox>
         </VBox>
     </StackPane>
 
@@ -66,13 +70,14 @@
         <padding><Insets top="64" right="64" bottom="64" left="64"/></padding>
 
         <!-- Header -->
-        <Label text="Bienvenido de nuevo" styleClass="login-subtitle"/>
-        <Region prefHeight="6"/>
-        <Label text="Iniciar sesión" styleClass="login-title"/>
+        <VBox fx:id="formHeader" spacing="6">
+            <Label text="Bienvenido de nuevo" styleClass="login-subtitle"/>
+            <Label text="Iniciar sesión" styleClass="login-title"/>
+        </VBox>
         <Region prefHeight="32"/>
 
         <!-- Username -->
-        <VBox spacing="7">
+        <VBox fx:id="usernameBox" spacing="7">
             <Label text="Usuario" styleClass="form-label"/>
             <TextField fx:id="usernameField" promptText="nombre.apellido"
                        onAction="#handleLogin"
@@ -82,7 +87,7 @@
         <Region prefHeight="18"/>
 
         <!-- Password -->
-        <VBox spacing="7">
+        <VBox fx:id="passwordBox" spacing="7">
             <Label text="Contraseña" styleClass="form-label"/>
             <PasswordField fx:id="passwordField" promptText="••••••••"
                            onAction="#handleLogin"
@@ -110,7 +115,7 @@
         <Region prefHeight="18"/>
 
         <!-- Security badge -->
-        <Label text="🔒  Sesión encriptada y segura" styleClass="login-secure-badge"
+        <Label fx:id="secureBadge" text="🔒  Sesión encriptada y segura" styleClass="login-secure-badge"
                maxWidth="Infinity"/>
     </VBox>
 </HBox>

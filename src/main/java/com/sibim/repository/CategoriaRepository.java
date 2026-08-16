@@ -3,6 +3,7 @@ package com.sibim.repository;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
 import com.sibim.model.Categoria;
+import com.sibim.session.SessionManager;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -12,6 +13,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class CategoriaRepository {
+
+    private void requireAdmin() {
+        if (!SessionManager.isAdmin()) {
+            throw new SecurityException("Solo el administrador puede gestionar categorías");
+        }
+    }
 
     public List<Categoria> findAll() throws SQLException {
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllCategorias();
@@ -51,6 +58,7 @@ public class CategoriaRepository {
     }
 
     public Categoria save(Categoria c) throws SQLException {
+        requireAdmin();
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
         if (DatabaseConfig.isDemoMode()) {
             if (c.getCreadoEn() == null) c.setCreadoEn(java.time.LocalDateTime.now());
@@ -82,6 +90,7 @@ public class CategoriaRepository {
     }
 
     public void delete(String id) throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.deleteCategoria(id);
             return;

@@ -31,6 +31,7 @@ public class ConfiguracionController {
     @FXML private Label lblRolUsuario;
     @FXML private Label lblAreaUsuario;
     @FXML private Label lblAvatarPerfil;
+    @FXML private Label dotSistemaModo;
     @FXML private Label lblSistemaModo;
     @FXML private Label lblSistemaHora;
 
@@ -62,8 +63,9 @@ public class ConfiguracionController {
         // System info
         if (lblSistemaModo != null) {
             boolean demo = com.sibim.db.DatabaseConfig.isDemoMode();
-            lblSistemaModo.setText(demo ? "⬤  Modo demostración" : "⬤  Base de datos activa");
+            lblSistemaModo.setText(demo ? "Modo demostración" : "Base de datos activa");
             lblSistemaModo.getStyleClass().add(demo ? "sys-info-demo" : "sys-info-ok");
+            if (dotSistemaModo != null) dotSistemaModo.getStyleClass().add(demo ? "dot-amber" : "dot-green");
         }
         if (lblSistemaHora != null)
             lblSistemaHora.setText(java.time.LocalDateTime.now()
@@ -101,6 +103,7 @@ public class ConfiguracionController {
     }
 
     private void setupUsersTable() {
+        usersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colUsername.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsername()));
         colCargo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCargo()));
@@ -193,7 +196,8 @@ public class ConfiguracionController {
                 loadUsers();
                 NotificacionUtil.exito(usersTable.getScene(), "Usuario \"" + sel.getNombre() + "\" eliminado");
             },
-            e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo eliminar el usuario")
+            e -> NotificacionUtil.error(usersTable.getScene(),
+                e instanceof IllegalStateException ? e.getMessage() : "No se pudo eliminar el usuario")
         );
     }
 

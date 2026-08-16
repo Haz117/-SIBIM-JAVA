@@ -107,17 +107,6 @@ public final class AnimationUtils {
         tl.play();
     }
 
-    /**
-     * Fade out a node, then run {@code onFinished}. Returns the transition so
-     * the caller can play() it at the right moment.
-     */
-    public static FadeTransition fadeOut(Node node, int durationMs, Runnable onFinished) {
-        FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
-        ft.setFromValue(node.getOpacity()); ft.setToValue(0);
-        ft.setInterpolator(Interpolator.EASE_IN);
-        if (onFinished != null) ft.setOnFinished(e -> onFinished.run());
-        return ft;
-    }
 
     // ── helpers ──────────────────────────────────────────────────
     private static KeyFrame kf(Node node, int ms, double x) {

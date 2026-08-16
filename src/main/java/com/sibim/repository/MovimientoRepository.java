@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,6 +35,21 @@ public class MovimientoRepository {
         }
         sb.append(" ORDER BY m.created_at DESC");
         return queryDynamic(sb.toString(), params);
+    }
+
+    /** Used for authorization checks before deleting a movement — doesn't
+     *  apply the caller's own area filter, since the caller needs to know
+     *  the product's area precisely to decide whether they're allowed to. */
+    public Optional<String> findProductoIdById(String movimientoId) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findProductoIdByMovimientoId(movimientoId);
+        String sql = "SELECT producto_id FROM movements WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movimientoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.ofNullable(rs.getString("producto_id")) : Optional.empty();
+            }
+        }
     }
 
     public List<Movimiento> findByProducto(String productoId) throws SQLException {
