@@ -6,6 +6,7 @@ import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import javafx.application.Platform;
@@ -162,7 +163,21 @@ public class OrganigramaController {
             countLabel.setOnMouseClicked(e -> { e.consume(); showAreaProductsDialog(parentName, allAreaProds); });
             Tooltip.install(countLabel, new Tooltip("Ver todos los bienes de " + parentName + " y sus dependencias"));
         }
-        header.getChildren().addAll(iconBadge, nameLabel, countLabel);
+
+        Label valorLabel = new Label(FormatUtils.formatCurrency(valorPatrimonial(allAreaProds)));
+        valorLabel.getStyleClass().add("org-area-valor");
+
+        header.getChildren().addAll(iconBadge, nameLabel, valorLabel, countLabel);
+
+        long alertasArea = allAreaProds.stream()
+            .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
+            .count();
+        if (alertasArea > 0) {
+            Label alertDot = new Label("⚠ " + alertasArea);
+            alertDot.getStyleClass().add("org-alert-badge");
+            Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) agotado(s) o bajo stock en esta área"));
+            header.getChildren().add(alertDot);
+        }
 
         if (!SessionManager.isAdmin()
                 && SessionManager.getCurrentUser().getArea() != null
@@ -214,11 +229,24 @@ public class OrganigramaController {
             childName.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(childName, Priority.ALWAYS);
 
+            Label childValor = new Label(FormatUtils.formatCurrency(valorPatrimonial(childProds)));
+            childValor.getStyleClass().add("org-area-valor");
+
             Label childCount = new Label(String.valueOf(childProds.size()));
             childCount.getStyleClass().add("org-area-count");
             if (isMyArea) childCount.getStyleClass().add("org-area-count-myarea");
 
-            childHeader.getChildren().addAll(dirIcon, childName, childCount);
+            childHeader.getChildren().addAll(dirIcon, childName, childValor, childCount);
+
+            long alertasChild = childProds.stream()
+                .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
+                .count();
+            if (alertasChild > 0) {
+                Label alertDot = new Label("⚠ " + alertasChild);
+                alertDot.getStyleClass().add("org-alert-badge");
+                Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) agotado(s) o bajo stock en " + child));
+                childHeader.getChildren().add(alertDot);
+            }
 
             if (isMyArea) {
                 Label badge = new Label("Tu área");
@@ -249,6 +277,15 @@ public class OrganigramaController {
 
         section.setContent(content);
         orgTree.getChildren().add(section);
+    }
+
+    private java.math.BigDecimal valorPatrimonial(List<Producto> prods) {
+        return prods.stream()
+            .map(p -> {
+                java.math.BigDecimal precio = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
+                return precio.multiply(java.math.BigDecimal.valueOf(p.getStockActual()));
+            })
+            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
 
     private void addProductPreview(Pane container, List<Producto> prods, String areaName) {
@@ -289,10 +326,22 @@ public class OrganigramaController {
     }
 
     private void showAreaProductsDialog(String areaName, List<Producto> prods) {
+        ButtonType btnVerInventario = new ButtonType("Ver en Inventario →", ButtonBar.ButtonData.OTHER);
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnVerInventario, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(580);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        // Jumps to the real Inventario module pre-filtered by this área, so
+        // the user can actually act on the bienes (editar, dar de baja,
+        // etc.) instead of only viewing them in this read-only table.
+        javafx.scene.Node verBtn = dialog.getDialogPane().lookupButton(btnVerInventario);
+        if (verBtn != null) {
+            verBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+                com.sibim.session.NavigationContext.setPendingAreaFilter(areaName);
+                if (MainController.getInstance() != null) MainController.getInstance().navigateTo("productos");
+            });
+        }
 
         HBox header = DialogUtil.gradientHeader("📁", areaName,
             prods.size() + (prods.size() == 1 ? " bien registrado en esta área" : " bienes registrados en esta área"),

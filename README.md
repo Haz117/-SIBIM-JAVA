@@ -7,7 +7,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 ## Características
 
 - **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios y foto
-- **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial y candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos
+- **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría o usuario, consultable desde Configuración (solo Admin)
@@ -15,7 +15,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
-- **Organigrama** — bienes distribuidos por secretaría y dirección municipal
+- **Organigrama** — bienes distribuidos por secretaría y dirección municipal, con valor patrimonial y alertas de stock por área, y salto directo al Inventario filtrado por esa área
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área
 - **Pantalla de inicio animada** con progreso de carga y transiciones tipo cross-fade entre splash → login → sistema
 - **Notificaciones toast** en tiempo real
@@ -126,7 +126,7 @@ SIBIM-Java/
 | Movimientos | Registro de entradas/salidas/ajustes/transferencias (con reasignación real de área) con vista previa del stock resultante |
 | Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer |
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
-| Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes |
+| Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes, valor patrimonial y alertas de stock por área, y acceso directo al Inventario filtrado |
 | Reportes | Exportación multi-formato con selector de período |
 | Configuración | Perfil de usuario, gestión de cuentas, historial de auditoría e historial de conteos físicos (solo Admin) |
 

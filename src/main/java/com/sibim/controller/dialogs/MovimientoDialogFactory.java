@@ -4,6 +4,10 @@ import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ProductoUtils;
+import javafx.animation.FadeTransition;
+import javafx.animation.ParallelTransition;
+import javafx.animation.ScaleTransition;
+import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -12,7 +16,10 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 import java.util.List;
 import java.util.Optional;
@@ -106,10 +113,71 @@ public final class MovimientoDialogFactory {
         refreshAreaOptions.run();
         if (retryFrom != null && retryFrom.areaDestino() != null) fAreaDestino.setValue(retryFrom.areaDestino());
         fProducto.valueProperty().addListener((o, a, b) -> refreshAreaOptions.run());
+
+        // "Área A → Área B" preview — visual reinforcement (not just the text
+        // in the combo box) that a transfer actually moves the item, with a
+        // short animation on the destination chip whenever it changes.
+        HBox transferPreview = new HBox(12);
+        transferPreview.setAlignment(Pos.CENTER_LEFT);
+        transferPreview.setPadding(new Insets(12, 14, 12, 14));
+        transferPreview.getStyleClass().add("dlg-transfer-preview");
+
+        Label chipOrigenLbl = new Label();
+        StackPane chipOrigen = new StackPane(chipOrigenLbl);
+        chipOrigen.getStyleClass().add("dlg-transfer-chip");
+        chipOrigen.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(chipOrigen, Priority.ALWAYS);
+
+        Label transferArrow = new Label("→");
+        transferArrow.getStyleClass().add("dlg-transfer-arrow");
+
+        Label chipDestinoLbl = new Label();
+        StackPane chipDestino = new StackPane(chipDestinoLbl);
+        chipDestino.getStyleClass().add("dlg-transfer-chip");
+        chipDestino.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(chipDestino, Priority.ALWAYS);
+
+        transferPreview.getChildren().addAll(chipOrigen, transferArrow, chipDestino);
+        GridPane.setColumnSpan(transferPreview, 2);
+
+        Runnable updateTransferPreview = () -> {
+            Producto p = fProducto.getValue();
+            String origen = p != null ? p.getArea() : null;
+            String destino = fAreaDestino.getValue();
+            boolean hasOrigen = origen != null;
+            chipOrigenLbl.setText(hasOrigen ? origen : "Selecciona un bien");
+            chipOrigenLbl.getStyleClass().setAll(hasOrigen ? "dlg-transfer-chip-lbl" : "dlg-transfer-chip-empty-lbl");
+            boolean hasDestino = destino != null;
+            chipDestinoLbl.setText(hasDestino ? destino : "Selecciona destino");
+            chipDestinoLbl.getStyleClass().setAll(hasDestino ? "dlg-transfer-chip-lbl" : "dlg-transfer-chip-empty-lbl");
+            chipDestino.getStyleClass().remove("dlg-transfer-chip-to");
+            if (hasDestino) chipDestino.getStyleClass().add("dlg-transfer-chip-to");
+        };
+        updateTransferPreview.run();
+
+        // Short arrow-nudge + chip pop, so the destination chip visibly
+        // "arrives" instead of just silently updating its text.
+        Runnable animateTransferArrival = () -> {
+            TranslateTransition nudge = new TranslateTransition(Duration.millis(260), transferArrow);
+            nudge.setFromX(-8); nudge.setToX(0);
+            FadeTransition fade = new FadeTransition(Duration.millis(220), chipDestino);
+            fade.setFromValue(0.25); fade.setToValue(1);
+            ScaleTransition pop = new ScaleTransition(Duration.millis(220), chipDestino);
+            pop.setFromX(0.88); pop.setFromY(0.88); pop.setToX(1); pop.setToY(1);
+            new ParallelTransition(nudge, fade, pop).play();
+        };
+
+        fAreaDestino.valueProperty().addListener((o, a, b) -> {
+            updateTransferPreview.run();
+            if (b != null) animateTransferArrival.run();
+        });
+        fProducto.valueProperty().addListener((o, a, b) -> updateTransferPreview.run());
+
         Runnable updateAreaDestinoVisibility = () -> {
             boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
-            lblAreaDestino.setVisible(isTransfer); lblAreaDestino.setManaged(isTransfer);
-            fAreaDestino.setVisible(isTransfer);   fAreaDestino.setManaged(isTransfer);
+            lblAreaDestino.setVisible(isTransfer);   lblAreaDestino.setManaged(isTransfer);
+            fAreaDestino.setVisible(isTransfer);     fAreaDestino.setManaged(isTransfer);
+            transferPreview.setVisible(isTransfer);  transferPreview.setManaged(isTransfer);
         };
         updateAreaDestinoVisibility.run();
         fTipo.valueProperty().addListener((o, a, b) -> updateAreaDestinoVisibility.run());
@@ -200,6 +268,7 @@ public final class MovimientoDialogFactory {
         grid.add(DialogUtil.fieldLabel("Producto *"),    0, row); grid.add(fProducto,    1, row++);
         grid.add(DialogUtil.fieldLabel("Tipo *"),        0, row); grid.add(fTipo,        1, row++);
         grid.add(lblAreaDestino,                         0, row); grid.add(fAreaDestino, 1, row++);
+        grid.add(transferPreview,                        0, row++);
         grid.add(DialogUtil.fieldLabel("Cantidad *"),    0, row); grid.add(fCantidad,    1, row++);
         grid.add(DialogUtil.fieldLabel("Movimiento"),    0, row); grid.add(stockPreview, 1, row++);
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);

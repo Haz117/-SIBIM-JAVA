@@ -1262,6 +1262,22 @@
     -fx-text-fill: #374151;
     -fx-font-size: 12.5px;
 }
+.org-area-valor {
+    -fx-text-fill: #059669;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+}
+.org-alert-badge {
+    -fx-background-color: #FEF2F2;
+    -fx-text-fill: #DC2626;
+    -fx-border-color: #FCA5A5;
+    -fx-border-width: 1;
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+}
 .org-product-code {
     -fx-text-fill: #7C3AED;
     -fx-font-family: monospace;
@@ -1905,6 +1921,14 @@
 .dlg-stock-arrow      { -fx-font-size: 18px; -fx-text-fill: #CBD5E1; }
 .dlg-stock-arrow-up   { -fx-font-size: 18px; -fx-text-fill: #10B981; }
 .dlg-stock-arrow-down { -fx-font-size: 18px; -fx-text-fill: #EF4444; }
+
+/* Área A → Área B preview (Movimientos, transferencia) */
+.dlg-transfer-preview { -fx-background-color: #FAF5FF; -fx-background-radius: 12; -fx-border-color: #E9D5FF; -fx-border-width: 1; -fx-border-radius: 12; }
+.dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #DDD6FE; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 6 14; }
+.dlg-transfer-chip-to  { -fx-border-color: #A78BFA; }
+.dlg-transfer-chip-lbl { -fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #4C1D95; }
+.dlg-transfer-chip-empty-lbl { -fx-font-size: 12px; -fx-font-style: italic; -fx-text-fill: #9CA3AF; }
+.dlg-transfer-arrow    { -fx-font-size: 20px; -fx-text-fill: #A78BFA; -fx-font-weight: bold; }
 
 /* Product detail dialog header card */
 .dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }

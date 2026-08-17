@@ -63,8 +63,16 @@ public class MainController {
     private Object currentController;
     private final ProductoService alertProductoService = new ProductoService();
 
+    // Only one MainController is ever active at a time — this lets child
+    // views loaded into contentArea (e.g. Organigrama) trigger navigation
+    // without needing an injected reference threaded through every FXML load.
+    private static MainController instance;
+
+    public static MainController getInstance() { return instance; }
+
     @FXML
     public void initialize() {
+        instance = this;
         if (SessionManager.getCurrentUser() != null) {
             String nombre = SessionManager.getCurrentUser().getNombre();
             userNameLabel.setText(nombre);

@@ -102,6 +102,7 @@
             </Button>
         </StackPane>
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="165"/>
+        <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="200"/>
         <Separator orientation="VERTICAL"/>
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>

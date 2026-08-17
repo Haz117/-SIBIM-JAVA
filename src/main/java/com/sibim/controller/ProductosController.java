@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.config.Areas;
 import com.sibim.controller.dialogs.ConteoFisicoDialog;
 import com.sibim.controller.dialogs.ProductoDialogFactory;
 import com.sibim.model.Categoria;
@@ -9,6 +10,7 @@ import com.sibim.repository.CategoriaRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -66,6 +68,7 @@ public class ProductosController {
     @FXML private VBox rootPane;
     @FXML private TextField searchField;
     @FXML private ComboBox<Categoria> categoriaFilter;
+    @FXML private ComboBox<String> areaFilter;
     @FXML private HBox statusChipsBar;
     @FXML private Button btnClearFilters;
     @FXML private TableView<Producto> table;
@@ -400,6 +403,19 @@ public class ProductosController {
 
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
         categoriaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
+
+        areaFilter.getItems().add(null);
+        areaFilter.getItems().addAll(Areas.getAllAreaNames());
+        areaFilter.setConverter(new javafx.util.StringConverter<>() {
+            public String toString(String a) { return a == null ? "Todas las áreas" : a; }
+            public String fromString(String s) { return null; }
+        });
+        areaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
+
+        String pendingArea = NavigationContext.consumePendingAreaFilter();
+        if (pendingArea != null && areaFilter.getItems().contains(pendingArea)) {
+            areaFilter.setValue(pendingArea);
+        }
     }
 
     private void loadData() {
@@ -456,6 +472,7 @@ public class ProductosController {
     private void applyFilters() {
         String query = searchField.getText().toLowerCase();
         Categoria cat = categoriaFilter.getValue();
+        String area = areaFilter.getValue();
         String estado = getSelectedEstado();
 
         filteredData.setAll(allData.stream()
@@ -465,6 +482,7 @@ public class ProductosController {
                 || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(query))
                 || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(query)))
             .filter(p -> cat == null || cat.getId().equals(p.getCategoriaId()))
+            .filter(p -> area == null || area.equals(p.getArea()))
             .filter(p -> "Todos".equals(estado) || p.getEstado().getEtiqueta().equalsIgnoreCase(estado))
             .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
             .toList());
@@ -472,7 +490,7 @@ public class ProductosController {
         currentPage = 0;
         updateTablePage();
 
-        boolean hasFilters = !query.isBlank() || cat != null || !"Todos".equals(estado);
+        boolean hasFilters = !query.isBlank() || cat != null || area != null || !"Todos".equals(estado);
         if (btnClearFilters != null) {
             btnClearFilters.setVisible(hasFilters);
             btnClearFilters.setManaged(hasFilters);
@@ -578,6 +596,7 @@ public class ProductosController {
     private void onClearFilters() {
         searchField.clear();
         categoriaFilter.setValue(null);
+        areaFilter.setValue(null);
         if (estadoChipGroup != null)
             estadoChipGroup.getToggles().stream()
                 .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
