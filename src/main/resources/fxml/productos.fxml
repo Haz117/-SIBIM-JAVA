@@ -19,6 +19,12 @@
             <Label text="Inventario de bienes del H. Ayuntamiento de Ixmiquilpan" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
+        <Button text="🗑 Dados de baja" onAction="#onVerBajas" styleClass="btn-secondary">
+            <tooltip><Tooltip text="Ver bienes dados de baja (fuera del inventario activo)"/></tooltip>
+        </Button>
+        <Button text="📋 Conteo físico" onAction="#onConteoFisico" styleClass="btn-secondary">
+            <tooltip><Tooltip text="Iniciar una toma de inventario físico y ajustar diferencias"/></tooltip>
+        </Button>
         <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
             <tooltip><Tooltip text="Actualizar lista (F5)"/></tooltip>
         </Button>
@@ -140,8 +146,8 @@
         <Button fx:id="btnEditar"   text="✏  Editar"   onAction="#onEdit"   styleClass="btn-secondary">
             <tooltip><Tooltip text="Editar el bien seleccionado (o doble clic)"/></tooltip>
         </Button>
-        <Button fx:id="btnEliminar" text="✕  Eliminar" onAction="#onDelete" styleClass="btn-danger">
-            <tooltip><Tooltip text="Eliminar el bien seleccionado del inventario"/></tooltip>
+        <Button fx:id="btnEliminar" text="🗑  Dar de baja" onAction="#onDelete" styleClass="btn-danger">
+            <tooltip><Tooltip text="Dar de baja el bien seleccionado (baja patrimonial formal, con motivo)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnPrev" text="‹" onAction="#onPrev" styleClass="pagination-btn"/>

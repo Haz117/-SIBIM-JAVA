@@ -186,6 +186,20 @@
     -fx-background-color: #111827;
 }
 
+/* Scrollable nav section inside the sidebar — transparent so the sidebar's
+   own dark gradient shows through, with a thin unobtrusive scrollbar (only
+   appears if the window is short enough that the nav list actually
+   overflows; keeps the logout button always reachable below it either way). */
+.sidebar-scroll, .sidebar-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+.sidebar-scroll { -fx-border-color: transparent; -fx-padding: 0; }
+.sidebar-scroll .scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 8; }
+.sidebar-scroll .scroll-bar:vertical .thumb { -fx-background-color: rgba(255,255,255,0.14); -fx-background-radius: 99; }
+.sidebar-scroll .scroll-bar:vertical .increment-button,
+.sidebar-scroll .scroll-bar:vertical .decrement-button { -fx-padding: 0; -fx-background-color: transparent; }
+
 /* Logo area */
 .sidebar-logo-badge {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);

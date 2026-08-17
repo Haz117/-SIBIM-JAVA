@@ -43,7 +43,7 @@ public class ReporteService {
         List<Producto> productos = (desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll();
-        String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Stock", "Min", "Max",
+        String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Stock", "Min", "Max",
                             "Precio Venta", "Valor Total", "Estado", "Proveedor", "Ubicacion", "Fecha Registro"};
         File file = tempFile("inventario", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
@@ -56,15 +56,16 @@ public class ReporteService {
                 r.createCell(1).setCellValue(p.getCodigo());
                 r.createCell(2).setCellValue(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "");
                 r.createCell(3).setCellValue(p.getArea());
-                r.createCell(4).setCellValue(p.getStockActual());
-                r.createCell(5).setCellValue(p.getStockMinimo());
-                r.createCell(6).setCellValue(p.getStockMaximo());
-                r.createCell(7).setCellValue(p.getPrecioVenta() != null ? p.getPrecioVenta().doubleValue() : 0);
-                r.createCell(8).setCellValue(p.getValorTotal().doubleValue());
-                r.createCell(9).setCellValue(p.getEstado().getEtiqueta());
-                r.createCell(10).setCellValue(p.getProveedor() != null ? p.getProveedor() : "");
-                r.createCell(11).setCellValue(p.getUbicacion() != null ? p.getUbicacion() : "");
-                r.createCell(12).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
+                r.createCell(4).setCellValue(p.getResguardante() != null ? p.getResguardante() : "");
+                r.createCell(5).setCellValue(p.getStockActual());
+                r.createCell(6).setCellValue(p.getStockMinimo());
+                r.createCell(7).setCellValue(p.getStockMaximo());
+                r.createCell(8).setCellValue(p.getPrecioVenta() != null ? p.getPrecioVenta().doubleValue() : 0);
+                r.createCell(9).setCellValue(p.getValorTotal().doubleValue());
+                r.createCell(10).setCellValue(p.getEstado().getEtiqueta());
+                r.createCell(11).setCellValue(p.getProveedor() != null ? p.getProveedor() : "");
+                r.createCell(12).setCellValue(p.getUbicacion() != null ? p.getUbicacion() : "");
+                r.createCell(13).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
             }
             autosizeColumns(sheet, headers.length);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
@@ -340,11 +341,11 @@ public class ReporteService {
             : productoRepo.findAll();
         File file = tempFile("inventario", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Nombre,Codigo,Categoria,Area,Stock,Stock Min,Stock Max,Precio Compra,Precio Venta,Valor Total,Estado,Proveedor,Ubicacion,Fecha Registro");
+            pw.println("Nombre,Codigo,Categoria,Area,Resguardante,Stock,Stock Min,Stock Max,Precio Compra,Precio Venta,Valor Total,Estado,Proveedor,Ubicacion,Fecha Registro");
             for (Producto p : productos) {
-                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,%d,%d,%.2f,%.2f,%.2f,\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%d,%d,%d,%.2f,%.2f,%.2f,\"%s\",\"%s\",\"%s\",\"%s\"%n",
                     esc(p.getNombre()), esc(p.getCodigo()),
-                    esc(p.getCategoriaNombre()), esc(p.getArea()),
+                    esc(p.getCategoriaNombre()), esc(p.getArea()), esc(p.getResguardante()),
                     p.getStockActual(), p.getStockMinimo(), p.getStockMaximo(),
                     p.getPrecioCompra() != null ? p.getPrecioCompra() : java.math.BigDecimal.ZERO,
                     p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO,

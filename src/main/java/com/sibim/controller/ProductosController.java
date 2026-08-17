@@ -1,10 +1,12 @@
 package com.sibim.controller;
 
+import com.sibim.controller.dialogs.ConteoFisicoDialog;
 import com.sibim.controller.dialogs.ProductoDialogFactory;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.CategoriaRepository;
+import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
@@ -38,6 +40,7 @@ import java.awt.Desktop;
 import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -91,6 +94,7 @@ public class ProductosController {
     private final ProductoService productoService = new ProductoService();
     private final CategoriaRepository categoriaRepo = new CategoriaRepository();
     private final ReporteService reporteService = new ReporteService();
+    private final MovimientoService movimientoService = new MovimientoService();
 
     private ObservableList<Producto> allData = FXCollections.observableArrayList();
     private ObservableList<Producto> filteredData = FXCollections.observableArrayList();
@@ -328,7 +332,7 @@ public class ProductosController {
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());
             MenuItem cmEditar   = new MenuItem("✏  Editar");
-            MenuItem cmEliminar = new MenuItem("✕  Eliminar");
+            MenuItem cmEliminar = new MenuItem("🗑  Dar de baja");
             cmEditar.setOnAction(e -> onEdit());
             cmEliminar.setOnAction(e -> onDelete());
             cm.getItems().addAll(cmEditar, cmEliminar);
@@ -497,6 +501,80 @@ public class ProductosController {
     @FXML private void onRefresh() { refreshing = true; loadData(); }
 
     @FXML
+    private void onConteoFisico() {
+        ConteoFisicoDialog.show(new ArrayList<>(allData), movimientoService, () -> { refreshing = true; loadData(); });
+    }
+
+    @FXML
+    private void onVerBajas() {
+        DialogUtil.runAsync(
+            () -> productoService.getAllIncludingBaja().stream().filter(Producto::isDadoDeBaja).toList(),
+            this::showBajasDialog,
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo cargar la lista de bienes dados de baja")
+        );
+    }
+
+    private void showBajasDialog(List<Producto> bajas) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(560);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("🗑", "Bienes Dados de Baja",
+            "Fuera del inventario activo — su historial se conserva",
+            "#EF4444", "#B91C1C");
+
+        VBox list = new VBox(8);
+        list.setPadding(new Insets(4, 4, 4, 4));
+        if (bajas.isEmpty()) {
+            Label empty = new Label("No hay bienes dados de baja");
+            empty.getStyleClass().add("muted");
+            list.getChildren().add(empty);
+        }
+        for (Producto p : bajas) {
+            HBox row = new HBox(12);
+            row.getStyleClass().add("dlg-detail-header");
+            row.setPadding(new Insets(10, 14, 10, 14));
+            row.setAlignment(Pos.CENTER_LEFT);
+
+            VBox info = new VBox(2);
+            Label nombre = new Label(p.getNombre() + "  [" + p.getCodigo() + "]");
+            nombre.getStyleClass().add("dlg-detail-name");
+            Label detalle = new Label(p.getArea() + " · baja: " + FormatUtils.formatDate(p.getFechaBaja())
+                + (p.getMotivoBaja() != null && !p.getMotivoBaja().isBlank() ? " · " + p.getMotivoBaja() : ""));
+            detalle.getStyleClass().add("muted-sm");
+            detalle.setWrapText(true);
+            info.getChildren().addAll(nombre, detalle);
+            HBox.setHgrow(info, Priority.ALWAYS);
+
+            Button btnReactivar = new Button("↺ Reactivar");
+            btnReactivar.getStyleClass().add("btn-secondary");
+            btnReactivar.setOnAction(e -> {
+                DialogUtil.runAsync(
+                    () -> productoService.reactivar(p.getId()),
+                    () -> {
+                        list.getChildren().remove(row);
+                        loadData();
+                        NotificacionUtil.exito(dialog.getDialogPane().getScene(),
+                            "Bien \"" + p.getNombre() + "\" reactivado");
+                    },
+                    e2 -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo reactivar el bien")
+                );
+            });
+            row.getChildren().addAll(info, btnReactivar);
+            list.getChildren().add(row);
+        }
+
+        ScrollPane scroll = new ScrollPane(list);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(360);
+        scroll.getStyleClass().add("page-scroll");
+
+        dialog.getDialogPane().setContent(new VBox(0, header, scroll));
+        dialog.showAndWait();
+    }
+
+    @FXML
     private void onClearFilters() {
         searchField.clear();
         categoriaFilter.setValue(null);
@@ -527,21 +605,32 @@ public class ProductosController {
     private void onDelete() {
         Producto seleccionado = table.getSelectionModel().getSelectedItem();
         if (seleccionado == null) {
-            NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para eliminar");
+            NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para dar de baja");
             return;
         }
-        if (!ConfirmacionUtil.confirmarEliminar(seleccionado.getNombre())) return;
+        // Baja patrimonial (soft-delete), not a physical DELETE — the record
+        // and its full movement history stay in the database for auditoría;
+        // the bien just stops showing up in the active inventory. Requires a
+        // motivo since a baja is a formal administrative act.
+        Optional<String> motivo = ConfirmacionUtil.confirmarConMotivo(
+            "🗑", "#EF4444", "#FEF2F2",
+            "Dar de baja",
+            "¿Dar de baja \"" + seleccionado.getNombre() + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
+            "Dar de baja", "#EF4444",
+            "Motivo de la baja (obligatorio)"
+        );
+        if (motivo.isEmpty()) return;
         String nombre = seleccionado.getNombre();
         DialogUtil.runAsync(
-            () -> productoService.delete(seleccionado.getId()),
+            () -> productoService.darDeBaja(seleccionado.getId(), motivo.get()),
             () -> {
                 allData.remove(seleccionado);
                 updateStats();
                 applyFilters();
-                NotificacionUtil.exito(table.getScene(), "Bien \"" + nombre + "\" eliminado correctamente");
+                NotificacionUtil.exito(table.getScene(), "Bien \"" + nombre + "\" dado de baja correctamente");
             },
             e -> NotificacionUtil.error(table.getScene(),
-                e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo eliminar el bien")
+                e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo dar de baja el bien")
         );
     }
 
@@ -586,8 +675,17 @@ public class ProductosController {
                     updateStats();
                     applyFilters();
                 },
-                e -> NotificacionUtil.error(table.getScene(),
-                    e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo guardar el bien")
+                e -> {
+                    // Don't just show an error and drop everything the user
+                    // typed — reopen the same dialog pre-filled with what
+                    // they entered (p already has every field set) so a
+                    // failed save (BD caída, validación) doesn't force
+                    // re-typing the whole form from scratch.
+                    NotificacionUtil.error(table.getScene(),
+                        (e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo guardar el bien")
+                            + " — revisa los datos e inténtalo de nuevo");
+                    Platform.runLater(() -> showProductDialog(p));
+                }
             ));
 
         } catch (Exception e) {
@@ -683,6 +781,7 @@ public class ProductosController {
         Object[][] rows = {
             {"Categoría",       p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—", null},
             {"Área",            p.getArea() != null ? p.getArea() : "—", null},
+            {"Resguardante",    p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "—", null},
             {"Stock actual",    String.valueOf(p.getStockActual()), stockClass},
             {"Stock mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null},
             {"Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null},

@@ -194,6 +194,22 @@ public final class DemoDataStore {
         }
     }
 
+    public static void darDeBajaProducto(String id, String motivo) {
+        PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
+            p.setFechaBaja(LocalDate.now());
+            p.setMotivoBaja(motivo);
+            p.setActualizadoEn(LocalDateTime.now());
+        });
+    }
+
+    public static void reactivarProducto(String id) {
+        PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
+            p.setFechaBaja(null);
+            p.setMotivoBaja(null);
+            p.setActualizadoEn(LocalDateTime.now());
+        });
+    }
+
     public static void deleteProducto(String id) {
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
             String catId = p.getCategoriaId();
@@ -211,6 +227,14 @@ public final class DemoDataStore {
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst()
             .ifPresent(p -> {
                 p.setStockActual(newStock);
+                p.setActualizadoEn(LocalDateTime.now());
+            });
+    }
+
+    public static void updateProductoArea(String id, String newArea) {
+        PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst()
+            .ifPresent(p -> {
+                p.setArea(newArea);
                 p.setActualizadoEn(LocalDateTime.now());
             });
     }
@@ -258,6 +282,10 @@ public final class DemoDataStore {
     }
 
     public static void addMovimiento(Movimiento m) {
+        if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
+            m.setAreaOrigen(areaOfProducto(m.getProductoId()));
+            updateProductoArea(m.getProductoId(), m.getAreaDestino());
+        }
         MOVIMIENTOS.add(0, m);
         updateProductoStock(m.getProductoId(), m.getStockNuevo());
     }
@@ -266,6 +294,7 @@ public final class DemoDataStore {
         MOVIMIENTOS.stream().filter(m -> m.getId().equals(id)).findFirst().ifPresent(m -> {
             MOVIMIENTOS.remove(m);
             updateProductoStock(m.getProductoId(), m.getStockAnterior());
+            if (m.getAreaOrigen() != null) updateProductoArea(m.getProductoId(), m.getAreaOrigen());
         });
     }
 

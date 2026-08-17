@@ -13,6 +13,8 @@ public class Movimiento {
     private int cantidad;
     private int stockAnterior;
     private int stockNuevo;
+    private String areaOrigen;
+    private String areaDestino;
     private String motivo;
     private String referencia;
     private String usuarioId;
@@ -45,6 +47,12 @@ public class Movimiento {
 
     public int getStockNuevo() { return stockNuevo; }
     public void setStockNuevo(int stockNuevo) { this.stockNuevo = stockNuevo; }
+
+    public String getAreaOrigen() { return areaOrigen; }
+    public void setAreaOrigen(String areaOrigen) { this.areaOrigen = areaOrigen; }
+
+    public String getAreaDestino() { return areaDestino; }
+    public void setAreaDestino(String areaDestino) { this.areaDestino = areaDestino; }
 
     public String getMotivo() { return motivo; }
     public void setMotivo(String motivo) { this.motivo = motivo; }

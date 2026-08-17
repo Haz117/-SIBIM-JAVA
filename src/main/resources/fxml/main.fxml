@@ -22,13 +22,19 @@
             <StackPane fx:id="contentArea" HBox.hgrow="ALWAYS" styleClass="content-area"/>
         </HBox>
 
-        <!-- ── Sidebar (drawn above the content row) ── -->
-        <VBox styleClass="sidebar" prefWidth="220" minWidth="220" maxWidth="220" spacing="3"
+        <!-- ── Sidebar (drawn above the content row) ──
+             Split into three parts: logo+user card pinned at top, the nav
+             sections scrolling in the middle if the window is short, and
+             the logout button + version pinned at the bottom — so the
+             logout button can never be pushed off-screen by overflowing
+             nav content the way it could when everything was one plain
+             VBox with no scroll. -->
+        <VBox styleClass="sidebar" prefWidth="220" minWidth="220" maxWidth="220" spacing="0"
               StackPane.alignment="TOP_LEFT">
-            <padding><Insets top="18" right="18" bottom="18" left="10"/></padding>
 
             <!-- Logo -->
             <HBox spacing="10" alignment="CENTER_LEFT" styleClass="sidebar-logo-area">
+                <padding><Insets top="18" right="18" bottom="0" left="10"/></padding>
                 <Label text="S" styleClass="sidebar-logo-badge"/>
                 <VBox spacing="0">
                     <Label text="SIBIM" styleClass="sidebar-logo"/>
@@ -40,6 +46,7 @@
 
             <!-- User card -->
             <HBox spacing="11" alignment="CENTER_LEFT" styleClass="sidebar-user-box">
+                <padding><Insets top="0" right="18" bottom="0" left="10"/></padding>
                 <StackPane styleClass="user-avatar">
                     <Label fx:id="userAvatarLabel" text="U" styleClass="user-avatar-text"/>
                 </StackPane>
@@ -50,67 +57,78 @@
             </HBox>
 
             <Region prefHeight="10"/>
-            <Separator styleClass="sidebar-divider"/>
-            <Region prefHeight="6"/>
+            <Separator styleClass="sidebar-divider">
+                <padding><Insets left="10" right="18"/></padding>
+            </Separator>
 
-            <!-- Navigation -->
-            <Label text="NAVEGACIÓN" styleClass="nav-section-label"/>
+            <!-- Scrollable nav sections -->
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="sidebar-scroll">
+                <VBox spacing="3">
+                    <padding><Insets top="6" right="18" bottom="6" left="10"/></padding>
 
-            <Button fx:id="btnDashboard"   text="📊  Dashboard"    onAction="#onDashboard"    styleClass="nav-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Dashboard  (Ctrl+1)"/></tooltip>
-            </Button>
-            <Button fx:id="btnOrganigrama" text="🏛  Organigrama"  onAction="#onOrganigrama"  styleClass="nav-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Organigrama  (Ctrl+2)"/></tooltip>
-            </Button>
-            <Button fx:id="btnProductos"   text="📦  Bienes"        onAction="#onProductos"    styleClass="nav-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Inventario de bienes  (Ctrl+3)"/></tooltip>
-            </Button>
-            <Button fx:id="btnCategorias"  text="🏷  Categorías"    onAction="#onCategorias"   styleClass="nav-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Categorías de bienes  (Ctrl+4)"/></tooltip>
-            </Button>
+                    <Label text="NAVEGACIÓN" styleClass="nav-section-label"/>
 
-            <Region prefHeight="4"/>
-            <Separator styleClass="sidebar-divider"/>
-            <Region prefHeight="4"/>
-            <Label text="OPERACIONES" styleClass="nav-section-label"/>
+                    <Button fx:id="btnDashboard"   text="📊  Dashboard"    onAction="#onDashboard"    styleClass="nav-btn" maxWidth="Infinity">
+                        <tooltip><Tooltip text="Dashboard  (Ctrl+1)"/></tooltip>
+                    </Button>
+                    <Button fx:id="btnOrganigrama" text="🏛  Organigrama"  onAction="#onOrganigrama"  styleClass="nav-btn" maxWidth="Infinity">
+                        <tooltip><Tooltip text="Organigrama  (Ctrl+2)"/></tooltip>
+                    </Button>
+                    <Button fx:id="btnProductos"   text="📦  Bienes"        onAction="#onProductos"    styleClass="nav-btn" maxWidth="Infinity">
+                        <tooltip><Tooltip text="Inventario de bienes  (Ctrl+3)"/></tooltip>
+                    </Button>
+                    <Button fx:id="btnCategorias"  text="🏷  Categorías"    onAction="#onCategorias"   styleClass="nav-btn" maxWidth="Infinity">
+                        <tooltip><Tooltip text="Categorías de bienes  (Ctrl+4)"/></tooltip>
+                    </Button>
 
-            <Button fx:id="btnMovimientos" text="↕  Movimientos"   onAction="#onMovimientos"  styleClass="nav-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Historial de movimientos  (Ctrl+5)"/></tooltip>
-            </Button>
+                    <Region prefHeight="4"/>
+                    <Separator styleClass="sidebar-divider"/>
+                    <Region prefHeight="4"/>
+                    <Label text="OPERACIONES" styleClass="nav-section-label"/>
 
-            <!-- Alertas con badge -->
-            <StackPane maxWidth="Infinity" alignment="CENTER_RIGHT">
-                <Button fx:id="btnAlertas" text="⚠  Alertas" onAction="#onAlertas"
-                        styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER">
-                    <tooltip><Tooltip text="Alertas de inventario  (Ctrl+6)"/></tooltip>
+                    <Button fx:id="btnMovimientos" text="↕  Movimientos"   onAction="#onMovimientos"  styleClass="nav-btn" maxWidth="Infinity">
+                        <tooltip><Tooltip text="Historial de movimientos  (Ctrl+5)"/></tooltip>
+                    </Button>
+
+                    <!-- Alertas con badge -->
+                    <StackPane maxWidth="Infinity" alignment="CENTER_RIGHT">
+                        <Button fx:id="btnAlertas" text="⚠  Alertas" onAction="#onAlertas"
+                                styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER">
+                            <tooltip><Tooltip text="Alertas de inventario  (Ctrl+6)"/></tooltip>
+                        </Button>
+                        <Label fx:id="alertBadge" text="0"
+                               styleClass="alert-nav-badge"
+                               visible="false" managed="false"
+                               StackPane.alignment="CENTER_RIGHT"/>
+                    </StackPane>
+
+                    <Button fx:id="btnReportes"    text="📄  Reportes"     onAction="#onReportes"     styleClass="nav-btn" maxWidth="Infinity">
+                        <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
+                    </Button>
+
+                    <Region prefHeight="4"/>
+                    <Separator styleClass="sidebar-divider"/>
+                    <Region prefHeight="4"/>
+                    <Label text="SISTEMA" styleClass="nav-section-label"/>
+
+                    <Button fx:id="btnConfiguracion" text="⚙  Configuración" onAction="#onConfiguracion" styleClass="nav-btn" maxWidth="Infinity">
+                        <tooltip><Tooltip text="Configuración  (Ctrl+8)"/></tooltip>
+                    </Button>
+                </VBox>
+            </ScrollPane>
+
+            <!-- Pinned footer: always visible regardless of nav list length -->
+            <Separator styleClass="sidebar-divider">
+                <padding><Insets left="10" right="18"/></padding>
+            </Separator>
+            <VBox spacing="4">
+                <padding><Insets top="6" right="18" bottom="14" left="10"/></padding>
+                <Button text="⬅  Cerrar sesión" onAction="#onLogout" styleClass="logout-btn" maxWidth="Infinity">
+                    <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
                 </Button>
-                <Label fx:id="alertBadge" text="0"
-                       styleClass="alert-nav-badge"
-                       visible="false" managed="false"
-                       StackPane.alignment="CENTER_RIGHT"/>
-            </StackPane>
-
-            <Button fx:id="btnReportes"    text="📄  Reportes"     onAction="#onReportes"     styleClass="nav-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
-            </Button>
-
-            <Region prefHeight="4"/>
-            <Separator styleClass="sidebar-divider"/>
-            <Region prefHeight="4"/>
-            <Label text="SISTEMA" styleClass="nav-section-label"/>
-
-            <Button fx:id="btnConfiguracion" text="⚙  Configuración" onAction="#onConfiguracion" styleClass="nav-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Configuración  (Ctrl+8)"/></tooltip>
-            </Button>
-
-            <Region VBox.vgrow="ALWAYS"/>
-            <Separator styleClass="sidebar-divider"/>
-            <Region prefHeight="6"/>
-            <Button text="⬅  Cerrar sesión" onAction="#onLogout" styleClass="logout-btn" maxWidth="Infinity">
-                <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
-            </Button>
-            <Region prefHeight="4"/>
-            <Label text="SIBIM v1.0 · 2026" styleClass="sidebar-version" maxWidth="Infinity"/>
+                <Region prefHeight="4"/>
+                <Label text="SIBIM v1.0 · 2026" styleClass="sidebar-version" maxWidth="Infinity"/>
+            </VBox>
         </VBox>
     </StackPane>
 

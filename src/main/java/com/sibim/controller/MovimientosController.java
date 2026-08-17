@@ -497,12 +497,16 @@ public class MovimientosController {
     }
 
     public void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo) {
+        showMovimientoDialog(preProductoId, preTipo, null);
+    }
+
+    private void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo, MovimientoDialogFactory.Result retryFrom) {
         try {
             List<Producto> productos = productoRepo.findAll();
-            MovimientoDialogFactory.show(productos, preProductoId, preTipo).ifPresent(r ->
+            MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r ->
                 DialogUtil.runAsync(
                     () -> movimientoService.registrar(
-                        r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia()),
+                        r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia(), r.areaDestino()),
                     m -> {
                         if (table != null) {
                             allData.add(0, m);
@@ -513,9 +517,14 @@ public class MovimientosController {
                         }
                     },
                     e -> {
+                        // Reopen pre-filled with what the user entered (r has
+                        // it all) instead of just erroring and losing it —
+                        // same reasoning as ProductosController#showProductDialog.
                         if (table != null && table.getScene() != null)
                             NotificacionUtil.error(table.getScene(),
-                                e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo registrar el movimiento");
+                                (e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo registrar el movimiento")
+                                    + " — revisa los datos e inténtalo de nuevo");
+                        Platform.runLater(() -> showMovimientoDialog(preProductoId, preTipo, r));
                     }
                 ));
         } catch (Exception e) {
@@ -591,6 +600,18 @@ public class MovimientosController {
 
         grid.add(DialogUtil.fieldLabel("Bien"),           0, r); grid.add(fProducto, 1, r++);
         grid.add(DialogUtil.fieldLabel("Stock"),          0, r); grid.add(stockRow,  1, r++);
+        if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
+            HBox areaRow = new HBox(8);
+            areaRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            Label areaOrigenLbl = new Label(m.getAreaOrigen() != null ? m.getAreaOrigen() : "—");
+            areaOrigenLbl.getStyleClass().add("dlg-detail-value");
+            Label areaArrow = new Label("→");
+            areaArrow.getStyleClass().add("dlg-stock-arrow");
+            Label areaDestinoLbl = new Label(m.getAreaDestino());
+            areaDestinoLbl.getStyleClass().add("dlg-detail-value");
+            areaRow.getChildren().addAll(areaOrigenLbl, areaArrow, areaDestinoLbl);
+            grid.add(DialogUtil.fieldLabel("Área"), 0, r); grid.add(areaRow, 1, r++);
+        }
         grid.add(DialogUtil.fieldLabel("Motivo"),         0, r); grid.add(fMotivo,   1, r++);
         grid.add(DialogUtil.fieldLabel("Referencia"),     0, r); grid.add(fRef,      1, r++);
         grid.add(DialogUtil.fieldLabel("Registrado por"), 0, r); grid.add(fUsuario,  1, r++);

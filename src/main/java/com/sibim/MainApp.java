@@ -98,11 +98,11 @@ public class MainApp extends Application {
      */
     private static void transitionTo(Parent newRoot, double targetWidth, double targetHeight, Runnable stageSetup) {
         Scene oldScene = primaryStage.getScene();
-        Scene finalScene = new Scene(newRoot, targetWidth, targetHeight);
-        finalScene.getStylesheets().add(STYLESHEET);
         primaryStage.setTitle("SIBIM — Sistema Integral de Bienes Municipales");
 
         if (oldScene == null) {
+            Scene finalScene = new Scene(newRoot, targetWidth, targetHeight);
+            finalScene.getStylesheets().add(STYLESHEET);
             primaryStage.setWidth(targetWidth);
             primaryStage.setHeight(targetHeight);
             primaryStage.setScene(finalScene);
@@ -146,6 +146,12 @@ public class MainApp extends Application {
         ParallelTransition cross = new ParallelTransition(outgoingFade, outgoingShrink, newFade, newSettle);
         cross.setOnFinished(e -> {
             stageSetup.run();
+            // newRoot must be detached from the transition wrapper before it
+            // can become a Scene's root again — a Node can't simultaneously
+            // be a child of another Parent and the root of a Scene.
+            transitionRoot.getChildren().remove(newRoot);
+            Scene finalScene = new Scene(newRoot, targetWidth, targetHeight);
+            finalScene.getStylesheets().add(STYLESHEET);
             primaryStage.setScene(finalScene);
         });
         cross.play();

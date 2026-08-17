@@ -27,10 +27,19 @@ public class Producto {
     private String fotoUrl;
     private String ubicacion;
     private String area;
+    private String resguardante;
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
+    private LocalDate fechaBaja;
+    private String motivoBaja;
 
     public Producto() {}
+
+    /** A bien is "dado de baja" (formally decommissioned) once it has a
+     *  baja date — this is a soft-delete: the record and its full movement
+     *  history stay in the database for audits, it's just excluded from the
+     *  active inventory by default (see ProductoRepository#findAll). */
+    public boolean isDadoDeBaja() { return fechaBaja != null; }
 
     // --- Computed field: estado (not stored in DB) ---
     public EstadoProducto getEstado() {
@@ -98,11 +107,20 @@ public class Producto {
     public String getArea() { return area; }
     public void setArea(String area) { this.area = area; }
 
+    public String getResguardante() { return resguardante; }
+    public void setResguardante(String resguardante) { this.resguardante = resguardante; }
+
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
 
     public LocalDateTime getActualizadoEn() { return actualizadoEn; }
     public void setActualizadoEn(LocalDateTime actualizadoEn) { this.actualizadoEn = actualizadoEn; }
+
+    public LocalDate getFechaBaja() { return fechaBaja; }
+    public void setFechaBaja(LocalDate fechaBaja) { this.fechaBaja = fechaBaja; }
+
+    public String getMotivoBaja() { return motivoBaja; }
+    public void setMotivoBaja(String motivoBaja) { this.motivoBaja = motivoBaja; }
 
     @Override
     public String toString() { return nombre + " (" + codigo + ")"; }

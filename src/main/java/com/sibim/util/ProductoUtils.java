@@ -26,7 +26,11 @@ public final class ProductoUtils {
             case "entrada" -> stockActual + cantidad;
             case "salida" -> Math.max(0, stockActual - cantidad);
             case "ajuste" -> cantidad;
-            case "transferencia" -> Math.max(0, stockActual - cantidad);
+            // A transfer relocates the product to a different area — it
+            // doesn't consume stock, so the count doesn't change here. See
+            // MovimientoRepository#addMovimientoAtomic for the area
+            // reassignment that actually makes a transfer do something.
+            case "transferencia" -> stockActual;
             default -> stockActual;
         };
     }

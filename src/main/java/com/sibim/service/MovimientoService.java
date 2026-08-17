@@ -40,6 +40,13 @@ public class MovimientoService {
 
     public Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad,
                                 String motivo, String referencia) throws SQLException, ValidationException {
+        return registrar(productoId, tipo, cantidad, motivo, referencia, null);
+    }
+
+    /** @param areaDestino required (and only meaningful) for TRANSFERENCIA —
+     *  the area the product is being moved TO. Ignored for other types. */
+    public Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad,
+                                String motivo, String referencia, String areaDestino) throws SQLException, ValidationException {
         Optional<Producto> opt = productoRepo.findById(productoId);
         if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
         Producto producto = opt.get();
@@ -51,9 +58,17 @@ public class MovimientoService {
             throw new ValidationException("La cantidad debe ser mayor a cero");
         if (tipo == TipoMovimiento.AJUSTE && cantidad < 0)
             throw new ValidationException("El ajuste no puede ser negativo");
-        if ((tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.TRANSFERENCIA)
-                && cantidad > producto.getStockActual())
+        if (tipo == TipoMovimiento.SALIDA && cantidad > producto.getStockActual())
             throw new ValidationException("La cantidad supera el stock disponible (" + producto.getStockActual() + ")");
+
+        if (tipo == TipoMovimiento.TRANSFERENCIA) {
+            if (areaDestino == null || areaDestino.isBlank())
+                throw new ValidationException("Selecciona el área de destino de la transferencia");
+            if (areaDestino.equals(producto.getArea()))
+                throw new ValidationException("El área de destino debe ser distinta al área actual");
+            if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(areaDestino))
+                throw new ValidationException("No tienes acceso al área de destino");
+        }
 
         int stockNuevo = ProductoUtils.calcularStockNuevo(tipo.getCodigo(), producto.getStockActual(), cantidad);
 
@@ -65,6 +80,7 @@ public class MovimientoService {
         m.setCantidad(cantidad);
         m.setStockAnterior(producto.getStockActual());
         m.setStockNuevo(stockNuevo);
+        if (tipo == TipoMovimiento.TRANSFERENCIA) m.setAreaDestino(areaDestino);
         m.setMotivo(motivo);
         m.setReferencia(referencia);
         m.setUsuarioId(SessionManager.getCurrentUser().getId());

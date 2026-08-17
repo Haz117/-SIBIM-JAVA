@@ -70,6 +70,36 @@ public class ProductoService {
         }
     }
 
+    /** Formal baja patrimonial — this is the everyday "remove a bien from
+     *  active inventory" action; unlike {@link #delete}, the record and its
+     *  full movement history stay in the database for audits. */
+    public void darDeBaja(String id, String motivo) throws SQLException, ValidationException {
+        Optional<Producto> opt = productoRepo.findById(id);
+        if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
+        Producto p = opt.get();
+        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+            throw new ValidationException("No tienes acceso a esa area");
+        if (motivo == null || motivo.isBlank())
+            throw new ValidationException("El motivo de la baja es obligatorio");
+        productoRepo.darDeBaja(id, motivo.trim());
+    }
+
+    /** Reverses a baja patrimonial, restoring the bien to active inventory. */
+    public void reactivar(String id) throws SQLException, ValidationException {
+        Optional<Producto> opt = productoRepo.findById(id);
+        if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
+        Producto p = opt.get();
+        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+            throw new ValidationException("No tienes acceso a esa area");
+        productoRepo.reactivar(id);
+    }
+
+    /** Includes bienes dados de baja — used only by the "Dados de baja"
+     *  history view (see ProductosController). */
+    public List<Producto> getAllIncludingBaja() throws SQLException {
+        return productoRepo.findAll(true);
+    }
+
     public long countAll() throws SQLException {
         return productoRepo.findAll().size();
     }

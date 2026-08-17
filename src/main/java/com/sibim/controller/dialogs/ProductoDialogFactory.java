@@ -92,6 +92,9 @@ public final class ProductoDialogFactory {
         TextField fUbicacion = new TextField(existing != null && existing.getUbicacion() != null ? existing.getUbicacion() : "");
         fUbicacion.setPromptText("Ubicación física");
         fUbicacion.getStyleClass().add("form-input");
+        TextField fResguardante = new TextField(existing != null && existing.getResguardante() != null ? existing.getResguardante() : "");
+        fResguardante.setPromptText("Persona responsable del resguardo (nombre completo)");
+        fResguardante.getStyleClass().add("form-input");
 
         // ── Image picker ──
         String[] fotoHolder = { existing != null ? existing.getFotoUrl() : null };
@@ -156,6 +159,7 @@ public final class ProductoDialogFactory {
         gridInfo.add(DialogUtil.fieldLabel("Área *"),       0, r); gridInfo.add(fArea,      1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Proveedor"),   0, r); gridInfo.add(fProveedor, 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Ubicación"),   0, r); gridInfo.add(fUbicacion, 1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Resguardante"), 0, r); gridInfo.add(fResguardante, 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Imagen"),      0, r); gridInfo.add(imgSection, 1, r);
 
         // ── Tab: Stock & Precios ──
@@ -292,6 +296,7 @@ public final class ProductoDialogFactory {
             p.setUnidad(fUnidad.getValue());
             p.setProveedor(fProveedor.getText().trim());
             p.setUbicacion(fUbicacion.getText().trim());
+            p.setResguardante(fResguardante.getText().trim());
             p.setFechaVencimiento(fVenc.getValue());
             p.setArea(fArea.getValue());
             if (fotoHolder[0] != null && !fotoHolder[0].isBlank()) {

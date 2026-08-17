@@ -20,16 +20,29 @@ public class ProductoRepository {
         LEFT JOIN categories c ON c.id = p.categoria_id
         """;
 
+    /** Active inventory only (excludes bienes dados de baja) — this is what
+     *  every screen/report should use by default. */
     public List<Producto> findAll() throws SQLException {
-        if (DatabaseConfig.isDemoMode())
-            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
+        return findAll(false);
+    }
+
+    /** @param incluirBaja true to also include bienes formally decommissioned
+     *  (soft-deleted) — used only by the "dados de baja" history view. */
+    public List<Producto> findAll(boolean incluirBaja) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            List<Producto> all = DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
+            return incluirBaja ? all : all.stream().filter(p -> !p.isDadoDeBaja()).toList();
+        }
         StringBuilder sb = new StringBuilder(BASE_SELECT);
         List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
         if (accessible != null) {
-            sb.append(" WHERE p.area = ANY(?)");
+            conditions.add("p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
+        if (!incluirBaja) conditions.add("p.fecha_baja IS NULL");
+        if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
         sb.append(" ORDER BY p.nombre");
         return queryDynamic(sb.toString(), params);
     }
@@ -38,6 +51,7 @@ public class ProductoRepository {
         if (DatabaseConfig.isDemoMode()) {
             List<Producto> all = DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
             return all.stream()
+                .filter(p -> !p.isDadoDeBaja())
                 .filter(p -> {
                     if (p.getCreadoEn() == null) return true;
                     LocalDate fecha = p.getCreadoEn().toLocalDate();
@@ -49,6 +63,7 @@ public class ProductoRepository {
         StringBuilder sb = new StringBuilder(BASE_SELECT);
         List<Object> params = new ArrayList<>();
         List<String> conditions = new ArrayList<>();
+        conditions.add("p.fecha_baja IS NULL");
         Set<String> accessible = SessionManager.getAccessibleAreas();
         if (accessible != null && !accessible.isEmpty()) {
             conditions.add("p.area = ANY(?)");
@@ -93,8 +108,8 @@ public class ProductoRepository {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
-                fecha_vencimiento, foto_url, ubicacion, area, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                fecha_vencimiento, foto_url, ubicacion, area, resguardante, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -111,6 +126,7 @@ public class ProductoRepository {
                 foto_url = EXCLUDED.foto_url,
                 ubicacion = EXCLUDED.ubicacion,
                 area = EXCLUDED.area,
+                resguardante = EXCLUDED.resguardante,
                 updated_at = NOW()
             """;
         try (Connection conn = DatabaseConfig.getConnection();
@@ -132,8 +148,9 @@ public class ProductoRepository {
             ps.setString(14, p.getFotoUrl());
             ps.setString(15, p.getUbicacion());
             ps.setString(16, p.getArea());
-            ps.setTimestamp(17, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(18, Timestamp.valueOf(now));
+            ps.setString(17, p.getResguardante());
+            ps.setTimestamp(18, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
+            ps.setTimestamp(19, Timestamp.valueOf(now));
             ps.executeUpdate();
         }
         return p;
@@ -149,6 +166,40 @@ public class ProductoRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, newStock);
             ps.setString(2, productoId);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Formal baja patrimonial (decommission) — soft-delete: the record and
+     *  its movement history stay in the database, it's just excluded from
+     *  the active inventory (see {@link #findAll()}). This is what the UI's
+     *  "Dar de baja" action should call, not {@link #delete}. */
+    public void darDeBaja(String id, String motivo) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            DemoDataStore.darDeBajaProducto(id, motivo);
+            return;
+        }
+        String sql = "UPDATE products SET fecha_baja = CURRENT_DATE, motivo_baja = ?, updated_at = NOW() WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, motivo);
+            ps.setString(2, id);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Reverses a baja patrimonial — puts the bien back into active
+     *  inventory. Kept separate from {@link #save} so it can't accidentally
+     *  be triggered by an unrelated edit. */
+    public void reactivar(String id) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            DemoDataStore.reactivarProducto(id);
+            return;
+        }
+        String sql = "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, updated_at = NOW() WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
             ps.executeUpdate();
         }
     }
@@ -233,10 +284,14 @@ public class ProductoRepository {
         p.setFotoUrl(rs.getString("foto_url"));
         p.setUbicacion(rs.getString("ubicacion"));
         p.setArea(rs.getString("area"));
+        p.setResguardante(rs.getString("resguardante"));
         Timestamp ca = rs.getTimestamp("created_at");
         if (ca != null) p.setCreadoEn(ca.toLocalDateTime());
         Timestamp ua = rs.getTimestamp("updated_at");
         if (ua != null) p.setActualizadoEn(ua.toLocalDateTime());
+        java.sql.Date fb = rs.getDate("fecha_baja");
+        if (fb != null) p.setFechaBaja(fb.toLocalDate());
+        p.setMotivoBaja(rs.getString("motivo_baja"));
         return p;
     }
 }

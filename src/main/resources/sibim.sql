@@ -40,6 +40,14 @@ CREATE TABLE IF NOT EXISTS products (
     foto_url            TEXT,
     ubicacion           TEXT,
     area                TEXT NOT NULL,
+    -- Persona física responsable del resguardo del bien (distinto del área) —
+    -- requerido en auditorías patrimoniales municipales mexicanas.
+    resguardante        TEXT,
+    -- Soft-delete: a formal "baja patrimonial" (decommission) sets these
+    -- instead of a physical DELETE, so movement history stays intact for
+    -- audits. NULL fecha_baja = still active inventory.
+    fecha_baja          DATE,
+    motivo_baja         TEXT,
     created_at          TIMESTAMPTZ DEFAULT NOW(),
     updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
@@ -51,6 +59,11 @@ CREATE TABLE IF NOT EXISTS movements (
     cantidad        INTEGER NOT NULL CHECK (cantidad >= 0),
     stock_anterior  INTEGER NOT NULL CHECK (stock_anterior >= 0),
     stock_nuevo     INTEGER NOT NULL CHECK (stock_nuevo >= 0),
+    -- Only populated for tipo='transferencia': the area the product moved
+    -- FROM and TO. Needed so deleting a transfer movement can put the
+    -- product back in its original area, not just restore its stock count.
+    area_origen     TEXT,
+    area_destino    TEXT,
     motivo          TEXT,
     referencia      TEXT,
     usuario_id      TEXT REFERENCES users(id),
@@ -103,6 +116,26 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'movements_stock_nuevo_check') THEN
         ALTER TABLE movements ADD CONSTRAINT movements_stock_nuevo_check CHECK (stock_nuevo >= 0);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'movements' AND column_name = 'area_origen') THEN
+        ALTER TABLE movements ADD COLUMN area_origen TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'movements' AND column_name = 'area_destino') THEN
+        ALTER TABLE movements ADD COLUMN area_destino TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'products' AND column_name = 'fecha_baja') THEN
+        ALTER TABLE products ADD COLUMN fecha_baja DATE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'products' AND column_name = 'motivo_baja') THEN
+        ALTER TABLE products ADD COLUMN motivo_baja TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'products' AND column_name = 'resguardante') THEN
+        ALTER TABLE products ADD COLUMN resguardante TEXT;
     END IF;
 END $$;
 

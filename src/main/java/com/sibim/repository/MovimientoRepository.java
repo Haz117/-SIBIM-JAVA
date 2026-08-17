@@ -5,6 +5,7 @@ import com.sibim.db.DemoDataStore;
 import com.sibim.model.Movimiento;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.session.SessionManager;
+import com.sibim.util.ProductoUtils;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -93,7 +94,18 @@ public class MovimientoRepository {
     }
 
     /**
-     * Atomically inserts the movement and updates product stock in a single transaction.
+     * Atomically inserts the movement and updates product stock (and, for a
+     * transferencia, the product's area) in a single transaction.
+     *
+     * The caller (MovimientoService) supplies {@code stockAnterior} as a
+     * best-effort value for its own pre-flight validation UX, but it is NOT
+     * trusted here — two users registering movements on the same product at
+     * nearly the same time would otherwise both read the same stale stock,
+     * compute the same "new" value independently, and the second UPDATE
+     * would silently overwrite the first (a lost update). Instead this locks
+     * the product row with {@code SELECT ... FOR UPDATE} and recomputes
+     * stockAnterior/stockNuevo from that locked, DB-fresh value, so
+     * concurrent registrations serialize correctly instead of racing.
      */
     public Movimiento addMovimientoAtomic(Movimiento m) throws SQLException {
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
@@ -102,16 +114,36 @@ public class MovimientoRepository {
             DemoDataStore.addMovimiento(m);
             return m;
         }
+        String lockProducto = "SELECT stock_actual, area FROM products WHERE id = ? FOR UPDATE";
         String insertMov = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
-                motivo, referencia, usuario_id, usuario_nombre, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
-        String updateStock = "UPDATE products SET stock_actual = ?, updated_at = NOW() WHERE id = ?";
+        String updateProducto = "UPDATE products SET stock_actual = ?, area = ?, updated_at = NOW() WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
             try {
+                int stockActual;
+                String areaActual;
+                try (PreparedStatement ps = conn.prepareStatement(lockProducto)) {
+                    ps.setString(1, m.getProductoId());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Producto no encontrado: " + m.getProductoId());
+                        stockActual = rs.getInt("stock_actual");
+                        areaActual = rs.getString("area");
+                    }
+                }
+
+                int stockNuevo = ProductoUtils.calcularStockNuevo(m.getTipo().getCodigo(), stockActual, m.getCantidad());
+                m.setStockAnterior(stockActual);
+                m.setStockNuevo(stockNuevo);
+
+                boolean esTransferencia = m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null;
+                String areaNueva = esTransferencia ? m.getAreaDestino() : areaActual;
+                if (esTransferencia) m.setAreaOrigen(areaActual);
+
                 try (PreparedStatement ps = conn.prepareStatement(insertMov)) {
                     ps.setString(1, m.getId());
                     ps.setString(2, m.getProductoId());
@@ -119,16 +151,19 @@ public class MovimientoRepository {
                     ps.setInt(4, m.getCantidad());
                     ps.setInt(5, m.getStockAnterior());
                     ps.setInt(6, m.getStockNuevo());
-                    ps.setString(7, m.getMotivo());
-                    ps.setString(8, m.getReferencia());
-                    ps.setString(9, m.getUsuarioId());
-                    ps.setString(10, m.getUsuarioNombre());
-                    ps.setTimestamp(11, Timestamp.valueOf(LocalDateTime.now()));
+                    ps.setString(7, m.getAreaOrigen());
+                    ps.setString(8, m.getAreaDestino());
+                    ps.setString(9, m.getMotivo());
+                    ps.setString(10, m.getReferencia());
+                    ps.setString(11, m.getUsuarioId());
+                    ps.setString(12, m.getUsuarioNombre());
+                    ps.setTimestamp(13, Timestamp.valueOf(LocalDateTime.now()));
                     ps.executeUpdate();
                 }
-                try (PreparedStatement ps = conn.prepareStatement(updateStock)) {
+                try (PreparedStatement ps = conn.prepareStatement(updateProducto)) {
                     ps.setInt(1, m.getStockNuevo());
-                    ps.setString(2, m.getProductoId());
+                    ps.setString(2, areaNueva);
+                    ps.setString(3, m.getProductoId());
                     ps.executeUpdate();
                 }
                 conn.commit();
@@ -143,37 +178,43 @@ public class MovimientoRepository {
     }
 
     /**
-     * Atomically deletes the movement and restores product stock.
+     * Atomically deletes the movement and restores product stock — and, if
+     * it was a transferencia, moves the product's area back to where it
+     * came from (area_origen), since the transfer's whole effect was
+     * relocating it, not changing stock.
      */
     public void deleteMovimientoAtomic(String movimientoId) throws SQLException {
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.deleteMovimiento(movimientoId);
             return;
         }
-        String getStockAnterior = "SELECT producto_id, stock_anterior FROM movements WHERE id = ?";
+        String getMov = "SELECT producto_id, stock_anterior, area_origen FROM movements WHERE id = ? FOR UPDATE";
         String deleteMov = "DELETE FROM movements WHERE id = ?";
-        String restoreStock = "UPDATE products SET stock_actual = ?, updated_at = NOW() WHERE id = ?";
+        String restoreProducto = "UPDATE products SET stock_actual = ?, area = COALESCE(?, area), updated_at = NOW() WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 String productoId;
                 int stockAnterior;
-                try (PreparedStatement ps = conn.prepareStatement(getStockAnterior)) {
+                String areaOrigen;
+                try (PreparedStatement ps = conn.prepareStatement(getMov)) {
                     ps.setString(1, movimientoId);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) throw new SQLException("Movimiento no encontrado: " + movimientoId);
                         productoId = rs.getString("producto_id");
                         stockAnterior = rs.getInt("stock_anterior");
+                        areaOrigen = rs.getString("area_origen");
                     }
                 }
                 try (PreparedStatement ps = conn.prepareStatement(deleteMov)) {
                     ps.setString(1, movimientoId);
                     ps.executeUpdate();
                 }
-                try (PreparedStatement ps = conn.prepareStatement(restoreStock)) {
+                try (PreparedStatement ps = conn.prepareStatement(restoreProducto)) {
                     ps.setInt(1, stockAnterior);
-                    ps.setString(2, productoId);
+                    ps.setString(2, areaOrigen);
+                    ps.setString(3, productoId);
                     ps.executeUpdate();
                 }
                 conn.commit();
@@ -219,6 +260,8 @@ public class MovimientoRepository {
         m.setCantidad(rs.getInt("cantidad"));
         m.setStockAnterior(rs.getInt("stock_anterior"));
         m.setStockNuevo(rs.getInt("stock_nuevo"));
+        m.setAreaOrigen(rs.getString("area_origen"));
+        m.setAreaDestino(rs.getString("area_destino"));
         m.setMotivo(rs.getString("motivo"));
         m.setReferencia(rs.getString("referencia"));
         m.setUsuarioId(rs.getString("usuario_id"));

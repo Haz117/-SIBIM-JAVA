@@ -6,8 +6,10 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 
 ## Características
 
-- **Inventario de bienes** — registro completo con código, área, stock, precios y foto
-- **Movimientos** — entradas, salidas, ajustes y transferencias con historial
+- **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios y foto
+- **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial y candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos
+- **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
+- **Conteo físico de inventario** — captura lo contado contra el sistema y reconcilia las diferencias con movimientos de Ajuste auditados
 - **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
@@ -15,6 +17,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área
 - **Pantalla de inicio animada** con progreso de carga y transiciones tipo cross-fade entre splash → login → sistema
 - **Notificaciones toast** en tiempo real
+- **Recuperación de formularios** — si falla el guardado (BD caída, validación), el diálogo se reabre con los datos ya capturados en vez de perderlos
 
 ---
 
@@ -109,8 +112,8 @@ SIBIM-Java/
 | Módulo | Descripción |
 |---|---|
 | Dashboard | Tarjetas resumen, gráfica de movimientos semanal, gráfica por categoría, barra de salud del inventario |
-| Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría y paginación |
-| Movimientos | Registro de entradas/salidas/ajustes/transferencias con vista previa del stock resultante |
+| Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría, paginación, baja patrimonial con motivo, conteo físico y vista de bajas |
+| Movimientos | Registro de entradas/salidas/ajustes/transferencias (con reasignación real de área) con vista previa del stock resultante |
 | Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer |
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
 | Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes |
