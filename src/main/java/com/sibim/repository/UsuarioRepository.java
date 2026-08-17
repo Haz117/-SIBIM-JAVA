@@ -71,15 +71,16 @@ public class UsuarioRepository {
             return u;
         }
         String sql = """
-            INSERT INTO users (id, username, password, nombre, cargo, role, area, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO users (id, username, password, nombre, cargo, role, area, debe_cambiar_password, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (id) DO UPDATE SET
                 username = EXCLUDED.username,
                 password = EXCLUDED.password,
                 nombre = EXCLUDED.nombre,
                 cargo = EXCLUDED.cargo,
                 role = EXCLUDED.role,
-                area = EXCLUDED.area
+                area = EXCLUDED.area,
+                debe_cambiar_password = EXCLUDED.debe_cambiar_password
             """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -90,7 +91,8 @@ public class UsuarioRepository {
             ps.setString(5, u.getCargo());
             ps.setString(6, u.getRol().getCodigo());
             ps.setString(7, u.getArea());
-            ps.setTimestamp(8, u.getCreadoEn() != null
+            ps.setBoolean(8, u.isDebeCambiarPassword());
+            ps.setTimestamp(9, u.getCreadoEn() != null
                 ? Timestamp.valueOf(u.getCreadoEn())
                 : Timestamp.valueOf(LocalDateTime.now()));
             ps.executeUpdate();
@@ -99,15 +101,20 @@ public class UsuarioRepository {
         return u;
     }
 
+    /**
+     * Admin-initiated password reset. The new password is one the admin
+     * knows (they just typed it), so it's treated the same as a seed
+     * password: the account is forced to change it again on next login.
+     */
     public void updatePassword(String userId, String newHash) throws SQLException {
         requireAdmin();
         String nombre = findById(userId).map(Usuario::getNombre).orElse(userId);
         if (DatabaseConfig.isDemoMode()) {
-            DemoDataStore.updateUsuarioPassword(userId, newHash);
+            DemoDataStore.updateUsuarioPassword(userId, newHash, true);
             new AuditLogRepository().log("usuario", userId, nombre, "actualizar", "Contraseña restablecida");
             return;
         }
-        String sql = "UPDATE users SET password = ? WHERE id = ?";
+        String sql = "UPDATE users SET password = ?, debe_cambiar_password = TRUE WHERE id = ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, newHash);
@@ -115,6 +122,25 @@ public class UsuarioRepository {
             ps.executeUpdate();
         }
         new AuditLogRepository().log("usuario", userId, nombre, "actualizar", "Contraseña restablecida");
+    }
+
+    /**
+     * Self-service password change (typically the forced first-login flow):
+     * sets the new hash AND clears debe_cambiar_password in one statement,
+     * since the user themself just chose this password.
+     */
+    public void completarCambioPassword(String userId, String newHash) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            DemoDataStore.updateUsuarioPassword(userId, newHash, false);
+            return;
+        }
+        String sql = "UPDATE users SET password = ?, debe_cambiar_password = FALSE WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newHash);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        }
     }
 
     public void delete(String userId) throws SQLException {
@@ -171,6 +197,7 @@ public class UsuarioRepository {
         u.setCargo(rs.getString("cargo"));
         u.setRol(Rol.fromCodigo(rs.getString("role")));
         u.setArea(rs.getString("area"));
+        u.setDebeCambiarPassword(rs.getBoolean("debe_cambiar_password"));
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) u.setCreadoEn(ts.toLocalDateTime());
         return u;

@@ -11,6 +11,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría o usuario, consultable desde Configuración (solo Admin)
+- **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
 - **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
@@ -52,18 +53,23 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
    ```sql
    CREATE DATABASE sibim;
    ```
-2. Ejecutar el script de esquema ubicado en:
+2. Ejecutar el script de esquema (seguro de correr contra producción — no trae datos ni cuentas):
    ```
    src/main/resources/sibim.sql
    ```
-3. Crear el archivo `.env` en la raíz del proyecto con las credenciales:
+3. **Solo para desarrollo/pruebas locales**, opcionalmente ejecutar después los datos de ejemplo (usuarios, categorías y bienes ficticios):
+   ```
+   src/main/resources/seed_demo.sql
+   ```
+   ⚠️ **Nunca ejecutes `seed_demo.sql` contra la base de datos de producción real** — crea 3 cuentas con contraseñas conocidas y públicas en este repositorio (`admin123456`, `sec123456`, `dir123456`). Todas quedan marcadas para forzar el cambio de contraseña en su primer login, pero de todas formas no deben usarse como cuentas reales del ayuntamiento.
+4. Crear el archivo `.env` en la raíz del proyecto con las credenciales:
    ```env
    DB_URL=jdbc:postgresql://localhost:5432/sibim
    DB_USER=tu_usuario
    DB_PASSWORD=tu_contraseña
    ```
    ⚠️ Si `DB_PASSWORD` no está configurada, la app se conecta sin contraseña y lo advierte en consola — nunca dejes esto así en un despliegue real; solo es aceptable en desarrollo local con PostgreSQL configurado en modo `trust`.
-4. **Antes de desplegar a producción**, cambia las contraseñas de las cuentas semilla que trae `sibim.sql` (`admin123456`, `sec123456`, `dir123456`) — son públicas en este repositorio.
+5. Crea las cuentas reales del ayuntamiento desde Configuración (solo Admin) una vez levantado el sistema — cualquier cuenta que crees o restablezcas ahí queda forzada a cambiar su contraseña en el primer login.
 
 ---
 
@@ -102,7 +108,8 @@ SIBIM-Java/
 │       └── resources/
 │           ├── fxml/          # Vistas de la interfaz
 │           ├── css/           # Hoja de estilos del sistema de diseño
-│           └── sibim.sql      # Esquema de base de datos
+│           ├── sibim.sql      # Esquema de base de datos (seguro para producción)
+│           └── seed_demo.sql  # Datos de ejemplo (solo desarrollo, nunca producción)
 ├── maven-dist/                 # Maven embebido para ejecución sin instalar
 ├── iniciar.bat                 # Script de inicio para Windows
 └── pom.xml                     # Configuración de dependencias

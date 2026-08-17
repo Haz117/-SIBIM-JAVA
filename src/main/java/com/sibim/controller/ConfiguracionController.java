@@ -336,6 +336,9 @@ public class ConfiguracionController {
                         u.setArea(fRol.getValue() == Rol.ADMIN ? null : fArea.getValue());
                         if (!fPassword.getText().isBlank()) {
                             u.setPasswordHash(BCrypt.withDefaults().hashToString(12, fPassword.getText().toCharArray()));
+                            // The admin just typed this password themself — force the
+                            // new user to pick their own on first login.
+                            u.setDebeCambiarPassword(true);
                         }
                         usuarioRepo.save(u);
                         return u;

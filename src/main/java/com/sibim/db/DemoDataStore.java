@@ -22,15 +22,19 @@ public final class DemoDataStore {
             new Usuario("u-admin", "superusuario",
                 "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj1o.FxRzFNS",
                 "Administrador del Sistema", "Superusuario", Rol.ADMIN, null, LocalDateTime.now()),
-            new Usuario("u-sec-1", "jm.zuniga",
+            new Usuario("u-sec-1", "secretario.demo",
                 "$2a$12$RfQKHBQQlnBqnUjefY0n9.5Z2hxPzG4A1k2ZOBqFr9QQZJPBDhQBu",
-                "Jose Manuel Zuniga Guerrero", "Secretario General Municipal",
+                "Secretario de Ejemplo", "Secretario General Municipal",
                 Rol.SECRETARIO, "Secretaria General Municipal", LocalDateTime.now()),
-            new Usuario("u-dir-1", "rh.garcia",
+            new Usuario("u-dir-1", "direccion.demo",
                 "$2a$12$n8TWbDFZ2F/Q3VdTHxuvTO.7OP7f/bJYKMXPJRb5LTkmHlKxhALiu",
-                "Maria Garcia Lopez", "Director de Recursos Humanos",
+                "Director de Ejemplo", "Director de Recursos Humanos",
                 Rol.DIRECCION, "Direccion de Recursos Humanos", LocalDateTime.now())
         ));
+        // Demo/seed accounts always start with a known default password —
+        // force the "cambiar contraseña" flow on first login, same as a
+        // real deployment would via debe_cambiar_password in Postgres.
+        USUARIOS.forEach(u -> u.setDebeCambiarPassword(true));
 
         CATEGORIAS = new ArrayList<>(List.of(
             new Categoria("cat-mob",  "Mobiliario",               "Escritorios, sillas, archiveros",        "#8B5CF6", "Armchair",    LocalDateTime.now()),
@@ -65,7 +69,7 @@ public final class DemoDataStore {
             mov("m-02","p-02","Silla ejecutiva ergonomica","#8B5CF6",
                 TipoMovimiento.SALIDA, 2, 8, 6,
                 "Asignacion a sala de juntas","REQ-2026-012",
-                "u-sec-1","Jose Manuel Zuniga Guerrero", LocalDateTime.now().minusDays(5).withHour(10)),
+                "u-sec-1","Secretario de Ejemplo", LocalDateTime.now().minusDays(5).withHour(10)),
             mov("m-03","p-06","Impresora multifuncional Epson","#F59E0B",
                 TipoMovimiento.ENTRADA, 1, 1, 2,
                 "Adquisicion nueva","OC-2026-002",
@@ -73,7 +77,7 @@ public final class DemoDataStore {
             mov("m-04","p-01","Escritorio ejecutivo de madera","#8B5CF6",
                 TipoMovimiento.AJUSTE, 18, 16, 18,
                 "Correccion de conteo fisico","INV-2026-003",
-                "u-sec-1","Jose Manuel Zuniga Guerrero", LocalDateTime.now().minusDays(3).withHour(14)),
+                "u-sec-1","Secretario de Ejemplo", LocalDateTime.now().minusDays(3).withHour(14)),
             mov("m-05","p-08","Camara de videovigilancia PTZ","#EC4899",
                 TipoMovimiento.SALIDA, 3, 25, 22,
                 "Instalacion en accesos norte","REQ-2026-015",
@@ -81,7 +85,7 @@ public final class DemoDataStore {
             mov("m-06","p-03","Archivero metalico 4 gavetas","#8B5CF6",
                 TipoMovimiento.ENTRADA, 2, 0, 2,
                 "Compra urgente","OC-2026-003",
-                "u-sec-1","Jose Manuel Zuniga Guerrero", LocalDateTime.now().minusDays(1).withHour(16)),
+                "u-sec-1","Secretario de Ejemplo", LocalDateTime.now().minusDays(1).withHour(16)),
             mov("m-07","p-05","Laptop Dell Latitude 5440","#10B981",
                 TipoMovimiento.TRANSFERENCIA, 2, 12, 10,
                 "Transferencia a Planeacion","TRF-2026-001",
@@ -96,9 +100,9 @@ public final class DemoDataStore {
     }
 
     private static final Map<String, String> DEMO_PASSWORDS = Map.of(
-        "superusuario", "admin123456",
-        "jm.zuniga",    "sec123456",
-        "rh.garcia",    "dir123456"
+        "superusuario",     "admin123456",
+        "secretario.demo",  "sec123456",
+        "direccion.demo",   "dir123456"
     );
 
     private DemoDataStore() {}
@@ -129,9 +133,12 @@ public final class DemoDataStore {
         USUARIOS.removeIf(u -> u.getId().equals(id));
     }
 
-    public static void updateUsuarioPassword(String id, String hash) {
+    public static void updateUsuarioPassword(String id, String hash, boolean debeCambiarPassword) {
         USUARIOS.stream().filter(u -> u.getId().equals(id)).findFirst()
-            .ifPresent(u -> u.setPasswordHash(hash));
+            .ifPresent(u -> {
+                u.setPasswordHash(hash);
+                u.setDebeCambiarPassword(debeCambiarPassword);
+            });
     }
 
     // ── Categorias ────────────────────────────────────────────────────────

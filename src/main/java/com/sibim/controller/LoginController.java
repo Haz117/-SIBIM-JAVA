@@ -2,8 +2,11 @@ package com.sibim.controller;
 
 import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.model.Usuario;
 import com.sibim.service.AuthService;
+import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.CambiarPasswordDialog;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
@@ -135,8 +138,21 @@ public class LoginController {
             }
             @Override protected void succeeded() {
                 setLoading(false);
-                try { MainApp.showMain(); }
-                catch (Exception e) { showError("No se pudo cargar la pantalla principal"); }
+                Usuario user = SessionManager.getCurrentUser();
+                if (user != null && user.isDebeCambiarPassword()) {
+                    CambiarPasswordDialog.mostrarObligatorio(user,
+                        () -> {
+                            try { MainApp.showMain(); }
+                            catch (Exception e) { showError("No se pudo cargar la pantalla principal"); }
+                        },
+                        () -> {
+                            SessionManager.logout();
+                            passwordField.clear();
+                        });
+                } else {
+                    try { MainApp.showMain(); }
+                    catch (Exception e) { showError("No se pudo cargar la pantalla principal"); }
+                }
             }
             @Override protected void failed() {
                 setLoading(false);
@@ -149,9 +165,9 @@ public class LoginController {
         new Thread(task).start();
     }
 
-    @FXML private void fillAdmin()     { fill("superusuario", "admin123456"); }
-    @FXML private void fillSecretario(){ fill("jm.zuniga",    "sec123456"); }
-    @FXML private void fillDireccion() { fill("rh.garcia",    "dir123456"); }
+    @FXML private void fillAdmin()     { fill("superusuario",    "admin123456"); }
+    @FXML private void fillSecretario(){ fill("secretario.demo", "sec123456"); }
+    @FXML private void fillDireccion() { fill("direccion.demo",  "dir123456"); }
 
     private void fill(String user, String pass) {
         usernameField.setText(user);

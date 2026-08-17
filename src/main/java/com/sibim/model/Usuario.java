@@ -12,6 +12,7 @@ public class Usuario {
     private Rol rol;
     private String area;
     private LocalDateTime creadoEn;
+    private boolean debeCambiarPassword;
 
     public Usuario() {}
 
@@ -50,6 +51,9 @@ public class Usuario {
 
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
+
+    public boolean isDebeCambiarPassword() { return debeCambiarPassword; }
+    public void setDebeCambiarPassword(boolean debeCambiarPassword) { this.debeCambiarPassword = debeCambiarPassword; }
 
     public boolean esAdmin() { return rol == Rol.ADMIN; }
     public boolean esSecretario() { return rol == Rol.SECRETARIO; }
