@@ -708,7 +708,8 @@ public class ProductosController {
             ));
 
         } catch (Exception e) {
-            NotificacionUtil.error(table.getScene(), "Error al abrir el formulario");
+            log.error("Error al abrir el formulario de bien", e);
+            NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
         }
     }
 

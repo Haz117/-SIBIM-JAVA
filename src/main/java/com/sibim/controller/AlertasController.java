@@ -18,11 +18,16 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class AlertasController {
+
+    private static final Logger log = LoggerFactory.getLogger(AlertasController.class);
 
     @FXML private TableView<Producto> tableAgotados;
     @FXML private TableColumn<Producto, String> colAgNombre;
@@ -270,12 +275,25 @@ public class AlertasController {
         openMovimientoForm(sel.getId(), TipoMovimiento.ENTRADA);
     }
 
+    /** Navigates to Movimientos and opens the form there (pre-filled with
+     *  this producto/tipo) instead of using a bare {@code new
+     *  MovimientosController()} — that instance never went through FXML
+     *  injection, so its @FXML fields (table, etc.) were all null, silently
+     *  breaking the dialog's own success/error feedback and racing this
+     *  screen's loadData() against the movement's async save. */
     private void openMovimientoForm(String productoId, TipoMovimiento tipo) {
+        MainController main = MainController.getInstance();
+        if (main == null) {
+            log.warn("No se pudo abrir el formulario de movimiento: MainController no disponible");
+            return;
+        }
         try {
-            MovimientosController ctrl = new MovimientosController();
-            ctrl.showMovimientoDialog(productoId, tipo);
-            loadData();
+            main.navigateTo("movimientos");
+            if (main.getCurrentController() instanceof MovimientosController ctrl) {
+                ctrl.showMovimientoDialog(productoId, tipo);
+            }
         } catch (Exception e) {
+            log.error("Error al abrir el formulario de movimiento desde Alertas", e);
             if (tableAgotados.getScene() != null)
                 NotificacionUtil.error(tableAgotados.getScene(), "Error al abrir el formulario de movimiento");
         }

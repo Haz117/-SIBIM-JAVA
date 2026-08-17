@@ -70,6 +70,9 @@ public class MainController {
 
     public static MainController getInstance() { return instance; }
 
+    /** The controller for whatever view is currently loaded into contentArea. */
+    public Object getCurrentController() { return currentController; }
+
     @FXML
     public void initialize() {
         instance = this;

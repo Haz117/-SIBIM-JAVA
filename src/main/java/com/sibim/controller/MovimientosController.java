@@ -26,12 +26,17 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
 
 public class MovimientosController {
+
+    private static final Logger log = LoggerFactory.getLogger(MovimientosController.class);
 
     @FXML private VBox rootPane;
     @FXML private TextField searchField;
@@ -528,14 +533,16 @@ public class MovimientosController {
                     }
                 ));
         } catch (Exception e) {
+            log.error("Error al abrir el formulario de movimiento", e);
             if (table != null && table.getScene() != null)
-                NotificacionUtil.error(table.getScene(), "Error al abrir el formulario de movimiento");
+                NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
         }
     }
 
     private void openFile(File file) {
         try { Desktop.getDesktop().open(file); }
         catch (Exception e) {
+            log.error("No se pudo abrir el archivo {}", file, e);
             if (table != null && table.getScene() != null)
                 NotificacionUtil.error(table.getScene(), "No se pudo abrir el archivo");
         }
