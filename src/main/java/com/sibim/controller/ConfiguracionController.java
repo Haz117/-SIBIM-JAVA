@@ -54,6 +54,7 @@ public class ConfiguracionController {
     @FXML
     public void initialize() {
         Usuario me = SessionManager.getCurrentUser();
+        if (me == null) return;
         String nombre = me.getNombre();
         lblNombreUsuario.setText(nombre);
         lblUsernameUsuario.setText("@" + me.getUsername());

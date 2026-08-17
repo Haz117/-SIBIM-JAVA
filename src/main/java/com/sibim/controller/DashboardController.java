@@ -68,7 +68,8 @@ public class DashboardController {
 
     @FXML
     public void initialize() {
-        lblUsuario.setText(SessionManager.getCurrentUser().getNombre());
+        var user = SessionManager.getCurrentUser();
+        if (user != null) lblUsuario.setText(user.getNombre());
         lblBienvenida.setText(getBienvenida());
 
         LocalDate hoy = LocalDate.now();
@@ -78,7 +79,19 @@ public class DashboardController {
         if (lblFechaMes != null) lblFechaMes.setText(meses[hoy.getMonthValue()-1] + " " + hoy.getYear());
 
         setupTablaReciente();
-        loadDataAsync();
+
+        // Defer data loading until the node is in a scene so that charts render
+        // correctly and don't get caught mid-animation during the page transition.
+        statsGrid.sceneProperty().addListener(new javafx.beans.value.ChangeListener<>() {
+            @Override
+            public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Scene> obs,
+                                javafx.scene.Scene old, javafx.scene.Scene newScene) {
+                if (newScene != null) {
+                    statsGrid.sceneProperty().removeListener(this);
+                    loadDataAsync();
+                }
+            }
+        });
     }
 
     private void loadDataAsync() {

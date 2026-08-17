@@ -169,8 +169,13 @@ public class MainController {
                 AnimationUtils.pageIn(node);
             }
         } catch (Exception e) {
+            e.printStackTrace(System.err);
             log.error("No se pudo cargar la vista: {}", view, e);
-            NotificacionUtil.error(contentArea.getScene(), "No se pudo cargar la vista: " + view);
+            // contentArea may not be in a scene yet during initial load — fall back to stage scene
+            javafx.scene.Scene errScene = contentArea.getScene() != null
+                ? contentArea.getScene()
+                : MainApp.getPrimaryStage() != null ? MainApp.getPrimaryStage().getScene() : null;
+            NotificacionUtil.error(errScene, "No se pudo cargar la vista: " + view);
         }
     }
 
