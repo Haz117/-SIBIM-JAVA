@@ -49,6 +49,7 @@ public class UsuarioRepository {
     }
 
     public List<Usuario> findAll() throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) return new ArrayList<>(DemoDataStore.findAllUsers());
         List<Usuario> list = new ArrayList<>();
         String sql = "SELECT * FROM users ORDER BY nombre";

@@ -29,6 +29,8 @@ import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import org.slf4j.Logger;
@@ -63,6 +65,10 @@ public class MainController {
     private Object currentController;
     private final ProductoService alertProductoService = new ProductoService();
 
+    // Session inactivity timeout — 30 minutes
+    private static final long INACTIVITY_TIMEOUT_MS = 30 * 60_000L;
+    private long lastActivityMs = System.currentTimeMillis();
+
     // Only one MainController is ever active at a time — this lets child
     // views loaded into contentArea (e.g. Organigrama) trigger navigation
     // without needing an injected reference threaded through every FXML load.
@@ -86,9 +92,13 @@ public class MainController {
         navigateTo("dashboard", btnDashboard);
         // Load alert count
         loadAlertBadge();
-        // Wire keyboard shortcuts once scene is available
+        // Wire keyboard shortcuts and activity tracking once scene is available
         contentArea.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene != null) setupKeyboardShortcuts(scene);
+            if (scene != null) {
+                setupKeyboardShortcuts(scene);
+                scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> lastActivityMs = System.currentTimeMillis());
+                scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> lastActivityMs = System.currentTimeMillis());
+            }
         });
         // Refresh badge every 3 minutes
         Timeline badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> loadAlertBadge()));
@@ -99,6 +109,21 @@ public class MainController {
         Timeline clock = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateStatusTime()));
         clock.setCycleCount(Timeline.INDEFINITE);
         clock.play();
+
+        // Inactivity timeout — check every minute
+        Timeline sessionGuard = new Timeline(new KeyFrame(Duration.minutes(1), e -> checkInactivity()));
+        sessionGuard.setCycleCount(Timeline.INDEFINITE);
+        sessionGuard.play();
+
+        // Warn if running in demo mode
+        if (DatabaseConfig.isDemoMode()) {
+            contentArea.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene != null)
+                    NotificacionUtil.advertencia(scene,
+                        "Modo demostración activo — los datos no son reales. "
+                        + "Configura el archivo .env para conectar a PostgreSQL.");
+            });
+        }
     }
 
     @FXML private void onDashboard()     { navigateTo("dashboard",     btnDashboard); }
@@ -221,6 +246,15 @@ public class MainController {
     private void updateStatusTime() {
         if (statusTimeLabel != null)
             statusTimeLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+    }
+
+    private void checkInactivity() {
+        if (System.currentTimeMillis() - lastActivityMs > INACTIVITY_TIMEOUT_MS) {
+            log.info("Sesión cerrada por inactividad");
+            SessionManager.logout();
+            try { MainApp.showLogin(); }
+            catch (Exception e) { log.error("Error al cerrar sesión por inactividad", e); }
+        }
     }
 
     private void setupKeyboardShortcuts(javafx.scene.Scene scene) {
