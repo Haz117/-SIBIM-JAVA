@@ -1,8 +1,12 @@
 package com.sibim.controller.dialogs;
 
+import com.sibim.model.ConteoFisico;
+import com.sibim.model.ConteoItem;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.repository.ConteoRepository;
 import com.sibim.service.MovimientoService;
+import com.sibim.session.SessionManager;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -21,15 +25,10 @@ import java.util.List;
 /** A physical inventory count (toma de inventario): walks the user through
  *  every active bien in their scope, lets them enter what they actually
  *  counted, highlights discrepancies against the system's stock, and — on
- *  confirmation — reconciles them by registering an AJUSTE movement for each
- *  one that differs (so the correction is itself an audited movement, not a
- *  silent stock edit).
- *
- *  This intentionally doesn't persist a "conteo" session of its own — the
- *  audit trail it produces IS the AJUSTE movements, which already go through
- *  the same atomic/locked path as every other movement. Adding a separate
- *  conteo table would mean a second source of truth to keep in sync with the
- *  one that already exists (movements), for no real benefit at this scale. */
+ *  confirmation — persists the whole session (every item reviewed, matched
+ *  or not — see {@link ConteoRepository}) and reconciles discrepancies by
+ *  registering an AJUSTE movement for each one (so the correction is itself
+ *  an audited movement, not a silent stock edit). */
 public final class ConteoFisicoDialog {
 
     private ConteoFisicoDialog() {}
@@ -99,49 +98,82 @@ public final class ConteoFisicoDialog {
 
         Label summary = new Label(productos.isEmpty()
             ? "No hay bienes activos en tu área para contar."
-            : "Ajusta la columna \"Contado\" para los bienes con diferencia y presiona \"Aplicar ajustes\".");
+            : "Ajusta la columna \"Contado\" y presiona \"Finalizar conteo\" para guardarlo.");
         summary.getStyleClass().add("muted-sm");
         summary.setWrapText(true);
 
-        Button btnAplicar = new Button("✓  Aplicar ajustes");
-        btnAplicar.getStyleClass().add("btn-primary");
-        btnAplicar.setDisable(productos.isEmpty());
-        HBox actions = new HBox(10, summary, btnAplicar);
+        Button btnFinalizar = new Button("✓  Finalizar conteo");
+        btnFinalizar.getStyleClass().add("btn-primary");
+        btnFinalizar.setDisable(productos.isEmpty());
+        HBox actions = new HBox(10, summary, btnFinalizar);
         actions.setAlignment(Pos.CENTER_LEFT);
         actions.setPadding(new Insets(10, 4, 4, 4));
         HBox.setHgrow(summary, Priority.ALWAYS);
 
-        btnAplicar.setOnAction(e -> {
+        btnFinalizar.setOnAction(e -> {
             List<Row> discrepancias = rows.stream()
                 .filter(r -> r.contado().getValue() != r.producto().getStockActual())
                 .toList();
-            if (discrepancias.isEmpty()) {
-                NotificacionUtil.info(dialog.getDialogPane().getScene(), "No hay diferencias que ajustar");
+            if (!discrepancias.isEmpty() && !ConfirmacionUtil.confirmar("Finalizar conteo",
+                    "Se guardará el conteo y se registrarán " + discrepancias.size()
+                        + " movimiento(s) de ajuste para igualar el sistema a lo contado.\n¿Continuar?"))
                 return;
-            }
-            if (!ConfirmacionUtil.confirmar("Aplicar ajustes de conteo",
-                    "Se registrarán " + discrepancias.size() + " movimiento(s) de ajuste para igualar el sistema a lo contado.\n¿Continuar?"))
-                return;
-            btnAplicar.setDisable(true);
+
+            btnFinalizar.setDisable(true);
             String motivo = "Conteo físico del " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             new Thread(() -> {
                 int ok = 0, fail = 0;
-                for (Row r : discrepancias) {
-                    try {
-                        movimientoService.registrar(r.producto().getId(), TipoMovimiento.AJUSTE,
-                            r.contado().getValue(), motivo, "Conteo físico");
-                        ok++;
-                    } catch (Exception ex) {
-                        fail++;
+                List<ConteoItem> items = new ArrayList<>();
+                for (Row r : rows) {
+                    boolean esDiscrepancia = r.contado().getValue() != r.producto().getStockActual();
+                    boolean ajustado = false;
+                    if (esDiscrepancia) {
+                        try {
+                            movimientoService.registrar(r.producto().getId(), TipoMovimiento.AJUSTE,
+                                r.contado().getValue(), motivo, "Conteo físico");
+                            ajustado = true;
+                            ok++;
+                        } catch (Exception ex) {
+                            fail++;
+                        }
                     }
+                    ConteoItem item = new ConteoItem();
+                    item.setProductoId(r.producto().getId());
+                    item.setProductoNombre(r.producto().getNombre());
+                    item.setArea(r.producto().getArea());
+                    item.setStockSistema(r.producto().getStockActual());
+                    item.setStockContado(r.contado().getValue());
+                    item.setAjustado(ajustado);
+                    items.add(item);
                 }
+
+                ConteoFisico conteo = new ConteoFisico();
+                if (SessionManager.getCurrentUser() != null) {
+                    conteo.setUsuarioId(SessionManager.getCurrentUser().getId());
+                    conteo.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
+                } else {
+                    conteo.setUsuarioNombre("Sistema");
+                }
+                conteo.setTotalContados(items.size());
+                conteo.setTotalDiscrepancias(discrepancias.size());
+                conteo.setItems(items);
+
+                boolean saved = true;
+                try {
+                    new ConteoRepository().guardar(conteo);
+                } catch (Exception ex) {
+                    saved = false;
+                }
+
                 int okFinal = ok, failFinal = fail;
+                boolean savedFinal = saved;
                 javafx.application.Platform.runLater(() -> {
-                    if (failFinal == 0)
-                        NotificacionUtil.exito(dialog.getDialogPane().getScene(), okFinal + " ajuste(s) aplicado(s) correctamente");
-                    else
-                        NotificacionUtil.advertencia(dialog.getDialogPane().getScene(),
-                            okFinal + " ajuste(s) aplicados, " + failFinal + " fallaron (revisa permisos por área)");
+                    String base = discrepancias.isEmpty()
+                        ? "Conteo guardado — sin diferencias en " + items.size() + " bien(es)"
+                        : okFinal + " ajuste(s) aplicado(s)" + (failFinal > 0 ? ", " + failFinal + " fallaron" : "");
+                    if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
+                    if (failFinal > 0 || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
+                    else NotificacionUtil.exito(dialog.getDialogPane().getScene(), base);
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();
                 });

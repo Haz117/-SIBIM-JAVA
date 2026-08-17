@@ -14,6 +14,8 @@ public final class DemoDataStore {
     private static final List<Categoria> CATEGORIAS;
     private static final List<Producto>  PRODUCTOS;
     private static final List<Movimiento> MOVIMIENTOS;
+    private static final List<AuditLog> AUDIT_LOG = Collections.synchronizedList(new ArrayList<>());
+    private static final List<ConteoFisico> CONTEOS = Collections.synchronizedList(new ArrayList<>());
 
     static {
         USUARIOS = new ArrayList<>(List.of(
@@ -208,6 +210,38 @@ public final class DemoDataStore {
             p.setMotivoBaja(null);
             p.setActualizadoEn(LocalDateTime.now());
         });
+    }
+
+    // ── Audit log ────────────────────────────────────────────────────────
+
+    public static void addAuditLog(AuditLog a) {
+        AUDIT_LOG.add(0, a);
+    }
+
+    public static List<AuditLog> findAuditLog(int limit) {
+        synchronized (AUDIT_LOG) {
+            return AUDIT_LOG.stream().limit(limit).collect(Collectors.toList());
+        }
+    }
+
+    // ── Conteos físicos ──────────────────────────────────────────────────
+
+    public static void addConteo(ConteoFisico c) {
+        CONTEOS.add(0, c);
+    }
+
+    public static List<ConteoFisico> findConteos(int limit) {
+        synchronized (CONTEOS) {
+            return CONTEOS.stream().limit(limit).collect(Collectors.toList());
+        }
+    }
+
+    public static List<ConteoItem> findConteoItems(String conteoId) {
+        return CONTEOS.stream()
+            .filter(c -> c.getId().equals(conteoId))
+            .findFirst()
+            .map(ConteoFisico::getItems)
+            .orElse(List.of());
     }
 
     public static void deleteProducto(String id) {

@@ -62,10 +62,12 @@ public class UsuarioRepository {
 
     public Usuario save(Usuario u) throws SQLException {
         requireAdmin();
+        boolean isNew = u.getId() == null || findById(u.getId()).isEmpty();
         if (u.getId() == null) u.setId(UUID.randomUUID().toString());
         if (DatabaseConfig.isDemoMode()) {
             if (u.getCreadoEn() == null) u.setCreadoEn(java.time.LocalDateTime.now());
             DemoDataStore.saveUsuario(u);
+            logUsuario(u, isNew ? "crear" : "actualizar", isNew ? "Usuario registrado" : "Datos del usuario actualizados");
             return u;
         }
         String sql = """
@@ -93,13 +95,16 @@ public class UsuarioRepository {
                 : Timestamp.valueOf(LocalDateTime.now()));
             ps.executeUpdate();
         }
+        logUsuario(u, isNew ? "crear" : "actualizar", isNew ? "Usuario registrado" : "Datos del usuario actualizados");
         return u;
     }
 
     public void updatePassword(String userId, String newHash) throws SQLException {
         requireAdmin();
+        String nombre = findById(userId).map(Usuario::getNombre).orElse(userId);
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.updateUsuarioPassword(userId, newHash);
+            new AuditLogRepository().log("usuario", userId, nombre, "actualizar", "Contraseña restablecida");
             return;
         }
         String sql = "UPDATE users SET password = ? WHERE id = ?";
@@ -109,12 +114,15 @@ public class UsuarioRepository {
             ps.setString(2, userId);
             ps.executeUpdate();
         }
+        new AuditLogRepository().log("usuario", userId, nombre, "actualizar", "Contraseña restablecida");
     }
 
     public void delete(String userId) throws SQLException {
         requireAdmin();
+        String nombre = findById(userId).map(Usuario::getNombre).orElse(userId);
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.deleteUsuario(userId);
+            new AuditLogRepository().log("usuario", userId, nombre, "eliminar", "Usuario eliminado");
             return;
         }
         String sql = "DELETE FROM users WHERE id = ?";
@@ -130,6 +138,11 @@ public class UsuarioRepository {
                 throw e;
             }
         }
+        new AuditLogRepository().log("usuario", userId, nombre, "eliminar", "Usuario eliminado");
+    }
+
+    private void logUsuario(Usuario u, String accion, String detalle) {
+        new AuditLogRepository().log("usuario", u.getId(), u.getNombre(), accion, detalle);
     }
 
     public boolean existsByUsername(String username, String excludeId) throws SQLException {

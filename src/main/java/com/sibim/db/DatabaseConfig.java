@@ -29,6 +29,17 @@ public final class DatabaseConfig {
         String user     = getEnv(dotenv, "DB_USER", "postgres");
         String password = getEnv(dotenv, "DB_PASSWORD", "");
 
+        // A blank password only works if the server trusts the connection
+        // unconditionally (pg_hba.conf "trust") — fine for local dev, a real
+        // misconfiguration risk in production. Make it loud instead of
+        // silently connecting with no client-side credential.
+        if (password.isBlank()) {
+            System.err.println("ADVERTENCIA: DB_PASSWORD no está configurada (.env o variable de entorno) — "
+                + "conectando sin contraseña. Esto solo es seguro si el servidor de PostgreSQL "
+                + "está configurado explícitamente para confiar en esta conexión (pg_hba.conf). "
+                + "No dejes esto así en un despliegue de producción.");
+        }
+
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(url);
         config.setUsername(user);

@@ -59,10 +59,12 @@ public class CategoriaRepository {
 
     public Categoria save(Categoria c) throws SQLException {
         requireAdmin();
+        boolean isNew = c.getId() == null || findById(c.getId()).isEmpty();
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
         if (DatabaseConfig.isDemoMode()) {
             if (c.getCreadoEn() == null) c.setCreadoEn(java.time.LocalDateTime.now());
             DemoDataStore.saveCategoria(c);
+            logSave(c, isNew);
             return c;
         }
         String sql = """
@@ -86,13 +88,21 @@ public class CategoriaRepository {
                 : Timestamp.valueOf(LocalDateTime.now()));
             ps.executeUpdate();
         }
+        logSave(c, isNew);
         return c;
+    }
+
+    private void logSave(Categoria c, boolean isNew) {
+        new AuditLogRepository().log("categoria", c.getId(), c.getNombre(), isNew ? "crear" : "actualizar",
+            isNew ? "Categoría registrada" : "Datos de la categoría actualizados");
     }
 
     public void delete(String id) throws SQLException {
         requireAdmin();
+        String nombre = findById(id).map(Categoria::getNombre).orElse(id);
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.deleteCategoria(id);
+            new AuditLogRepository().log("categoria", id, nombre, "eliminar", "Categoría eliminada");
             return;
         }
         String sql = "DELETE FROM categories WHERE id = ?";
@@ -101,6 +111,7 @@ public class CategoriaRepository {
             ps.setString(1, id);
             ps.executeUpdate();
         }
+        new AuditLogRepository().log("categoria", id, nombre, "eliminar", "Categoría eliminada");
     }
 
     public boolean tieneProductos(String id) throws SQLException {

@@ -144,5 +144,26 @@
         </HBox>
     </VBox>
 
+    <!-- ══ AUDITORÍA (solo ADMIN) ═════════════════════════════════════ -->
+    <VBox fx:id="auditSection" styleClass="card" spacing="12">
+        <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="12">
+            <StackPane styleClass="section-icon-badge">
+                <Label text="📜" styleClass="page-icon-emoji"/>
+            </StackPane>
+            <VBox spacing="2" HBox.hgrow="ALWAYS">
+                <Label text="Auditoría del Sistema" styleClass="card-title"/>
+                <Label text="Historial de cambios en bienes, categorías y usuarios; y de tomas de inventario físico"
+                       styleClass="page-subtitle"/>
+            </VBox>
+            <Button text="📜 Ver historial de cambios" onAction="#onVerAuditoria" styleClass="btn-secondary">
+                <tooltip><Tooltip text="Ver el historial de auditoría de cambios"/></tooltip>
+            </Button>
+            <Button text="📋 Ver conteos físicos" onAction="#onVerConteos" styleClass="btn-secondary">
+                <tooltip><Tooltip text="Ver el historial de tomas de inventario físico"/></tooltip>
+            </Button>
+        </HBox>
+    </VBox>
+
 </VBox>
 </ScrollPane>

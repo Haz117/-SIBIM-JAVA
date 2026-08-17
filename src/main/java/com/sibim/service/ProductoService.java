@@ -2,6 +2,7 @@ package com.sibim.service;
 
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 public class ProductoService {
 
     private final ProductoRepository productoRepo = new ProductoRepository();
+    private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     public List<Producto> getAll() throws SQLException {
         return productoRepo.findAll();
@@ -52,7 +54,12 @@ public class ProductoService {
 
     public Producto save(Producto p) throws SQLException, ValidationException {
         validate(p);
-        return productoRepo.save(p);
+        boolean isNew = p.getId() == null || productoRepo.findById(p.getId()).isEmpty();
+        Producto saved = productoRepo.save(p);
+        auditRepo.log("producto", saved.getId(), saved.getNombre(),
+            isNew ? "crear" : "actualizar",
+            isNew ? "Bien registrado" : "Datos del bien actualizados");
+        return saved;
     }
 
     public void delete(String id) throws SQLException, ValidationException {
@@ -63,6 +70,7 @@ public class ProductoService {
             throw new ValidationException("No tienes acceso a esa area");
         try {
             productoRepo.delete(id);
+            auditRepo.log("producto", id, p.getNombre(), "eliminar", "Bien eliminado permanentemente");
         } catch (SQLException e) {
             if ("23503".equals(e.getSQLState()))
                 throw new ValidationException("No se puede eliminar: este bien tiene movimientos registrados en su historial");
@@ -82,6 +90,7 @@ public class ProductoService {
         if (motivo == null || motivo.isBlank())
             throw new ValidationException("El motivo de la baja es obligatorio");
         productoRepo.darDeBaja(id, motivo.trim());
+        auditRepo.log("producto", id, p.getNombre(), "baja", "Motivo: " + motivo.trim());
     }
 
     /** Reverses a baja patrimonial, restoring the bien to active inventory. */
@@ -92,6 +101,7 @@ public class ProductoService {
         if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
         productoRepo.reactivar(id);
+        auditRepo.log("producto", id, p.getNombre(), "reactivar", "Bien reactivado tras baja");
     }
 
     /** Includes bienes dados de baja — used only by the "Dados de baja"

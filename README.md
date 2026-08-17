@@ -9,7 +9,8 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios y foto
 - **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial y candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
-- **Conteo físico de inventario** — captura lo contado contra el sistema y reconcilia las diferencias con movimientos de Ajuste auditados
+- **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior
+- **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría o usuario, consultable desde Configuración (solo Admin)
 - **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
@@ -61,6 +62,8 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
    DB_USER=tu_usuario
    DB_PASSWORD=tu_contraseña
    ```
+   ⚠️ Si `DB_PASSWORD` no está configurada, la app se conecta sin contraseña y lo advierte en consola — nunca dejes esto así en un despliegue real; solo es aceptable en desarrollo local con PostgreSQL configurado en modo `trust`.
+4. **Antes de desplegar a producción**, cambia las contraseñas de las cuentas semilla que trae `sibim.sql` (`admin123456`, `sec123456`, `dir123456`) — son públicas en este repositorio.
 
 ---
 
@@ -118,7 +121,7 @@ SIBIM-Java/
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
 | Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes |
 | Reportes | Exportación multi-formato con selector de período |
-| Configuración | Perfil de usuario y gestión de cuentas (solo Admin) |
+| Configuración | Perfil de usuario, gestión de cuentas, historial de auditoría e historial de conteos físicos (solo Admin) |
 
 ---
 

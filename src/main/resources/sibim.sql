@@ -71,6 +71,46 @@ CREATE TABLE IF NOT EXISTS movements (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Generic change audit trail — covers entities that don't already have their
+-- own history (products/categories/users edits, altas, bajas). Movements
+-- keep being their own audit trail for stock changes (movements table); this
+-- is for "who changed what" on everything else.
+CREATE TABLE IF NOT EXISTS audit_log (
+    id              TEXT PRIMARY KEY,
+    entidad         TEXT NOT NULL,   -- 'producto' | 'categoria' | 'usuario'
+    entidad_id      TEXT NOT NULL,
+    entidad_nombre  TEXT,
+    accion          TEXT NOT NULL,   -- 'crear' | 'actualizar' | 'eliminar' | 'baja' | 'reactivar'
+    detalle         TEXT,
+    usuario_id      TEXT REFERENCES users(id),
+    usuario_nombre  TEXT NOT NULL,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Physical inventory count sessions (toma de inventario) — persisted as
+-- their own entity (not just the resulting Ajuste movements) so a completed
+-- conteo can be reviewed later: exactly what was reviewed, what matched, and
+-- what didn't, even for items that turned out with no discrepancy.
+CREATE TABLE IF NOT EXISTS conteos_fisicos (
+    id                    TEXT PRIMARY KEY,
+    usuario_id            TEXT REFERENCES users(id),
+    usuario_nombre        TEXT NOT NULL,
+    total_contados        INTEGER NOT NULL DEFAULT 0,
+    total_discrepancias   INTEGER NOT NULL DEFAULT 0,
+    created_at            TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS conteo_items (
+    id              TEXT PRIMARY KEY,
+    conteo_id       TEXT NOT NULL REFERENCES conteos_fisicos(id) ON DELETE CASCADE,
+    producto_id     TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    producto_nombre TEXT NOT NULL,
+    area            TEXT,
+    stock_sistema   INTEGER NOT NULL,
+    stock_contado   INTEGER NOT NULL,
+    ajustado        BOOLEAN NOT NULL DEFAULT FALSE
+);
+
 -- Indices
 CREATE INDEX IF NOT EXISTS idx_products_area        ON products(area);
 CREATE INDEX IF NOT EXISTS idx_products_categoria   ON products(categoria_id);
@@ -80,6 +120,10 @@ CREATE INDEX IF NOT EXISTS idx_products_area_created ON products(area, created_a
 CREATE INDEX IF NOT EXISTS idx_movements_producto   ON movements(producto_id);
 CREATE INDEX IF NOT EXISTS idx_movements_created    ON movements(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_movements_usuario    ON movements(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_audit_entidad        ON audit_log(entidad, entidad_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created        ON audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conteo_items_conteo  ON conteo_items(conteo_id);
+CREATE INDEX IF NOT EXISTS idx_conteos_created       ON conteos_fisicos(created_at DESC);
 
 -- ─── MIGRACIÓN IDEMPOTENTE PARA BASES DE DATOS YA EXISTENTES ─────────────
 -- No hay herramienta de migraciones (Flyway/Liquibase) en este proyecto —
