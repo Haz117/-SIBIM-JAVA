@@ -169,14 +169,11 @@
 /* ═══════════════════════════════════════════════════════════════════
    SIDEBAR
    ═══════════════════════════════════════════════════════════════════ */
-/* Rounded only on the right side — the sidebar isn't a floating card (it's
-   edge-to-edge, no margins), but a fully square silhouette reads as a rigid
-   block butted against the content. .sidebar-backdrop behind it is colored
-   to match, so the corner cut doesn't show a mismatched gap. */
+/* Sidebar: single dark gradient, no competing purple top strip. The accent
+   colour is carried by the logo badge, avatar and active pill instead. */
 .sidebar {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6366F1, #8B5CF6),
-                          linear-gradient(from 0% 0% to 0% 100%, #0F1724, #111827);
-    -fx-background-insets: 0, 4 0 0 0;
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #141e30, #111827);
+    -fx-background-insets: 0;
     -fx-background-radius: 0 24 24 0;
 }
 
@@ -300,24 +297,21 @@
     -fx-font-weight: bold;
     -fx-border-color: transparent;
     -fx-border-width: 0;
-    /* Left-only pill: right edge flat at the sidebar border; ear overlays
-       (see MainController#setupEarOverlay) close the concave transition. */
+    /* Left-only pill: right edge flat at the sidebar border. */
     -fx-background-radius: 20 0 0 20;
-    /* Purple-tinted shadow: creates depth without the grayish cast. */
-    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.28), 14, 0.30, 0, 2);
+    /* Compact, purple-tinted shadow — gives depth without bloating the button. */
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.22), 8, 0.20, 0, 1);
 }
 
-/* Concave "ear" overlays above/below the active pill.
-   Background fades from transparent (left, blends with the sidebar dark)
-   to #EEF2F7 (right, matches the content area) so the left edge of each
-   ear dissolves into the sidebar instead of cutting across it harshly. */
+/* Small concave notches above/below the active pill (14 px each).
+   Gradient dissolves the left edge into the sidebar so the seam is invisible. */
 .nav-ear-top {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(17,24,39,0) 0%, #EEF2F7 62%);
-    -fx-background-radius: 0 0 0 22;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(20,30,48,0) 0%, #EEF2F7 55%);
+    -fx-background-radius: 0 0 0 14;
 }
 .nav-ear-bottom {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(17,24,39,0) 0%, #EEF2F7 62%);
-    -fx-background-radius: 22 0 0 0;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(20,30,48,0) 0%, #EEF2F7 55%);
+    -fx-background-radius: 14 0 0 0;
 }
 
 .sidebar-divider .line {

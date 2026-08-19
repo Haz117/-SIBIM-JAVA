@@ -78,7 +78,7 @@ public class MainController {
 
     // Gota ear overlay — concave notch corners above/below the active nav pill
     private static final double SIDEBAR_WIDTH = 220;
-    private static final double EAR_SIZE      = 22;
+    private static final double EAR_SIZE      = 14;
     private Pane   earOverlay;
     private Region topEar;
     private Region bottomEar;
