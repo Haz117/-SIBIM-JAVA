@@ -32,7 +32,7 @@ $Root     = Split-Path -Parent $PSScriptRoot
 $Maven    = "$Root\maven-dist\apache-maven-3.9.9\bin\mvn.cmd"
 $Target   = "$Root\target"
 $Out      = "$PSScriptRoot\dist"
-$Icon     = "$Root\src\main\resources\img\icon-256.png"
+$Icon     = "$Root\src\main\resources\img\icon.ico"
 
 # Locate jpackage
 $JdkCandidates = @(
