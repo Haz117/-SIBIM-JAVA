@@ -7,6 +7,7 @@ import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -121,7 +122,7 @@ public final class ConteoFisicoDialog {
 
             btnFinalizar.setDisable(true);
             String motivo = "Conteo físico del " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            new Thread(() -> {
+            AppExecutor.submit(() -> {
                 int ok = 0, fail = 0;
                 List<ConteoItem> items = new ArrayList<>();
                 for (Row r : rows) {
@@ -177,7 +178,7 @@ public final class ConteoFisicoDialog {
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();
                 });
-            }).start();
+            });
         });
 
         dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll, actions));

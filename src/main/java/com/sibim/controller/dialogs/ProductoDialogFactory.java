@@ -156,7 +156,11 @@ public final class ProductoDialogFactory {
         gridInfo.add(DialogUtil.fieldLabel("Código *"),     0, r); gridInfo.add(fCodigo,    1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Descripción"), 0, r); gridInfo.add(fDesc,      1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Categoría *"), 0, r); gridInfo.add(fCat,       1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Área *"),       0, r); gridInfo.add(fArea,      1, r++);
+        gridInfo.add(DialogUtil.fieldLabelWithHelp("Área *",
+            "Secretaría o Dirección responsable del bien.\n" +
+            "Solo los usuarios de esa área podrán gestionarlo.\n" +
+            "Para DIRECCIÓN el área se fija automáticamente."),
+                                                             0, r); gridInfo.add(fArea,      1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Proveedor"),   0, r); gridInfo.add(fProveedor, 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Ubicación"),   0, r); gridInfo.add(fUbicacion, 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Resguardante"), 0, r); gridInfo.add(fResguardante, 1, r++);
@@ -196,8 +200,13 @@ public final class ProductoDialogFactory {
 
         int rs = 0;
         gridStock.add(DialogUtil.fieldLabel("Stock Actual"),    0, rs); gridStock.add(fStock,    1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Stock Mínimo"),    0, rs); gridStock.add(fStockMin, 1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Stock Máximo"),    0, rs); gridStock.add(fStockMax, 1, rs++);
+        gridStock.add(DialogUtil.fieldLabelWithHelp("Stock Mínimo",
+            "Cuando el stock baje de este número se generará\nuna alerta automática en el módulo de Alertas."),
+                                                              0, rs); gridStock.add(fStockMin, 1, rs++);
+        gridStock.add(DialogUtil.fieldLabelWithHelp("Stock Máximo",
+            "Límite de referencia para sobre-stock.\n" +
+            "No bloquea entradas; sirve para reportes y alertas de exceso."),
+                                                              0, rs); gridStock.add(fStockMax, 1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Unidad"),          0, rs); gridStock.add(fUnidad,   1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Precio Compra"),   0, rs); gridStock.add(fPrecioC,  1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Precio Venta"),    0, rs); gridStock.add(fPrecioV,  1, rs++);

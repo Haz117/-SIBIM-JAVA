@@ -137,7 +137,7 @@ public class ProductosController {
     }
 
     private void setupTable() {
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         // Image thumbnail column
         colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getFotoUrl()));
         colFoto.setCellFactory(col -> new TableCell<>() {
@@ -162,7 +162,7 @@ public class ProductosController {
                             u -> new Image(Path.of(u).toUri().toString(), 38, 38, true, true, true));
                         iv.setImage(cached);
                         iv.setVisible(true); lbl.setVisible(false);
-                    } catch (Exception ex) { iv.setVisible(false); lbl.setVisible(true); }
+                    } catch (Exception ex) { log.warn("No se pudo cargar thumbnail: {}", url, ex); iv.setVisible(false); lbl.setVisible(true); }
                 } else {
                     iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
                 }
@@ -436,7 +436,7 @@ public class ProductosController {
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los bienes. Verifica la conexión.");
             }
         };
-        new Thread(task).start();
+        com.sibim.util.AppExecutor.submit(task);
     }
 
     private void updateStats() {
@@ -748,7 +748,7 @@ public class ProductosController {
                 thumbPane.getChildren().add(iv);
                 thumbPane.getStyleClass().add("dlg-thumb-photo");
                 photoLoaded = true;
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { log.warn("No se pudo cargar thumbnail de detalle: {}", p.getFotoUrl(), ex); }
         }
         if (!photoLoaded) {
             String monogramBg  = p.getCategoriaColor() != null ? p.getCategoriaColor() + "22" : "#EEF2FF";
@@ -827,6 +827,6 @@ public class ProductosController {
 
     private void openFile(File file) {
         try { Desktop.getDesktop().open(file); }
-        catch (Exception ignored) {}
+        catch (Exception ex) { log.warn("No se pudo abrir el archivo {}", file, ex); }
     }
 }

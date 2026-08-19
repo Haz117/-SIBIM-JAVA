@@ -1,7 +1,5 @@
 package com.sibim.model.enums;
 
-import javafx.scene.paint.Color;
-
 public enum TipoMovimiento {
     ENTRADA("entrada", "Entrada", "#14B8A6"),
     SALIDA("salida", "Salida", "#F43F5E"),

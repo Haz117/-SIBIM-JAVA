@@ -2,18 +2,15 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
-import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
-import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 
 import java.math.BigDecimal;
@@ -21,7 +18,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DashboardController {
 
@@ -97,75 +93,62 @@ public class DashboardController {
     private void loadDataAsync() {
         Task<DashboardData> task = new Task<>() {
             @Override protected DashboardData call() throws Exception {
-                List<Producto>   productos   = productoRepo.findAll();
-                List<Movimiento> movHoy      = movimientoRepo.findToday();
-                List<Movimiento> movSemana   = movimientoRepo.findLastNDays(7);
-                return new DashboardData(productos, movHoy, movSemana);
+                var stats      = productoRepo.getStats();
+                var catValores = productoRepo.getValorPorCategoria();
+                var agotados   = productoRepo.findAgotados();
+                var bajoStock  = productoRepo.findBajoStock();
+                var movHoy     = movimientoRepo.findToday();
+                var movSemana  = movimientoRepo.findLastNDays(7);
+                return new DashboardData(stats, catValores, agotados, bajoStock, movHoy, movSemana);
             }
             @Override protected void succeeded() {
-                Platform.runLater(() -> updateUI(getValue()));
+                updateUI(getValue());
             }
             @Override protected void failed() {
-                Platform.runLater(() -> {
-                    lblTotalBienes.setText("—");
-                    lblValorTotal.setText("Sin datos");
-                    if (statsGrid != null && statsGrid.getScene() != null) {
-                        com.sibim.util.NotificacionUtil.error(statsGrid.getScene(),
-                            "No se pudo cargar el resumen. Verifica la conexión a la base de datos.");
-                    }
-                });
+                lblTotalBienes.setText("—");
+                lblValorTotal.setText("Sin datos");
+                if (statsGrid != null && statsGrid.getScene() != null)
+                    com.sibim.util.NotificacionUtil.error(statsGrid.getScene(),
+                        "No se pudo cargar el resumen. Verifica la conexión a la base de datos.");
             }
         };
-        new Thread(task).start();
+        com.sibim.util.AppExecutor.submit(task);
     }
 
     private void updateUI(DashboardData data) {
-        List<Producto> productos = data.productos();
+        var stats = data.stats();
 
-        lastAgotados  = productos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        lastBajoStock = productos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
-        long agotados  = lastAgotados.size();
-        long bajoStock = lastBajoStock.size();
-        BigDecimal valorTotal = productos.stream()
-            .map(Producto::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
-        long categorias = productos.stream()
-            .map(Producto::getCategoriaId).filter(Objects::nonNull).distinct().count();
+        lastAgotados  = data.agotados();
+        lastBajoStock = data.bajoStock();
 
-        lblTotalBienes.setText(String.valueOf(productos.size()));
-        lblValorTotal.setText(FormatUtils.formatCurrency(valorTotal));
-        lblBajoStock.setText(String.valueOf(bajoStock));
-        lblAgotados.setText(String.valueOf(agotados));
+        lblTotalBienes.setText(String.valueOf(stats.total()));
+        lblValorTotal.setText(FormatUtils.formatCurrency(stats.valorTotal()));
+        lblBajoStock.setText(String.valueOf(stats.bajoStock()));
+        lblAgotados.setText(String.valueOf(stats.agotados()));
         lblMovimientosHoy.setText(String.valueOf(data.movHoy().size()));
-        lblCategorias.setText(String.valueOf(categorias));
+        lblCategorias.setText(String.valueOf(stats.categorias()));
 
-        // Stats update timestamp
         if (lblStatsActualizacion != null)
             lblStatsActualizacion.setText("Actualizado " +
                 java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
 
-        // Alert banner
-        boolean showAlert = agotados > 0 || bajoStock > 0;
+        boolean showAlert = stats.agotados() > 0 || stats.bajoStock() > 0;
         alertBanner.setVisible(showAlert);
         alertBanner.setManaged(showAlert);
         if (showAlert) AnimationUtils.fadeInDown(alertBanner, 350, 0);
 
-        // Charts
         buildMovimientosChart(data.movSemana());
-        buildCategoriaChart(productos);
+        buildCategoriaChart(data.catValores());
+        buildHealthBar(stats);
 
-        // Health bar
-        buildHealthBar(productos);
-
-        // Stats stagger animation
         if (statsGrid != null && !statsGrid.getChildren().isEmpty())
             AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(), 400, 70);
 
-        // Recent activity
         if (tablaReciente != null) {
             List<Movimiento> ultimos = data.movSemana().stream()
                 .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
                 .limit(8)
-                .collect(Collectors.toList());
+                .toList();
             tablaReciente.setItems(javafx.collections.FXCollections.observableArrayList(ultimos));
 
             if (lblCountReciente != null) {
@@ -179,14 +162,14 @@ public class DashboardController {
 
     // ── Health bar ───────────────────────────────────────────────────
 
-    private void buildHealthBar(List<Producto> productos) {
-        if (healthSection == null || healthBar == null || productos.isEmpty()) return;
+    private void buildHealthBar(com.sibim.repository.ProductoRepository.ProductoStats stats) {
+        if (healthSection == null || healthBar == null || stats.total() == 0) return;
 
-        long activos = productos.stream().filter(p -> p.getEstado() == EstadoProducto.ACTIVO).count();
-        long bajo    = productos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
-        long agotado = productos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
-        long vencido = productos.stream().filter(p -> p.getEstado() == EstadoProducto.VENCIDO).count();
-        long total   = productos.size();
+        long activos = stats.activos();
+        long bajo    = stats.bajoStock();
+        long agotado = stats.agotados();
+        long vencido = stats.vencidos();
+        long total   = stats.total();
 
         if (lblHealthActivos != null) lblHealthActivos.setText("Activos — " + activos);
         if (lblHealthBajo    != null) lblHealthBajo.setText("Bajo Stock — " + bajo);
@@ -235,7 +218,7 @@ public class DashboardController {
         LocalDate today = LocalDate.now();
         List<String> labels = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
-            String raw = today.minusDays(i).getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es"))
+            String raw = today.minusDays(i).getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.of("es"))
                 .replace(".", "");
             labels.add(raw.substring(0, 1).toUpperCase() + raw.substring(1));
         }
@@ -255,23 +238,18 @@ public class DashboardController {
             entradas.getData().add(new XYChart.Data<>(label, entMap.getOrDefault(day, 0)));
             salidas.getData().add(new XYChart.Data<>(label, salMap.getOrDefault(day, 0)));
         }
-        chartMovimientos.getData().addAll(entradas, salidas);
+        chartMovimientos.getData().add(entradas);
+        chartMovimientos.getData().add(salidas);
         for (XYChart.Data<String, Number> d : entradas.getData())
             if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Entradas " + d.getXValue() + ": " + d.getYValue()));
         for (XYChart.Data<String, Number> d : salidas.getData())
             if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Salidas " + d.getXValue() + ": " + d.getYValue()));
     }
 
-    private void buildCategoriaChart(List<Producto> productos) {
+    private void buildCategoriaChart(List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores) {
         chartValorCategoria.getData().clear();
-        Map<String, BigDecimal> valorPorCat = productos.stream()
-            .filter(p -> p.getCategoriaNombre() != null)
-            .collect(Collectors.groupingBy(Producto::getCategoriaNombre,
-                Collectors.reducing(BigDecimal.ZERO, Producto::getValorTotal, BigDecimal::add)));
-        valorPorCat.entrySet().stream()
-            .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) > 0)
-            .forEach(e -> chartValorCategoria.getData().add(
-                new PieChart.Data(e.getKey(), e.getValue().doubleValue())));
+        catValores.forEach(cv -> chartValorCategoria.getData().add(
+            new PieChart.Data(cv.nombre(), cv.valor().doubleValue())));
 
         for (PieChart.Data d : chartValorCategoria.getData()) {
             if (d.getNode() != null) {
@@ -356,7 +334,7 @@ public class DashboardController {
         cCodigo.setPrefWidth(110);
 
         TableColumn<Producto, Integer> cStock = new TableColumn<>("Stock");
-        cStock.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stockActual"));
+        cStock.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getStockActual()));
         cStock.setPrefWidth(70);
         cStock.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Integer v, boolean empty) {
@@ -373,7 +351,10 @@ public class DashboardController {
             c.getValue().getArea() != null ? c.getValue().getArea() : ""));
         cArea.setPrefWidth(160);
 
-        tbl.getColumns().addAll(cNombre, cCodigo, cStock, cArea);
+        tbl.getColumns().add(cNombre);
+        tbl.getColumns().add(cCodigo);
+        tbl.getColumns().add(cStock);
+        tbl.getColumns().add(cArea);
         tbl.setItems(javafx.collections.FXCollections.observableArrayList(items));
 
         Button btnVerTodas = new Button("Ver todas las alertas →");
@@ -443,7 +424,7 @@ public class DashboardController {
         });
 
         TableColumn<Movimiento, Integer> cCant = new TableColumn<>("Cant.");
-        cCant.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        cCant.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getCantidad()));
         cCant.setPrefWidth(60);
 
         TableColumn<Movimiento, String> cUsuario = new TableColumn<>("Usuario");
@@ -456,7 +437,11 @@ public class DashboardController {
             FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
         cFecha.setPrefWidth(140);
 
-        tablaReciente.getColumns().addAll(cProd, cTipo, cCant, cUsuario, cFecha);
+        tablaReciente.getColumns().add(cProd);
+        tablaReciente.getColumns().add(cTipo);
+        tablaReciente.getColumns().add(cCant);
+        tablaReciente.getColumns().add(cUsuario);
+        tablaReciente.getColumns().add(cFecha);
 
         tablaReciente.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
@@ -510,7 +495,11 @@ public class DashboardController {
         return "Buenas noches,";
     }
 
-    private record DashboardData(List<Producto> productos,
-                                  List<Movimiento> movHoy,
-                                  List<Movimiento> movSemana) {}
+    private record DashboardData(
+            com.sibim.repository.ProductoRepository.ProductoStats stats,
+            List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores,
+            List<Producto> agotados,
+            List<Producto> bajoStock,
+            List<Movimiento> movHoy,
+            List<Movimiento> movSemana) {}
 }

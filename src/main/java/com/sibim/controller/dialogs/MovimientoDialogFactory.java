@@ -101,7 +101,9 @@ public final class MovimientoDialogFactory {
         fAreaDestino.setMaxWidth(Double.MAX_VALUE);
         fAreaDestino.setPromptText("Área de destino...");
         fAreaDestino.getStyleClass().add("form-input");
-        Label lblAreaDestino = DialogUtil.fieldLabel("Área destino *");
+        Node lblAreaDestino = DialogUtil.fieldLabelWithHelp("Área destino *",
+            "Secretaría o Dirección a donde se mueve el bien.\n" +
+            "El bien quedará registrado en esa área tras confirmar.");
         Runnable refreshAreaOptions = () -> {
             Producto p = fProducto.getValue();
             String current = fAreaDestino.getValue();
@@ -266,10 +268,18 @@ public final class MovimientoDialogFactory {
 
         int row = 0;
         grid.add(DialogUtil.fieldLabel("Producto *"),    0, row); grid.add(fProducto,    1, row++);
-        grid.add(DialogUtil.fieldLabel("Tipo *"),        0, row); grid.add(fTipo,        1, row++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Tipo *",
+            "Entrada: suma unidades al stock actual.\n" +
+            "Salida: resta unidades del stock.\n" +
+            "Ajuste: la cantidad REEMPLAZA el stock actual (corrección manual).\n" +
+            "Transferencia: mueve el bien a otra área del organigrama."),
+                                                         0, row); grid.add(fTipo,        1, row++);
         grid.add(lblAreaDestino,                         0, row); grid.add(fAreaDestino, 1, row++);
         grid.add(transferPreview,                        0, row++);
-        grid.add(DialogUtil.fieldLabel("Cantidad *"),    0, row); grid.add(fCantidad,    1, row++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Cantidad *",
+            "Unidades a registrar.\n" +
+            "Para Ajuste: este valor se convierte en el nuevo stock total\n(no se suma ni se resta)."),
+                                                         0, row); grid.add(fCantidad,    1, row++);
         grid.add(DialogUtil.fieldLabel("Movimiento"),    0, row); grid.add(stockPreview, 1, row++);
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);
         grid.add(DialogUtil.fieldLabel("Referencia"),    0, row); grid.add(fRef,         1, row);

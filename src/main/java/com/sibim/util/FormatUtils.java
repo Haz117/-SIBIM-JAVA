@@ -11,7 +11,7 @@ import java.util.Locale;
 
 public final class FormatUtils {
 
-    private static final Locale LOCALE_MX = new Locale("es", "MX");
+    private static final Locale LOCALE_MX = Locale.of("es", "MX");
     private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(LOCALE_MX);
     static { CURRENCY_FORMAT.setRoundingMode(RoundingMode.HALF_UP); }
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");

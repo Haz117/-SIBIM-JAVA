@@ -82,6 +82,9 @@
         <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary btn-sm">
             <tooltip><Tooltip text="Expande todas las secciones visibles"/></tooltip>
         </Button>
+        <Button text="Colapsar todo" onAction="#onCollapseAll" styleClass="btn-secondary btn-sm">
+            <tooltip><Tooltip text="Colapsa todas las secciones visibles"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- ══ ORG TREE ═══════════════════════════════════════════════════ -->

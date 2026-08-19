@@ -120,6 +120,12 @@ public class OrganigramaController {
         }
     }
 
+    @FXML private void onCollapseAll() {
+        for (javafx.scene.Node n : orgTree.getChildren()) {
+            if (n instanceof TitledPane pane) pane.setExpanded(false);
+        }
+    }
+
     /** True if any of {@code areas} is in {@code accessible} (or {@code accessible} is null = admin). */
     private boolean anyAccessible(Set<String> accessible, List<String> areas) {
         return accessible == null || areas.stream().anyMatch(accessible::contains);
@@ -349,7 +355,7 @@ public class OrganigramaController {
 
         TableView<Producto> tbl = new TableView<>(FXCollections.observableArrayList(prods));
         tbl.setPrefHeight(360);
-        tbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         TableColumn<Producto, String> cCod = new TableColumn<>("Código");
         cCod.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
@@ -397,7 +403,10 @@ public class OrganigramaController {
             }
         });
 
-        tbl.getColumns().addAll(cCod, cNombre, cStock, cEstado);
+        tbl.getColumns().add(cCod);
+        tbl.getColumns().add(cNombre);
+        tbl.getColumns().add(cStock);
+        tbl.getColumns().add(cEstado);
         dialog.getDialogPane().setContent(new VBox(0, header, tbl));
         dialog.showAndWait();
     }

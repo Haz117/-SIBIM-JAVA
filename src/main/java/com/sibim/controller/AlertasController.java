@@ -68,9 +68,9 @@ public class AlertasController {
     @FXML
     public void initialize() {
         setupColumns();
-        tableAgotados.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        tableBajoStock.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        tableGarantias.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableAgotados.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableBajoStock.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableGarantias.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         loadData();
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);

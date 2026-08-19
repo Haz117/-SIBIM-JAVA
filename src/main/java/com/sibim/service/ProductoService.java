@@ -1,7 +1,6 @@
 package com.sibim.service;
 
 import com.sibim.model.Producto;
-import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
@@ -9,7 +8,6 @@ import com.sibim.session.SessionManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class ProductoService {
 
@@ -25,31 +23,15 @@ public class ProductoService {
     }
 
     public List<Producto> getAgotados() throws SQLException {
-        return productoRepo.findAll().stream()
-            .filter(p -> p.getEstado() == EstadoProducto.AGOTADO)
-            .collect(Collectors.toList());
+        return productoRepo.findAgotados();
     }
 
     public List<Producto> getBajoStock() throws SQLException {
-        return productoRepo.findAll().stream()
-            .filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK)
-            .collect(Collectors.toList());
+        return productoRepo.findBajoStock();
     }
 
     public List<Producto> getVencidosProximos(int dias) throws SQLException {
-        return productoRepo.findAll().stream()
-            .filter(p -> {
-                if (p.getFechaVencimiento() == null) return false;
-                long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
-                    java.time.LocalDate.now(), p.getFechaVencimiento());
-                return daysLeft <= dias;
-            })
-            .sorted((a, b) -> {
-                long dA = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), a.getFechaVencimiento());
-                long dB = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), b.getFechaVencimiento());
-                return Long.compare(dA, dB);
-            })
-            .collect(Collectors.toList());
+        return productoRepo.findVencidosProximos(dias);
     }
 
     public Producto save(Producto p) throws SQLException, ValidationException {
@@ -111,7 +93,7 @@ public class ProductoService {
     }
 
     public long countAll() throws SQLException {
-        return productoRepo.findAll().size();
+        return productoRepo.countAll();
     }
 
     private void validate(Producto p) throws ValidationException, SQLException {

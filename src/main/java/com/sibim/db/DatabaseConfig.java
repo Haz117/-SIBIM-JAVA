@@ -71,6 +71,7 @@ public final class DatabaseConfig {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
         }
+        dataSource = null;
     }
 
     private static String getEnv(Dotenv dotenv, String key, String fallback) {

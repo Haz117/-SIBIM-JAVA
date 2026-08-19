@@ -91,10 +91,11 @@ public class MovimientoService {
 
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
         Optional<String> productoId = movimientoRepo.findProductoIdById(movimientoId);
-        if (productoId.isPresent()) {
+        // Non-admins are blocked if the product is inaccessible OR has been
+        // deleted (orphaned movement) — we can't verify area, so we deny.
+        if (productoId.isPresent() && !SessionManager.isAdmin()) {
             Optional<Producto> producto = productoRepo.findById(productoId.get());
-            if (producto.isPresent() && !SessionManager.isAdmin()
-                    && !SessionManager.isAreaAccessible(producto.get().getArea()))
+            if (producto.isEmpty() || !SessionManager.isAreaAccessible(producto.get().getArea()))
                 throw new ValidationException("No tienes acceso a esa area");
         }
         movimientoRepo.deleteMovimientoAtomic(movimientoId);

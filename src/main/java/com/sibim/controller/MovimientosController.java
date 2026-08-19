@@ -8,12 +8,16 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
 import com.sibim.util.SearchUtils;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -21,6 +25,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.util.Duration;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -68,6 +73,10 @@ public class MovimientosController {
     @FXML private Label lblStatAjustes;
     @FXML private Button btnDelete;
     @FXML private Button btnClearSearch;
+    @FXML private VBox statCardTotal;
+    @FXML private VBox statCardEntrada;
+    @FXML private VBox statCardSalida;
+    @FXML private VBox statCardAjuste;
 
     private final MovimientoService movimientoService = new MovimientoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
@@ -78,6 +87,7 @@ public class MovimientosController {
     private int currentPage = 0;
     private int pageSize = 25;
     private ToggleGroup tipoChipGroup;
+    private String pendingHighlightId;
     private Label emptyStateMsg;
     private Label emptyStateHint;
     private Button btnEmptyLimpiar;
@@ -144,7 +154,7 @@ public class MovimientosController {
     }
 
     private void setupTable() {
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         colProducto.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getProductoNombre() != null ? c.getValue().getProductoNombre() : ""));
         colProducto.setCellFactory(col -> new TableCell<>() {
@@ -250,11 +260,11 @@ public class MovimientosController {
             }
         });
 
-        // Row tints by movement type
+        // Row tints by movement type; new-row flash via pendingHighlightId
         table.setRowFactory(tv -> new TableRow<>() {
             @Override protected void updateItem(Movimiento m, boolean empty) {
                 super.updateItem(m, empty);
-                getStyleClass().removeAll("row-entrada","row-salida","row-ajuste","row-transferencia");
+                getStyleClass().removeAll("row-entrada","row-salida","row-ajuste","row-transferencia","row-new");
                 if (!empty && m != null) {
                     String clase = switch (m.getTipo().getEtiqueta()) {
                         case "Entrada"       -> "row-entrada";
@@ -264,6 +274,8 @@ public class MovimientosController {
                         default              -> null;
                     };
                     if (clase != null) getStyleClass().add(clase);
+                    if (m.getId() != null && m.getId().equals(pendingHighlightId))
+                        getStyleClass().add("row-new");
                 }
             }
         });
@@ -338,7 +350,7 @@ public class MovimientosController {
 
     private void loadData() {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        new Thread(new Task<List<Movimiento>>() {
+        AppExecutor.submit(new Task<List<Movimiento>>() {
             @Override protected List<Movimiento> call() throws Exception { return movimientoService.getAll(); }
             @Override protected void succeeded() {
                 allData.setAll(getValue());
@@ -350,7 +362,7 @@ public class MovimientosController {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los movimientos");
             }
-        }).start();
+        });
     }
 
     private String getSelectedTipo() {
@@ -516,9 +528,32 @@ public class MovimientosController {
                         if (table != null) {
                             allData.add(0, m);
                             currentPage = 0;
+                            pendingHighlightId = m.getId();
                             applyFilters();
+                            table.scrollTo(0);
+                            new Timeline(new KeyFrame(Duration.seconds(1.8), e2 -> {
+                                pendingHighlightId = null;
+                                table.refresh();
+                            })).play();
                             if (table.getScene() != null)
                                 NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
+
+                            // Animate the matching stat card + total
+                            if (statCardTotal != null) AnimationUtils.statCardPop(statCardTotal);
+                            VBox targetCard = switch (m.getTipo()) {
+                                case ENTRADA -> statCardEntrada;
+                                case SALIDA  -> statCardSalida;
+                                default      -> statCardAjuste;
+                            };
+                            if (targetCard != null) AnimationUtils.statCardPop(targetCard);
+
+                            // Full celebration overlay for transfers
+                            if (m.getTipo() == TipoMovimiento.TRANSFERENCIA
+                                    && rootPane != null
+                                    && rootPane.getParent() instanceof javafx.scene.layout.StackPane cp) {
+                                AnimationUtils.transferCelebration(
+                                    cp, m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
+                            }
                         }
                     },
                     e -> {

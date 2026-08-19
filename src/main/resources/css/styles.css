@@ -1720,6 +1720,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   MOVIMIENTOS — new-row highlight flash (cleared via Timeline in controller)
+   ═══════════════════════════════════════════════════════════════════ */
+.table-row-cell.row-new                  { -fx-background-color: rgba(16,185,129,0.16); }
+.table-row-cell.row-new:selected         { -fx-background-color: rgba(16,185,129,0.32); }
+.table-row-cell.row-new > .table-cell    { -fx-background-color: transparent; }
+
+/* ═══════════════════════════════════════════════════════════════════
    SIDEBAR — version badge at bottom
    ═══════════════════════════════════════════════════════════════════ */
 .sidebar-version {
@@ -2454,4 +2461,82 @@
     -fx-text-fill: rgba(255,255,255,0.20);
     -fx-font-family: 'Segoe UI';
     -fx-padding: 0 20 16 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HELP BADGE  (? tooltip trigger next to field labels in dialogs)
+   ═══════════════════════════════════════════════════════════════════ */
+.help-badge {
+    -fx-font-size: 9.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #6366F1;
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
+    -fx-border-color: #C7D2FE;
+    -fx-border-width: 1;
+    -fx-border-radius: 99;
+    -fx-padding: 1 5 1 5;
+    -fx-min-width: 18;
+    -fx-min-height: 18;
+    -fx-alignment: CENTER;
+    -fx-cursor: hand;
+}
+.help-badge:hover {
+    -fx-background-color: #E0E7FF;
+    -fx-border-color: #6366F1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TRANSFER CELEBRATION OVERLAY
+   ═══════════════════════════════════════════════════════════════════ */
+.transfer-cel-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.38), 48, 0.05, 0, 14);
+    -fx-border-color: #E0E7FF;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 18;
+}
+.transfer-cel-icon {
+    -fx-font-size: 38px;
+    -fx-text-fill: #059669;
+}
+.transfer-cel-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1E1B4B;
+}
+.transfer-cel-product {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #6366F1;
+    -fx-font-weight: 600;
+    -fx-alignment: CENTER;
+    -fx-text-alignment: CENTER;
+}
+.transfer-cel-chip-from {
+    -fx-background-color: #F9FAFB;
+    -fx-background-radius: 8;
+    -fx-padding: 5 14 5 14;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #374151;
+    -fx-border-color: #D1D5DB;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+.transfer-cel-arrow {
+    -fx-font-size: 22px;
+    -fx-text-fill: #6366F1;
+    -fx-font-weight: bold;
+}
+.transfer-cel-chip-to {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 8;
+    -fx-padding: 5 14 5 14;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #4338CA;
+    -fx-border-color: #6366F1;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 8;
 }

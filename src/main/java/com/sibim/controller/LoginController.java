@@ -162,7 +162,7 @@ public class LoginController {
                 passwordField.requestFocus();
             }
         };
-        new Thread(task).start();
+        com.sibim.util.AppExecutor.submit(task);
     }
 
     @FXML private void fillAdmin()     { fill("superusuario",    "admin123456"); }

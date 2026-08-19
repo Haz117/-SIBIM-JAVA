@@ -1,7 +1,13 @@
 package com.sibim.util;
 
 import javafx.animation.*;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import java.util.List;
 
@@ -107,6 +113,99 @@ public final class AnimationUtils {
         tl.play();
     }
 
+
+    /** Quick scale-pop on a stat card after its value updates. */
+    public static void statCardPop(Node card) {
+        ScaleTransition grow = new ScaleTransition(Duration.millis(130), card);
+        grow.setToX(1.07); grow.setToY(1.07);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(160), card);
+        shrink.setToX(1.0); shrink.setToY(1.0);
+        shrink.setInterpolator(Interpolator.EASE_IN);
+        new SequentialTransition(grow, shrink).play();
+    }
+
+    /**
+     * Floating overlay on a StackPane container that celebrates a successful
+     * Transferencia: shows the product name and an animated "Area A → Area B"
+     * flow, then fades out automatically after 2.2 s.
+     */
+    public static void transferCelebration(StackPane container,
+                                           String productName, String from, String to) {
+        Label iconLbl = new Label("✓");
+        iconLbl.getStyleClass().add("transfer-cel-icon");
+
+        Label titleLbl = new Label("Transferencia registrada");
+        titleLbl.getStyleClass().add("transfer-cel-title");
+
+        Label productLbl = new Label(productName != null ? productName : "");
+        productLbl.getStyleClass().add("transfer-cel-product");
+        productLbl.setWrapText(true);
+
+        Label fromLbl = new Label(from != null ? from : "—");
+        fromLbl.getStyleClass().add("transfer-cel-chip-from");
+
+        Label arrowLbl = new Label("→");
+        arrowLbl.getStyleClass().add("transfer-cel-arrow");
+        arrowLbl.setTranslateX(-14);
+        arrowLbl.setOpacity(0);
+
+        Label toLbl = new Label(to != null ? to : "—");
+        toLbl.getStyleClass().add("transfer-cel-chip-to");
+        toLbl.setScaleX(0.72); toLbl.setScaleY(0.72);
+        toLbl.setOpacity(0);
+
+        HBox areasRow = new HBox(10, fromLbl, arrowLbl, toLbl);
+        areasRow.setAlignment(Pos.CENTER);
+
+        VBox card = new VBox(8, iconLbl, titleLbl, productLbl, areasRow);
+        card.setAlignment(Pos.CENTER);
+        card.getStyleClass().add("transfer-cel-card");
+        card.setPadding(new Insets(28, 44, 28, 44));
+        card.setMaxWidth(400);
+        card.setScaleX(0.86); card.setScaleY(0.86);
+
+        StackPane overlay = new StackPane(card);
+        overlay.setPickOnBounds(false);
+        overlay.setOpacity(0);
+        container.getChildren().add(overlay);
+
+        // Card fades + scales in
+        FadeTransition cardFadeIn = new FadeTransition(Duration.millis(280), overlay);
+        cardFadeIn.setToValue(1);
+        ScaleTransition cardScaleIn = new ScaleTransition(Duration.millis(280), card);
+        cardScaleIn.setToX(1); cardScaleIn.setToY(1);
+        cardScaleIn.setInterpolator(Interpolator.EASE_OUT);
+
+        // Arrow slides from left + fades in (delayed 220 ms)
+        TranslateTransition arrowSlide = new TranslateTransition(Duration.millis(360), arrowLbl);
+        arrowSlide.setToX(0);
+        arrowSlide.setDelay(Duration.millis(220));
+        arrowSlide.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition arrowFade = new FadeTransition(Duration.millis(280), arrowLbl);
+        arrowFade.setToValue(1);
+        arrowFade.setDelay(Duration.millis(220));
+
+        // Destination chip pops in (delayed 440 ms)
+        ScaleTransition toPop = new ScaleTransition(Duration.millis(260), toLbl);
+        toPop.setToX(1); toPop.setToY(1);
+        toPop.setDelay(Duration.millis(440));
+        toPop.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition toFade = new FadeTransition(Duration.millis(260), toLbl);
+        toFade.setToValue(1);
+        toFade.setDelay(Duration.millis(440));
+
+        // Hold then fade out
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(320), overlay);
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(e -> container.getChildren().remove(overlay));
+
+        new SequentialTransition(
+            new ParallelTransition(cardFadeIn, cardScaleIn, arrowSlide, arrowFade, toPop, toFade),
+            new PauseTransition(Duration.millis(2200)),
+            fadeOut
+        ).play();
+    }
 
     // ── helpers ──────────────────────────────────────────────────
     private static KeyFrame kf(Node node, int ms, double x) {
