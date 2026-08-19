@@ -3,6 +3,8 @@ package com.sibim.db;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.github.cdimascio.dotenv.Dotenv;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -10,6 +12,7 @@ import java.sql.SQLException;
 
 public final class DatabaseConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(DatabaseConfig.class);
     private static HikariDataSource dataSource;
     private static boolean demoMode = false;
 
@@ -34,10 +37,9 @@ public final class DatabaseConfig {
         // misconfiguration risk in production. Make it loud instead of
         // silently connecting with no client-side credential.
         if (password.isBlank()) {
-            System.err.println("ADVERTENCIA: DB_PASSWORD no está configurada (.env o variable de entorno) — "
-                + "conectando sin contraseña. Esto solo es seguro si el servidor de PostgreSQL "
-                + "está configurado explícitamente para confiar en esta conexión (pg_hba.conf). "
-                + "No dejes esto así en un despliegue de producción.");
+            log.warn("DB_PASSWORD no está configurada (.env o variable de entorno) — "
+                + "conectando sin contraseña. Solo seguro si pg_hba.conf usa 'trust'. "
+                + "No dejes esto así en producción.");
         }
 
         HikariConfig config = new HikariConfig();

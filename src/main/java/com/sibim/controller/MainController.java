@@ -67,7 +67,9 @@ public class MainController {
 
     // Session inactivity timeout — 30 minutes
     private static final long INACTIVITY_TIMEOUT_MS = 30 * 60_000L;
-    private long lastActivityMs = System.currentTimeMillis();
+    private static final long INACTIVITY_WARN_MS    = INACTIVITY_TIMEOUT_MS - 5 * 60_000L;
+    private long    lastActivityMs    = System.currentTimeMillis();
+    private boolean inactivityWarned  = false;
 
     // Only one MainController is ever active at a time — this lets child
     // views loaded into contentArea (e.g. Organigrama) trigger navigation
@@ -96,8 +98,8 @@ public class MainController {
         contentArea.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
                 setupKeyboardShortcuts(scene);
-                scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> lastActivityMs = System.currentTimeMillis());
-                scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> lastActivityMs = System.currentTimeMillis());
+                scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
+                scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
             }
         });
         // Refresh badge every 3 minutes
@@ -194,7 +196,6 @@ public class MainController {
                 AnimationUtils.pageIn(node);
             }
         } catch (Exception e) {
-            e.printStackTrace(System.err);
             log.error("No se pudo cargar la vista: {}", view, e);
             // contentArea may not be in a scene yet during initial load — fall back to stage scene
             javafx.scene.Scene errScene = contentArea.getScene() != null
@@ -249,11 +250,18 @@ public class MainController {
     }
 
     private void checkInactivity() {
-        if (System.currentTimeMillis() - lastActivityMs > INACTIVITY_TIMEOUT_MS) {
+        long idle = System.currentTimeMillis() - lastActivityMs;
+        if (idle > INACTIVITY_TIMEOUT_MS) {
             log.info("Sesión cerrada por inactividad");
+            inactivityWarned = false;
             SessionManager.logout();
             try { MainApp.showLogin(); }
             catch (Exception e) { log.error("Error al cerrar sesión por inactividad", e); }
+        } else if (!inactivityWarned && idle > INACTIVITY_WARN_MS) {
+            inactivityWarned = true;
+            javafx.application.Platform.runLater(() ->
+                NotificacionUtil.advertencia(contentArea.getScene(),
+                    "Tu sesión cerrará en 5 minutos por inactividad."));
         }
     }
 

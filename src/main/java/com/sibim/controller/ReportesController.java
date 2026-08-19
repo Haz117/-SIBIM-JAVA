@@ -6,12 +6,16 @@ import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 
 public class ReportesController {
+
+    private static final Logger log = LoggerFactory.getLogger(ReportesController.class);
 
     @FXML private DatePicker desdeField;
     @FXML private DatePicker hastaField;
@@ -136,7 +140,7 @@ public class ReportesController {
                 spinner.setManaged(false);
                 NotificacionUtil.exito(spinner.getScene(), "Reporte generado — " + file.getName());
                 try { Desktop.getDesktop().open(file); }
-                catch (Exception ignored) { /* file already notified */ }
+                catch (Exception ex) { log.debug("No se pudo abrir el reporte automáticamente: {}", file, ex); }
             },
             e -> {
                 if (source != null) source.setDisable(false);
