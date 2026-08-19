@@ -16,7 +16,7 @@
          the sidebar drawn above the content row to not get clipped by it.
          The base HBox below only exists to reserve the 220px of horizontal
          space with a transparent spacer. -->
-    <StackPane VBox.vgrow="ALWAYS">
+    <StackPane fx:id="outerStack" VBox.vgrow="ALWAYS">
         <HBox>
             <Region prefWidth="220" minWidth="220" maxWidth="220" styleClass="sidebar-backdrop"/>
             <StackPane fx:id="contentArea" HBox.hgrow="ALWAYS" styleClass="content-area"/>

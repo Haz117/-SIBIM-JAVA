@@ -300,12 +300,23 @@
     -fx-font-weight: bold;
     -fx-border-color: transparent;
     -fx-border-width: 0;
-    /* Full pill radius on every corner (not just the left side) — combined
-       with the translateX nudge in MainController#animateActivePill, this is
-       what reads as a floating capsule invading the content area rather than
-       a flat rectangle flush against the sidebar's own edge. */
-    -fx-background-radius: 20;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.30), 12, 0.18, 0, 3);
+    /* Left-only pill radius: the right edge stays flat and flush with the
+       sidebar border so the "gota" ear overlays (see MainController#setupEarOverlay)
+       can create the concave notch that visually merges the pill with the
+       content area. translateX pushes the button to the sidebar edge. */
+    -fx-background-radius: 20 0 0 20;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.20), 10, 0.15, -2, 2);
+}
+
+/* Concave corner "ears" that sit above/below the active nav pill and paint
+   the content-area background over the sidebar — creating the gota notch. */
+.nav-ear-top {
+    -fx-background-color: #EEF2F7;
+    -fx-background-radius: 0 0 0 20;
+}
+.nav-ear-bottom {
+    -fx-background-color: #EEF2F7;
+    -fx-background-radius: 20 0 0 0;
 }
 
 .sidebar-divider .line {

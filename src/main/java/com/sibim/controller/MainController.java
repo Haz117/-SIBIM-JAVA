@@ -14,12 +14,16 @@ import javafx.animation.KeyFrame;
 import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -60,6 +64,7 @@ public class MainController {
     @FXML private Label statusDbLabel;
     @FXML private Label statusUserLabel;
     @FXML private Label statusTimeLabel;
+    @FXML private StackPane outerStack;
 
     private Button activeButton;
     private Object currentController;
@@ -70,6 +75,14 @@ public class MainController {
     private static final long INACTIVITY_WARN_MS    = INACTIVITY_TIMEOUT_MS - 5 * 60_000L;
     private long    lastActivityMs    = System.currentTimeMillis();
     private boolean inactivityWarned  = false;
+
+    // Gota ear overlay — concave notch corners above/below the active nav pill
+    private static final double SIDEBAR_WIDTH = 220;
+    private static final double EAR_SIZE      = 20;
+    private Pane   earOverlay;
+    private Region topEar;
+    private Region bottomEar;
+    private boolean earsPositioned = false;
 
     // Only one MainController is ever active at a time — this lets child
     // views loaded into contentArea (e.g. Organigrama) trigger navigation
@@ -94,12 +107,13 @@ public class MainController {
         navigateTo("dashboard", btnDashboard);
         // Load alert count
         loadAlertBadge();
-        // Wire keyboard shortcuts and activity tracking once scene is available
+        // Wire keyboard shortcuts, activity tracking and gota ear overlay once scene is ready
         contentArea.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
                 setupKeyboardShortcuts(scene);
                 scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
                 scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
+                javafx.application.Platform.runLater(this::setupEarOverlay);
             }
         });
         // Refresh badge every 3 minutes
@@ -144,15 +158,14 @@ public class MainController {
         try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
     }
 
-    private static final double ACTIVE_PILL_OFFSET_X = 8;
+    // Nav-VBox right padding is 18px → translateX=18 pushes the button's
+    // right edge exactly to x=220 (the sidebar edge), enabling the gota effect.
+    private static final double ACTIVE_PILL_OFFSET_X = 18;
 
-    /** Slides the active nav button {@code ACTIVE_PILL_OFFSET_X}px to the
-     *  right so its rounded pill (see .nav-btn.nav-active in styles.css)
-     *  visibly overlaps into the content area, and slides the previously
-     *  active one back to 0. translateX doesn't affect layout — the sidebar
-     *  VBox is drawn above the content row (see main.fxml), so the part of
-     *  the button that crosses x=220 paints over the content instead of
-     *  being clipped by it. */
+    /** Slides the active nav button to the sidebar's right edge (translateX=18)
+     *  so its flat right side (see .nav-btn.nav-active) is flush with the
+     *  sidebar border. The gota ear overlays then close the concave corners
+     *  above and below, making the pill appear to merge into the content area. */
     private void animateActivePill(Button newActive, Button oldActive) {
         if (oldActive != null && oldActive != newActive) {
             TranslateTransition back = new TranslateTransition(Duration.millis(180), oldActive);
@@ -173,6 +186,7 @@ public class MainController {
             button.getStyleClass().add("nav-active");
             animateActivePill(button, activeButton);
             activeButton = button;
+            updateEars(button);
 
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
@@ -204,6 +218,62 @@ public class MainController {
             NotificacionUtil.error(errScene, "No se pudo cargar la vista: " + view);
         }
     }
+
+    // ── Gota ear overlay ─────────────────────────────────────────────────────
+
+    private void setupEarOverlay() {
+        if (outerStack == null || earOverlay != null) return;
+
+        topEar = new Region();
+        topEar.setPrefSize(EAR_SIZE, EAR_SIZE);
+        topEar.setMaxSize(EAR_SIZE, EAR_SIZE);
+        topEar.getStyleClass().add("nav-ear-top");
+
+        bottomEar = new Region();
+        bottomEar.setPrefSize(EAR_SIZE, EAR_SIZE);
+        bottomEar.setMaxSize(EAR_SIZE, EAR_SIZE);
+        bottomEar.getStyleClass().add("nav-ear-bottom");
+
+        earOverlay = new Pane(topEar, bottomEar);
+        earOverlay.setMouseTransparent(true);
+        earOverlay.setPickOnBounds(false);
+        outerStack.getChildren().add(earOverlay);
+
+        javafx.application.Platform.runLater(() -> updateEars(btnDashboard));
+    }
+
+    private void updateEars(Button btn) {
+        if (earOverlay == null || outerStack == null || outerStack.getScene() == null) return;
+        javafx.application.Platform.runLater(() -> {
+            Bounds btnScene = btn.localToScene(btn.getBoundsInLocal());
+            Point2D origin  = outerStack.sceneToLocal(0, 0);
+            double earX     = SIDEBAR_WIDTH - EAR_SIZE;
+            double topY     = btnScene.getMinY() + origin.getY() - EAR_SIZE;
+            double botY     = btnScene.getMaxY() + origin.getY();
+
+            if (!earsPositioned) {
+                topEar.setLayoutX(earX);    topEar.setLayoutY(topY);
+                bottomEar.setLayoutX(earX); bottomEar.setLayoutY(botY);
+                earsPositioned = true;
+            } else {
+                glideEar(topEar,    earX, topY);
+                glideEar(bottomEar, earX, botY);
+            }
+        });
+    }
+
+    private void glideEar(Region ear, double targetX, double targetY) {
+        double fromY = ear.getLayoutY() + ear.getTranslateY();
+        ear.setLayoutX(targetX);
+        ear.setLayoutY(targetY);
+        ear.setTranslateY(fromY - targetY);
+        TranslateTransition tt = new TranslateTransition(Duration.millis(190), ear);
+        tt.setToY(0);
+        tt.setInterpolator(Interpolator.EASE_OUT);
+        tt.play();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void loadAlertBadge() {
         DialogUtil.runAsync(
