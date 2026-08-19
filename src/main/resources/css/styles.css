@@ -268,18 +268,18 @@
 
 /* Nav section labels */
 .nav-section-label {
-    -fx-text-fill: #6B7280;
-    -fx-font-size: 9.5px;
+    -fx-text-fill: rgba(148,163,184,0.55);
+    -fx-font-size: 10px;
     -fx-font-weight: bold;
-    -fx-padding: 6 14 2 14;
+    -fx-padding: 12 14 3 16;
 }
 
 /* Nav buttons */
 .nav-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #94A3B8;
+    -fx-text-fill: #A8B4C8;
     -fx-alignment: CENTER_LEFT;
-    -fx-padding: 9 14;
+    -fx-padding: 10 14;
     -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-font-size: 13px;
@@ -300,23 +300,24 @@
     -fx-font-weight: bold;
     -fx-border-color: transparent;
     -fx-border-width: 0;
-    /* Left-only pill radius: the right edge stays flat and flush with the
-       sidebar border so the "gota" ear overlays (see MainController#setupEarOverlay)
-       can create the concave notch that visually merges the pill with the
-       content area. translateX pushes the button to the sidebar edge. */
+    /* Left-only pill: right edge flat at the sidebar border; ear overlays
+       (see MainController#setupEarOverlay) close the concave transition. */
     -fx-background-radius: 20 0 0 20;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.20), 10, 0.15, -2, 2);
+    /* Purple-tinted shadow: creates depth without the grayish cast. */
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.28), 14, 0.30, 0, 2);
 }
 
-/* Concave corner "ears" that sit above/below the active nav pill and paint
-   the content-area background over the sidebar — creating the gota notch. */
+/* Concave "ear" overlays above/below the active pill.
+   Background fades from transparent (left, blends with the sidebar dark)
+   to #EEF2F7 (right, matches the content area) so the left edge of each
+   ear dissolves into the sidebar instead of cutting across it harshly. */
 .nav-ear-top {
-    -fx-background-color: #EEF2F7;
-    -fx-background-radius: 0 0 0 20;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(17,24,39,0) 0%, #EEF2F7 62%);
+    -fx-background-radius: 0 0 0 22;
 }
 .nav-ear-bottom {
-    -fx-background-color: #EEF2F7;
-    -fx-background-radius: 20 0 0 0;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(17,24,39,0) 0%, #EEF2F7 62%);
+    -fx-background-radius: 22 0 0 0;
 }
 
 .sidebar-divider .line {
@@ -2193,10 +2194,10 @@
    NAV BUTTON HOVER — stronger lateral light accent
    ═══════════════════════════════════════════════════════════════════ */
 .nav-btn:hover {
-    -fx-background-color: rgba(255,255,255,0.08);
-    -fx-text-fill: #E2E8F0;
-    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.35);
-    -fx-border-width: 0 0 0 2;
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-text-fill: #CBD5E1;
+    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.55);
+    -fx-border-width: 0 0 0 3;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
