@@ -798,6 +798,10 @@
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.28), 22, 0, 0, 6);
     -fx-translate-y: -3;
 }
+.report-card:pressed {
+    -fx-translate-y: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
+}
 
 /* Circular icon badge — the color lives here now, not on the whole card */
 .report-icon-badge {
@@ -2424,6 +2428,25 @@
     -fx-effect: none;
     -fx-cursor: default;
     -fx-opacity: 1;
+}
+/* Edit variant — green accent when updating an existing record */
+.form-submit-btn.form-submit-btn-edit {
+    -fx-background-color: #059669;
+    -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.38), 10, 0, 0, 3);
+}
+.form-submit-btn.form-submit-btn-edit:hover {
+    -fx-background-color: #047857;
+    -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.55), 14, 0, 0, 5);
+}
+.form-submit-btn.form-submit-btn-edit:pressed {
+    -fx-background-color: #065F46;
+    -fx-effect: none;
+    -fx-translate-y: 1;
+}
+.form-submit-btn.form-submit-btn-edit:disabled {
+    -fx-background-color: #6EE7B7;
+    -fx-text-fill: #ECFDF5;
+    -fx-effect: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

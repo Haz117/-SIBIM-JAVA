@@ -229,10 +229,9 @@ public final class ProductoDialogFactory {
         lblFormError.setWrapText(true);
 
         String submitLabel = isNewProduct ? "✓  Guardar bien" : "✓  Guardar cambios";
-        String submitColor = isNewProduct ? "#4F46E5" : "#059669";
         Button btnGuardar = new Button(submitLabel);
         btnGuardar.getStyleClass().add("form-submit-btn");
-        btnGuardar.setStyle("-fx-background-color: " + submitColor + ";");
+        if (!isNewProduct) btnGuardar.getStyleClass().add("form-submit-btn-edit");
         btnGuardar.setMaxWidth(Double.MAX_VALUE);
         btnGuardar.setDisable(true);
         btnGuardar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
