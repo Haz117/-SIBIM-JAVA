@@ -93,6 +93,8 @@ public class ProductosController {
     @FXML private Label lblStatTotal;
     @FXML private Label lblStatValor;
     @FXML private Label lblStatAlertas;
+    @FXML private VBox statCardTotal;
+    @FXML private VBox statCardValor;
     @FXML private VBox cardAlertas;
 
     private final ProductoService productoService = new ProductoService();
@@ -134,6 +136,8 @@ public class ProductosController {
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
         loadData();
+        AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(statCardTotal, statCardValor, cardAlertas), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 

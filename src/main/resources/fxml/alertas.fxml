@@ -46,7 +46,7 @@
            styleClass="no-alerts" visible="false" managed="false" maxWidth="Infinity"/>
 
     <!-- ══ BIENES AGOTADOS ═══════════════════════════════════════════ -->
-    <VBox styleClass="alert-section alert-danger" spacing="0">
+    <VBox fx:id="sectionAgotados" styleClass="alert-section alert-danger" spacing="0">
         <!-- Header gradiente -->
         <HBox styleClass="alert-header-danger" alignment="CENTER_LEFT" spacing="12">
             <Label text="🚫" styleClass="alert-section-icon"/>
@@ -87,7 +87,7 @@
     </VBox>
 
     <!-- ══ EXISTENCIAS BAJAS ══════════════════════════════════════════ -->
-    <VBox styleClass="alert-section alert-warning" spacing="0">
+    <VBox fx:id="sectionBajoStock" styleClass="alert-section alert-warning" spacing="0">
         <HBox styleClass="alert-header-warning" alignment="CENTER_LEFT" spacing="12">
             <Label text="⚠" styleClass="alert-section-icon-white"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
@@ -125,7 +125,7 @@
     </VBox>
 
     <!-- ══ GARANTÍAS POR VENCER ═══════════════════════════════════════ -->
-    <VBox styleClass="alert-section alert-info" spacing="0">
+    <VBox fx:id="sectionGarantias" styleClass="alert-section alert-info" spacing="0">
         <HBox styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
             <Label text="📋" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">

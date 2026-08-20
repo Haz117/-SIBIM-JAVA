@@ -42,7 +42,7 @@
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
     <HBox spacing="12">
         <!-- Total de Bienes — indigo -->
-        <VBox styleClass="rich-stat-card, rich-stat-indigo"
+        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-indigo"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
@@ -56,7 +56,7 @@
         </VBox>
 
         <!-- Valor del Inventario — teal -->
-        <VBox styleClass="rich-stat-card, rich-stat-teal"
+        <VBox fx:id="statCardValor" styleClass="rich-stat-card, rich-stat-teal"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">

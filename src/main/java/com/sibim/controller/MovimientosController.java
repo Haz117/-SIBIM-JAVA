@@ -71,6 +71,10 @@ public class MovimientosController {
     @FXML private Label lblStatEntradas;
     @FXML private Label lblStatSalidas;
     @FXML private Label lblStatAjustes;
+    @FXML private VBox  statCardTotal;
+    @FXML private VBox  statCardEntrada;
+    @FXML private VBox  statCardSalida;
+    @FXML private VBox  statCardAjuste;
     @FXML private Button btnDelete;
     @FXML private Button btnClearSearch;
     @FXML private VBox statCardTotal;
@@ -150,6 +154,8 @@ public class MovimientosController {
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
         loadData();
+        AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 

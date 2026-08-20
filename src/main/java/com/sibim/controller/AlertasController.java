@@ -58,6 +58,9 @@ public class AlertasController {
     @FXML private TextField searchField;
     @FXML private Button btnClearSearch;
     @FXML private Label lblActualizado;
+    @FXML private VBox  sectionAgotados;
+    @FXML private VBox  sectionBajoStock;
+    @FXML private VBox  sectionGarantias;
 
     private final ProductoService productoService = new ProductoService();
 
@@ -73,6 +76,8 @@ public class AlertasController {
         tableBajoStock.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableGarantias.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         loadData();
+        AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(sectionAgotados, sectionBajoStock, sectionGarantias), 300, 65);
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
         autoRefresh.play();

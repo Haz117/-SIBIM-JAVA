@@ -84,6 +84,7 @@ public class DashboardController {
                                 javafx.scene.Scene old, javafx.scene.Scene newScene) {
                 if (newScene != null) {
                     statsGrid.sceneProperty().removeListener(this);
+                    AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(), 280, 45);
                     loadDataAsync();
                 }
             }
