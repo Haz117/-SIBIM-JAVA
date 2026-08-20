@@ -4,26 +4,18 @@ import javafx.concurrent.Task;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Application-wide background thread pool.
- *
- * Replaces the previous pattern of "new Thread(task).start()" scattered across
- * controllers: reuses threads, caps concurrency to 4, and marks threads as
- * daemon so they never block JVM shutdown.
+ * Application-wide background executor backed by Java 21 virtual threads.
+ * Virtual threads are daemon threads by default, block cheaply on I/O (DB
+ * queries, file reads), and carry no cap on concurrency — ideal for this
+ * app's mix of short-lived DB tasks.
  */
 public final class AppExecutor {
 
     private AppExecutor() {}
 
-    private static final AtomicInteger IDX = new AtomicInteger(0);
-
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(4, r -> {
-        Thread t = new Thread(r, "sibim-bg-" + IDX.incrementAndGet());
-        t.setDaemon(true);
-        return t;
-    });
+    private static final ExecutorService POOL = Executors.newVirtualThreadPerTaskExecutor();
 
     /** Submit a JavaFX Task (its succeeded/failed callbacks still fire on the FX thread). */
     public static void submit(Task<?> task) {

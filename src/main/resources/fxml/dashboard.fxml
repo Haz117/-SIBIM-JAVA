@@ -78,7 +78,7 @@
           visible="false" managed="false" onMouseClicked="#onVerAlertas">
         <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
         <Label text="⚠" styleClass="alert-banner-icon"/>
-        <Label text="Hay bienes con stock bajo o agotados que requieren atención."
+        <Label fx:id="lblAlertBannerText" text="Hay bienes que requieren atención."
                wrapText="true" HBox.hgrow="ALWAYS"/>
         <Label text="Ver alertas →" styleClass="alert-banner-cta"/>
     </HBox>
@@ -117,8 +117,8 @@
         </HBox>
 
         <!-- Valor Patrimonial — Teal -->
-        <HBox styleClass="stat-card"
-              alignment="CENTER_LEFT" spacing="14"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerReportes" spacing="14"
               GridPane.columnIndex="1" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-teal">
@@ -127,7 +127,7 @@
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="VALOR PATRIMONIAL" styleClass="stat-label"/>
                 <Label fx:id="lblValorTotal" text="—" styleClass="stat-value-currency"/>
-                <Label text="Valor total registrado" styleClass="stat-hint"/>
+                <Label text="Ver reportes →" styleClass="stat-hint"/>
             </VBox>
         </HBox>
 
@@ -177,8 +177,8 @@
         </HBox>
 
         <!-- Categorías — Indigo oscuro -->
-        <HBox styleClass="stat-card"
-              alignment="CENTER_LEFT" spacing="14"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerCategorias" spacing="14"
               GridPane.columnIndex="2" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-dark-indigo">
@@ -187,7 +187,7 @@
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="CATEGORÍAS ACTIVAS" styleClass="stat-label"/>
                 <Label fx:id="lblCategorias" text="—" styleClass="stat-value"/>
-                <Label text="Clasificaciones" styleClass="stat-hint"/>
+                <Label text="Ver categorías →" styleClass="stat-hint"/>
             </VBox>
         </HBox>
     </GridPane>

@@ -35,6 +35,7 @@ public class DashboardController {
     @FXML private Label lblFechaDia;
     @FXML private Label lblFechaMes;
     @FXML private HBox  alertBanner;
+    @FXML private Label lblAlertBannerText;
     @FXML private Label lblStatsActualizacion;
 
     // ── Health bar ───────────────────────────────────────────────────
@@ -87,7 +88,8 @@ public class DashboardController {
                                 javafx.scene.Scene old, javafx.scene.Scene newScene) {
                 if (newScene != null) {
                     statsGrid.sceneProperty().removeListener(this);
-                    if (dashBanner   != null) AnimationUtils.fadeInDown(dashBanner,   340,   0);
+                    if (dashBanner != null && !dashBanner.getChildren().isEmpty())
+                        AnimationUtils.staggeredFadeInUp(dashBanner.getChildren(), 300, 70);
                     AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(),          280,  45);
                     if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,       300, 120);
                     if (activityCard != null) AnimationUtils.fadeInUp(activityCard,    300, 180);
@@ -137,29 +139,40 @@ public class DashboardController {
         AnimationUtils.animateCount(lblValorTotal,
             stats.valorTotal().longValue(), 850,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
+        // Subtle pop on stat cards after their numbers finish counting
+        javafx.animation.PauseTransition popDelay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+        popDelay.setOnFinished(ev -> statsGrid.getChildren().forEach(AnimationUtils::statCardPop));
+        popDelay.play();
 
-        if (lblStatsActualizacion != null)
+        if (lblStatsActualizacion != null) {
             lblStatsActualizacion.setText("Actualizado " +
                 java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+            AnimationUtils.pulse(lblStatsActualizacion, 2);
+        }
 
         boolean showAlert = stats.agotados() > 0 || stats.bajoStock() > 0;
+        if (showAlert && lblAlertBannerText != null) {
+            java.util.List<String> parts = new java.util.ArrayList<>();
+            if (stats.agotados() > 0)
+                parts.add(stats.agotados() + " agotado" + (stats.agotados() != 1 ? "s" : ""));
+            if (stats.bajoStock() > 0)
+                parts.add(stats.bajoStock() + " con bajo stock");
+            lblAlertBannerText.setText(String.join("  ·  ", parts) + " — requieren atención");
+        }
         alertBanner.setVisible(showAlert);
         alertBanner.setManaged(showAlert);
-        if (showAlert) AnimationUtils.fadeInDown(alertBanner, 350, 0);
+        if (showAlert) AnimationUtils.springIn(alertBanner);
 
         buildMovimientosChart(data.movSemana());
         buildCategoriaChart(data.catValores());
         buildHealthBar(stats);
-
-        if (statsGrid != null && !statsGrid.getChildren().isEmpty())
-            AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(), 400, 70);
 
         if (tablaReciente != null) {
             List<Movimiento> ultimos = data.movSemana().stream()
                 .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
                 .limit(8)
                 .toList();
-            tablaReciente.setItems(javafx.collections.FXCollections.observableArrayList(ultimos));
+            tablaReciente.getItems().setAll(ultimos);
 
             if (lblCountReciente != null) {
                 int n = ultimos.size();
@@ -199,6 +212,13 @@ public class DashboardController {
             new Seg(agotado, "dash-health-seg-red"),
             new Seg(vencido, "dash-health-seg-violet")
         );
+        record SegLabel(String cssClass, String tipPrefix) {}
+        List<SegLabel> labels = List.of(
+            new SegLabel("dash-health-seg-green",  "Activos"),
+            new SegLabel("dash-health-seg-amber",  "Bajo stock"),
+            new SegLabel("dash-health-seg-red",    "Agotados"),
+            new SegLabel("dash-health-seg-violet", "Vencidos")
+        );
         List<Seg> visible = segs.stream().filter(s -> s.count() > 0).toList();
         for (int i = 0; i < visible.size(); i++) {
             Seg seg = visible.get(i);
@@ -212,6 +232,13 @@ public class DashboardController {
             r.getStyleClass().addAll(seg.cssClass(), posClass);
             HBox.setHgrow(r, Priority.SOMETIMES);
             r.setPrefWidth(160.0 * seg.count() / total);
+            int segPct = total > 0 ? (int) Math.round(seg.count() * 100.0 / total) : 0;
+            String tipText = labels.stream()
+                .filter(l -> l.cssClass().equals(seg.cssClass()))
+                .findFirst()
+                .map(l -> l.tipPrefix() + ": " + seg.count() + " (" + segPct + "%)")
+                .orElse("");
+            if (!tipText.isEmpty()) javafx.scene.control.Tooltip.install(r, new javafx.scene.control.Tooltip(tipText));
             healthBar.getChildren().add(r);
         }
 
@@ -283,8 +310,10 @@ public class DashboardController {
         chartValorCategoria.setVisible(hasData);
         chartValorCategoria.setManaged(hasData);
         if (pieEmptyState != null) {
+            boolean wasVisible = pieEmptyState.isVisible();
             pieEmptyState.setVisible(!hasData);
             pieEmptyState.setManaged(!hasData);
+            if (!hasData && !wasVisible) AnimationUtils.springIn(pieEmptyState);
         }
     }
 
@@ -303,6 +332,7 @@ public class DashboardController {
     @FXML private void onVerProductos()    { navigarA("Productos"); }
     @FXML private void onVerMovimientos()  { navigarA("Movimientos"); }
     @FXML private void onVerReportes()     { navigarA("Reportes"); }
+    @FXML private void onVerCategorias()   { navigarA("Categorias"); }
 
     @FXML
     private void onVerAlertas() {
@@ -388,6 +418,7 @@ public class DashboardController {
         footer.setPadding(new javafx.geometry.Insets(10, 4, 0, 4));
         content.getChildren().add(footer);
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
         dlg.getDialogPane().setContent(content);
         dlg.showAndWait();
     }
@@ -503,6 +534,7 @@ public class DashboardController {
         grid.add(com.sibim.util.DialogUtil.fieldLabel("Usuario"),  0, r); grid.add(new javafx.scene.control.Label(m.getUsuarioNombre()), 1, r++);
         grid.add(com.sibim.util.DialogUtil.fieldLabel("Fecha"),    0, r); grid.add(new javafx.scene.control.Label(com.sibim.util.FormatUtils.formatDateTime(m.getCreadoEn())), 1, r);
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
         dlg.getDialogPane().setContent(new javafx.scene.layout.VBox(0, header, grid));
         dlg.showAndWait();
     }

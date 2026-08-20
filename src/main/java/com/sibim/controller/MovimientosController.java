@@ -24,6 +24,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.util.Duration;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -77,10 +78,7 @@ public class MovimientosController {
     @FXML private VBox  statCardAjuste;
     @FXML private Button btnDelete;
     @FXML private Button btnClearSearch;
-    @FXML private VBox statCardTotal;
-    @FXML private VBox statCardEntrada;
-    @FXML private VBox statCardSalida;
-    @FXML private VBox statCardAjuste;
+    @FXML private Button btnPendientes;
 
     private final MovimientoService movimientoService = new MovimientoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
@@ -110,6 +108,14 @@ public class MovimientosController {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
                     onNuevoMovimiento(); ev.consume();
+                }
+            });
+        }
+        if (rootPane != null) {
+            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                    if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
+                    ev.consume();
                 }
             });
         }
@@ -153,6 +159,12 @@ public class MovimientosController {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
+        if (SessionManager.isAdmin()) {
+            if (btnPendientes != null) { btnPendientes.setVisible(true); btnPendientes.setManaged(true); }
+            loadPendientesCount();
+        } else {
+            if (btnPendientes != null) { btnPendientes.setVisible(false); btnPendientes.setManaged(false); }
+        }
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
@@ -178,6 +190,14 @@ public class MovimientosController {
         colStock.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getStockAnterior() + " → " + c.getValue().getStockNuevo()));
         colStock.setCellFactory(col -> new TableCell<>() {
+            private final Label lblAntes   = new Label();
+            private final Label lblArrow   = new Label();
+            private final Label lblDespues = new Label();
+            private final HBox  box        = new HBox(4, lblAntes, lblArrow, lblDespues);
+            {
+                lblAntes.getStyleClass().add("stock-before");
+                box.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(null); setText(null);
@@ -185,17 +205,13 @@ public class MovimientosController {
                 Movimiento m = getTableRow().getItem();
                 if (m == null) return;
                 int antes = m.getStockAnterior(), despues = m.getStockNuevo();
-                Label lblAntes = new Label(String.valueOf(antes));
-                lblAntes.getStyleClass().add("stock-before");
-                String arrowClass = antes < despues ? "stock-arrow-up" : (antes > despues ? "stock-arrow-down" : "stock-arrow-neutral");
-                String arrowSym   = antes < despues ? "↑" : (antes > despues ? "↓" : "·");
-                Label lblArrow = new Label(arrowSym);
-                lblArrow.getStyleClass().add(arrowClass);
-                String despuesClass = despues <= 0 ? "stock-after-empty" : (despues < antes ? "stock-after-warn" : "stock-after-ok");
-                Label lblDespues = new Label(String.valueOf(despues));
-                lblDespues.getStyleClass().add(despuesClass);
-                HBox box = new HBox(4, lblAntes, lblArrow, lblDespues);
-                box.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                lblAntes.setText(String.valueOf(antes));
+                lblArrow.setText(antes < despues ? "↑" : (antes > despues ? "↓" : "·"));
+                lblArrow.getStyleClass().setAll(
+                    antes < despues ? "stock-arrow-up" : (antes > despues ? "stock-arrow-down" : "stock-arrow-neutral"));
+                lblDespues.setText(String.valueOf(despues));
+                lblDespues.getStyleClass().setAll(
+                    despues <= 0 ? "stock-after-empty" : (despues < antes ? "stock-after-warn" : "stock-after-ok"));
                 setGraphic(box);
             }
         });
@@ -313,8 +329,15 @@ public class MovimientosController {
         boolean canAddMov = SessionManager.isAdmin() || SessionManager.isSecretario();
         emptyStateHint = new Label(canAddMov ? "Presiona Ctrl+N para registrar el primer movimiento" : "");
         emptyStateHint.getStyleClass().add("empty-state-hint");
-        javafx.scene.layout.VBox emptyState = new javafx.scene.layout.VBox(8, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
+        javafx.scene.layout.VBox emptyState = new javafx.scene.layout.VBox(12, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
         emptyState.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state-pane");
+        emptyState.setMaxWidth(380);
+        emptyState.setPadding(new javafx.geometry.Insets(32, 24, 32, 24));
+        emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
+            if (isVisible && !wasVisible) com.sibim.util.AnimationUtils.springIn(emptyState);
+            else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
+        });
         table.setPlaceholder(emptyState);
     }
 
@@ -429,6 +452,14 @@ public class MovimientosController {
         if (lblStatEntradas != null) AnimationUtils.animateCount(lblStatEntradas, entradas, 540);
         if (lblStatSalidas  != null) AnimationUtils.animateCount(lblStatSalidas,  salidas,  540);
         if (lblStatAjustes  != null) AnimationUtils.animateCount(lblStatAjustes,  ajustes,  540);
+        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
+        pop.setOnFinished(e -> {
+            if (statCardTotal   != null) AnimationUtils.statCardPop(statCardTotal);
+            if (statCardEntrada != null) AnimationUtils.statCardPop(statCardEntrada);
+            if (statCardSalida  != null) AnimationUtils.statCardPop(statCardSalida);
+            if (statCardAjuste  != null) AnimationUtils.statCardPop(statCardAjuste);
+        });
+        pop.play();
     }
 
     private void updateTablePage() {
@@ -438,7 +469,126 @@ public class MovimientosController {
 
     @FXML private void onPrev() { if (currentPage > 0) { currentPage--; updateTablePage(); } }
     @FXML private void onNext() { currentPage++; updateTablePage(); }
-    @FXML private void onRefresh() { loadData(); }
+    @FXML private void onRefresh() { loadData(); if (SessionManager.isAdmin()) loadPendientesCount(); }
+
+    @FXML
+    private void onVerPendientes() {
+        DialogUtil.runAsync(
+            () -> movimientoService.getPendientesTransferencias(),
+            this::showPendientesDialog,
+            e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar las transferencias pendientes")
+        );
+    }
+
+    private void loadPendientesCount() {
+        DialogUtil.runAsync(
+            () -> movimientoService.getPendientesTransferencias().size(),
+            count -> {
+                if (btnPendientes == null) return;
+                btnPendientes.setText(count > 0
+                    ? "⏳ Pendientes (" + count + ")"
+                    : "Pendientes");
+                btnPendientes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
+                btnPendientes.getStyleClass().add(count > 0 ? "btn-warning-outline" : "btn-secondary");
+            },
+            e -> { /* silent */ }
+        );
+    }
+
+    private void showPendientesDialog(java.util.List<com.sibim.model.Movimiento> pendientes) {
+        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
+            new javafx.scene.control.Dialog<>();
+        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(660);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("⏳", "Transferencias Pendientes de Aprobación",
+            "Solicitudes de traslado que requieren tu autorización",
+            "#D97706", "#B45309");
+
+        VBox list = new VBox(6);
+        list.setPadding(new javafx.geometry.Insets(4));
+
+        if (pendientes.isEmpty()) {
+            javafx.scene.control.Label empty = new javafx.scene.control.Label("No hay transferencias pendientes");
+            empty.getStyleClass().add("muted");
+            list.getChildren().add(empty);
+        }
+
+        for (com.sibim.model.Movimiento m : pendientes) {
+            HBox row = new HBox(12);
+            row.getStyleClass().add("dlg-detail-header");
+            row.setPadding(new javafx.geometry.Insets(10, 14, 10, 14));
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+            VBox info = new VBox(3);
+            javafx.scene.control.Label titulo = new javafx.scene.control.Label(
+                m.getProductoNombre() + "  ·  " + (m.getAreaOrigen() != null ? m.getAreaOrigen() : "—") + " → " + m.getAreaDestino());
+            titulo.getStyleClass().add("dlg-detail-value");
+            javafx.scene.control.Label detalle = new javafx.scene.control.Label(
+                "Solicitado por " + m.getUsuarioNombre() + " · " + com.sibim.util.FormatUtils.formatDateTime(m.getCreadoEn())
+                + (m.getMotivo() != null && !m.getMotivo().isBlank() ? " · " + m.getMotivo() : ""));
+            detalle.getStyleClass().add("muted-sm");
+            detalle.setWrapText(true);
+            info.getChildren().addAll(titulo, detalle);
+            HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
+
+            javafx.scene.control.Button btnAprobar  = new javafx.scene.control.Button("✓ Aprobar");
+            javafx.scene.control.Button btnRechazar = new javafx.scene.control.Button("✕ Rechazar");
+            btnAprobar.getStyleClass().add("btn-primary");
+            btnRechazar.getStyleClass().add("btn-danger");
+
+            btnAprobar.setOnAction(e -> {
+                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
+                DialogUtil.runAsync(
+                    () -> movimientoService.aprobarTransferencia(m.getId()),
+                    () -> {
+                        list.getChildren().remove(row);
+                        loadData(); loadPendientesCount();
+                        NotificacionUtil.exito(dialog.getDialogPane().getScene(),
+                            "Transferencia de \"" + m.getProductoNombre() + "\" aprobada");
+                    },
+                    ex -> {
+                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
+                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aprobar la transferencia");
+                    }
+                );
+            });
+
+            btnRechazar.setOnAction(e -> {
+                if (!com.sibim.util.ConfirmacionUtil.confirmar("Rechazar transferencia",
+                        "¿Rechazar la transferencia de \"" + m.getProductoNombre() + "\"?")) return;
+                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
+                DialogUtil.runAsync(
+                    () -> movimientoService.rechazarTransferencia(m.getId()),
+                    () -> {
+                        list.getChildren().remove(row);
+                        loadData(); loadPendientesCount();
+                        NotificacionUtil.info(dialog.getDialogPane().getScene(),
+                            "Transferencia de \"" + m.getProductoNombre() + "\" rechazada");
+                    },
+                    ex -> {
+                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
+                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo rechazar la transferencia");
+                    }
+                );
+            });
+
+            HBox actions = new HBox(8, btnAprobar, btnRechazar);
+            actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            row.getChildren().addAll(info, actions);
+            list.getChildren().add(row);
+        }
+
+        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(list);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(400);
+        scroll.getStyleClass().add("page-scroll");
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
+        dialog.getDialogPane().setContent(new VBox(0, header, scroll));
+        dialog.showAndWait();
+    }
 
     @FXML private void onPresetHoy() {
         LocalDate hoy = LocalDate.now();
@@ -479,7 +629,7 @@ public class MovimientosController {
             return;
         }
         if (!ConfirmacionUtil.confirmarEliminar("este movimiento")) return;
-        DialogUtil.runAsync(
+        Runnable doDelete = () -> DialogUtil.runAsync(
             () -> movimientoService.eliminar(sel.getId()),
             () -> {
                 allData.remove(sel);
@@ -489,6 +639,13 @@ public class MovimientosController {
             e -> NotificacionUtil.error(table.getScene(),
                 e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo eliminar el movimiento")
         );
+        Node rowNode = table.lookup(".table-row-cell:selected");
+        if (rowNode != null) {
+            AnimationUtils.flashClass(rowNode, "row-danger", 200);
+            AnimationUtils.fadeOut(rowNode, 260, doDelete);
+        } else {
+            doDelete.run();
+        }
     }
 
     @FXML
@@ -583,9 +740,9 @@ public class MovimientosController {
     private void openFile(File file) {
         try { Desktop.getDesktop().open(file); }
         catch (Exception e) {
-            log.error("No se pudo abrir el archivo {}", file, e);
+            log.warn("No se pudo abrir el archivo {}", file, e);
             if (table != null && table.getScene() != null)
-                NotificacionUtil.error(table.getScene(), "No se pudo abrir el archivo");
+                NotificacionUtil.advertencia(table.getScene(), "Guardado en: " + file.getAbsolutePath());
         }
     }
 
@@ -665,7 +822,9 @@ public class MovimientosController {
         grid.add(DialogUtil.fieldLabel("Registrado por"), 0, r); grid.add(fUsuario,  1, r++);
         grid.add(DialogUtil.fieldLabel("Fecha"),          0, r); grid.add(fFecha,    1, r);
 
-        dialog.getDialogPane().setContent(new VBox(0, header, grid));
+        VBox content = new VBox(0, header, grid);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
+        dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
     }
 }

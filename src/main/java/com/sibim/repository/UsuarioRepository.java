@@ -63,8 +63,8 @@ public class UsuarioRepository {
 
     public Usuario save(Usuario u) throws SQLException {
         requireAdmin();
-        boolean isNew = u.getId() == null || findById(u.getId()).isEmpty();
-        if (u.getId() == null) u.setId(UUID.randomUUID().toString());
+        boolean isNew = u.getId() == null;
+        if (isNew) u.setId(UUID.randomUUID().toString());
         if (DatabaseConfig.isDemoMode()) {
             if (u.getCreadoEn() == null) u.setCreadoEn(java.time.LocalDateTime.now());
             DemoDataStore.saveUsuario(u);

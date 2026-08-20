@@ -36,7 +36,7 @@ public class ProductoService {
 
     public Producto save(Producto p) throws SQLException, ValidationException {
         validate(p);
-        boolean isNew = p.getId() == null || productoRepo.findById(p.getId()).isEmpty();
+        boolean isNew = p.getId() == null;
         Producto saved = productoRepo.save(p);
         auditRepo.log("producto", saved.getId(), saved.getNombre(),
             isNew ? "crear" : "actualizar",
@@ -55,7 +55,8 @@ public class ProductoService {
             auditRepo.log("producto", id, p.getNombre(), "eliminar", "Bien eliminado permanentemente");
         } catch (SQLException e) {
             if ("23503".equals(e.getSQLState()))
-                throw new ValidationException("No se puede eliminar: este bien tiene movimientos registrados en su historial");
+                throw new ValidationException(
+                    "No se puede eliminar: este bien tiene movimientos o conteos registrados en su historial");
             throw e;
         }
     }

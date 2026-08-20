@@ -126,6 +126,9 @@
                 <Button text="⬅  Cerrar sesión" onAction="#onLogout" styleClass="logout-btn" maxWidth="Infinity">
                     <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
                 </Button>
+                <Button text="ℹ  Acerca de" onAction="#onAcercaDe" styleClass="about-btn" maxWidth="Infinity">
+                    <tooltip><Tooltip text="Versión e información del sistema"/></tooltip>
+                </Button>
                 <Region prefHeight="4"/>
                 <Label text="SIBIM v1.0 · 2026" styleClass="sidebar-version" maxWidth="Infinity"/>
             </VBox>

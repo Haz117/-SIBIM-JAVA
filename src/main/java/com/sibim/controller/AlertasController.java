@@ -78,6 +78,7 @@ public class AlertasController {
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(sectionAgotados, sectionBajoStock, sectionGarantias), 300, 65);
+        javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
         autoRefresh.play();
@@ -104,6 +105,18 @@ public class AlertasController {
             if (e.getClickCount() == 2) {
                 Producto sel = tableBajoStock.getSelectionModel().getSelectedItem();
                 if (sel != null) showProductoInfo(sel, false);
+            }
+        });
+        tableAgotados.setOnKeyPressed(ev -> {
+            if (ev.getCode() == javafx.scene.input.KeyCode.ENTER
+                    && tableAgotados.getSelectionModel().getSelectedItem() != null) {
+                onReponerAgotado(); ev.consume();
+            }
+        });
+        tableBajoStock.setOnKeyPressed(ev -> {
+            if (ev.getCode() == javafx.scene.input.KeyCode.ENTER
+                    && tableBajoStock.getSelectionModel().getSelectedItem() != null) {
+                onSolicitarBajoStock(); ev.consume();
             }
         });
 
@@ -225,18 +238,27 @@ public class AlertasController {
         List<Producto> filtAgotados  = filter(allAgotados,  q);
         List<Producto> filtBajoStock = filter(allBajoStock, q);
         List<Producto> filtGarantias = filter(allGarantias, q);
-        tableAgotados.setItems(FXCollections.observableArrayList(filtAgotados));
-        tableBajoStock.setItems(FXCollections.observableArrayList(filtBajoStock));
-        tableGarantias.setItems(FXCollections.observableArrayList(filtGarantias));
+        tableAgotados.getItems().setAll(filtAgotados);
+        tableBajoStock.getItems().setAll(filtBajoStock);
+        tableGarantias.getItems().setAll(filtGarantias);
         long cntAg = filtAgotados.size(),  cntBs = filtBajoStock.size(), cntGa = filtGarantias.size();
         boolean noFilter = q.isBlank();
         long totAg = allAgotados.size(), totBs = allBajoStock.size(), totGa = allGarantias.size();
         AnimationUtils.animateCount(lblAgotadosCount,  cntAg, 480, v -> v + (noFilter ? " bienes" : " / " + totAg));
         AnimationUtils.animateCount(lblBajoStockCount, cntBs, 480, v -> v + (noFilter ? " bienes" : " / " + totBs));
         AnimationUtils.animateCount(lblGarantiasCount, cntGa, 480, v -> v + (noFilter ? " bienes" : " / " + totGa));
+        javafx.animation.PauseTransition sectionPop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(510));
+        sectionPop.setOnFinished(e -> {
+            if (sectionAgotados  != null && !allAgotados.isEmpty())  AnimationUtils.statCardPop(sectionAgotados);
+            if (sectionBajoStock != null && !allBajoStock.isEmpty()) AnimationUtils.statCardPop(sectionBajoStock);
+            if (sectionGarantias != null && !allGarantias.isEmpty()) AnimationUtils.statCardPop(sectionGarantias);
+        });
+        sectionPop.play();
         boolean sinAlertas = allAgotados.isEmpty() && allBajoStock.isEmpty() && allGarantias.isEmpty();
+        boolean wasVisible = lblSinAlertas.isVisible();
         lblSinAlertas.setVisible(sinAlertas);
         lblSinAlertas.setManaged(sinAlertas);
+        if (sinAlertas && !wasVisible) AnimationUtils.springIn(lblSinAlertas);
     }
 
     private List<Producto> filter(List<Producto> source, String q) {
@@ -339,7 +361,9 @@ public class AlertasController {
             grid.add(new Label(String.valueOf(p.getStockMinimo())), 1, r++);
         }
 
-        dlg.getDialogPane().setContent(new VBox(0, header, grid));
+        VBox content = new VBox(0, header, grid);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
+        dlg.getDialogPane().setContent(content);
         dlg.showAndWait();
     }
 

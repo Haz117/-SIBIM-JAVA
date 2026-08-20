@@ -250,6 +250,70 @@ public final class AnimationUtils {
             new KeyValue(clip.widthProperty(), w, Interpolator.EASE_OUT))).play();
     }
 
+    /**
+     * Heartbeat scale-pulse — good for alert badges and notification chips.
+     * Returns the animation so the caller can stop it when the badge hides.
+     */
+    public static SequentialTransition pulse(Node node, int cycles) {
+        ScaleTransition grow = new ScaleTransition(Duration.millis(150), node);
+        grow.setToX(1.16); grow.setToY(1.16);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(230), node);
+        shrink.setToX(1.0); shrink.setToY(1.0);
+        shrink.setInterpolator(Interpolator.EASE_IN);
+        SequentialTransition beat = new SequentialTransition(grow, shrink);
+        beat.setCycleCount(cycles);
+        beat.play();
+        return beat;
+    }
+
+    /**
+     * Spring-like pop-in: scale 0.85 → 1.06 → 0.98 → 1.0 while fading in.
+     * More satisfying than a plain fadeIn for overlays and dialog entrances.
+     */
+    public static void springIn(Node node) {
+        node.setOpacity(0);
+        node.setScaleX(0.85);
+        node.setScaleY(0.85);
+        FadeTransition fade = new FadeTransition(Duration.millis(200), node);
+        fade.setToValue(1);
+        Timeline spring = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(node.scaleXProperty(), 0.85),
+                new KeyValue(node.scaleYProperty(), 0.85)),
+            new KeyFrame(Duration.millis(220),
+                new KeyValue(node.scaleXProperty(), 1.06, Interpolator.EASE_OUT),
+                new KeyValue(node.scaleYProperty(), 1.06, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(330),
+                new KeyValue(node.scaleXProperty(), 0.98, Interpolator.EASE_BOTH),
+                new KeyValue(node.scaleYProperty(), 0.98, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(420),
+                new KeyValue(node.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                new KeyValue(node.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+        );
+        new ParallelTransition(fade, spring).play();
+    }
+
+    /** Fade a node out; calls {@code after} on the FX thread when done. */
+    public static void fadeOut(Node node, int durationMs, Runnable after) {
+        FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
+        ft.setFromValue(node.getOpacity());
+        ft.setToValue(0);
+        ft.setInterpolator(Interpolator.EASE_IN);
+        if (after != null) ft.setOnFinished(e -> after.run());
+        ft.play();
+    }
+
+    /**
+     * Temporarily adds {@code cssClass} to {@code node} for {@code holdMs} then removes it.
+     * Useful for flashing a table row green after a save, or red after a delete.
+     */
+    public static void flashClass(Node node, String cssClass, int holdMs) {
+        node.getStyleClass().add(cssClass);
+        new Timeline(new KeyFrame(Duration.millis(holdMs),
+            e -> node.getStyleClass().remove(cssClass))).play();
+    }
+
     // ── helpers ──────────────────────────────────────────────────
     private static KeyFrame kf(Node node, int ms, double x) {
         return new KeyFrame(Duration.millis(ms),

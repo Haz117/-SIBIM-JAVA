@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -25,8 +26,10 @@ public final class DatabaseConfig {
     public static void init() {
         if (dataSource != null) return;
 
-        // Load from .env file in project root, or from environment variables
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        // Search for .env in the standard production location first
+        // (%APPDATA%\SIBIM\ on Windows, ~/.sibim/ on other OS), then fall
+        // back to the working directory for development.
+        Dotenv dotenv = loadDotenv();
 
         String url      = getEnv(dotenv, "DB_URL", "jdbc:postgresql://localhost:5432/sibim");
         String user     = getEnv(dotenv, "DB_USER", "postgres");
@@ -47,14 +50,20 @@ public final class DatabaseConfig {
         config.setUsername(user);
         config.setPassword(password);
         config.setMaximumPoolSize(10);
-        config.setMinimumIdle(2);
-        config.setConnectionTimeout(5_000);
-        config.setInitializationFailTimeout(3_000);
+        config.setMinimumIdle(3);
+        config.setConnectionTimeout(8_000);
+        // 8 s gives enough time for VPN / remote DB connections to establish.
+        config.setInitializationFailTimeout(8_000);
         config.setIdleTimeout(600_000);
         config.setMaxLifetime(1_800_000);
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        // PostgreSQL JDBC driver properties (pgjdbc)
+        config.addDataSourceProperty("prepareThreshold", "3");
+        config.addDataSourceProperty("preparedStatementCacheQueries", "25");
+        config.addDataSourceProperty("socketTimeout", "30");
+        // SSL: defaults to "prefer" (uses SSL when available, no error if not).
+        // Set DB_SSL_MODE=require in .env for Supabase or any remote/production DB.
+        String sslMode = getEnv(dotenv, "DB_SSL_MODE", "prefer");
+        config.addDataSourceProperty("sslmode", sslMode);
 
         dataSource = new HikariDataSource(config);
     }
@@ -74,6 +83,20 @@ public final class DatabaseConfig {
             dataSource.close();
         }
         dataSource = null;
+    }
+
+    private static Dotenv loadDotenv() {
+        // 1. Production: %APPDATA%\SIBIM\.env  (Windows) or ~/.sibim/.env
+        String appData = System.getenv("APPDATA");
+        String prodDir = (appData != null && !appData.isBlank())
+            ? appData + File.separator + "SIBIM"
+            : System.getProperty("user.home") + File.separator + ".sibim";
+        Dotenv candidate = Dotenv.configure().directory(prodDir).ignoreIfMissing().load();
+        if (candidate.get("DB_URL") != null || candidate.get("DB_PASSWORD") != null)
+            return candidate;
+
+        // 2. Dev fallback: working directory / project root
+        return Dotenv.configure().ignoreIfMissing().load();
     }
 
     private static String getEnv(Dotenv dotenv, String key, String fallback) {

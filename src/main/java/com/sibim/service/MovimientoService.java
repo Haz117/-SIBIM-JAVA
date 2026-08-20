@@ -69,8 +69,6 @@ public class MovimientoService {
                 throw new ValidationException("Selecciona el área de destino de la transferencia");
             if (areaDestino.equals(producto.getArea()))
                 throw new ValidationException("El área de destino debe ser distinta al área actual");
-            if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(areaDestino))
-                throw new ValidationException("No tienes acceso al área de destino");
         }
 
         int stockNuevo = ProductoUtils.calcularStockNuevo(tipo.getCodigo(), producto.getStockActual(), cantidad);
@@ -89,7 +87,24 @@ public class MovimientoService {
         m.setUsuarioId(SessionManager.getCurrentUser().getId());
         m.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
 
+        // Non-admin transfers go through an approval workflow: saved as PENDIENTE,
+        // stock and area unchanged until an admin approves.
+        if (tipo == TipoMovimiento.TRANSFERENCIA && !SessionManager.isAdmin()) {
+            return movimientoRepo.addMovimientoPendiente(m);
+        }
         return movimientoRepo.addMovimientoAtomic(m);
+    }
+
+    public List<Movimiento> getPendientesTransferencias() throws SQLException {
+        return movimientoRepo.findPendientesTransferencias();
+    }
+
+    public void aprobarTransferencia(String movimientoId) throws SQLException {
+        movimientoRepo.aprobarTransferencia(movimientoId);
+    }
+
+    public void rechazarTransferencia(String movimientoId) throws SQLException {
+        movimientoRepo.rechazarTransferencia(movimientoId);
     }
 
     public void eliminar(String movimientoId) throws SQLException, ValidationException {

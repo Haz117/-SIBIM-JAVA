@@ -559,12 +559,44 @@ public final class DemoDataStore {
     }
 
     public static void addMovimiento(Movimiento m) {
+        m.setEstado(Movimiento.ESTADO_APROBADO);
         if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
             m.setAreaOrigen(areaOfProducto(m.getProductoId()));
             updateProductoArea(m.getProductoId(), m.getAreaDestino());
         }
         MOVIMIENTOS.add(0, m);
         updateProductoStock(m.getProductoId(), m.getStockNuevo());
+    }
+
+    public static void addMovimientoPendiente(Movimiento m) {
+        m.setEstado(Movimiento.ESTADO_PENDIENTE);
+        m.setAreaOrigen(areaOfProducto(m.getProductoId()));
+        int stock = PRODUCTOS.stream().filter(p -> p.getId().equals(m.getProductoId()))
+            .findFirst().map(com.sibim.model.Producto::getStockActual).orElse(0);
+        m.setStockAnterior(stock);
+        m.setStockNuevo(stock);
+        if (m.getCreadoEn() == null) m.setCreadoEn(java.time.LocalDateTime.now());
+        MOVIMIENTOS.add(0, m);
+    }
+
+    public static java.util.List<Movimiento> findPendientesTransferencias() {
+        return MOVIMIENTOS.stream()
+            .filter(m -> m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.isPendiente())
+            .sorted(java.util.Comparator.comparing(Movimiento::getCreadoEn))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    public static void aprobarTransferencia(String id) {
+        MOVIMIENTOS.stream().filter(m -> m.getId().equals(id) && m.isPendiente()).findFirst()
+            .ifPresent(m -> {
+                m.setEstado(Movimiento.ESTADO_APROBADO);
+                updateProductoArea(m.getProductoId(), m.getAreaDestino());
+            });
+    }
+
+    public static void rechazarTransferencia(String id) {
+        MOVIMIENTOS.stream().filter(m -> m.getId().equals(id) && m.isPendiente()).findFirst()
+            .ifPresent(m -> m.setEstado(Movimiento.ESTADO_RECHAZADO));
     }
 
     public static void deleteMovimiento(String id) {
