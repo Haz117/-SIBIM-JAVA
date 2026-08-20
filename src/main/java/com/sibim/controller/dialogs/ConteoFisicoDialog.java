@@ -7,6 +7,7 @@ import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -91,6 +92,8 @@ public final class ConteoFisicoDialog {
             list.getChildren().add(row);
             rows.add(new Row(p, contado));
         }
+        if (!list.getChildren().isEmpty())
+            AnimationUtils.staggeredFadeInUp(list.getChildren(), 180, 38);
 
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);

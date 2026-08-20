@@ -22,7 +22,7 @@
     </HBox>
 
     <!-- ══ SELECTOR DE PERÍODO ═══════════════════════════════════════ -->
-    <VBox styleClass="card" spacing="12">
+    <VBox fx:id="periodCard" styleClass="card" spacing="12">
         <padding><Insets top="18" right="22" bottom="18" left="22"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="10">
             <Label text="📅" styleClass="card-icon-lg"/>
@@ -66,7 +66,7 @@
     </HBox>
 
     <!-- Grid 2×2 -->
-    <GridPane hgap="16" vgap="16">
+    <GridPane fx:id="reportGrid" hgap="16" vgap="16">
         <columnConstraints>
             <ColumnConstraints percentWidth="50"/>
             <ColumnConstraints percentWidth="50"/>

@@ -121,12 +121,15 @@ public class DashboardController {
         lastAgotados  = data.agotados();
         lastBajoStock = data.bajoStock();
 
-        lblTotalBienes.setText(String.valueOf(stats.total()));
-        lblValorTotal.setText(FormatUtils.formatCurrency(stats.valorTotal()));
-        lblBajoStock.setText(String.valueOf(stats.bajoStock()));
-        lblAgotados.setText(String.valueOf(stats.agotados()));
-        lblMovimientosHoy.setText(String.valueOf(data.movHoy().size()));
-        lblCategorias.setText(String.valueOf(stats.categorias()));
+        AnimationUtils.animateCount(lblTotalBienes,    stats.total(),              750);
+        AnimationUtils.animateCount(lblBajoStock,      stats.bajoStock(),          680);
+        AnimationUtils.animateCount(lblAgotados,       stats.agotados(),           680);
+        AnimationUtils.animateCount(lblMovimientosHoy, data.movHoy().size(),       580);
+        AnimationUtils.animateCount(lblCategorias,     stats.categorias(),         580);
+        // Currency: animate double value, format each tick for precision on last frame
+        AnimationUtils.animateCount(lblValorTotal,
+            stats.valorTotal().longValue(), 850,
+            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
 
         if (lblStatsActualizacion != null)
             lblStatsActualizacion.setText("Actualizado " +
@@ -153,9 +156,10 @@ public class DashboardController {
 
             if (lblCountReciente != null) {
                 int n = ultimos.size();
-                lblCountReciente.setText(n > 0 ? String.valueOf(n) : "");
                 lblCountReciente.setVisible(n > 0);
                 lblCountReciente.setManaged(n > 0);
+                if (n > 0) AnimationUtils.animateCount(lblCountReciente, n, 380);
+                else       lblCountReciente.setText("");
             }
         }
     }
@@ -206,6 +210,11 @@ public class DashboardController {
 
         healthSection.setVisible(true);
         healthSection.setManaged(true);
+
+        // Reveal bar from left to right once layout finishes (two pulses away).
+        javafx.application.Platform.runLater(() ->
+            javafx.application.Platform.runLater(() ->
+                AnimationUtils.revealBarLTR(healthBar, 900)));
     }
 
     // ── Charts ───────────────────────────────────────────────────────
@@ -240,10 +249,13 @@ public class DashboardController {
         }
         chartMovimientos.getData().add(entradas);
         chartMovimientos.getData().add(salidas);
-        for (XYChart.Data<String, Number> d : entradas.getData())
-            if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Entradas " + d.getXValue() + ": " + d.getYValue()));
-        for (XYChart.Data<String, Number> d : salidas.getData())
-            if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Salidas " + d.getXValue() + ": " + d.getYValue()));
+        // Chart nodes are created during layout — defer tooltip wiring one frame
+        javafx.application.Platform.runLater(() -> {
+            for (XYChart.Data<String, Number> d : entradas.getData())
+                if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Entradas " + d.getXValue() + ": " + d.getYValue()));
+            for (XYChart.Data<String, Number> d : salidas.getData())
+                if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Salidas " + d.getXValue() + ": " + d.getYValue()));
+        });
     }
 
     private void buildCategoriaChart(List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores) {
@@ -251,12 +263,13 @@ public class DashboardController {
         catValores.forEach(cv -> chartValorCategoria.getData().add(
             new PieChart.Data(cv.nombre(), cv.valor().doubleValue())));
 
-        for (PieChart.Data d : chartValorCategoria.getData()) {
-            if (d.getNode() != null) {
-                Tooltip.install(d.getNode(), new Tooltip(
-                    d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()))));
+        javafx.application.Platform.runLater(() -> {
+            for (PieChart.Data d : chartValorCategoria.getData()) {
+                if (d.getNode() != null)
+                    Tooltip.install(d.getNode(), new Tooltip(
+                        d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()))));
             }
-        }
+        });
 
         boolean hasData = !chartValorCategoria.getData().isEmpty();
         chartValorCategoria.setVisible(hasData);

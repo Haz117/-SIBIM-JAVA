@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ProductoUtils;
 import javafx.animation.FadeTransition;
@@ -242,6 +243,12 @@ public final class MovimientoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
+        Button btnRegistrar = new Button("✓  Registrar movimiento");
+        btnRegistrar.getStyleClass().add("form-submit-btn");
+        btnRegistrar.setMaxWidth(Double.MAX_VALUE);
+        btnRegistrar.setDisable(true);
+        btnRegistrar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
+
         // Disable OK until product selected, quantity valid, and (for a
         // transfer) a destination area chosen
         if (okBtn != null) {
@@ -250,14 +257,17 @@ public final class MovimientoDialogFactory {
                 boolean badQty = fCantidad.getValue() <= 0 && fTipo.getValue() != TipoMovimiento.AJUSTE;
                 boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
                 boolean noDestino = isTransfer && fAreaDestino.getValue() == null;
-                okBtn.setDisable(noProduct || badQty || noDestino);
+                boolean invalid = noProduct || badQty || noDestino;
+                boolean wasHidden = !lblFormError.isVisible();
+                okBtn.setDisable(invalid);
+                btnRegistrar.setDisable(invalid);
                 String hint = noProduct ? "Selecciona un bien del inventario"
                     : noDestino ? "Selecciona el área de destino"
                     : "La cantidad debe ser mayor a cero";
-                boolean showHint = noProduct || badQty || noDestino;
                 lblFormError.setText(hint);
-                lblFormError.setVisible(showHint);
-                lblFormError.setManaged(showHint);
+                lblFormError.setVisible(invalid);
+                lblFormError.setManaged(invalid);
+                if (invalid && wasHidden) AnimationUtils.shake(lblFormError);
             };
             validateOk.run();
             fProducto.valueProperty().addListener((obs, o, n) -> validateOk.run());
@@ -284,7 +294,9 @@ public final class MovimientoDialogFactory {
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);
         grid.add(DialogUtil.fieldLabel("Referencia"),    0, row); grid.add(fRef,         1, row);
 
-        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError));
+        VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
+        VBox.setMargin(btnRegistrar, new Insets(4, 22, 16, 22));
+        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, btnRegistrar));
         Platform.runLater(() -> fProducto.requestFocus());
 
         Optional<ButtonType> result = dialog.showAndWait();

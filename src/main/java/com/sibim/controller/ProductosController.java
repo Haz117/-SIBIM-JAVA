@@ -12,6 +12,7 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -453,9 +454,10 @@ public class ProductosController {
                       || p.getEstado() == EstadoProducto.VENCIDO)
             .count();
 
-        if (lblStatTotal   != null) lblStatTotal.setText(String.valueOf(total));
-        if (lblStatValor   != null) lblStatValor.setText(FormatUtils.formatCurrency(valor));
-        if (lblStatAlertas != null) lblStatAlertas.setText(String.valueOf(alertas));
+        if (lblStatTotal   != null) AnimationUtils.animateCount(lblStatTotal,   total,              700);
+        if (lblStatValor   != null) AnimationUtils.animateCount(lblStatValor,   valor.longValue(),  880,
+            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
+        if (lblStatAlertas != null) AnimationUtils.animateCount(lblStatAlertas, alertas,            580);
 
         if (cardAlertas != null) {
             cardAlertas.getStyleClass().removeAll("rich-stat-card-alert-active");

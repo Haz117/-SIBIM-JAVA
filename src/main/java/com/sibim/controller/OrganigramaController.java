@@ -5,6 +5,7 @@ import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -69,9 +70,9 @@ public class OrganigramaController {
 
     private void updateStats() {
         if (lblStatAreas == null) return;
-        lblStatAreas.setText(String.valueOf(productosPorArea.size()));
         int totalBienes = productosPorArea.values().stream().mapToInt(List::size).sum();
-        lblStatBienes.setText(String.valueOf(totalBienes));
+        AnimationUtils.animateCount(lblStatAreas,  productosPorArea.size(), 650);
+        AnimationUtils.animateCount(lblStatBienes, totalBienes,             800);
         productosPorArea.entrySet().stream()
             .max(Comparator.comparingInt(e -> e.getValue().size()))
             .ifPresentOrElse(
@@ -112,6 +113,7 @@ public class OrganigramaController {
             empty.getChildren().addAll(icon, msg);
             orgTree.getChildren().add(empty);
         }
+        AnimationUtils.staggeredFadeInUp(orgTree.getChildren(), 270, 50);
     }
 
     @FXML private void onExpandAll() {

@@ -1,11 +1,14 @@
 package com.sibim.controller;
 
 import com.sibim.service.ReporteService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +20,8 @@ public class ReportesController {
 
     private static final Logger log = LoggerFactory.getLogger(ReportesController.class);
 
+    @FXML private VBox       periodCard;
+    @FXML private GridPane   reportGrid;
     @FXML private DatePicker desdeField;
     @FXML private DatePicker hastaField;
     @FXML private ProgressIndicator spinner;
@@ -36,6 +41,9 @@ public class ReportesController {
         desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         onReportMes(); // default to current month
+
+        if (periodCard != null) AnimationUtils.fadeInUp(periodCard, 300,  0);
+        if (reportGrid != null) AnimationUtils.staggeredFadeInUp(reportGrid.getChildren(), 300, 70);
     }
 
     private void setPresetActive(Button active) {

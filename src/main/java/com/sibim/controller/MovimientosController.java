@@ -419,10 +419,10 @@ public class MovimientosController {
         long salidas  = filteredData.stream().filter(m -> "Salida".equals(m.getTipo().getEtiqueta())).count();
         long ajustes  = filteredData.stream().filter(m ->
             "Ajuste".equals(m.getTipo().getEtiqueta()) || "Transferencia".equals(m.getTipo().getEtiqueta())).count();
-        if (lblStatTotalMov != null) lblStatTotalMov.setText(String.valueOf(total));
-        if (lblStatEntradas != null) lblStatEntradas.setText(String.valueOf(entradas));
-        if (lblStatSalidas  != null) lblStatSalidas.setText(String.valueOf(salidas));
-        if (lblStatAjustes  != null) lblStatAjustes.setText(String.valueOf(ajustes));
+        if (lblStatTotalMov != null) AnimationUtils.animateCount(lblStatTotalMov, total,    600);
+        if (lblStatEntradas != null) AnimationUtils.animateCount(lblStatEntradas, entradas, 540);
+        if (lblStatSalidas  != null) AnimationUtils.animateCount(lblStatSalidas,  salidas,  540);
+        if (lblStatAjustes  != null) AnimationUtils.animateCount(lblStatAjustes,  ajustes,  540);
     }
 
     private void updateTablePage() {

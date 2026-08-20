@@ -1,15 +1,19 @@
 package com.sibim.util;
 
 import javafx.animation.*;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import java.util.List;
+import java.util.function.LongFunction;
 
 public final class AnimationUtils {
 
@@ -205,6 +209,45 @@ public final class AnimationUtils {
             new PauseTransition(Duration.millis(2200)),
             fadeOut
         ).play();
+    }
+
+    /**
+     * Animates a Label's text from 0 up to {@code target} using an ease-both
+     * interpolator. Each tick calls {@code formatter} so the caller controls
+     * how the number looks (plain integer, currency, percentage, etc.).
+     * The last frame always calls formatter(target) for exact precision.
+     */
+    public static void animateCount(Label label, long target, int durationMs,
+                                    LongFunction<String> formatter) {
+        label.setText(formatter.apply(0));
+        if (target == 0) return;
+        SimpleDoubleProperty prop = new SimpleDoubleProperty(0);
+        prop.addListener((obs, o, n) -> label.setText(formatter.apply((long) n.doubleValue())));
+        Timeline tl = new Timeline(new KeyFrame(Duration.millis(durationMs),
+            new KeyValue(prop, (double) target, Interpolator.EASE_BOTH)));
+        tl.setOnFinished(e -> label.setText(formatter.apply(target)));
+        tl.play();
+    }
+
+    /** Overload: plain {@code String.valueOf(long)} formatter. */
+    public static void animateCount(Label label, long target, int durationMs) {
+        animateCount(label, target, durationMs, String::valueOf);
+    }
+
+    /**
+     * Reveals {@code bar} (an HBox health bar) with a left-to-right clip
+     * that grows from 0 to the bar's actual width over {@code durationMs}.
+     * Must be called after the bar has been added to the scene graph (so
+     * layoutBounds are available); use a short Timeline delay if needed.
+     */
+    public static void revealBarLTR(Region bar, int durationMs) {
+        double w = bar.getWidth();
+        if (w <= 0) w = bar.getPrefWidth() > 0 ? bar.getPrefWidth() : 500;
+        Rectangle clip = new Rectangle(0, 0, 0, bar.getBoundsInLocal().getHeight() + 4);
+        bar.heightProperty().addListener((o, x, h) -> clip.setHeight(h.doubleValue() + 4));
+        bar.setClip(clip);
+        new Timeline(new KeyFrame(Duration.millis(durationMs),
+            new KeyValue(clip.widthProperty(), w, Interpolator.EASE_OUT))).play();
     }
 
     // ── helpers ──────────────────────────────────────────────────

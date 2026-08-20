@@ -288,30 +288,40 @@
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
+/* Active tab: left side rounded, right side OPEN/FLAT so it reads as
+   a tab that exits the sidebar into the content area — not a pill.
+   The background must match the content area (.content-area) exactly. */
 .nav-btn.nav-active,
 .nav-btn.nav-active:hover,
 .nav-btn.nav-active:focused,
 .nav-btn.nav-active:armed {
-    -fx-background-color: white;
+    -fx-background-color: #EEF2F7;
     -fx-text-fill: #4338CA;
     -fx-font-weight: bold;
     -fx-border-color: transparent;
     -fx-border-width: 0;
-    /* Left-only pill: right edge flat at the sidebar border. */
     -fx-background-radius: 20 0 0 20;
-    /* Compact, purple-tinted shadow — gives depth without bloating the button. */
-    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.22), 8, 0.20, 0, 1);
+    -fx-padding: 10 14 10 14;
 }
 
-/* Small concave notches above/below the active pill (14 px each).
-   Gradient dissolves the left edge into the sidebar so the seam is invisible. */
+/* Flat bridge that starts TAB_OVERLAP px before the sidebar edge and extends
+   TAB_EXTENSION px into the content area. Covers sub-pixel seams at x=220. */
+.nav-tab-extension {
+    -fx-background-color: #EEF2F7;
+    -fx-background-radius: 0;
+}
+
+/* 8×8 quarter-circle corner fills — painted ABOVE and BELOW the active button
+   at the sidebar's right edge. They fill the dark corner that would otherwise
+   make the button look "floating" inside the sidebar frame.
+   Solid color (no gradient) so they're invisible rather than decorative. */
 .nav-ear-top {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(20,30,48,0) 0%, #EEF2F7 55%);
-    -fx-background-radius: 0 0 0 14;
+    -fx-background-color: #EEF2F7;
+    -fx-background-radius: 0 0 0 8;
 }
 .nav-ear-bottom {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, rgba(20,30,48,0) 0%, #EEF2F7 55%);
-    -fx-background-radius: 14 0 0 0;
+    -fx-background-color: #EEF2F7;
+    -fx-background-radius: 8 0 0 0;
 }
 
 .sidebar-divider .line {
@@ -340,6 +350,7 @@
     -fx-background-color: #EEF2F7;
     -fx-background: #EEF2F7;
     -fx-border-color: transparent;
+    -fx-border-width: 0;
 }
 .page-scroll > .viewport { -fx-background-color: #EEF2F7; }
 
@@ -425,12 +436,21 @@
     -fx-min-height: 105;
     -fx-cursor: default;
 }
+/* Subtle lift even on non-clickable cards — makes the grid feel alive */
+.stat-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.13), 26, 0, 0, 8);
+    -fx-translate-y: -2;
+}
 
-/* Clickable stat card */
+/* Clickable stat card — more pronounced lift */
 .stat-card-clickable { -fx-cursor: hand; }
 .stat-card-clickable:hover {
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.22), 24, 0, 0, 8);
-    -fx-translate-y: -4;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.26), 28, 0.05, 0, 9);
+    -fx-translate-y: -5;
+}
+.stat-card-clickable:pressed {
+    -fx-translate-y: -1;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.14), 14, 0, 0, 4);
 }
 
 /* Circular icon badge — the color lives here now, not on the whole card */
@@ -1626,10 +1646,14 @@
     -fx-background-radius: 0;
 }
 .quick-action-btn:hover {
-    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-background-color: rgba(255,255,255,0.13);
+    -fx-scale-x: 1.06;
+    -fx-scale-y: 1.06;
 }
 .quick-action-btn:pressed {
-    -fx-background-color: rgba(255,255,255,0.18);
+    -fx-background-color: rgba(255,255,255,0.20);
+    -fx-scale-x: 0.96;
+    -fx-scale-y: 0.96;
 }
 .qa-label {
     -fx-text-fill: rgba(255,255,255,0.82);
@@ -2188,10 +2212,16 @@
    NAV BUTTON HOVER — stronger lateral light accent
    ═══════════════════════════════════════════════════════════════════ */
 .nav-btn:hover {
-    -fx-background-color: rgba(255,255,255,0.10);
-    -fx-text-fill: #CBD5E1;
-    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.55);
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-text-fill: #E2E8F0;
+    -fx-background-radius: 8;
+    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.65);
     -fx-border-width: 0 0 0 3;
+    -fx-translate-x: 3;
+}
+.nav-btn:pressed {
+    -fx-background-color: rgba(255,255,255,0.06);
+    -fx-translate-x: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2364,6 +2394,34 @@
     -fx-padding: 8 22;
 }
 .dialog-ok-btn:hover { -fx-opacity: 0.88; }
+
+/* Prominent in-form submit button — always visible, fires the hidden OK */
+.form-submit-btn {
+    -fx-background-color: #6D28D9;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 13 20;
+    -fx-effect: dropshadow(gaussian, rgba(109,40,217,0.38), 10, 0, 0, 3);
+}
+.form-submit-btn:hover {
+    -fx-background-color: #5B21B6;
+    -fx-effect: dropshadow(gaussian, rgba(109,40,217,0.55), 14, 0, 0, 5);
+}
+.form-submit-btn:pressed {
+    -fx-background-color: #4C1D95;
+    -fx-effect: none;
+    -fx-translate-y: 1;
+}
+.form-submit-btn:disabled {
+    -fx-background-color: #C4B5FD;
+    -fx-text-fill: #EDE9FE;
+    -fx-effect: none;
+    -fx-cursor: default;
+    -fx-opacity: 1;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    SPLASH SCREEN

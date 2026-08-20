@@ -6,6 +6,7 @@ import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
@@ -26,6 +27,8 @@ import java.util.UUID;
 
 public class ConfiguracionController {
 
+    @FXML private VBox  profileCard;
+    @FXML private VBox  sysInfoCard;
     @FXML private Label lblNombreUsuario;
     @FXML private Label lblUsernameUsuario;
     @FXML private Label lblRolUsuario;
@@ -81,6 +84,14 @@ public class ConfiguracionController {
         if (auditSection != null) {
             auditSection.setVisible(isAdmin);
             auditSection.setManaged(isAdmin);
+        }
+
+        // Entrance animations — cards cascade in from below
+        if (profileCard  != null) AnimationUtils.fadeInUp(profileCard,  320,   0);
+        if (sysInfoCard  != null) AnimationUtils.fadeInUp(sysInfoCard,  320,  70);
+        if (isAdmin) {
+            if (adminSection != null) AnimationUtils.fadeInUp(adminSection, 320, 140);
+            if (auditSection != null) AnimationUtils.fadeInUp(auditSection, 320, 210);
         }
 
         if (isAdmin) {

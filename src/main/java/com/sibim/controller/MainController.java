@@ -76,13 +76,16 @@ public class MainController {
     private long    lastActivityMs    = System.currentTimeMillis();
     private boolean inactivityWarned  = false;
 
-    // Gota ear overlay — concave notch corners above/below the active nav pill
-    private static final double SIDEBAR_WIDTH = 220;
-    private static final double EAR_SIZE      = 14;
-    private Pane   earOverlay;
+    // Tab overlay — fills corners + extends tab past sidebar edge
+    private static final double SIDEBAR_WIDTH  = 220;
+    private static final double EAR_SIZE       = 8;    // quarter-circle corner fills
+    private static final double TAB_OVERLAP    = 6;    // starts this many px before sidebar edge
+    private static final double TAB_EXTENSION  = 40;   // extends this many px past sidebar edge
+    private Pane   tabOverlay;
+    private Region tabProtrusion;
     private Region topEar;
     private Region bottomEar;
-    private boolean earsPositioned = false;
+    private boolean tabPositioned = false;
 
     // Only one MainController is ever active at a time — this lets child
     // views loaded into contentArea (e.g. Organigrama) trigger navigation
@@ -113,7 +116,7 @@ public class MainController {
                 setupKeyboardShortcuts(scene);
                 scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
                 scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
-                javafx.application.Platform.runLater(this::setupEarOverlay);
+                javafx.application.Platform.runLater(this::setupTabProtrusion);
             }
         });
         // Refresh badge every 3 minutes
@@ -186,7 +189,7 @@ public class MainController {
             button.getStyleClass().add("nav-active");
             animateActivePill(button, activeButton);
             activeButton = button;
-            updateEars(button);
+            updateTabProtrusion(button);
 
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
@@ -219,55 +222,77 @@ public class MainController {
         }
     }
 
-    // ── Gota ear overlay ─────────────────────────────────────────────────────
+    // ── Tab overlay ──────────────────────────────────────────────────────────
+    // Three pieces painted outside the ScrollPane's clip, all in a single
+    // mouse-transparent Pane on outerStack:
+    //
+    //   topEar      — 8×8 quarter-circle that fills the dark corner directly
+    //                 ABOVE the active button's right side, color #EEF2F7.
+    //   tabProtrusion — flat rectangle that starts TAB_OVERLAP px before the
+    //                 sidebar edge and extends TAB_EXTENSION px into the content
+    //                 area. Same color. Covers any sub-pixel rendering seam.
+    //   bottomEar   — mirror of topEar, for the corner BELOW the button.
 
-    private void setupEarOverlay() {
-        if (outerStack == null || earOverlay != null) return;
+    private void setupTabProtrusion() {
+        if (outerStack == null || tabOverlay != null) return;
 
         topEar = new Region();
         topEar.setPrefSize(EAR_SIZE, EAR_SIZE);
         topEar.setMaxSize(EAR_SIZE, EAR_SIZE);
         topEar.getStyleClass().add("nav-ear-top");
 
+        tabProtrusion = new Region();
+        tabProtrusion.setPrefWidth(TAB_OVERLAP + TAB_EXTENSION);
+        tabProtrusion.getStyleClass().add("nav-tab-extension");
+
         bottomEar = new Region();
         bottomEar.setPrefSize(EAR_SIZE, EAR_SIZE);
         bottomEar.setMaxSize(EAR_SIZE, EAR_SIZE);
         bottomEar.getStyleClass().add("nav-ear-bottom");
 
-        earOverlay = new Pane(topEar, bottomEar);
-        earOverlay.setMouseTransparent(true);
-        earOverlay.setPickOnBounds(false);
-        outerStack.getChildren().add(earOverlay);
+        tabOverlay = new Pane(topEar, tabProtrusion, bottomEar);
+        tabOverlay.setMouseTransparent(true);
+        tabOverlay.setPickOnBounds(false);
+        outerStack.getChildren().add(tabOverlay);
 
-        javafx.application.Platform.runLater(() -> updateEars(btnDashboard));
+        javafx.application.Platform.runLater(() -> updateTabProtrusion(btnDashboard));
     }
 
-    private void updateEars(Button btn) {
-        if (earOverlay == null || outerStack == null || outerStack.getScene() == null) return;
+    private void updateTabProtrusion(Button btn) {
+        if (tabProtrusion == null || outerStack == null || outerStack.getScene() == null) return;
         javafx.application.Platform.runLater(() -> {
-            Bounds btnScene = btn.localToScene(btn.getBoundsInLocal());
-            Point2D origin  = outerStack.sceneToLocal(0, 0);
-            double earX     = SIDEBAR_WIDTH - EAR_SIZE;
-            double topY     = btnScene.getMinY() + origin.getY() - EAR_SIZE;
-            double botY     = btnScene.getMaxY() + origin.getY();
+            // translateX is horizontal-only, so minY/maxY are stable during animation.
+            Bounds  b    = btn.localToScene(btn.getBoundsInLocal());
+            Point2D org  = outerStack.sceneToLocal(0, 0);
+            double  btnTop = b.getMinY() + org.getY();
+            double  btnBot = b.getMaxY() + org.getY();
+            double  btnH   = btnBot - btnTop;
 
-            if (!earsPositioned) {
-                topEar.setLayoutX(earX);    topEar.setLayoutY(topY);
-                bottomEar.setLayoutX(earX); bottomEar.setLayoutY(botY);
-                earsPositioned = true;
+            double earX  = SIDEBAR_WIDTH - EAR_SIZE;
+            double extX  = SIDEBAR_WIDTH - TAB_OVERLAP;
+            double topY  = btnTop - EAR_SIZE;
+            double botY  = btnBot;
+
+            if (!tabPositioned) {
+                topEar.setLayoutX(earX);        topEar.setLayoutY(topY);
+                tabProtrusion.setLayoutX(extX); tabProtrusion.setLayoutY(btnTop);
+                bottomEar.setLayoutX(earX);     bottomEar.setLayoutY(botY);
+                tabPositioned = true;
             } else {
-                glideEar(topEar,    earX, topY);
-                glideEar(bottomEar, earX, botY);
+                glideTab(topEar,       earX, topY);
+                glideTab(tabProtrusion, extX, btnTop);
+                glideTab(bottomEar,    earX, botY);
             }
+            tabProtrusion.setPrefHeight(btnH);
         });
     }
 
-    private void glideEar(Region ear, double targetX, double targetY) {
-        double fromY = ear.getLayoutY() + ear.getTranslateY();
-        ear.setLayoutX(targetX);
-        ear.setLayoutY(targetY);
-        ear.setTranslateY(fromY - targetY);
-        TranslateTransition tt = new TranslateTransition(Duration.millis(190), ear);
+    private void glideTab(Region node, double targetX, double targetY) {
+        double fromY = node.getLayoutY() + node.getTranslateY();
+        node.setLayoutX(targetX);
+        node.setLayoutY(targetY);
+        node.setTranslateY(fromY - targetY);
+        TranslateTransition tt = new TranslateTransition(Duration.millis(190), node);
         tt.setToY(0);
         tt.setInterpolator(Interpolator.EASE_OUT);
         tt.play();

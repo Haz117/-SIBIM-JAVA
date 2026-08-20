@@ -4,10 +4,12 @@ import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ImageUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -226,8 +228,14 @@ public final class ProductoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
-        VBox dialogContent = new VBox(0, dialogHeader, tabs, lblFormError);
-        dialog.getDialogPane().setContent(dialogContent);
+        String submitLabel = isNewProduct ? "✓  Guardar bien" : "✓  Guardar cambios";
+        String submitColor = isNewProduct ? "#4F46E5" : "#059669";
+        Button btnGuardar = new Button(submitLabel);
+        btnGuardar.getStyleClass().add("form-submit-btn");
+        btnGuardar.setStyle("-fx-background-color: " + submitColor + ";");
+        btnGuardar.setMaxWidth(Double.MAX_VALUE);
+        btnGuardar.setDisable(true);
+        btnGuardar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
 
         Runnable hideFormError = () -> { lblFormError.setVisible(false); lblFormError.setManaged(false); };
         fNombre.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fNombre.getStyleClass().remove("field-error"); hideFormError.run(); });
@@ -238,16 +246,24 @@ public final class ProductoDialogFactory {
         fPrecioV.textProperty().addListener((o, a, b) -> { fPrecioV.getStyleClass().remove("field-error"); hideFormError.run(); });
 
         if (okBtn != null) {
-            Runnable checkOk = () -> okBtn.setDisable(
-                fNombre.getText().isBlank() || fCodigo.getText().isBlank()
+            Runnable checkOk = () -> {
+                boolean invalid = fNombre.getText().isBlank() || fCodigo.getText().isBlank()
                     || fArea.getValue() == null || fArea.getValue().isBlank()
-                    || fCat.getValue() == null);
+                    || fCat.getValue() == null;
+                okBtn.setDisable(invalid);
+                btnGuardar.setDisable(invalid);
+            };
             checkOk.run();
             fNombre.textProperty().addListener((o, a, b) -> checkOk.run());
             fCodigo.textProperty().addListener((o, a, b) -> checkOk.run());
             fArea.valueProperty().addListener((o, a, b) -> checkOk.run());
             fCat.valueProperty().addListener((o, a, b) -> checkOk.run());
         }
+
+        VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
+        VBox.setMargin(btnGuardar,   new Insets(4, 22, 16, 22));
+        VBox dialogContent = new VBox(0, dialogHeader, tabs, lblFormError, btnGuardar);
+        dialog.getDialogPane().setContent(dialogContent);
 
         Platform.runLater(() -> fNombre.requestFocus());
         dialog.setResultConverter(btn -> {
@@ -280,6 +296,7 @@ public final class ProductoDialogFactory {
                 lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos (ej. 1500.00).");
                 lblFormError.setVisible(true);
                 lblFormError.setManaged(true);
+                AnimationUtils.shake(lblFormError);
                 return null;
             }
 
