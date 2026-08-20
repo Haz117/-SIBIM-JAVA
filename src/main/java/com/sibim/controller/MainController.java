@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -74,6 +75,7 @@ public class MainController {
     private Timeline clock;
     private Timeline sessionGuard;
     private final ProductoService alertProductoService = new ProductoService();
+    private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     // Session inactivity timeout — 30 minutes
     private static final long INACTIVITY_TIMEOUT_MS = 30 * 60_000L;
@@ -152,6 +154,10 @@ public class MainController {
                         + "Para conectar a PostgreSQL, crea %APPDATA%\\SIBIM\\.env con DB_URL, DB_USER y DB_PASSWORD.");
             });
         }
+        // Check for soon-to-expire items once the scene is ready
+        contentArea.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene != null) checkVencidosOnStart(scene);
+        });
     }
 
     @FXML private void onDashboard()     { navigateTo("dashboard",     btnDashboard); }
@@ -208,6 +214,9 @@ public class MainController {
         if (clock        != null) clock.stop();
         if (sessionGuard != null) sessionGuard.stop();
         instance = null;
+        auditRepo.log("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
+            SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
+            "logout", "Cierre de sesión manual");
         SessionManager.logout();
         try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
     }
@@ -349,7 +358,9 @@ public class MainController {
 
     private void loadAlertBadge() {
         DialogUtil.runAsync(
-            () -> alertProductoService.getAgotados().size() + alertProductoService.getBajoStock().size(),
+            () -> alertProductoService.getAgotados().size()
+                + alertProductoService.getBajoStock().size()
+                + alertProductoService.getVencidosProximos(30).size(),
             total -> {
                 if (alertBadge == null) return;
                 if (total > 0) {
@@ -399,6 +410,9 @@ public class MainController {
         if (idle > INACTIVITY_TIMEOUT_MS) {
             log.info("Sesión cerrada por inactividad");
             inactivityWarned = false;
+            auditRepo.log("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
+                SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
+                "logout", "Cierre automático por inactividad");
             SessionManager.logout();
             try { MainApp.showLogin(); }
             catch (Exception e) { log.error("Error al cerrar sesión por inactividad", e); }
@@ -456,6 +470,9 @@ public class MainController {
                 NotificacionUtil.info(contentArea.getScene(), "Sesión extendida — bienvenido de vuelta");
             } else {
                 log.info("Usuario cerró sesión desde el aviso de inactividad");
+                auditRepo.log("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
+                    SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
+                    "logout", "Cierre de sesión desde aviso de inactividad");
                 SessionManager.logout();
                 try { MainApp.showLogin(); } catch (Exception ex) { log.error("Error al cerrar sesión", ex); }
             }
@@ -582,6 +599,18 @@ public class MainController {
 
         dlg.getDialogPane().setContent(content);
         dlg.showAndWait();
+    }
+
+    private void checkVencidosOnStart(javafx.scene.Scene scene) {
+        DialogUtil.runAsync(
+            () -> alertProductoService.getVencidosProximos(7),
+            vencidos -> {
+                if (!vencidos.isEmpty())
+                    NotificacionUtil.advertencia(scene,
+                        vencidos.size() + " bien(es) vence(n) en los próximos 7 días — revisa la sección Alertas");
+            },
+            e -> { /* silent — startup check is non-critical */ }
+        );
     }
 
     /** Called from child controllers (e.g. Alertas → Movimientos). */

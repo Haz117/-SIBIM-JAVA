@@ -2833,3 +2833,5 @@
 }
 .field-hint-ok    { -fx-text-fill: #059669; }
 .field-hint-error { -fx-text-fill: #DC2626; }
+.row-highlight-amber { -fx-background-color: #FFFBEB; }
+.col-header { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: #64748B; -fx-padding: 0 4 0 0; }

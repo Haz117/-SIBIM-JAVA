@@ -4,6 +4,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
 import com.sibim.model.Usuario;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
 
     private final UsuarioRepository usuarioRepo = new UsuarioRepository();
+    private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     private static final int    MAX_INTENTOS = 5;
     private static final long   VENTANA_MS   = 15 * 60_000L; // 15 minutos
@@ -62,6 +64,8 @@ public class AuthService {
             }
             fallidos.remove(key); // login exitoso — limpiar contadores
             SessionManager.setCurrentUser(user);
+            auditRepo.log("sesion", user.getId(), user.getNombre(), "login",
+                "Inicio de sesión — " + (DatabaseConfig.isDemoMode() ? "modo demo" : "base de datos"));
             return user;
         } catch (SQLException e) {
             throw new AuthException("No se pudo conectar al servidor. Verifica la conexión a la base de datos.");

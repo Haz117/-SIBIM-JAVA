@@ -70,6 +70,7 @@ public class ProductosController {
     @FXML private TextField searchField;
     @FXML private ComboBox<Categoria> categoriaFilter;
     @FXML private ComboBox<String> areaFilter;
+    @FXML private ComboBox<String> resguardanteFilter;
     @FXML private HBox statusChipsBar;
     @FXML private Button btnClearFilters;
     @FXML private TableView<Producto> table;
@@ -438,6 +439,14 @@ public class ProductosController {
         });
         areaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
 
+        if (resguardanteFilter != null) {
+            resguardanteFilter.setConverter(new javafx.util.StringConverter<>() {
+                public String toString(String r) { return r == null ? "Todos los resguardantes" : r; }
+                public String fromString(String s) { return null; }
+            });
+            resguardanteFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
+        }
+
         String pendingArea = NavigationContext.consumePendingAreaFilter();
         if (pendingArea != null && areaFilter.getItems().contains(pendingArea)) {
             areaFilter.setValue(pendingArea);
@@ -465,7 +474,24 @@ public class ProductosController {
         com.sibim.util.AppExecutor.submit(task);
     }
 
+    private void refreshResguardanteOptions() {
+        if (resguardanteFilter == null) return;
+        String current = resguardanteFilter.getValue();
+        List<String> options = allData.stream()
+            .map(Producto::getResguardante)
+            .filter(r -> r != null && !r.isBlank())
+            .distinct()
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .toList();
+        resguardanteFilter.getItems().setAll(new java.util.ArrayList<>());
+        resguardanteFilter.getItems().add(null);
+        resguardanteFilter.getItems().addAll(options);
+        if (current != null && resguardanteFilter.getItems().contains(current))
+            resguardanteFilter.setValue(current);
+    }
+
     private void updateStats() {
+        refreshResguardanteOptions();
         int total = allData.size();
         BigDecimal valor = allData.stream()
             .map(p -> {
@@ -508,6 +534,7 @@ public class ProductosController {
         String query = searchField.getText().toLowerCase();
         Categoria cat = categoriaFilter.getValue();
         String area = areaFilter.getValue();
+        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
         String estado = getSelectedEstado();
 
         filteredData.setAll(allData.stream()
@@ -515,9 +542,11 @@ public class ProductosController {
                 || p.getNombre().toLowerCase().contains(query)
                 || p.getCodigo().toLowerCase().contains(query)
                 || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(query))
-                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(query)))
+                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(query))
+                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(query)))
             .filter(p -> cat == null || cat.getId().equals(p.getCategoriaId()))
             .filter(p -> area == null || area.equals(p.getArea()))
+            .filter(p -> resguardante == null || resguardante.equals(p.getResguardante()))
             .filter(p -> "Todos".equals(estado) || p.getEstado().getEtiqueta().equalsIgnoreCase(estado))
             .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
             .toList());
@@ -525,7 +554,8 @@ public class ProductosController {
         currentPage = 0;
         updateTablePage();
 
-        boolean hasFilters = !query.isBlank() || cat != null || area != null || !"Todos".equals(estado);
+        boolean hasFilters = !query.isBlank() || cat != null || area != null
+            || resguardante != null || !"Todos".equals(estado);
         if (btnClearFilters != null) {
             btnClearFilters.setVisible(hasFilters);
             btnClearFilters.setManaged(hasFilters);
@@ -634,6 +664,7 @@ public class ProductosController {
         searchField.clear();
         categoriaFilter.setValue(null);
         areaFilter.setValue(null);
+        if (resguardanteFilter != null) resguardanteFilter.setValue(null);
         if (estadoChipGroup != null)
             estadoChipGroup.getToggles().stream()
                 .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
