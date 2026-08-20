@@ -17,7 +17,8 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
 - **Organigrama** — bienes distribuidos por secretaría y dirección municipal, con valor patrimonial y alertas de stock por área, y salto directo al Inventario filtrado por esa área
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área
-- **Pantalla de inicio animada** con progreso de carga y transiciones tipo cross-fade entre splash → login → sistema
+- **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo (stat cards, gráficas, banners, grillas de reportes, perfil); contadores animados de 0 al valor real en todas las pantallas; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press en tarjetas, botones de navegación y acciones rápidas; efecto shake en errores de validación de formularios
+- **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
 - **Notificaciones toast** en tiempo real
 - **Recuperación de formularios** — si falla el guardado (BD caída, validación), el diálogo se reabre con los datos ya capturados en vez de perderlos
 
@@ -121,7 +122,7 @@ SIBIM-Java/
 
 | Módulo | Descripción |
 |---|---|
-| Dashboard | Tarjetas resumen, gráfica de movimientos semanal, gráfica por categoría, barra de salud del inventario |
+| Dashboard | Tarjetas resumen, gráfica de movimientos semanal, gráfica por categoría, barra de salud del inventario, animaciones de entrada y contadores animados |
 | Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría, paginación, baja patrimonial con motivo, conteo físico y vista de bajas |
 | Movimientos | Registro de entradas/salidas/ajustes/transferencias (con reasignación real de área) con vista previa del stock resultante |
 | Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer |
