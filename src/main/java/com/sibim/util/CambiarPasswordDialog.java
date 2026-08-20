@@ -3,6 +3,7 @@ package com.sibim.util;
 import com.sibim.model.Usuario;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.service.AuthService;
+import com.sibim.util.AnimationUtils;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.geometry.Insets;
@@ -44,6 +45,24 @@ public final class CambiarPasswordDialog {
         fNueva.setPromptText("Nueva contraseña (mínimo 8 caracteres)");
         fNueva.getStyleClass().add("form-input");
 
+        Label lblStrength = new Label();
+        lblStrength.getStyleClass().add("pwd-strength-lbl");
+        lblStrength.setVisible(false);
+        lblStrength.setManaged(false);
+        fNueva.textProperty().addListener((o, a, b) -> {
+            boolean show = !b.isBlank();
+            lblStrength.setVisible(show);
+            lblStrength.setManaged(show);
+            if (!show) return;
+            int score = 0;
+            if (b.length() >= 8) score++;
+            if (b.matches(".*[0-9].*")) score++;
+            if (b.matches(".*[!@#$%^&*_\\-+=].*")) score++;
+            lblStrength.getStyleClass().removeAll("pwd-strength-weak", "pwd-strength-fair", "pwd-strength-strong");
+            lblStrength.getStyleClass().add(score == 0 ? "pwd-strength-weak" : score == 1 ? "pwd-strength-fair" : "pwd-strength-strong");
+            lblStrength.setText(score == 0 ? "Débil" : score == 1 ? "Regular" : "Fuerte");
+        });
+
         PasswordField fConfirmar = new PasswordField();
         fConfirmar.setPromptText("Confirmar contraseña");
         fConfirmar.getStyleClass().add("form-input");
@@ -55,11 +74,12 @@ public final class CambiarPasswordDialog {
         errorLbl.setWrapText(true);
 
         VBox form = new VBox(10,
-            DialogUtil.fieldLabel("Nueva contraseña *"), fNueva,
+            DialogUtil.fieldLabel("Nueva contraseña *"), fNueva, lblStrength,
             DialogUtil.fieldLabel("Confirmar contraseña *"), fConfirmar,
             errorLbl);
         form.setPadding(new Insets(18, 22, 20, 22));
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, form), 260, 70);
         dialog.getDialogPane().setContent(new VBox(header, form));
 
         Node guardarBtn = dialog.getDialogPane().lookupButton(btnGuardar);
@@ -81,11 +101,13 @@ public final class CambiarPasswordDialog {
             if (nueva.length() < 8) {
                 errorLbl.setText("La contraseña debe tener al menos 8 caracteres");
                 showError.run();
+                AnimationUtils.shake(fNueva);
                 return;
             }
             if (!nueva.equals(confirmar)) {
                 errorLbl.setText("Las contraseñas no coinciden");
                 showError.run();
+                AnimationUtils.shake(fConfirmar);
                 return;
             }
             guardarBtn.setDisable(true);

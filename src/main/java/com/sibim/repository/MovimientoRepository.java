@@ -188,7 +188,8 @@ public class MovimientoRepository {
             DemoDataStore.deleteMovimiento(movimientoId);
             return;
         }
-        String getMov = "SELECT producto_id, stock_anterior, area_origen FROM movements WHERE id = ? FOR UPDATE";
+        String getMov = "SELECT producto_id, stock_anterior, stock_nuevo, area_origen FROM movements WHERE id = ?";
+        String lockProduct = "SELECT stock_actual FROM products WHERE id = ? FOR UPDATE";
         String deleteMov = "DELETE FROM movements WHERE id = ?";
         String restoreProducto = "UPDATE products SET stock_actual = ?, area = COALESCE(?, area), updated_at = NOW() WHERE id = ?";
 
@@ -196,15 +197,22 @@ public class MovimientoRepository {
             conn.setAutoCommit(false);
             try {
                 String productoId;
-                int stockAnterior;
+                int delta;
                 String areaOrigen;
                 try (PreparedStatement ps = conn.prepareStatement(getMov)) {
                     ps.setString(1, movimientoId);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) throw new SQLException("Movimiento no encontrado: " + movimientoId);
                         productoId = rs.getString("producto_id");
-                        stockAnterior = rs.getInt("stock_anterior");
+                        delta = rs.getInt("stock_anterior") - rs.getInt("stock_nuevo");
                         areaOrigen = rs.getString("area_origen");
+                    }
+                }
+                int currentStock;
+                try (PreparedStatement ps = conn.prepareStatement(lockProduct)) {
+                    ps.setString(1, productoId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        currentStock = rs.next() ? rs.getInt("stock_actual") : 0;
                     }
                 }
                 try (PreparedStatement ps = conn.prepareStatement(deleteMov)) {
@@ -212,7 +220,7 @@ public class MovimientoRepository {
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(restoreProducto)) {
-                    ps.setInt(1, stockAnterior);
+                    ps.setInt(1, currentStock + delta);
                     ps.setString(2, areaOrigen);
                     ps.setString(3, productoId);
                     ps.executeUpdate();

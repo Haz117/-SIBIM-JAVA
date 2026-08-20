@@ -31,7 +31,7 @@ public class AuthService {
         long[] estado = fallidos.get(key);
         if (estado != null) {
             long ahora = System.currentTimeMillis();
-            if (ahora - estado[1] <= VENTANA_MS && estado[0] >= MAX_INTENTOS) {
+            if (ahora - estado[1] < VENTANA_MS && estado[0] >= MAX_INTENTOS) {
                 long mins = Math.max(1, (VENTANA_MS - (ahora - estado[1])) / 60_000 + 1);
                 throw new AuthException(
                     "Demasiados intentos fallidos. Espera " + mins + " minuto(s) antes de volver a intentar.");

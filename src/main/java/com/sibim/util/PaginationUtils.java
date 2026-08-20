@@ -21,6 +21,7 @@ public final class PaginationUtils {
                                        String singular, String plural) {
         int total = filteredData.size();
         int from = currentPage * pageSize;
+        if (from >= total && total > 0) { from = 0; currentPage = 0; }
         int to = Math.min(from + pageSize, total);
         int totalPages = Math.max(1, (int) Math.ceil((double) total / pageSize));
 

@@ -141,8 +141,10 @@ public final class DialogUtil {
     public static void commitSpinner(Spinner<Integer> spinner) {
         var vf = spinner.getValueFactory();
         if (vf == null) return;
-        Integer value = vf.getConverter().fromString(spinner.getEditor().getText());
-        if (value != null) vf.setValue(value);
+        try {
+            Integer value = vf.getConverter().fromString(spinner.getEditor().getText());
+            if (value != null) vf.setValue(value);
+        } catch (NumberFormatException ignored) {}
     }
 
     // ── Async pattern ────────────────────────────────────────────────────

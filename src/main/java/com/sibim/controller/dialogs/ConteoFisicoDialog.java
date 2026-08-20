@@ -124,9 +124,11 @@ public final class ConteoFisicoDialog {
                 return;
 
             btnFinalizar.setDisable(true);
+            btnFinalizar.setText("⏳  Guardando...");
             String motivo = "Conteo físico del " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             AppExecutor.submit(() -> {
-                int ok = 0, fail = 0;
+                int ok = 0;
+                List<String> fallidos = new ArrayList<>();
                 List<ConteoItem> items = new ArrayList<>();
                 for (Row r : rows) {
                     boolean esDiscrepancia = r.contado().getValue() != r.producto().getStockActual();
@@ -138,7 +140,7 @@ public final class ConteoFisicoDialog {
                             ajustado = true;
                             ok++;
                         } catch (Exception ex) {
-                            fail++;
+                            fallidos.add(r.producto().getNombre());
                         }
                     }
                     ConteoItem item = new ConteoItem();
@@ -169,14 +171,24 @@ public final class ConteoFisicoDialog {
                     saved = false;
                 }
 
-                int okFinal = ok, failFinal = fail;
+                int okFinal = ok;
+                List<String> fallidosFinal = List.copyOf(fallidos);
                 boolean savedFinal = saved;
                 javafx.application.Platform.runLater(() -> {
-                    String base = discrepancias.isEmpty()
-                        ? "Conteo guardado — sin diferencias en " + items.size() + " bien(es)"
-                        : okFinal + " ajuste(s) aplicado(s)" + (failFinal > 0 ? ", " + failFinal + " fallaron" : "");
+                    String base;
+                    if (discrepancias.isEmpty()) {
+                        base = "Conteo guardado — sin diferencias en " + items.size() + " bien(es)";
+                    } else if (fallidosFinal.isEmpty()) {
+                        base = okFinal + " ajuste(s) aplicado(s) correctamente";
+                    } else {
+                        String nombres = fallidosFinal.stream().limit(3)
+                            .collect(java.util.stream.Collectors.joining(", "))
+                            + (fallidosFinal.size() > 3 ? "…" : "");
+                        base = okFinal + " ajuste(s) aplicado(s), " + fallidosFinal.size()
+                            + " fallaron: " + nombres;
+                    }
                     if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
-                    if (failFinal > 0 || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
+                    if (!fallidosFinal.isEmpty() || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
                     else NotificacionUtil.exito(dialog.getDialogPane().getScene(), base);
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();
@@ -184,6 +196,7 @@ public final class ConteoFisicoDialog {
             });
         });
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, colHeaders, scroll, actions), 260, 60);
         dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll, actions));
         dialog.showAndWait();
     }

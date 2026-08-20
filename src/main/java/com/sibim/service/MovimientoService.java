@@ -54,10 +54,13 @@ public class MovimientoService {
         if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(producto.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
 
-        if (cantidad <= 0 && tipo != TipoMovimiento.AJUSTE)
-            throw new ValidationException("La cantidad debe ser mayor a cero");
-        if (tipo == TipoMovimiento.AJUSTE && cantidad <= 0)
-            throw new ValidationException("El ajuste no puede ser cero ni negativo");
+        if (tipo == TipoMovimiento.AJUSTE) {
+            if (cantidad < 0)
+                throw new ValidationException("El ajuste no puede ser negativo");
+        } else {
+            if (cantidad <= 0)
+                throw new ValidationException("La cantidad debe ser mayor a cero");
+        }
         if (tipo == TipoMovimiento.SALIDA && cantidad > producto.getStockActual())
             throw new ValidationException("La cantidad supera el stock disponible (" + producto.getStockActual() + ")");
 
@@ -91,9 +94,10 @@ public class MovimientoService {
 
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
         Optional<String> productoId = movimientoRepo.findProductoIdById(movimientoId);
-        // Non-admins are blocked if the product is inaccessible OR has been
-        // deleted (orphaned movement) — we can't verify area, so we deny.
-        if (productoId.isPresent() && !SessionManager.isAdmin()) {
+        if (!SessionManager.isAdmin()) {
+            // Orphaned movement (product deleted) — can't verify area, deny.
+            if (productoId.isEmpty())
+                throw new ValidationException("No tienes permiso para eliminar ese movimiento");
             Optional<Producto> producto = productoRepo.findById(productoId.get());
             if (producto.isEmpty() || !SessionManager.isAreaAccessible(producto.get().getArea()))
                 throw new ValidationException("No tienes acceso a esa area");

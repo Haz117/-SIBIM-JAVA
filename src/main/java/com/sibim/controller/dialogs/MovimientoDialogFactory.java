@@ -255,6 +255,7 @@ public final class MovimientoDialogFactory {
         // transfer) a destination area chosen
         if (okBtn != null) {
             Runnable validateOk = () -> {
+                DialogUtil.commitSpinner(fCantidad);
                 boolean noProduct = fProducto.getValue() == null;
                 boolean badQty = fCantidad.getValue() <= 0 && fTipo.getValue() != TipoMovimiento.AJUSTE;
                 boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
@@ -274,6 +275,7 @@ public final class MovimientoDialogFactory {
             validateOk.run();
             fProducto.valueProperty().addListener((obs, o, n) -> validateOk.run());
             fCantidad.valueProperty().addListener((obs, o, n) -> validateOk.run());
+            fCantidad.getEditor().textProperty().addListener((obs, o, n) -> validateOk.run());
             fTipo.valueProperty().addListener((obs, o, n) -> validateOk.run());
             fAreaDestino.valueProperty().addListener((obs, o, n) -> validateOk.run());
         }
@@ -298,12 +300,12 @@ public final class MovimientoDialogFactory {
 
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
         VBox.setMargin(btnRegistrar, new Insets(4, 22, 16, 22));
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, btnRegistrar), 280, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, btnRegistrar));
         Platform.runLater(() -> fProducto.requestFocus());
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
-            DialogUtil.commitSpinner(fCantidad);
             boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
             return Optional.of(new Result(fProducto.getValue(), fTipo.getValue(), fCantidad.getValue(),
                 fMotivo.getText().trim(), fRef.getText().trim(), isTransfer ? fAreaDestino.getValue() : null));

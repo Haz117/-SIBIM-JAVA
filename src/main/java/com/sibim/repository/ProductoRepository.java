@@ -220,11 +220,13 @@ public class ProductoRepository {
 
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.existsByCodigo(codigo, excludeId);
-        String sql = "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?";
+        String sql = excludeId != null
+            ? "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?"
+            : "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?)";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, codigo);
-            ps.setString(2, excludeId != null ? excludeId : "");
+            if (excludeId != null) ps.setString(2, excludeId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -244,13 +246,18 @@ public class ProductoRepository {
         if (DatabaseConfig.isDemoMode()) {
             List<Producto> all = findAll();
             LocalDate hoy = LocalDate.now();
-            long venc  = all.stream().filter(p -> p.getFechaVencimiento() != null && p.getFechaVencimiento().isBefore(hoy)).count();
-            long agot  = all.stream().filter(p -> p.getStockActual() == 0 && (p.getFechaVencimiento() == null || !p.getFechaVencimiento().isBefore(hoy))).count();
-            long bajo  = all.stream().filter(p -> p.getStockActual() > 0 && p.getStockActual() <= p.getStockMinimo() && (p.getFechaVencimiento() == null || !p.getFechaVencimiento().isBefore(hoy))).count();
-            long act   = all.size() - venc - agot - bajo;
-            BigDecimal valor = all.stream().map(Producto::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
-            long cats  = all.stream().map(Producto::getCategoriaId).filter(java.util.Objects::nonNull).distinct().count();
-            return new ProductoStats(all.size(), act, bajo, agot, venc, valor, cats);
+            long venc = 0, agot = 0, bajo = 0;
+            BigDecimal valor = BigDecimal.ZERO;
+            Set<String> catSet = new HashSet<>();
+            for (Producto p : all) {
+                boolean esVenc = p.getFechaVencimiento() != null && p.getFechaVencimiento().isBefore(hoy);
+                if (esVenc)                                             venc++;
+                else if (p.getStockActual() == 0)                      agot++;
+                else if (p.getStockActual() <= p.getStockMinimo())     bajo++;
+                valor = valor.add(p.getValorTotal());
+                if (p.getCategoriaId() != null) catSet.add(p.getCategoriaId());
+            }
+            return new ProductoStats(all.size(), all.size() - venc - agot - bajo, bajo, agot, venc, valor, catSet.size());
         }
         StringBuilder sb = new StringBuilder("""
             SELECT
