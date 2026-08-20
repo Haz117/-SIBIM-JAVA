@@ -2258,7 +2258,10 @@
    RICH STAT CARD — micro lift on hover (shadow can't override inline,
    but translate-y does lift the card)
    ═══════════════════════════════════════════════════════════════════ */
-.rich-stat-card:hover { -fx-translate-y: -3; }
+.rich-stat-card:hover {
+    -fx-translate-y: -4;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.14), 28, 0, 0, 9);
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    REPORT CARD — per-color hover glow matching their accent

@@ -26,7 +26,7 @@
 
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
     <HBox spacing="12">
-        <VBox styleClass="rich-stat-card, rich-stat-indigo"
+        <VBox fx:id="statCardAreas" styleClass="rich-stat-card, rich-stat-indigo"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
@@ -39,7 +39,7 @@
             <Label text="de la estructura municipal" styleClass="rich-stat-hint"/>
         </VBox>
 
-        <VBox styleClass="rich-stat-card, rich-stat-teal"
+        <VBox fx:id="statCardBienes" styleClass="rich-stat-card, rich-stat-teal"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
@@ -52,7 +52,7 @@
             <Label text="en todas las áreas" styleClass="rich-stat-hint"/>
         </VBox>
 
-        <VBox styleClass="rich-stat-card, rich-stat-amber"
+        <VBox fx:id="statCardTop" styleClass="rich-stat-card, rich-stat-amber"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">

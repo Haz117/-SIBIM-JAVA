@@ -31,6 +31,9 @@ public class OrganigramaController {
     @FXML private Label lblStatAreas;
     @FXML private Label lblStatBienes;
     @FXML private Label lblStatTopArea;
+    @FXML private VBox  statCardAreas;
+    @FXML private VBox  statCardBienes;
+    @FXML private VBox  statCardTop;
 
     private final ProductoRepository productoRepo = new ProductoRepository();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
@@ -48,6 +51,8 @@ public class OrganigramaController {
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
         loadData();
+        AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(statCardAreas, statCardBienes, statCardTop), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
