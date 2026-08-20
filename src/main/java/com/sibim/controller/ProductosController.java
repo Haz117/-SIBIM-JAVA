@@ -638,7 +638,7 @@ public class ProductosController {
         // the bien just stops showing up in the active inventory. Requires a
         // motivo since a baja is a formal administrative act.
         Optional<String> motivo = ConfirmacionUtil.confirmarConMotivo(
-            "🗑", "#EF4444", "#FEF2F2",
+            "🗑",
             "Dar de baja",
             "¿Dar de baja \"" + seleccionado.getNombre() + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
             "Dar de baja", true,

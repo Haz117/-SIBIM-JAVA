@@ -2296,6 +2296,9 @@
     -fx-min-width: 52; -fx-min-height: 52;
     -fx-max-width: 52; -fx-max-height: 52;
 }
+/* Default (indigo) and danger (red) badge backgrounds */
+.confirm-icon-badge-default { -fx-background-color: #EEF2FF; -fx-border-color: #6366F133; }
+.confirm-icon-badge-danger  { -fx-background-color: #FEF2F2; -fx-border-color: #EF444433; }
 .confirm-title {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
