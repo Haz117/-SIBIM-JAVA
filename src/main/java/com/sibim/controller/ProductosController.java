@@ -108,6 +108,7 @@ public class ProductosController {
     private int pageSize = 25;
     private boolean refreshing = false;
     private boolean canEdit = false;
+    private String pendingHighlightId;
     private ToggleGroup estadoChipGroup;
     private Label emptyStateMsg;
     private Label emptyStateHint;
@@ -128,6 +129,14 @@ public class ProductosController {
                 } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
                         && table.getSelectionModel().getSelectedItem() != null) {
                     onEdit(); ev.consume();
+                }
+            });
+        }
+        if (rootPane != null) {
+            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                    if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
+                    ev.consume();
                 }
             });
         }
@@ -294,12 +303,16 @@ public class ProductosController {
             @Override
             protected void updateItem(Producto p, boolean empty) {
                 super.updateItem(p, empty);
-                getStyleClass().removeAll("row-danger","row-warning","row-vencido");
-                if (!empty && p != null) switch (p.getEstado()) {
-                    case AGOTADO    -> getStyleClass().add("row-danger");
-                    case BAJO_STOCK -> getStyleClass().add("row-warning");
-                    case VENCIDO    -> getStyleClass().add("row-vencido");
-                    default -> {}
+                getStyleClass().removeAll("row-danger","row-warning","row-vencido","row-new");
+                if (!empty && p != null) {
+                    switch (p.getEstado()) {
+                        case AGOTADO    -> getStyleClass().add("row-danger");
+                        case BAJO_STOCK -> getStyleClass().add("row-warning");
+                        case VENCIDO    -> getStyleClass().add("row-vencido");
+                        default -> {}
+                    }
+                    if (p.getId() != null && p.getId().equals(pendingHighlightId))
+                        getStyleClass().add("row-new");
                 }
             }
         });
@@ -358,8 +371,16 @@ public class ProductosController {
         btnEmptyLimpiar.setVisible(false); btnEmptyLimpiar.setManaged(false);
         emptyStateHint = new Label(canEdit ? "Presiona Ctrl+N para agregar el primer bien" : "");
         emptyStateHint.getStyleClass().add("empty-state-hint");
-        VBox emptyState = new VBox(8, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
+        VBox emptyState = new VBox(12, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
         emptyState.setAlignment(Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state-pane");
+        emptyState.setMaxWidth(380);
+        emptyState.setPadding(new Insets(32, 24, 32, 24));
+        // Spring-in when placeholder becomes visible; reset transforms when hidden
+        emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
+            if (isVisible && !wasVisible) AnimationUtils.springIn(emptyState);
+            else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
+        });
         table.setPlaceholder(emptyState);
 
         // Pagination
@@ -467,6 +488,14 @@ public class ProductosController {
             cardAlertas.getStyleClass().removeAll("rich-stat-card-alert-active");
             if (alertas > 0) cardAlertas.getStyleClass().add("rich-stat-card-alert-active");
         }
+
+        // Pop the stat cards once their numbers finish counting
+        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
+        pop.setOnFinished(e -> {
+            if (statCardTotal != null) AnimationUtils.statCardPop(statCardTotal);
+            if (statCardValor != null) AnimationUtils.statCardPop(statCardValor);
+        });
+        pop.play();
     }
 
     private String getSelectedEstado() {
@@ -594,6 +623,8 @@ public class ProductosController {
         scroll.setPrefHeight(360);
         scroll.getStyleClass().add("page-scroll");
 
+        if (!list.getChildren().isEmpty())
+            AnimationUtils.staggeredFadeInUp(new java.util.ArrayList<>(list.getChildren()), 240, 40);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }
@@ -646,17 +677,33 @@ public class ProductosController {
         );
         if (motivo.isEmpty()) return;
         String nombre = seleccionado.getNombre();
-        DialogUtil.runAsync(
-            () -> productoService.darDeBaja(seleccionado.getId(), motivo.get()),
+        String idBaja = seleccionado.getId();
+        Runnable doDelete = () -> DialogUtil.runAsync(
+            () -> productoService.darDeBaja(idBaja, motivo.get()),
             () -> {
                 allData.remove(seleccionado);
                 updateStats();
                 applyFilters();
-                NotificacionUtil.exito(table.getScene(), "Bien \"" + nombre + "\" dado de baja correctamente");
+                NotificacionUtil.exitoConAccion(table.getScene(),
+                    "Bien \"" + nombre + "\" dado de baja",
+                    "↶ Deshacer",
+                    () -> DialogUtil.runAsync(
+                        () -> productoService.reactivar(idBaja),
+                        () -> { loadData(); NotificacionUtil.info(table.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
+                        e2 -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer la baja")
+                    )
+                );
             },
             e -> NotificacionUtil.error(table.getScene(),
                 e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo dar de baja el bien")
         );
+        javafx.scene.Node rowNode = table.lookup(".table-row-cell:selected");
+        if (rowNode != null) {
+            AnimationUtils.flashClass(rowNode, "row-warning", 200);
+            AnimationUtils.fadeOut(rowNode, 260, doDelete);
+        } else {
+            doDelete.run();
+        }
     }
 
     @FXML
@@ -697,8 +744,20 @@ public class ProductosController {
                     } else {
                         NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
                     }
+                    pendingHighlightId = saved.getId();
                     updateStats();
                     applyFilters();
+                    Platform.runLater(() -> {
+                        table.getSelectionModel().select(saved);
+                        int idx = table.getSelectionModel().getSelectedIndex();
+                        if (idx >= 0) table.scrollTo(idx);
+                        table.requestFocus();
+                    });
+                    new javafx.animation.Timeline(new javafx.animation.KeyFrame(
+                        javafx.util.Duration.seconds(1.8), e2 -> {
+                            pendingHighlightId = null;
+                            table.refresh();
+                        })).play();
                 },
                 e -> {
                     // Don't just show an error and drop everything the user
@@ -827,12 +886,17 @@ public class ProductosController {
         }
 
         root.getChildren().addAll(headerCard, g);
+        AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
         dialog.getDialogPane().setContent(root);
         dialog.showAndWait();
     }
 
     private void openFile(File file) {
         try { Desktop.getDesktop().open(file); }
-        catch (Exception ex) { log.warn("No se pudo abrir el archivo {}", file, ex); }
+        catch (Exception ex) {
+            log.warn("No se pudo abrir el archivo {}", file, ex);
+            if (table != null && table.getScene() != null)
+                NotificacionUtil.advertencia(table.getScene(), "Guardado en: " + file.getAbsolutePath());
+        }
     }
 }

@@ -288,45 +288,50 @@
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
-/* Active tab: left side rounded, right side OPEN/FLAT so it reads as
-   a tab that exits the sidebar into the content area — not a pill.
-   The background must match the content area (.content-area) exactly. */
+/* Active item: filled pill with strong indigo left-accent — self-contained
+   inside the sidebar, no color-matching or protrusion needed. */
 .nav-btn.nav-active,
 .nav-btn.nav-active:hover,
 .nav-btn.nav-active:focused,
 .nav-btn.nav-active:armed {
-    -fx-background-color: #EEF2F7;
-    -fx-text-fill: #4338CA;
-    -fx-font-weight: bold;
-    -fx-border-color: transparent;
-    -fx-border-width: 0;
-    -fx-background-radius: 20 0 0 20;
-    -fx-padding: 10 14 10 14;
+    -fx-background-color: rgba(99, 102, 241, 0.20);
+    -fx-text-fill: #E0E7FF;
+    -fx-font-weight: 700;
+    -fx-background-radius: 8;
+    -fx-border-color: transparent transparent transparent #6366F1;
+    -fx-border-width: 0 0 0 3;
+    -fx-border-insets: 0;
+    -fx-padding: 10 14;
+    -fx-translate-x: 0;
 }
 
-/* Flat bridge that starts TAB_OVERLAP px before the sidebar edge and extends
-   TAB_EXTENSION px into the content area. Covers sub-pixel seams at x=220. */
-.nav-tab-extension {
-    -fx-background-color: #EEF2F7;
-    -fx-background-radius: 0;
-}
-
-/* 8×8 quarter-circle corner fills — painted ABOVE and BELOW the active button
-   at the sidebar's right edge. They fill the dark corner that would otherwise
-   make the button look "floating" inside the sidebar frame.
-   Solid color (no gradient) so they're invisible rather than decorative. */
-.nav-ear-top {
-    -fx-background-color: #EEF2F7;
-    -fx-background-radius: 0 0 0 8;
-}
-.nav-ear-bottom {
-    -fx-background-color: #EEF2F7;
-    -fx-background-radius: 8 0 0 0;
-}
+/* Protrusion overlay — kept in DOM but invisible; no longer needed. */
+.nav-tab-extension { -fx-background-color: transparent; }
+.nav-ear-top       { -fx-background-color: transparent; }
+.nav-ear-bottom    { -fx-background-color: transparent; }
 
 .sidebar-divider .line {
     -fx-border-color: rgba(148,163,184,0.09);
     -fx-border-width: 0.5;
+}
+
+/* About */
+.about-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: rgba(148,163,184,0.65);
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-padding: 7 14;
+    -fx-font-size: 12px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+}
+.about-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.05);
+    -fx-text-fill: #94A3B8;
+    -fx-border-color: rgba(148,163,184,0.30);
+    -fx-border-width: 0 0 0 3;
 }
 
 /* Logout */
@@ -2557,6 +2562,103 @@
     -fx-font-family: 'Segoe UI';
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   TOOLTIP — dark modern style (overrides default)
+   ═══════════════════════════════════════════════════════════════════ */
+.tooltip {
+    -fx-background-color: #1E293B;
+    -fx-text-fill: #E2E8F0;
+    -fx-font-size: 12px;
+    -fx-background-radius: 7;
+    -fx-padding: 6 11;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 8, 0, 0, 2);
+    -fx-border-color: transparent;
+    -fx-font-weight: normal;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PROGRESS INDICATOR — brand-colored spinner
+   ═══════════════════════════════════════════════════════════════════ */
+.progress-indicator {
+    -fx-progress-color: #6366F1;
+    -fx-indeterminate-seg-count: 8;
+    -fx-spin-enabled: true;
+}
+.progress-indicator .percentage { -fx-text-fill: transparent; -fx-font-size: 0; }
+.progress-indicator .tick        { -fx-fill: #6366F1; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOAST — subtle hover lift
+   ═══════════════════════════════════════════════════════════════════ */
+.toast-box { -fx-cursor: default; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TABLE ROW FLASH — temporary highlight after save / update
+   ═══════════════════════════════════════════════════════════════════ */
+.table-row-flash { -fx-background-color: rgba(99,102,241,0.14); }
+.table-row-flash > .table-cell { -fx-background-color: transparent; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SKELETON PLACEHOLDER — shimmer loading state
+   ═══════════════════════════════════════════════════════════════════ */
+.skeleton {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #E2E8F0, #F1F5F9, #E2E8F0);
+    -fx-background-radius: 6;
+    -fx-opacity: 0.75;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NAV ACTIVE BADGE — alert count indicator refinements
+   ═══════════════════════════════════════════════════════════════════ */
+.alert-nav-badge {
+    -fx-background-color: #EF4444;
+    -fx-text-fill: white;
+    -fx-background-radius: 99;
+    -fx-font-size: 9.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1.5 5;
+    -fx-min-width: 17; -fx-min-height: 17;
+    -fx-max-width: 28;
+    -fx-alignment: CENTER;
+    -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.55), 6, 0, 0, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STAT CARD — smoother press feedback
+   ═══════════════════════════════════════════════════════════════════ */
+.stat-card-clickable:pressed,
+.rich-stat-card:pressed {
+    -fx-translate-y: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 8, 0, 0, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   EMPTY STATE — improved visibility
+   ═══════════════════════════════════════════════════════════════════ */
+.empty-state-pane {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TABLE COLUMN SORT — clearer interactive feedback
+   ═══════════════════════════════════════════════════════════════════ */
+.data-table .column-header:pressed {
+    -fx-background-color: rgba(255,255,255,0.14);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIALOG PANE — smoother backdrop
+   ═══════════════════════════════════════════════════════════════════ */
+.dialog-pane {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.20), 28, 0, 0, 10);
+}
+
 /* Version watermark */
 .splash-version {
     -fx-font-size: 10px;
@@ -2642,3 +2744,92 @@
     -fx-border-width: 1.5;
     -fx-border-radius: 8;
 }
+
+/* ── Password strength indicator ─────────────────────────────────────── */
+.pwd-strength-lbl {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 700;
+    -fx-padding: 0 2 0 2;
+}
+.pwd-strength-weak   { -fx-text-fill: #EF4444; }
+.pwd-strength-fair   { -fx-text-fill: #F59E0B; }
+.pwd-strength-strong { -fx-text-fill: #10B981; }
+
+/* ── Organigrama product rows hover ──────────────────────────────────── */
+.org-product-row:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-background-radius: 6;
+    -fx-cursor: default;
+}
+
+/* ── Dialog image box hover ──────────────────────────────────────────── */
+.dlg-img-box:hover {
+    -fx-border-color: #6366F1;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.22), 8, 0, 0, 0);
+    -fx-cursor: hand;
+}
+
+/* ── Clear-search button slide in ───────────────────────────────────── */
+.btn-clear-search {
+    -fx-opacity: 1;
+    -fx-translate-x: 0;
+}
+
+/* ── Audit log row hover ─────────────────────────────────────────────── */
+.dlg-detail-header:hover {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 8;
+    -fx-cursor: default;
+}
+
+/* ── btn-preset-active hover — keep bold indigo, don't regress to light ── */
+.btn-preset-active:hover {
+    -fx-background-color: #4F46E5;
+    -fx-text-fill: white;
+}
+.btn-preset-active:pressed { -fx-background-color: #4338CA; }
+
+/* ── Filter chip selected+hover — keep white text on colored background ── */
+.filter-chip-green:selected:hover  { -fx-background-color: #047857; -fx-text-fill: white; -fx-border-color: #047857; }
+.filter-chip-amber:selected:hover  { -fx-background-color: #B45309; -fx-text-fill: white; -fx-border-color: #B45309; }
+.filter-chip-danger:selected:hover { -fx-background-color: #B91C1C; -fx-text-fill: white; -fx-border-color: #B91C1C; }
+.filter-chip-purple:selected:hover { -fx-background-color: #6D28D9; -fx-text-fill: white; -fx-border-color: #6D28D9; }
+.filter-chip-teal:selected:hover   { -fx-background-color: #0E7490; -fx-text-fill: white; -fx-border-color: #0E7490; }
+.filter-chip:selected:hover        { -fx-background-color: #4F46E5; -fx-text-fill: white; -fx-border-color: #4F46E5; }
+
+/* ── No-alerts message wrapText support ──────────────────────────────── */
+.no-alerts { -fx-wrap-text: true; }
+
+/* ── Rich stat card alert-active hover — use amber glow ─────────────── */
+.rich-stat-card-alert-active:hover {
+    -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.45), 26, 0, 0, 8);
+}
+
+/* ── Toast action button ─────────────────────────────────────────────── */
+.toast-action-btn {
+    -fx-background-color: rgba(255,255,255,0.22);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(255,255,255,0.38);
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 3 10 3 10;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+.toast-action-btn:hover { -fx-background-color: rgba(255,255,255,0.34); }
+.toast-action-btn:pressed { -fx-background-color: rgba(255,255,255,0.45); }
+
+/* ── Inactivity countdown dialog ─────────────────────────────────────── */
+.inactivity-countdown {
+    -fx-font-size: 44px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #B45309;
+}
+
+/* ── Inline field validation hints ──────────────────────────────────── */
+.field-hint {
+    -fx-font-size: 11px;
+    -fx-padding: 1 0 0 2;
+}
+.field-hint-ok    { -fx-text-fill: #059669; }
+.field-hint-error { -fx-text-fill: #DC2626; }

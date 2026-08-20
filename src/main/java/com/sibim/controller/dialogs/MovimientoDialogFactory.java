@@ -230,10 +230,25 @@ public final class MovimientoDialogFactory {
         fTipo.valueProperty().addListener((o, a, b) -> updateLabels.run());
         fCantidad.valueProperty().addListener((o, a, b) -> updateLabels.run());
 
-        TextField fMotivo = new TextField(retryFrom != null && retryFrom.motivo() != null ? retryFrom.motivo() : "");
-        fMotivo.setPromptText("Motivo del movimiento (opcional)");
+        ComboBox<String> fMotivo = new ComboBox<>();
+        fMotivo.setEditable(true);
         fMotivo.setMaxWidth(Double.MAX_VALUE);
         fMotivo.getStyleClass().add("form-input");
+        fMotivo.setPromptText("Motivo del movimiento (opcional)");
+        Runnable refreshMotivoOptions = () -> {
+            String current = fMotivo.getEditor().getText();
+            List<String> opts = switch (fTipo.getValue()) {
+                case ENTRADA       -> List.of("Compra", "Donación", "Devolución", "Reposición", "Conteo físico");
+                case SALIDA        -> List.of("Uso institucional", "Préstamo temporal", "Deterioro", "Baja parcial");
+                case AJUSTE        -> List.of("Conteo físico", "Corrección de error", "Daño o deterioro", "Robo o extravío");
+                case TRANSFERENCIA -> List.of("Reubicación", "Préstamo entre áreas", "Reorganización");
+            };
+            fMotivo.setItems(FXCollections.observableArrayList(opts));
+            if (current != null && !current.isBlank()) fMotivo.getEditor().setText(current);
+        };
+        refreshMotivoOptions.run();
+        fTipo.valueProperty().addListener((o, a, b) -> refreshMotivoOptions.run());
+        if (retryFrom != null && retryFrom.motivo() != null) fMotivo.getEditor().setText(retryFrom.motivo());
         TextField fRef = new TextField(retryFrom != null && retryFrom.referencia() != null ? retryFrom.referencia() : "");
         fRef.setPromptText("Número de folio, documento, etc.");
         fRef.setMaxWidth(Double.MAX_VALUE);
@@ -308,7 +323,7 @@ public final class MovimientoDialogFactory {
         if (result.isPresent() && result.get() == ButtonType.OK) {
             boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
             return Optional.of(new Result(fProducto.getValue(), fTipo.getValue(), fCantidad.getValue(),
-                fMotivo.getText().trim(), fRef.getText().trim(), isTransfer ? fAreaDestino.getValue() : null));
+                fMotivo.getEditor().getText().trim(), fRef.getText().trim(), isTransfer ? fAreaDestino.getValue() : null));
         }
         return Optional.empty();
     }

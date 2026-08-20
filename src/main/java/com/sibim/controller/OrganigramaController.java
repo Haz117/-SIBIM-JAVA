@@ -78,10 +78,22 @@ public class OrganigramaController {
         int totalBienes = productosPorArea.values().stream().mapToInt(List::size).sum();
         AnimationUtils.animateCount(lblStatAreas,  productosPorArea.size(), 650);
         AnimationUtils.animateCount(lblStatBienes, totalBienes,             800);
+        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+        pop.setOnFinished(e -> {
+            if (statCardAreas  != null) AnimationUtils.statCardPop(statCardAreas);
+            if (statCardBienes != null) AnimationUtils.statCardPop(statCardBienes);
+            if (statCardTop    != null) AnimationUtils.statCardPop(statCardTop);
+        });
+        pop.play();
         productosPorArea.entrySet().stream()
             .max(Comparator.comparingInt(e -> e.getValue().size()))
             .ifPresentOrElse(
-                e -> lblStatTopArea.setText(e.getKey()),
+                e -> {
+                    String topArea = e.getKey();
+                    javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+                    delay.setOnFinished(ev -> lblStatTopArea.setText(topArea));
+                    delay.play();
+                },
                 () -> lblStatTopArea.setText("—"));
     }
 
@@ -138,11 +150,20 @@ public class OrganigramaController {
         return accessible == null || areas.stream().anyMatch(accessible::contains);
     }
 
+    private boolean matchesFilter(List<Producto> prods, String filter) {
+        return prods.stream().anyMatch(p ->
+            p.getNombre().toLowerCase().contains(filter)
+            || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(filter)));
+    }
+
     private void addAreaSection(String parentName, List<String> children, String filter, boolean expanded, Set<String> accessible) {
-        if (!filter.isBlank()
-                && !parentName.toLowerCase().contains(filter)
-                && children.stream().noneMatch(c -> c.toLowerCase().contains(filter))) {
-            return;
+        if (!filter.isBlank()) {
+            List<Producto> allAreaProdsForFilter = new java.util.ArrayList<>(
+                productosPorArea.getOrDefault(parentName, List.of()));
+            children.forEach(c -> allAreaProdsForFilter.addAll(productosPorArea.getOrDefault(c, List.of())));
+            boolean nameMatch = parentName.toLowerCase().contains(filter)
+                || children.stream().anyMatch(c -> c.toLowerCase().contains(filter));
+            if (!nameMatch && !matchesFilter(allAreaProdsForFilter, filter)) return;
         }
 
         TitledPane section = new TitledPane();
@@ -218,8 +239,8 @@ public class OrganigramaController {
         // ── Child areas as expandable mini-cards ──────────────────────
         for (String child : children) {
             if (accessible != null && !accessible.contains(child)) continue;
-            if (!filter.isBlank() && !child.toLowerCase().contains(filter)) continue;
             List<Producto> childProds = productosPorArea.getOrDefault(child, List.of());
+            if (!filter.isBlank() && !child.toLowerCase().contains(filter) && !matchesFilter(childProds, filter)) continue;
 
             boolean isMyArea = !SessionManager.isAdmin()
                 && child.equals(SessionManager.getCurrentUser().getArea());
@@ -414,6 +435,7 @@ public class OrganigramaController {
         tbl.getColumns().add(cNombre);
         tbl.getColumns().add(cStock);
         tbl.getColumns().add(cEstado);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, tbl));
         dialog.showAndWait();
     }
