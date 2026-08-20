@@ -60,6 +60,8 @@ public final class MovimientoDialogFactory {
 
         GridPane grid = DialogUtil.formGrid(128);
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
+        // The visible submit action is btnRegistrar inside the content; hide the bar's OK.
+        if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
 
         ComboBox<Producto> fProducto = new ComboBox<>(FXCollections.observableArrayList(productos));
         fProducto.setMaxWidth(Double.MAX_VALUE);

@@ -56,6 +56,8 @@ public final class ProductoDialogFactory {
             isNewProduct ? "#7C3AED" : "#047857");
 
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
+        // The visible submit action is btnGuardar inside the content; hide the bar's OK.
+        if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
 
         // ── Tab: Información General ──
         GridPane gridInfo = DialogUtil.formGrid(120);
