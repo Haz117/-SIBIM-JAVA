@@ -154,9 +154,12 @@ public class MainController {
                         + "Para conectar a PostgreSQL, crea %APPDATA%\\SIBIM\\.env con DB_URL, DB_USER y DB_PASSWORD.");
             });
         }
-        // Check for soon-to-expire items once the scene is ready
+        // Check for soon-to-expire items and new app versions once the scene is ready
         contentArea.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene != null) checkVencidosOnStart(scene);
+            if (scene != null) {
+                checkVencidosOnStart(scene);
+                checkForUpdate(scene);
+            }
         });
     }
 
@@ -611,6 +614,24 @@ public class MainController {
             },
             e -> { /* silent — startup check is non-critical */ }
         );
+    }
+
+    private void checkForUpdate(javafx.scene.Scene scene) {
+        com.sibim.util.AppExecutor.submit(() -> {
+            com.sibim.util.UpdateChecker.UpdateInfo info = com.sibim.util.UpdateChecker.checkForUpdate();
+            if (info != null) {
+                javafx.application.Platform.runLater(() ->
+                    NotificacionUtil.exitoConAccion(scene,
+                        "Nueva versión disponible: v" + info.latestVersion(),
+                        "Ver actualización",
+                        () -> {
+                            try { java.awt.Desktop.getDesktop().browse(new java.net.URI(info.releaseUrl())); }
+                            catch (Exception ex) { log.warn("No se pudo abrir el navegador", ex); }
+                        }
+                    )
+                );
+            }
+        });
     }
 
     /** Called from child controllers (e.g. Alertas → Movimientos). */

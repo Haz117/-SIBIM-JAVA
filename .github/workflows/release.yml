@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build installer & publish release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # Strip the leading 'v' from the tag (v1.2.3 → 1.2.3)
+      - name: Extract version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = '${{ github.ref_name }}'.TrimStart('v')
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+          echo "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+
+      # Stamp the version into pom.xml so the JAR manifest and app.properties
+      # reflect the real release version instead of 1.0.0-SNAPSHOT.
+      - name: Stamp version in pom.xml
+        run: mvn --batch-mode versions:set -DnewVersion=${{ steps.ver.outputs.version }} -DgenerateBackupPoms=false
+
+      # Build fat JAR (shade plugin runs during package phase)
+      - name: Build fat JAR
+        run: mvn --batch-mode --no-transfer-progress package -DskipTests
+
+      # Create self-contained app-image (no WiX required — works on every
+      # windows-latest runner regardless of WiX installation state).
+      - name: Create app-image
+        shell: pwsh
+        run: |
+          $version = '${{ steps.ver.outputs.version }}'
+          $jar = Get-ChildItem target -Filter "sibim-desktop-*.jar" |
+                 Where-Object { $_.Name -notlike "*original*" } |
+                 Sort-Object LastWriteTime -Descending |
+                 Select-Object -First 1
+          Write-Host "Fat JAR: $($jar.Name)"
+
+          $iconArg = @()
+          if (Test-Path "src\main\resources\img\icon.ico") {
+            $iconArg = "--icon", "src\main\resources\img\icon.ico"
+          }
+
+          New-Item -ItemType Directory -Force -Path "packaging\dist" | Out-Null
+
+          & "$env:JAVA_HOME\bin\jpackage.exe" `
+            --type        app-image `
+            --name        "SIBIM Desktop" `
+            --app-version $version `
+            --vendor      "H. Ayuntamiento Municipal" `
+            --description "Sistema Integral de Bienes Municipales" `
+            --input       target `
+            --main-jar    $jar.Name `
+            --main-class  com.sibim.Main `
+            --dest        packaging\dist `
+            --java-options "-Xmx512m" `
+            --java-options "-Dfile.encoding=UTF-8" `
+            @iconArg
+
+          if ($LASTEXITCODE -ne 0) { throw "jpackage failed with exit code $LASTEXITCODE" }
+
+      # Zip the app-image folder for easy distribution
+      - name: Zip app-image
+        shell: pwsh
+        run: |
+          $version = '${{ steps.ver.outputs.version }}'
+          $src  = "packaging\dist\SIBIM Desktop"
+          $dest = "packaging\dist\SIBIM-Desktop-$version-win64.zip"
+          Compress-Archive -Path $src -DestinationPath $dest -CompressionLevel Optimal
+          Write-Host "Created: $dest ($([math]::Round((Get-Item $dest).Length / 1MB, 1)) MB)"
+
+      # Publish GitHub Release and attach the zip
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: SIBIM Desktop ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: packaging/dist/SIBIM-Desktop-*.zip
+          fail_on_unmatched_files: true

@@ -4,6 +4,7 @@ module com.sibim {
     requires javafx.swing;
 
     requires java.sql;
+    requires java.net.http;
     requires com.zaxxer.hikari;
     requires org.postgresql.jdbc;
 

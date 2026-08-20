@@ -122,6 +122,24 @@
     </dependencies>
 
     <build>
+        <!-- Inject ${project.version} into app.properties at build time;
+             leave all other resources unfiltered (avoids mangling binary files). -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>app.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>app.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <!-- JavaFX Maven plugin -->
             <plugin>
@@ -168,6 +186,17 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
+            </plugin>
+
+            <!-- Allows `mvn versions:set -DnewVersion=X.Y.Z` used by the CD pipeline
+                 to stamp the release version into pom.xml before building. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.17.1</version>
+                <configuration>
+                    <generateBackupPoms>false</generateBackupPoms>
+                </configuration>
             </plugin>
 
             <!-- JUnit 5 runner; useModulePath=false runs tests in the unnamed
