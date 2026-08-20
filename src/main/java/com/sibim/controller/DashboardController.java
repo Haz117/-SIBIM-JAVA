@@ -55,6 +55,9 @@ public class DashboardController {
     @FXML private GridPane statsGrid;
     @FXML private TableView<Movimiento> tablaReciente;
     @FXML private Label lblCountReciente;
+    @FXML private VBox  dashBanner;
+    @FXML private HBox  chartsRow;
+    @FXML private VBox  activityCard;
 
     private final ProductoRepository productoRepo     = new ProductoRepository();
     private final MovimientoRepository movimientoRepo = new MovimientoRepository();
@@ -84,7 +87,10 @@ public class DashboardController {
                                 javafx.scene.Scene old, javafx.scene.Scene newScene) {
                 if (newScene != null) {
                     statsGrid.sceneProperty().removeListener(this);
-                    AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(), 280, 45);
+                    if (dashBanner   != null) AnimationUtils.fadeInDown(dashBanner,   340,   0);
+                    AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(),          280,  45);
+                    if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,       300, 120);
+                    if (activityCard != null) AnimationUtils.fadeInUp(activityCard,    300, 180);
                     loadDataAsync();
                 }
             }
@@ -211,6 +217,7 @@ public class DashboardController {
 
         healthSection.setVisible(true);
         healthSection.setManaged(true);
+        AnimationUtils.fadeInUp(healthSection, 320, 0);
 
         // Reveal bar from left to right once layout finishes (two pulses away).
         javafx.application.Platform.runLater(() ->

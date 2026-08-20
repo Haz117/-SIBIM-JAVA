@@ -13,7 +13,7 @@
     <!-- ══════════════════════════════════════════════════════════
          WELCOME BANNER
          ══════════════════════════════════════════════════════════ -->
-    <VBox styleClass="dashboard-banner" spacing="0">
+    <VBox fx:id="dashBanner" styleClass="dashboard-banner" spacing="0">
         <padding><Insets top="24" right="28" bottom="0" left="28"/></padding>
 
         <!-- Greeting row -->
@@ -235,7 +235,7 @@
     </HBox>
 
     <!-- Charts row -->
-    <HBox spacing="14">
+    <HBox fx:id="chartsRow" spacing="14">
         <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
             <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
@@ -279,7 +279,7 @@
     </HBox>
 
     <!-- Recent activity table inside a card -->
-    <VBox styleClass="card" spacing="0">
+    <VBox fx:id="activityCard" styleClass="card" spacing="0">
         <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table recent-table">
             <placeholder>
                 <VBox alignment="CENTER" spacing="8">
