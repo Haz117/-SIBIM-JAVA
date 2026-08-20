@@ -64,7 +64,6 @@ public final class CambiarPasswordDialog {
 
         Node guardarBtn = dialog.getDialogPane().lookupButton(btnGuardar);
         guardarBtn.getStyleClass().add("dialog-ok-btn");
-        guardarBtn.setStyle("-fx-background-color: #6366F1;");
 
         Runnable hideError = () -> { errorLbl.setVisible(false); errorLbl.setManaged(false); };
         Runnable showError = () -> {

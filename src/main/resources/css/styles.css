@@ -2306,13 +2306,18 @@
     -fx-text-fill: #475569;
 }
 .confirm-ok-btn {
+    -fx-background-color: #6366F1;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-padding: 8 22;
 }
-.confirm-ok-btn:hover  { -fx-opacity: 0.88; }
+.confirm-ok-btn:hover   { -fx-background-color: #4F46E5; }
+.confirm-ok-btn:pressed { -fx-background-color: #4338CA; -fx-translate-y: 1; }
+.confirm-ok-btn-danger          { -fx-background-color: #EF4444; }
+.confirm-ok-btn-danger:hover    { -fx-background-color: #DC2626; }
+.confirm-ok-btn-danger:pressed  { -fx-background-color: #B91C1C; -fx-translate-y: 1; }
 .confirm-cancel-btn {
     -fx-background-color: white;
     -fx-text-fill: #374151;
@@ -2391,16 +2396,20 @@
 .toast-info .toast-close    { -fx-text-fill: #1E1B4B; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   DIALOG OK BUTTON — base style; color set inline per dialog
+   DIALOG OK BUTTON — base style; color variants applied via CSS class
    ═══════════════════════════════════════════════════════════════════ */
 .dialog-ok-btn {
+    -fx-background-color: #6366F1;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-padding: 8 22;
 }
-.dialog-ok-btn:hover { -fx-opacity: 0.88; }
+.dialog-ok-btn:hover        { -fx-background-color: #4F46E5; }
+.dialog-ok-btn:pressed      { -fx-background-color: #4338CA; -fx-translate-y: 1; }
+.dialog-ok-btn-danger       { -fx-background-color: #EF4444; }
+.dialog-ok-btn-danger:hover { -fx-background-color: #DC2626; }
 
 /* Prominent in-form submit button — always visible, fires the hidden OK */
 .form-submit-btn {

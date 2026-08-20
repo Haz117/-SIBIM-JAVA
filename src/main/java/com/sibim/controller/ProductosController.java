@@ -641,7 +641,7 @@ public class ProductosController {
             "🗑", "#EF4444", "#FEF2F2",
             "Dar de baja",
             "¿Dar de baja \"" + seleccionado.getNombre() + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
-            "Dar de baja", "#EF4444",
+            "Dar de baja", true,
             "Motivo de la baja (obligatorio)"
         );
         if (motivo.isEmpty()) return;
