@@ -7,7 +7,10 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
+import javafx.util.Callback;
+
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Shared utilities for styled dialogs across the application.
@@ -16,6 +19,31 @@ import java.util.function.Consumer;
 public final class DialogUtil {
 
     private DialogUtil() {}
+
+    // ── Table cell factories ─────────────────────────────────────────────
+
+    /** Builds a TableCell factory that renders a String column value as a
+     *  "cell-badge" pill, colored by {@code cssClassOf(value)} (e.g.
+     *  "cell-badge-success"). Shared by every status/type/role column across
+     *  the app so the badge cell markup and CSS-class swap logic live in one
+     *  place instead of being copy-pasted per controller. */
+    public static <S> Callback<TableColumn<S, String>, TableCell<S, String>> badgeCellFactory(
+            Function<String, String> cssClassOf) {
+        return col -> new TableCell<>() {
+            private final Label badge = new Label();
+            { badge.getStyleClass().add("cell-badge"); }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(null); setText(null);
+                if (empty || item == null) return;
+                badge.setText(item);
+                badge.getStyleClass().removeIf(c -> c.startsWith("cell-badge-"));
+                badge.getStyleClass().add(cssClassOf.apply(item));
+                setGraphic(badge);
+            }
+        };
+    }
 
     // ── Dialog creation ──────────────────────────────────────────────────
 

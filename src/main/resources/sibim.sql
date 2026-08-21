@@ -1,7 +1,23 @@
 -- ============================================================
 -- SIBIM Desktop - Schema SQL (compatible con el schema de Supabase)
 -- Ejecuta este script en tu PostgreSQL local si no tienes Supabase
+--
+-- Este script es seguro de volver a correr contra una base de datos
+-- existente (CREATE TABLE IF NOT EXISTS + el bloque DO $$ ... ALTER TABLE
+-- IF NOT EXISTS al final agrega columnas nuevas sin tocar las existentes).
+-- No hay una herramienta de migraciones (Flyway/Liquibase) — schema_version
+-- abajo es solo un registro simple de qué versión de este script se aplicó
+-- por última vez a esta base de datos, para poder auditarlo a mano.
 -- ============================================================
+
+CREATE TABLE IF NOT EXISTS schema_version (
+    version     INTEGER PRIMARY KEY,
+    applied_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    descripcion TEXT
+);
+INSERT INTO schema_version (version, descripcion) VALUES
+    (1, 'Esquema inicial: users, categories, products, movements, audit_log, conteos')
+ON CONFLICT (version) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS users (
     id          TEXT PRIMARY KEY,

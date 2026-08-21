@@ -139,7 +139,14 @@ public class LoginController {
             @Override protected void succeeded() {
                 setLoading(false);
                 Usuario user = SessionManager.getCurrentUser();
-                if (user != null && user.isDebeCambiarPassword()) {
+                // Can't push a password change anywhere while offline (user
+                // management isn't in the sync scope — see the offline-mode
+                // plan), so the mandatory dialog is deferred rather than
+                // shown against a change that would just be lost. The
+                // account keeps its known temporary password until they log
+                // in again with a real connection.
+                boolean canChangePassword = !com.sibim.db.DatabaseConfig.isOfflineMode();
+                if (user != null && user.isDebeCambiarPassword() && canChangePassword) {
                     CambiarPasswordDialog.mostrarObligatorio(user,
                         () -> {
                             try { MainApp.showMain(); }

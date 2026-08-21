@@ -93,7 +93,15 @@ public class NotificacionUtil {
             new ParallelTransition(fadeIn, slideIn), pause, fadeOut);
         seq.play();
 
+        // Guards against a fast double-click: without it, a second click
+        // during the 150ms quickFade below re-enters this handler and plays
+        // a second fade whose onFinished decrements activeToasts a second
+        // time for the same toast, throwing off the vertical stacking
+        // offset of whichever toasts show next.
+        boolean[] closing = { false };
         closeBtn.setOnMouseClicked(e -> {
+            if (closing[0]) return;
+            closing[0] = true;
             seq.stop();
             FadeTransition quickFade = new FadeTransition(Duration.millis(150), box);
             quickFade.setFromValue(box.getOpacity()); quickFade.setToValue(0);

@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.service.ProductoService;
+import com.sibim.session.SessionManager;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -75,11 +76,22 @@ public class AlertasController {
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
         autoRefresh.play();
+
+        // These buttons register real ENTRADA movements (via
+        // openMovimientoForm -> MovimientosController.showMovimientoDialog),
+        // the same write action "Nuevo Movimiento" gates in Movimientos —
+        // without this they were reachable by any logged-in user, including
+        // DIRECCION, who can't even see "Nuevo Movimiento" there.
+        boolean canWrite = SessionManager.isAdmin() || SessionManager.isSecretario();
+        if (btnReponerTodos != null) { btnReponerTodos.setVisible(canWrite); btnReponerTodos.setManaged(canWrite); }
+        if (btnReponerAgotado != null) { btnReponerAgotado.setVisible(canWrite); btnReponerAgotado.setManaged(canWrite); }
+        if (btnReponerBajoStock != null) { btnReponerBajoStock.setVisible(canWrite); btnReponerBajoStock.setManaged(canWrite); }
+
         tableAgotados.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
-            if (btnReponerAgotado != null) btnReponerAgotado.setDisable(s == null);
+            if (btnReponerAgotado != null && canWrite) btnReponerAgotado.setDisable(s == null);
         });
         tableBajoStock.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
-            if (btnReponerBajoStock != null) btnReponerBajoStock.setDisable(s == null);
+            if (btnReponerBajoStock != null && canWrite) btnReponerBajoStock.setDisable(s == null);
         });
 
         if (searchField != null) {

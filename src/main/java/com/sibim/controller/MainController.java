@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.SyncService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -62,6 +63,8 @@ public class MainController {
     private Button activeButton;
     private Object currentController;
     private final ProductoService alertProductoService = new ProductoService();
+    private Timeline badgeRefresh;
+    private Timeline clock;
 
     // Only one MainController is ever active at a time — this lets child
     // views loaded into contentArea (e.g. Organigrama) trigger navigation
@@ -72,6 +75,18 @@ public class MainController {
 
     /** The controller for whatever view is currently loaded into contentArea. */
     public Object getCurrentController() { return currentController; }
+
+    /** Used by SyncService to route toasts to the right Scene from a
+     *  background poll, where it has no Node of its own to hang one off of. */
+    public javafx.scene.Scene getContentAreaScene() { return contentArea.getScene(); }
+
+    /** Called by SyncService once every queued offline change has been
+     *  synced, so whatever screen the user is looking at reflects the
+     *  server's state instead of the stale offline snapshot it loaded with. */
+    public void refreshCurrentViewAfterSync() {
+        refreshCurrentView();
+        updateStatusBar();
+    }
 
     @FXML
     public void initialize() {
@@ -91,12 +106,12 @@ public class MainController {
             if (scene != null) setupKeyboardShortcuts(scene);
         });
         // Refresh badge every 3 minutes
-        Timeline badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> loadAlertBadge()));
+        badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> { loadAlertBadge(); updateStatusBar(); }));
         badgeRefresh.setCycleCount(Timeline.INDEFINITE);
         badgeRefresh.play();
         // Status bar
         updateStatusBar();
-        Timeline clock = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateStatusTime()));
+        clock = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateStatusTime()));
         clock.setCycleCount(Timeline.INDEFINITE);
         clock.play();
     }
@@ -113,8 +128,20 @@ public class MainController {
     @FXML
     private void onLogout() {
         if (!ConfirmacionUtil.confirmar("Cerrar sesión", "¿Deseas cerrar tu sesión?")) return;
+        stopTimers();
         SessionManager.logout();
         try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
+    }
+
+    /** Stops the recurring Timelines owned by this controller (and any
+     *  running in the currently loaded child view) so they don't keep
+     *  firing — and keeping this whole controller tree alive — after the
+     *  user logs out. JavaFX's animation engine holds a running Timeline
+     *  alive on its own, independent of Java reachability. */
+    private void stopTimers() {
+        if (badgeRefresh != null) badgeRefresh.stop();
+        if (clock != null) clock.stop();
+        if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
     }
 
     private static final double ACTIVE_PILL_OFFSET_X = 8;
@@ -205,10 +232,14 @@ public class MainController {
             statusUserLabel.setText(SessionManager.getCurrentUser().getNombre() +
                 "  ·  " + SessionManager.getCurrentUser().getRol().getEtiqueta());
         if (statusDbLabel != null) {
+            boolean offline = DatabaseConfig.isOfflineMode();
             boolean demo = DatabaseConfig.isDemoMode();
-            statusDbLabel.setText(demo ? "⬤  Modo demo" : "⬤  Base de datos conectada");
+            String text = offline
+                ? "⬤  Modo offline · " + SyncService.pendingCount() + " pendiente(s)"
+                : demo ? "⬤  Modo demo" : "⬤  Base de datos conectada";
+            statusDbLabel.setText(text);
             statusDbLabel.getStyleClass().removeAll("status-dot-ok", "status-dot-demo");
-            statusDbLabel.getStyleClass().add(demo ? "status-dot-demo" : "status-dot-ok");
+            statusDbLabel.getStyleClass().add((demo || offline) ? "status-dot-demo" : "status-dot-ok");
         }
         updateStatusTime();
     }

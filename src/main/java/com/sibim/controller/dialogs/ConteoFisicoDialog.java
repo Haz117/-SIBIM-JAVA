@@ -3,7 +3,6 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.model.Producto;
-import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
@@ -16,6 +15,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -31,9 +32,18 @@ import java.util.List;
  *  an audited movement, not a silent stock edit). */
 public final class ConteoFisicoDialog {
 
+    private static final Logger log = LoggerFactory.getLogger(ConteoFisicoDialog.class);
+
     private ConteoFisicoDialog() {}
 
     private record Row(Producto producto, Spinner<Integer> contado) {}
+
+    /** Immutable snapshot of a Row's spinner value, captured on the FX
+     *  thread before the background save starts — the save loop must never
+     *  touch a live Spinner itself (JavaFX scene nodes aren't thread-safe to
+     *  read from a background thread, and the row stays interactive/visible
+     *  while the loop runs unless disabled, which it now is — see below). */
+    private record Captured(Producto producto, int contado) {}
 
     public static void show(List<Producto> productos, MovimientoService movimientoService, Runnable onReconciled) {
         Dialog<ButtonType> dialog = new Dialog<>();
@@ -120,21 +130,38 @@ public final class ConteoFisicoDialog {
                 return;
 
             btnFinalizar.setDisable(true);
+            // Freeze every row so the background save loop below never has
+            // to read a live Spinner from a non-FX thread, and so what the
+            // user sees on screen while the save is running can't drift
+            // from what's actually being persisted.
+            List<Captured> snapshot = new ArrayList<>();
+            for (Row r : rows) {
+                r.contado().setDisable(true);
+                snapshot.add(new Captured(r.producto(), r.contado().getValue()));
+            }
             String motivo = "Conteo físico del " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             new Thread(() -> {
                 int ok = 0, fail = 0;
+                List<String> fallidos = new ArrayList<>();
                 List<ConteoItem> items = new ArrayList<>();
-                for (Row r : rows) {
-                    boolean esDiscrepancia = r.contado().getValue() != r.producto().getStockActual();
+                for (Captured r : snapshot) {
+                    boolean esDiscrepancia = r.contado() != r.producto().getStockActual();
                     boolean ajustado = false;
                     if (esDiscrepancia) {
                         try {
-                            movimientoService.registrar(r.producto().getId(), TipoMovimiento.AJUSTE,
-                                r.contado().getValue(), motivo, "Conteo físico");
+                            // Verified against the DB-fresh stock under lock — if
+                            // another movement changed this product's stock since
+                            // the count started, the adjustment is rejected instead
+                            // of silently overwriting it (see registrarAjusteVerificado).
+                            movimientoService.registrarAjusteVerificado(r.producto().getId(),
+                                r.contado(), motivo, "Conteo físico", r.producto().getStockActual());
                             ajustado = true;
                             ok++;
                         } catch (Exception ex) {
                             fail++;
+                            fallidos.add(r.producto().getNombre());
+                            log.error("No se pudo aplicar el ajuste de conteo físico para '{}' (id={})",
+                                r.producto().getNombre(), r.producto().getId(), ex);
                         }
                     }
                     ConteoItem item = new ConteoItem();
@@ -142,7 +169,7 @@ public final class ConteoFisicoDialog {
                     item.setProductoNombre(r.producto().getNombre());
                     item.setArea(r.producto().getArea());
                     item.setStockSistema(r.producto().getStockActual());
-                    item.setStockContado(r.contado().getValue());
+                    item.setStockContado(r.contado());
                     item.setAjustado(ajustado);
                     items.add(item);
                 }
@@ -163,6 +190,7 @@ public final class ConteoFisicoDialog {
                     new ConteoRepository().guardar(conteo);
                 } catch (Exception ex) {
                     saved = false;
+                    log.error("No se pudo guardar el registro del conteo físico", ex);
                 }
 
                 int okFinal = ok, failFinal = fail;
@@ -172,6 +200,7 @@ public final class ConteoFisicoDialog {
                         ? "Conteo guardado — sin diferencias en " + items.size() + " bien(es)"
                         : okFinal + " ajuste(s) aplicado(s)" + (failFinal > 0 ? ", " + failFinal + " fallaron" : "");
                     if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
+                    if (!fallidos.isEmpty()) base += " — falló en: " + String.join(", ", fallidos);
                     if (failFinal > 0 || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
                     else NotificacionUtil.exito(dialog.getDialogPane().getScene(), base);
                     if (onReconciled != null) onReconciled.run();

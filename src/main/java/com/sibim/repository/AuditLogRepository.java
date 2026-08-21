@@ -12,6 +12,19 @@ import java.util.UUID;
 
 public class AuditLogRepository {
 
+    // Mirrors CategoriaRepository/UsuarioRepository's pattern: the audit
+    // trail spans every area, not just the caller's own, so unlike
+    // ProductoRepository/MovimientoRepository there's no per-area filter
+    // that would naturally scope it down — only an explicit admin-only
+    // check does. Until this was added, findAll() had no protection of its
+    // own; ConfiguracionController only reached it from a button hidden for
+    // non-admins, which is UI-only gating, not real access control.
+    private void requireAdmin() {
+        if (!SessionManager.isAdmin()) {
+            throw new SecurityException("Solo el administrador puede consultar la auditoría");
+        }
+    }
+
     /** Records one audit entry for the CURRENT session's user. Failures here
      *  are logged but never thrown — a broken audit write must not block the
      *  actual operation being audited (e.g. saving a producto). */
@@ -60,6 +73,7 @@ public class AuditLogRepository {
     }
 
     public List<AuditLog> findAll(int limit) throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAuditLog(limit);
         String sql = "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT ?";
         List<AuditLog> list = new ArrayList<>();

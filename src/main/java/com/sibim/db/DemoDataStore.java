@@ -10,6 +10,13 @@ import java.util.stream.Collectors;
 
 public final class DemoDataStore {
 
+    // Synchronized: every demo-mode repository call runs on its own
+    // background Thread (see DialogUtil.runAsync, used throughout the
+    // controllers), so two screens hitting these lists at nearly the same
+    // moment (e.g. a save while the Dashboard refreshes) could otherwise
+    // race on a plain ArrayList and throw ConcurrentModificationException
+    // or corrupt iteration — the real Postgres path is already protected
+    // by row locks, demo mode needs its own equivalent.
     private static final List<Usuario>   USUARIOS;
     private static final List<Categoria> CATEGORIAS;
     private static final List<Producto>  PRODUCTOS;
@@ -18,7 +25,7 @@ public final class DemoDataStore {
     private static final List<ConteoFisico> CONTEOS = Collections.synchronizedList(new ArrayList<>());
 
     static {
-        USUARIOS = new ArrayList<>(List.of(
+        USUARIOS = Collections.synchronizedList(new ArrayList<>(List.of(
             new Usuario("u-admin", "superusuario",
                 "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj1o.FxRzFNS",
                 "Administrador del Sistema", "Superusuario", Rol.ADMIN, null, LocalDateTime.now()),
@@ -30,22 +37,22 @@ public final class DemoDataStore {
                 "$2a$12$n8TWbDFZ2F/Q3VdTHxuvTO.7OP7f/bJYKMXPJRb5LTkmHlKxhALiu",
                 "Director de Ejemplo", "Director de Recursos Humanos",
                 Rol.DIRECCION, "Direccion de Recursos Humanos", LocalDateTime.now())
-        ));
+        )));
         // Demo/seed accounts always start with a known default password —
         // force the "cambiar contraseña" flow on first login, same as a
         // real deployment would via debe_cambiar_password in Postgres.
         USUARIOS.forEach(u -> u.setDebeCambiarPassword(true));
 
-        CATEGORIAS = new ArrayList<>(List.of(
+        CATEGORIAS = Collections.synchronizedList(new ArrayList<>(List.of(
             new Categoria("cat-mob",  "Mobiliario",               "Escritorios, sillas, archiveros",        "#8B5CF6", "Armchair",    LocalDateTime.now()),
             new Categoria("cat-veh",  "Vehiculos",                "Flota vehicular municipal",               "#3B82F6", "Car",         LocalDateTime.now()),
             new Categoria("cat-comp", "Equipo de Computo",        "Laptops, computadoras, perifericos",      "#10B981", "Laptop",      LocalDateTime.now()),
             new Categoria("cat-ofi",  "Equipo de Oficina",        "Impresoras, copiadoras",                  "#F59E0B", "Printer",     LocalDateTime.now()),
             new Categoria("cat-maq",  "Herramientas y Maquinaria","Maquinaria pesada y herramientas",        "#EF4444", "Wrench",      LocalDateTime.now()),
             new Categoria("cat-av",   "Equipo Audiovisual",       "Camaras, proyectores, pantallas",         "#EC4899", "VideoCamera", LocalDateTime.now())
-        ));
+        )));
 
-        PRODUCTOS = new ArrayList<>(List.of(
+        PRODUCTOS = Collections.synchronizedList(new ArrayList<>(List.of(
             prod("p-01","Escritorio ejecutivo de madera", "MB-001","cat-mob","Mobiliario",            "#8B5CF6", 4500,  5000, 18,5,30,UnidadMedida.PIEZA,  "Secretaria General Municipal"),
             prod("p-02","Silla ejecutiva ergonomica",    "MB-002","cat-mob","Mobiliario",            "#8B5CF6", 3200,  3800,  6,8,40,UnidadMedida.PIEZA,  "Direccion de Recursos Humanos"),
             prod("p-03","Archivero metalico 4 gavetas",  "MB-003","cat-mob","Mobiliario",            "#8B5CF6", 2800,  3200,  0,3,20,UnidadMedida.PIEZA,  "Secretaria General Municipal"),
@@ -54,14 +61,14 @@ public final class DemoDataStore {
             prod("p-06","Impresora multifuncional Epson","EO-001","cat-ofi","Equipo de Oficina",     "#F59E0B",  8500,  9500, 2,2,10,UnidadMedida.EQUIPO, "Secretaria General Municipal"),
             prod("p-07","Retroexcavadora CAT 420",       "HM-001","cat-maq","Herramientas y Maquinaria","#EF4444",850000,900000,1,1,3,UnidadMedida.UNIDAD,"Secretaria de Obras Publicas y Desarrollo Urbano"),
             prod("p-08","Camara de videovigilancia PTZ", "AV-001","cat-av","Equipo Audiovisual",     "#EC4899",  4800,  5500,22,5,50,UnidadMedida.PIEZA,  "Secretaria de Seguridad Publica Municipal")
-        ));
+        )));
 
         Map<String, Long> counts = PRODUCTOS.stream()
             .collect(Collectors.groupingBy(Producto::getCategoriaId, Collectors.counting()));
         CATEGORIAS.forEach(c -> c.setTotalProductos(counts.getOrDefault(c.getId(), 0L).intValue()));
 
         // Demo movimientos — últimos 7 días para popular el gráfico del Dashboard
-        MOVIMIENTOS = new ArrayList<>(List.of(
+        MOVIMIENTOS = Collections.synchronizedList(new ArrayList<>(List.of(
             mov("m-01","p-05","Laptop Dell Latitude 5440","#10B981",
                 TipoMovimiento.ENTRADA, 5, 7, 12,
                 "Compra de reposicion","OC-2026-001",
@@ -90,7 +97,7 @@ public final class DemoDataStore {
                 TipoMovimiento.TRANSFERENCIA, 2, 12, 10,
                 "Transferencia a Planeacion","TRF-2026-001",
                 "u-admin","Administrador del Sistema", LocalDateTime.now().withHour(8))
-        ));
+        )));
 
         // Sincronizar stocks tras movimientos demo (estado final coherente con el historial)
         PRODUCTOS.stream().filter(p -> p.getId().equals("p-03"))
@@ -322,21 +329,74 @@ public final class DemoDataStore {
             .findFirst();
     }
 
-    public static void addMovimiento(Movimiento m) {
-        if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
-            m.setAreaOrigen(areaOfProducto(m.getProductoId()));
-            updateProductoArea(m.getProductoId(), m.getAreaDestino());
-        }
-        MOVIMIENTOS.add(0, m);
-        updateProductoStock(m.getProductoId(), m.getStockNuevo());
+    /** Lock guarding the read-recompute-write sequence below — mirrors what
+     *  {@code SELECT ... FOR UPDATE} does for the real Postgres path in
+     *  MovimientoRepository#addMovimientoAtomic. Without it, two concurrent
+     *  registrations on the same product (each running on its own
+     *  background Thread — see DialogUtil.runAsync) could both read the
+     *  same stale stock and independently compute a "new" value, silently
+     *  losing one of the two updates. */
+    private static final Object STOCK_LOCK = new Object();
+
+    public static void addMovimiento(Movimiento m) throws java.sql.SQLException {
+        addMovimiento(m, null);
     }
 
-    public static void deleteMovimiento(String id) {
-        MOVIMIENTOS.stream().filter(m -> m.getId().equals(id)).findFirst().ifPresent(m -> {
+    /** @param expectedStockAnterior see MovimientoRepository#addMovimientoAtomic(Movimiento, Integer) —
+     *  same "reject instead of overwrite a stale AJUSTE" contract, checked
+     *  here atomically inside the same lock as the read+write below (not
+     *  as a separate pre-check, which would leave a race window). */
+    public static void addMovimiento(Movimiento m, Integer expectedStockAnterior) throws java.sql.SQLException {
+        synchronized (STOCK_LOCK) {
+            Optional<Producto> opt = findProductoById(m.getProductoId());
+            if (opt.isEmpty()) throw new java.sql.SQLException("Producto no encontrado: " + m.getProductoId());
+            int stockActual = opt.get().getStockActual();
+
+            if (expectedStockAnterior != null && stockActual != expectedStockAnterior) {
+                throw new java.sql.SQLException("El stock cambió desde que se capturó el conteo (esperado "
+                    + expectedStockAnterior + ", actual " + stockActual + ") — no se aplicó el ajuste.");
+            }
+
+            if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual) {
+                throw new java.sql.SQLException("La cantidad supera el stock disponible (" + stockActual + ")");
+            }
+
+            int stockNuevo = com.sibim.util.ProductoUtils.calcularStockNuevo(
+                m.getTipo().getCodigo(), stockActual, m.getCantidad());
+            m.setStockAnterior(stockActual);
+            m.setStockNuevo(stockNuevo);
+
+            if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
+                m.setAreaOrigen(opt.get().getArea());
+                updateProductoArea(m.getProductoId(), m.getAreaDestino());
+            }
+            MOVIMIENTOS.add(0, m);
+            updateProductoStock(m.getProductoId(), stockNuevo);
+        }
+    }
+
+    /** Mirrors the "only the most recent movement can be deleted" rule
+     *  enforced by MovimientoRepository#deleteMovimientoAtomic against a
+     *  real DB — restoring stock_anterior blindly would be wrong here too
+     *  if a later movement for the same product exists (MOVIMIENTOS is
+     *  ordered newest-first, see addMovimiento). */
+    public static void deleteMovimiento(String id) throws java.sql.SQLException {
+        synchronized (STOCK_LOCK) {
+            Optional<Movimiento> found = MOVIMIENTOS.stream().filter(m -> m.getId().equals(id)).findFirst();
+            if (found.isEmpty()) throw new java.sql.SQLException("Movimiento no encontrado: " + id);
+            Movimiento m = found.get();
+            int idx = MOVIMIENTOS.indexOf(m);
+            boolean hasNewer = MOVIMIENTOS.subList(0, idx).stream()
+                .anyMatch(other -> other.getProductoId().equals(m.getProductoId()));
+            if (hasNewer) {
+                throw new java.sql.SQLException(
+                    "Solo se puede eliminar el movimiento mas reciente de este producto: "
+                    + "existen movimientos registrados despues de este.");
+            }
             MOVIMIENTOS.remove(m);
             updateProductoStock(m.getProductoId(), m.getStockAnterior());
             if (m.getAreaOrigen() != null) updateProductoArea(m.getProductoId(), m.getAreaOrigen());
-        });
+        }
     }
 
     // ── Factory helpers ───────────────────────────────────────────────────

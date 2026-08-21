@@ -2,6 +2,7 @@ package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
+import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.session.SessionManager;
@@ -29,6 +30,10 @@ public class ProductoRepository {
     /** @param incluirBaja true to also include bienes formally decommissioned
      *  (soft-deleted) — used only by the "dados de baja" history view. */
     public List<Producto> findAll(boolean incluirBaja) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) {
+            List<Producto> all = OfflineStore.findAllProductos(SessionManager.getAccessibleAreas());
+            return incluirBaja ? all : all.stream().filter(p -> !p.isDadoDeBaja()).toList();
+        }
         if (DatabaseConfig.isDemoMode()) {
             List<Producto> all = DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
             return incluirBaja ? all : all.stream().filter(p -> !p.isDadoDeBaja()).toList();
@@ -48,8 +53,10 @@ public class ProductoRepository {
     }
 
     public List<Producto> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
-        if (DatabaseConfig.isDemoMode()) {
-            List<Producto> all = DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
+        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode()) {
+            List<Producto> all = DatabaseConfig.isOfflineMode()
+                ? OfflineStore.findAllProductos(SessionManager.getAccessibleAreas())
+                : DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
             return all.stream()
                 .filter(p -> !p.isDadoDeBaja())
                 .filter(p -> {
@@ -77,34 +84,66 @@ public class ProductoRepository {
     }
 
     public List<Producto> findByArea(String area) throws SQLException {
-        if (DatabaseConfig.isDemoMode())
-            return DemoDataStore.findAllProductos(Set.of(area));
+        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findAllProductos(Set.of(area));
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllProductos(Set.of(area));
         String sql = BASE_SELECT + " WHERE p.area = ? ORDER BY p.nombre";
         return query(sql, area);
     }
 
     public Optional<Producto> findById(String id) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findProductoById(id);
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findProductoById(id);
         String sql = BASE_SELECT + " WHERE p.id = ?";
         List<Producto> results = query(sql, id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
+    /** Unlike {@link #existsByCodigo}, which intentionally checks
+     *  uniqueness across ALL areas (codes are globally unique), this is a
+     *  lookup meant to hand back a product's full details — so it respects
+     *  the caller's area scope the same way {@link #findAll} does, instead
+     *  of exposing another area's product to a lookup/barcode-scan flow. */
     public Optional<Producto> findByCodigo(String codigo) throws SQLException {
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findProductoByCodigo(codigo);
-        String sql = BASE_SELECT + " WHERE LOWER(p.codigo) = LOWER(?)";
-        List<Producto> results = query(sql, codigo);
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (DatabaseConfig.isOfflineMode()) {
+            return OfflineStore.findProductoByCodigo(codigo)
+                .filter(p -> accessible == null || accessible.contains(p.getArea()));
+        }
+        if (DatabaseConfig.isDemoMode()) {
+            return DemoDataStore.findProductoByCodigo(codigo)
+                .filter(p -> accessible == null || accessible.contains(p.getArea()));
+        }
+        List<Object> params = new ArrayList<>();
+        params.add(codigo);
+        StringBuilder sb = new StringBuilder(BASE_SELECT).append(" WHERE LOWER(p.codigo) = LOWER(?)");
+        if (accessible != null) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        List<Producto> results = queryDynamic(sb.toString(), params);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     public Producto save(Producto p) throws SQLException {
         if (p.getId() == null) p.setId(UUID.randomUUID().toString());
+        if (DatabaseConfig.isOfflineMode()) {
+            OfflineStore.saveProducto(p);
+            return p;
+        }
         if (DatabaseConfig.isDemoMode()) {
             if (p.getCreadoEn() == null) p.setCreadoEn(java.time.LocalDateTime.now());
             p.setActualizadoEn(java.time.LocalDateTime.now());
             DemoDataStore.saveProducto(p);
             return p;
         }
+        return saveOnline(p);
+    }
+
+    /** The real-Postgres half of {@link #save}, callable directly — used by
+     *  SyncService to replay a queued offline product write once the
+     *  connection to Postgres comes back, so replay goes through the exact
+     *  same upsert (and its ON CONFLICT semantics) as a normal online save. */
+    public Producto saveOnline(Producto p) throws SQLException {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
@@ -157,6 +196,10 @@ public class ProductoRepository {
     }
 
     public void updateStock(String productoId, int newStock) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) {
+            OfflineStore.updateProductoStock(productoId, newStock);
+            return;
+        }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.updateProductoStock(productoId, newStock);
             return;
@@ -175,10 +218,19 @@ public class ProductoRepository {
      *  the active inventory (see {@link #findAll()}). This is what the UI's
      *  "Dar de baja" action should call, not {@link #delete}. */
     public void darDeBaja(String id, String motivo) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) {
+            OfflineStore.darDeBajaProducto(id, motivo);
+            return;
+        }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.darDeBajaProducto(id, motivo);
             return;
         }
+        darDeBajaOnline(id, motivo);
+    }
+
+    /** Replay target for SyncService — see {@link #saveOnline}. */
+    public void darDeBajaOnline(String id, String motivo) throws SQLException {
         String sql = "UPDATE products SET fecha_baja = CURRENT_DATE, motivo_baja = ?, updated_at = NOW() WHERE id = ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -192,10 +244,19 @@ public class ProductoRepository {
      *  inventory. Kept separate from {@link #save} so it can't accidentally
      *  be triggered by an unrelated edit. */
     public void reactivar(String id) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) {
+            OfflineStore.reactivarProducto(id);
+            return;
+        }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.reactivarProducto(id);
             return;
         }
+        reactivarOnline(id);
+    }
+
+    /** Replay target for SyncService — see {@link #saveOnline}. */
+    public void reactivarOnline(String id) throws SQLException {
         String sql = "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, updated_at = NOW() WHERE id = ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -205,6 +266,15 @@ public class ProductoRepository {
     }
 
     public void delete(String id) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) {
+            // A hard delete isn't queueable in this version's offline scope
+            // (product_outbox only supports SAVE/BAJA/REACTIVAR) — "Dar de
+            // baja" (darDeBaja, a soft-delete that DOES queue) is the normal
+            // path the UI uses anyway; this is the rarely-used hard-delete
+            // action, which genuinely needs a live connection.
+            throw new SQLException("Esta acción requiere conexión a internet. Usa \"Dar de baja\" para "
+                + "quitar el bien del inventario activo mientras estás sin conexión.");
+        }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.deleteProducto(id);
             return;
@@ -218,6 +288,7 @@ public class ProductoRepository {
     }
 
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) return OfflineStore.existsByCodigo(codigo, excludeId);
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.existsByCodigo(codigo, excludeId);
         String sql = "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?";
         try (Connection conn = DatabaseConfig.getConnection();

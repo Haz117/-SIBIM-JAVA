@@ -1,11 +1,16 @@
 module com.sibim {
     requires javafx.controls;
     requires javafx.fxml;
-    requires javafx.swing;
+
+    // Not JavaFX-Swing interop (no SwingNode/JFXPanel usage) — this is what
+    // exposes java.awt.* (Graphics2D, BufferedImage, ...) that ImageUtils
+    // uses directly for product-photo resizing.
+    requires java.desktop;
 
     requires java.sql;
     requires com.zaxxer.hikari;
     requires org.postgresql.jdbc;
+    requires org.xerial.sqlitejdbc;
 
     requires bcrypt;
 
@@ -14,6 +19,7 @@ module com.sibim {
     requires layout;
     requires io;
     requires org.slf4j;
+    requires ch.qos.logback.classic;
     requires io.github.cdimascio.dotenv.java;
     requires atlantafx.base;
 

@@ -377,7 +377,12 @@ public class ReporteService {
     // ───────────────────────────── Helpers ─────────────────────────────
 
     private File tempFile(String prefix, String suffix) throws IOException {
-        return File.createTempFile("sibim_" + prefix + "_", suffix);
+        File file = File.createTempFile("sibim_" + prefix + "_", suffix);
+        // These files get handed to an external viewer via Desktop.open()
+        // right after creation, so they can't be deleted immediately —
+        // clean them up when the JVM exits instead of leaking one per export.
+        file.deleteOnExit();
+        return file;
     }
 
     private Sheet createSheet(Workbook wb, String name) {

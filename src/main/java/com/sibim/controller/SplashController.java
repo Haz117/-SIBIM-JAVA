@@ -1,8 +1,13 @@
 package com.sibim.controller;
 
 import com.sibim.MainApp;
+import com.sibim.db.DatabaseConfig;
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.effect.DropShadow;
@@ -12,6 +17,8 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
 
 public class SplashController {
 
@@ -106,11 +113,14 @@ public class SplashController {
         PauseTransition hold = new PauseTransition(Duration.millis(420));
         hold.setOnFinished(e -> {
             stopLoops();
-            try {
-                MainApp.showLogin();
-            } catch (Exception ex) {
-                log.error("No se pudo cargar la pantalla de login tras el splash", ex);
-            }
+            // Deferred: this handler runs synchronously inside the
+            // animation pulse (Animation.finished -> runHandler), and
+            // Dialog.showAndWait() throws IllegalStateException if called
+            // from there ("not allowed during animation or layout
+            // processing"). Platform.runLater pushes it to a later pulse,
+            // outside that callstack, before confirmDemoMode() can open
+            // its Alert.
+            Platform.runLater(this::afterEntrance);
         });
 
         ParallelTransition entrance = new ParallelTransition(
@@ -119,6 +129,21 @@ public class SplashController {
         entrance.play();
 
         startAmbientLoops();
+    }
+
+    private void afterEntrance() {
+        if (DatabaseConfig.isDemoMode() && !confirmDemoMode()) {
+            Platform.exit();
+            return;
+        }
+        if (DatabaseConfig.isOfflineMode()) {
+            notifyOfflineMode();
+        }
+        try {
+            MainApp.showLogin();
+        } catch (Exception ex) {
+            log.error("No se pudo cargar la pantalla de login tras el splash", ex);
+        }
     }
 
     /** Continuous, low-key motion that runs underneath the one-shot entrance
@@ -164,5 +189,47 @@ public class SplashController {
     private void stopLoops() {
         for (Animation a : loops) if (a != null) a.stop();
         loops.clear();
+    }
+
+    /** DatabaseConfig falls back to an in-memory "modo demo" whenever the
+     *  real DB connection fails at startup (see Main.main) — necessary for
+     *  local development without Postgres, but silently doing that in a
+     *  real deployment would let staff capture real inventory data into
+     *  data that vanishes on exit without ever being told. This makes the
+     *  fallback loud and requires an explicit choice before continuing. */
+    private boolean confirmDemoMode() {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Sin conexión a la base de datos");
+        alert.setHeaderText("No se pudo conectar a la base de datos real");
+        alert.setContentText(
+            "El sistema va a iniciar en modo demo, con datos de práctica que NO se guardan. "
+            + "Cualquier bien, movimiento o cambio que captures se perderá al cerrar la aplicación.\n\n"
+            + "Esto normalmente indica un problema de conexión (base de datos apagada, credenciales "
+            + "incorrectas en el archivo .env, o red caída). Si esto es un equipo de producción, "
+            + "verifica la configuración antes de continuar.");
+        ButtonType btnSalir = new ButtonType("Salir", ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType btnContinuar = new ButtonType("Continuar en modo demo", ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(btnSalir, btnContinuar);
+        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == btnContinuar;
+    }
+
+    /** Unlike modo demo, offline mode doesn't lose anything — writes persist
+     *  locally and sync automatically once the connection comes back (see
+     *  com.sibim.db.offline). So this is just informational, not a
+     *  Salir/Continuar choice: nothing bad happens if the user dismisses it
+     *  without reading closely. */
+    private void notifyOfflineMode() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Sin conexión a la base de datos");
+        alert.setHeaderText("Trabajando sin conexión");
+        alert.setContentText(
+            "No se pudo conectar a la base de datos ahora mismo. El sistema va a funcionar en modo offline: "
+            + "todo lo que captures se guarda en esta computadora, y se subirá automáticamente al servidor "
+            + "en cuanto vuelva la conexión — no necesitas hacer nada.");
+        alert.getButtonTypes().setAll(ButtonType.OK);
+        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
+        alert.showAndWait();
     }
 }

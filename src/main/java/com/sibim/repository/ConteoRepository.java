@@ -4,6 +4,7 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
 import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
+import com.sibim.session.SessionManager;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -12,6 +13,16 @@ import java.util.List;
 import java.util.UUID;
 
 public class ConteoRepository {
+
+    // Only the history views (findAll/findItems, reachable from
+    // Configuración → solo Admin) need this — guardar() below stays open to
+    // Admin/Secretario, whoever is allowed to run a conteo físico at all
+    // (gated in ProductosController), since it's their own session.
+    private void requireAdmin() {
+        if (!SessionManager.isAdmin()) {
+            throw new SecurityException("Solo el administrador puede consultar el historial de conteos");
+        }
+    }
 
     /** Persists a completed conteo session and all its reviewed items in one
      *  transaction. Doesn't touch stock/movements — the caller
@@ -75,6 +86,7 @@ public class ConteoRepository {
     }
 
     public List<ConteoFisico> findAll(int limit) throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findConteos(limit);
         String sql = "SELECT * FROM conteos_fisicos ORDER BY created_at DESC LIMIT ?";
         List<ConteoFisico> list = new ArrayList<>();
@@ -89,6 +101,7 @@ public class ConteoRepository {
     }
 
     public List<ConteoItem> findItems(String conteoId) throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findConteoItems(conteoId);
         String sql = "SELECT * FROM conteo_items WHERE conteo_id = ? ORDER BY producto_nombre";
         List<ConteoItem> list = new ArrayList<>();

@@ -243,10 +243,24 @@ public class DashboardController {
             salidas.getData().add(new XYChart.Data<>(label, salMap.getOrDefault(day, 0)));
         }
         chartMovimientos.getData().addAll(entradas, salidas);
+        // A chart Data's Node is created lazily on the next layout/CSS pass,
+        // not synchronously by addAll() above — checking d.getNode() right
+        // here almost always sees null, so the tooltip silently never got
+        // installed. Listening for the node to appear fixes that.
         for (XYChart.Data<String, Number> d : entradas.getData())
-            if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Entradas " + d.getXValue() + ": " + d.getYValue()));
+            installTooltipWhenReady(d, "Entradas " + d.getXValue() + ": " + d.getYValue());
         for (XYChart.Data<String, Number> d : salidas.getData())
-            if (d.getNode() != null) Tooltip.install(d.getNode(), new Tooltip("Salidas " + d.getXValue() + ": " + d.getYValue()));
+            installTooltipWhenReady(d, "Salidas " + d.getXValue() + ": " + d.getYValue());
+    }
+
+    private void installTooltipWhenReady(XYChart.Data<String, Number> d, String text) {
+        if (d.getNode() != null) {
+            Tooltip.install(d.getNode(), new Tooltip(text));
+        } else {
+            d.nodeProperty().addListener((obs, old, node) -> {
+                if (node != null) Tooltip.install(node, new Tooltip(text));
+            });
+        }
     }
 
     private void buildCategoriaChart(List<Producto> productos) {
@@ -261,9 +275,13 @@ public class DashboardController {
                 new PieChart.Data(e.getKey(), e.getValue().doubleValue())));
 
         for (PieChart.Data d : chartValorCategoria.getData()) {
+            String text = d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()));
             if (d.getNode() != null) {
-                Tooltip.install(d.getNode(), new Tooltip(
-                    d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()))));
+                Tooltip.install(d.getNode(), new Tooltip(text));
+            } else {
+                d.nodeProperty().addListener((obs, old, node) -> {
+                    if (node != null) Tooltip.install(node, new Tooltip(text));
+                });
             }
         }
 
@@ -409,25 +427,13 @@ public class DashboardController {
         cTipo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             c.getValue().getTipo().getEtiqueta()));
         cTipo.setPrefWidth(100);
-        cTipo.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
-            { badge.getStyleClass().add("cell-badge"); }
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty); setGraphic(null); setText(null);
-                if (empty || item == null) return;
-                badge.setText(item);
-                badge.getStyleClass().removeAll("cell-badge-success","cell-badge-danger",
-                    "cell-badge-warning","cell-badge-blue","cell-badge-purple");
-                badge.getStyleClass().add(switch (item) {
-                    case "Entrada"       -> "cell-badge-success";
-                    case "Salida"        -> "cell-badge-danger";
-                    case "Ajuste"        -> "cell-badge-warning";
-                    case "Transferencia" -> "cell-badge-blue";
-                    default              -> "cell-badge-purple";
-                });
-                setGraphic(badge);
-            }
-        });
+        cTipo.setCellFactory(com.sibim.util.DialogUtil.badgeCellFactory(item -> switch (item) {
+            case "Entrada"       -> "cell-badge-success";
+            case "Salida"        -> "cell-badge-danger";
+            case "Ajuste"        -> "cell-badge-warning";
+            case "Transferencia" -> "cell-badge-blue";
+            default              -> "cell-badge-purple";
+        }));
 
         TableColumn<Movimiento, Integer> cCant = new TableColumn<>("Cant.");
         cCant.setCellValueFactory(new PropertyValueFactory<>("cantidad"));

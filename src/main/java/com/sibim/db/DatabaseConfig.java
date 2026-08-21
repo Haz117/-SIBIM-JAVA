@@ -12,12 +12,25 @@ public final class DatabaseConfig {
 
     private static HikariDataSource dataSource;
     private static boolean demoMode = false;
+    private static boolean offlineMode = false;
 
     private DatabaseConfig() {}
 
+    /** True demo mode: in-memory fictional data (DemoDataStore), reset on
+     *  every restart. Only entered deliberately (DEMO_MODE=true in .env),
+     *  for local development without a Postgres instance at all. */
     public static boolean isDemoMode() { return demoMode; }
 
     public static void setDemoMode(boolean dm) { demoMode = dm; }
+
+    /** Offline mode: the real Postgres was reachable at some point (or is
+     *  expected to be) but isn't reachable right now — writes go to a local
+     *  SQLite store (see com.sibim.db.offline) and queue for automatic sync
+     *  once the connection comes back. This is what Main.java falls back to
+     *  when DatabaseConfig.init() fails at startup, unless DEMO_MODE is set. */
+    public static boolean isOfflineMode() { return offlineMode; }
+
+    public static void setOfflineMode(boolean om) { offlineMode = om; }
 
     public static void init() {
         if (dataSource != null) return;

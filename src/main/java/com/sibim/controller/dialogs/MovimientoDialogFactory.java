@@ -94,6 +94,18 @@ public final class MovimientoDialogFactory {
         fCantidad.getStyleClass().add("form-input");
         DialogUtil.commitOnFocusLoss(fCantidad);
 
+        // For AJUSTE, "Cantidad" means the new absolute stock total, not a
+        // delta added/subtracted like every other type — make that explicit
+        // in the label and prompt so it isn't misread as "units to adjust by".
+        Label lblCantidad = DialogUtil.fieldLabel("Cantidad *");
+        Runnable updateCantidadLabel = () -> {
+            boolean isAjuste = fTipo.getValue() == TipoMovimiento.AJUSTE;
+            lblCantidad.setText(isAjuste ? "Nuevo stock total *" : "Cantidad *");
+            fCantidad.setPromptText(isAjuste ? "Valor final del stock (no un delta)" : null);
+        };
+        updateCantidadLabel.run();
+        fTipo.valueProperty().addListener((o, a, b) -> updateCantidadLabel.run());
+
         // Only relevant/visible for TRANSFERENCIA — the area the product is
         // moving TO. Options exclude the selected product's own current
         // area (can't "transfer" to where it already is).
@@ -248,11 +260,20 @@ public final class MovimientoDialogFactory {
                 boolean badQty = fCantidad.getValue() <= 0 && fTipo.getValue() != TipoMovimiento.AJUSTE;
                 boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
                 boolean noDestino = isTransfer && fAreaDestino.getValue() == null;
-                okBtn.setDisable(noProduct || badQty || noDestino);
+                // ProductoUtils.calcularStockNuevo clamps SALIDA at 0 for the
+                // live "Stock Resultante" preview, but MovimientoService
+                // actually rejects any SALIDA over the real stock — without
+                // this check the preview would happily show "0" while OK
+                // stays enabled, and the user only finds out it's invalid
+                // after submitting.
+                boolean exceedsStock = !noProduct && fTipo.getValue() == TipoMovimiento.SALIDA
+                    && fCantidad.getValue() > fProducto.getValue().getStockActual();
+                okBtn.setDisable(noProduct || badQty || noDestino || exceedsStock);
                 String hint = noProduct ? "Selecciona un bien del inventario"
                     : noDestino ? "Selecciona el área de destino"
+                    : exceedsStock ? "La cantidad supera el stock disponible (" + fProducto.getValue().getStockActual() + ")"
                     : "La cantidad debe ser mayor a cero";
-                boolean showHint = noProduct || badQty || noDestino;
+                boolean showHint = noProduct || badQty || noDestino || exceedsStock;
                 lblFormError.setText(hint);
                 lblFormError.setVisible(showHint);
                 lblFormError.setManaged(showHint);
@@ -269,7 +290,7 @@ public final class MovimientoDialogFactory {
         grid.add(DialogUtil.fieldLabel("Tipo *"),        0, row); grid.add(fTipo,        1, row++);
         grid.add(lblAreaDestino,                         0, row); grid.add(fAreaDestino, 1, row++);
         grid.add(transferPreview,                        0, row++);
-        grid.add(DialogUtil.fieldLabel("Cantidad *"),    0, row); grid.add(fCantidad,    1, row++);
+        grid.add(lblCantidad,                            0, row); grid.add(fCantidad,    1, row++);
         grid.add(DialogUtil.fieldLabel("Movimiento"),    0, row); grid.add(stockPreview, 1, row++);
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);
         grid.add(DialogUtil.fieldLabel("Referencia"),    0, row); grid.add(fRef,         1, row);

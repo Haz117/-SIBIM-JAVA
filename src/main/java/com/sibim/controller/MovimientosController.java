@@ -211,28 +211,13 @@ public class MovimientosController {
             new SimpleStringProperty(FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
 
         // Tipo badge cell
-        colTipo.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
-            { badge.getStyleClass().add("cell-badge"); }
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(null); setText(null);
-                if (empty || item == null) return;
-                badge.setText(item);
-                badge.getStyleClass().removeAll(
-                    "cell-badge-success","cell-badge-danger","cell-badge-warning",
-                    "cell-badge-blue","cell-badge-teal","cell-badge-purple");
-                badge.getStyleClass().add(switch (item) {
-                    case "Entrada"       -> "cell-badge-success";
-                    case "Salida"        -> "cell-badge-danger";
-                    case "Ajuste"        -> "cell-badge-warning";
-                    case "Transferencia" -> "cell-badge-blue";
-                    default              -> "cell-badge-purple";
-                });
-                setGraphic(badge);
-            }
-        });
+        colTipo.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
+            case "Entrada"       -> "cell-badge-success";
+            case "Salida"        -> "cell-badge-danger";
+            case "Ajuste"        -> "cell-badge-warning";
+            case "Transferencia" -> "cell-badge-blue";
+            default              -> "cell-badge-purple";
+        }));
 
         // Cantidad coloring based on tipo
         colCantidad.setCellFactory(col -> new TableCell<>() {

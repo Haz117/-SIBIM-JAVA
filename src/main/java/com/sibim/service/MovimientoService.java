@@ -47,6 +47,29 @@ public class MovimientoService {
      *  the area the product is being moved TO. Ignored for other types. */
     public Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad,
                                 String motivo, String referencia, String areaDestino) throws SQLException, ValidationException {
+        return registrar(productoId, tipo, cantidad, motivo, referencia, areaDestino, null);
+    }
+
+    /**
+     * Registers an AJUSTE only if the product's stock is still exactly
+     * {@code expectedStockAnterior} at the moment the row is locked —
+     * otherwise it's rejected instead of silently overwriting whatever
+     * changed it. AJUSTE's "cantidad" is an absolute new stock value, not a
+     * delta, so unlike ENTRADA/SALIDA the row lock alone doesn't stop it
+     * from erasing another movement's effect if the snapshot it was
+     * computed from (e.g. what a conteo físico captured when it opened) has
+     * since gone stale. Use this instead of the plain {@code registrar} for
+     * any AJUSTE derived from a stock value read earlier than "just now".
+     */
+    public Movimiento registrarAjusteVerificado(String productoId, int nuevoStock, String motivo,
+                                                String referencia, int expectedStockAnterior)
+            throws SQLException, ValidationException {
+        return registrar(productoId, TipoMovimiento.AJUSTE, nuevoStock, motivo, referencia, null, expectedStockAnterior);
+    }
+
+    private Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad, String motivo,
+                                 String referencia, String areaDestino, Integer expectedStockAnterior)
+            throws SQLException, ValidationException {
         Optional<Producto> opt = productoRepo.findById(productoId);
         if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
         Producto producto = opt.get();
@@ -86,7 +109,12 @@ public class MovimientoService {
         m.setUsuarioId(SessionManager.getCurrentUser().getId());
         m.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
 
-        return movimientoRepo.addMovimientoAtomic(m);
+        try {
+            return movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
+        } catch (SQLException e) {
+            if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
+            throw e;
+        }
     }
 
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
@@ -97,7 +125,23 @@ public class MovimientoService {
                     && !SessionManager.isAreaAccessible(producto.get().getArea()))
                 throw new ValidationException("No tienes acceso a esa area");
         }
-        movimientoRepo.deleteMovimientoAtomic(movimientoId);
+        try {
+            movimientoRepo.deleteMovimientoAtomic(movimientoId);
+        } catch (SQLException e) {
+            if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
+            throw e;
+        }
+    }
+
+    /** Distinguishes the repository's business-rule rejections (raised as
+     *  SQLException from inside a transaction so they trigger the rollback)
+     *  from genuine database errors, so the former can surface as a
+     *  user-facing ValidationException instead of a generic DB error. */
+    private static boolean isBusinessRuleMessage(SQLException e) {
+        String msg = e.getMessage();
+        return msg != null && (msg.startsWith("La cantidad supera el stock disponible")
+                || msg.startsWith("Solo se puede eliminar el movimiento mas reciente")
+                || msg.startsWith("El stock cambió desde que se capturó el conteo"));
     }
 
     public static class ValidationException extends Exception {

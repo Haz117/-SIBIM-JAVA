@@ -22,13 +22,13 @@
         <Button text="🗑 Dados de baja" onAction="#onVerBajas" styleClass="btn-secondary">
             <tooltip><Tooltip text="Ver bienes dados de baja (fuera del inventario activo)"/></tooltip>
         </Button>
-        <Button text="📋 Conteo físico" onAction="#onConteoFisico" styleClass="btn-secondary">
+        <Button fx:id="btnConteoFisico" text="📋 Conteo físico" onAction="#onConteoFisico" styleClass="btn-secondary">
             <tooltip><Tooltip text="Iniciar una toma de inventario físico y ajustar diferencias"/></tooltip>
         </Button>
         <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
             <tooltip><Tooltip text="Actualizar lista (F5)"/></tooltip>
         </Button>
-        <Button text="＋ Nuevo Bien" onAction="#onNuevoBien" styleClass="btn-primary">
+        <Button fx:id="btnNuevoBien" text="＋ Nuevo Bien" onAction="#onNuevoBien" styleClass="btn-primary">
             <tooltip><Tooltip text="Registrar un nuevo bien en el inventario  (Ctrl+N)"/></tooltip>
         </Button>
     </HBox>

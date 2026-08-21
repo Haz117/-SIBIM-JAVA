@@ -115,24 +115,11 @@ public class ConfiguracionController {
         colUsername.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsername()));
         colCargo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCargo()));
         colRol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRol().getEtiqueta()));
-        colRol.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
-            { badge.getStyleClass().add("cell-badge"); }
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(null);
-                if (empty || item == null) return;
-                badge.setText(item);
-                badge.getStyleClass().removeAll("cell-badge-purple","cell-badge-blue","cell-badge-teal");
-                badge.getStyleClass().add(switch (item) {
-                    case "Administrador" -> "cell-badge-purple";
-                    case "Secretario"    -> "cell-badge-blue";
-                    default              -> "cell-badge-teal";
-                });
-                setGraphic(badge); setText(null);
-            }
-        });
+        colRol.setCellFactory(com.sibim.util.DialogUtil.badgeCellFactory(item -> switch (item) {
+            case "Administrador" -> "cell-badge-purple";
+            case "Secretario"    -> "cell-badge-blue";
+            default              -> "cell-badge-teal";
+        }));
         colArea.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
         colArea.setCellFactory(col -> new TableCell<>() {
@@ -279,6 +266,23 @@ public class ConfiguracionController {
 
         fRol.valueProperty().addListener((obs, o, n) -> fArea.setDisable(n == Rol.ADMIN));
 
+        Label lblFormError = new Label();
+        lblFormError.getStyleClass().add("field-error-label");
+        lblFormError.setVisible(false);
+        lblFormError.setManaged(false);
+        lblFormError.setWrapText(true);
+
+        // Area is required for every role except ADMIN — SessionManager
+        // .getAccessibleAreas() builds its area set from user.getArea(), so
+        // a SECRETARIO/DIRECCION saved with no area ends up with a Set
+        // containing null as its only element: they log in successfully but
+        // every area-filtered query (products, movements, alerts...) comes
+        // back empty, with nothing in the UI explaining why. This used to
+        // be silently saveable — now it blocks OK like every other required
+        // field in this form.
+        java.util.function.Supplier<Boolean> areaMissing = () ->
+            !passwordOnly && fRol.getValue() != Rol.ADMIN && (fArea.getValue() == null || fArea.getValue().isBlank());
+
         // Disable OK until required fields are valid — prevents validation-after-close
         if (okBtn != null) {
             if (passwordOnly) {
@@ -286,20 +290,36 @@ public class ConfiguracionController {
                 fPassword.textProperty().addListener((obs, o, n) -> okBtn.setDisable(n.length() < 8));
             } else if (isNew) {
                 okBtn.setDisable(true);
-                Runnable check = () -> okBtn.setDisable(
-                    fNombre.getText().isBlank() || fUsername.getText().isBlank() || fPassword.getText().length() < 8);
+                Runnable check = () -> {
+                    boolean missing = fNombre.getText().isBlank() || fUsername.getText().isBlank()
+                        || fPassword.getText().length() < 8 || areaMissing.get();
+                    okBtn.setDisable(missing);
+                    lblFormError.setVisible(areaMissing.get());
+                    lblFormError.setManaged(areaMissing.get());
+                    if (areaMissing.get()) lblFormError.setText("Selecciona el área asignada para este rol.");
+                };
                 fNombre.textProperty().addListener((obs, o, n) -> check.run());
                 fUsername.textProperty().addListener((obs, o, n) -> check.run());
                 fPassword.textProperty().addListener((obs, o, n) -> check.run());
+                fRol.valueProperty().addListener((obs, o, n) -> check.run());
+                fArea.valueProperty().addListener((obs, o, n) -> check.run());
             } else {
-                okBtn.setDisable(fNombre.getText().isBlank() || fUsername.getText().isBlank());
-                Runnable check = () -> okBtn.setDisable(fNombre.getText().isBlank() || fUsername.getText().isBlank());
+                Runnable check = () -> {
+                    boolean missing = fNombre.getText().isBlank() || fUsername.getText().isBlank() || areaMissing.get();
+                    okBtn.setDisable(missing);
+                    lblFormError.setVisible(areaMissing.get());
+                    lblFormError.setManaged(areaMissing.get());
+                    if (areaMissing.get()) lblFormError.setText("Selecciona el área asignada para este rol.");
+                };
+                check.run();
                 fNombre.textProperty().addListener((obs, o, n) -> check.run());
                 fUsername.textProperty().addListener((obs, o, n) -> check.run());
+                fRol.valueProperty().addListener((obs, o, n) -> check.run());
+                fArea.valueProperty().addListener((obs, o, n) -> check.run());
             }
         }
 
-        dialog.getDialogPane().setContent(new VBox(0, header, grid));
+        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError));
         Platform.runLater(() -> (passwordOnly ? fPassword : fNombre).requestFocus());
 
         Optional<ButtonType> result = dialog.showAndWait();

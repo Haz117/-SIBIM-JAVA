@@ -1,15 +1,17 @@
 package com.sibim.util;
 
+import com.sibim.MainApp;
 import com.sibim.model.Usuario;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.service.AuthService;
 import javafx.event.ActionEvent;
-import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -19,8 +21,25 @@ import java.util.Optional;
  * password reset). There is no true "cancel": the account keeps a known
  * password until this completes, so the only way out is to actually set a
  * new one, or abandon the session entirely via "Cerrar sesión".
+ *
+ * Deliberately does NOT do the save asynchronously with a manual
+ * dialog.close()/setResult() afterward — that combination was tried and
+ * reproducibly resolved dialog.showAndWait()'s result to the wrong button
+ * (logging the session out from under a successful save) regardless of
+ * ButtonData used or whether close()/hide() was called on the Dialog or the
+ * raw Stage. Root cause not fully pinned down (undocumented DialogPane
+ * internals around how a window-hide not driven by its own button-click
+ * handling resolves resultProperty), but the safe fix is to not fight it:
+ * let JavaFX's own normal button-click handling close the dialog, which is
+ * the one path proven to resolve results correctly. That means the save
+ * itself has to happen synchronously, before the ActionEvent finishes
+ * (or be left uncommitted via event.consume() to keep the dialog open on
+ * failure). BCrypt hashing + a single UPDATE is ~100-300ms — an acceptable,
+ * one-time pause for an explicit "Guardar" click.
  */
 public final class CambiarPasswordDialog {
+
+    private static final Logger log = LoggerFactory.getLogger(CambiarPasswordDialog.class);
 
     private CambiarPasswordDialog() {}
 
@@ -33,8 +52,11 @@ public final class CambiarPasswordDialog {
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, btnLogout);
         dialog.getDialogPane().setPrefWidth(420);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
-        // No true cancel — force a choice between the two buttons below.
-        dialog.setOnCloseRequest(Event::consume);
+        if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
+        // No true cancel via the window's own [X] — CANCEL_CLOSE on
+        // btnLogout makes JavaFX resolve any close-via-X to that button on
+        // its own, which is exactly the "Cerrar sesión" behavior we want,
+        // through the normal/well-tested path instead of a custom handler.
 
         HBox header = DialogUtil.gradientHeader("🔒", "Actualiza tu contraseña",
             "Esta cuenta tiene una contraseña temporal conocida. Define una nueva antes de continuar.",
@@ -76,48 +98,44 @@ public final class CambiarPasswordDialog {
         fConfirmar.textProperty().addListener((o, a, b) -> hideError.run());
 
         guardarBtn.addEventFilter(ActionEvent.ACTION, event -> {
-            event.consume(); // validate/save first — only close once persisted
             String nueva = fNueva.getText();
             String confirmar = fConfirmar.getText();
             if (nueva.length() < 8) {
+                event.consume();
                 errorLbl.setText("La contraseña debe tener al menos 8 caracteres");
                 showError.run();
                 return;
             }
             if (!nueva.equals(confirmar)) {
+                event.consume();
                 errorLbl.setText("Las contraseñas no coinciden");
                 showError.run();
                 return;
             }
-            guardarBtn.setDisable(true);
-            fNueva.setDisable(true);
-            fConfirmar.setDisable(true);
-            DialogUtil.runAsync(
-                () -> {
-                    String hash = new AuthService().hashPassword(nueva);
-                    new UsuarioRepository().completarCambioPassword(user.getId(), hash);
-                    user.setPasswordHash(hash);
-                    user.setDebeCambiarPassword(false);
-                },
-                () -> {
-                    dialog.close();
-                    if (onCompletado != null) onCompletado.run();
-                },
-                ex -> {
-                    guardarBtn.setDisable(false);
-                    fNueva.setDisable(false);
-                    fConfirmar.setDisable(false);
-                    errorLbl.setText("No se pudo guardar la contraseña. Intenta de nuevo.");
-                    showError.run();
-                }
-            );
+            try {
+                String hash = new AuthService().hashPassword(nueva);
+                new UsuarioRepository().completarCambioPassword(user.getId(), hash);
+                user.setPasswordHash(hash);
+                user.setDebeCambiarPassword(false);
+                // Not consumed: the click proceeds through DialogPane's own
+                // normal handling, which closes the window and resolves
+                // showAndWait()'s result to btnGuardar correctly.
+            } catch (Exception ex) {
+                event.consume(); // keep the dialog open — save failed
+                log.error("No se pudo completar el cambio obligatorio de contraseña para el usuario '{}'",
+                    user.getUsername(), ex);
+                errorLbl.setText("No se pudo guardar la contraseña. Intenta de nuevo.");
+                showError.run();
+            }
         });
 
         javafx.application.Platform.runLater(fNueva::requestFocus);
 
         Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isPresent() && result.get() == btnLogout && onCerrarSesion != null) {
-            onCerrarSesion.run();
+        if (result.isPresent() && result.get() == btnLogout) {
+            if (onCerrarSesion != null) onCerrarSesion.run();
+        } else if (onCompletado != null) {
+            onCompletado.run();
         }
     }
 }

@@ -117,7 +117,11 @@ public final class ProductoDialogFactory {
                     Image img = new Image(Path.of(fotoHolder[0]).toUri().toString(), 150, 112, true, true, true);
                     imgPreview.setImage(img);
                     imgPlaceholder.setVisible(false);
-                } catch (Exception ignored) { imgPlaceholder.setVisible(true); }
+                } catch (Exception ex) {
+                    log.warn("No se pudo cargar la miniatura de la foto en '{}' (¿ruta local de otra PC, o archivo movido/corrupto?)",
+                        fotoHolder[0], ex);
+                    imgPlaceholder.setVisible(true);
+                }
             } else {
                 imgPreview.setImage(null);
                 imgPlaceholder.setVisible(true);
@@ -138,6 +142,15 @@ public final class ProductoDialogFactory {
                 new FileChooser.ExtensionFilter("Imágenes", "*.png","*.jpg","*.jpeg","*.gif","*.bmp","*.webp"));
             File file = chooser.showOpenDialog(dialog.getOwner());
             if (file != null) {
+                if (ImageUtils.exceedsMaxSize(file)) {
+                    Alert tooBig = new Alert(Alert.AlertType.WARNING,
+                        "La imagen pesa " + (file.length() / (1024 * 1024)) + " MB — el máximo permitido es "
+                        + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB. Elige un archivo más pequeño.");
+                    tooBig.setHeaderText("Imagen demasiado pesada");
+                    tooBig.initOwner(dialog.getOwner());
+                    tooBig.showAndWait();
+                    return;
+                }
                 fotoHolder[0] = file.getAbsolutePath();
                 loadImg.run();
                 btnQuitarImg.setDisable(false);
@@ -227,6 +240,8 @@ public final class ProductoDialogFactory {
         fCat.valueProperty().addListener((o, a, b) -> { if (b != null) fCat.getStyleClass().remove("field-error"); hideFormError.run(); });
         fPrecioC.textProperty().addListener((o, a, b) -> { fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
         fPrecioV.textProperty().addListener((o, a, b) -> { fPrecioV.getStyleClass().remove("field-error"); hideFormError.run(); });
+        fStockMin.valueProperty().addListener((o, a, b) -> { fStockMin.getStyleClass().remove("field-error"); fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
+        fStockMax.valueProperty().addListener((o, a, b) -> { fStockMin.getStyleClass().remove("field-error"); fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
 
         if (okBtn != null) {
             Runnable checkOk = () -> okBtn.setDisable(
@@ -256,19 +271,36 @@ public final class ProductoDialogFactory {
             BigDecimal precioCompra = null, precioVenta = null;
             try {
                 precioCompra = new BigDecimal(fPrecioC.getText().trim());
+                if (precioCompra.signum() < 0) throw new NumberFormatException("negativo");
                 fPrecioC.getStyleClass().remove("field-error");
             } catch (Exception ex) {
                 fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
             }
             try {
                 precioVenta = new BigDecimal(fPrecioV.getText().trim());
+                if (precioVenta.signum() < 0) throw new NumberFormatException("negativo");
                 fPrecioV.getStyleClass().remove("field-error");
             } catch (Exception ex) {
                 fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
             }
 
+            // Cross-field: nothing else validates stockMinimo/stockMaximo
+            // against each other, so without this a saved product could
+            // have a minimum above its maximum — silently degrading the
+            // BAJO_STOCK alert logic (ProductoUtils.computeEstado) that
+            // depends on stockMinimo being a meaningful floor.
+            if (fStockMin.getValue() > fStockMax.getValue()) {
+                fStockMin.getStyleClass().add("field-error");
+                fStockMax.getStyleClass().add("field-error");
+                tabs.getSelectionModel().select(1);
+                invalid = true;
+            } else {
+                fStockMin.getStyleClass().remove("field-error");
+                fStockMax.getStyleClass().remove("field-error");
+            }
+
             if (invalid) {
-                lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos (ej. 1500.00).");
+                lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos y no negativos (ej. 1500.00), y el Stock Mínimo no puede superar al Stock Máximo.");
                 lblFormError.setVisible(true);
                 lblFormError.setManaged(true);
                 return null;
@@ -324,6 +356,6 @@ public final class ProductoDialogFactory {
     }
 
     private static Path imgDir() {
-        return Path.of(System.getProperty("user.home"), ".sibim", "imagenes");
+        return ImageUtils.storageDir();
     }
 }

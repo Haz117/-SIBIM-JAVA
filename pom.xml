@@ -31,17 +31,20 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-swing</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
 
         <!-- PostgreSQL JDBC -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.7.4</version>
+        </dependency>
+
+        <!-- SQLite JDBC - local persistent store for modo offline (see
+             com.sibim.db.offline) when Postgres is unreachable -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.46.1.3</version>
         </dependency>
 
         <!-- HikariCP - Connection pooling -->
@@ -78,11 +81,28 @@
             <version>8.0.5</version>
         </dependency>
 
-        <!-- SLF4J Logging -->
+        <!-- SLF4J Logging. slf4j-api is pinned explicitly (not just pulled in
+             transitively) because HikariCP/POI/etc. drag in the older
+             slf4j-api 1.7.36, and without this override Maven's "nearest
+             wins" mediation would pick that 1.x jar over the 2.x one our
+             binder needs — leaving the classpath with an API version the
+             binder can't hook into, so every logger silently becomes a
+             no-op instead of writing to console/log file. -->
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
+            <artifactId>slf4j-api</artifactId>
             <version>2.0.16</version>
+        </dependency>
+        <!-- logback-classic instead of slf4j-simple: slf4j-simple has no
+             append mode — it TRUNCATES the log file on every launch, which
+             defeats the point of a persistent log (an issue reported in one
+             run is gone by the time anyone looks the next time the app
+             starts). logback-classic's RollingFileAppender (configured in
+             src/main/resources/logback.xml) appends and rotates daily. -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.6.3</version>
         </dependency>
 
         <!-- Dotenv for .env file support -->
@@ -97,6 +117,14 @@
             <groupId>io.github.mkpaz</groupId>
             <artifactId>atlantafx-base</artifactId>
             <version>2.0.1</version>
+        </dependency>
+
+        <!-- JUnit 5 - unit tests for pure logic (no DB/UI dependency) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.3</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

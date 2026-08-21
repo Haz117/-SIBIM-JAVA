@@ -62,13 +62,19 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
    src/main/resources/seed_demo.sql
    ```
    ⚠️ **Nunca ejecutes `seed_demo.sql` contra la base de datos de producción real** — crea 3 cuentas con contraseñas conocidas y públicas en este repositorio (`admin123456`, `sec123456`, `dir123456`). Todas quedan marcadas para forzar el cambio de contraseña en su primer login, pero de todas formas no deben usarse como cuentas reales del ayuntamiento.
-4. Crear el archivo `.env` en la raíz del proyecto con las credenciales:
+4. Crear el archivo `.env` en la raíz del proyecto con las credenciales (puedes partir de `.env.example`, que trae todas las variables documentadas):
    ```env
    DB_URL=jdbc:postgresql://localhost:5432/sibim
    DB_USER=tu_usuario
    DB_PASSWORD=tu_contraseña
    ```
    ⚠️ Si `DB_PASSWORD` no está configurada, la app se conecta sin contraseña y lo advierte en consola — nunca dejes esto así en un despliegue real; solo es aceptable en desarrollo local con PostgreSQL configurado en modo `trust`.
+
+   Opcionalmente, también puede definirse:
+   ```env
+   IMG_DIR=\\servidor\sibim\imagenes
+   ```
+   ⚠️ **Importante en un despliegue con varias PCs**: las fotos de los bienes se guardan como archivo en disco, y la ruta se persiste en la base de datos compartida. Si `IMG_DIR` no se configura, cada PC guarda las fotos en su propia carpeta de usuario (`%USERPROFILE%\.sibim\imagenes`) — y una foto subida desde una PC aparecerá rota al verla desde cualquier otra. Para que las fotos se vean igual en todas las computadoras del ayuntamiento, `IMG_DIR` debe apuntar a una ruta de red (UNC o unidad mapeada) accesible **con la misma ruta** desde cada PC que use el sistema.
 5. Crea las cuentas reales del ayuntamiento desde Configuración (solo Admin) una vez levantado el sistema — cualquier cuenta que crees o restablezcas ahí queda forzada a cambiar su contraseña en el primer login.
 
 ---
@@ -87,6 +93,38 @@ El script compila automáticamente si detecta cambios y lanza la aplicación.
 mvn package -q
 java -jar target/sibim-desktop-1.0.0.jar
 ```
+
+---
+
+## Despliegue en producción (varias PCs del ayuntamiento)
+
+`iniciar.bat` es para **desarrollo**: recompila con Maven en cada arranque, lo cual requiere tener el código fuente completo y acceso a Maven Central en esa máquina. Para las PCs reales del ayuntamiento **no** se debe copiar el repositorio completo — en su lugar:
+
+1. En una máquina de desarrollo (con Maven e internet), compila una sola vez:
+   ```bash
+   mvn package -q
+   ```
+   Esto genera `target/sibim-desktop-1.0.0.jar` (el shade plugin lo deja autocontenido, con todas las dependencias empaquetadas — no hay nada más que instalar).
+2. Copia a cada PC del ayuntamiento **únicamente**:
+   - `sibim-desktop-1.0.0.jar`
+   - `produccion.bat` (en la raíz del repo)
+   - un `.env` con las credenciales reales de esa instalación (nunca el mismo `.env` de desarrollo)
+3. Ejecuta `produccion.bat` — solo requiere Java 21 instalado, no Maven ni el código fuente.
+
+Así el código fuente y las credenciales de producción no quedan expuestos en cada estación de trabajo, y una PC no puede quedar corriendo una versión distinta a las demás por una recompilación local accidental.
+
+---
+
+## Modo offline
+
+Si una PC no logra conectar a la base de datos real al arrancar (red caída, servidor apagado, etc.), el sistema **no pierde el trabajo**: entra en modo offline automáticamente.
+
+- **Qué sí funciona sin conexión**: Bienes, Movimientos y Categorías — crear, editar, registrar entradas/salidas/ajustes/transferencias — todo se guarda en un archivo local en esa PC (`%USERPROFILE%\.sibim\offline.db`). Un usuario que ya haya iniciado sesión antes en esa PC estando conectado también puede seguir entrando sin conexión.
+- **Qué necesita conexión**: crear/editar usuarios, conteos físicos, auditoría, y el cambio de contraseña obligatorio (se pospone hasta el siguiente login ya conectado).
+- **Sincronización**: en cuanto la app detecta que la base de datos real volvió a estar disponible (revisa cada minuto), sube automáticamente todo lo capturado offline, en el mismo orden en que se hizo. Un aviso confirma cuántos cambios se sincronizaron. Si algún cambio ya no se puede aplicar tal cual (por ejemplo, alguien eliminó ese mismo bien desde otra PC mientras esta estaba offline), queda marcado para revisión manual en vez de perderse o bloquear el resto.
+- La barra de estado muestra "Modo offline · N pendientes" mientras haya cambios sin subir.
+
+Este modo offline es distinto del **modo demo** (datos ficticios que se pierden al cerrar la app, `DEMO_MODE=true` en `.env`) — ver `.env.example`. El modo demo es solo para desarrollo local sin PostgreSQL; nunca debe activarse en una instalación real.
 
 ---
 
@@ -139,6 +177,22 @@ SIBIM-Java/
 | **Admin** | Acceso completo: gestión de usuarios, todas las áreas, reportes globales |
 | **Secretario** | Acceso a su secretaría y a las direcciones que dependen de ella, sin gestión de usuarios |
 | **Dirección** | Acceso solo a su área asignada, sin gestión de usuarios |
+
+---
+
+## Respaldo de la base de datos
+
+El proyecto no incluye ningún mecanismo automatizado de respaldo — es responsabilidad de quien administre el servidor PostgreSQL. Como mínimo, en producción se recomienda:
+
+```bash
+# Respaldo diario (ejemplo)
+pg_dump -U tu_usuario -d sibim -F c -f sibim_$(date +%Y%m%d).dump
+
+# Restauración
+pg_restore -U tu_usuario -d sibim --clean sibim_20260101.dump
+```
+
+`src/main/resources/sibim.sql` no usa una herramienta de migraciones (Flyway/Liquibase), pero sí es seguro volver a ejecutarlo contra una base ya existente: usa `CREATE TABLE IF NOT EXISTS` para las tablas y un bloque `DO $$ ... ALTER TABLE IF NOT EXISTS` al final para agregar columnas nuevas sin tocar los datos existentes, y una tabla `schema_version` registra qué versión del script se aplicó por última vez a cada base de datos. Para un cambio de esquema futuro: sube el número en el `INSERT INTO schema_version` y agrega el `ALTER TABLE` correspondiente al bloque `DO $$` — así el mismo script sigue siendo el único que hay que volver a correr en cada instalación.
 
 ---
 

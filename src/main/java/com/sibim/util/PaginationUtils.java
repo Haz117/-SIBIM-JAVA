@@ -20,16 +20,22 @@ public final class PaginationUtils {
                                        Label lblTotal, Label lblPage, Button btnPrev, Button btnNext,
                                        String singular, String plural) {
         int total = filteredData.size();
-        int from = currentPage * pageSize;
-        int to = Math.min(from + pageSize, total);
         int totalPages = Math.max(1, (int) Math.ceil((double) total / pageSize));
+        // Defensive clamp: currentPage is caller-owned state that isn't
+        // always reset when filteredData shrinks out from under it (e.g. a
+        // filter/search narrows the list while a later page was active) —
+        // without this, `from` could exceed `total` and subList() below
+        // throws IllegalArgumentException instead of just showing page 1.
+        int clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
+        int from = clampedPage * pageSize;
+        int to = Math.min(from + pageSize, total);
 
         table.setItems(FXCollections.observableArrayList(filteredData.subList(from, to)));
 
         if (lblTotal != null) lblTotal.setText(total + (total == 1 ? " " + singular : " " + plural));
         if (lblPage != null) lblPage.setText(total == 0 ? "—"
-            : "Pág " + (currentPage + 1) + " de " + totalPages + "  ·  " + (from + 1) + "–" + to);
-        if (btnPrev != null) btnPrev.setDisable(currentPage == 0);
-        if (btnNext != null) btnNext.setDisable(currentPage >= totalPages - 1);
+            : "Pág " + (clampedPage + 1) + " de " + totalPages + "  ·  " + (from + 1) + "–" + to);
+        if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
+        if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
     }
 }

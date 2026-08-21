@@ -379,23 +379,12 @@ public class OrganigramaController {
         TableColumn<Producto, String> cEstado = new TableColumn<>("Estado");
         cEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
         cEstado.setPrefWidth(100);
-        cEstado.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
-            { badge.getStyleClass().add("cell-badge"); }
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty); setGraphic(null); setText(null);
-                if (empty || item == null) return;
-                badge.setText(item);
-                badge.getStyleClass().removeAll("cell-badge-success","cell-badge-warning","cell-badge-danger","cell-badge-purple");
-                badge.getStyleClass().add(switch (item) {
-                    case "Agotado"    -> "cell-badge-danger";
-                    case "Bajo Stock" -> "cell-badge-warning";
-                    case "Vencido"    -> "cell-badge-purple";
-                    default           -> "cell-badge-success";
-                });
-                setGraphic(badge);
-            }
-        });
+        cEstado.setCellFactory(com.sibim.util.DialogUtil.badgeCellFactory(item -> switch (item) {
+            case "Agotado"    -> "cell-badge-danger";
+            case "Bajo Stock" -> "cell-badge-warning";
+            case "Vencido"    -> "cell-badge-purple";
+            default           -> "cell-badge-success";
+        }));
 
         tbl.getColumns().addAll(cCod, cNombre, cStock, cEstado);
         dialog.getDialogPane().setContent(new VBox(0, header, tbl));

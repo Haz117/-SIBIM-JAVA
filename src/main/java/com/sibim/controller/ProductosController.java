@@ -87,6 +87,8 @@ public class ProductosController {
     @FXML private Button btnNext;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
+    @FXML private Button btnNuevoBien;
+    @FXML private Button btnConteoFisico;
     @FXML private Button btnClearSearch;
     @FXML private ProgressIndicator spinner;
     @FXML private Label lblStatTotal;
@@ -118,6 +120,15 @@ public class ProductosController {
         setupStatusChips();
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
         if (btnEliminar != null) { btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit); }
+        // "Nuevo Bien" and "Conteo físico" both write real inventory data
+        // (the latter registers AJUSTE movements for every discrepancy) —
+        // they need the same canEdit gate as Editar/Eliminar. Unlike those
+        // two, these previously had no fx:id at all, so nothing ever hid
+        // them: any logged-in user (including DIRECCION, who can't even see
+        // "Editar"/"Eliminar") could create products or run a physical
+        // count that silently adjusts stock.
+        if (btnNuevoBien    != null) { btnNuevoBien.setVisible(canEdit);    btnNuevoBien.setManaged(canEdit); }
+        if (btnConteoFisico != null) { btnConteoFisico.setVisible(canEdit); btnConteoFisico.setManaged(canEdit); }
         if (rootPane != null && canEdit) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
@@ -244,26 +255,12 @@ public class ProductosController {
             new SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
 
         // Status badge cell
-        colEstado.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
-            { badge.getStyleClass().add("cell-badge"); }
-            @Override
-            protected void updateItem(String value, boolean empty) {
-                super.updateItem(value, empty);
-                setGraphic(null);
-                if (empty || value == null || getTableRow() == null || getTableRow().getItem() == null) return;
-                Producto p = getTableRow().getItem();
-                badge.setText(value);
-                badge.getStyleClass().removeAll("cell-badge-success","cell-badge-warning","cell-badge-danger","cell-badge-purple");
-                badge.getStyleClass().add(switch (p.getEstado()) {
-                    case AGOTADO    -> "cell-badge-danger";
-                    case BAJO_STOCK -> "cell-badge-warning";
-                    case VENCIDO    -> "cell-badge-purple";
-                    default         -> "cell-badge-success";
-                });
-                setGraphic(badge); setText(null);
-            }
-        });
+        colEstado.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
+            case "Agotado"    -> "cell-badge-danger";
+            case "Bajo Stock" -> "cell-badge-warning";
+            case "Vencido"    -> "cell-badge-purple";
+            default           -> "cell-badge-success";
+        }));
 
         // Stock number coloring
         colStock.setCellFactory(col -> new TableCell<>() {
