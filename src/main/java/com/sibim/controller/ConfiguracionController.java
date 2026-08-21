@@ -6,6 +6,7 @@ import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
@@ -26,6 +27,8 @@ import java.util.UUID;
 
 public class ConfiguracionController {
 
+    @FXML private VBox  profileCard;
+    @FXML private VBox  sysInfoCard;
     @FXML private Label lblNombreUsuario;
     @FXML private Label lblUsernameUsuario;
     @FXML private Label lblRolUsuario;
@@ -54,6 +57,7 @@ public class ConfiguracionController {
     @FXML
     public void initialize() {
         Usuario me = SessionManager.getCurrentUser();
+        if (me == null) return;
         String nombre = me.getNombre();
         lblNombreUsuario.setText(nombre);
         lblUsernameUsuario.setText("@" + me.getUsername());
@@ -82,6 +86,14 @@ public class ConfiguracionController {
             auditSection.setManaged(isAdmin);
         }
 
+        // Entrance animations — cards cascade in from below
+        if (profileCard  != null) AnimationUtils.fadeInUp(profileCard,  320,   0);
+        if (sysInfoCard  != null) AnimationUtils.fadeInUp(sysInfoCard,  320,  70);
+        if (isAdmin) {
+            if (adminSection != null) AnimationUtils.fadeInUp(adminSection, 320, 140);
+            if (auditSection != null) AnimationUtils.fadeInUp(auditSection, 320, 210);
+        }
+
         if (isAdmin) {
             setupUsersTable();
             loadUsers();
@@ -94,6 +106,14 @@ public class ConfiguracionController {
             usersTable.setOnMouseClicked(e -> {
                 if (e.getClickCount() == 2 && usersTable.getSelectionModel().getSelectedItem() != null)
                     onEditUsuario();
+            });
+            usersTable.setOnKeyPressed(ev -> {
+                if (usersTable.getSelectionModel().getSelectedItem() == null) return;
+                if (ev.getCode() == javafx.scene.input.KeyCode.DELETE) {
+                    onDeleteUsuario(); ev.consume();
+                } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()) {
+                    onEditUsuario(); ev.consume();
+                }
             });
 
             // Context menu
@@ -110,7 +130,7 @@ public class ConfiguracionController {
     }
 
     private void setupUsersTable() {
-        usersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        usersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colUsername.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsername()));
         colCargo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCargo()));
@@ -142,12 +162,13 @@ public class ConfiguracionController {
         lblAreaUsuario.setText(u.getArea() != null ? u.getArea() : "—");
         if (lblAvatarPerfil != null && u.getNombre() != null && !u.getNombre().isBlank())
             lblAvatarPerfil.setText(String.valueOf(u.getNombre().charAt(0)).toUpperCase());
+        if (profileCard != null) AnimationUtils.statCardPop(profileCard);
     }
 
     private void loadUsers() {
         DialogUtil.runAsync(
             () -> usuarioRepo.findAll(),
-            users -> usersTable.setItems(FXCollections.observableArrayList(users)),
+            users -> usersTable.getItems().setAll(users),
             e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar la lista de usuarios")
         );
     }
@@ -319,6 +340,7 @@ public class ConfiguracionController {
             }
         }
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 270, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError));
         Platform.runLater(() -> (passwordOnly ? fPassword : fNombre).requestFocus());
 
@@ -433,29 +455,113 @@ public class ConfiguracionController {
         scroll.setPrefHeight(400);
         scroll.getStyleClass().add("page-scroll");
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
+        dialog.showAndWait();
+    }
+
+    private void showConteoDetalleDialog(com.sibim.model.ConteoFisico conteo, List<com.sibim.model.ConteoItem> items) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(680);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("🔍", "Detalle del Conteo",
+            com.sibim.util.FormatUtils.formatDateTime(conteo.getCreadoEn()) + " · " + conteo.getUsuarioNombre(),
+            "#0891B2", "#0E7490");
+
+        // Column headers
+        HBox colHeaders = new HBox();
+        colHeaders.setPadding(new javafx.geometry.Insets(6, 14, 4, 14));
+        colHeaders.setSpacing(0);
+        String[] colTitles = { "Bien", "Área", "Sistema", "Contado", "Delta", "Ajustado" };
+        double[] colWidths  = { 0.35, 0.20, 0.10, 0.10, 0.10, 0.15 };
+        for (int i = 0; i < colTitles.length; i++) {
+            Label lbl = new Label(colTitles[i]);
+            lbl.getStyleClass().add("col-header");
+            lbl.setPrefWidth(0);
+            HBox.setHgrow(lbl, javafx.scene.layout.Priority.ALWAYS);
+            lbl.setMaxWidth(Double.MAX_VALUE);
+            colHeaders.getChildren().add(lbl);
+        }
+
+        VBox rows = new VBox(4);
+        rows.setPadding(new javafx.geometry.Insets(4));
+        if (items.isEmpty()) {
+            Label empty = new Label("Sin ítems registrados en este conteo");
+            empty.getStyleClass().add("muted");
+            rows.getChildren().add(empty);
+        }
+        for (com.sibim.model.ConteoItem item : items) {
+            int delta = item.getStockContado() - item.getStockSistema();
+            HBox row = new HBox();
+            row.getStyleClass().add("dlg-detail-header");
+            row.setPadding(new javafx.geometry.Insets(8, 14, 8, 14));
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+            Label lNombre = new Label(item.getProductoNombre());
+            lNombre.setWrapText(false);
+            lNombre.getStyleClass().add("dlg-detail-value");
+            HBox.setHgrow(lNombre, javafx.scene.layout.Priority.ALWAYS);
+            lNombre.setMaxWidth(Double.MAX_VALUE);
+
+            Label lArea = new Label(item.getArea() != null ? item.getArea() : "—");
+            lArea.getStyleClass().add("muted-sm");
+            lArea.setPrefWidth(120);
+
+            Label lSistema = new Label(String.valueOf(item.getStockSistema()));
+            lSistema.getStyleClass().add("muted");
+            lSistema.setPrefWidth(60);
+
+            Label lContado = new Label(String.valueOf(item.getStockContado()));
+            lContado.getStyleClass().add("muted");
+            lContado.setPrefWidth(60);
+
+            Label lDelta = new Label((delta > 0 ? "+" : "") + delta);
+            lDelta.getStyleClass().add(delta == 0 ? "muted-sm" : (delta > 0 ? "field-hint-ok" : "field-hint-error"));
+            lDelta.setPrefWidth(60);
+
+            Label lAjustado = new Label(item.isAjustado() ? "✓ Sí" : "No");
+            lAjustado.getStyleClass().add(item.isAjustado() ? "field-hint-ok" : "muted-sm");
+            lAjustado.setPrefWidth(80);
+
+            row.getChildren().addAll(lNombre, lArea, lSistema, lContado, lDelta, lAjustado);
+            if (delta != 0) row.getStyleClass().add("row-highlight-amber");
+            rows.getChildren().add(row);
+        }
+
+        ScrollPane scroll = new ScrollPane(rows);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(380);
+        scroll.getStyleClass().add("page-scroll");
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, colHeaders, scroll), 260, 60);
+        dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll));
         dialog.showAndWait();
     }
 
     private String accionEtiqueta(String accion) {
         if (accion == null) return "—";
         return switch (accion) {
-            case "crear" -> "Creado";
-            case "actualizar" -> "Actualizado";
-            case "eliminar" -> "Eliminado";
-            case "baja" -> "Dado de baja";
+            case "crear"     -> "Creado";
+            case "actualizar"-> "Actualizado";
+            case "eliminar"  -> "Eliminado";
+            case "baja"      -> "Dado de baja";
             case "reactivar" -> "Reactivado";
-            default -> accion;
+            case "login"     -> "Inicio de sesión";
+            case "logout"    -> "Cierre de sesión";
+            default          -> accion;
         };
     }
 
     private String entidadEtiqueta(String entidad) {
         if (entidad == null) return "—";
         return switch (entidad) {
-            case "producto" -> "Bien";
+            case "producto"  -> "Bien";
             case "categoria" -> "Categoría";
-            case "usuario" -> "Usuario";
-            default -> entidad;
+            case "usuario"   -> "Usuario";
+            case "sesion"    -> "Sesión";
+            default          -> entidad;
         };
     }
 
@@ -500,7 +606,16 @@ public class ConfiguracionController {
             detalle.getStyleClass().add("muted-sm");
             info.getChildren().addAll(titulo, detalle);
             HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
-            row.getChildren().add(info);
+
+            Button btnDetalle = new Button("Ver detalle");
+            btnDetalle.getStyleClass().add("btn-secondary");
+            btnDetalle.setOnAction(e -> DialogUtil.runAsync(
+                () -> conteoRepo.findItems(c.getId()),
+                items -> showConteoDetalleDialog(c, items),
+                ex -> NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar el detalle")
+            ));
+
+            row.getChildren().addAll(info, btnDetalle);
             list.getChildren().add(row);
         }
 
@@ -509,6 +624,7 @@ public class ConfiguracionController {
         scroll.setPrefHeight(400);
         scroll.getStyleClass().add("page-scroll");
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }

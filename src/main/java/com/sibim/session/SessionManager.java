@@ -10,7 +10,7 @@ import java.util.Set;
 
 public final class SessionManager {
 
-    private static Usuario currentUser;
+    private static volatile Usuario currentUser;
 
     private SessionManager() {}
 

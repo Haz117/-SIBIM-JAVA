@@ -11,15 +11,15 @@ import java.util.Optional;
 public class ConfirmacionUtil {
 
     public static boolean confirmar(String titulo, String mensaje) {
-        return showDialog("❓", "#6366F1", "#EEF2FF", titulo, mensaje, "Confirmar", "#6366F1");
+        return showDialog("❓", titulo, mensaje, "Confirmar", false);
     }
 
     public static boolean confirmarEliminar(String nombreElemento) {
         return showDialog(
-            "🗑", "#EF4444", "#FEF2F2",
+            "🗑",
             "Confirmar eliminación",
             "¿Eliminar \"" + nombreElemento + "\"?\nEsta acción no se puede deshacer.",
-            "Eliminar", "#EF4444"
+            "Eliminar", true
         );
     }
 
@@ -28,8 +28,8 @@ public class ConfirmacionUtil {
      *  it blank. Kept as a separate method from {@link #confirmarEliminar}
      *  since a baja needs a recorded reason (it's a soft-delete, not a
      *  physical one, but the reason is what makes it auditable). */
-    public static Optional<String> confirmarConMotivo(String icon, String accent, String accentLight,
-            String title, String message, String confirmLabel, String confirmColor, String promptText) {
+    public static Optional<String> confirmarConMotivo(String icon, String title, String message,
+            String confirmLabel, boolean danger, String promptText) {
         ButtonType btnConfirm = new ButtonType(confirmLabel, ButtonBar.ButtonData.OK_DONE);
         ButtonType btnCancel  = new ButtonType("Cancelar",   ButtonBar.ButtonData.CANCEL_CLOSE);
 
@@ -45,8 +45,8 @@ public class ConfirmacionUtil {
         Label iconLbl = new Label(icon);
         iconLbl.getStyleClass().add("confirm-icon-text");
         StackPane iconBadge = new StackPane(iconLbl);
-        iconBadge.getStyleClass().add("confirm-icon-badge");
-        iconBadge.setStyle("-fx-background-color: " + accentLight + "; -fx-border-color: " + accent + "33;");
+        iconBadge.getStyleClass().addAll("confirm-icon-badge",
+            danger ? "confirm-icon-badge-danger" : "confirm-icon-badge-default");
 
         Label titleLbl = new Label(title);
         titleLbl.getStyleClass().add("confirm-title");
@@ -73,7 +73,7 @@ public class ConfirmacionUtil {
         Node confirmBtn = dialog.getDialogPane().lookupButton(btnConfirm);
         if (confirmBtn != null) {
             confirmBtn.getStyleClass().add("confirm-ok-btn");
-            confirmBtn.setStyle("-fx-background-color: " + confirmColor + ";");
+            if (danger) confirmBtn.getStyleClass().add("confirm-ok-btn-danger");
             confirmBtn.setDisable(true);
             motivoField.textProperty().addListener((o, a, b) -> confirmBtn.setDisable(b.isBlank()));
         }
@@ -88,8 +88,8 @@ public class ConfirmacionUtil {
         return Optional.empty();
     }
 
-    private static boolean showDialog(String icon, String accent, String accentLight,
-            String title, String message, String confirmLabel, String confirmColor) {
+    private static boolean showDialog(String icon, String title, String message,
+            String confirmLabel, boolean danger) {
 
         ButtonType btnConfirm = new ButtonType(confirmLabel, ButtonBar.ButtonData.OK_DONE);
         ButtonType btnCancel  = new ButtonType("Cancelar",   ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -107,9 +107,8 @@ public class ConfirmacionUtil {
         iconLbl.getStyleClass().add("confirm-icon-text");
 
         StackPane iconBadge = new StackPane(iconLbl);
-        iconBadge.getStyleClass().add("confirm-icon-badge");
-        // Dynamic colors only — static properties are in CSS
-        iconBadge.setStyle("-fx-background-color: " + accentLight + "; -fx-border-color: " + accent + "33;");
+        iconBadge.getStyleClass().addAll("confirm-icon-badge",
+            danger ? "confirm-icon-badge-danger" : "confirm-icon-badge-default");
 
         Label titleLbl = new Label(title);
         titleLbl.getStyleClass().add("confirm-title");
@@ -131,7 +130,7 @@ public class ConfirmacionUtil {
         Node confirmBtn = dialog.getDialogPane().lookupButton(btnConfirm);
         if (confirmBtn != null) {
             confirmBtn.getStyleClass().add("confirm-ok-btn");
-            confirmBtn.setStyle("-fx-background-color: " + confirmColor + ";");
+            if (danger) confirmBtn.getStyleClass().add("confirm-ok-btn-danger");
         }
         Node cancelBtn = dialog.getDialogPane().lookupButton(btnCancel);
         if (cancelBtn != null) cancelBtn.getStyleClass().add("confirm-cancel-btn");

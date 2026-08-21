@@ -13,7 +13,7 @@
     <!-- ══════════════════════════════════════════════════════════
          WELCOME BANNER
          ══════════════════════════════════════════════════════════ -->
-    <VBox styleClass="dashboard-banner" spacing="0">
+    <VBox fx:id="dashBanner" styleClass="dashboard-banner" spacing="0">
         <padding><Insets top="24" right="28" bottom="0" left="28"/></padding>
 
         <!-- Greeting row -->
@@ -78,7 +78,7 @@
           visible="false" managed="false" onMouseClicked="#onVerAlertas">
         <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
         <Label text="⚠" styleClass="alert-banner-icon"/>
-        <Label text="Hay bienes con stock bajo o agotados que requieren atención."
+        <Label fx:id="lblAlertBannerText" text="Hay bienes que requieren atención."
                wrapText="true" HBox.hgrow="ALWAYS"/>
         <Label text="Ver alertas →" styleClass="alert-banner-cta"/>
     </HBox>
@@ -117,8 +117,8 @@
         </HBox>
 
         <!-- Valor Patrimonial — Teal -->
-        <HBox styleClass="stat-card"
-              alignment="CENTER_LEFT" spacing="14"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerReportes" spacing="14"
               GridPane.columnIndex="1" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-teal">
@@ -127,7 +127,7 @@
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="VALOR PATRIMONIAL" styleClass="stat-label"/>
                 <Label fx:id="lblValorTotal" text="—" styleClass="stat-value-currency"/>
-                <Label text="Valor total registrado" styleClass="stat-hint"/>
+                <Label text="Ver reportes →" styleClass="stat-hint"/>
             </VBox>
         </HBox>
 
@@ -177,8 +177,8 @@
         </HBox>
 
         <!-- Categorías — Indigo oscuro -->
-        <HBox styleClass="stat-card"
-              alignment="CENTER_LEFT" spacing="14"
+        <HBox styleClass="stat-card, stat-card-clickable"
+              alignment="CENTER_LEFT" onMouseClicked="#onVerCategorias" spacing="14"
               GridPane.columnIndex="2" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-dark-indigo">
@@ -187,7 +187,7 @@
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="CATEGORÍAS ACTIVAS" styleClass="stat-label"/>
                 <Label fx:id="lblCategorias" text="—" styleClass="stat-value"/>
-                <Label text="Clasificaciones" styleClass="stat-hint"/>
+                <Label text="Ver categorías →" styleClass="stat-hint"/>
             </VBox>
         </HBox>
     </GridPane>
@@ -235,7 +235,7 @@
     </HBox>
 
     <!-- Charts row -->
-    <HBox spacing="14">
+    <HBox fx:id="chartsRow" spacing="14">
         <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
             <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
@@ -279,7 +279,7 @@
     </HBox>
 
     <!-- Recent activity table inside a card -->
-    <VBox styleClass="card" spacing="0">
+    <VBox fx:id="activityCard" styleClass="card" spacing="0">
         <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table recent-table">
             <placeholder>
                 <VBox alignment="CENTER" spacing="8">

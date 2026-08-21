@@ -49,6 +49,7 @@ public class UsuarioRepository {
     }
 
     public List<Usuario> findAll() throws SQLException {
+        requireAdmin();
         if (DatabaseConfig.isDemoMode()) return new ArrayList<>(DemoDataStore.findAllUsers());
         List<Usuario> list = new ArrayList<>();
         String sql = "SELECT * FROM users ORDER BY nombre";
@@ -62,8 +63,8 @@ public class UsuarioRepository {
 
     public Usuario save(Usuario u) throws SQLException {
         requireAdmin();
-        boolean isNew = u.getId() == null || findById(u.getId()).isEmpty();
-        if (u.getId() == null) u.setId(UUID.randomUUID().toString());
+        boolean isNew = u.getId() == null;
+        if (isNew) u.setId(UUID.randomUUID().toString());
         if (DatabaseConfig.isDemoMode()) {
             if (u.getCreadoEn() == null) u.setCreadoEn(java.time.LocalDateTime.now());
             DemoDataStore.saveUsuario(u);

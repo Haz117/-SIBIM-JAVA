@@ -3,11 +3,15 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.UnidadMedida;
+import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ImageUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -54,6 +58,8 @@ public final class ProductoDialogFactory {
             isNewProduct ? "#7C3AED" : "#047857");
 
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
+        // The visible submit action is btnGuardar inside the content; hide the bar's OK.
+        if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
 
         // ── Tab: Información General ──
         GridPane gridInfo = DialogUtil.formGrid(120);
@@ -64,6 +70,34 @@ public final class ProductoDialogFactory {
         TextField fCodigo = new TextField(existing != null ? existing.getCodigo() : "");
         fCodigo.setPromptText("Código único de inventario");
         fCodigo.getStyleClass().add("form-input");
+
+        // Inline código uniqueness check — debounced 280ms
+        ProductoRepository codigoRepo = new ProductoRepository();
+        String existingId = existing != null ? existing.getId() : null;
+        Label lblCodigoHint = new Label();
+        lblCodigoHint.getStyleClass().add("field-hint");
+        lblCodigoHint.setVisible(false); lblCodigoHint.setManaged(false);
+        javafx.animation.Timeline[] codigoDebounce = {null};
+        fCodigo.textProperty().addListener((obs, old, val) -> {
+            if (codigoDebounce[0] != null) codigoDebounce[0].stop();
+            lblCodigoHint.setVisible(false); lblCodigoHint.setManaged(false);
+            if (val.isBlank()) return;
+            codigoDebounce[0] = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
+                javafx.util.Duration.millis(280), e -> AppExecutor.submit(() -> {
+                    try {
+                        boolean exists = codigoRepo.existsByCodigo(val.trim(), existingId);
+                        Platform.runLater(() -> {
+                            lblCodigoHint.setText(exists ? "✕  Este código ya existe" : "✓  Disponible");
+                            lblCodigoHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
+                            lblCodigoHint.getStyleClass().add(exists ? "field-hint-error" : "field-hint-ok");
+                            lblCodigoHint.setVisible(true); lblCodigoHint.setManaged(true);
+                            if (exists) fCodigo.getStyleClass().add("field-error");
+                            else fCodigo.getStyleClass().remove("field-error");
+                        });
+                    } catch (Exception ignored) {}
+                })));
+            codigoDebounce[0].play();
+        });
         TextArea fDesc = new TextArea(existing != null && existing.getDescripcion() != null ? existing.getDescripcion() : "");
         fDesc.setPrefRowCount(2); fDesc.setPromptText("Descripción opcional");
         fDesc.getStyleClass().add("form-input");
@@ -164,12 +198,17 @@ public final class ProductoDialogFactory {
 
         VBox imgSection = new VBox(6, imgBox, new HBox(6, btnSelImg, btnQuitarImg));
 
+        VBox codigoBox = new VBox(2, fCodigo, lblCodigoHint);
         int r = 0;
         gridInfo.add(DialogUtil.fieldLabel("Nombre *"),    0, r); gridInfo.add(fNombre,    1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Código *"),     0, r); gridInfo.add(fCodigo,    1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Código *"),     0, r); gridInfo.add(codigoBox,  1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Descripción"), 0, r); gridInfo.add(fDesc,      1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Categoría *"), 0, r); gridInfo.add(fCat,       1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Área *"),       0, r); gridInfo.add(fArea,      1, r++);
+        gridInfo.add(DialogUtil.fieldLabelWithHelp("Área *",
+            "Secretaría o Dirección responsable del bien.\n" +
+            "Solo los usuarios de esa área podrán gestionarlo.\n" +
+            "Para DIRECCIÓN el área se fija automáticamente."),
+                                                             0, r); gridInfo.add(fArea,      1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Proveedor"),   0, r); gridInfo.add(fProveedor, 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Ubicación"),   0, r); gridInfo.add(fUbicacion, 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Resguardante"), 0, r); gridInfo.add(fResguardante, 1, r++);
@@ -199,21 +238,57 @@ public final class ProductoDialogFactory {
             ? existing.getPrecioCompra().toPlainString() : "0");
         fPrecioC.setPromptText("0.00");
         fPrecioC.getStyleClass().add("form-input");
+        Label lblPrecioCHint = new Label();
+        lblPrecioCHint.getStyleClass().add("field-hint");
+        lblPrecioCHint.setVisible(false); lblPrecioCHint.setManaged(false);
+        fPrecioC.textProperty().addListener((obs, old, val) -> {
+            try { new BigDecimal(val.trim());
+                lblPrecioCHint.setVisible(false); lblPrecioCHint.setManaged(false);
+                fPrecioC.getStyleClass().remove("field-error");
+            } catch (Exception ex) {
+                lblPrecioCHint.setText("Formato inválido — usa números (ej. 1500.00)");
+                lblPrecioCHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
+                lblPrecioCHint.getStyleClass().add("field-hint-error");
+                lblPrecioCHint.setVisible(true); lblPrecioCHint.setManaged(true);
+                fPrecioC.getStyleClass().add("field-error");
+            }
+        });
+
         TextField fPrecioV = new TextField(existing != null && existing.getPrecioVenta() != null
             ? existing.getPrecioVenta().toPlainString() : "0");
         fPrecioV.setPromptText("0.00");
         fPrecioV.getStyleClass().add("form-input");
+        Label lblPrecioVHint = new Label();
+        lblPrecioVHint.getStyleClass().add("field-hint");
+        lblPrecioVHint.setVisible(false); lblPrecioVHint.setManaged(false);
+        fPrecioV.textProperty().addListener((obs, old, val) -> {
+            try { new BigDecimal(val.trim());
+                lblPrecioVHint.setVisible(false); lblPrecioVHint.setManaged(false);
+                fPrecioV.getStyleClass().remove("field-error");
+            } catch (Exception ex) {
+                lblPrecioVHint.setText("Formato inválido — usa números (ej. 1500.00)");
+                lblPrecioVHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
+                lblPrecioVHint.getStyleClass().add("field-hint-error");
+                lblPrecioVHint.setVisible(true); lblPrecioVHint.setManaged(true);
+                fPrecioV.getStyleClass().add("field-error");
+            }
+        });
         DatePicker fVenc = new DatePicker(existing != null ? existing.getFechaVencimiento() : null);
         fVenc.setMaxWidth(Double.MAX_VALUE);
         fVenc.getStyleClass().add("form-input");
 
         int rs = 0;
         gridStock.add(DialogUtil.fieldLabel("Stock Actual"),    0, rs); gridStock.add(fStock,    1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Stock Mínimo"),    0, rs); gridStock.add(fStockMin, 1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Stock Máximo"),    0, rs); gridStock.add(fStockMax, 1, rs++);
+        gridStock.add(DialogUtil.fieldLabelWithHelp("Stock Mínimo",
+            "Cuando el stock baje de este número se generará\nuna alerta automática en el módulo de Alertas."),
+                                                              0, rs); gridStock.add(fStockMin, 1, rs++);
+        gridStock.add(DialogUtil.fieldLabelWithHelp("Stock Máximo",
+            "Límite de referencia para sobre-stock.\n" +
+            "No bloquea entradas; sirve para reportes y alertas de exceso."),
+                                                              0, rs); gridStock.add(fStockMax, 1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Unidad"),          0, rs); gridStock.add(fUnidad,   1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Precio Compra"),   0, rs); gridStock.add(fPrecioC,  1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Precio Venta"),    0, rs); gridStock.add(fPrecioV,  1, rs++);
+        gridStock.add(DialogUtil.fieldLabel("Precio Compra"),   0, rs); gridStock.add(new VBox(2, fPrecioC, lblPrecioCHint), 1, rs++);
+        gridStock.add(DialogUtil.fieldLabel("Precio Venta"),    0, rs); gridStock.add(new VBox(2, fPrecioV, lblPrecioVHint), 1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Fecha Venc."),     0, rs); gridStock.add(fVenc,     1, rs);
 
         // ── TabPane ──
@@ -230,8 +305,13 @@ public final class ProductoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
-        VBox dialogContent = new VBox(0, dialogHeader, tabs, lblFormError);
-        dialog.getDialogPane().setContent(dialogContent);
+        String submitLabel = isNewProduct ? "✓  Guardar bien" : "✓  Guardar cambios";
+        Button btnGuardar = new Button(submitLabel);
+        btnGuardar.getStyleClass().add("form-submit-btn");
+        if (!isNewProduct) btnGuardar.getStyleClass().add("form-submit-btn-edit");
+        btnGuardar.setMaxWidth(Double.MAX_VALUE);
+        btnGuardar.setDisable(true);
+        btnGuardar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
 
         Runnable hideFormError = () -> { lblFormError.setVisible(false); lblFormError.setManaged(false); };
         fNombre.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fNombre.getStyleClass().remove("field-error"); hideFormError.run(); });
@@ -244,10 +324,13 @@ public final class ProductoDialogFactory {
         fStockMax.valueProperty().addListener((o, a, b) -> { fStockMin.getStyleClass().remove("field-error"); fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
 
         if (okBtn != null) {
-            Runnable checkOk = () -> okBtn.setDisable(
-                fNombre.getText().isBlank() || fCodigo.getText().isBlank()
+            Runnable checkOk = () -> {
+                boolean invalid = fNombre.getText().isBlank() || fCodigo.getText().isBlank()
                     || fArea.getValue() == null || fArea.getValue().isBlank()
-                    || fCat.getValue() == null);
+                    || fCat.getValue() == null;
+                okBtn.setDisable(invalid);
+                btnGuardar.setDisable(invalid);
+            };
             checkOk.run();
             fNombre.textProperty().addListener((o, a, b) -> checkOk.run());
             fCodigo.textProperty().addListener((o, a, b) -> checkOk.run());
@@ -255,17 +338,24 @@ public final class ProductoDialogFactory {
             fCat.valueProperty().addListener((o, a, b) -> checkOk.run());
         }
 
+        VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
+        VBox.setMargin(btnGuardar,   new Insets(4, 22, 16, 22));
+        VBox dialogContent = new VBox(0, dialogHeader, tabs, lblFormError, btnGuardar);
+        dialog.getDialogPane().setContent(dialogContent);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(dialogHeader, tabs, btnGuardar), 280, 70);
+
         Platform.runLater(() -> fNombre.requestFocus());
         dialog.setResultConverter(btn -> {
             if (btn != ButtonType.OK) return null;
             boolean invalid = false;
-            if (fNombre.getText().isBlank()) { fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); invalid = true; }
+            Node firstErrField = null;
+            if (fNombre.getText().isBlank()) { fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fNombre; invalid = true; }
             else fNombre.getStyleClass().remove("field-error");
-            if (fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); invalid = true; }
+            if (fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fCodigo; invalid = true; }
             else fCodigo.getStyleClass().remove("field-error");
-            if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); invalid = true; }
+            if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fArea; invalid = true; }
             else fArea.getStyleClass().remove("field-error");
-            if (fCat.getValue() == null) { fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); invalid = true; }
+            if (fCat.getValue() == null) { fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fCat; invalid = true; }
             else fCat.getStyleClass().remove("field-error");
 
             BigDecimal precioCompra = null, precioVenta = null;
@@ -303,6 +393,8 @@ public final class ProductoDialogFactory {
                 lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos y no negativos (ej. 1500.00), y el Stock Mínimo no puede superar al Stock Máximo.");
                 lblFormError.setVisible(true);
                 lblFormError.setManaged(true);
+                AnimationUtils.shake(lblFormError);
+                if (firstErrField != null) AnimationUtils.shake(firstErrField);
                 return null;
             }
 

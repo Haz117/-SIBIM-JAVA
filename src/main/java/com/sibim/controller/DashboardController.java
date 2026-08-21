@@ -2,18 +2,15 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
-import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
-import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 
 import java.math.BigDecimal;
@@ -21,7 +18,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DashboardController {
 
@@ -39,6 +35,7 @@ public class DashboardController {
     @FXML private Label lblFechaDia;
     @FXML private Label lblFechaMes;
     @FXML private HBox  alertBanner;
+    @FXML private Label lblAlertBannerText;
     @FXML private Label lblStatsActualizacion;
 
     // ── Health bar ───────────────────────────────────────────────────
@@ -59,6 +56,9 @@ public class DashboardController {
     @FXML private GridPane statsGrid;
     @FXML private TableView<Movimiento> tablaReciente;
     @FXML private Label lblCountReciente;
+    @FXML private VBox  dashBanner;
+    @FXML private HBox  chartsRow;
+    @FXML private VBox  activityCard;
 
     private final ProductoRepository productoRepo     = new ProductoRepository();
     private final MovimientoRepository movimientoRepo = new MovimientoRepository();
@@ -68,7 +68,8 @@ public class DashboardController {
 
     @FXML
     public void initialize() {
-        lblUsuario.setText(SessionManager.getCurrentUser().getNombre());
+        var user = SessionManager.getCurrentUser();
+        if (user != null) lblUsuario.setText(user.getNombre());
         lblBienvenida.setText(getBienvenida());
 
         LocalDate hoy = LocalDate.now();
@@ -78,102 +79,121 @@ public class DashboardController {
         if (lblFechaMes != null) lblFechaMes.setText(meses[hoy.getMonthValue()-1] + " " + hoy.getYear());
 
         setupTablaReciente();
-        loadDataAsync();
+
+        // Defer data loading until the node is in a scene so that charts render
+        // correctly and don't get caught mid-animation during the page transition.
+        statsGrid.sceneProperty().addListener(new javafx.beans.value.ChangeListener<>() {
+            @Override
+            public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Scene> obs,
+                                javafx.scene.Scene old, javafx.scene.Scene newScene) {
+                if (newScene != null) {
+                    statsGrid.sceneProperty().removeListener(this);
+                    if (dashBanner != null && !dashBanner.getChildren().isEmpty())
+                        AnimationUtils.staggeredFadeInUp(dashBanner.getChildren(), 300, 70);
+                    AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(),          280,  45);
+                    if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,       300, 120);
+                    if (activityCard != null) AnimationUtils.fadeInUp(activityCard,    300, 180);
+                    loadDataAsync();
+                }
+            }
+        });
     }
 
     private void loadDataAsync() {
         Task<DashboardData> task = new Task<>() {
             @Override protected DashboardData call() throws Exception {
-                List<Producto>   productos   = productoRepo.findAll();
-                List<Movimiento> movHoy      = movimientoRepo.findToday();
-                List<Movimiento> movSemana   = movimientoRepo.findLastNDays(7);
-                return new DashboardData(productos, movHoy, movSemana);
+                var stats      = productoRepo.getStats();
+                var catValores = productoRepo.getValorPorCategoria();
+                var agotados   = productoRepo.findAgotados();
+                var bajoStock  = productoRepo.findBajoStock();
+                var movHoy     = movimientoRepo.findToday();
+                var movSemana  = movimientoRepo.findLastNDays(7);
+                return new DashboardData(stats, catValores, agotados, bajoStock, movHoy, movSemana);
             }
             @Override protected void succeeded() {
-                Platform.runLater(() -> updateUI(getValue()));
+                updateUI(getValue());
             }
             @Override protected void failed() {
-                Platform.runLater(() -> {
-                    lblTotalBienes.setText("—");
-                    lblValorTotal.setText("Sin datos");
-                    if (statsGrid != null && statsGrid.getScene() != null) {
-                        com.sibim.util.NotificacionUtil.error(statsGrid.getScene(),
-                            "No se pudo cargar el resumen. Verifica la conexión a la base de datos.");
-                    }
-                });
+                lblTotalBienes.setText("—");
+                lblValorTotal.setText("Sin datos");
+                if (statsGrid != null && statsGrid.getScene() != null)
+                    com.sibim.util.NotificacionUtil.error(statsGrid.getScene(),
+                        "No se pudo cargar el resumen. Verifica la conexión a la base de datos.");
             }
         };
-        new Thread(task).start();
+        com.sibim.util.AppExecutor.submit(task);
     }
 
     private void updateUI(DashboardData data) {
-        List<Producto> productos = data.productos();
+        var stats = data.stats();
 
-        lastAgotados  = productos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        lastBajoStock = productos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
-        long agotados  = lastAgotados.size();
-        long bajoStock = lastBajoStock.size();
-        BigDecimal valorTotal = productos.stream()
-            .map(Producto::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
-        long categorias = productos.stream()
-            .map(Producto::getCategoriaId).filter(Objects::nonNull).distinct().count();
+        lastAgotados  = data.agotados();
+        lastBajoStock = data.bajoStock();
 
-        lblTotalBienes.setText(String.valueOf(productos.size()));
-        lblValorTotal.setText(FormatUtils.formatCurrency(valorTotal));
-        lblBajoStock.setText(String.valueOf(bajoStock));
-        lblAgotados.setText(String.valueOf(agotados));
-        lblMovimientosHoy.setText(String.valueOf(data.movHoy().size()));
-        lblCategorias.setText(String.valueOf(categorias));
+        AnimationUtils.animateCount(lblTotalBienes,    stats.total(),              750);
+        AnimationUtils.animateCount(lblBajoStock,      stats.bajoStock(),          680);
+        AnimationUtils.animateCount(lblAgotados,       stats.agotados(),           680);
+        AnimationUtils.animateCount(lblMovimientosHoy, data.movHoy().size(),       580);
+        AnimationUtils.animateCount(lblCategorias,     stats.categorias(),         580);
+        // Currency: animate double value, format each tick for precision on last frame
+        AnimationUtils.animateCount(lblValorTotal,
+            stats.valorTotal().longValue(), 850,
+            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
+        // Subtle pop on stat cards after their numbers finish counting
+        javafx.animation.PauseTransition popDelay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+        popDelay.setOnFinished(ev -> statsGrid.getChildren().forEach(AnimationUtils::statCardPop));
+        popDelay.play();
 
-        // Stats update timestamp
-        if (lblStatsActualizacion != null)
+        if (lblStatsActualizacion != null) {
             lblStatsActualizacion.setText("Actualizado " +
                 java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+            AnimationUtils.pulse(lblStatsActualizacion, 2);
+        }
 
-        // Alert banner
-        boolean showAlert = agotados > 0 || bajoStock > 0;
+        boolean showAlert = stats.agotados() > 0 || stats.bajoStock() > 0;
+        if (showAlert && lblAlertBannerText != null) {
+            java.util.List<String> parts = new java.util.ArrayList<>();
+            if (stats.agotados() > 0)
+                parts.add(stats.agotados() + " agotado" + (stats.agotados() != 1 ? "s" : ""));
+            if (stats.bajoStock() > 0)
+                parts.add(stats.bajoStock() + " con bajo stock");
+            lblAlertBannerText.setText(String.join("  ·  ", parts) + " — requieren atención");
+        }
         alertBanner.setVisible(showAlert);
         alertBanner.setManaged(showAlert);
-        if (showAlert) AnimationUtils.fadeInDown(alertBanner, 350, 0);
+        if (showAlert) AnimationUtils.springIn(alertBanner);
 
-        // Charts
         buildMovimientosChart(data.movSemana());
-        buildCategoriaChart(productos);
+        buildCategoriaChart(data.catValores());
+        buildHealthBar(stats);
 
-        // Health bar
-        buildHealthBar(productos);
-
-        // Stats stagger animation
-        if (statsGrid != null && !statsGrid.getChildren().isEmpty())
-            AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(), 400, 70);
-
-        // Recent activity
         if (tablaReciente != null) {
             List<Movimiento> ultimos = data.movSemana().stream()
                 .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
                 .limit(8)
-                .collect(Collectors.toList());
-            tablaReciente.setItems(javafx.collections.FXCollections.observableArrayList(ultimos));
+                .toList();
+            tablaReciente.getItems().setAll(ultimos);
 
             if (lblCountReciente != null) {
                 int n = ultimos.size();
-                lblCountReciente.setText(n > 0 ? String.valueOf(n) : "");
                 lblCountReciente.setVisible(n > 0);
                 lblCountReciente.setManaged(n > 0);
+                if (n > 0) AnimationUtils.animateCount(lblCountReciente, n, 380);
+                else       lblCountReciente.setText("");
             }
         }
     }
 
     // ── Health bar ───────────────────────────────────────────────────
 
-    private void buildHealthBar(List<Producto> productos) {
-        if (healthSection == null || healthBar == null || productos.isEmpty()) return;
+    private void buildHealthBar(com.sibim.repository.ProductoRepository.ProductoStats stats) {
+        if (healthSection == null || healthBar == null || stats.total() == 0) return;
 
-        long activos = productos.stream().filter(p -> p.getEstado() == EstadoProducto.ACTIVO).count();
-        long bajo    = productos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
-        long agotado = productos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
-        long vencido = productos.stream().filter(p -> p.getEstado() == EstadoProducto.VENCIDO).count();
-        long total   = productos.size();
+        long activos = stats.activos();
+        long bajo    = stats.bajoStock();
+        long agotado = stats.agotados();
+        long vencido = stats.vencidos();
+        long total   = stats.total();
 
         if (lblHealthActivos != null) lblHealthActivos.setText("Activos — " + activos);
         if (lblHealthBajo    != null) lblHealthBajo.setText("Bajo Stock — " + bajo);
@@ -192,6 +212,13 @@ public class DashboardController {
             new Seg(agotado, "dash-health-seg-red"),
             new Seg(vencido, "dash-health-seg-violet")
         );
+        record SegLabel(String cssClass, String tipPrefix) {}
+        List<SegLabel> labels = List.of(
+            new SegLabel("dash-health-seg-green",  "Activos"),
+            new SegLabel("dash-health-seg-amber",  "Bajo stock"),
+            new SegLabel("dash-health-seg-red",    "Agotados"),
+            new SegLabel("dash-health-seg-violet", "Vencidos")
+        );
         List<Seg> visible = segs.stream().filter(s -> s.count() > 0).toList();
         for (int i = 0; i < visible.size(); i++) {
             Seg seg = visible.get(i);
@@ -205,11 +232,24 @@ public class DashboardController {
             r.getStyleClass().addAll(seg.cssClass(), posClass);
             HBox.setHgrow(r, Priority.SOMETIMES);
             r.setPrefWidth(160.0 * seg.count() / total);
+            int segPct = total > 0 ? (int) Math.round(seg.count() * 100.0 / total) : 0;
+            String tipText = labels.stream()
+                .filter(l -> l.cssClass().equals(seg.cssClass()))
+                .findFirst()
+                .map(l -> l.tipPrefix() + ": " + seg.count() + " (" + segPct + "%)")
+                .orElse("");
+            if (!tipText.isEmpty()) javafx.scene.control.Tooltip.install(r, new javafx.scene.control.Tooltip(tipText));
             healthBar.getChildren().add(r);
         }
 
         healthSection.setVisible(true);
         healthSection.setManaged(true);
+        AnimationUtils.fadeInUp(healthSection, 320, 0);
+
+        // Reveal bar from left to right once layout finishes (two pulses away).
+        javafx.application.Platform.runLater(() ->
+            javafx.application.Platform.runLater(() ->
+                AnimationUtils.revealBarLTR(healthBar, 900)));
     }
 
     // ── Charts ───────────────────────────────────────────────────────
@@ -222,7 +262,7 @@ public class DashboardController {
         LocalDate today = LocalDate.now();
         List<String> labels = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
-            String raw = today.minusDays(i).getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es"))
+            String raw = today.minusDays(i).getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.of("es"))
                 .replace(".", "");
             labels.add(raw.substring(0, 1).toUpperCase() + raw.substring(1));
         }
@@ -246,7 +286,9 @@ public class DashboardController {
         // A chart Data's Node is created lazily on the next layout/CSS pass,
         // not synchronously by addAll() above — checking d.getNode() right
         // here almost always sees null, so the tooltip silently never got
-        // installed. Listening for the node to appear fixes that.
+        // installed. Listening for the node to appear fixes that (more
+        // robust than a single Platform.runLater, which assumes one frame
+        // is always enough).
         for (XYChart.Data<String, Number> d : entradas.getData())
             installTooltipWhenReady(d, "Entradas " + d.getXValue() + ": " + d.getYValue());
         for (XYChart.Data<String, Number> d : salidas.getData())
@@ -263,16 +305,10 @@ public class DashboardController {
         }
     }
 
-    private void buildCategoriaChart(List<Producto> productos) {
+    private void buildCategoriaChart(List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores) {
         chartValorCategoria.getData().clear();
-        Map<String, BigDecimal> valorPorCat = productos.stream()
-            .filter(p -> p.getCategoriaNombre() != null)
-            .collect(Collectors.groupingBy(Producto::getCategoriaNombre,
-                Collectors.reducing(BigDecimal.ZERO, Producto::getValorTotal, BigDecimal::add)));
-        valorPorCat.entrySet().stream()
-            .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) > 0)
-            .forEach(e -> chartValorCategoria.getData().add(
-                new PieChart.Data(e.getKey(), e.getValue().doubleValue())));
+        catValores.forEach(cv -> chartValorCategoria.getData().add(
+            new PieChart.Data(cv.nombre(), cv.valor().doubleValue())));
 
         for (PieChart.Data d : chartValorCategoria.getData()) {
             String text = d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()));
@@ -289,8 +325,10 @@ public class DashboardController {
         chartValorCategoria.setVisible(hasData);
         chartValorCategoria.setManaged(hasData);
         if (pieEmptyState != null) {
+            boolean wasVisible = pieEmptyState.isVisible();
             pieEmptyState.setVisible(!hasData);
             pieEmptyState.setManaged(!hasData);
+            if (!hasData && !wasVisible) AnimationUtils.springIn(pieEmptyState);
         }
     }
 
@@ -309,6 +347,7 @@ public class DashboardController {
     @FXML private void onVerProductos()    { navigarA("Productos"); }
     @FXML private void onVerMovimientos()  { navigarA("Movimientos"); }
     @FXML private void onVerReportes()     { navigarA("Reportes"); }
+    @FXML private void onVerCategorias()   { navigarA("Categorias"); }
 
     @FXML
     private void onVerAlertas() {
@@ -361,7 +400,7 @@ public class DashboardController {
         cCodigo.setPrefWidth(110);
 
         TableColumn<Producto, Integer> cStock = new TableColumn<>("Stock");
-        cStock.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stockActual"));
+        cStock.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getStockActual()));
         cStock.setPrefWidth(70);
         cStock.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Integer v, boolean empty) {
@@ -378,7 +417,10 @@ public class DashboardController {
             c.getValue().getArea() != null ? c.getValue().getArea() : ""));
         cArea.setPrefWidth(160);
 
-        tbl.getColumns().addAll(cNombre, cCodigo, cStock, cArea);
+        tbl.getColumns().add(cNombre);
+        tbl.getColumns().add(cCodigo);
+        tbl.getColumns().add(cStock);
+        tbl.getColumns().add(cArea);
         tbl.setItems(javafx.collections.FXCollections.observableArrayList(items));
 
         Button btnVerTodas = new Button("Ver todas las alertas →");
@@ -391,6 +433,7 @@ public class DashboardController {
         footer.setPadding(new javafx.geometry.Insets(10, 4, 0, 4));
         content.getChildren().add(footer);
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
         dlg.getDialogPane().setContent(content);
         dlg.showAndWait();
     }
@@ -436,7 +479,7 @@ public class DashboardController {
         }));
 
         TableColumn<Movimiento, Integer> cCant = new TableColumn<>("Cant.");
-        cCant.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        cCant.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getCantidad()));
         cCant.setPrefWidth(60);
 
         TableColumn<Movimiento, String> cUsuario = new TableColumn<>("Usuario");
@@ -449,7 +492,11 @@ public class DashboardController {
             FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
         cFecha.setPrefWidth(140);
 
-        tablaReciente.getColumns().addAll(cProd, cTipo, cCant, cUsuario, cFecha);
+        tablaReciente.getColumns().add(cProd);
+        tablaReciente.getColumns().add(cTipo);
+        tablaReciente.getColumns().add(cCant);
+        tablaReciente.getColumns().add(cUsuario);
+        tablaReciente.getColumns().add(cFecha);
 
         tablaReciente.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
@@ -490,6 +537,7 @@ public class DashboardController {
         grid.add(com.sibim.util.DialogUtil.fieldLabel("Usuario"),  0, r); grid.add(new javafx.scene.control.Label(m.getUsuarioNombre()), 1, r++);
         grid.add(com.sibim.util.DialogUtil.fieldLabel("Fecha"),    0, r); grid.add(new javafx.scene.control.Label(com.sibim.util.FormatUtils.formatDateTime(m.getCreadoEn())), 1, r);
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
         dlg.getDialogPane().setContent(new javafx.scene.layout.VBox(0, header, grid));
         dlg.showAndWait();
     }
@@ -503,7 +551,11 @@ public class DashboardController {
         return "Buenas noches,";
     }
 
-    private record DashboardData(List<Producto> productos,
-                                  List<Movimiento> movHoy,
-                                  List<Movimiento> movSemana) {}
+    private record DashboardData(
+            com.sibim.repository.ProductoRepository.ProductoStats stats,
+            List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores,
+            List<Producto> agotados,
+            List<Producto> bajoStock,
+            List<Movimiento> movHoy,
+            List<Movimiento> movSemana) {}
 }

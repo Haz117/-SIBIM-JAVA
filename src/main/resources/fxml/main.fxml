@@ -16,7 +16,7 @@
          the sidebar drawn above the content row to not get clipped by it.
          The base HBox below only exists to reserve the 220px of horizontal
          space with a transparent spacer. -->
-    <StackPane VBox.vgrow="ALWAYS">
+    <StackPane fx:id="outerStack" VBox.vgrow="ALWAYS">
         <HBox>
             <Region prefWidth="220" minWidth="220" maxWidth="220" styleClass="sidebar-backdrop"/>
             <StackPane fx:id="contentArea" HBox.hgrow="ALWAYS" styleClass="content-area"/>
@@ -125,6 +125,9 @@
                 <padding><Insets top="6" right="18" bottom="14" left="10"/></padding>
                 <Button text="⬅  Cerrar sesión" onAction="#onLogout" styleClass="logout-btn" maxWidth="Infinity">
                     <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
+                </Button>
+                <Button text="ℹ  Acerca de" onAction="#onAcercaDe" styleClass="about-btn" maxWidth="Infinity">
+                    <tooltip><Tooltip text="Versión e información del sistema"/></tooltip>
                 </Button>
                 <Region prefHeight="4"/>
                 <Label text="SIBIM v1.0 · 2026" styleClass="sidebar-version" maxWidth="Infinity"/>

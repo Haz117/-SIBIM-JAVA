@@ -7,6 +7,9 @@ import javafx.application.Application;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+
 public class Main {
 
     // File+console logging with daily rotation is configured declaratively
@@ -23,11 +26,18 @@ public class Main {
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) ->
             log.error("Excepcion no capturada en el hilo '{}'", thread.getName(), ex));
 
-        // Initialize DB pool before JavaFX starts
+        // Initialize DB pool before JavaFX starts; fall back to demo/offline
+        // mode if the connection fails OR the SIBIM schema isn't present
+        // (e.g. a fresh Postgres instance with no migrations applied yet).
         try {
             DatabaseConfig.init();
+            try (Connection c = DatabaseConfig.getConnection();
+                 PreparedStatement ps = c.prepareStatement("SELECT 1 FROM products LIMIT 1")) {
+                ps.execute(); // throws if table doesn't exist
+            }
         } catch (Exception e) {
-            log.warn("No se pudo conectar a la base de datos al arrancar: {}", e.getMessage());
+            log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());
+            DatabaseConfig.close();
             // DEMO_MODE is an explicit opt-in for local development without a
             // real Postgres at all (in-memory fictional data, reset on every
             // restart, quick-fill demo accounts on Login). Any other

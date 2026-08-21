@@ -28,3 +28,9 @@ logs/
 
 # ── Imágenes subidas por el usuario (datos locales) ───────────────
 data/
+
+# ── Instalador generado por jpackage ──────────────────────────────
+packaging/dist/
+
+# ── Archivos temporales del editor ────────────────────────────────
+*.tmp

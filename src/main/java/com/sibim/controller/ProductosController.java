@@ -12,6 +12,7 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -69,6 +70,7 @@ public class ProductosController {
     @FXML private TextField searchField;
     @FXML private ComboBox<Categoria> categoriaFilter;
     @FXML private ComboBox<String> areaFilter;
+    @FXML private ComboBox<String> resguardanteFilter;
     @FXML private HBox statusChipsBar;
     @FXML private Button btnClearFilters;
     @FXML private TableView<Producto> table;
@@ -94,6 +96,8 @@ public class ProductosController {
     @FXML private Label lblStatTotal;
     @FXML private Label lblStatValor;
     @FXML private Label lblStatAlertas;
+    @FXML private VBox statCardTotal;
+    @FXML private VBox statCardValor;
     @FXML private VBox cardAlertas;
 
     private final ProductoService productoService = new ProductoService();
@@ -107,6 +111,7 @@ public class ProductosController {
     private int pageSize = 25;
     private boolean refreshing = false;
     private boolean canEdit = false;
+    private String pendingHighlightId;
     private ToggleGroup estadoChipGroup;
     private Label emptyStateMsg;
     private Label emptyStateHint;
@@ -139,16 +144,26 @@ public class ProductosController {
                 }
             });
         }
+        if (rootPane != null) {
+            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                    if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
+                    ev.consume();
+                }
+            });
+        }
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
         loadData();
+        AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(statCardTotal, statCardValor, cardAlertas), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
     private void setupTable() {
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         // Image thumbnail column
         colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getFotoUrl()));
         colFoto.setCellFactory(col -> new TableCell<>() {
@@ -173,7 +188,7 @@ public class ProductosController {
                             u -> new Image(Path.of(u).toUri().toString(), 38, 38, true, true, true));
                         iv.setImage(cached);
                         iv.setVisible(true); lbl.setVisible(false);
-                    } catch (Exception ex) { iv.setVisible(false); lbl.setVisible(true); }
+                    } catch (Exception ex) { log.warn("No se pudo cargar thumbnail: {}", url, ex); iv.setVisible(false); lbl.setVisible(true); }
                 } else {
                     iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
                 }
@@ -286,12 +301,16 @@ public class ProductosController {
             @Override
             protected void updateItem(Producto p, boolean empty) {
                 super.updateItem(p, empty);
-                getStyleClass().removeAll("row-danger","row-warning","row-vencido");
-                if (!empty && p != null) switch (p.getEstado()) {
-                    case AGOTADO    -> getStyleClass().add("row-danger");
-                    case BAJO_STOCK -> getStyleClass().add("row-warning");
-                    case VENCIDO    -> getStyleClass().add("row-vencido");
-                    default -> {}
+                getStyleClass().removeAll("row-danger","row-warning","row-vencido","row-new");
+                if (!empty && p != null) {
+                    switch (p.getEstado()) {
+                        case AGOTADO    -> getStyleClass().add("row-danger");
+                        case BAJO_STOCK -> getStyleClass().add("row-warning");
+                        case VENCIDO    -> getStyleClass().add("row-vencido");
+                        default -> {}
+                    }
+                    if (p.getId() != null && p.getId().equals(pendingHighlightId))
+                        getStyleClass().add("row-new");
                 }
             }
         });
@@ -350,8 +369,16 @@ public class ProductosController {
         btnEmptyLimpiar.setVisible(false); btnEmptyLimpiar.setManaged(false);
         emptyStateHint = new Label(canEdit ? "Presiona Ctrl+N para agregar el primer bien" : "");
         emptyStateHint.getStyleClass().add("empty-state-hint");
-        VBox emptyState = new VBox(8, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
+        VBox emptyState = new VBox(12, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
         emptyState.setAlignment(Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state-pane");
+        emptyState.setMaxWidth(380);
+        emptyState.setPadding(new Insets(32, 24, 32, 24));
+        // Spring-in when placeholder becomes visible; reset transforms when hidden
+        emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
+            if (isVisible && !wasVisible) AnimationUtils.springIn(emptyState);
+            else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
+        });
         table.setPlaceholder(emptyState);
 
         // Pagination
@@ -409,6 +436,14 @@ public class ProductosController {
         });
         areaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
 
+        if (resguardanteFilter != null) {
+            resguardanteFilter.setConverter(new javafx.util.StringConverter<>() {
+                public String toString(String r) { return r == null ? "Todos los resguardantes" : r; }
+                public String fromString(String s) { return null; }
+            });
+            resguardanteFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
+        }
+
         String pendingArea = NavigationContext.consumePendingAreaFilter();
         if (pendingArea != null && areaFilter.getItems().contains(pendingArea)) {
             areaFilter.setValue(pendingArea);
@@ -433,10 +468,27 @@ public class ProductosController {
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los bienes. Verifica la conexión.");
             }
         };
-        new Thread(task).start();
+        com.sibim.util.AppExecutor.submit(task);
+    }
+
+    private void refreshResguardanteOptions() {
+        if (resguardanteFilter == null) return;
+        String current = resguardanteFilter.getValue();
+        List<String> options = allData.stream()
+            .map(Producto::getResguardante)
+            .filter(r -> r != null && !r.isBlank())
+            .distinct()
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .toList();
+        resguardanteFilter.getItems().setAll(new java.util.ArrayList<>());
+        resguardanteFilter.getItems().add(null);
+        resguardanteFilter.getItems().addAll(options);
+        if (current != null && resguardanteFilter.getItems().contains(current))
+            resguardanteFilter.setValue(current);
     }
 
     private void updateStats() {
+        refreshResguardanteOptions();
         int total = allData.size();
         BigDecimal valor = allData.stream()
             .map(p -> {
@@ -450,14 +502,23 @@ public class ProductosController {
                       || p.getEstado() == EstadoProducto.VENCIDO)
             .count();
 
-        if (lblStatTotal   != null) lblStatTotal.setText(String.valueOf(total));
-        if (lblStatValor   != null) lblStatValor.setText(FormatUtils.formatCurrency(valor));
-        if (lblStatAlertas != null) lblStatAlertas.setText(String.valueOf(alertas));
+        if (lblStatTotal   != null) AnimationUtils.animateCount(lblStatTotal,   total,              700);
+        if (lblStatValor   != null) AnimationUtils.animateCount(lblStatValor,   valor.longValue(),  880,
+            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
+        if (lblStatAlertas != null) AnimationUtils.animateCount(lblStatAlertas, alertas,            580);
 
         if (cardAlertas != null) {
             cardAlertas.getStyleClass().removeAll("rich-stat-card-alert-active");
             if (alertas > 0) cardAlertas.getStyleClass().add("rich-stat-card-alert-active");
         }
+
+        // Pop the stat cards once their numbers finish counting
+        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
+        pop.setOnFinished(e -> {
+            if (statCardTotal != null) AnimationUtils.statCardPop(statCardTotal);
+            if (statCardValor != null) AnimationUtils.statCardPop(statCardValor);
+        });
+        pop.play();
     }
 
     private String getSelectedEstado() {
@@ -470,6 +531,7 @@ public class ProductosController {
         String query = searchField.getText().toLowerCase();
         Categoria cat = categoriaFilter.getValue();
         String area = areaFilter.getValue();
+        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
         String estado = getSelectedEstado();
 
         filteredData.setAll(allData.stream()
@@ -477,9 +539,11 @@ public class ProductosController {
                 || p.getNombre().toLowerCase().contains(query)
                 || p.getCodigo().toLowerCase().contains(query)
                 || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(query))
-                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(query)))
+                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(query))
+                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(query)))
             .filter(p -> cat == null || cat.getId().equals(p.getCategoriaId()))
             .filter(p -> area == null || area.equals(p.getArea()))
+            .filter(p -> resguardante == null || resguardante.equals(p.getResguardante()))
             .filter(p -> "Todos".equals(estado) || p.getEstado().getEtiqueta().equalsIgnoreCase(estado))
             .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
             .toList());
@@ -487,7 +551,8 @@ public class ProductosController {
         currentPage = 0;
         updateTablePage();
 
-        boolean hasFilters = !query.isBlank() || cat != null || area != null || !"Todos".equals(estado);
+        boolean hasFilters = !query.isBlank() || cat != null || area != null
+            || resguardante != null || !"Todos".equals(estado);
         if (btnClearFilters != null) {
             btnClearFilters.setVisible(hasFilters);
             btnClearFilters.setManaged(hasFilters);
@@ -585,6 +650,8 @@ public class ProductosController {
         scroll.setPrefHeight(360);
         scroll.getStyleClass().add("page-scroll");
 
+        if (!list.getChildren().isEmpty())
+            AnimationUtils.staggeredFadeInUp(new java.util.ArrayList<>(list.getChildren()), 240, 40);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }
@@ -594,6 +661,7 @@ public class ProductosController {
         searchField.clear();
         categoriaFilter.setValue(null);
         areaFilter.setValue(null);
+        if (resguardanteFilter != null) resguardanteFilter.setValue(null);
         if (estadoChipGroup != null)
             estadoChipGroup.getToggles().stream()
                 .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
@@ -629,25 +697,41 @@ public class ProductosController {
         // the bien just stops showing up in the active inventory. Requires a
         // motivo since a baja is a formal administrative act.
         Optional<String> motivo = ConfirmacionUtil.confirmarConMotivo(
-            "🗑", "#EF4444", "#FEF2F2",
+            "🗑",
             "Dar de baja",
             "¿Dar de baja \"" + seleccionado.getNombre() + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
-            "Dar de baja", "#EF4444",
+            "Dar de baja", true,
             "Motivo de la baja (obligatorio)"
         );
         if (motivo.isEmpty()) return;
         String nombre = seleccionado.getNombre();
-        DialogUtil.runAsync(
-            () -> productoService.darDeBaja(seleccionado.getId(), motivo.get()),
+        String idBaja = seleccionado.getId();
+        Runnable doDelete = () -> DialogUtil.runAsync(
+            () -> productoService.darDeBaja(idBaja, motivo.get()),
             () -> {
                 allData.remove(seleccionado);
                 updateStats();
                 applyFilters();
-                NotificacionUtil.exito(table.getScene(), "Bien \"" + nombre + "\" dado de baja correctamente");
+                NotificacionUtil.exitoConAccion(table.getScene(),
+                    "Bien \"" + nombre + "\" dado de baja",
+                    "↶ Deshacer",
+                    () -> DialogUtil.runAsync(
+                        () -> productoService.reactivar(idBaja),
+                        () -> { loadData(); NotificacionUtil.info(table.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
+                        e2 -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer la baja")
+                    )
+                );
             },
             e -> NotificacionUtil.error(table.getScene(),
                 e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo dar de baja el bien")
         );
+        javafx.scene.Node rowNode = table.lookup(".table-row-cell:selected");
+        if (rowNode != null) {
+            AnimationUtils.flashClass(rowNode, "row-warning", 200);
+            AnimationUtils.fadeOut(rowNode, 260, doDelete);
+        } else {
+            doDelete.run();
+        }
     }
 
     @FXML
@@ -688,8 +772,20 @@ public class ProductosController {
                     } else {
                         NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
                     }
+                    pendingHighlightId = saved.getId();
                     updateStats();
                     applyFilters();
+                    Platform.runLater(() -> {
+                        table.getSelectionModel().select(saved);
+                        int idx = table.getSelectionModel().getSelectedIndex();
+                        if (idx >= 0) table.scrollTo(idx);
+                        table.requestFocus();
+                    });
+                    new javafx.animation.Timeline(new javafx.animation.KeyFrame(
+                        javafx.util.Duration.seconds(1.8), e2 -> {
+                            pendingHighlightId = null;
+                            table.refresh();
+                        })).play();
                 },
                 e -> {
                     // Don't just show an error and drop everything the user
@@ -745,7 +841,7 @@ public class ProductosController {
                 thumbPane.getChildren().add(iv);
                 thumbPane.getStyleClass().add("dlg-thumb-photo");
                 photoLoaded = true;
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { log.warn("No se pudo cargar thumbnail de detalle: {}", p.getFotoUrl(), ex); }
         }
         if (!photoLoaded) {
             String monogramBg  = p.getCategoriaColor() != null ? p.getCategoriaColor() + "22" : "#EEF2FF";
@@ -818,12 +914,17 @@ public class ProductosController {
         }
 
         root.getChildren().addAll(headerCard, g);
+        AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
         dialog.getDialogPane().setContent(root);
         dialog.showAndWait();
     }
 
     private void openFile(File file) {
         try { Desktop.getDesktop().open(file); }
-        catch (Exception ignored) {}
+        catch (Exception ex) {
+            log.warn("No se pudo abrir el archivo {}", file, ex);
+            if (table != null && table.getScene() != null)
+                NotificacionUtil.advertencia(table.getScene(), "Guardado en: " + file.getAbsolutePath());
+        }
     }
 }

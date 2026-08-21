@@ -22,6 +22,10 @@
         <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
             <tooltip><Tooltip text="Actualizar desde la base de datos (F5)"/></tooltip>
         </Button>
+        <Button fx:id="btnPendientes" text="⏳ Pendientes" onAction="#onVerPendientes"
+                styleClass="btn-secondary" visible="false" managed="false">
+            <tooltip><Tooltip text="Ver transferencias pendientes de aprobación (solo administradores)"/></tooltip>
+        </Button>
         <Button fx:id="btnNuevo" text="＋ Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary">
             <tooltip><Tooltip text="Registrar entrada, salida, ajuste o transferencia  (Ctrl+N)"/></tooltip>
         </Button>
@@ -36,7 +40,7 @@
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
     <HBox spacing="12">
         <!-- Total movimientos — purple -->
-        <VBox styleClass="rich-stat-card, rich-stat-purple"
+        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-purple"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
@@ -50,7 +54,7 @@
         </VBox>
 
         <!-- Entradas — green -->
-        <VBox styleClass="rich-stat-card, rich-stat-green"
+        <VBox fx:id="statCardEntrada" styleClass="rich-stat-card, rich-stat-green"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
@@ -64,7 +68,7 @@
         </VBox>
 
         <!-- Salidas — red -->
-        <VBox styleClass="rich-stat-card, rich-stat-red"
+        <VBox fx:id="statCardSalida" styleClass="rich-stat-card, rich-stat-red"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
@@ -78,7 +82,7 @@
         </VBox>
 
         <!-- Ajustes / Transferencias — amber -->
-        <VBox styleClass="rich-stat-card, rich-stat-amber"
+        <VBox fx:id="statCardAjuste" styleClass="rich-stat-card, rich-stat-amber"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">

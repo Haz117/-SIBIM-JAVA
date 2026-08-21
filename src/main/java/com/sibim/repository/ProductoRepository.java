@@ -12,6 +12,7 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.LinkedHashMap;
 
 public class ProductoRepository {
 
@@ -290,15 +291,226 @@ public class ProductoRepository {
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         if (DatabaseConfig.isOfflineMode()) return OfflineStore.existsByCodigo(codigo, excludeId);
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.existsByCodigo(codigo, excludeId);
-        String sql = "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?";
+        String sql = excludeId != null
+            ? "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?"
+            : "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?)";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, codigo);
-            ps.setString(2, excludeId != null ? excludeId : "");
+            if (excludeId != null) ps.setString(2, excludeId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
         }
+    }
+
+    /** Aggregate stats for the dashboard — one round-trip, no full table load. */
+    public record ProductoStats(long total, long activos, long bajoStock,
+                                long agotados, long vencidos,
+                                BigDecimal valorTotal, long categorias) {}
+
+    /** Category name + total inventory value — used by the dashboard pie chart. */
+    public record CategoriaValor(String nombre, BigDecimal valor) {}
+
+    /** Returns aggregate product stats for the current user's visible areas. */
+    public ProductoStats getStats() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            List<Producto> all = findAll();
+            LocalDate hoy = LocalDate.now();
+            long venc = 0, agot = 0, bajo = 0;
+            BigDecimal valor = BigDecimal.ZERO;
+            Set<String> catSet = new HashSet<>();
+            for (Producto p : all) {
+                boolean esVenc = p.getFechaVencimiento() != null && p.getFechaVencimiento().isBefore(hoy);
+                if (esVenc)                                             venc++;
+                else if (p.getStockActual() == 0)                      agot++;
+                else if (p.getStockActual() <= p.getStockMinimo())     bajo++;
+                valor = valor.add(p.getValorTotal());
+                if (p.getCategoriaId() != null) catSet.add(p.getCategoriaId());
+            }
+            return new ProductoStats(all.size(), all.size() - venc - agot - bajo, bajo, agot, venc, valor, catSet.size());
+        }
+        StringBuilder sb = new StringBuilder("""
+            SELECT
+              COUNT(*) AS total,
+              COUNT(*) FILTER (WHERE stock_actual > stock_minimo
+                AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE)) AS activos,
+              COUNT(*) FILTER (WHERE stock_actual > 0 AND stock_actual <= stock_minimo
+                AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE)) AS bajo_stock,
+              COUNT(*) FILTER (WHERE stock_actual = 0
+                AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE)) AS agotados,
+              COUNT(*) FILTER (WHERE fecha_vencimiento IS NOT NULL AND fecha_vencimiento < CURRENT_DATE) AS vencidos,
+              COALESCE(SUM(precio_venta * stock_actual), 0) AS valor_total,
+              COUNT(DISTINCT categoria_id) AS categorias
+            FROM products p
+            WHERE p.fecha_baja IS NULL
+            """);
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof String[] arr)
+                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
+                else
+                    ps.setObject(i + 1, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new ProductoStats(
+                        rs.getLong("total"), rs.getLong("activos"),
+                        rs.getLong("bajo_stock"), rs.getLong("agotados"),
+                        rs.getLong("vencidos"),
+                        rs.getBigDecimal("valor_total"), rs.getLong("categorias"));
+                }
+            }
+        }
+        return new ProductoStats(0, 0, 0, 0, 0, BigDecimal.ZERO, 0);
+    }
+
+    /** Returns inventory value grouped by category, descending — for the pie chart. */
+    public List<CategoriaValor> getValorPorCategoria() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            List<Producto> all = findAll();
+            Map<String, BigDecimal> map = new LinkedHashMap<>();
+            for (Producto p : all) {
+                String cat = p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "Sin categoría";
+                map.merge(cat, p.getValorTotal(), BigDecimal::add);
+            }
+            return map.entrySet().stream()
+                .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) > 0)
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .map(e -> new CategoriaValor(e.getKey(), e.getValue()))
+                .toList();
+        }
+        StringBuilder sb = new StringBuilder("""
+            SELECT c.nombre, COALESCE(SUM(p.precio_venta * p.stock_actual), 0) AS valor
+            FROM products p
+            LEFT JOIN categories c ON c.id = p.categoria_id
+            WHERE p.fecha_baja IS NULL
+            """);
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_venta * p.stock_actual) > 0 ORDER BY valor DESC");
+        List<CategoriaValor> result = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof String[] arr)
+                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
+                else
+                    ps.setObject(i + 1, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next())
+                    result.add(new CategoriaValor(rs.getString("nombre"), rs.getBigDecimal("valor")));
+            }
+        }
+        return result;
+    }
+
+    /** COUNT(*) of active bienes visible to the current user — no full load. */
+    public long countAll() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
+                .stream().filter(p -> !p.isDadoDeBaja()).count();
+        }
+        StringBuilder sb = new StringBuilder(
+            "SELECT COUNT(*) FROM products p WHERE p.fecha_baja IS NULL");
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof String[] arr)
+                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
+                else
+                    ps.setObject(i + 1, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        }
+    }
+
+    /** Bienes with stock_actual = 0 (agotados) — filtered in SQL. */
+    public List<Producto> findAgotados() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
+                .stream().filter(p -> !p.isDadoDeBaja() && p.getStockActual() == 0).toList();
+        }
+        StringBuilder sb = new StringBuilder(BASE_SELECT
+            + " WHERE p.fecha_baja IS NULL AND p.stock_actual = 0");
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        sb.append(" ORDER BY p.nombre");
+        return queryDynamic(sb.toString(), params);
+    }
+
+    /** Bienes whose stock is above zero but at or below their minimum threshold. */
+    public List<Producto> findBajoStock() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
+                .stream().filter(p -> !p.isDadoDeBaja()
+                    && p.getStockActual() > 0
+                    && p.getStockActual() <= p.getStockMinimo()).toList();
+        }
+        StringBuilder sb = new StringBuilder(BASE_SELECT
+            + " WHERE p.fecha_baja IS NULL"
+            + " AND p.stock_actual > 0 AND p.stock_actual <= p.stock_minimo");
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        sb.append(" ORDER BY p.stock_actual ASC");
+        return queryDynamic(sb.toString(), params);
+    }
+
+    /** Bienes expiring within the next {@code dias} days (inclusive of already-expired). */
+    public List<Producto> findVencidosProximos(int dias) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            LocalDate limite = LocalDate.now().plusDays(dias);
+            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
+                .stream().filter(p -> !p.isDadoDeBaja()
+                    && p.getFechaVencimiento() != null
+                    && !p.getFechaVencimiento().isAfter(limite))
+                .sorted(Comparator.comparing(Producto::getFechaVencimiento))
+                .toList();
+        }
+        StringBuilder sb = new StringBuilder(BASE_SELECT
+            + " WHERE p.fecha_baja IS NULL"
+            + " AND p.fecha_vencimiento IS NOT NULL"
+            + " AND p.fecha_vencimiento <= ?");
+        List<Object> params = new ArrayList<>();
+        params.add(java.sql.Date.valueOf(LocalDate.now().plusDays(dias)));
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        sb.append(" ORDER BY p.fecha_vencimiento ASC");
+        return queryDynamic(sb.toString(), params);
     }
 
     // --- Internal helpers ---

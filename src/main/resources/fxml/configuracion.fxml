@@ -21,7 +21,7 @@
     </HBox>
 
     <!-- ══ PROFILE CARD ═════════════════════════════════════════════ -->
-    <VBox styleClass="card" spacing="0">
+    <VBox fx:id="profileCard" styleClass="card" spacing="0">
 
         <!-- Gradient header con avatar -->
         <HBox styleClass="profile-card-header" spacing="22" alignment="CENTER_LEFT">
@@ -66,7 +66,7 @@
     </VBox>
 
     <!-- ══ INFORMACIÓN DEL SISTEMA ═════════════════════════════════════ -->
-    <VBox styleClass="card" spacing="10">
+    <VBox fx:id="sysInfoCard" styleClass="card" spacing="10">
         <padding><Insets top="16" right="20" bottom="18" left="20"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="10">
             <Region styleClass="dash-section-bar"/>

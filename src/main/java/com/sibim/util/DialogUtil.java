@@ -139,6 +139,19 @@ public final class DialogUtil {
         return l;
     }
 
+    /** Field label with a small `?` badge that shows helpText in a tooltip. */
+    public static HBox fieldLabelWithHelp(String text, String helpText) {
+        Label badge = new Label("?");
+        badge.getStyleClass().add("help-badge");
+        Tooltip tip = new Tooltip(helpText);
+        tip.setWrapText(true);
+        tip.setMaxWidth(270);
+        Tooltip.install(badge, tip);
+        HBox row = new HBox(5, fieldLabel(text), badge);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
     // ── Spinner ──────────────────────────────────────────────────────────
 
     /**
@@ -156,8 +169,10 @@ public final class DialogUtil {
     public static void commitSpinner(Spinner<Integer> spinner) {
         var vf = spinner.getValueFactory();
         if (vf == null) return;
-        Integer value = vf.getConverter().fromString(spinner.getEditor().getText());
-        if (value != null) vf.setValue(value);
+        try {
+            Integer value = vf.getConverter().fromString(spinner.getEditor().getText());
+            if (value != null) vf.setValue(value);
+        } catch (NumberFormatException ignored) {}
     }
 
     // ── Async pattern ────────────────────────────────────────────────────
@@ -173,26 +188,26 @@ public final class DialogUtil {
      * Accepts checked-exception-throwing lambdas (e.g. repository calls).
      */
     public static void runAsync(CheckedRunnable background, Runnable onSuccess, Consumer<Exception> onError) {
-        new Thread(() -> {
+        AppExecutor.submit(() -> {
             try {
                 background.run();
                 if (onSuccess != null) Platform.runLater(onSuccess);
             } catch (Exception ex) {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
             }
-        }).start();
+        });
     }
 
     /** Async with a typed result returned from the background thread. */
     public static <R> void runAsync(java.util.concurrent.Callable<R> task,
                                     Consumer<R> onSuccess, Consumer<Exception> onError) {
-        new Thread(() -> {
+        AppExecutor.submit(() -> {
             try {
                 R result = task.call();
                 if (onSuccess != null) Platform.runLater(() -> onSuccess.accept(result));
             } catch (Exception ex) {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
             }
-        }).start();
+        });
     }
 }

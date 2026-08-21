@@ -6,6 +6,8 @@ import com.sibim.model.Producto;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -100,6 +102,8 @@ public final class ConteoFisicoDialog {
             list.getChildren().add(row);
             rows.add(new Row(p, contado));
         }
+        if (!list.getChildren().isEmpty())
+            AnimationUtils.staggeredFadeInUp(list.getChildren(), 180, 38);
 
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
@@ -130,6 +134,7 @@ public final class ConteoFisicoDialog {
                 return;
 
             btnFinalizar.setDisable(true);
+            btnFinalizar.setText("⏳  Guardando...");
             // Freeze every row so the background save loop below never has
             // to read a live Spinner from a non-FX thread, and so what the
             // user sees on screen while the save is running can't drift
@@ -140,8 +145,8 @@ public final class ConteoFisicoDialog {
                 snapshot.add(new Captured(r.producto(), r.contado().getValue()));
             }
             String motivo = "Conteo físico del " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            new Thread(() -> {
-                int ok = 0, fail = 0;
+            AppExecutor.submit(() -> {
+                int ok = 0;
                 List<String> fallidos = new ArrayList<>();
                 List<ConteoItem> items = new ArrayList<>();
                 for (Captured r : snapshot) {
@@ -158,7 +163,6 @@ public final class ConteoFisicoDialog {
                             ajustado = true;
                             ok++;
                         } catch (Exception ex) {
-                            fail++;
                             fallidos.add(r.producto().getNombre());
                             log.error("No se pudo aplicar el ajuste de conteo físico para '{}' (id={})",
                                 r.producto().getNombre(), r.producto().getId(), ex);
@@ -193,22 +197,32 @@ public final class ConteoFisicoDialog {
                     log.error("No se pudo guardar el registro del conteo físico", ex);
                 }
 
-                int okFinal = ok, failFinal = fail;
+                int okFinal = ok;
+                List<String> fallidosFinal = List.copyOf(fallidos);
                 boolean savedFinal = saved;
                 javafx.application.Platform.runLater(() -> {
-                    String base = discrepancias.isEmpty()
-                        ? "Conteo guardado — sin diferencias en " + items.size() + " bien(es)"
-                        : okFinal + " ajuste(s) aplicado(s)" + (failFinal > 0 ? ", " + failFinal + " fallaron" : "");
+                    String base;
+                    if (discrepancias.isEmpty()) {
+                        base = "Conteo guardado — sin diferencias en " + items.size() + " bien(es)";
+                    } else if (fallidosFinal.isEmpty()) {
+                        base = okFinal + " ajuste(s) aplicado(s) correctamente";
+                    } else {
+                        String nombres = fallidosFinal.stream().limit(3)
+                            .collect(java.util.stream.Collectors.joining(", "))
+                            + (fallidosFinal.size() > 3 ? "…" : "");
+                        base = okFinal + " ajuste(s) aplicado(s), " + fallidosFinal.size()
+                            + " fallaron: " + nombres;
+                    }
                     if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
-                    if (!fallidos.isEmpty()) base += " — falló en: " + String.join(", ", fallidos);
-                    if (failFinal > 0 || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
+                    if (!fallidosFinal.isEmpty() || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
                     else NotificacionUtil.exito(dialog.getDialogPane().getScene(), base);
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();
                 });
-            }).start();
+            });
         });
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, colHeaders, scroll, actions), 260, 60);
         dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll, actions));
         dialog.showAndWait();
     }

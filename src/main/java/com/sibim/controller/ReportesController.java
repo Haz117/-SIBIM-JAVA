@@ -1,11 +1,17 @@
 package com.sibim.controller;
 
 import com.sibim.service.ReporteService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -13,6 +19,10 @@ import java.time.LocalDate;
 
 public class ReportesController {
 
+    private static final Logger log = LoggerFactory.getLogger(ReportesController.class);
+
+    @FXML private VBox       periodCard;
+    @FXML private GridPane   reportGrid;
     @FXML private DatePicker desdeField;
     @FXML private DatePicker hastaField;
     @FXML private ProgressIndicator spinner;
@@ -32,6 +42,9 @@ public class ReportesController {
         desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         onReportMes(); // default to current month
+
+        if (periodCard != null) AnimationUtils.fadeInUp(periodCard, 300,  0);
+        if (reportGrid != null) AnimationUtils.staggeredFadeInUp(reportGrid.getChildren(), 300, 70);
     }
 
     private void setPresetActive(Button active) {
@@ -118,6 +131,7 @@ public class ReportesController {
         if (desde != null && hasta != null && desde.isAfter(hasta)) {
             NotificacionUtil.advertencia(spinner.getScene(),
                 "La fecha inicial debe ser anterior a la fecha final");
+            AnimationUtils.shake(desdeField);
             return false;
         }
         return true;
@@ -134,9 +148,7 @@ public class ReportesController {
                 if (source != null) source.setDisable(false);
                 spinner.setVisible(false);
                 spinner.setManaged(false);
-                NotificacionUtil.exito(spinner.getScene(), "Reporte generado — " + file.getName());
-                try { Desktop.getDesktop().open(file); }
-                catch (Exception ignored) { /* file already notified */ }
+                showExportDialog(file);
             },
             e -> {
                 if (source != null) source.setDisable(false);
@@ -145,6 +157,71 @@ public class ReportesController {
                 NotificacionUtil.error(spinner.getScene(), "Error al generar el reporte");
             }
         );
+    }
+
+    private void showExportDialog(java.io.File file) {
+        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
+        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(460);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("✓", "Reporte generado",
+            "El archivo fue exportado exitosamente.", "#047857", "#065F46");
+
+        String name  = file.getName();
+        String ext   = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toUpperCase() : "";
+        long   bytes = file.length();
+        String size  = bytes < 1024 ? bytes + " B"
+            : bytes < 1024 * 1024 ? (bytes / 1024) + " KB"
+            : String.format("%.1f MB", bytes / (1024.0 * 1024));
+
+        Label iconLbl  = new Label("PDF".equals(ext) ? "📄" : "XLSX".equals(ext) ? "📊" : "📋");
+        iconLbl.setStyle("-fx-font-size: 26px;");
+        Label nameLbl  = new Label(name);
+        nameLbl.getStyleClass().add("dlg-detail-value");
+        nameLbl.setWrapText(true);
+        Label sizeLbl  = new Label(size + " · " + file.getParent());
+        sizeLbl.getStyleClass().add("muted-sm");
+        sizeLbl.setWrapText(true);
+
+        VBox info = new VBox(3, nameLbl, sizeLbl);
+        HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
+        HBox fileCard = new HBox(14, iconLbl, info);
+        fileCard.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        fileCard.setPadding(new javafx.geometry.Insets(14, 18, 14, 18));
+        fileCard.getStyleClass().add("dlg-detail-header");
+
+        Button btnAbrir   = new Button("📂  Abrir");
+        Button btnCarpeta = new Button("🗁  Carpeta");
+        Button btnCopiar  = new Button("⎘  Copiar ruta");
+        Button btnImpr    = new Button("🖨  Imprimir");
+        btnAbrir.getStyleClass().add("btn-primary");
+        btnCarpeta.getStyleClass().add("btn-secondary");
+        btnCopiar.getStyleClass().add("btn-secondary");
+        btnImpr.getStyleClass().add("btn-secondary");
+        btnImpr.setVisible("PDF".equals(ext));
+        btnImpr.setManaged("PDF".equals(ext));
+
+        btnAbrir.setOnAction(e -> { try { Desktop.getDesktop().open(file); } catch (Exception ex) { log.debug("No se pudo abrir", ex); } });
+        btnCarpeta.setOnAction(e -> { try { Desktop.getDesktop().open(file.getParentFile()); } catch (Exception ex) { log.debug("No se pudo abrir carpeta", ex); } });
+        btnCopiar.setOnAction(e -> {
+            var content = new javafx.scene.input.ClipboardContent();
+            content.putString(file.getAbsolutePath());
+            javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+            NotificacionUtil.info(spinner.getScene(), "Ruta copiada al portapapeles");
+        });
+        btnImpr.setOnAction(e -> {
+            try { Desktop.getDesktop().print(file); }
+            catch (Exception ex) { NotificacionUtil.error(spinner.getScene(), "No se pudo enviar a la impresora"); }
+        });
+
+        HBox actions = new HBox(8, btnAbrir, btnImpr, btnCarpeta, btnCopiar);
+        actions.setPadding(new javafx.geometry.Insets(10, 18, 8, 18));
+        actions.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, fileCard, actions), 260, 60);
+        dialog.getDialogPane().setContent(new VBox(0, header, fileCard, actions));
+        dialog.showAndWait();
     }
 
     @FunctionalInterface

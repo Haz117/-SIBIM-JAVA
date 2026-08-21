@@ -77,10 +77,13 @@ public class MovimientoService {
         if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(producto.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
 
-        if (cantidad <= 0 && tipo != TipoMovimiento.AJUSTE)
-            throw new ValidationException("La cantidad debe ser mayor a cero");
-        if (tipo == TipoMovimiento.AJUSTE && cantidad < 0)
-            throw new ValidationException("El ajuste no puede ser negativo");
+        if (tipo == TipoMovimiento.AJUSTE) {
+            if (cantidad < 0)
+                throw new ValidationException("El ajuste no puede ser negativo");
+        } else {
+            if (cantidad <= 0)
+                throw new ValidationException("La cantidad debe ser mayor a cero");
+        }
         if (tipo == TipoMovimiento.SALIDA && cantidad > producto.getStockActual())
             throw new ValidationException("La cantidad supera el stock disponible (" + producto.getStockActual() + ")");
 
@@ -89,8 +92,6 @@ public class MovimientoService {
                 throw new ValidationException("Selecciona el área de destino de la transferencia");
             if (areaDestino.equals(producto.getArea()))
                 throw new ValidationException("El área de destino debe ser distinta al área actual");
-            if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(areaDestino))
-                throw new ValidationException("No tienes acceso al área de destino");
         }
 
         int stockNuevo = ProductoUtils.calcularStockNuevo(tipo.getCodigo(), producto.getStockActual(), cantidad);
@@ -109,6 +110,11 @@ public class MovimientoService {
         m.setUsuarioId(SessionManager.getCurrentUser().getId());
         m.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
 
+        // Non-admin transfers go through an approval workflow: saved as PENDIENTE,
+        // stock and area unchanged until an admin approves.
+        if (tipo == TipoMovimiento.TRANSFERENCIA && !SessionManager.isAdmin()) {
+            return movimientoRepo.addMovimientoPendiente(m);
+        }
         try {
             return movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
         } catch (SQLException e) {
@@ -117,12 +123,26 @@ public class MovimientoService {
         }
     }
 
+    public List<Movimiento> getPendientesTransferencias() throws SQLException {
+        return movimientoRepo.findPendientesTransferencias();
+    }
+
+    public void aprobarTransferencia(String movimientoId) throws SQLException {
+        movimientoRepo.aprobarTransferencia(movimientoId);
+    }
+
+    public void rechazarTransferencia(String movimientoId) throws SQLException {
+        movimientoRepo.rechazarTransferencia(movimientoId);
+    }
+
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
         Optional<String> productoId = movimientoRepo.findProductoIdById(movimientoId);
-        if (productoId.isPresent()) {
+        if (!SessionManager.isAdmin()) {
+            // Orphaned movement (product deleted) — can't verify area, deny.
+            if (productoId.isEmpty())
+                throw new ValidationException("No tienes permiso para eliminar ese movimiento");
             Optional<Producto> producto = productoRepo.findById(productoId.get());
-            if (producto.isPresent() && !SessionManager.isAdmin()
-                    && !SessionManager.isAreaAccessible(producto.get().getArea()))
+            if (producto.isEmpty() || !SessionManager.isAreaAccessible(producto.get().getArea()))
                 throw new ValidationException("No tienes acceso a esa area");
         }
         try {

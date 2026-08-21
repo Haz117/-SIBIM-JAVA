@@ -1,6 +1,7 @@
 package com.sibim;
 
 import atlantafx.base.theme.PrimerLight;
+import com.sibim.util.AppExecutor;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
@@ -155,6 +156,12 @@ public class MainApp extends Application {
             primaryStage.setScene(finalScene);
         });
         cross.play();
+    }
+
+    @Override
+    public void stop() {
+        AppExecutor.shutdown();
+        com.sibim.db.DatabaseConfig.close();
     }
 
     public static Stage getPrimaryStage() { return primaryStage; }

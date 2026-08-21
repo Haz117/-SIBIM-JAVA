@@ -158,8 +158,8 @@ public class MovimientoRepository {
         String lockProducto = "SELECT stock_actual, area FROM products WHERE id = ? FOR UPDATE";
         String insertMov = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
-                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         String updateProducto = "UPDATE products SET stock_actual = ?, area = ?, updated_at = NOW() WHERE id = ?";
 
@@ -208,6 +208,7 @@ public class MovimientoRepository {
                     ps.setString(11, m.getUsuarioId());
                     ps.setString(12, m.getUsuarioNombre());
                     ps.setTimestamp(13, Timestamp.valueOf(LocalDateTime.now()));
+                    ps.setString(14, Movimiento.ESTADO_APROBADO);
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(updateProducto)) {
@@ -233,12 +234,13 @@ public class MovimientoRepository {
      * came from (area_origen), since the transfer's whole effect was
      * relocating it, not changing stock.
      *
-     * Restoring stock this way (setting stock_actual back to this
-     * movement's stock_anterior) is only correct if this is the MOST
-     * RECENT movement for the product — otherwise it would discard the
-     * effect of movements registered after it. That is enforced here,
-     * under the product row lock, so a concurrent insert can't race past
-     * the check.
+     * Reverses this movement's own effect by delta (stock_anterior -
+     * stock_nuevo) applied against the product's CURRENT stock, instead of
+     * blindly restoring stock_actual to this movement's stock_anterior.
+     * Delta reversal composes correctly regardless of insertion order —
+     * unlike a snapshot restore, which is only correct when deleting the
+     * single most recent movement for the product (deleting an older one
+     * would otherwise discard every movement registered after it).
      */
     public void deleteMovimientoAtomic(String movimientoId) throws SQLException {
         if (DatabaseConfig.isOfflineMode()) {
@@ -254,9 +256,8 @@ public class MovimientoRepository {
 
     /** Replay target for SyncService — see ProductoRepository#saveOnline. */
     public void deleteMovimientoAtomicOnline(String movimientoId) throws SQLException {
-        String getMov = "SELECT producto_id, stock_anterior, area_origen FROM movements WHERE id = ? FOR UPDATE";
-        String lockProducto = "SELECT id FROM products WHERE id = ? FOR UPDATE";
-        String getLatestMov = "SELECT id FROM movements WHERE producto_id = ? ORDER BY created_at DESC, id DESC LIMIT 1";
+        String getMov = "SELECT producto_id, stock_anterior, stock_nuevo, area_origen FROM movements WHERE id = ?";
+        String lockProduct = "SELECT stock_actual FROM products WHERE id = ? FOR UPDATE";
         String deleteMov = "DELETE FROM movements WHERE id = ?";
         String restoreProducto = "UPDATE products SET stock_actual = ?, area = COALESCE(?, area), updated_at = NOW() WHERE id = ?";
 
@@ -264,31 +265,22 @@ public class MovimientoRepository {
             conn.setAutoCommit(false);
             try {
                 String productoId;
-                int stockAnterior;
+                int delta;
                 String areaOrigen;
                 try (PreparedStatement ps = conn.prepareStatement(getMov)) {
                     ps.setString(1, movimientoId);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) throw new SQLException("Movimiento no encontrado: " + movimientoId);
                         productoId = rs.getString("producto_id");
-                        stockAnterior = rs.getInt("stock_anterior");
+                        delta = rs.getInt("stock_anterior") - rs.getInt("stock_nuevo");
                         areaOrigen = rs.getString("area_origen");
                     }
                 }
-                try (PreparedStatement ps = conn.prepareStatement(lockProducto)) {
+                int currentStock;
+                try (PreparedStatement ps = conn.prepareStatement(lockProduct)) {
                     ps.setString(1, productoId);
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) throw new SQLException("Producto no encontrado: " + productoId);
-                    }
-                }
-                try (PreparedStatement ps = conn.prepareStatement(getLatestMov)) {
-                    ps.setString(1, productoId);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next() && !movimientoId.equals(rs.getString("id"))) {
-                            throw new SQLException(
-                                "Solo se puede eliminar el movimiento mas reciente de este producto: "
-                                + "existen movimientos registrados despues de este.");
-                        }
+                        currentStock = rs.next() ? rs.getInt("stock_actual") : 0;
                     }
                 }
                 try (PreparedStatement ps = conn.prepareStatement(deleteMov)) {
@@ -296,7 +288,7 @@ public class MovimientoRepository {
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(restoreProducto)) {
-                    ps.setInt(1, stockAnterior);
+                    ps.setInt(1, currentStock + delta);
                     ps.setString(2, areaOrigen);
                     ps.setString(3, productoId);
                     ps.executeUpdate();
@@ -334,6 +326,116 @@ public class MovimientoRepository {
         return list;
     }
 
+    /**
+     * Saves a TRANSFERENCIA as PENDIENTE without modifying product stock or area.
+     * The admin must approve it later via {@link #aprobarTransferencia}.
+     */
+    public Movimiento addMovimientoPendiente(Movimiento m) throws SQLException {
+        if (m.getId() == null) m.setId(UUID.randomUUID().toString());
+        m.setEstado(Movimiento.ESTADO_PENDIENTE);
+        if (DatabaseConfig.isDemoMode()) {
+            if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
+            DemoDataStore.addMovimientoPendiente(m);
+            return m;
+        }
+        String lockProducto = "SELECT stock_actual, area FROM products WHERE id = ? FOR UPDATE";
+        String insertMov = """
+            INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """;
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int stockActual; String areaActual;
+                try (PreparedStatement ps = conn.prepareStatement(lockProducto)) {
+                    ps.setString(1, m.getProductoId());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Producto no encontrado: " + m.getProductoId());
+                        stockActual = rs.getInt("stock_actual");
+                        areaActual  = rs.getString("area");
+                    }
+                }
+                m.setStockAnterior(stockActual);
+                m.setStockNuevo(stockActual); // unchanged until approved
+                m.setAreaOrigen(areaActual);
+                try (PreparedStatement ps = conn.prepareStatement(insertMov)) {
+                    ps.setString(1, m.getId());
+                    ps.setString(2, m.getProductoId());
+                    ps.setString(3, m.getTipo().getCodigo());
+                    ps.setInt(4, m.getCantidad());
+                    ps.setInt(5, m.getStockAnterior());
+                    ps.setInt(6, m.getStockNuevo());
+                    ps.setString(7, m.getAreaOrigen());
+                    ps.setString(8, m.getAreaDestino());
+                    ps.setString(9, m.getMotivo());
+                    ps.setString(10, m.getReferencia());
+                    ps.setString(11, m.getUsuarioId());
+                    ps.setString(12, m.getUsuarioNombre());
+                    ps.setTimestamp(13, Timestamp.valueOf(LocalDateTime.now()));
+                    ps.setString(14, Movimiento.ESTADO_PENDIENTE);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) { conn.rollback(); throw e; }
+            finally { conn.setAutoCommit(true); }
+        }
+        return m;
+    }
+
+    public List<Movimiento> findPendientesTransferencias() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findPendientesTransferencias();
+        String sql = BASE_SELECT +
+            " WHERE m.tipo = 'TRANSFERENCIA' AND m.estado = 'PENDIENTE' ORDER BY m.created_at ASC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            return executeQuery(ps);
+        }
+    }
+
+    /** Applies a pending transfer: updates product area → area_destino, marks movement APROBADO. */
+    public void aprobarTransferencia(String movimientoId) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) { DemoDataStore.aprobarTransferencia(movimientoId); return; }
+        String getMov   = "SELECT producto_id, area_destino FROM movements WHERE id = ? AND estado = 'PENDIENTE'";
+        String lockProd = "SELECT area FROM products WHERE id = ? FOR UPDATE";
+        String updProd  = "UPDATE products SET area = ?, updated_at = NOW() WHERE id = ?";
+        String updMov   = "UPDATE movements SET estado = 'APROBADO' WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                String productoId, areaDestino;
+                try (PreparedStatement ps = conn.prepareStatement(getMov)) {
+                    ps.setString(1, movimientoId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Transferencia pendiente no encontrada: " + movimientoId);
+                        productoId  = rs.getString("producto_id");
+                        areaDestino = rs.getString("area_destino");
+                    }
+                }
+                try (PreparedStatement ps = conn.prepareStatement(lockProd)) {
+                    ps.setString(1, productoId); ps.executeQuery();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(updProd)) {
+                    ps.setString(1, areaDestino); ps.setString(2, productoId); ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(updMov)) {
+                    ps.setString(1, movimientoId); ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) { conn.rollback(); throw e; }
+            finally { conn.setAutoCommit(true); }
+        }
+    }
+
+    public void rechazarTransferencia(String movimientoId) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) { DemoDataStore.rechazarTransferencia(movimientoId); return; }
+        String sql = "UPDATE movements SET estado = 'RECHAZADO' WHERE id = ? AND estado = 'PENDIENTE'";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movimientoId); ps.executeUpdate();
+        }
+    }
+
     private Movimiento mapRow(ResultSet rs) throws SQLException {
         Movimiento m = new Movimiento();
         m.setId(rs.getString("id"));
@@ -352,6 +454,7 @@ public class MovimientoRepository {
         m.setUsuarioNombre(rs.getString("usuario_nombre"));
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) m.setCreadoEn(ts.toLocalDateTime());
+        try { m.setEstado(rs.getString("estado")); } catch (SQLException ignored) {}
         return m;
     }
 }

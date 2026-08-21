@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.model.Categoria;
 import com.sibim.repository.CategoriaRepository;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -54,11 +55,14 @@ public class CategoriasController {
         btnNueva.setVisible(isAdmin);    btnNueva.setManaged(isAdmin);
         if (btnEditCat   != null) { btnEditCat.setVisible(isAdmin);   btnEditCat.setManaged(isAdmin); }
         if (btnDeleteCat != null) { btnDeleteCat.setVisible(isAdmin); btnDeleteCat.setManaged(isAdmin); }
-        if (rootPane != null && isAdmin) {
+        if (rootPane != null) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
-                if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
+                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                    if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
+                    ev.consume();
+                } else if (isAdmin && ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
                     onNuevaCategoria(); ev.consume();
-                } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
+                } else if (isAdmin && ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
                         && table.getSelectionModel().getSelectedItem() != null) {
                     onEdit(); ev.consume();
                 }
@@ -97,11 +101,20 @@ public class CategoriasController {
         }
 
         loadData();
+        if (rootPane != null) {
+            var children = rootPane.getChildren();
+            if (!children.isEmpty()) {
+                AnimationUtils.fadeInDown(children.get(0), 280, 0);
+                if (children.size() > 1)
+                    AnimationUtils.staggeredFadeInUp(
+                        new java.util.ArrayList<>(children.subList(1, children.size())), 300, 55);
+            }
+        }
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
     private void setupTable() {
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colDescripcion.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getDescripcion() != null ? c.getValue().getDescripcion() : ""));
@@ -165,8 +178,8 @@ public class CategoriasController {
                 || c.getNombre().toLowerCase().contains(q)
                 || (c.getDescripcion() != null && c.getDescripcion().toLowerCase().contains(q)))
             .toList();
-        table.setItems(FXCollections.observableArrayList(filtered));
-        lblTotal.setText(filtered.size() + (filtered.size() == 1 ? " categoría" : " categorías"));
+        table.getItems().setAll(filtered);
+        AnimationUtils.animateCount(lblTotal, filtered.size(), 350, v -> v + (v == 1 ? " categoría" : " categorías"));
     }
 
     @FXML private void onRefresh() { loadData(); }
@@ -328,6 +341,7 @@ public class CategoriasController {
         grid.add(DialogUtil.fieldLabel("Ícono"),       0, r); grid.add(iconGrid,     1, r++);
         grid.add(new Label(),                          0, r); grid.add(previewRow,   1, r);
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 270, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, grid));
         Platform.runLater(() -> fNombre.requestFocus());
 
@@ -335,6 +349,7 @@ public class CategoriasController {
             if (btn != ButtonType.OK) return null;
             if (fNombre.getText().isBlank()) {
                 fNombre.getStyleClass().add("field-error");
+                AnimationUtils.shake(fNombre);
                 return null;
             }
             Categoria c = existing != null ? existing : new Categoria();
@@ -353,6 +368,8 @@ public class CategoriasController {
                 NotificacionUtil.exito(table.getScene(),
                     isNew ? "Categoría registrada exitosamente" : "Categoría actualizada correctamente");
                 applyFilter(searchField.getText());
+                table.getSelectionModel().select(c);
+                table.scrollTo(c);
             },
             ex -> NotificacionUtil.error(table.getScene(), "No se pudo guardar la categoría")
         ));

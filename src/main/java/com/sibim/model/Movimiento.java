@@ -5,6 +5,11 @@ import com.sibim.model.enums.TipoMovimiento;
 import java.time.LocalDateTime;
 
 public class Movimiento {
+    /** "APROBADO" (default) | "PENDIENTE" | "RECHAZADO" */
+    public static final String ESTADO_APROBADO  = "APROBADO";
+    public static final String ESTADO_PENDIENTE = "PENDIENTE";
+    public static final String ESTADO_RECHAZADO = "RECHAZADO";
+
     private String id;
     private String productoId;
     private String productoNombre;
@@ -20,6 +25,7 @@ public class Movimiento {
     private String usuarioId;
     private String usuarioNombre;
     private LocalDateTime creadoEn;
+    private String estado = ESTADO_APROBADO;
 
     public Movimiento() {}
 
@@ -68,4 +74,11 @@ public class Movimiento {
 
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
+
+    public String getEstado() { return estado != null ? estado : ESTADO_APROBADO; }
+    public void setEstado(String estado) { this.estado = estado; }
+
+    public boolean isPendiente()  { return ESTADO_PENDIENTE.equals(estado); }
+    public boolean isAprobado()   { return ESTADO_APROBADO.equals(estado) || estado == null; }
+    public boolean isRechazado()  { return ESTADO_RECHAZADO.equals(estado); }
 }

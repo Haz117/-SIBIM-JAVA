@@ -1,9 +1,19 @@
 package com.sibim.util;
 
 import javafx.animation.*;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import java.util.List;
+import java.util.function.LongFunction;
 
 public final class AnimationUtils {
 
@@ -107,6 +117,202 @@ public final class AnimationUtils {
         tl.play();
     }
 
+
+    /** Quick scale-pop on a stat card after its value updates. */
+    public static void statCardPop(Node card) {
+        ScaleTransition grow = new ScaleTransition(Duration.millis(130), card);
+        grow.setToX(1.07); grow.setToY(1.07);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(160), card);
+        shrink.setToX(1.0); shrink.setToY(1.0);
+        shrink.setInterpolator(Interpolator.EASE_IN);
+        new SequentialTransition(grow, shrink).play();
+    }
+
+    /**
+     * Floating overlay on a StackPane container that celebrates a successful
+     * Transferencia: shows the product name and an animated "Area A → Area B"
+     * flow, then fades out automatically after 2.2 s.
+     */
+    public static void transferCelebration(StackPane container,
+                                           String productName, String from, String to) {
+        Label iconLbl = new Label("✓");
+        iconLbl.getStyleClass().add("transfer-cel-icon");
+
+        Label titleLbl = new Label("Transferencia registrada");
+        titleLbl.getStyleClass().add("transfer-cel-title");
+
+        Label productLbl = new Label(productName != null ? productName : "");
+        productLbl.getStyleClass().add("transfer-cel-product");
+        productLbl.setWrapText(true);
+
+        Label fromLbl = new Label(from != null ? from : "—");
+        fromLbl.getStyleClass().add("transfer-cel-chip-from");
+
+        Label arrowLbl = new Label("→");
+        arrowLbl.getStyleClass().add("transfer-cel-arrow");
+        arrowLbl.setTranslateX(-14);
+        arrowLbl.setOpacity(0);
+
+        Label toLbl = new Label(to != null ? to : "—");
+        toLbl.getStyleClass().add("transfer-cel-chip-to");
+        toLbl.setScaleX(0.72); toLbl.setScaleY(0.72);
+        toLbl.setOpacity(0);
+
+        HBox areasRow = new HBox(10, fromLbl, arrowLbl, toLbl);
+        areasRow.setAlignment(Pos.CENTER);
+
+        VBox card = new VBox(8, iconLbl, titleLbl, productLbl, areasRow);
+        card.setAlignment(Pos.CENTER);
+        card.getStyleClass().add("transfer-cel-card");
+        card.setPadding(new Insets(28, 44, 28, 44));
+        card.setMaxWidth(400);
+        card.setScaleX(0.86); card.setScaleY(0.86);
+
+        StackPane overlay = new StackPane(card);
+        overlay.setPickOnBounds(false);
+        overlay.setOpacity(0);
+        container.getChildren().add(overlay);
+
+        // Card fades + scales in
+        FadeTransition cardFadeIn = new FadeTransition(Duration.millis(280), overlay);
+        cardFadeIn.setToValue(1);
+        ScaleTransition cardScaleIn = new ScaleTransition(Duration.millis(280), card);
+        cardScaleIn.setToX(1); cardScaleIn.setToY(1);
+        cardScaleIn.setInterpolator(Interpolator.EASE_OUT);
+
+        // Arrow slides from left + fades in (delayed 220 ms)
+        TranslateTransition arrowSlide = new TranslateTransition(Duration.millis(360), arrowLbl);
+        arrowSlide.setToX(0);
+        arrowSlide.setDelay(Duration.millis(220));
+        arrowSlide.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition arrowFade = new FadeTransition(Duration.millis(280), arrowLbl);
+        arrowFade.setToValue(1);
+        arrowFade.setDelay(Duration.millis(220));
+
+        // Destination chip pops in (delayed 440 ms)
+        ScaleTransition toPop = new ScaleTransition(Duration.millis(260), toLbl);
+        toPop.setToX(1); toPop.setToY(1);
+        toPop.setDelay(Duration.millis(440));
+        toPop.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition toFade = new FadeTransition(Duration.millis(260), toLbl);
+        toFade.setToValue(1);
+        toFade.setDelay(Duration.millis(440));
+
+        // Hold then fade out
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(320), overlay);
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(e -> container.getChildren().remove(overlay));
+
+        new SequentialTransition(
+            new ParallelTransition(cardFadeIn, cardScaleIn, arrowSlide, arrowFade, toPop, toFade),
+            new PauseTransition(Duration.millis(2200)),
+            fadeOut
+        ).play();
+    }
+
+    /**
+     * Animates a Label's text from 0 up to {@code target} using an ease-both
+     * interpolator. Each tick calls {@code formatter} so the caller controls
+     * how the number looks (plain integer, currency, percentage, etc.).
+     * The last frame always calls formatter(target) for exact precision.
+     */
+    public static void animateCount(Label label, long target, int durationMs,
+                                    LongFunction<String> formatter) {
+        label.setText(formatter.apply(0));
+        if (target == 0) return;
+        SimpleDoubleProperty prop = new SimpleDoubleProperty(0);
+        prop.addListener((obs, o, n) -> label.setText(formatter.apply((long) n.doubleValue())));
+        Timeline tl = new Timeline(new KeyFrame(Duration.millis(durationMs),
+            new KeyValue(prop, (double) target, Interpolator.EASE_BOTH)));
+        tl.setOnFinished(e -> label.setText(formatter.apply(target)));
+        tl.play();
+    }
+
+    /** Overload: plain {@code String.valueOf(long)} formatter. */
+    public static void animateCount(Label label, long target, int durationMs) {
+        animateCount(label, target, durationMs, String::valueOf);
+    }
+
+    /**
+     * Reveals {@code bar} (an HBox health bar) with a left-to-right clip
+     * that grows from 0 to the bar's actual width over {@code durationMs}.
+     * Must be called after the bar has been added to the scene graph (so
+     * layoutBounds are available); use a short Timeline delay if needed.
+     */
+    public static void revealBarLTR(Region bar, int durationMs) {
+        double w = bar.getWidth();
+        if (w <= 0) w = bar.getPrefWidth() > 0 ? bar.getPrefWidth() : 500;
+        Rectangle clip = new Rectangle(0, 0, 0, bar.getBoundsInLocal().getHeight() + 4);
+        bar.heightProperty().addListener((o, x, h) -> clip.setHeight(h.doubleValue() + 4));
+        bar.setClip(clip);
+        new Timeline(new KeyFrame(Duration.millis(durationMs),
+            new KeyValue(clip.widthProperty(), w, Interpolator.EASE_OUT))).play();
+    }
+
+    /**
+     * Heartbeat scale-pulse — good for alert badges and notification chips.
+     * Returns the animation so the caller can stop it when the badge hides.
+     */
+    public static SequentialTransition pulse(Node node, int cycles) {
+        ScaleTransition grow = new ScaleTransition(Duration.millis(150), node);
+        grow.setToX(1.16); grow.setToY(1.16);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(230), node);
+        shrink.setToX(1.0); shrink.setToY(1.0);
+        shrink.setInterpolator(Interpolator.EASE_IN);
+        SequentialTransition beat = new SequentialTransition(grow, shrink);
+        beat.setCycleCount(cycles);
+        beat.play();
+        return beat;
+    }
+
+    /**
+     * Spring-like pop-in: scale 0.85 → 1.06 → 0.98 → 1.0 while fading in.
+     * More satisfying than a plain fadeIn for overlays and dialog entrances.
+     */
+    public static void springIn(Node node) {
+        node.setOpacity(0);
+        node.setScaleX(0.85);
+        node.setScaleY(0.85);
+        FadeTransition fade = new FadeTransition(Duration.millis(200), node);
+        fade.setToValue(1);
+        Timeline spring = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(node.scaleXProperty(), 0.85),
+                new KeyValue(node.scaleYProperty(), 0.85)),
+            new KeyFrame(Duration.millis(220),
+                new KeyValue(node.scaleXProperty(), 1.06, Interpolator.EASE_OUT),
+                new KeyValue(node.scaleYProperty(), 1.06, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(330),
+                new KeyValue(node.scaleXProperty(), 0.98, Interpolator.EASE_BOTH),
+                new KeyValue(node.scaleYProperty(), 0.98, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(420),
+                new KeyValue(node.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                new KeyValue(node.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+        );
+        new ParallelTransition(fade, spring).play();
+    }
+
+    /** Fade a node out; calls {@code after} on the FX thread when done. */
+    public static void fadeOut(Node node, int durationMs, Runnable after) {
+        FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
+        ft.setFromValue(node.getOpacity());
+        ft.setToValue(0);
+        ft.setInterpolator(Interpolator.EASE_IN);
+        if (after != null) ft.setOnFinished(e -> after.run());
+        ft.play();
+    }
+
+    /**
+     * Temporarily adds {@code cssClass} to {@code node} for {@code holdMs} then removes it.
+     * Useful for flashing a table row green after a save, or red after a delete.
+     */
+    public static void flashClass(Node node, String cssClass, int holdMs) {
+        node.getStyleClass().add(cssClass);
+        new Timeline(new KeyFrame(Duration.millis(holdMs),
+            e -> node.getStyleClass().remove(cssClass))).play();
+    }
 
     // ── helpers ──────────────────────────────────────────────────
     private static KeyFrame kf(Node node, int ms, double x) {

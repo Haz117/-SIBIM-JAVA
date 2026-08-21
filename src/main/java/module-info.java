@@ -8,6 +8,7 @@ module com.sibim {
     requires java.desktop;
 
     requires java.sql;
+    requires java.net.http;
     requires com.zaxxer.hikari;
     requires org.postgresql.jdbc;
     requires org.xerial.sqlitejdbc;

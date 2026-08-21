@@ -1,27 +1,38 @@
 <configuration>
-    <!-- ${user.home} resolves against the System property of the same name
-         automatically — no code needs to set it. -->
-    <property name="LOG_DIR" value="${user.home}/.sibim/logs" />
 
+    <!-- Guarda logs en %APPDATA%\SIBIM\logs\ en Windows, ~/.sibim/logs/ en otros SO -->
+    <property name="LOG_DIR" value="${user.home}/AppData/Roaming/SIBIM/logs"/>
+
+    <!-- Consola: solo WARNING+ en producción para no saturar (en dev se ve INFO) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss} [%-5level] %logger{36} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+
+    <!-- Archivo rotativo: guarda TODO (INFO+) con retención de 30 días / 50 MB -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_DIR}/sibim.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_DIR}/sibim-%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>14</maxHistory>
+            <fileNamePattern>${LOG_DIR}/sibim.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>50MB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] %logger{40} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss} %-5level %logger{20} - %msg%n</pattern>
-        </encoder>
-    </appender>
+    <!-- Silencia logs de diagnóstico de HikariCP que no aportan en producción -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.postgresql"    level="WARN"/>
 
     <root level="INFO">
-        <appender-ref ref="FILE" />
-        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
     </root>
+
 </configuration>

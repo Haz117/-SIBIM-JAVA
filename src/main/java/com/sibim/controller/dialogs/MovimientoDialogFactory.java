@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ProductoUtils;
 import javafx.animation.FadeTransition;
@@ -59,6 +60,8 @@ public final class MovimientoDialogFactory {
 
         GridPane grid = DialogUtil.formGrid(128);
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
+        // The visible submit action is btnRegistrar inside the content; hide the bar's OK.
+        if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
 
         ComboBox<Producto> fProducto = new ComboBox<>(FXCollections.observableArrayList(productos));
         fProducto.setMaxWidth(Double.MAX_VALUE);
@@ -95,16 +98,15 @@ public final class MovimientoDialogFactory {
         DialogUtil.commitOnFocusLoss(fCantidad);
 
         // For AJUSTE, "Cantidad" means the new absolute stock total, not a
-        // delta added/subtracted like every other type — make that explicit
-        // in the label and prompt so it isn't misread as "units to adjust by".
-        Label lblCantidad = DialogUtil.fieldLabel("Cantidad *");
-        Runnable updateCantidadLabel = () -> {
+        // delta added/subtracted like every other type — the field's own
+        // help tooltip (see fieldLabelWithHelp below) explains this
+        // up front; the prompt text reinforces it once Ajuste is selected.
+        Runnable updateCantidadPrompt = () -> {
             boolean isAjuste = fTipo.getValue() == TipoMovimiento.AJUSTE;
-            lblCantidad.setText(isAjuste ? "Nuevo stock total *" : "Cantidad *");
             fCantidad.setPromptText(isAjuste ? "Valor final del stock (no un delta)" : null);
         };
-        updateCantidadLabel.run();
-        fTipo.valueProperty().addListener((o, a, b) -> updateCantidadLabel.run());
+        updateCantidadPrompt.run();
+        fTipo.valueProperty().addListener((o, a, b) -> updateCantidadPrompt.run());
 
         // Only relevant/visible for TRANSFERENCIA — the area the product is
         // moving TO. Options exclude the selected product's own current
@@ -113,7 +115,9 @@ public final class MovimientoDialogFactory {
         fAreaDestino.setMaxWidth(Double.MAX_VALUE);
         fAreaDestino.setPromptText("Área de destino...");
         fAreaDestino.getStyleClass().add("form-input");
-        Label lblAreaDestino = DialogUtil.fieldLabel("Área destino *");
+        Node lblAreaDestino = DialogUtil.fieldLabelWithHelp("Área destino *",
+            "Secretaría o Dirección a donde se mueve el bien.\n" +
+            "El bien quedará registrado en esa área tras confirmar.");
         Runnable refreshAreaOptions = () -> {
             Producto p = fProducto.getValue();
             String current = fAreaDestino.getValue();
@@ -237,10 +241,25 @@ public final class MovimientoDialogFactory {
         fTipo.valueProperty().addListener((o, a, b) -> updateLabels.run());
         fCantidad.valueProperty().addListener((o, a, b) -> updateLabels.run());
 
-        TextField fMotivo = new TextField(retryFrom != null && retryFrom.motivo() != null ? retryFrom.motivo() : "");
-        fMotivo.setPromptText("Motivo del movimiento (opcional)");
+        ComboBox<String> fMotivo = new ComboBox<>();
+        fMotivo.setEditable(true);
         fMotivo.setMaxWidth(Double.MAX_VALUE);
         fMotivo.getStyleClass().add("form-input");
+        fMotivo.setPromptText("Motivo del movimiento (opcional)");
+        Runnable refreshMotivoOptions = () -> {
+            String current = fMotivo.getEditor().getText();
+            List<String> opts = switch (fTipo.getValue()) {
+                case ENTRADA       -> List.of("Compra", "Donación", "Devolución", "Reposición", "Conteo físico");
+                case SALIDA        -> List.of("Uso institucional", "Préstamo temporal", "Deterioro", "Baja parcial");
+                case AJUSTE        -> List.of("Conteo físico", "Corrección de error", "Daño o deterioro", "Robo o extravío");
+                case TRANSFERENCIA -> List.of("Reubicación", "Préstamo entre áreas", "Reorganización");
+            };
+            fMotivo.setItems(FXCollections.observableArrayList(opts));
+            if (current != null && !current.isBlank()) fMotivo.getEditor().setText(current);
+        };
+        refreshMotivoOptions.run();
+        fTipo.valueProperty().addListener((o, a, b) -> refreshMotivoOptions.run());
+        if (retryFrom != null && retryFrom.motivo() != null) fMotivo.getEditor().setText(retryFrom.motivo());
         TextField fRef = new TextField(retryFrom != null && retryFrom.referencia() != null ? retryFrom.referencia() : "");
         fRef.setPromptText("Número de folio, documento, etc.");
         fRef.setMaxWidth(Double.MAX_VALUE);
@@ -252,10 +271,17 @@ public final class MovimientoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
+        Button btnRegistrar = new Button("✓  Registrar movimiento");
+        btnRegistrar.getStyleClass().add("form-submit-btn");
+        btnRegistrar.setMaxWidth(Double.MAX_VALUE);
+        btnRegistrar.setDisable(true);
+        btnRegistrar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
+
         // Disable OK until product selected, quantity valid, and (for a
         // transfer) a destination area chosen
         if (okBtn != null) {
             Runnable validateOk = () -> {
+                DialogUtil.commitSpinner(fCantidad);
                 boolean noProduct = fProducto.getValue() == null;
                 boolean badQty = fCantidad.getValue() <= 0 && fTipo.getValue() != TipoMovimiento.AJUSTE;
                 boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
@@ -268,42 +294,56 @@ public final class MovimientoDialogFactory {
                 // after submitting.
                 boolean exceedsStock = !noProduct && fTipo.getValue() == TipoMovimiento.SALIDA
                     && fCantidad.getValue() > fProducto.getValue().getStockActual();
-                okBtn.setDisable(noProduct || badQty || noDestino || exceedsStock);
+                boolean invalid = noProduct || badQty || noDestino || exceedsStock;
+                boolean wasHidden = !lblFormError.isVisible();
+                okBtn.setDisable(invalid);
+                btnRegistrar.setDisable(invalid);
                 String hint = noProduct ? "Selecciona un bien del inventario"
                     : noDestino ? "Selecciona el área de destino"
                     : exceedsStock ? "La cantidad supera el stock disponible (" + fProducto.getValue().getStockActual() + ")"
                     : "La cantidad debe ser mayor a cero";
-                boolean showHint = noProduct || badQty || noDestino || exceedsStock;
                 lblFormError.setText(hint);
-                lblFormError.setVisible(showHint);
-                lblFormError.setManaged(showHint);
+                lblFormError.setVisible(invalid);
+                lblFormError.setManaged(invalid);
+                if (invalid && wasHidden) AnimationUtils.shake(lblFormError);
             };
             validateOk.run();
             fProducto.valueProperty().addListener((obs, o, n) -> validateOk.run());
             fCantidad.valueProperty().addListener((obs, o, n) -> validateOk.run());
+            fCantidad.getEditor().textProperty().addListener((obs, o, n) -> validateOk.run());
             fTipo.valueProperty().addListener((obs, o, n) -> validateOk.run());
             fAreaDestino.valueProperty().addListener((obs, o, n) -> validateOk.run());
         }
 
         int row = 0;
         grid.add(DialogUtil.fieldLabel("Producto *"),    0, row); grid.add(fProducto,    1, row++);
-        grid.add(DialogUtil.fieldLabel("Tipo *"),        0, row); grid.add(fTipo,        1, row++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Tipo *",
+            "Entrada: suma unidades al stock actual.\n" +
+            "Salida: resta unidades del stock.\n" +
+            "Ajuste: la cantidad REEMPLAZA el stock actual (corrección manual).\n" +
+            "Transferencia: mueve el bien a otra área del organigrama."),
+                                                         0, row); grid.add(fTipo,        1, row++);
         grid.add(lblAreaDestino,                         0, row); grid.add(fAreaDestino, 1, row++);
         grid.add(transferPreview,                        0, row++);
-        grid.add(lblCantidad,                            0, row); grid.add(fCantidad,    1, row++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Cantidad *",
+            "Unidades a registrar.\n" +
+            "Para Ajuste: este valor se convierte en el nuevo stock total\n(no se suma ni se resta)."),
+                                                         0, row); grid.add(fCantidad,    1, row++);
         grid.add(DialogUtil.fieldLabel("Movimiento"),    0, row); grid.add(stockPreview, 1, row++);
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);
         grid.add(DialogUtil.fieldLabel("Referencia"),    0, row); grid.add(fRef,         1, row);
 
-        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError));
+        VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
+        VBox.setMargin(btnRegistrar, new Insets(4, 22, 16, 22));
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, btnRegistrar), 280, 70);
+        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, btnRegistrar));
         Platform.runLater(() -> fProducto.requestFocus());
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
-            DialogUtil.commitSpinner(fCantidad);
             boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
             return Optional.of(new Result(fProducto.getValue(), fTipo.getValue(), fCantidad.getValue(),
-                fMotivo.getText().trim(), fRef.getText().trim(), isTransfer ? fAreaDestino.getValue() : null));
+                fMotivo.getEditor().getText().trim(), fRef.getText().trim(), isTransfer ? fAreaDestino.getValue() : null));
         }
         return Optional.empty();
     }

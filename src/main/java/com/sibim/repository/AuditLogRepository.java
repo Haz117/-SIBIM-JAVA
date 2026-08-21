@@ -5,12 +5,17 @@ import com.sibim.db.DemoDataStore;
 import com.sibim.model.AuditLog;
 import com.sibim.session.SessionManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class AuditLogRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(AuditLogRepository.class);
 
     // Mirrors CategoriaRepository/UsuarioRepository's pattern: the audit
     // trail spans every area, not just the caller's own, so unlike
@@ -68,7 +73,7 @@ public class AuditLogRepository {
                 ps.executeUpdate();
             }
         } catch (Exception e) {
-            System.err.println("No se pudo registrar auditoria: " + e.getMessage());
+            log.warn("No se pudo registrar auditoría: {}", e.getMessage());
         }
     }
 
