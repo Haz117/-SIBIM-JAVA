@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.CategoriasController"
@@ -12,7 +13,7 @@
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-teal">
         <!-- Icon badge -->
         <StackPane styleClass="page-header-icon page-header-icon-teal">
-            <Label text="🏷" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2t-tag-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Categorías de Bienes" styleClass="page-title"/>
@@ -20,7 +21,9 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
                            visible="false" managed="false"/>
-        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar lista de categorías (F5)"/></tooltip>
         </Button>
         <Button fx:id="btnNueva" text="＋ Nueva Categoría" onAction="#onNuevaCategoria" styleClass="btn-primary">
@@ -42,8 +45,9 @@
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por nombre o descripción..."
                        maxWidth="Infinity" styleClass="search-field"/>
-            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+            <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
@@ -61,7 +65,7 @@
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
-                <Label text="🏷" styleClass="empty-icon-lg"/>
+                <FontIcon iconLiteral="mdi2t-tag-outline" styleClass="empty-icon-lg"/>
                 <Label text="No hay categorías registradas" styleClass="empty-state-msg"/>
                 <Label text="Usa ＋ Nueva Categoría para clasificar tus bienes patrimoniales" styleClass="empty-state-hint"/>
             </VBox>
@@ -72,10 +76,14 @@
     <HBox spacing="8" alignment="CENTER_RIGHT" styleClass="bottom-action-bar">
         <Label text="Selecciona una categoría para editar o eliminar"
                styleClass="muted-sm" HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnEditCat"   text="✏  Editar"   onAction="#onEdit"   styleClass="btn-secondary" disable="true">
+        <Button fx:id="btnEditCat" text="Editar" onAction="#onEdit" styleClass="btn-secondary"
+                disable="true" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2p-pencil" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Editar la categoría seleccionada"/></tooltip>
         </Button>
-        <Button fx:id="btnDeleteCat" text="✕  Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true">
+        <Button fx:id="btnDeleteCat" text="Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-delete-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Eliminar categoría (solo si no tiene bienes asignados)"/></tooltip>
         </Button>
     </HBox>

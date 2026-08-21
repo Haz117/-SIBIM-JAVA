@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.OrganigramaController"
@@ -11,7 +12,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-blue">
         <StackPane styleClass="page-header-icon page-header-icon-blue">
-            <Label text="🏛" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Organigrama Municipal" styleClass="page-title"/>
@@ -19,7 +20,9 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24"
                            visible="false" managed="false"/>
-        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recargar distribución de bienes por área (F5)"/></tooltip>
         </Button>
     </HBox>
@@ -31,7 +34,7 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
-                    <Label text="🏛" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="ÁREAS CON BIENES" styleClass="rich-stat-label"/>
             </HBox>
@@ -44,7 +47,7 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
-                    <Label text="📦" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="BIENES DISTRIBUIDOS" styleClass="rich-stat-label"/>
             </HBox>
@@ -57,7 +60,7 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
-                    <Label text="⭐" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2s-star-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="ÁREA CON MÁS BIENES" styleClass="rich-stat-label"/>
             </HBox>
@@ -72,8 +75,9 @@
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar área, secretaría o departamento..."
                        maxWidth="Infinity" styleClass="search-field"/>
-            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+            <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>

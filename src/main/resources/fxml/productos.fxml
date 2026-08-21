@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.ProductosController"
@@ -12,23 +13,31 @@
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header">
         <!-- Icon badge -->
         <StackPane styleClass="page-header-icon page-header-icon-indigo">
-            <Label text="📦" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2p-package-variant" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Bienes Patrimoniales" styleClass="page-title"/>
             <Label text="Inventario de bienes del H. Ayuntamiento de Ixmiquilpan" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
-        <Button text="🗑 Dados de baja" onAction="#onVerBajas" styleClass="btn-secondary">
+        <Button text="Dados de baja" onAction="#onVerBajas" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-delete-restore" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Ver bienes dados de baja (fuera del inventario activo)"/></tooltip>
         </Button>
-        <Button fx:id="btnConteoFisico" text="📋 Conteo físico" onAction="#onConteoFisico" styleClass="btn-secondary">
+        <Button fx:id="btnConteoFisico" text="Conteo físico" onAction="#onConteoFisico" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Iniciar una toma de inventario físico y ajustar diferencias"/></tooltip>
         </Button>
-        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar lista (F5)"/></tooltip>
         </Button>
-        <Button fx:id="btnNuevoBien" text="＋ Nuevo Bien" onAction="#onNuevoBien" styleClass="btn-primary">
+        <Button fx:id="btnNuevoBien" text="Nuevo Bien" onAction="#onNuevoBien" styleClass="btn-primary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Registrar un nuevo bien en el inventario  (Ctrl+N)"/></tooltip>
         </Button>
     </HBox>
@@ -47,7 +56,7 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
-                    <Label text="📦" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2c-cube-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="TOTAL DE BIENES" styleClass="rich-stat-label"/>
             </HBox>
@@ -61,7 +70,7 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
-                    <Label text="💰" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="VALOR DEL INVENTARIO" styleClass="rich-stat-label"/>
             </HBox>
@@ -75,9 +84,13 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
-                    <Label text="⚠" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2b-bell-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="BIENES CON ALERTA" styleClass="rich-stat-label"/>
+                <Label text="BIENES CON ALERTA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label styleClass="help-icon" contentDisplay="GRAPHIC_ONLY">
+                    <graphic><FontIcon iconLiteral="mdi2h-help-circle-outline" styleClass="help-icon"/></graphic>
+                    <tooltip><Tooltip text="Bienes agotados (stock = 0) o con existencias por debajo del mínimo configurado."/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatAlertas" text="—" styleClass="rich-stat-value"/>
             <Label text="agotados · bajo stock" styleClass="rich-stat-hint"/>
@@ -96,19 +109,26 @@
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por nombre, código, proveedor..."
                        maxWidth="Infinity" styleClass="search-field"/>
-            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+            <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="165"/>
         <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="190"/>
         <ComboBox fx:id="resguardanteFilter" promptText="Resguardante..." prefWidth="165"/>
+        <Label styleClass="help-icon" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2h-help-circle-outline" styleClass="help-icon"/></graphic>
+            <tooltip><Tooltip text="Resguardante: persona responsable de la custodia del bien. Filtrar por encargado."/></tooltip>
+        </Label>
         <Separator orientation="VERTICAL"/>
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
-        <Button fx:id="btnClearFilters" text="✕  Limpiar filtros" onAction="#onClearFilters"
-                styleClass="btn-secondary" visible="false" managed="false">
+        <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
+                styleClass="btn-secondary" visible="false" managed="false"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Quitar todos los filtros activos"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
@@ -134,7 +154,7 @@
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
-                <Label text="📦" styleClass="empty-icon-lg"/>
+                <FontIcon iconLiteral="mdi2p-package-variant" styleClass="empty-icon-lg"/>
                 <Label text="No hay bienes registrados" styleClass="empty-state-msg"/>
                 <Label text="Usa el botón ＋ Nuevo Bien para registrar el primer activo" styleClass="empty-state-hint"/>
             </VBox>
@@ -145,10 +165,14 @@
     <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 resultados" styleClass="muted"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnEditar"   text="✏  Editar"   onAction="#onEdit"   styleClass="btn-secondary">
+        <Button fx:id="btnEditar" text="Editar" onAction="#onEdit" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2p-pencil" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Editar el bien seleccionado (o doble clic)"/></tooltip>
         </Button>
-        <Button fx:id="btnEliminar" text="🗑  Dar de baja" onAction="#onDelete" styleClass="btn-danger">
+        <Button fx:id="btnEliminar" text="Dar de baja" onAction="#onDelete" styleClass="btn-danger"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-delete-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Dar de baja el bien seleccionado (baja patrimonial formal, con motivo)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>

@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.controller.dialogs.MovimientoDialogFactory;
+import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
@@ -140,7 +141,8 @@ public class MovimientosController {
 
         // Context menu
         ContextMenu cm = new ContextMenu();
-        MenuItem cmDetalle = new MenuItem("👁  Ver detalle");
+        MenuItem cmDetalle = new MenuItem("Ver detalle");
+        cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
         cmDetalle.setOnAction(e -> {
             Movimiento sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) showMovimientoDetail(sel);
@@ -149,7 +151,8 @@ public class MovimientosController {
         boolean canDelete = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (canDelete) {
             cm.getItems().add(new SeparatorMenuItem());
-            MenuItem cmEliminar = new MenuItem("✕  Eliminar");
+            MenuItem cmEliminar = new MenuItem("Eliminar");
+            cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
             cmEliminar.setOnAction(e -> onDelete());
             cm.getItems().add(cmEliminar);
         }
@@ -292,7 +295,8 @@ public class MovimientosController {
         table.getSortOrder().add(colFecha);
 
         // Smart empty state
-        Label emptyIcon = new Label("↕");
+        FontIcon emptyIcon = new FontIcon("mdi2s-swap-vertical");
+        emptyIcon.setIconSize(52);
         emptyIcon.getStyleClass().add("empty-icon-lg");
         emptyStateMsg = new Label("No hay movimientos en el sistema");
         emptyStateMsg.getStyleClass().add("empty-state-msg");
@@ -353,7 +357,11 @@ public class MovimientosController {
     }
 
     private void setupPagination() {
-        pageSizeBox.setItems(FXCollections.observableArrayList(10, 25, 50, 100));
+        pageSizeBox.setItems(FXCollections.observableArrayList(25, 50, 100, 250, 500, Integer.MAX_VALUE));
+        pageSizeBox.setConverter(new javafx.util.StringConverter<>() {
+            public String toString(Integer n)   { return n == null ? "" : n == Integer.MAX_VALUE ? "Todos" : String.valueOf(n); }
+            public Integer fromString(String s) { return "Todos".equals(s) ? Integer.MAX_VALUE : Integer.parseInt(s); }
+        });
         pageSizeBox.setValue(25);
         pageSizeBox.setOnAction(e -> {
             pageSize = pageSizeBox.getValue();
@@ -471,7 +479,7 @@ public class MovimientosController {
             count -> {
                 if (btnPendientes == null) return;
                 btnPendientes.setText(count > 0
-                    ? "⏳ Pendientes (" + count + ")"
+                    ? "Pendientes (" + count + ")"
                     : "Pendientes");
                 btnPendientes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
                 btnPendientes.getStyleClass().add(count > 0 ? "btn-warning-outline" : "btn-secondary");
@@ -483,11 +491,12 @@ public class MovimientosController {
     private void showPendientesDialog(java.util.List<com.sibim.model.Movimiento> pendientes) {
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
             new javafx.scene.control.Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(660);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("⏳", "Transferencias Pendientes de Aprobación",
+        HBox header = DialogUtil.gradientHeader("mdi2t-timer-sand", "Transferencias Pendientes de Aprobación",
             "Solicitudes de traslado que requieren tu autorización",
             "#D97706", "#B45309");
 
@@ -518,8 +527,12 @@ public class MovimientosController {
             info.getChildren().addAll(titulo, detalle);
             HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
 
-            javafx.scene.control.Button btnAprobar  = new javafx.scene.control.Button("✓ Aprobar");
-            javafx.scene.control.Button btnRechazar = new javafx.scene.control.Button("✕ Rechazar");
+            javafx.scene.control.Button btnAprobar  = new javafx.scene.control.Button("Aprobar");
+            javafx.scene.control.Button btnRechazar = new javafx.scene.control.Button("Rechazar");
+            btnAprobar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
+            btnRechazar.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
+            btnAprobar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+            btnRechazar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
             btnAprobar.getStyleClass().add("btn-primary");
             btnRechazar.getStyleClass().add("btn-danger");
 
@@ -733,15 +746,16 @@ public class MovimientosController {
 
     private void showMovimientoDetail(Movimiento m) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(470);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         String tipoIcon = switch (m.getTipo()) {
-            case ENTRADA       -> "⬆";
-            case SALIDA        -> "⬇";
-            case AJUSTE        -> "⇄";
-            case TRANSFERENCIA -> "→";
+            case ENTRADA       -> "mdi2a-arrow-up-bold-circle-outline";
+            case SALIDA        -> "mdi2a-arrow-down-bold-circle-outline";
+            case AJUSTE        -> "mdi2s-swap-horizontal";
+            case TRANSFERENCIA -> "mdi2a-arrow-right-bold-circle-outline";
         };
         String color1 = switch (m.getTipo()) {
             case ENTRADA       -> "#059669";

@@ -70,12 +70,12 @@ public final class DemoDataStore {
 
         // ── Categorías ────────────────────────────────────────────────────────
         CATEGORIAS = Collections.synchronizedList(new ArrayList<>(List.of(
-            new Categoria("cat-mob",  "Mobiliario",                "Escritorios, sillas, archiveros, módulos", "#8B5CF6", "Armchair",    LocalDateTime.now()),
-            new Categoria("cat-veh",  "Vehículos",                 "Flota vehicular municipal",                 "#3B82F6", "Car",         LocalDateTime.now()),
-            new Categoria("cat-comp", "Equipo de Cómputo",         "Laptops, computadoras, periféricos",        "#10B981", "Laptop",      LocalDateTime.now()),
-            new Categoria("cat-ofi",  "Equipo de Oficina",         "Impresoras, copiadoras, teléfonos",         "#F59E0B", "Printer",     LocalDateTime.now()),
-            new Categoria("cat-maq",  "Herramientas y Maquinaria", "Maquinaria pesada, herramientas, extintores","#EF4444", "Wrench",      LocalDateTime.now()),
-            new Categoria("cat-av",   "Equipo Audiovisual",        "Cámaras, proyectores, pantallas, audio",    "#EC4899", "VideoCamera", LocalDateTime.now())
+            new Categoria("cat-mob",  "Mobiliario",                "Escritorios, sillas, archiveros, módulos", "#8B5CF6", "🪑",  LocalDateTime.now()),
+            new Categoria("cat-veh",  "Vehículos",                 "Flota vehicular municipal",                 "#3B82F6", "🚗",  LocalDateTime.now()),
+            new Categoria("cat-comp", "Equipo de Cómputo",         "Laptops, computadoras, periféricos",        "#10B981", "💻",  LocalDateTime.now()),
+            new Categoria("cat-ofi",  "Equipo de Oficina",         "Impresoras, copiadoras, teléfonos",         "#F59E0B", "🖨",  LocalDateTime.now()),
+            new Categoria("cat-maq",  "Herramientas y Maquinaria", "Maquinaria pesada, herramientas, extintores","#EF4444", "🔧",  LocalDateTime.now()),
+            new Categoria("cat-av",   "Equipo Audiovisual",        "Cámaras, proyectores, pantallas, audio",    "#EC4899", "📷",  LocalDateTime.now())
         )));
 
         // ── Productos ─────────────────────────────────────────────────────────

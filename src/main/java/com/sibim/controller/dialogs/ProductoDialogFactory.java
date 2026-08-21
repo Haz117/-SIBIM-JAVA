@@ -22,6 +22,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -50,7 +51,7 @@ public final class ProductoDialogFactory {
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? "#4F46E5" : "#059669");
 
         HBox dialogHeader = DialogUtil.gradientHeader(
-            isNewProduct ? "📦" : "✏",
+            isNewProduct ? "mdi2p-package-variant" : "mdi2p-pencil",
             isNewProduct ? "Nuevo Bien Patrimonial" : "Editar Bien",
             isNewProduct ? "Registra un nuevo bien en el inventario municipal"
                          : "Actualiza los datos de " + existing.getNombre(),
@@ -58,8 +59,6 @@ public final class ProductoDialogFactory {
             isNewProduct ? "#7C3AED" : "#047857");
 
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
-        // The visible submit action is btnGuardar inside the content; hide the bar's OK.
-        if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
 
         // ── Tab: Información General ──
         GridPane gridInfo = DialogUtil.formGrid(120);
@@ -137,7 +136,10 @@ public final class ProductoDialogFactory {
         imgPreview.setFitWidth(150); imgPreview.setFitHeight(112);
         imgPreview.setPreserveRatio(true);
 
-        Label imgPlaceholder = new Label("📷\nSin imagen");
+        FontIcon camIcon = new FontIcon("mdi2c-camera-outline");
+        camIcon.setIconSize(28);
+        Label imgPlaceholder = new Label("Sin imagen", camIcon);
+        imgPlaceholder.setContentDisplay(javafx.scene.control.ContentDisplay.TOP);
         imgPlaceholder.getStyleClass().add("dlg-img-placeholder");
         imgPlaceholder.setAlignment(Pos.CENTER);
 
@@ -163,8 +165,10 @@ public final class ProductoDialogFactory {
         };
         loadImg.run();
 
-        Button btnSelImg    = new Button("📷  Seleccionar");
-        Button btnQuitarImg = new Button("✕  Quitar");
+        Button btnSelImg    = new Button("Seleccionar");
+        btnSelImg.setGraphic(new FontIcon("mdi2c-camera-outline"));
+        Button btnQuitarImg = new Button("Quitar");
+        btnQuitarImg.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
         btnSelImg.getStyleClass().add("btn-secondary");
         btnQuitarImg.getStyleClass().add("btn-secondary");
         btnQuitarImg.setDisable(fotoHolder[0] == null || fotoHolder[0].isBlank());
@@ -294,8 +298,10 @@ public final class ProductoDialogFactory {
         // ── TabPane ──
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        Tab tabInfo  = new Tab("📋  Información General", gridInfo);
-        Tab tabStock = new Tab("📊  Stock y Precios", gridStock);
+        Tab tabInfo  = new Tab("Información General", gridInfo);
+        tabInfo.setGraphic(new FontIcon("mdi2i-information-outline"));
+        Tab tabStock = new Tab("Stock y Precios", gridStock);
+        tabStock.setGraphic(new FontIcon("mdi2c-chart-bar"));
         tabs.getTabs().addAll(tabInfo, tabStock);
         tabs.getStyleClass().add("dlg-tabpane");
 
@@ -305,8 +311,9 @@ public final class ProductoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
-        String submitLabel = isNewProduct ? "✓  Guardar bien" : "✓  Guardar cambios";
+        String submitLabel = isNewProduct ? "Guardar bien" : "Guardar cambios";
         Button btnGuardar = new Button(submitLabel);
+        btnGuardar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
         btnGuardar.getStyleClass().add("form-submit-btn");
         if (!isNewProduct) btnGuardar.getStyleClass().add("form-submit-btn-edit");
         btnGuardar.setMaxWidth(Double.MAX_VALUE);

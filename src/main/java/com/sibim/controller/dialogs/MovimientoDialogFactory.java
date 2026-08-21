@@ -21,6 +21,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
 import java.util.Optional;
@@ -54,14 +55,12 @@ public final class MovimientoDialogFactory {
         Dialog<ButtonType> dialog = DialogUtil.createButtonDialog(480);
         DialogUtil.styleOkButton(dialog.getDialogPane(), "#6D28D9");
 
-        HBox header = DialogUtil.gradientHeader("↕", "Registrar Movimiento",
+        HBox header = DialogUtil.gradientHeader("mdi2s-swap-vertical", "Registrar Movimiento",
             "Registra una nueva entrada, salida, ajuste o transferencia al inventario",
             "#6D28D9", "#A21CAF");
 
         GridPane grid = DialogUtil.formGrid(128);
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
-        // The visible submit action is btnRegistrar inside the content; hide the bar's OK.
-        if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
 
         ComboBox<Producto> fProducto = new ComboBox<>(FXCollections.observableArrayList(productos));
         fProducto.setMaxWidth(Double.MAX_VALUE);
@@ -82,10 +81,10 @@ public final class MovimientoDialogFactory {
         fTipo.setConverter(new javafx.util.StringConverter<>() {
             public String toString(TipoMovimiento t) {
                 return t == null ? "" : switch (t) {
-                    case ENTRADA       -> "⬆  Entrada (suma stock)";
-                    case SALIDA        -> "⬇  Salida (resta stock)";
-                    case AJUSTE        -> "⇄  Ajuste manual";
-                    case TRANSFERENCIA -> "→  Transferencia entre áreas";
+                    case ENTRADA       -> "Entrada (suma stock)";
+                    case SALIDA        -> "Salida (resta stock)";
+                    case AJUSTE        -> "Ajuste manual";
+                    case TRANSFERENCIA -> "Transferencia entre áreas";
                 };
             }
             public TipoMovimiento fromString(String s) { return null; }
@@ -144,7 +143,7 @@ public final class MovimientoDialogFactory {
         chipOrigen.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(chipOrigen, Priority.ALWAYS);
 
-        Label transferArrow = new Label("→");
+        FontIcon transferArrow = new FontIcon("mdi2a-arrow-right");
         transferArrow.getStyleClass().add("dlg-transfer-arrow");
 
         Label chipDestinoLbl = new Label();
@@ -271,7 +270,8 @@ public final class MovimientoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
-        Button btnRegistrar = new Button("✓  Registrar movimiento");
+        Button btnRegistrar = new Button("Registrar movimiento");
+        btnRegistrar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
         btnRegistrar.getStyleClass().add("form-submit-btn");
         btnRegistrar.setMaxWidth(Double.MAX_VALUE);
         btnRegistrar.setDisable(true);

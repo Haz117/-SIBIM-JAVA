@@ -67,6 +67,7 @@
     -fx-font-size: 13px;
     -fx-text-fill: #DDD6FE;
 }
+.feature-check-icon { -fx-icon-size: 14; -fx-icon-color: #6366F1; }
 .brand-divider .line { -fx-border-color: rgba(255,255,255,0.15); }
 .brand-hint {
     -fx-text-fill: #C4B5FD;
@@ -305,6 +306,13 @@
     -fx-translate-x: 0;
 }
 
+/* Nav FontIcon colors */
+.nav-icon { -fx-icon-size: 16; -fx-icon-color: #64748B; }
+.nav-btn:hover .nav-icon { -fx-icon-color: #6366F1; }
+.nav-btn-active .nav-icon { -fx-icon-color: #6366F1; }
+.logout-btn .nav-icon { -fx-icon-color: #94A3B8; }
+.logout-btn:hover .nav-icon { -fx-icon-color: #EF4444; }
+
 /* Protrusion overlay — kept in DOM but invisible; no longer needed. */
 .nav-tab-extension { -fx-background-color: transparent; }
 .nav-ear-top       { -fx-background-color: transparent; }
@@ -464,7 +472,7 @@
     -fx-max-width: 44; -fx-max-height: 44;
     -fx-background-radius: 999;
 }
-.stat-icon-badge .stat-icon { -fx-font-size: 19px; -fx-text-fill: white; -fx-padding: 0; }
+.stat-icon-badge .stat-icon { -fx-icon-size: 19; -fx-icon-color: white; -fx-padding: 0; }
 .stat-icon-badge-indigo      { -fx-background-color: #4F46E5; }
 .stat-icon-badge-teal        { -fx-background-color: #0891B2; }
 .stat-icon-badge-amber       { -fx-background-color: #D97706; }
@@ -680,6 +688,7 @@
     -fx-background-radius: 0 10 10 0;
     -fx-border-radius: 0 10 10 0;
     -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.15), 6, 0, 0, 1);
+    -fx-cursor: hand;
 }
 .alert-banner .label { -fx-text-fill: #78350F; -fx-font-weight: bold; }
 
@@ -749,6 +758,7 @@
     -fx-border-color: #6EE7B7;
     -fx-border-radius: 12;
     -fx-border-width: 1;
+    -fx-wrap-text: true;
 }
 
 /* Alert section modifiers */
@@ -814,7 +824,7 @@
     -fx-max-width: 44; -fx-max-height: 44;
     -fx-background-radius: 999;
 }
-.report-icon-badge .report-icon { -fx-font-size: 19px; -fx-text-fill: white; -fx-padding: 0; }
+.report-icon-badge .report-icon { -fx-icon-size: 19; -fx-icon-color: white; -fx-padding: 0; }
 .report-icon-badge-indigo { -fx-background-color: #6366F1; }
 .report-icon-badge-teal   { -fx-background-color: #0891B2; }
 .report-icon-badge-amber  { -fx-background-color: #D97706; }
@@ -1003,11 +1013,13 @@
    ═══════════════════════════════════════════════════════════════════ */
 .tooltip {
     -fx-background-color: #1E293B;
-    -fx-text-fill: #F8FAFC;
+    -fx-text-fill: #E2E8F0;
     -fx-background-radius: 7;
     -fx-font-size: 12px;
-    -fx-padding: 6 10;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.35), 14, 0, 0, 4);
+    -fx-padding: 6 11;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 8, 0, 0, 2);
+    -fx-border-color: transparent;
+    -fx-font-weight: normal;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1442,8 +1454,8 @@
     -fx-font-size: 9.5px;
     -fx-font-weight: bold;
     -fx-padding: 1.5 5;
-    -fx-min-width: 16;
-    -fx-min-height: 16;
+    -fx-min-width: 17; -fx-min-height: 17;
+    -fx-max-width: 28;
     -fx-alignment: CENTER;
     -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.55), 6, 0, 0, 1);
     -fx-translate-x: -10;
@@ -1721,12 +1733,6 @@
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   ALERT BANNER — pulsing border when alerts are present
-   ═══════════════════════════════════════════════════════════════════ */
-.alert-banner {
-    -fx-cursor: hand;
-}
 .alert-banner:hover {
     -fx-background-color: #FEF9C3;
     -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.25), 10, 0, 0, 2);
@@ -1794,10 +1800,10 @@
 }
 
 /* Small brand icon in banner */
-.banner-brand-icon { -fx-font-size: 11px; -fx-opacity: 0.65; }
+.banner-brand-icon { -fx-icon-size: 13; -fx-icon-color: white; -fx-opacity: 0.65; }
 
 /* Alert banner label styles */
-.alert-banner-icon { -fx-text-fill: #B45309; -fx-font-size: 15px; }
+.alert-banner-icon { -fx-icon-color: #B45309; -fx-icon-size: 15; }
 .alert-banner-cta  { -fx-text-fill: #B45309; -fx-font-weight: bold; -fx-font-size: 12px; }
 
 /* Health bar strip */
@@ -1810,21 +1816,28 @@
 .dot-violet { -fx-text-fill: #A78BFA; -fx-font-size: 10px; }
 
 /* Card-section icon (small, decorative) */
-.card-icon         { -fx-font-size: 15px; }
-.card-icon-indigo  { -fx-font-size: 15px; -fx-text-fill: #6366F1; }
+.card-icon         { -fx-icon-size: 15; -fx-icon-color: #64748B; }
+.card-icon-indigo  { -fx-icon-size: 15; -fx-icon-color: #6366F1; }
+
+/* Inline help / question-mark icon */
+.help-icon { -fx-icon-size: 13; -fx-icon-color: #94A3B8; -fx-cursor: hand; }
+/* Icon inside area-filter ComboBox cells */
+.area-filter-icon  { -fx-icon-size: 13; -fx-icon-color: #6366F1; }
+.combo-cell-label  { -fx-font-size: 12px; }
 
 /* Quick-action icon (large emoji in banner buttons) */
-.qa-icon { -fx-font-size: 22px; -fx-text-fill: white; }
+.qa-icon { -fx-icon-size: 22; -fx-icon-color: white; }
 
 /* Banner internal separators */
 .banner-sep    { -fx-opacity: 0.18; }
 .banner-sep-v  { -fx-opacity: 0.18; }
 
 /* Alert section header icons and subtitles */
-.alert-section-icon       { -fx-font-size: 18px; }
-.alert-section-icon-white { -fx-font-size: 18px; -fx-text-fill: white; }
+.alert-section-icon       { -fx-icon-size: 18; -fx-icon-color: white; }
+.alert-section-icon-white { -fx-icon-size: 18; -fx-icon-color: white; }
 .alert-section-subtitle   { -fx-text-fill: rgba(255,255,255,0.70); -fx-font-size: 10.5px; }
-.alert-ok-icon            { -fx-font-size: 22px; }
+.alert-ok-icon            { -fx-icon-size: 22; -fx-icon-color: #16a34a; }
+.btn-icon                 { -fx-icon-size: 14; }
 
 /* Recent activity table rounded corners */
 .recent-table {
@@ -1837,11 +1850,11 @@
 .pagination-lbl { -fx-font-size: 12px; -fx-text-fill: #475569; }
 
 /* Empty-state large icon (placeholder inside tables) */
-.empty-icon-lg { -fx-font-size: 52px; -fx-opacity: 0.50; }
+.empty-icon-lg { -fx-icon-size: 64; -fx-opacity: 0.45; }
 
 /* Pie chart empty state overlay */
 .pie-empty-state { -fx-min-height: 140; }
-.pie-empty-icon  { -fx-font-size: 32px; -fx-opacity: 0.30; }
+.pie-empty-icon  { -fx-icon-size: 32; -fx-icon-color: #94A3B8; -fx-opacity: 0.50; }
 
 /* Small secondary button variant */
 .btn-sm { -fx-font-size: 11.5px; -fx-padding: 4 12; }
@@ -1883,8 +1896,8 @@
     -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.40), 8, 0, 0, 2);
 }
 /* Icon label inside the badge */
-.page-icon-emoji  { -fx-font-size: 20px; }
-.page-icon-symbol { -fx-font-size: 22px; -fx-text-fill: white; -fx-font-weight: bold; }
+.page-icon-emoji  { -fx-font-size: 20px; -fx-icon-size: 22; -fx-icon-color: white; }
+.page-icon-symbol { -fx-icon-size: 22; -fx-icon-color: white; }
 
 /* ═══════════════════════════════════════════════════════════════════
    REPORT CARD tag color variants
@@ -1899,7 +1912,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 /* Decorative badge (org icon in top-right of profile header) */
 .profile-deco-badge { -fx-opacity: 0.55; }
-.profile-deco-icon  { -fx-font-size: 32px; }
+.profile-deco-icon  { -fx-font-size: 32px; -fx-icon-size: 28; -fx-icon-color: white; }
 .profile-deco-name  { -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; }
 .profile-deco-sub   { -fx-text-fill: white; -fx-font-size: 9px; }
 
@@ -1929,7 +1942,7 @@
 .report-hint { -fx-font-size: 11px; -fx-text-fill: #64748B; }
 
 /* Medium card icon (calendar, etc.) */
-.card-icon-lg { -fx-font-size: 17px; }
+.card-icon-lg { -fx-icon-size: 17; }
 
 /* Section accent bar in green variant (reportes page) */
 .dash-section-bar-green {
@@ -1974,7 +1987,7 @@
 .dlg-transfer-chip-to  { -fx-border-color: #A78BFA; }
 .dlg-transfer-chip-lbl { -fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #4C1D95; }
 .dlg-transfer-chip-empty-lbl { -fx-font-size: 12px; -fx-font-style: italic; -fx-text-fill: #9CA3AF; }
-.dlg-transfer-arrow    { -fx-font-size: 20px; -fx-text-fill: #A78BFA; -fx-font-weight: bold; }
+.dlg-transfer-arrow    { -fx-icon-size: 20; -fx-icon-color: #A78BFA; }
 
 /* Product detail dialog header card */
 .dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
@@ -2125,6 +2138,11 @@
 /* ═══════════════════════════════════════════════════════════════════
    MOVIMIENTO DETAIL DIALOG — value labels
    ═══════════════════════════════════════════════════════════════════ */
+.dlg-detail-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #64748B;
+}
 .dlg-detail-value {
     -fx-font-size: 12.5px;
     -fx-text-fill: #1E293B;
@@ -2143,11 +2161,11 @@
 
 /* Circular icon badge — the color lives here now, not on the whole card */
 .rich-stat-icon-badge {
-    -fx-min-width: 30; -fx-min-height: 30;
-    -fx-max-width: 30; -fx-max-height: 30;
+    -fx-min-width: 36; -fx-min-height: 36;
+    -fx-max-width: 36; -fx-max-height: 36;
     -fx-background-radius: 999;
 }
-.rich-stat-icon-badge .rich-stat-icon { -fx-font-size: 13px; -fx-text-fill: white; -fx-opacity: 1; -fx-padding: 0; }
+.rich-stat-icon-badge .rich-stat-icon { -fx-icon-size: 17; -fx-icon-color: white; -fx-opacity: 1; -fx-padding: 0; }
 .rich-stat-icon-badge-indigo { -fx-background-color: #5253E5; }
 .rich-stat-icon-badge-teal   { -fx-background-color: #0891B2; }
 .rich-stat-icon-badge-amber  { -fx-background-color: #D97706; }
@@ -2181,7 +2199,7 @@
 .sys-info-value   { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1E293B; }
 .sys-info-ok      { -fx-text-fill: #16A34A; }
 .sys-info-demo    { -fx-text-fill: #D97706; }
-.rich-stat-icon  { -fx-font-size: 15px; }
+.rich-stat-icon  { -fx-icon-size: 15; }
 
 /* ═══════════════════════════════════════════════════════════════════
    TABLE SORT ARROWS  — make them visible on purple gradient header
@@ -2280,14 +2298,6 @@
 .report-card-green:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.32), 22, 0, 0, 6); }
 
 /* ═══════════════════════════════════════════════════════════════════
-   EMPTY STATE ICON (large)
-   ═══════════════════════════════════════════════════════════════════ */
-.empty-icon-lg {
-    -fx-font-size: 64px;
-    -fx-opacity: 0.45;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
    CONFIRMATION DIALOG (ConfirmacionUtil)
    ═══════════════════════════════════════════════════════════════════ */
 .confirm-pane { -fx-background-color: white; }
@@ -2344,7 +2354,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    DIALOG GRADIENT HEADER (DialogUtil.gradientHeader)
    ═══════════════════════════════════════════════════════════════════ */
-.dlg-header-icon-lbl  { -fx-font-size: 22px; }
+.dlg-header-icon  { -fx-icon-size: 22; -fx-icon-color: white; }
 .dlg-header-icon-badge {
     -fx-background-color: rgba(255,255,255,0.20);
     -fx-background-radius: 12;
@@ -2416,6 +2426,7 @@
 }
 .dialog-ok-btn:hover        { -fx-background-color: #4F46E5; }
 .dialog-ok-btn:pressed      { -fx-background-color: #4338CA; -fx-translate-y: 1; }
+.dialog-ok-btn:disabled     { -fx-background-color: #A5B4FC; -fx-text-fill: #E0E7FF; -fx-opacity: 1; -fx-cursor: default; }
 .dialog-ok-btn-danger       { -fx-background-color: #EF4444; }
 .dialog-ok-btn-danger:hover { -fx-background-color: #DC2626; }
 
@@ -2562,19 +2573,6 @@
     -fx-font-family: 'Segoe UI';
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   TOOLTIP — dark modern style (overrides default)
-   ═══════════════════════════════════════════════════════════════════ */
-.tooltip {
-    -fx-background-color: #1E293B;
-    -fx-text-fill: #E2E8F0;
-    -fx-font-size: 12px;
-    -fx-background-radius: 7;
-    -fx-padding: 6 11;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 8, 0, 0, 2);
-    -fx-border-color: transparent;
-    -fx-font-weight: normal;
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    PROGRESS INDICATOR — brand-colored spinner
@@ -2605,22 +2603,6 @@
     -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #E2E8F0, #F1F5F9, #E2E8F0);
     -fx-background-radius: 6;
     -fx-opacity: 0.75;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   NAV ACTIVE BADGE — alert count indicator refinements
-   ═══════════════════════════════════════════════════════════════════ */
-.alert-nav-badge {
-    -fx-background-color: #EF4444;
-    -fx-text-fill: white;
-    -fx-background-radius: 99;
-    -fx-font-size: 9.5px;
-    -fx-font-weight: bold;
-    -fx-padding: 1.5 5;
-    -fx-min-width: 17; -fx-min-height: 17;
-    -fx-max-width: 28;
-    -fx-alignment: CENTER;
-    -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.55), 6, 0, 0, 0);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2796,9 +2778,6 @@
 .filter-chip-purple:selected:hover { -fx-background-color: #6D28D9; -fx-text-fill: white; -fx-border-color: #6D28D9; }
 .filter-chip-teal:selected:hover   { -fx-background-color: #0E7490; -fx-text-fill: white; -fx-border-color: #0E7490; }
 .filter-chip:selected:hover        { -fx-background-color: #4F46E5; -fx-text-fill: white; -fx-border-color: #4F46E5; }
-
-/* ── No-alerts message wrapText support ──────────────────────────────── */
-.no-alerts { -fx-wrap-text: true; }
 
 /* ── Rich stat card alert-active hover — use amber glow ─────────────── */
 .rich-stat-card-alert-active:hover {

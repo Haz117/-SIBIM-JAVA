@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.model.Producto;
+import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
@@ -134,14 +135,16 @@ public class AlertasController {
 
         // Context menu for tableAgotados
         ContextMenu cmAg = new ContextMenu();
-        MenuItem miAgReponer = new MenuItem("⬆  Registrar Entrada");
+        MenuItem miAgReponer = new MenuItem("Registrar Entrada");
+        miAgReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
         miAgReponer.setOnAction(e -> onReponerAgotado());
         cmAg.getItems().add(miAgReponer);
         tableAgotados.setContextMenu(cmAg);
 
         // Context menu for tableBajoStock
         ContextMenu cmBs = new ContextMenu();
-        MenuItem miBsReponer = new MenuItem("⬆  Registrar Entrada");
+        MenuItem miBsReponer = new MenuItem("Registrar Entrada");
+        miBsReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
         miBsReponer.setOnAction(e -> onSolicitarBajoStock());
         cmBs.getItems().add(miBsReponer);
         tableBajoStock.setContextMenu(cmBs);
@@ -218,7 +221,9 @@ public class AlertasController {
 
     private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias) {}
 
-    private void loadData() {
+    private void loadData() { loadData(false); }
+
+    private void loadData(boolean showToast) {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         DialogUtil.runAsync(
             () -> new AlertasData(
@@ -236,6 +241,8 @@ public class AlertasController {
                 if (lblActualizado != null)
                     lblActualizado.setText("Actualizado " +
                         java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
+                if (showToast && tableAgotados.getScene() != null)
+                    NotificacionUtil.info(tableAgotados.getScene(), "Alertas actualizadas");
             },
             e -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
@@ -286,11 +293,7 @@ public class AlertasController {
         if (searchField != null) { searchField.clear(); searchField.requestFocus(); }
     }
 
-    @FXML private void onRefresh() {
-        loadData();
-        if (tableAgotados.getScene() != null)
-            NotificacionUtil.info(tableAgotados.getScene(), "Alertas actualizadas");
-    }
+    @FXML private void onRefresh() { loadData(true); }
 
     @FXML
     private void onReponerTodosAgotados() {
@@ -344,13 +347,14 @@ public class AlertasController {
 
     private void showProductoInfo(Producto p, boolean agotado) {
         Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dlg.getDialogPane().setPrefWidth(420);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         String color1 = agotado ? "#DC2626" : "#D97706";
         String color2 = agotado ? "#B91C1C" : "#B45309";
-        String icon   = agotado ? "🚫" : "⚠";
+        String icon   = agotado ? "mdi2a-alert-octagon-outline" : "mdi2a-alert-circle-outline";
         String sub    = agotado ? "Stock agotado — requiere reposición inmediata"
                                 : "Stock actual por debajo del mínimo establecido";
 

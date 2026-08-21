@@ -10,6 +10,7 @@ import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
+import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -38,10 +39,7 @@ public class OrganigramaController {
     private final ProductoRepository productoRepo = new ProductoRepository();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
 
-    @FXML private void onRefresh() {
-        loadData();
-        NotificacionUtil.info(searchField.getScene(), "Organigrama actualizado");
-    }
+    @FXML private void onRefresh() { loadData(true); }
 
     @FXML
     public void initialize() {
@@ -50,13 +48,13 @@ public class OrganigramaController {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
-        loadData();
+        loadData(false);
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardAreas, statCardBienes, statCardTop), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
-    private void loadData() {
+    private void loadData(boolean showSuccessToast) {
         spinner.setVisible(true); spinner.setManaged(true);
         DialogUtil.runAsync(
             () -> productoRepo.findAll().stream().collect(Collectors.groupingBy(Producto::getArea)),
@@ -65,6 +63,8 @@ public class OrganigramaController {
                 spinner.setVisible(false); spinner.setManaged(false);
                 buildTree(searchField.getText() != null ? searchField.getText() : "");
                 updateStats();
+                if (showSuccessToast)
+                    NotificacionUtil.info(searchField.getScene(), "Organigrama actualizado");
             },
             e -> {
                 spinner.setVisible(false); spinner.setManaged(false);
@@ -123,7 +123,8 @@ public class OrganigramaController {
             VBox empty = new VBox(6);
             empty.setAlignment(Pos.CENTER);
             empty.setPadding(new Insets(40, 0, 40, 0));
-            Label icon = new Label("🏛");
+            FontIcon icon = new FontIcon("mdi2o-office-building-outline");
+            icon.setIconSize(18);
             icon.getStyleClass().add("empty-icon-lg");
             Label msg = new Label(q.isBlank() ? "No hay áreas para mostrar" : "No se encontraron áreas para \"" + filter + "\"");
             msg.getStyleClass().add("empty-state-msg");
@@ -177,7 +178,8 @@ public class OrganigramaController {
         // Icon badge (secretaría-level)
         StackPane iconBadge = new StackPane();
         iconBadge.getStyleClass().add("org-section-icon-badge");
-        Label iconLbl = new Label("🏛");
+        FontIcon iconLbl = new FontIcon("mdi2o-office-building-outline");
+        iconLbl.setIconSize(18);
         iconLbl.getStyleClass().add("org-section-icon");
         iconBadge.getChildren().add(iconLbl);
 
@@ -207,7 +209,11 @@ public class OrganigramaController {
             .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
             .count();
         if (alertasArea > 0) {
-            Label alertDot = new Label("⚠ " + alertasArea);
+            FontIcon alertIcon = new FontIcon("mdi2a-alert-circle");
+            alertIcon.setIconSize(12);
+            Label alertDot = new Label(" " + alertasArea);
+            alertDot.setGraphic(alertIcon);
+            alertDot.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
             alertDot.getStyleClass().add("org-alert-badge");
             Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) agotado(s) o bajo stock en esta área"));
             header.getChildren().add(alertDot);
@@ -256,7 +262,8 @@ public class OrganigramaController {
             childHeader.setAlignment(Pos.CENTER_LEFT);
             childHeader.setPadding(new Insets(9, 12, 9, 12));
 
-            Label dirIcon = new Label("📁");
+            FontIcon dirIcon = new FontIcon("mdi2f-folder-outline");
+            dirIcon.setIconSize(14);
             dirIcon.getStyleClass().add("org-dir-icon");
             Label childName = new Label(child);
             childName.getStyleClass().add("org-child-label");
@@ -276,7 +283,11 @@ public class OrganigramaController {
                 .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
                 .count();
             if (alertasChild > 0) {
-                Label alertDot = new Label("⚠ " + alertasChild);
+                FontIcon alertIcon = new FontIcon("mdi2a-alert-circle");
+                alertIcon.setIconSize(12);
+                Label alertDot = new Label(" " + alertasChild);
+                alertDot.setGraphic(alertIcon);
+                alertDot.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
                 alertDot.getStyleClass().add("org-alert-badge");
                 Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) agotado(s) o bajo stock en " + child));
                 childHeader.getChildren().add(alertDot);
@@ -362,6 +373,7 @@ public class OrganigramaController {
     private void showAreaProductsDialog(String areaName, List<Producto> prods) {
         ButtonType btnVerInventario = new ButtonType("Ver en Inventario →", ButtonBar.ButtonData.OTHER);
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().addAll(btnVerInventario, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(580);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
@@ -377,7 +389,7 @@ public class OrganigramaController {
             });
         }
 
-        HBox header = DialogUtil.gradientHeader("📁", areaName,
+        HBox header = DialogUtil.gradientHeader("mdi2f-folder-outline", areaName,
             prods.size() + (prods.size() == 1 ? " bien registrado en esta área" : " bienes registrados en esta área"),
             "#4338CA", "#6D28D9");
 

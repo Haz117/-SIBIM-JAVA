@@ -1,11 +1,14 @@
 package com.sibim.util;
 
+import com.sibim.MainApp;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.Modality;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import javafx.util.Callback;
 
@@ -50,6 +53,8 @@ public final class DialogUtil {
     /** Create a dialog with CSS applied and OK+Cancel buttons. */
     public static <T> Dialog<T> create(double prefWidth) {
         Dialog<T> dialog = new Dialog<>();
+        if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
+        dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialog.getDialogPane().setPrefWidth(prefWidth);
         applyStylesheet(dialog.getDialogPane());
@@ -59,10 +64,18 @@ public final class DialogUtil {
     /** Create a button-type dialog (used when result is just OK/Cancel, not a typed value). */
     public static Dialog<ButtonType> createButtonDialog(double prefWidth) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
+        dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialog.getDialogPane().setPrefWidth(prefWidth);
         applyStylesheet(dialog.getDialogPane());
         return dialog;
+    }
+
+    /** Set owner + APPLICATION_MODAL on any dialog not created via create()/createButtonDialog(). */
+    public static void applyOwner(Dialog<?> d) {
+        if (MainApp.getPrimaryStage() != null) d.initOwner(MainApp.getPrimaryStage());
+        d.initModality(Modality.APPLICATION_MODAL);
     }
 
     /** Apply the app stylesheet to any dialog pane. */
@@ -73,12 +86,22 @@ public final class DialogUtil {
 
     // ── OK button ────────────────────────────────────────────────────────
 
-    /** Color the default OK button with the given hex color. */
+    /** Color the default OK button with the given hex color.
+     *  Uses a disabledProperty listener + inline styles so the button stays
+     *  visible regardless of Modena's opacity:0.4 rule for :disabled buttons. */
     public static void styleOkButton(DialogPane pane, String hexColor) {
         Node btn = pane.lookupButton(ButtonType.OK);
         if (btn == null) return;
         btn.getStyleClass().add("dialog-ok-btn");
-        btn.setStyle("-fx-background-color: " + hexColor + ";");
+        String on  = "-fx-background-color:" + hexColor + ";-fx-text-fill:white;"
+                   + "-fx-font-weight:bold;-fx-padding:8 22;-fx-background-radius:8;"
+                   + "-fx-opacity:1;-fx-cursor:hand;";
+        String off = "-fx-background-color:#DDE3EF;-fx-text-fill:#8896AA;"
+                   + "-fx-font-weight:bold;-fx-padding:8 22;-fx-background-radius:8;"
+                   + "-fx-opacity:1;-fx-cursor:default;";
+        Runnable sync = () -> btn.setStyle(btn.isDisabled() ? off : on);
+        sync.run();
+        btn.disabledProperty().addListener((obs, o, n) -> sync.run());
     }
 
     /** Return the OK button node, or null if not found. */
@@ -91,10 +114,11 @@ public final class DialogUtil {
     /** Build the standard gradient header used in all app dialogs. */
     public static HBox gradientHeader(String icon, String title, String subtitle,
                                       String color1, String color2) {
-        Label iconLbl = new Label(icon);
-        iconLbl.getStyleClass().add("dlg-header-icon-lbl");
+        FontIcon iconNode = new FontIcon(icon);
+        iconNode.setIconSize(22);
+        iconNode.getStyleClass().add("dlg-header-icon");
 
-        StackPane badge = new StackPane(iconLbl);
+        StackPane badge = new StackPane(iconNode);
         badge.getStyleClass().add("dlg-header-icon-badge");
 
         Label titleLbl = new Label(title);

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Builds a self-contained Windows app-image (or installer) for SIBIM Desktop.
@@ -144,3 +144,4 @@ if ($ZipOutput -or $Type -eq "app-image") {
 
 Write-Host "`nDone. Output: $Out"
 Write-Host "  To distribute: share the .zip or run .\build-installer.ps1 -Type exe (needs WiX 3.x)"
+ 

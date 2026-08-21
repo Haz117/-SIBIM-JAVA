@@ -78,8 +78,8 @@ public class MovimientoService {
             throw new ValidationException("No tienes acceso a esa area");
 
         if (tipo == TipoMovimiento.AJUSTE) {
-            if (cantidad < 0)
-                throw new ValidationException("El ajuste no puede ser negativo");
+            if (cantidad <= 0)
+                throw new ValidationException("El ajuste debe ser mayor a cero");
         } else {
             if (cantidad <= 0)
                 throw new ValidationException("La cantidad debe ser mayor a cero");

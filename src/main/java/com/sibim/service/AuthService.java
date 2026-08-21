@@ -9,11 +9,16 @@ import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UsuarioRepository usuarioRepo = new UsuarioRepository();
     private final AuditLogRepository auditRepo = new AuditLogRepository();
@@ -80,9 +85,7 @@ public class AuthService {
                 try {
                     OfflineStore.cacheUser(user);
                 } catch (SQLException ex) {
-                    // Non-fatal: worst case this user can't log in offline
-                    // later if this specific write failed; the real login
-                    // that's actually happening right now still succeeds.
+                    log.warn("No se pudo cachear usuario '{}' para modo offline: {}", user.getUsername(), ex.getMessage());
                 }
             }
             if (!credencialesOk) {

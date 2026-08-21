@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sibim.controller.ReportesController"
@@ -12,7 +13,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-emerald">
         <StackPane styleClass="page-header-icon page-header-icon-emerald">
-            <Label text="📄" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Reportes y Exportaciones" styleClass="page-title"/>
@@ -25,7 +26,7 @@
     <VBox fx:id="periodCard" styleClass="card" spacing="12">
         <padding><Insets top="18" right="22" bottom="18" left="22"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="10">
-            <Label text="📅" styleClass="card-icon-lg"/>
+            <FontIcon iconLiteral="mdi2c-calendar-month" styleClass="card-icon-lg"/>
             <Label text="Período del reporte" styleClass="card-title" HBox.hgrow="ALWAYS"/>
             <Label text="Opcional — deja vacío para incluir todos los registros"
                    styleClass="report-hint"/>
@@ -78,7 +79,7 @@
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <StackPane styleClass="report-icon-badge, report-icon-badge-indigo">
-                    <Label text="📦" styleClass="report-icon"/>
+                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="report-icon"/>
                 </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Inventario General" styleClass="report-title"/>
@@ -89,10 +90,14 @@
             <Label text="Listado completo de todos los bienes patrimoniales con existencias, valor unitario y estado actual."
                    styleClass="report-desc" wrapText="true"/>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="📄 PDF"   onAction="#onInventarioPdf"   styleClass="btn-pdf">
+                <Button text="PDF" onAction="#onInventarioPdf" styleClass="btn-pdf"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar inventario completo en PDF"/></tooltip>
                 </Button>
-                <Button text="📊 Excel" onAction="#onInventarioExcel" styleClass="btn-excel">
+                <Button text="Excel" onAction="#onInventarioExcel" styleClass="btn-excel"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar inventario completo en Excel (.xlsx)"/></tooltip>
                 </Button>
                 <Button text="CSV"      onAction="#onInventarioCsv"   styleClass="btn-csv">
@@ -107,7 +112,7 @@
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <StackPane styleClass="report-icon-badge, report-icon-badge-teal">
-                    <Label text="↕" styleClass="report-icon"/>
+                    <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="report-icon"/>
                 </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Registro de Movimientos" styleClass="report-title"/>
@@ -118,10 +123,14 @@
             <Label text="Historial de entradas, salidas, ajustes y transferencias en el período seleccionado."
                    styleClass="report-desc" wrapText="true"/>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="📄 PDF"   onAction="#onMovimientosPdf"   styleClass="btn-pdf">
+                <Button text="PDF" onAction="#onMovimientosPdf" styleClass="btn-pdf"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar movimientos del período en PDF"/></tooltip>
                 </Button>
-                <Button text="📊 Excel" onAction="#onMovimientosExcel" styleClass="btn-excel">
+                <Button text="Excel" onAction="#onMovimientosExcel" styleClass="btn-excel"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar movimientos del período en Excel (.xlsx)"/></tooltip>
                 </Button>
                 <Button text="CSV"      onAction="#onMovimientosCsv"   styleClass="btn-csv">
@@ -136,7 +145,7 @@
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <StackPane styleClass="report-icon-badge, report-icon-badge-amber">
-                    <Label text="⚠" styleClass="report-icon"/>
+                    <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="report-icon"/>
                 </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Alertas de Stock" styleClass="report-title"/>
@@ -147,10 +156,14 @@
             <Label text="Bienes agotados, con existencias bajas y garantías próximas a vencer — para gestión inmediata."
                    styleClass="report-desc" wrapText="true"/>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="📄 PDF"   onAction="#onAlertasPdf"   styleClass="btn-pdf">
+                <Button text="PDF" onAction="#onAlertasPdf" styleClass="btn-pdf"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar alertas de stock en PDF"/></tooltip>
                 </Button>
-                <Button text="📊 Excel" onAction="#onAlertasExcel" styleClass="btn-excel">
+                <Button text="Excel" onAction="#onAlertasExcel" styleClass="btn-excel"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar bienes con alertas activas a Excel"/></tooltip>
                 </Button>
                 <Button text="CSV"      onAction="#onAlertasCsv"   styleClass="btn-csv">
@@ -165,7 +178,7 @@
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <StackPane styleClass="report-icon-badge, report-icon-badge-green">
-                    <Label text="🏛" styleClass="report-icon"/>
+                    <FontIcon iconLiteral="mdi2s-sitemap" styleClass="report-icon"/>
                 </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Distribución por Área" styleClass="report-title"/>
@@ -176,10 +189,14 @@
             <Label text="Bienes patrimoniales agrupados por secretaría y dirección municipal del Ayuntamiento de Ixmiquilpan."
                    styleClass="report-desc" wrapText="true"/>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="📄 PDF"   onAction="#onDistribucionPdf"   styleClass="btn-pdf">
+                <Button text="PDF" onAction="#onDistribucionPdf" styleClass="btn-pdf"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar distribución por área en PDF"/></tooltip>
                 </Button>
-                <Button text="📊 Excel" onAction="#onDistribucionExcel" styleClass="btn-excel">
+                <Button text="Excel" onAction="#onDistribucionExcel" styleClass="btn-excel"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Exportar distribución de bienes por área a Excel"/></tooltip>
                 </Button>
                 <Button text="CSV"   onAction="#onDistribucionCsv"   styleClass="btn-csv">

@@ -7,6 +7,8 @@ import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.ContentDisplay;
+import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -161,11 +163,12 @@ public class ReportesController {
 
     private void showExportDialog(java.io.File file) {
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(460);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("✓", "Reporte generado",
+        HBox header = DialogUtil.gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
             "El archivo fue exportado exitosamente.", "#047857", "#065F46");
 
         String name  = file.getName();
@@ -175,8 +178,9 @@ public class ReportesController {
             : bytes < 1024 * 1024 ? (bytes / 1024) + " KB"
             : String.format("%.1f MB", bytes / (1024.0 * 1024));
 
-        Label iconLbl  = new Label("PDF".equals(ext) ? "📄" : "XLSX".equals(ext) ? "📊" : "📋");
-        iconLbl.setStyle("-fx-font-size: 26px;");
+        FontIcon iconLbl = new FontIcon("PDF".equals(ext) ? "mdi2f-file-pdf-box"
+            : "XLSX".equals(ext) ? "mdi2f-file-excel-outline" : "mdi2f-file-delimited-outline");
+        iconLbl.setIconSize(22);
         Label nameLbl  = new Label(name);
         nameLbl.getStyleClass().add("dlg-detail-value");
         nameLbl.setWrapText(true);
@@ -191,10 +195,18 @@ public class ReportesController {
         fileCard.setPadding(new javafx.geometry.Insets(14, 18, 14, 18));
         fileCard.getStyleClass().add("dlg-detail-header");
 
-        Button btnAbrir   = new Button("📂  Abrir");
-        Button btnCarpeta = new Button("🗁  Carpeta");
-        Button btnCopiar  = new Button("⎘  Copiar ruta");
-        Button btnImpr    = new Button("🖨  Imprimir");
+        Button btnAbrir   = new Button("Abrir");
+        Button btnCarpeta = new Button("Carpeta");
+        Button btnCopiar  = new Button("Copiar ruta");
+        Button btnImpr    = new Button("Imprimir");
+        btnAbrir.setGraphic(new FontIcon("mdi2f-folder-open-outline"));
+        btnCarpeta.setGraphic(new FontIcon("mdi2f-folder-outline"));
+        btnCopiar.setGraphic(new FontIcon("mdi2c-content-copy"));
+        btnImpr.setGraphic(new FontIcon("mdi2p-printer"));
+        btnAbrir.setContentDisplay(ContentDisplay.LEFT);
+        btnCarpeta.setContentDisplay(ContentDisplay.LEFT);
+        btnCopiar.setContentDisplay(ContentDisplay.LEFT);
+        btnImpr.setContentDisplay(ContentDisplay.LEFT);
         btnAbrir.getStyleClass().add("btn-primary");
         btnCarpeta.getStyleClass().add("btn-secondary");
         btnCopiar.getStyleClass().add("btn-secondary");

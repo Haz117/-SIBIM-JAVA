@@ -17,6 +17,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,11 +50,12 @@ public final class ConteoFisicoDialog {
 
     public static void show(List<Producto> productos, MovimientoService movimientoService, Runnable onReconciled) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(640);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("📋", "Conteo Físico de Inventario",
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
             "Captura lo contado y compáralo contra el sistema — " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
             "#0891B2", "#0E7490");
 
@@ -116,7 +118,8 @@ public final class ConteoFisicoDialog {
         summary.getStyleClass().add("muted-sm");
         summary.setWrapText(true);
 
-        Button btnFinalizar = new Button("✓  Finalizar conteo");
+        Button btnFinalizar = new Button("Finalizar conteo");
+        btnFinalizar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
         btnFinalizar.getStyleClass().add("btn-primary");
         btnFinalizar.setDisable(productos.isEmpty());
         HBox actions = new HBox(10, summary, btnFinalizar);
@@ -134,7 +137,8 @@ public final class ConteoFisicoDialog {
                 return;
 
             btnFinalizar.setDisable(true);
-            btnFinalizar.setText("⏳  Guardando...");
+            btnFinalizar.setText("Guardando...");
+            btnFinalizar.setGraphic(new FontIcon("mdi2l-loading"));
             // Freeze every row so the background save loop below never has
             // to read a live Spinner from a non-FX thread, and so what the
             // user sees on screen while the save is running can't drift

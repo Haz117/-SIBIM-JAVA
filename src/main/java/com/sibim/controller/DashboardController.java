@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
+import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Producto;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
@@ -360,7 +361,7 @@ public class DashboardController {
     @FXML
     private void onVerAgotados() {
         if (lastAgotados.isEmpty()) { navigarA("Alertas"); return; }
-        showProductosMiniPanel("Bienes Agotados", "🚫",
+        showProductosMiniPanel("Bienes Agotados", "mdi2a-alert-octagon-outline",
             "Stock = 0 · " + lastAgotados.size() + " bienes requieren reposición",
             "#DC2626", "#B91C1C", lastAgotados);
     }
@@ -368,7 +369,7 @@ public class DashboardController {
     @FXML
     private void onVerBajoStock() {
         if (lastBajoStock.isEmpty()) { navigarA("Alertas"); return; }
-        showProductosMiniPanel("Existencias Bajas", "⚠",
+        showProductosMiniPanel("Existencias Bajas", "mdi2a-alert-circle-outline",
             "Por debajo del mínimo · " + lastBajoStock.size() + " bienes",
             "#D97706", "#B45309", lastBajoStock);
     }
@@ -380,6 +381,7 @@ public class DashboardController {
 
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.initOwner(scene.getWindow());
+        dlg.initModality(javafx.stage.Modality.APPLICATION_MODAL);
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
         dlg.getDialogPane().setPrefWidth(500);
         com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
@@ -509,11 +511,12 @@ public class DashboardController {
     private void showMovimientoDetalle(Movimiento m) {
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.initOwner(tablaReciente.getScene().getWindow());
+        dlg.initModality(javafx.stage.Modality.APPLICATION_MODAL);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dlg.getDialogPane().setPrefWidth(440);
         com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
 
-        String icon  = switch (m.getTipo()) { case ENTRADA -> "⬆"; case SALIDA -> "⬇"; case AJUSTE -> "⇄"; default -> "→"; };
+        String icon  = switch (m.getTipo()) { case ENTRADA -> "mdi2a-arrow-up-bold-circle-outline"; case SALIDA -> "mdi2a-arrow-down-bold-circle-outline"; case AJUSTE -> "mdi2s-swap-horizontal"; default -> "mdi2a-arrow-right-bold-circle-outline"; };
         String color = switch (m.getTipo()) { case ENTRADA -> "#059669"; case SALIDA -> "#DC2626"; case AJUSTE -> "#D97706"; default -> "#2563EB"; };
         String color2= switch (m.getTipo()) { case ENTRADA -> "#047857"; case SALIDA -> "#B91C1C"; case AJUSTE -> "#B45309"; default -> "#1D4ED8"; };
 

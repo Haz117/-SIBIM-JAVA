@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sibim.controller.AlertasController"
@@ -12,7 +13,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-danger">
         <StackPane styleClass="page-header-icon page-header-icon-danger">
-            <Label text="⚠" styleClass="page-icon-symbol"/>
+            <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Alertas de Inventario" styleClass="page-title"/>
@@ -20,7 +21,9 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
                            visible="false" managed="false"/>
-        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recalcular alertas (auto-refresca cada 5 min)"/></tooltip>
         </Button>
     </HBox>
@@ -32,8 +35,9 @@
                        styleClass="search-field" maxWidth="Infinity">
                 <tooltip><Tooltip text="Filtrar las alertas por nombre o código del bien"/></tooltip>
             </TextField>
-            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+            <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch">
+                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
@@ -42,14 +46,16 @@
 
     <!-- ══ SIN ALERTAS (condicional) ════════════════════════════════ -->
     <Label fx:id="lblSinAlertas"
-           text="✅  Todo en orden — No hay alertas activas en este momento."
-           styleClass="no-alerts" visible="false" managed="false" maxWidth="Infinity"/>
+           text="Todo en orden — No hay alertas activas en este momento."
+           styleClass="no-alerts" visible="false" managed="false" maxWidth="Infinity">
+        <graphic><FontIcon iconLiteral="mdi2c-check-circle-outline"/></graphic>
+    </Label>
 
     <!-- ══ BIENES AGOTADOS ═══════════════════════════════════════════ -->
     <VBox fx:id="sectionAgotados" styleClass="alert-section alert-danger" spacing="0">
         <!-- Header gradiente -->
         <HBox styleClass="alert-header-danger" alignment="CENTER_LEFT" spacing="12">
-            <Label text="🚫" styleClass="alert-section-icon"/>
+            <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Bienes Agotados" styleClass="alert-section-title-inv"/>
                 <Label text="Stock = 0 · Requieren reposición inmediata"
@@ -68,7 +74,7 @@
                 </columns>
                 <placeholder>
                     <VBox alignment="CENTER" spacing="4">
-                        <Label text="✅" styleClass="alert-ok-icon"/>
+                        <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="alert-ok-icon"/>
                         <Label text="Sin bienes agotados" styleClass="empty-state-msg"/>
                     </VBox>
                 </placeholder>
@@ -76,10 +82,14 @@
             <HBox alignment="CENTER_RIGHT" spacing="8">
                 <Label text="Selecciona un bien y registra la reposición de stock"
                        styleClass="muted" HBox.hgrow="ALWAYS"/>
-                <Button fx:id="btnReponerTodos" text="📥 Reponer siguiente" onAction="#onReponerTodosAgotados" styleClass="btn-secondary">
+                <Button fx:id="btnReponerTodos" text="Reponer siguiente" onAction="#onReponerTodosAgotados" styleClass="btn-secondary"
+                        contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Abre el formulario de entrada para el primer bien agotado pendiente"/></tooltip>
                 </Button>
-                <Button fx:id="btnReponerAgotado" text="⬆ Reponer seleccionado" onAction="#onReponerAgotado" styleClass="btn-primary" disable="true">
+                <Button fx:id="btnReponerAgotado" text="Reponer seleccionado" onAction="#onReponerAgotado" styleClass="btn-primary" disable="true"
+                        contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado"/></tooltip>
                 </Button>
             </HBox>
@@ -89,7 +99,7 @@
     <!-- ══ EXISTENCIAS BAJAS ══════════════════════════════════════════ -->
     <VBox fx:id="sectionBajoStock" styleClass="alert-section alert-warning" spacing="0">
         <HBox styleClass="alert-header-warning" alignment="CENTER_LEFT" spacing="12">
-            <Label text="⚠" styleClass="alert-section-icon-white"/>
+            <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="alert-section-icon-white"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Existencias Bajas" styleClass="alert-section-title-inv"/>
                 <Label text="Stock actual por debajo del mínimo establecido"
@@ -109,7 +119,7 @@
                 </columns>
                 <placeholder>
                     <VBox alignment="CENTER" spacing="4">
-                        <Label text="✅" styleClass="alert-ok-icon"/>
+                        <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="alert-ok-icon"/>
                         <Label text="Sin existencias bajas" styleClass="empty-state-msg"/>
                     </VBox>
                 </placeholder>
@@ -117,7 +127,9 @@
             <HBox alignment="CENTER_RIGHT" spacing="8">
                 <Label text="Selecciona un bien para solicitar reposición"
                        styleClass="muted"/>
-                <Button fx:id="btnReponerBajoStock" text="⬆ Reponer seleccionado" onAction="#onSolicitarBajoStock" styleClass="btn-warning" disable="true">
+                <Button fx:id="btnReponerBajoStock" text="Reponer seleccionado" onAction="#onSolicitarBajoStock" styleClass="btn-warning" disable="true"
+                        contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
                     <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado"/></tooltip>
                 </Button>
             </HBox>
@@ -127,7 +139,7 @@
     <!-- ══ GARANTÍAS POR VENCER ═══════════════════════════════════════ -->
     <VBox fx:id="sectionGarantias" styleClass="alert-section alert-info" spacing="0">
         <HBox styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
-            <Label text="📋" styleClass="alert-section-icon"/>
+            <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Garantías por Vencer" styleClass="alert-section-title-inv"/>
                 <Label text="Vencen en los próximos 7 días · Revisa y documenta"
@@ -147,7 +159,7 @@
                 </columns>
                 <placeholder>
                     <VBox alignment="CENTER" spacing="4">
-                        <Label text="✅" styleClass="alert-ok-icon"/>
+                        <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="alert-ok-icon"/>
                         <Label text="Sin garantías próximas a vencer" styleClass="empty-state-msg"/>
                     </VBox>
                 </placeholder>

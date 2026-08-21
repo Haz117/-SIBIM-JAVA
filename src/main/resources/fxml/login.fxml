@@ -4,6 +4,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.shape.Rectangle?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <HBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.LoginController"
@@ -40,10 +41,22 @@
 
             <!-- Feature list -->
             <VBox fx:id="featureList" spacing="10">
-                <Label text="✓  Inventario patrimonial centralizado" styleClass="brand-feature"/>
-                <Label text="✓  Control por roles y áreas municipales" styleClass="brand-feature"/>
-                <Label text="✓  Alertas automáticas de stock" styleClass="brand-feature"/>
-                <Label text="✓  Reportes en PDF y Excel" styleClass="brand-feature"/>
+                <Label text="Inventario patrimonial centralizado" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
+                <Label text="Control por roles y áreas municipales" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
+                <Label text="Alertas automáticas de stock" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
+                <Label text="Reportes en PDF y Excel" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
             </VBox>
 
             <Region prefHeight="32"/>

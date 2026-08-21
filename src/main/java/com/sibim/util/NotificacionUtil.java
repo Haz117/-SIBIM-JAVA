@@ -11,6 +11,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Popup;
 import javafx.stage.Window;
 import javafx.util.Duration;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 public class NotificacionUtil {
 
@@ -40,18 +41,19 @@ public class NotificacionUtil {
         if (owner == null) return;
         if (activeToasts >= MAX_TOASTS) return;
 
-        String icon, toastClass, iconClass;
+        String iconLiteral, toastClass, iconClass;
         switch (tipo) {
-            case EXITO       -> { icon = "✓"; toastClass = "toast-success"; iconClass = "toast-icon-success"; }
-            case ERROR       -> { icon = "✕"; toastClass = "toast-error";   iconClass = "toast-icon-error"; }
-            case ADVERTENCIA -> { icon = "!"; toastClass = "toast-warning";  iconClass = "toast-icon-warning"; }
-            default          -> { icon = "i"; toastClass = "toast-info";    iconClass = "toast-icon-info"; }
+            case EXITO       -> { iconLiteral = "mdi2c-check-circle";      toastClass = "toast-success"; iconClass = "toast-icon-success"; }
+            case ERROR       -> { iconLiteral = "mdi2c-close-circle";      toastClass = "toast-error";   iconClass = "toast-icon-error"; }
+            case ADVERTENCIA -> { iconLiteral = "mdi2a-alert-circle";      toastClass = "toast-warning"; iconClass = "toast-icon-warning"; }
+            default          -> { iconLiteral = "mdi2i-information-outline"; toastClass = "toast-info";  iconClass = "toast-icon-info"; }
         }
 
-        Label iconLbl = new Label(icon);
-        iconLbl.getStyleClass().add("toast-icon-text");
+        FontIcon iconNode = new FontIcon(iconLiteral);
+        iconNode.setIconSize(16);
+        iconNode.getStyleClass().add(iconClass);
 
-        StackPane iconBadge = new StackPane(iconLbl);
+        StackPane iconBadge = new StackPane(iconNode);
         iconBadge.getStyleClass().addAll("toast-icon-badge", iconClass);
 
         Label lbl = new Label(mensaje);
@@ -60,7 +62,8 @@ public class NotificacionUtil {
         lbl.setMaxWidth(390);
         HBox.setHgrow(lbl, javafx.scene.layout.Priority.ALWAYS);
 
-        Label closeBtn = new Label("×");
+        FontIcon closeBtn = new FontIcon("mdi2c-close");
+        closeBtn.setIconSize(14);
         closeBtn.getStyleClass().add("toast-close");
 
         HBox box = new HBox(12, iconBadge, lbl, closeBtn);
@@ -130,8 +133,9 @@ public class NotificacionUtil {
         if (owner == null) return;
         if (activeToasts >= MAX_TOASTS) return;
 
-        Label iconLbl = new Label("✓");
-        iconLbl.getStyleClass().add("toast-icon-text");
+        FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
+        iconLbl.setIconSize(16);
+        iconLbl.getStyleClass().add("toast-icon-success");
         StackPane iconBadge = new StackPane(iconLbl);
         iconBadge.getStyleClass().addAll("toast-icon-badge", "toast-icon-success");
 
@@ -144,7 +148,8 @@ public class NotificacionUtil {
         javafx.scene.control.Button actionBtn = new javafx.scene.control.Button(btnLabel);
         actionBtn.getStyleClass().add("toast-action-btn");
 
-        Label closeBtn = new Label("×");
+        FontIcon closeBtn = new FontIcon("mdi2c-close");
+        closeBtn.setIconSize(14);
         closeBtn.getStyleClass().add("toast-close");
 
         HBox box = new HBox(10, iconBadge, lbl, actionBtn, closeBtn);

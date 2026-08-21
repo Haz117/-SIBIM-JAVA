@@ -3,6 +3,7 @@
 <?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sibim.controller.DashboardController"
@@ -22,7 +23,7 @@
                 <Label fx:id="lblBienvenida" styleClass="banner-greeting"/>
                 <Label fx:id="lblUsuario"    styleClass="banner-name"/>
                 <HBox spacing="8" alignment="CENTER_LEFT">
-                    <Label text="🏛" styleClass="banner-brand-icon"/>
+                    <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="banner-brand-icon"/>
                     <Label text="H. Ayuntamiento de Ixmiquilpan  ·  Bienes Municipales"
                            styleClass="banner-org"/>
                 </HBox>
@@ -41,31 +42,31 @@
 
         <!-- Quick actions row -->
         <HBox spacing="0" alignment="CENTER">
-            <VBox fx:id="qaProductos" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
                   alignment="CENTER" spacing="6" onMouseClicked="#onVerProductos">
                 <padding><Insets top="15" bottom="17"/></padding>
-                <Label text="📦" styleClass="qa-icon"/>
+                <FontIcon iconLiteral="mdi2p-package-variant" styleClass="qa-icon"/>
                 <Label text="Inventario" styleClass="qa-label"/>
             </VBox>
             <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
-            <VBox fx:id="qaMovimiento" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
                   alignment="CENTER" spacing="6" onMouseClicked="#onVerMovimientos">
                 <padding><Insets top="15" bottom="17"/></padding>
-                <Label text="↕" styleClass="qa-icon"/>
+                <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="qa-icon"/>
                 <Label text="Movimientos" styleClass="qa-label"/>
             </VBox>
             <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
-            <VBox fx:id="qaAlertas" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
                   alignment="CENTER" spacing="6" onMouseClicked="#onVerAlertas">
                 <padding><Insets top="15" bottom="17"/></padding>
-                <Label text="⚠" styleClass="qa-icon"/>
+                <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="qa-icon"/>
                 <Label text="Alertas" styleClass="qa-label"/>
             </VBox>
             <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
-            <VBox fx:id="qaReportes" styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
+            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
                   alignment="CENTER" spacing="6" onMouseClicked="#onVerReportes">
                 <padding><Insets top="15" bottom="17"/></padding>
-                <Label text="📄" styleClass="qa-icon"/>
+                <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="qa-icon"/>
                 <Label text="Reportes" styleClass="qa-label"/>
             </VBox>
         </HBox>
@@ -77,7 +78,7 @@
     <HBox fx:id="alertBanner" styleClass="alert-banner" spacing="10" alignment="CENTER_LEFT"
           visible="false" managed="false" onMouseClicked="#onVerAlertas">
         <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
-        <Label text="⚠" styleClass="alert-banner-icon"/>
+        <FontIcon iconLiteral="mdi2b-bell-ring" styleClass="alert-banner-icon"/>
         <Label fx:id="lblAlertBannerText" text="Hay bienes que requieren atención."
                wrapText="true" HBox.hgrow="ALWAYS"/>
         <Label text="Ver alertas →" styleClass="alert-banner-cta"/>
@@ -107,7 +108,7 @@
               GridPane.columnIndex="0" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-indigo">
-                <Label text="📦" styleClass="stat-icon"/>
+                <FontIcon iconLiteral="mdi2p-package-variant" styleClass="stat-icon"/>
             </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="TOTAL DE BIENES" styleClass="stat-label"/>
@@ -122,7 +123,7 @@
               GridPane.columnIndex="1" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-teal">
-                <Label text="💰" styleClass="stat-icon"/>
+                <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="stat-icon"/>
             </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="VALOR PATRIMONIAL" styleClass="stat-label"/>
@@ -137,7 +138,7 @@
               GridPane.columnIndex="2" GridPane.rowIndex="0">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-amber">
-                <Label text="⚠" styleClass="stat-icon"/>
+                <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="stat-icon"/>
             </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="EXISTENCIAS BAJAS" styleClass="stat-label"/>
@@ -152,7 +153,7 @@
               GridPane.columnIndex="0" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-rose">
-                <Label text="🚫" styleClass="stat-icon"/>
+                <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="stat-icon"/>
             </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="BIENES AGOTADOS" styleClass="stat-label"/>
@@ -167,7 +168,7 @@
               GridPane.columnIndex="1" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-violet">
-                <Label text="🔄" styleClass="stat-icon"/>
+                <FontIcon iconLiteral="mdi2s-sync" styleClass="stat-icon"/>
             </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="MOVIMIENTOS HOY" styleClass="stat-label"/>
@@ -182,7 +183,7 @@
               GridPane.columnIndex="2" GridPane.rowIndex="1">
             <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
             <StackPane styleClass="stat-icon-badge, stat-icon-badge-dark-indigo">
-                <Label text="🏷" styleClass="stat-icon"/>
+                <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="stat-icon"/>
             </StackPane>
             <VBox HBox.hgrow="ALWAYS" spacing="5">
                 <Label text="CATEGORÍAS ACTIVAS" styleClass="stat-label"/>
@@ -207,19 +208,19 @@
         <HBox fx:id="healthBar" prefHeight="10" spacing="2" styleClass="dash-health-bar"/>
         <HBox spacing="20">
             <HBox spacing="5" alignment="CENTER_LEFT">
-                <Label fx:id="dotActivo" text="●" styleClass="dot-green"/>
+                <Label text="●" styleClass="dot-green"/>
                 <Label fx:id="lblHealthActivos" text="Activos — 0" styleClass="dash-health-legend"/>
             </HBox>
             <HBox spacing="5" alignment="CENTER_LEFT">
-                <Label fx:id="dotBajo" text="●" styleClass="dot-amber"/>
+                <Label text="●" styleClass="dot-amber"/>
                 <Label fx:id="lblHealthBajo" text="Bajo Stock — 0" styleClass="dash-health-legend"/>
             </HBox>
             <HBox spacing="5" alignment="CENTER_LEFT">
-                <Label fx:id="dotAgotado" text="●" styleClass="dot-red"/>
+                <Label text="●" styleClass="dot-red"/>
                 <Label fx:id="lblHealthAgotado" text="Agotados — 0" styleClass="dash-health-legend"/>
             </HBox>
             <HBox spacing="5" alignment="CENTER_LEFT">
-                <Label fx:id="dotVencido" text="●" styleClass="dot-violet"/>
+                <Label text="●" styleClass="dot-violet"/>
                 <Label fx:id="lblHealthVencido" text="Vencidos — 0" styleClass="dash-health-legend"/>
             </HBox>
         </HBox>
@@ -239,7 +240,7 @@
         <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
             <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
-                <Label text="↕" styleClass="card-icon-indigo"/>
+                <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="card-icon-indigo"/>
                 <Label text="Movimientos Semanales" styleClass="card-title" HBox.hgrow="ALWAYS"/>
             </HBox>
             <LineChart fx:id="chartMovimientos" prefHeight="220" animated="false">
@@ -251,7 +252,7 @@
         <VBox styleClass="card" spacing="10" prefWidth="300">
             <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
-                <Label text="🏷" styleClass="card-icon"/>
+                <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="card-icon"/>
                 <Label text="Valor por Categoría" styleClass="card-title"/>
             </HBox>
             <StackPane VBox.vgrow="ALWAYS">
@@ -259,7 +260,7 @@
                           labelsVisible="true" animated="false"/>
                 <VBox fx:id="pieEmptyState" alignment="CENTER" spacing="6"
                       visible="false" managed="false" styleClass="pie-empty-state">
-                    <Label text="🏷" styleClass="pie-empty-icon"/>
+                    <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="pie-empty-icon"/>
                     <Label text="Sin datos de categorías" styleClass="empty-state-msg"/>
                 </VBox>
             </StackPane>
@@ -283,7 +284,7 @@
         <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table recent-table">
             <placeholder>
                 <VBox alignment="CENTER" spacing="8">
-                    <Label text="↕" styleClass="empty-icon-lg"/>
+                    <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>
                     <Label text="Sin movimientos recientes" styleClass="empty-state-msg"/>
                     <Label text="Los movimientos registrados aparecerán aquí" styleClass="empty-state-hint"/>
                 </VBox>

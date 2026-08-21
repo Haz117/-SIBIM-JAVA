@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.MainController"
@@ -68,16 +69,20 @@
 
                     <Label text="NAVEGACIÓN" styleClass="nav-section-label"/>
 
-                    <Button fx:id="btnDashboard"   text="📊  Dashboard"    onAction="#onDashboard"    styleClass="nav-btn" maxWidth="Infinity">
+                    <Button fx:id="btnDashboard" text="Dashboard" onAction="#onDashboard" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2v-view-dashboard" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Dashboard  (Ctrl+1)"/></tooltip>
                     </Button>
-                    <Button fx:id="btnOrganigrama" text="🏛  Organigrama"  onAction="#onOrganigrama"  styleClass="nav-btn" maxWidth="Infinity">
+                    <Button fx:id="btnOrganigrama" text="Organigrama" onAction="#onOrganigrama" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2s-sitemap" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Organigrama  (Ctrl+2)"/></tooltip>
                     </Button>
-                    <Button fx:id="btnProductos"   text="📦  Bienes"        onAction="#onProductos"    styleClass="nav-btn" maxWidth="Infinity">
+                    <Button fx:id="btnProductos" text="Bienes" onAction="#onProductos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2p-package-variant" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Inventario de bienes  (Ctrl+3)"/></tooltip>
                     </Button>
-                    <Button fx:id="btnCategorias"  text="🏷  Categorías"    onAction="#onCategorias"   styleClass="nav-btn" maxWidth="Infinity">
+                    <Button fx:id="btnCategorias" text="Categorías" onAction="#onCategorias" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2t-tag-multiple" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Categorías de bienes  (Ctrl+4)"/></tooltip>
                     </Button>
 
@@ -86,14 +91,17 @@
                     <Region prefHeight="4"/>
                     <Label text="OPERACIONES" styleClass="nav-section-label"/>
 
-                    <Button fx:id="btnMovimientos" text="↕  Movimientos"   onAction="#onMovimientos"  styleClass="nav-btn" maxWidth="Infinity">
+                    <Button fx:id="btnMovimientos" text="Movimientos" onAction="#onMovimientos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Historial de movimientos  (Ctrl+5)"/></tooltip>
                     </Button>
 
                     <!-- Alertas con badge -->
                     <StackPane maxWidth="Infinity" alignment="CENTER_RIGHT">
-                        <Button fx:id="btnAlertas" text="⚠  Alertas" onAction="#onAlertas"
-                                styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER">
+                        <Button fx:id="btnAlertas" text="Alertas" onAction="#onAlertas"
+                                styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER"
+                                contentDisplay="LEFT" graphicTextGap="10">
+                            <graphic><FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="nav-icon"/></graphic>
                             <tooltip><Tooltip text="Alertas de inventario  (Ctrl+6)"/></tooltip>
                         </Button>
                         <Label fx:id="alertBadge" text="0"
@@ -102,7 +110,8 @@
                                StackPane.alignment="CENTER_RIGHT"/>
                     </StackPane>
 
-                    <Button fx:id="btnReportes"    text="📄  Reportes"     onAction="#onReportes"     styleClass="nav-btn" maxWidth="Infinity">
+                    <Button fx:id="btnReportes" text="Reportes" onAction="#onReportes" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
                     </Button>
 
@@ -111,7 +120,8 @@
                     <Region prefHeight="4"/>
                     <Label text="SISTEMA" styleClass="nav-section-label"/>
 
-                    <Button fx:id="btnConfiguracion" text="⚙  Configuración" onAction="#onConfiguracion" styleClass="nav-btn" maxWidth="Infinity">
+                    <Button fx:id="btnConfiguracion" text="Configuración" onAction="#onConfiguracion" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2c-cog-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Configuración  (Ctrl+8)"/></tooltip>
                     </Button>
                 </VBox>
@@ -123,10 +133,12 @@
             </Separator>
             <VBox spacing="4">
                 <padding><Insets top="6" right="18" bottom="14" left="10"/></padding>
-                <Button text="⬅  Cerrar sesión" onAction="#onLogout" styleClass="logout-btn" maxWidth="Infinity">
+                <Button text="Cerrar sesión" onAction="#onLogout" styleClass="logout-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <graphic><FontIcon iconLiteral="mdi2l-logout" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
                 </Button>
-                <Button text="ℹ  Acerca de" onAction="#onAcercaDe" styleClass="about-btn" maxWidth="Infinity">
+                <Button text="Acerca de" onAction="#onAcercaDe" styleClass="about-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <graphic><FontIcon iconLiteral="mdi2i-information-outline" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Versión e información del sistema"/></tooltip>
                 </Button>
                 <Region prefHeight="4"/>

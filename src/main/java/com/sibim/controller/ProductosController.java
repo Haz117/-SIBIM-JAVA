@@ -16,6 +16,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
 import com.sibim.util.SearchUtils;
@@ -65,6 +66,15 @@ public class ProductosController {
                 return size() > THUMBNAIL_CACHE_MAX;
             }
         });
+
+    private static final Map<String, String> CAT_EMOJI = Map.of(
+        "Mobiliario",                "🪑",
+        "Vehículos",                 "🚗",
+        "Equipo de Cómputo",         "💻",
+        "Equipo de Oficina",         "🖨",
+        "Herramientas y Maquinaria", "🔧",
+        "Equipo Audiovisual",        "📷"
+    );
 
     @FXML private VBox rootPane;
     @FXML private TextField searchField;
@@ -168,10 +178,11 @@ public class ProductosController {
         colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getFotoUrl()));
         colFoto.setCellFactory(col -> new TableCell<>() {
             private final ImageView iv = new ImageView();
-            private final Label lbl = new Label("📷");
+            private final FontIcon lbl = new FontIcon("mdi2c-camera-outline");
             private final StackPane box;
             {
                 iv.setFitWidth(38); iv.setFitHeight(38); iv.setPreserveRatio(true);
+                lbl.setIconSize(16);
                 lbl.getStyleClass().add("foto-placeholder");
                 box = new StackPane(lbl, iv);
                 box.setPrefSize(40, 40); box.setMinSize(40, 40); box.setMaxSize(40, 40);
@@ -242,7 +253,8 @@ public class ProductosController {
                 setGraphic(null); setText(null);
                 if (empty || value == null || value.isBlank()) return;
                 Producto p = getTableRow() != null ? (Producto) getTableRow().getItem() : null;
-                badge.setText(value);
+                String emoji = CAT_EMOJI.getOrDefault(value, "");
+                badge.setText(emoji.isBlank() ? value : emoji + "  " + value);
                 badge.getStyleClass().add("cat-badge");
                 badge.setStyle(p != null && p.getCategoriaColor() != null
                     ? "-fx-background-color: " + p.getCategoriaColor() + "22; -fx-text-fill: " + p.getCategoriaColor() + ";"
@@ -342,7 +354,8 @@ public class ProductosController {
 
         // Context menu
         ContextMenu cm = new ContextMenu();
-        MenuItem cmDetalle  = new MenuItem("👁  Ver detalle");
+        MenuItem cmDetalle  = new MenuItem("Ver detalle");
+        cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
         cmDetalle.setOnAction(e -> {
             Producto sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) showProductDetail(sel);
@@ -350,8 +363,10 @@ public class ProductosController {
         cm.getItems().add(cmDetalle);
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());
-            MenuItem cmEditar   = new MenuItem("✏  Editar");
-            MenuItem cmEliminar = new MenuItem("🗑  Dar de baja");
+            MenuItem cmEditar   = new MenuItem("Editar");
+            cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
+            MenuItem cmEliminar = new MenuItem("Dar de baja");
+            cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
             cmEditar.setOnAction(e -> onEdit());
             cmEliminar.setOnAction(e -> onDelete());
             cm.getItems().addAll(cmEditar, cmEliminar);
@@ -359,7 +374,8 @@ public class ProductosController {
         table.setContextMenu(cm);
 
         // Smart empty state (set programmatically so we can update the message)
-        Label emptyIcon = new Label("📦");
+        FontIcon emptyIcon = new FontIcon("mdi2p-package-variant");
+        emptyIcon.setIconSize(52);
         emptyIcon.getStyleClass().add("empty-icon-lg");
         emptyStateMsg = new Label("No hay bienes registrados en el sistema");
         emptyStateMsg.getStyleClass().add("empty-state-msg");
@@ -382,7 +398,11 @@ public class ProductosController {
         table.setPlaceholder(emptyState);
 
         // Pagination
-        pageSizeBox.setItems(FXCollections.observableArrayList(10, 25, 50, 100));
+        pageSizeBox.setItems(FXCollections.observableArrayList(25, 50, 100, 250, 500, Integer.MAX_VALUE));
+        pageSizeBox.setConverter(new javafx.util.StringConverter<>() {
+            public String toString(Integer n)   { return n == null ? "" : n == Integer.MAX_VALUE ? "Todos" : String.valueOf(n); }
+            public Integer fromString(String s) { return "Todos".equals(s) ? Integer.MAX_VALUE : Integer.parseInt(s); }
+        });
         pageSizeBox.setValue(25);
         pageSizeBox.setOnAction(e -> {
             pageSize = pageSizeBox.getValue();
@@ -421,6 +441,8 @@ public class ProductosController {
                     public String toString(Categoria c) { return c == null ? "Todas" : c.getNombre(); }
                     public Categoria fromString(String s) { return null; }
                 });
+                categoriaFilter.setCellFactory(lv -> categoriaListCell());
+                categoriaFilter.setButtonCell(categoriaListCell());
             },
             e -> log.error("No se pudieron cargar las categorías para el filtro", e)
         );
@@ -434,6 +456,8 @@ public class ProductosController {
             public String toString(String a) { return a == null ? "Todas las áreas" : a; }
             public String fromString(String s) { return null; }
         });
+        areaFilter.setCellFactory(lv -> areaListCell());
+        areaFilter.setButtonCell(areaListCell());
         areaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
 
         if (resguardanteFilter != null) {
@@ -596,11 +620,12 @@ public class ProductosController {
 
     private void showBajasDialog(List<Producto> bajas) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(560);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("🗑", "Bienes Dados de Baja",
+        HBox header = DialogUtil.gradientHeader("mdi2d-delete-circle-outline", "Bienes Dados de Baja",
             "Fuera del inventario activo — su historial se conserva",
             "#EF4444", "#B91C1C");
 
@@ -627,7 +652,9 @@ public class ProductosController {
             info.getChildren().addAll(nombre, detalle);
             HBox.setHgrow(info, Priority.ALWAYS);
 
-            Button btnReactivar = new Button("↺ Reactivar");
+            Button btnReactivar = new Button("Reactivar");
+            btnReactivar.setGraphic(new FontIcon("mdi2r-restore"));
+            btnReactivar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
             btnReactivar.getStyleClass().add("btn-secondary");
             btnReactivar.setOnAction(e -> {
                 DialogUtil.runAsync(
@@ -697,7 +724,7 @@ public class ProductosController {
         // the bien just stops showing up in the active inventory. Requires a
         // motivo since a baja is a formal administrative act.
         Optional<String> motivo = ConfirmacionUtil.confirmarConMotivo(
-            "🗑",
+            "mdi2d-delete-outline",
             "Dar de baja",
             "¿Dar de baja \"" + seleccionado.getNombre() + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
             "Dar de baja", true,
@@ -714,7 +741,7 @@ public class ProductosController {
                 applyFilters();
                 NotificacionUtil.exitoConAccion(table.getScene(),
                     "Bien \"" + nombre + "\" dado de baja",
-                    "↶ Deshacer",
+                    "Deshacer",
                     () -> DialogUtil.runAsync(
                         () -> productoService.reactivar(idBaja),
                         () -> { loadData(); NotificacionUtil.info(table.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
@@ -815,6 +842,7 @@ public class ProductosController {
 
     private void showProductDetail(Producto p) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.setTitle("Detalle del Bien");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(520);
@@ -926,5 +954,69 @@ public class ProductosController {
             if (table != null && table.getScene() != null)
                 NotificacionUtil.advertencia(table.getScene(), "Guardado en: " + file.getAbsolutePath());
         }
+    }
+
+    private ListCell<Categoria> categoriaListCell() {
+        return new ListCell<>() {
+            @Override protected void updateItem(Categoria c, boolean empty) {
+                super.updateItem(c, empty);
+                if (empty || c == null) {
+                    setText("Todas las categorías"); setGraphic(null);
+                    return;
+                }
+                String icono = c.getIcono();
+                if (icono != null && !icono.isBlank()) {
+                    Label badge = new Label(icono + "  " + c.getNombre());
+                    badge.getStyleClass().add("combo-cell-label");
+                    setGraphic(badge); setText(null);
+                } else {
+                    setText(c.getNombre()); setGraphic(null);
+                }
+            }
+        };
+    }
+
+    private ListCell<String> areaListCell() {
+        return new ListCell<>() {
+            @Override protected void updateItem(String area, boolean empty) {
+                super.updateItem(area, empty);
+                if (empty || area == null) {
+                    setText("Todas las áreas"); setGraphic(null);
+                    return;
+                }
+                String icon = areaIcon(area);
+                FontIcon fi = new FontIcon(icon);
+                fi.setIconSize(13);
+                fi.getStyleClass().add("area-filter-icon");
+                Label lbl = new Label("  " + area, fi);
+                lbl.getStyleClass().add("combo-cell-label");
+                setGraphic(lbl); setText(null);
+            }
+        };
+    }
+
+    private static String areaIcon(String area) {
+        if (area == null) return "mdi2o-office-building-outline";
+        String lo = area.toLowerCase();
+        if (lo.startsWith("secretar")) return "mdi2b-briefcase-outline";
+        if (lo.startsWith("despacho") || lo.startsWith("presidencia")) return "mdi2s-star-outline";
+        if (lo.contains("recursos humanos")) return "mdi2a-account-group-outline";
+        if (lo.contains("tecnolog")) return "mdi2m-monitor-multiple";
+        if (lo.contains("seguridad")) return "mdi2s-shield-outline";
+        if (lo.contains("obras") || lo.contains("servicio")) return "mdi2w-wrench-outline";
+        if (lo.contains("finanz") || lo.contains("tesorer") || lo.contains("contab") || lo.contains("presupuest")) return "mdi2c-currency-usd";
+        if (lo.contains("bienes")) return "mdi2p-package-variant";
+        if (lo.contains("juridic") || lo.contains("contralo")) return "mdi2s-scale-balance";
+        if (lo.contains("bienestar") || lo.contains("social") || lo.contains("salud")) return "mdi2h-heart-outline";
+        if (lo.contains("educac") || lo.contains("cultura")) return "mdi2b-book-outline";
+        if (lo.contains("deporte")) return "mdi2s-soccer";
+        if (lo.contains("turismo") || lo.contains("economic")) return "mdi2c-chart-line";
+        if (lo.contains("transparencia") || lo.contains("acceso")) return "mdi2e-eye-outline";
+        if (lo.contains("comunicac") || lo.contains("marketing")) return "mdi2m-microphone-outline";
+        if (lo.contains("planeac") || lo.contains("evaluac")) return "mdi2c-clipboard-text-outline";
+        if (lo.contains("indigena") || lo.contains("pueblos")) return "mdi2l-leaf";
+        if (lo.startsWith("direcci")) return "mdi2f-folder-outline";
+        if (lo.contains("unidad") || lo.contains("coordinac") || lo.contains("subdi")) return "mdi2t-text-box-outline";
+        return "mdi2o-office-building-outline";
     }
 }

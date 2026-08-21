@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sibim.controller.ConfiguracionController"
@@ -12,7 +13,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-slate">
         <StackPane styleClass="page-header-icon page-header-icon-slate">
-            <Label text="⚙" styleClass="page-icon-symbol"/>
+            <FontIcon iconLiteral="mdi2c-cog" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Configuración del Sistema" styleClass="page-title"/>
@@ -40,7 +41,7 @@
 
             <!-- Decorative badge -->
             <VBox alignment="CENTER_RIGHT" spacing="4" styleClass="profile-deco-badge">
-                <Label text="🏛" styleClass="profile-deco-icon"/>
+                <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="profile-deco-icon"/>
                 <Label text="H. Ayuntamiento" styleClass="profile-deco-name"/>
                 <Label text="de Ixmiquilpan" styleClass="profile-deco-sub"/>
             </VBox>
@@ -100,21 +101,36 @@
 
         <HBox alignment="CENTER_LEFT" spacing="12">
             <StackPane styleClass="section-icon-badge">
-                <Label text="👥" styleClass="page-icon-emoji"/>
+                <FontIcon iconLiteral="mdi2a-account-group-outline" styleClass="page-icon-emoji"/>
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
                 <Label text="Gestión de Usuarios" styleClass="card-title"/>
                 <Label text="Crea, edita y administra cuentas de acceso al sistema"
                        styleClass="page-subtitle"/>
             </VBox>
-            <Button text="＋ Nuevo Usuario" onAction="#onNuevoUsuario" styleClass="btn-primary">
+            <Button text="Nuevo Usuario" onAction="#onNuevoUsuario" styleClass="btn-primary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Registrar un nuevo usuario en el sistema"/></tooltip>
             </Button>
         </HBox>
 
         <Separator/>
 
-        <TableView fx:id="usersTable" prefHeight="290" styleClass="data-table">
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <StackPane HBox.hgrow="ALWAYS">
+                <TextField fx:id="userSearchField"
+                           promptText="🔍  Buscar por nombre, usuario, cargo o área..."
+                           maxWidth="Infinity" styleClass="search-field"/>
+                <Button fx:id="btnClearUserSearch" text="" styleClass="search-clear-btn"
+                        StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                    <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
+                    <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+                </Button>
+            </StackPane>
+        </HBox>
+
+        <TableView fx:id="usersTable" prefHeight="265" styleClass="data-table">
             <columns>
                 <TableColumn fx:id="colNombre"   text="Nombre completo" prefWidth="195" sortable="true"/>
                 <TableColumn fx:id="colUsername" text="Usuario"         prefWidth="130" sortable="true"/>
@@ -124,7 +140,7 @@
             </columns>
             <placeholder>
                 <VBox alignment="CENTER" spacing="10">
-                    <Label text="👤" styleClass="empty-icon-lg"/>
+                    <FontIcon iconLiteral="mdi2a-account-outline" styleClass="empty-icon-lg"/>
                     <Label text="No hay usuarios registrados" styleClass="empty-state-msg"/>
                 </VBox>
             </placeholder>
@@ -132,13 +148,19 @@
 
         <HBox spacing="8" alignment="CENTER_RIGHT">
             <Label text="Selecciona un usuario para gestionar" styleClass="muted" HBox.hgrow="ALWAYS"/>
-            <Button fx:id="btnEditUser"     text="✏  Editar"      onAction="#onEditUsuario"     styleClass="btn-secondary" disable="true">
+            <Button fx:id="btnEditUser" text="Editar" onAction="#onEditUsuario" styleClass="btn-secondary"
+                    disable="true" contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2p-pencil" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Editar datos del usuario seleccionado"/></tooltip>
             </Button>
-            <Button fx:id="btnPasswordUser" text="🔑  Contraseña" onAction="#onCambiarPassword" styleClass="btn-secondary" disable="true">
+            <Button fx:id="btnPasswordUser" text="Contraseña" onAction="#onCambiarPassword" styleClass="btn-secondary"
+                    disable="true" contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2k-key-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Cambiar contraseña del usuario seleccionado"/></tooltip>
             </Button>
-            <Button fx:id="btnDeleteUser"   text="✕  Eliminar"   onAction="#onDeleteUsuario"    styleClass="btn-danger"    disable="true">
+            <Button fx:id="btnDeleteUser" text="Eliminar" onAction="#onDeleteUsuario" styleClass="btn-danger" disable="true"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2d-delete-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Eliminar usuario del sistema"/></tooltip>
             </Button>
         </HBox>
@@ -149,17 +171,21 @@
         <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="12">
             <StackPane styleClass="section-icon-badge">
-                <Label text="📜" styleClass="page-icon-emoji"/>
+                <FontIcon iconLiteral="mdi2h-history" styleClass="page-icon-emoji"/>
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
                 <Label text="Auditoría del Sistema" styleClass="card-title"/>
                 <Label text="Historial de cambios en bienes, categorías y usuarios; y de tomas de inventario físico"
                        styleClass="page-subtitle"/>
             </VBox>
-            <Button text="📜 Ver historial de cambios" onAction="#onVerAuditoria" styleClass="btn-secondary">
+            <Button text="Ver historial de cambios" onAction="#onVerAuditoria" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2h-history" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Ver el historial de auditoría de cambios"/></tooltip>
             </Button>
-            <Button text="📋 Ver conteos físicos" onAction="#onVerConteos" styleClass="btn-secondary">
+            <Button text="Ver conteos físicos" onAction="#onVerConteos" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Ver el historial de tomas de inventario físico"/></tooltip>
             </Button>
         </HBox>

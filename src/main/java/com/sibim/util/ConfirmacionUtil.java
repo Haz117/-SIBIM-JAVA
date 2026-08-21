@@ -5,18 +5,19 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.Optional;
 
 public class ConfirmacionUtil {
 
     public static boolean confirmar(String titulo, String mensaje) {
-        return showDialog("❓", titulo, mensaje, "Confirmar", false);
+        return showDialog("mdi2h-help-circle-outline", titulo, mensaje, "Confirmar", false);
     }
 
     public static boolean confirmarEliminar(String nombreElemento) {
         return showDialog(
-            "🗑",
+            "mdi2d-delete-outline",
             "Confirmar eliminación",
             "¿Eliminar \"" + nombreElemento + "\"?\nEsta acción no se puede deshacer.",
             "Eliminar", true
@@ -34,6 +35,7 @@ public class ConfirmacionUtil {
         ButtonType btnCancel  = new ButtonType("Cancelar",   ButtonBar.ButtonData.CANCEL_CLOSE);
 
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.setTitle(title);
         dialog.getDialogPane().getButtonTypes().addAll(btnConfirm, btnCancel);
         dialog.getDialogPane().setPrefWidth(420);
@@ -42,7 +44,8 @@ public class ConfirmacionUtil {
         var css = ConfirmacionUtil.class.getResource("/css/styles.css");
         if (css != null) dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
 
-        Label iconLbl = new Label(icon);
+        FontIcon iconLbl = new FontIcon(icon);
+        iconLbl.setIconSize(20);
         iconLbl.getStyleClass().add("confirm-icon-text");
         StackPane iconBadge = new StackPane(iconLbl);
         iconBadge.getStyleClass().addAll("confirm-icon-badge",
@@ -95,6 +98,7 @@ public class ConfirmacionUtil {
         ButtonType btnCancel  = new ButtonType("Cancelar",   ButtonBar.ButtonData.CANCEL_CLOSE);
 
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.setTitle(title);
         dialog.getDialogPane().getButtonTypes().addAll(btnConfirm, btnCancel);
         dialog.getDialogPane().setPrefWidth(400);
@@ -103,7 +107,8 @@ public class ConfirmacionUtil {
         var css = ConfirmacionUtil.class.getResource("/css/styles.css");
         if (css != null) dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
 
-        Label iconLbl = new Label(icon);
+        FontIcon iconLbl = new FontIcon(icon);
+        iconLbl.setIconSize(20);
         iconLbl.getStyleClass().add("confirm-icon-text");
 
         StackPane iconBadge = new StackPane(iconLbl);

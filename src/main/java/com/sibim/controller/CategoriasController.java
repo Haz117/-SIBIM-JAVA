@@ -7,6 +7,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -92,8 +93,10 @@ public class CategoriasController {
 
         if (isAdmin) {
             ContextMenu cm = new ContextMenu();
-            MenuItem cmEditar    = new MenuItem("✏  Editar");
-            MenuItem cmEliminar  = new MenuItem("✕  Eliminar");
+            MenuItem cmEditar    = new MenuItem("Editar");
+            cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
+            MenuItem cmEliminar  = new MenuItem("Eliminar");
+            cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
             cmEditar.setOnAction(e -> onEdit());
             cmEliminar.setOnAction(e -> onDelete());
             cm.getItems().addAll(cmEditar, new SeparatorMenuItem(), cmEliminar);
@@ -225,7 +228,7 @@ public class CategoriasController {
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNew ? "#0891B2" : "#4338CA");
 
         HBox header = DialogUtil.gradientHeader(
-            isNew ? "🏷" : "✏",
+            isNew ? "mdi2t-tag-plus-outline" : "mdi2p-pencil",
             isNew ? "Nueva Categoría" : "Editar Categoría",
             isNew ? "Agrega una nueva clasificación al inventario"
                   : "Actualiza los datos de la categoría " + (existing != null ? existing.getNombre() : ""),

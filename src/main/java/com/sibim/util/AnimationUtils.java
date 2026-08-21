@@ -12,6 +12,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import org.kordamp.ikonli.javafx.FontIcon;
 import java.util.List;
 import java.util.function.LongFunction;
 
@@ -136,7 +137,8 @@ public final class AnimationUtils {
      */
     public static void transferCelebration(StackPane container,
                                            String productName, String from, String to) {
-        Label iconLbl = new Label("✓");
+        FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
+        iconLbl.setIconSize(18);
         iconLbl.getStyleClass().add("transfer-cel-icon");
 
         Label titleLbl = new Label("Transferencia registrada");

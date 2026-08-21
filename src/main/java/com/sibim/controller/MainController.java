@@ -190,11 +190,12 @@ public class MainController {
     @FXML
     private void onAcercaDe() {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(420);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("🏛", "Acerca de SIBIM",
+        HBox header = DialogUtil.gradientHeader("mdi2d-domain", "Acerca de SIBIM",
             "Sistema Integral de Bienes Municipales",
             "#6366F1", "#4F46E5");
 
@@ -460,13 +461,14 @@ public class MainController {
         javafx.scene.control.ButtonType btnLogout =
             new javafx.scene.control.ButtonType("Cerrar sesión", javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
         Dialog<javafx.scene.control.ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
         dlg.setTitle("Sesión por expirar");
         dlg.getDialogPane().getButtonTypes().addAll(btnContinuar, btnLogout);
         dlg.getDialogPane().setPrefWidth(400);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
         dlg.setOnCloseRequest(javafx.event.Event::consume);
 
-        HBox header = DialogUtil.gradientHeader("⏱", "Sesión inactiva",
+        HBox header = DialogUtil.gradientHeader("mdi2t-timer-outline", "Sesión inactiva",
             "Tu sesión cerrará automáticamente por inactividad.", "#B45309", "#92400E");
 
         Label lblCountdown = new Label("5:00");
@@ -566,11 +568,12 @@ public class MainController {
 
     private void showShortcutHelp() {
         Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dlg.getDialogPane().setPrefWidth(540);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("⌨", "Atajos de Teclado",
+        HBox header = DialogUtil.gradientHeader("mdi2k-keyboard-outline", "Atajos de Teclado",
             "Referencia rápida de todos los atajos disponibles en SIBIM",
             "#4338CA", "#3730A3");
 
@@ -641,7 +644,7 @@ public class MainController {
                     NotificacionUtil.advertencia(scene,
                         vencidos.size() + " bien(es) vence(n) en los próximos 7 días — revisa la sección Alertas");
             },
-            e -> { /* silent — startup check is non-critical */ }
+            e -> log.debug("Startup vencidos check failed", e)
         );
     }
 

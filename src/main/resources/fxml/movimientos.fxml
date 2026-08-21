@@ -2,6 +2,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.MovimientosController"
@@ -12,21 +13,27 @@
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-purple">
         <!-- Icon badge -->
         <StackPane styleClass="page-header-icon page-header-icon-purple">
-            <Label text="↕" styleClass="page-icon-symbol"/>
+            <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Movimientos de Stock" styleClass="page-title"/>
             <Label text="Historial de entradas, salidas, ajustes y transferencias" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
-        <Button text="↺ Actualizar" onAction="#onRefresh" styleClass="btn-secondary">
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar desde la base de datos (F5)"/></tooltip>
         </Button>
-        <Button fx:id="btnPendientes" text="⏳ Pendientes" onAction="#onVerPendientes"
-                styleClass="btn-secondary" visible="false" managed="false">
+        <Button fx:id="btnPendientes" text="Pendientes" onAction="#onVerPendientes"
+                styleClass="btn-secondary" visible="false" managed="false"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Ver transferencias pendientes de aprobación (solo administradores)"/></tooltip>
         </Button>
-        <Button fx:id="btnNuevo" text="＋ Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary">
+        <Button fx:id="btnNuevo" text="Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Registrar entrada, salida, ajuste o transferencia  (Ctrl+N)"/></tooltip>
         </Button>
     </HBox>
@@ -45,7 +52,7 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
-                    <Label text="↕" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="TOTAL MOVIMIENTOS" styleClass="rich-stat-label"/>
             </HBox>
@@ -59,7 +66,7 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
-                    <Label text="⬆" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2t-trending-up" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="ENTRADAS" styleClass="rich-stat-label"/>
             </HBox>
@@ -73,7 +80,7 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
-                    <Label text="⬇" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2t-trending-down" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="SALIDAS" styleClass="rich-stat-label"/>
             </HBox>
@@ -87,9 +94,13 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
-                    <Label text="⇄" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2t-transfer" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="AJUSTES / TRANSF." styleClass="rich-stat-label"/>
+                <Label text="AJUSTES / TRANSF." styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label styleClass="help-icon" contentDisplay="GRAPHIC_ONLY">
+                    <graphic><FontIcon iconLiteral="mdi2h-help-circle-outline" styleClass="help-icon"/></graphic>
+                    <tooltip><Tooltip text="Ajuste: corrección manual de stock. Transferencia: bien trasladado de un área a otra (requiere aprobación)."/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatAjustes" text="—" styleClass="rich-stat-value"/>
             <Label text="ajustes y transferencias" styleClass="rich-stat-hint"/>
@@ -108,8 +119,9 @@
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por producto, motivo o referencia..."
                        maxWidth="Infinity" styleClass="search-field"/>
-            <Button fx:id="btnClearSearch" text="✕" styleClass="search-clear-btn"
+            <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
@@ -134,7 +146,8 @@
         <Button fx:id="btnPresetMes"    text="Mes"    onAction="#onPresetMes"    styleClass="btn-preset">
             <tooltip><Tooltip text="Ver movimientos del mes actual"/></tooltip>
         </Button>
-        <Button text="✕" onAction="#onLimpiarFechas" styleClass="btn-preset-clear">
+        <Button text="" onAction="#onLimpiarFechas" styleClass="btn-preset-clear">
+            <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
             <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
@@ -160,7 +173,7 @@
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
-                <Label text="↕" styleClass="empty-icon-lg"/>
+                <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>
                 <Label text="No hay movimientos que mostrar" styleClass="empty-state-msg"/>
                 <Label text="Ajusta los filtros o registra un nuevo movimiento con ＋" styleClass="empty-state-hint"/>
             </VBox>
@@ -171,7 +184,9 @@
     <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 movimientos" styleClass="muted"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnDelete" text="✕  Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true">
+        <Button fx:id="btnDelete" text="Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-delete-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Eliminar el movimiento seleccionado (irreversible)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>

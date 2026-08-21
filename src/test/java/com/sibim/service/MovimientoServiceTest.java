@@ -92,7 +92,7 @@ class MovimientoServiceTest {
         Movimiento esperado = new Movimiento();
         try (MockedConstruction<ProductoRepository> pr = repoConProducto();
              MockedConstruction<MovimientoRepository> mr = mockConstruction(MovimientoRepository.class,
-                (m, c) -> when(m.addMovimientoAtomic(any())).thenReturn(esperado))) {
+                (m, c) -> when(m.addMovimientoAtomic(any(), any())).thenReturn(esperado))) {
             MovimientoService svc = new MovimientoService();
             Movimiento resultado = svc.registrar("p-01", TipoMovimiento.SALIDA, 18, "Retiro total", null);
             assertSame(esperado, resultado);
@@ -166,7 +166,7 @@ class MovimientoServiceTest {
         Movimiento esperado = new Movimiento();
         try (MockedConstruction<ProductoRepository> pr = repoConProducto();
              MockedConstruction<MovimientoRepository> mr = mockConstruction(MovimientoRepository.class,
-                (m, c) -> when(m.addMovimientoAtomic(any())).thenReturn(esperado))) {
+                (m, c) -> when(m.addMovimientoAtomic(any(), any())).thenReturn(esperado))) {
             Movimiento resultado = new MovimientoService().registrar("p-01", TipoMovimiento.ENTRADA, 5, "Compra", "REF-01");
             assertSame(esperado, resultado);
         }
@@ -178,7 +178,7 @@ class MovimientoServiceTest {
         Movimiento esperado = new Movimiento();
         try (MockedConstruction<ProductoRepository> pr = repoConProducto();
              MockedConstruction<MovimientoRepository> mr = mockConstruction(MovimientoRepository.class,
-                (m, c) -> when(m.addMovimientoAtomic(any())).thenReturn(esperado))) {
+                (m, c) -> when(m.addMovimientoAtomic(any(), any())).thenReturn(esperado))) {
             Movimiento resultado = new MovimientoService().registrar("p-01", TipoMovimiento.AJUSTE, 20, "Conteo físico", null);
             assertSame(esperado, resultado);
         }

@@ -9,6 +9,7 @@ import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.NotificacionUtil;
+import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -49,8 +50,11 @@ public class ConfiguracionController {
     @FXML private Button btnEditUser;
     @FXML private Button btnPasswordUser;
     @FXML private Button btnDeleteUser;
+    @FXML private TextField userSearchField;
+    @FXML private Button btnClearUserSearch;
 
     private final UsuarioRepository usuarioRepo = new UsuarioRepository();
+    private List<Usuario> allUsers = new java.util.ArrayList<>();
     private final com.sibim.repository.AuditLogRepository auditRepo = new com.sibim.repository.AuditLogRepository();
     private final com.sibim.repository.ConteoRepository conteoRepo = new com.sibim.repository.ConteoRepository();
 
@@ -97,6 +101,14 @@ public class ConfiguracionController {
         if (isAdmin) {
             setupUsersTable();
             loadUsers();
+            if (userSearchField != null) {
+                userSearchField.textProperty().addListener((obs, o, n) -> {
+                    if (btnClearUserSearch != null) btnClearUserSearch.setVisible(!n.isBlank());
+                    applyUserFilter();
+                });
+                if (btnClearUserSearch != null)
+                    btnClearUserSearch.setOnAction(e -> { userSearchField.clear(); userSearchField.requestFocus(); });
+            }
             usersTable.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
                 boolean s = sel != null;
                 if (btnEditUser     != null) btnEditUser.setDisable(!s);
@@ -118,9 +130,12 @@ public class ConfiguracionController {
 
             // Context menu
             ContextMenu cm = new ContextMenu();
-            MenuItem cmEditar    = new MenuItem("✏  Editar");
-            MenuItem cmPassword  = new MenuItem("🔑  Cambiar contraseña");
-            MenuItem cmEliminar  = new MenuItem("✕  Eliminar");
+            MenuItem cmEditar    = new MenuItem("Editar");
+            cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
+            MenuItem cmPassword  = new MenuItem("Cambiar contraseña");
+            cmPassword.setGraphic(new FontIcon("mdi2k-key-outline"));
+            MenuItem cmEliminar  = new MenuItem("Eliminar");
+            cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
             cmEditar.setOnAction(e -> onEditUsuario());
             cmPassword.setOnAction(e -> onCambiarPassword());
             cmEliminar.setOnAction(e -> onDeleteUsuario());
@@ -168,9 +183,23 @@ public class ConfiguracionController {
     private void loadUsers() {
         DialogUtil.runAsync(
             () -> usuarioRepo.findAll(),
-            users -> usersTable.getItems().setAll(users),
+            users -> { allUsers = new java.util.ArrayList<>(users); applyUserFilter(); },
             e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar la lista de usuarios")
         );
+    }
+
+    private void applyUserFilter() {
+        String q = userSearchField != null ? userSearchField.getText().toLowerCase().trim() : "";
+        if (q.isBlank()) {
+            usersTable.getItems().setAll(allUsers);
+        } else {
+            usersTable.getItems().setAll(allUsers.stream()
+                .filter(u -> (u.getNombre()   != null && u.getNombre().toLowerCase().contains(q))
+                          || (u.getUsername() != null && u.getUsername().toLowerCase().contains(q))
+                          || (u.getCargo()    != null && u.getCargo().toLowerCase().contains(q))
+                          || (u.getArea()     != null && u.getArea().toLowerCase().contains(q)))
+                .toList());
+        }
     }
 
     @FXML
@@ -222,7 +251,7 @@ public class ConfiguracionController {
 
         String accent  = passwordOnly ? "#B45309" : (isNew ? "#4F46E5" : "#0369A1");
         String accent2 = passwordOnly ? "#D97706" : (isNew ? "#7C3AED" : "#0891B2");
-        String iconChar = passwordOnly ? "🔑" : (isNew ? "👤" : "✏");
+        String iconChar = passwordOnly ? "mdi2k-key-outline" : (isNew ? "mdi2a-account-plus-outline" : "mdi2p-pencil");
         String titleStr = passwordOnly ? "Cambiar Contraseña"
             : (isNew ? "Nuevo Usuario" : "Editar Usuario");
         String subStr = passwordOnly
@@ -415,11 +444,12 @@ public class ConfiguracionController {
 
     private void showAuditoriaDialog(List<com.sibim.model.AuditLog> entries) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(600);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("📜", "Historial de Auditoría",
+        HBox header = DialogUtil.gradientHeader("mdi2h-history", "Historial de Auditoría",
             "Cambios en bienes, categorías y usuarios — últimos " + entries.size() + " registros",
             "#475569", "#334155");
 
@@ -462,11 +492,12 @@ public class ConfiguracionController {
 
     private void showConteoDetalleDialog(com.sibim.model.ConteoFisico conteo, List<com.sibim.model.ConteoItem> items) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(680);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("🔍", "Detalle del Conteo",
+        HBox header = DialogUtil.gradientHeader("mdi2m-magnify", "Detalle del Conteo",
             com.sibim.util.FormatUtils.formatDateTime(conteo.getCreadoEn()) + " · " + conteo.getUsuarioNombre(),
             "#0891B2", "#0E7490");
 
@@ -576,11 +607,12 @@ public class ConfiguracionController {
 
     private void showConteosDialog(List<com.sibim.model.ConteoFisico> conteos) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(600);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("📋", "Historial de Conteos Físicos",
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Historial de Conteos Físicos",
             "Tomas de inventario físico realizadas",
             "#0891B2", "#0E7490");
 

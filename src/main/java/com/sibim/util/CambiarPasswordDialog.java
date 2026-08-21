@@ -54,12 +54,13 @@ public final class CambiarPasswordDialog {
         dialog.getDialogPane().setPrefWidth(420);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
         if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
         // No true cancel via the window's own [X] — CANCEL_CLOSE on
         // btnLogout makes JavaFX resolve any close-via-X to that button on
         // its own, which is exactly the "Cerrar sesión" behavior we want,
         // through the normal/well-tested path instead of a custom handler.
 
-        HBox header = DialogUtil.gradientHeader("🔒", "Actualiza tu contraseña",
+        HBox header = DialogUtil.gradientHeader("mdi2l-lock-reset", "Actualiza tu contraseña",
             "Esta cuenta tiene una contraseña temporal conocida. Define una nueva antes de continuar.",
             "#6366F1", "#4F46E5");
 
