@@ -15,6 +15,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
@@ -281,6 +282,26 @@ public final class ProductoDialogFactory {
         fVenc.setMaxWidth(Double.MAX_VALUE);
         fVenc.getStyleClass().add("form-input");
 
+        // ── Depreciación (línea recta) ──
+        DatePicker fFechaAdq = new DatePicker(existing != null ? existing.getFechaAdquisicion() : null);
+        fFechaAdq.setPromptText("Fecha de adquisición");
+        fFechaAdq.setMaxWidth(Double.MAX_VALUE);
+        fFechaAdq.getStyleClass().add("form-input");
+
+        Spinner<Integer> fVidaUtil = new Spinner<>(1, 100,
+            existing != null && existing.getVidaUtilAnios() != null ? existing.getVidaUtilAnios() : 5);
+        fVidaUtil.setEditable(true);
+        fVidaUtil.setMaxWidth(Double.MAX_VALUE);
+        fVidaUtil.getStyleClass().add("form-input");
+        DialogUtil.commitOnFocusLoss(fVidaUtil);
+
+        TextField fValorResidual = new TextField(
+            existing != null && existing.getValorResidual() != null
+                ? existing.getValorResidual().toPlainString() : "0");
+        fValorResidual.setPromptText("0.00");
+        fValorResidual.setMaxWidth(Double.MAX_VALUE);
+        fValorResidual.getStyleClass().add("form-input");
+
         int rs = 0;
         gridStock.add(DialogUtil.fieldLabel("Stock Actual"),    0, rs); gridStock.add(fStock,    1, rs++);
         gridStock.add(DialogUtil.fieldLabelWithHelp("Stock Mínimo",
@@ -293,7 +314,21 @@ public final class ProductoDialogFactory {
         gridStock.add(DialogUtil.fieldLabel("Unidad"),          0, rs); gridStock.add(fUnidad,   1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Precio Compra"),   0, rs); gridStock.add(new VBox(2, fPrecioC, lblPrecioCHint), 1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Precio Venta"),    0, rs); gridStock.add(new VBox(2, fPrecioV, lblPrecioVHint), 1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Fecha Venc."),     0, rs); gridStock.add(fVenc,     1, rs);
+        gridStock.add(DialogUtil.fieldLabel("Fecha Venc."),     0, rs); gridStock.add(fVenc,     1, rs++);
+
+        // ── Sección Depreciación ──
+        Label lblDepSection = new Label("Depreciación (línea recta)");
+        lblDepSection.getStyleClass().add("dialog-field-label");
+        gridStock.add(new Separator(), 0, rs, 2, 1); rs++;
+        gridStock.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
+            "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
+                                                              0, rs); gridStock.add(fFechaAdq,     1, rs++);
+        gridStock.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
+            "Número de años en que el bien se deprecia completamente\n(SAT México: equipos de cómputo 3 años, vehículos 4, mobiliario 10)."),
+                                                              0, rs); gridStock.add(fVidaUtil,     1, rs++);
+        gridStock.add(DialogUtil.fieldLabelWithHelp("Valor residual",
+            "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
+                                                              0, rs); gridStock.add(fValorResidual, 1, rs);
 
         // ── TabPane ──
         TabPane tabs = new TabPane();
@@ -429,6 +464,14 @@ public final class ProductoDialogFactory {
             p.setUbicacion(fUbicacion.getText().trim());
             p.setResguardante(fResguardante.getText().trim());
             p.setFechaVencimiento(fVenc.getValue());
+            p.setFechaAdquisicion(fFechaAdq.getValue());
+            p.setVidaUtilAnios(fVidaUtil.getValue());
+            try {
+                String vrText = fValorResidual.getText().trim().replace(",", ".");
+                p.setValorResidual(vrText.isEmpty() ? BigDecimal.ZERO : new BigDecimal(vrText));
+            } catch (NumberFormatException ignored) {
+                p.setValorResidual(BigDecimal.ZERO);
+            }
             p.setArea(fArea.getValue());
             if (fotoHolder[0] != null && !fotoHolder[0].isBlank()) {
                 try {

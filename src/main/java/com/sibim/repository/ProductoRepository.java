@@ -148,8 +148,10 @@ public class ProductoRepository {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
-                fecha_vencimiento, foto_url, ubicacion, area, resguardante, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                fecha_vencimiento, foto_url, ubicacion, area, resguardante,
+                fecha_adquisicion, vida_util_anios, valor_residual,
+                created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -167,6 +169,9 @@ public class ProductoRepository {
                 ubicacion = EXCLUDED.ubicacion,
                 area = EXCLUDED.area,
                 resguardante = EXCLUDED.resguardante,
+                fecha_adquisicion = EXCLUDED.fecha_adquisicion,
+                vida_util_anios = EXCLUDED.vida_util_anios,
+                valor_residual = EXCLUDED.valor_residual,
                 updated_at = NOW()
             """;
         try (Connection conn = DatabaseConfig.getConnection();
@@ -189,8 +194,11 @@ public class ProductoRepository {
             ps.setString(15, p.getUbicacion());
             ps.setString(16, p.getArea());
             ps.setString(17, p.getResguardante());
-            ps.setTimestamp(18, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(19, Timestamp.valueOf(now));
+            ps.setObject(18, p.getFechaAdquisicion());
+            ps.setObject(19, p.getVidaUtilAnios());
+            ps.setBigDecimal(20, p.getValorResidual() != null ? p.getValorResidual() : BigDecimal.ZERO);
+            ps.setTimestamp(21, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
+            ps.setTimestamp(22, Timestamp.valueOf(now));
             ps.executeUpdate();
         }
         return p;
@@ -568,6 +576,9 @@ public class ProductoRepository {
         p.setUbicacion(rs.getString("ubicacion"));
         p.setArea(rs.getString("area"));
         p.setResguardante(rs.getString("resguardante"));
+        p.setFechaAdquisicion(rs.getDate("fecha_adquisicion") != null ? rs.getDate("fecha_adquisicion").toLocalDate() : null);
+        p.setVidaUtilAnios(rs.getObject("vida_util_anios", Integer.class));
+        p.setValorResidual(rs.getBigDecimal("valor_residual") != null ? rs.getBigDecimal("valor_residual") : BigDecimal.ZERO);
         Timestamp ca = rs.getTimestamp("created_at");
         if (ca != null) p.setCreadoEn(ca.toLocalDateTime());
         Timestamp ua = rs.getTimestamp("updated_at");

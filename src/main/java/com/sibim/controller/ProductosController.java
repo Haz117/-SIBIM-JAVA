@@ -941,7 +941,63 @@ public class ProductosController {
             g.add(key, 0, i); g.add(val, 1, i);
         }
 
-        root.getChildren().addAll(headerCard, g);
+        // ── Depreciación ──────────────────────────────────────────────
+        BigDecimal valorDep = p.getValorDepreciado();
+        if (valorDep != null) {
+            Separator sep = new Separator();
+            sep.getStyleClass().add("form-separator");
+            root.getChildren().addAll(headerCard, g, sep);
+
+            GridPane gDep = new GridPane();
+            gDep.setHgap(16); gDep.setVgap(9);
+            gDep.setPadding(new Insets(0, 0, 4, 0));
+            gDep.getColumnConstraints().addAll(colConstraint(140, false), colConstraint(300, true));
+
+            Integer pct = p.getPorcentajeDepreciado();
+            String adqStr = p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : "—";
+            String vidaStr = p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() + " años" : "—";
+            String residualStr = p.getValorResidual() != null ? FormatUtils.formatCurrency(p.getValorResidual()) : "$0.00";
+
+            int dr = 0;
+            Label depTitle = new Label("Depreciación (línea recta)");
+            depTitle.getStyleClass().add("dialog-field-label");
+            gDep.add(depTitle, 0, dr, 2, 1); dr++;
+
+            gDep.add(DialogUtil.fieldLabel("Fecha adquisición"), 0, dr);
+            gDep.add(new Label(adqStr), 1, dr++);
+
+            gDep.add(DialogUtil.fieldLabel("Vida útil"), 0, dr);
+            gDep.add(new Label(vidaStr), 1, dr++);
+
+            gDep.add(DialogUtil.fieldLabel("Valor residual"), 0, dr);
+            gDep.add(new Label(residualStr), 1, dr++);
+
+            gDep.add(DialogUtil.fieldLabel("Valor actual"), 0, dr);
+            Label lblValorDep = new Label(FormatUtils.formatCurrency(valorDep));
+            lblValorDep.getStyleClass().add("dlg-detail-total");
+            gDep.add(lblValorDep, 1, dr++);
+
+            gDep.add(DialogUtil.fieldLabel("% Depreciado"), 0, dr);
+            VBox pctBox = new VBox(4);
+            if (pct != null) {
+                ProgressBar pb = new ProgressBar(pct / 100.0);
+                pb.setMaxWidth(Double.MAX_VALUE);
+                pb.getStyleClass().add("dep-progress-bar");
+                String pctClass = pct >= 90 ? "dlg-detail-stock-low"
+                    : pct >= 50 ? "dlg-detail-stock-warn"
+                    : "dlg-detail-stock-ok";
+                Label pctLbl = new Label(pct + "% depreciado");
+                pctLbl.getStyleClass().add(pctClass);
+                pctBox.getChildren().addAll(pb, pctLbl);
+            } else {
+                pctBox.getChildren().add(new Label("—"));
+            }
+            gDep.add(pctBox, 1, dr);
+
+            root.getChildren().add(gDep);
+        } else {
+            root.getChildren().addAll(headerCard, g);
+        }
         AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
         dialog.getDialogPane().setContent(root);
         dialog.showAndWait();

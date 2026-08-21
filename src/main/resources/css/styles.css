@@ -1982,12 +1982,12 @@
 .dlg-stock-arrow-down { -fx-font-size: 18px; -fx-text-fill: #EF4444; }
 
 /* Área A → Área B preview (Movimientos, transferencia) */
-.dlg-transfer-preview { -fx-background-color: #FAF5FF; -fx-background-radius: 12; -fx-border-color: #E9D5FF; -fx-border-width: 1; -fx-border-radius: 12; }
-.dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #DDD6FE; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 6 14; }
-.dlg-transfer-chip-to  { -fx-border-color: #A78BFA; }
-.dlg-transfer-chip-lbl { -fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #4C1D95; }
-.dlg-transfer-chip-empty-lbl { -fx-font-size: 12px; -fx-font-style: italic; -fx-text-fill: #9CA3AF; }
-.dlg-transfer-arrow    { -fx-icon-size: 20; -fx-icon-color: #A78BFA; }
+.dlg-transfer-preview { -fx-background-color: #FAF5FF; -fx-background-radius: 10; -fx-border-color: #E9D5FF; -fx-border-width: 1; -fx-border-radius: 10; }
+.dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #DDD6FE; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 4 10; }
+.dlg-transfer-chip-to  { -fx-border-color: #7C3AED; -fx-background-color: #F5F3FF; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.22), 8, 0, 0, 2); }
+.dlg-transfer-chip-lbl { -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #4C1D95; }
+.dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #9CA3AF; }
+.dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: #7C3AED; }
 
 /* Product detail dialog header card */
 .dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
@@ -2006,6 +2006,11 @@
 .dlg-detail-stock-warn { -fx-text-fill: #D97706; -fx-font-weight: 600; }
 .dlg-detail-stock-low  { -fx-text-fill: #DC2626; -fx-font-weight: bold; }
 .dlg-detail-total      { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
+
+/* Depreciation progress bar in product detail dialog */
+.dep-progress-bar { -fx-pref-height: 8px; -fx-background-radius: 4px; }
+.dep-progress-bar .track { -fx-background-color: #E2E8F0; -fx-background-radius: 4px; }
+.dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #6366F1, #A78BFA); -fx-background-radius: 4px; -fx-background-insets: 0; }
 
 /* Image picker widget inside product form dialog */
 .dlg-img-placeholder { -fx-text-fill: #64748B; -fx-font-size: 12px; -fx-text-alignment: center; -fx-alignment: center; }

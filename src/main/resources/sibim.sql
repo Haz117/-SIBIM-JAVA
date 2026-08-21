@@ -211,6 +211,15 @@ BEGIN
         ALTER TABLE movements ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'APROBADO';
         EXECUTE 'CREATE INDEX IF NOT EXISTS idx_movements_estado ON movements(estado) WHERE estado = ''PENDIENTE''';
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'fecha_adquisicion') THEN
+        ALTER TABLE products ADD COLUMN fecha_adquisicion DATE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'vida_util_anios') THEN
+        ALTER TABLE products ADD COLUMN vida_util_anios INTEGER CHECK (vida_util_anios > 0);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'valor_residual') THEN
+        ALTER TABLE products ADD COLUMN valor_residual NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (valor_residual >= 0);
+    END IF;
 END $$;
 
 -- ─── DATOS DE EJEMPLO ───────────────────────────────────────────────

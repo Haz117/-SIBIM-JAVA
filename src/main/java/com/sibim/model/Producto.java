@@ -5,6 +5,7 @@ import com.sibim.model.enums.UnidadMedida;
 import com.sibim.util.ProductoUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -32,6 +33,9 @@ public class Producto {
     private LocalDateTime actualizadoEn;
     private LocalDate fechaBaja;
     private String motivoBaja;
+    private LocalDate fechaAdquisicion;
+    private Integer vidaUtilAnios;      // nullable — not all assets need depreciation
+    private BigDecimal valorResidual;   // defaults to ZERO
 
     public Producto() {}
 
@@ -50,6 +54,35 @@ public class Producto {
     public BigDecimal getValorTotal() {
         if (precioVenta == null) return BigDecimal.ZERO;
         return precioVenta.multiply(BigDecimal.valueOf(stockActual));
+    }
+
+    /**
+     * Straight-line depreciation (línea recta, SAT Mexico standard).
+     * Returns null if precioCompra, fechaAdquisicion, or vidaUtilAnios are null/zero.
+     * Returns zero if fully depreciated or not yet started.
+     */
+    public BigDecimal getValorDepreciado() {
+        if (precioCompra == null || precioCompra.compareTo(BigDecimal.ZERO) <= 0
+                || fechaAdquisicion == null || vidaUtilAnios == null || vidaUtilAnios <= 0)
+            return null;
+        BigDecimal residual = valorResidual != null ? valorResidual : BigDecimal.ZERO;
+        BigDecimal depreciable = precioCompra.subtract(residual);
+        if (depreciable.compareTo(BigDecimal.ZERO) <= 0) return residual;
+        long diasTranscurridos = java.time.temporal.ChronoUnit.DAYS.between(fechaAdquisicion, LocalDate.now());
+        if (diasTranscurridos <= 0) return precioCompra;
+        BigDecimal depAnual = depreciable.divide(BigDecimal.valueOf(vidaUtilAnios), 10, RoundingMode.HALF_UP);
+        BigDecimal depAcumulada = depAnual.multiply(BigDecimal.valueOf(diasTranscurridos)).divide(BigDecimal.valueOf(365), 10, RoundingMode.HALF_UP);
+        if (depAcumulada.compareTo(depreciable) >= 0) return residual;
+        return precioCompra.subtract(depAcumulada).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /** 0-100 percentage already depreciated. Returns null if data incomplete. */
+    public Integer getPorcentajeDepreciado() {
+        BigDecimal valorDep = getValorDepreciado();
+        if (valorDep == null || precioCompra == null || precioCompra.compareTo(BigDecimal.ZERO) <= 0) return null;
+        BigDecimal perdida = precioCompra.subtract(valorDep);
+        return perdida.multiply(BigDecimal.valueOf(100))
+            .divide(precioCompra, 0, RoundingMode.HALF_UP).intValue();
     }
 
     // Getters and setters
@@ -121,6 +154,15 @@ public class Producto {
 
     public String getMotivoBaja() { return motivoBaja; }
     public void setMotivoBaja(String motivoBaja) { this.motivoBaja = motivoBaja; }
+
+    public LocalDate getFechaAdquisicion() { return fechaAdquisicion; }
+    public void setFechaAdquisicion(LocalDate fechaAdquisicion) { this.fechaAdquisicion = fechaAdquisicion; }
+
+    public Integer getVidaUtilAnios() { return vidaUtilAnios; }
+    public void setVidaUtilAnios(Integer vidaUtilAnios) { this.vidaUtilAnios = vidaUtilAnios; }
+
+    public BigDecimal getValorResidual() { return valorResidual; }
+    public void setValorResidual(BigDecimal valorResidual) { this.valorResidual = valorResidual; }
 
     @Override
     public String toString() { return nombre + " (" + codigo + ")"; }

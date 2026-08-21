@@ -135,6 +135,80 @@ public final class DemoDataStore {
             prod("p-46","Fax Panasonic KX-FT988",           "EO-007","cat-ofi","Equipo de Oficina","#F59E0B",  1200, 1400, 0,1, 3,UnidadMedida.EQUIPO,SGM)
         )));
 
+        // ── Datos de depreciación (línea recta) ──────────────────────────────
+        // Laptop Dell (p-05): 2 años, vida útil 3, residual $500
+        PRODUCTOS.stream().filter(p -> "p-05".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(2));
+            p.setVidaUtilAnios(3);
+            p.setValorResidual(new BigDecimal("500.00"));
+        });
+        // Computadora HP (p-22): 3 años, vida útil 3, residual $200
+        PRODUCTOS.stream().filter(p -> "p-22".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(3));
+            p.setVidaUtilAnios(3);
+            p.setValorResidual(new BigDecimal("200.00"));
+        });
+        // Silla ejecutiva (p-02): 5 años, vida útil 10, residual $50
+        PRODUCTOS.stream().filter(p -> "p-02".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(5));
+            p.setVidaUtilAnios(10);
+            p.setValorResidual(new BigDecimal("50.00"));
+        });
+        // Escritorio ejecutivo (p-01): 6 años, vida útil 10, residual $100
+        PRODUCTOS.stream().filter(p -> "p-01".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(6));
+            p.setVidaUtilAnios(10);
+            p.setValorResidual(new BigDecimal("100.00"));
+        });
+        // Cámara PTZ Dahua (p-08): 2 años, vida útil 5, residual $300
+        PRODUCTOS.stream().filter(p -> "p-08".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(2));
+            p.setVidaUtilAnios(5);
+            p.setValorResidual(new BigDecimal("300.00"));
+        });
+        // Camioneta Ford Ranger (p-04): 4 años, vida útil 4, residual $0
+        PRODUCTOS.stream().filter(p -> "p-04".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(4));
+            p.setVidaUtilAnios(4);
+            p.setValorResidual(BigDecimal.ZERO);
+        });
+        // Retroexcavadora CAT (p-07): 3 años, vida útil 10, residual $0
+        PRODUCTOS.stream().filter(p -> "p-07".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(3));
+            p.setVidaUtilAnios(10);
+            p.setValorResidual(BigDecimal.ZERO);
+        });
+        // Impresora Epson (p-06): 3 años, vida útil 5, residual $200
+        PRODUCTOS.stream().filter(p -> "p-06".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(3));
+            p.setVidaUtilAnios(5);
+            p.setValorResidual(new BigDecimal("200.00"));
+        });
+        // Proyector Epson (p-40): 1 año, vida útil 5, residual $500
+        PRODUCTOS.stream().filter(p -> "p-40".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(1));
+            p.setVidaUtilAnios(5);
+            p.setValorResidual(new BigDecimal("500.00"));
+        });
+        // Fotocopiadora Ricoh (p-29): 2 años, vida útil 7, residual $1000
+        PRODUCTOS.stream().filter(p -> "p-29".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(2));
+            p.setVidaUtilAnios(7);
+            p.setValorResidual(new BigDecimal("1000.00"));
+        });
+        // Monitor LG (p-26): 1 año, vida útil 3, residual $0
+        PRODUCTOS.stream().filter(p -> "p-26".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(1));
+            p.setVidaUtilAnios(3);
+            p.setValorResidual(BigDecimal.ZERO);
+        });
+        // Automóvil Nissan Versa (p-18): 1 año, vida útil 4, residual $0
+        PRODUCTOS.stream().filter(p -> "p-18".equals(p.getId())).findFirst().ifPresent(p -> {
+            p.setFechaAdquisicion(LocalDate.now().minusYears(1));
+            p.setVidaUtilAnios(4);
+            p.setValorResidual(BigDecimal.ZERO);
+        });
+
         // Ajustar fecha de vencimiento del extintor (lote vencido hace 8 meses)
         PRODUCTOS.stream().filter(p -> "p-45".equals(p.getId())).findFirst()
             .ifPresent(p -> p.setFechaVencimiento(LocalDate.now().minusMonths(8)));

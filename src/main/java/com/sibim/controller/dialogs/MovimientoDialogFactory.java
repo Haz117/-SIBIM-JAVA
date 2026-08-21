@@ -5,10 +5,8 @@ import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ProductoUtils;
-import javafx.animation.FadeTransition;
-import javafx.animation.ParallelTransition;
-import javafx.animation.ScaleTransition;
-import javafx.animation.TranslateTransition;
+import javafx.animation.*;
+import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -134,7 +132,7 @@ public final class MovimientoDialogFactory {
         // short animation on the destination chip whenever it changes.
         HBox transferPreview = new HBox(12);
         transferPreview.setAlignment(Pos.CENTER_LEFT);
-        transferPreview.setPadding(new Insets(12, 14, 12, 14));
+        transferPreview.setPadding(new Insets(7, 10, 7, 10));
         transferPreview.getStyleClass().add("dlg-transfer-preview");
 
         Label chipOrigenLbl = new Label();
@@ -170,29 +168,99 @@ public final class MovimientoDialogFactory {
         };
         updateTransferPreview.run();
 
-        // Short arrow-nudge + chip pop, so the destination chip visibly
-        // "arrives" instead of just silently updating its text.
+        // Arrow blasts forward with glow; destination chip rockets in from the
+        // right and lands with an overshoot bounce.
         Runnable animateTransferArrival = () -> {
-            TranslateTransition nudge = new TranslateTransition(Duration.millis(260), transferArrow);
-            nudge.setFromX(-8); nudge.setToX(0);
-            FadeTransition fade = new FadeTransition(Duration.millis(220), chipDestino);
-            fade.setFromValue(0.25); fade.setToValue(1);
-            ScaleTransition pop = new ScaleTransition(Duration.millis(220), chipDestino);
-            pop.setFromX(0.88); pop.setFromY(0.88); pop.setToX(1); pop.setToY(1);
-            new ParallelTransition(nudge, fade, pop).play();
+            // Arrow: shoot right + stretch + glow flash
+            Timeline arrowAnim = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                    new KeyValue(transferArrow.scaleXProperty(), 1.0),
+                    new KeyValue(transferArrow.scaleYProperty(), 1.0),
+                    new KeyValue(transferArrow.translateXProperty(), 0.0),
+                    new KeyValue(transferArrow.opacityProperty(), 1.0)),
+                new KeyFrame(Duration.millis(130),
+                    new KeyValue(transferArrow.scaleXProperty(), 2.2, Interpolator.EASE_OUT),
+                    new KeyValue(transferArrow.scaleYProperty(), 0.7, Interpolator.EASE_OUT),
+                    new KeyValue(transferArrow.translateXProperty(), 20.0, Interpolator.EASE_OUT),
+                    new KeyValue(transferArrow.opacityProperty(), 0.5, Interpolator.EASE_OUT)),
+                new KeyFrame(Duration.millis(260),
+                    new KeyValue(transferArrow.scaleXProperty(), 1.0, Interpolator.EASE_IN),
+                    new KeyValue(transferArrow.scaleYProperty(), 1.0, Interpolator.EASE_IN),
+                    new KeyValue(transferArrow.translateXProperty(), 0.0, Interpolator.EASE_IN),
+                    new KeyValue(transferArrow.opacityProperty(), 1.0, Interpolator.EASE_IN))
+            );
+            // Destination chip: rocket in from right with hard bounce
+            Timeline chipAnim = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                    new KeyValue(chipDestino.opacityProperty(), 0.0),
+                    new KeyValue(chipDestino.translateXProperty(), 50.0),
+                    new KeyValue(chipDestino.scaleXProperty(), 0.75),
+                    new KeyValue(chipDestino.scaleYProperty(), 0.75)),
+                new KeyFrame(Duration.millis(200),
+                    new KeyValue(chipDestino.opacityProperty(), 1.0, Interpolator.EASE_OUT),
+                    new KeyValue(chipDestino.translateXProperty(), -8.0, Interpolator.EASE_OUT),
+                    new KeyValue(chipDestino.scaleXProperty(), 1.10, Interpolator.EASE_OUT),
+                    new KeyValue(chipDestino.scaleYProperty(), 1.10, Interpolator.EASE_OUT)),
+                new KeyFrame(Duration.millis(310),
+                    new KeyValue(chipDestino.translateXProperty(), 3.0, Interpolator.EASE_BOTH),
+                    new KeyValue(chipDestino.scaleXProperty(), 0.97, Interpolator.EASE_BOTH),
+                    new KeyValue(chipDestino.scaleYProperty(), 0.97, Interpolator.EASE_BOTH)),
+                new KeyFrame(Duration.millis(400),
+                    new KeyValue(chipDestino.translateXProperty(), 0.0, Interpolator.EASE_BOTH),
+                    new KeyValue(chipDestino.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                    new KeyValue(chipDestino.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+            );
+            // Stagger: arrow first, chip lands right after the arrow peaks
+            PauseTransition delay = new PauseTransition(Duration.millis(80));
+            delay.setOnFinished(e -> chipAnim.play());
+            new ParallelTransition(arrowAnim, delay).play();
+        };
+
+        // Origin chip pops in when a product is selected while in transfer mode
+        Runnable animateOrigenArrival = () -> {
+            Timeline t = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                    new KeyValue(chipOrigen.opacityProperty(), 0.2),
+                    new KeyValue(chipOrigen.scaleXProperty(), 0.88),
+                    new KeyValue(chipOrigen.scaleYProperty(), 0.88)),
+                new KeyFrame(Duration.millis(220),
+                    new KeyValue(chipOrigen.opacityProperty(), 1.0, Interpolator.EASE_OUT),
+                    new KeyValue(chipOrigen.scaleXProperty(), 1.05, Interpolator.EASE_OUT),
+                    new KeyValue(chipOrigen.scaleYProperty(), 1.05, Interpolator.EASE_OUT)),
+                new KeyFrame(Duration.millis(320),
+                    new KeyValue(chipOrigen.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                    new KeyValue(chipOrigen.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+            );
+            t.play();
         };
 
         fAreaDestino.valueProperty().addListener((o, a, b) -> {
             updateTransferPreview.run();
             if (b != null) animateTransferArrival.run();
         });
-        fProducto.valueProperty().addListener((o, a, b) -> updateTransferPreview.run());
+        fProducto.valueProperty().addListener((o, a, b) -> {
+            updateTransferPreview.run();
+            if (b != null && fTipo.getValue() == TipoMovimiento.TRANSFERENCIA) animateOrigenArrival.run();
+        });
 
+        // Transfer section slides down smoothly when TRANSFERENCIA is selected
         Runnable updateAreaDestinoVisibility = () -> {
             boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
-            lblAreaDestino.setVisible(isTransfer);   lblAreaDestino.setManaged(isTransfer);
-            fAreaDestino.setVisible(isTransfer);     fAreaDestino.setManaged(isTransfer);
-            transferPreview.setVisible(isTransfer);  transferPreview.setManaged(isTransfer);
+            if (isTransfer && !transferPreview.isVisible()) {
+                lblAreaDestino.setVisible(true);  lblAreaDestino.setManaged(true);
+                fAreaDestino.setVisible(true);    fAreaDestino.setManaged(true);
+                transferPreview.setOpacity(0);    transferPreview.setTranslateY(-14);
+                transferPreview.setVisible(true); transferPreview.setManaged(true);
+                new Timeline(
+                    new KeyFrame(Duration.millis(280),
+                        new KeyValue(transferPreview.opacityProperty(), 1.0, Interpolator.EASE_OUT),
+                        new KeyValue(transferPreview.translateYProperty(), 0.0, Interpolator.EASE_OUT))
+                ).play();
+            } else if (!isTransfer) {
+                lblAreaDestino.setVisible(false); lblAreaDestino.setManaged(false);
+                fAreaDestino.setVisible(false);   fAreaDestino.setManaged(false);
+                transferPreview.setVisible(false); transferPreview.setManaged(false);
+            }
         };
         updateAreaDestinoVisibility.run();
         fTipo.valueProperty().addListener((o, a, b) -> updateAreaDestinoVisibility.run());
