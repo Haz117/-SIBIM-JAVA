@@ -214,8 +214,22 @@ public class ReportesController {
         btnImpr.setVisible("PDF".equals(ext));
         btnImpr.setManaged("PDF".equals(ext));
 
-        btnAbrir.setOnAction(e -> { try { Desktop.getDesktop().open(file); } catch (Exception ex) { log.debug("No se pudo abrir", ex); } });
-        btnCarpeta.setOnAction(e -> { try { Desktop.getDesktop().open(file.getParentFile()); } catch (Exception ex) { log.debug("No se pudo abrir carpeta", ex); } });
+        btnAbrir.setOnAction(e -> {
+            try {
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN))
+                    Desktop.getDesktop().open(file);
+                else
+                    NotificacionUtil.advertencia(spinner.getScene(), "No se puede abrir el archivo en este entorno");
+            } catch (Exception ex) { log.debug("No se pudo abrir", ex); }
+        });
+        btnCarpeta.setOnAction(e -> {
+            try {
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN))
+                    Desktop.getDesktop().open(file.getParentFile());
+                else
+                    NotificacionUtil.advertencia(spinner.getScene(), "No se puede abrir la carpeta en este entorno");
+            } catch (Exception ex) { log.debug("No se pudo abrir carpeta", ex); }
+        });
         btnCopiar.setOnAction(e -> {
             var content = new javafx.scene.input.ClipboardContent();
             content.putString(file.getAbsolutePath());
@@ -223,8 +237,12 @@ public class ReportesController {
             NotificacionUtil.info(spinner.getScene(), "Ruta copiada al portapapeles");
         });
         btnImpr.setOnAction(e -> {
-            try { Desktop.getDesktop().print(file); }
-            catch (Exception ex) { NotificacionUtil.error(spinner.getScene(), "No se pudo enviar a la impresora"); }
+            try {
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.PRINT))
+                    Desktop.getDesktop().print(file);
+                else
+                    NotificacionUtil.advertencia(spinner.getScene(), "La impresión directa no está disponible en este entorno");
+            } catch (Exception ex) { NotificacionUtil.error(spinner.getScene(), "No se pudo enviar a la impresora"); }
         });
 
         HBox actions = new HBox(8, btnAbrir, btnImpr, btnCarpeta, btnCopiar);

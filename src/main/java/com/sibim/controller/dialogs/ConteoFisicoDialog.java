@@ -228,6 +228,17 @@ public final class ConteoFisicoDialog {
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, colHeaders, scroll, actions), 260, 60);
         dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll, actions));
+
+        // Intercept window X-close when the user has entered unsaved values
+        dialog.setOnShowing(e -> dialog.getDialogPane().getScene().getWindow().addEventFilter(
+            javafx.stage.WindowEvent.WINDOW_CLOSE_REQUEST, we -> {
+                long changed = rows.stream()
+                    .filter(r -> r.contado().getValue() != r.producto().getStockActual()).count();
+                if (changed > 0 && !ConfirmacionUtil.confirmar("Salir sin guardar",
+                        changed + " bien(es) con diferencias registradas se perderán.\n¿Seguro que quieres salir?"))
+                    we.consume();
+            }));
+
         dialog.showAndWait();
     }
 }

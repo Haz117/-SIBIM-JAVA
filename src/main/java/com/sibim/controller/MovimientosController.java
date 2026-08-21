@@ -412,8 +412,8 @@ public class MovimientosController {
                 || (m.getReferencia() != null && m.getReferencia().toLowerCase().contains(query))
                 || (m.getMotivo() != null && m.getMotivo().toLowerCase().contains(query)))
             .filter(m -> "Todos".equals(tipo) || m.getTipo().getEtiqueta().equals(tipo))
-            .filter(m -> desde == null || !m.getCreadoEn().toLocalDate().isBefore(desde))
-            .filter(m -> hasta == null || !m.getCreadoEn().toLocalDate().isAfter(hasta))
+            .filter(m -> desde == null || m.getCreadoEn() == null || !m.getCreadoEn().toLocalDate().isBefore(desde))
+            .filter(m -> hasta == null || m.getCreadoEn() == null || !m.getCreadoEn().toLocalDate().isAfter(hasta))
             .toList());
 
         boolean hasFilters = !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null;

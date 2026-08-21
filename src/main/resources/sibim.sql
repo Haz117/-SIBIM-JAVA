@@ -206,6 +206,11 @@ BEGIN
                    WHERE table_name = 'users' AND column_name = 'debe_cambiar_password') THEN
         ALTER TABLE users ADD COLUMN debe_cambiar_password BOOLEAN NOT NULL DEFAULT FALSE;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'movements' AND column_name = 'estado') THEN
+        ALTER TABLE movements ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'APROBADO';
+        EXECUTE 'CREATE INDEX IF NOT EXISTS idx_movements_estado ON movements(estado) WHERE estado = ''PENDIENTE''';
+    END IF;
 END $$;
 
 -- ─── DATOS DE EJEMPLO ───────────────────────────────────────────────

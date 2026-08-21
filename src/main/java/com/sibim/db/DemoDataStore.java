@@ -373,6 +373,14 @@ public final class DemoDataStore {
                 "u-dir-3","Carlos Morales Vega", dh(0, 15, 0))
         )));
 
+        // Estado inicial del seed: TRANSFERENCIAs quedan PENDIENTE para poder
+        // demostrar el flujo de aprobación; el resto queda APROBADO.
+        MOVIMIENTOS.forEach(m -> {
+            if (m.getEstado() == null)
+                m.setEstado(m.getTipo() == TipoMovimiento.TRANSFERENCIA
+                    ? Movimiento.ESTADO_PENDIENTE : Movimiento.ESTADO_APROBADO);
+        });
+
         // ── Auditoría inicial ─────────────────────────────────────────────────
         auditEntry("usuario", "u-sec-2",  "Jorge Mendoza Castillo",   "crear",      "Usuario registrado",              "u-admin", "Administrador del Sistema", dh(90, 8, 0));
         auditEntry("usuario", "u-dir-2",  "Roberto Sánchez Lima",     "crear",      "Usuario registrado",              "u-admin", "Administrador del Sistema", dh(60, 9, 0));

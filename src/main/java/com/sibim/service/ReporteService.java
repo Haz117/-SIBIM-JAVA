@@ -173,8 +173,9 @@ public class ReporteService {
     }
 
     public File exportAlertasCsv() throws Exception {
-        List<Producto> agotados  = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        List<Producto> bajoStock = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
+        List<Producto> todos     = productoRepo.findAll();
+        List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
+        List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
         File file = tempFile("alertas", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
             pw.println("Estado,Nombre,Codigo,Stock Actual,Stock Minimo,Area,Proveedor");
@@ -191,8 +192,9 @@ public class ReporteService {
     }
 
     public File exportAlertasPdf() throws Exception {
-        List<Producto> agotados  = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        List<Producto> bajoStock = productoRepo.findAll().stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
+        List<Producto> todos     = productoRepo.findAll();
+        List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
+        List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
         File file = tempFile("alertas", ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
@@ -255,10 +257,9 @@ public class ReporteService {
     }
 
     public File exportAlertasExcel() throws Exception {
-        List<Producto> agotados = productoRepo.findAll().stream()
-            .filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        List<Producto> bajoStock = productoRepo.findAll().stream()
-            .filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
+        List<Producto> todos     = productoRepo.findAll();
+        List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
+        List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
         String[] headers = {"Nombre", "Codigo", "Stock Actual", "Stock Minimo", "Estado"};
         File file = tempFile("alertas", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
