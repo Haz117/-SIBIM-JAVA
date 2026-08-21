@@ -273,9 +273,15 @@ public final class MovimientoDialogFactory {
         Button btnRegistrar = new Button("Registrar movimiento");
         btnRegistrar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
         btnRegistrar.getStyleClass().add("form-submit-btn");
-        btnRegistrar.setMaxWidth(Double.MAX_VALUE);
         btnRegistrar.setDisable(true);
         btnRegistrar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
+        HBox.setHgrow(btnRegistrar, Priority.ALWAYS);
+        btnRegistrar.setMaxWidth(Double.MAX_VALUE);
+
+        Node cancelNode = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.getStyleClass().add("btn-secondary");
+        btnCancelar.setOnAction(e -> { if (cancelNode instanceof Button b) b.fire(); });
 
         // Disable OK until product selected, quantity valid, and (for a
         // transfer) a destination area chosen
@@ -333,10 +339,21 @@ public final class MovimientoDialogFactory {
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);
         grid.add(DialogUtil.fieldLabel("Referencia"),    0, row); grid.add(fRef,         1, row);
 
+        HBox actionBar = new HBox(10, btnCancelar, btnRegistrar);
+        actionBar.setAlignment(Pos.CENTER_RIGHT);
+        actionBar.setPadding(new Insets(8, 22, 16, 22));
+
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
-        VBox.setMargin(btnRegistrar, new Insets(4, 22, 16, 22));
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, btnRegistrar), 280, 70);
-        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, btnRegistrar));
+
+        // Hide the standard DialogPane ButtonBar — the action buttons live
+        // inside the content so they're always visible even when the form is tall.
+        dialog.setOnShowing(ev -> {
+            Node bar = dialog.getDialogPane().lookup(".button-bar");
+            if (bar != null) { bar.setVisible(false); bar.setManaged(false); }
+        });
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, actionBar), 280, 70);
+        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, actionBar));
         Platform.runLater(() -> fProducto.requestFocus());
 
         Optional<ButtonType> result = dialog.showAndWait();
