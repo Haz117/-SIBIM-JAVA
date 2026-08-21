@@ -6,19 +6,20 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 
 ## Características
 
-- **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios y foto
+- **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios, foto y datos de depreciación
+- **Depreciación en línea recta (SAT)** — cada bien puede tener fecha de adquisición, vida útil en años y valor residual; el sistema calcula automáticamente el valor depreciado actual y el porcentaje depreciado, visible en el detalle del bien con una barra de progreso codificada por color (verde / ámbar / rojo)
 - **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino
 - **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
-- **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior
+- **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría o usuario, consultable desde Configuración (solo Admin)
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
 - **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
 - **Organigrama** — bienes distribuidos por secretaría y dirección municipal, con valor patrimonial y alertas de stock por área, y salto directo al Inventario filtrado por esa área
-- **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área
-- **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo (stat cards, gráficas, banners, grillas de reportes, perfil); contadores animados de 0 al valor real en todas las pantallas; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press en tarjetas, botones de navegación y acciones rápidas; efecto shake en errores de validación de formularios
+- **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real por nombre, usuario, cargo y área
+- **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo; contadores animados de 0 al valor real; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press; animación de transferencia con flecha que se estira al disparar y chip de destino que entra desde la derecha con rebote; efecto shake en errores de validación
 - **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
 - **Notificaciones toast** en tiempo real
 - **Recuperación de formularios** — si falla el guardado (BD caída, validación), el diálogo se reabre con los datos ya capturados en vez de perderlos
@@ -60,9 +61,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
    src/main/resources/sibim.sql
    ```
 3. **Si estás actualizando una instalación existente**, aplica las migraciones incrementales en orden:
-   ```
-   sql/migrations/002_movimiento_estado.sql   -- Agrega columna `estado` a movements (flujo de aprobación)
-   ```
+   El propio `sibim.sql` ya incluye todas las migraciones en su bloque `DO $$ ... END $$` — basta con volver a ejecutarlo contra la base existente para que se apliquen solo los cambios que faltan (`IF NOT EXISTS` en cada `ALTER TABLE`). Si por alguna razón prefieres aplicar migraciones de forma incremental, también están disponibles por separado en `sql/migrations/`.
    Las migraciones usan `IF NOT EXISTS` — son seguras de correr más de una vez.
 4. **Solo para desarrollo/pruebas locales**, opcionalmente ejecutar después los datos de ejemplo (usuarios, categorías y bienes ficticios):
    ```
@@ -99,9 +98,11 @@ El script compila automáticamente si detecta cambios y lanza la aplicación.
 ### Opción 2 — Maven directo
 
 ```bash
-mvn package -q
-java -jar target/sibim-desktop-1.0.0.jar
+# Desde la raíz del proyecto (usa el Maven embebido):
+maven-dist/apache-maven-3.9.9/bin/mvn javafx:run
 ```
+
+> **Nota:** El fat JAR generado por `mvn package` no es directamente ejecutable con `java -jar` en JavaFX 21 (el runtime nativo de JavaFX no puede empaquetarse en un shade JAR). Para distribución usa el instalador (ver sección siguiente).
 
 ---
 
@@ -172,13 +173,13 @@ SIBIM-Java/
 | Módulo | Descripción |
 |---|---|
 | Dashboard | Tarjetas resumen, gráfica de movimientos semanal, gráfica por categoría, barra de salud del inventario, animaciones de entrada y contadores animados |
-| Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría, paginación, baja patrimonial con motivo, conteo físico y vista de bajas |
+| Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría, paginación, baja patrimonial con motivo, conteo físico, vista de bajas y panel de depreciación en el detalle |
 | Movimientos | Registro de entradas/salidas/ajustes/transferencias; flujo de aprobación para transferencias de usuarios no-Admin (quedan como PENDIENTE hasta que un Admin las autorice o rechace desde el panel "⏳ Pendientes") |
 | Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer |
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
 | Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes, valor patrimonial y alertas de stock por área, y acceso directo al Inventario filtrado |
-| Reportes | Exportación multi-formato con selector de período |
-| Configuración | Perfil de usuario, gestión de cuentas, historial de auditoría e historial de conteos físicos (solo Admin) |
+| Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV) |
+| Configuración | Perfil de usuario, gestión de cuentas con buscador en tiempo real, historial de auditoría e historial de conteos físicos (solo Admin) |
 
 ---
 
