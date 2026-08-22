@@ -218,7 +218,8 @@ public class ProductoRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, newStock);
             ps.setString(2, productoId);
-            ps.executeUpdate();
+            if (ps.executeUpdate() == 0)
+                throw new SQLException("El bien ya no existe en la base de datos (id=" + productoId + ")");
         }
     }
 
@@ -240,12 +241,13 @@ public class ProductoRepository {
 
     /** Replay target for SyncService — see {@link #saveOnline}. */
     public void darDeBajaOnline(String id, String motivo) throws SQLException {
-        String sql = "UPDATE products SET fecha_baja = CURRENT_DATE, motivo_baja = ?, updated_at = NOW() WHERE id = ?";
+        String sql = "UPDATE products SET fecha_baja = CURRENT_DATE, motivo_baja = ?, updated_at = NOW() WHERE id = ? AND fecha_baja IS NULL";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, motivo);
             ps.setString(2, id);
-            ps.executeUpdate();
+            if (ps.executeUpdate() == 0)
+                throw new SQLException("El bien no existe o ya estaba dado de baja (id=" + id + ")");
         }
     }
 
@@ -266,11 +268,12 @@ public class ProductoRepository {
 
     /** Replay target for SyncService — see {@link #saveOnline}. */
     public void reactivarOnline(String id) throws SQLException {
-        String sql = "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, updated_at = NOW() WHERE id = ?";
+        String sql = "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, updated_at = NOW() WHERE id = ? AND fecha_baja IS NOT NULL";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, id);
-            ps.executeUpdate();
+            if (ps.executeUpdate() == 0)
+                throw new SQLException("El bien no existe o no estaba dado de baja (id=" + id + ")");
         }
     }
 

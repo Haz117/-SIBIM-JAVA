@@ -37,6 +37,32 @@ class AuthServiceTest {
         DatabaseConfig.setDemoMode(false);
     }
 
+    // ── Inputs nulos / vacíos ─────────────────────────────────────────────────
+
+    @Test
+    void login_usuarioNull_lanzaAuthException() {
+        assertThrows(AuthService.AuthException.class,
+            () -> new AuthService().login(null, "cualquier"));
+    }
+
+    @Test
+    void login_usuarioBlank_lanzaAuthException() {
+        assertThrows(AuthService.AuthException.class,
+            () -> new AuthService().login("   ", "cualquier"));
+    }
+
+    @Test
+    void login_passwordNull_lanzaAuthException() {
+        assertThrows(AuthService.AuthException.class,
+            () -> new AuthService().login("usuario", null));
+    }
+
+    @Test
+    void login_passwordBlank_lanzaAuthException() {
+        assertThrows(AuthService.AuthException.class,
+            () -> new AuthService().login("usuario", ""));
+    }
+
     // ── Usuario no existe ─────────────────────────────────────────────────────
 
     @Test

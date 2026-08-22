@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ProductosController {
 
@@ -124,6 +125,7 @@ public class ProductosController {
     private int currentPage = 0;
     private int pageSize = 25;
     private boolean refreshing = false;
+    private final AtomicBoolean loading = new AtomicBoolean(false);
     private boolean canEdit = false;
     private String pendingHighlightId;
     private ToggleGroup estadoChipGroup;
@@ -483,12 +485,19 @@ public class ProductosController {
     }
 
     private void loadData() {
+        if (!loading.compareAndSet(false, true)) {
+            // Ya hay una carga en curso — sólo marcamos refreshing para que
+            // la tarea activa muestre el toast "Lista actualizada" al terminar.
+            refreshing = true;
+            return;
+        }
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         Task<List<Producto>> task = new Task<>() {
             @Override protected List<Producto> call() throws Exception {
                 return productoService.getAll();
             }
             @Override protected void succeeded() {
+                loading.set(false);
                 allData.setAll(getValue());
                 updateStats();
                 applyFilters();
@@ -496,6 +505,7 @@ public class ProductosController {
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             }
             @Override protected void failed() {
+                loading.set(false);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los bienes. Verifica la conexión.");
             }

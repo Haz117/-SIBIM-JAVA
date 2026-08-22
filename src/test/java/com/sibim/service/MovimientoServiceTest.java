@@ -261,6 +261,67 @@ class MovimientoServiceTest {
         }
     }
 
+    // ── eliminar() — bloqueo de PENDIENTE ────────────────────────────────────
+
+    @Test
+    void eliminar_movimientoPendiente_throwsValidation() {
+        SessionManager.setCurrentUser(admin);
+        try (MockedConstruction<MovimientoRepository> mr = mockConstruction(MovimientoRepository.class,
+                (m, c) -> when(m.findEstadoById("mov-pend"))
+                    .thenReturn(Optional.of(com.sibim.model.Movimiento.ESTADO_PENDIENTE)));
+             MockedConstruction<ProductoRepository> pr = mockConstruction(ProductoRepository.class)) {
+            var ex = assertThrows(MovimientoService.ValidationException.class,
+                () -> new MovimientoService().eliminar("mov-pend"));
+            assertTrue(ex.getMessage().toLowerCase().contains("pendiente"),
+                "El mensaje debe mencionar 'pendiente'");
+        }
+    }
+
+    @Test
+    void eliminar_movimientoPendiente_noLlamaDeleteAtomic() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        try (MockedConstruction<MovimientoRepository> mr = mockConstruction(MovimientoRepository.class,
+                (m, c) -> when(m.findEstadoById(any()))
+                    .thenReturn(Optional.of(com.sibim.model.Movimiento.ESTADO_PENDIENTE)));
+             MockedConstruction<ProductoRepository> pr = mockConstruction(ProductoRepository.class)) {
+            assertThrows(MovimientoService.ValidationException.class,
+                () -> new MovimientoService().eliminar("mov-pend"));
+            verify(mr.constructed().get(0), never()).deleteMovimientoAtomic(any());
+        }
+    }
+
+    @Test
+    void eliminar_movimientoAprobado_procedeNormal() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        try (MockedConstruction<MovimientoRepository> mr = mockConstruction(MovimientoRepository.class,
+                (m, c) -> {
+                    when(m.findEstadoById("mov-ok"))
+                        .thenReturn(Optional.of(com.sibim.model.Movimiento.ESTADO_APROBADO));
+                    when(m.findProductoIdById("mov-ok")).thenReturn(Optional.of("p-01"));
+                });
+             MockedConstruction<ProductoRepository> pr = mockConstruction(ProductoRepository.class,
+                (m, c) -> when(m.findById("p-01")).thenReturn(Optional.of(producto)))) {
+            assertDoesNotThrow(() -> new MovimientoService().eliminar("mov-ok"));
+            verify(mr.constructed().get(0)).deleteMovimientoAtomic("mov-ok");
+        }
+    }
+
+    @Test
+    void eliminar_estadoVacio_procedeNormal() throws Exception {
+        // findEstadoById vacío = movimiento no existe o sin estado → no bloquear
+        SessionManager.setCurrentUser(admin);
+        try (MockedConstruction<MovimientoRepository> mr = mockConstruction(MovimientoRepository.class,
+                (m, c) -> {
+                    when(m.findEstadoById(any())).thenReturn(Optional.empty());
+                    when(m.findProductoIdById("mov-x")).thenReturn(Optional.of("p-01"));
+                });
+             MockedConstruction<ProductoRepository> pr = mockConstruction(ProductoRepository.class,
+                (m, c) -> when(m.findById("p-01")).thenReturn(Optional.of(producto)))) {
+            assertDoesNotThrow(() -> new MovimientoService().eliminar("mov-x"));
+            verify(mr.constructed().get(0)).deleteMovimientoAtomic("mov-x");
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private MockedConstruction<ProductoRepository> repoConProducto() {

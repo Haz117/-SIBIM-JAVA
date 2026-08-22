@@ -33,6 +33,10 @@ public class AuthService {
      * @throws AuthException if credentials are invalid, locked out, or DB error occurs.
      */
     public Usuario login(String username, String password) throws AuthException {
+        if (username == null || username.isBlank())
+            throw new AuthException("El usuario es obligatorio");
+        if (password == null || password.isBlank())
+            throw new AuthException("La contraseña es obligatoria");
         String key = username.trim().toLowerCase();
         try {
             // Users aren't part of the offline sync scope (see the

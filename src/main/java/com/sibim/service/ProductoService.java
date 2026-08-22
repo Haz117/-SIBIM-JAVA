@@ -4,12 +4,16 @@ import com.sibim.model.Producto;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
 public class ProductoService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductoService.class);
 
     private final ProductoRepository productoRepo = new ProductoRepository();
     private final AuditLogRepository auditRepo = new AuditLogRepository();
@@ -38,6 +42,7 @@ public class ProductoService {
         validate(p);
         boolean isNew = p.getId() == null;
         Producto saved = productoRepo.save(p);
+        log.info("Bien {} [{}] '{}'", isNew ? "registrado" : "actualizado", saved.getId(), saved.getNombre());
         auditRepo.log("producto", saved.getId(), saved.getNombre(),
             isNew ? "crear" : "actualizar",
             isNew ? "Bien registrado" : "Datos del bien actualizados");
@@ -73,6 +78,7 @@ public class ProductoService {
         if (motivo == null || motivo.isBlank())
             throw new ValidationException("El motivo de la baja es obligatorio");
         productoRepo.darDeBaja(id, motivo.trim());
+        log.info("Baja patrimonial bien [{}] '{}' — motivo: {}", id, p.getNombre(), motivo.trim());
         auditRepo.log("producto", id, p.getNombre(), "baja", "Motivo: " + motivo.trim());
     }
 
@@ -84,6 +90,7 @@ public class ProductoService {
         if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
         productoRepo.reactivar(id);
+        log.info("Bien reactivado [{}] '{}'", id, p.getNombre());
         auditRepo.log("producto", id, p.getNombre(), "reactivar", "Bien reactivado tras baja");
     }
 
@@ -100,8 +107,20 @@ public class ProductoService {
     private void validate(Producto p) throws ValidationException, SQLException {
         if (p.getNombre() == null || p.getNombre().isBlank())
             throw new ValidationException("El nombre es obligatorio");
+        if (p.getNombre().length() > 200)
+            throw new ValidationException("El nombre no puede exceder 200 caracteres");
         if (p.getCodigo() == null || p.getCodigo().isBlank())
             throw new ValidationException("El codigo es obligatorio");
+        if (p.getCodigo().length() > 50)
+            throw new ValidationException("El codigo no puede exceder 50 caracteres");
+        if (p.getDescripcion() != null && p.getDescripcion().length() > 1000)
+            throw new ValidationException("La descripcion no puede exceder 1000 caracteres");
+        if (p.getProveedor() != null && p.getProveedor().length() > 200)
+            throw new ValidationException("El proveedor no puede exceder 200 caracteres");
+        if (p.getUbicacion() != null && p.getUbicacion().length() > 200)
+            throw new ValidationException("La ubicacion no puede exceder 200 caracteres");
+        if (p.getResguardante() != null && p.getResguardante().length() > 200)
+            throw new ValidationException("El resguardante no puede exceder 200 caracteres");
         if (productoRepo.existsByCodigo(p.getCodigo(), p.getId()))
             throw new ValidationException("Ya existe un bien con ese codigo");
         if (p.getCategoriaId() == null || p.getCategoriaId().isBlank())

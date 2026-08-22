@@ -40,6 +40,7 @@ import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MovimientosController {
 
@@ -102,6 +103,9 @@ public class MovimientosController {
      *  no trae la categoría del bien, así que se resuelve del lado del cliente
      *  contra el catálogo de productos ya cargado en memoria. */
     private java.util.Map<String, String> categoriaPorProducto = java.util.Map.of();
+    private boolean refreshing = false;
+    private final AtomicBoolean loading           = new AtomicBoolean(false);
+    private final AtomicBoolean loadingCategorias = new AtomicBoolean(false);
 
     @FXML
     public void initialize() {
@@ -367,9 +371,11 @@ public class MovimientosController {
      *  category names actually in use. */
     private void loadCategoriaFilter() {
         if (categoriaFilter == null) return;
+        if (!loadingCategorias.compareAndSet(false, true)) return;
         AppExecutor.submit(new Task<List<Producto>>() {
             @Override protected List<Producto> call() throws Exception { return productoRepo.findAll(); }
             @Override protected void succeeded() {
+                loadingCategorias.set(false);
                 List<Producto> productos = getValue();
                 categoriaPorProducto = productos.stream()
                     .filter(p -> p.getCategoriaNombre() != null)
@@ -379,7 +385,7 @@ public class MovimientosController {
                     .distinct().sorted().toList();
                 categoriaFilter.setItems(FXCollections.observableArrayList(nombres));
             }
-            @Override protected void failed() { /* filter just stays empty — non-critical */ }
+            @Override protected void failed() { loadingCategorias.set(false); }
         });
     }
 
@@ -398,16 +404,23 @@ public class MovimientosController {
     }
 
     private void loadData() {
+        if (!loading.compareAndSet(false, true)) {
+            refreshing = true;
+            return;
+        }
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         AppExecutor.submit(new Task<List<Movimiento>>() {
             @Override protected List<Movimiento> call() throws Exception { return movimientoService.getAll(); }
             @Override protected void succeeded() {
+                loading.set(false);
                 allData.setAll(getValue());
                 currentPage = 0;
                 applyFilters();
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             }
             @Override protected void failed() {
+                loading.set(false);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los movimientos");
             }

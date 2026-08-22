@@ -10,12 +10,11 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build installer & publish release
+    name: Build installers & publish release
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -24,7 +23,7 @@ jobs:
           distribution: temurin
           cache: maven
 
-      # Strip the leading 'v' from the tag (v1.2.3 → 1.2.3)
+      # Strip leading 'v' from tag (v1.2.3 → 1.2.3)
       - name: Extract version
         id: ver
         shell: pwsh
@@ -33,18 +32,30 @@ jobs:
           echo "version=$v" >> $env:GITHUB_OUTPUT
           echo "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
 
-      # Stamp the version into pom.xml so the JAR manifest and app.properties
-      # reflect the real release version instead of 1.0.0-SNAPSHOT.
+      # WiX 3.x is required by jpackage --type exe/msi on JDK 21
+      - name: Install WiX 3.x
+        shell: pwsh
+        run: choco install wixtoolset --yes --no-progress
+
       - name: Stamp version in pom.xml
         run: mvn --batch-mode versions:set -DnewVersion=${{ steps.ver.outputs.version }} -DgenerateBackupPoms=false
 
-      # Build fat JAR (shade plugin runs during package phase)
+      - name: Run tests
+        run: mvn --batch-mode --no-transfer-progress test
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-reports-${{ steps.ver.outputs.version }}
+          path: target/surefire-reports/
+          retention-days: 30
+
       - name: Build fat JAR
         run: mvn --batch-mode --no-transfer-progress package -DskipTests
 
-      # Create self-contained app-image (no WiX required — works on every
-      # windows-latest runner regardless of WiX installation state).
-      - name: Create app-image
+      # ── Portable ZIP (app-image, no installer needed) ─────────────────────────
+      - name: Create portable app-image
         shell: pwsh
         run: |
           $version = '${{ steps.ver.outputs.version }}'
@@ -70,24 +81,66 @@ jobs:
             --input       target `
             --main-jar    $jar.Name `
             --main-class  com.sibim.Main `
-            --dest        packaging\dist `
+            --dest        "packaging\dist" `
             --java-options "-Xmx512m" `
             --java-options "-Dfile.encoding=UTF-8" `
             @iconArg
 
-          if ($LASTEXITCODE -ne 0) { throw "jpackage failed with exit code $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "jpackage (app-image) failed with exit $LASTEXITCODE" }
 
-      # Zip the app-image folder for easy distribution
-      - name: Zip app-image
+          $src = "packaging\dist\SIBIM Desktop"
+          $zip = "packaging\dist\SIBIM-Desktop-$version-win64-portable.zip"
+          Compress-Archive -Path $src -DestinationPath $zip -CompressionLevel Optimal
+          $size = [math]::Round((Get-Item $zip).Length / 1MB, 1)
+          Write-Host "Portable zip: $zip ($size MB)"
+
+      # ── EXE installer (requires WiX 3.x installed above) ─────────────────────
+      - name: Create .exe installer
         shell: pwsh
         run: |
           $version = '${{ steps.ver.outputs.version }}'
-          $src  = "packaging\dist\SIBIM Desktop"
-          $dest = "packaging\dist\SIBIM-Desktop-$version-win64.zip"
-          Compress-Archive -Path $src -DestinationPath $dest -CompressionLevel Optimal
-          Write-Host "Created: $dest ($([math]::Round((Get-Item $dest).Length / 1MB, 1)) MB)"
+          $jar = Get-ChildItem target -Filter "sibim-desktop-*.jar" |
+                 Where-Object { $_.Name -notlike "*original*" } |
+                 Sort-Object LastWriteTime -Descending |
+                 Select-Object -First 1
 
-      # Publish GitHub Release and attach the zip
+          # WiX adds itself to machine PATH — refresh it so jpackage can find candle.exe / light.exe
+          $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + $env:PATH
+
+          $iconArg = @()
+          if (Test-Path "src\main\resources\img\icon.ico") {
+            $iconArg = "--icon", "src\main\resources\img\icon.ico"
+          }
+
+          & "$env:JAVA_HOME\bin\jpackage.exe" `
+            --type        exe `
+            --name        "SIBIM Desktop" `
+            --app-version $version `
+            --vendor      "H. Ayuntamiento Municipal" `
+            --description "Sistema Integral de Bienes Municipales" `
+            --input       target `
+            --main-jar    $jar.Name `
+            --main-class  com.sibim.Main `
+            --dest        "packaging\dist" `
+            --java-options "-Xmx512m" `
+            --java-options "-Dfile.encoding=UTF-8" `
+            --win-menu `
+            --win-shortcut `
+            --win-dir-chooser `
+            @iconArg
+
+          if ($LASTEXITCODE -ne 0) { throw "jpackage (exe) failed with exit $LASTEXITCODE" }
+
+          $exe = Get-ChildItem "packaging\dist" -Filter "SIBIM Desktop-*.exe" | Select-Object -First 1
+          $size = [math]::Round($exe.Length / 1MB, 1)
+          Write-Host "Installer: $($exe.FullName) ($size MB)"
+
+          # Rename to a consistent artifact name without spaces
+          $clean = "packaging\dist\SIBIM-Desktop-$version-win64-setup.exe"
+          Rename-Item $exe.FullName $clean
+          Write-Host "Renamed to: $clean"
+
+      # ── Publish GitHub Release with both artifacts ─────────────────────────
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -96,5 +149,7 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
-          files: packaging/dist/SIBIM-Desktop-*.zip
+          files: |
+            packaging/dist/SIBIM-Desktop-*-portable.zip
+            packaging/dist/SIBIM-Desktop-*-setup.exe
           fail_on_unmatched_files: true

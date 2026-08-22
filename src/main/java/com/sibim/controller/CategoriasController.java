@@ -269,7 +269,7 @@ public class CategoriasController {
         hexLabel.getStyleClass().add("cat-hex-label");
         Runnable updateDot = () -> {
             try { colorDot.setFill(javafx.scene.paint.Color.web(selectedColor[0])); }
-            catch (Exception ignored) { colorDot.setFill(javafx.scene.paint.Color.LIGHTGRAY); }
+            catch (IllegalArgumentException ignored) { colorDot.setFill(javafx.scene.paint.Color.LIGHTGRAY); }
             hexLabel.setText(selectedColor[0]);
         };
 

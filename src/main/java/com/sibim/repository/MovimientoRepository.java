@@ -57,6 +57,31 @@ public class MovimientoRepository {
         }
     }
 
+    /** Returns the estado of a movement without loading the full record —
+     *  used by the service to block deletion of PENDIENTE transfers. */
+    public Optional<String> findEstadoById(String movimientoId) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            return DemoDataStore.findAllMovimientos(null).stream()
+                .filter(m -> movimientoId.equals(m.getId()))
+                .map(Movimiento::getEstado)
+                .findFirst();
+        }
+        if (DatabaseConfig.isOfflineMode()) {
+            return OfflineStore.findAllMovimientos(null).stream()
+                .filter(m -> movimientoId.equals(m.getId()))
+                .map(Movimiento::getEstado)
+                .findFirst();
+        }
+        String sql = "SELECT estado FROM movements WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movimientoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.ofNullable(rs.getString("estado")) : Optional.empty();
+            }
+        }
+    }
+
     public List<Movimiento> findByProducto(String productoId) throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
         if (DatabaseConfig.isOfflineMode()) return OfflineStore.findMovimientosByProducto(productoId, accessible);

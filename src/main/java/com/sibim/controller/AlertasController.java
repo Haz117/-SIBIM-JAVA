@@ -237,7 +237,7 @@ public class AlertasController {
                         try {
                             if (Integer.parseInt(item.split(" ")[0]) <= 3)
                                 getStyleClass().add("days-warn");
-                        } catch (Exception ignored) {}
+                        } catch (NumberFormatException ignored) {}
                     }
                 }
             }

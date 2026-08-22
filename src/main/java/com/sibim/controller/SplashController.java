@@ -2,7 +2,11 @@ package com.sibim.controller;
 
 import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.SyncService;
+import io.github.cdimascio.dotenv.Dotenv;
 import javafx.animation.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -34,10 +38,13 @@ public class SplashController {
     @FXML private StackPane ringBl;
 
     private final java.util.List<Animation> loops = new java.util.ArrayList<>();
+    private boolean animReady = false;
+    private boolean dbReady   = false;
 
     @FXML
     public void initialize() {
         progressBar.setProgress(0);
+        Thread.ofVirtual().name("db-init").start(this::initDatabase);
 
         // Root itself fades in immediately so the window isn't a blank flash;
         // the actual "entrance" is staggered per-element below.
@@ -113,14 +120,12 @@ public class SplashController {
         PauseTransition hold = new PauseTransition(Duration.millis(420));
         hold.setOnFinished(e -> {
             stopLoops();
-            // Deferred: this handler runs synchronously inside the
-            // animation pulse (Animation.finished -> runHandler), and
-            // Dialog.showAndWait() throws IllegalStateException if called
-            // from there ("not allowed during animation or layout
-            // processing"). Platform.runLater pushes it to a later pulse,
-            // outside that callstack, before confirmDemoMode() can open
-            // its Alert.
-            Platform.runLater(this::afterEntrance);
+            animReady = true;
+            if (!dbReady) {
+                lblStatus.setText("Conectando a la base de datos...");
+                progressBar.setProgress(-1); // indeterminate while waiting for DB
+            }
+            maybeTransition();
         });
 
         ParallelTransition entrance = new ParallelTransition(
@@ -129,6 +134,50 @@ public class SplashController {
         entrance.play();
 
         startAmbientLoops();
+    }
+
+    private void maybeTransition() {
+        // Always called on the FX thread. Once both the entrance animation and
+        // the DB-init task are done, hand off to afterEntrance() via runLater so
+        // Dialog.showAndWait() in confirmDemoMode() isn't triggered from inside
+        // an animation pulse (that throws IllegalStateException).
+        if (animReady && dbReady) {
+            Platform.runLater(this::afterEntrance);
+        }
+    }
+
+    private void initDatabase() {
+        try {
+            DatabaseConfig.init();
+            try (Connection c = DatabaseConfig.getConnection();
+                 PreparedStatement ps = c.prepareStatement("SELECT 1 FROM products LIMIT 1")) {
+                ps.execute(); // throws if SIBIM schema isn't present yet
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());
+            DatabaseConfig.close();
+            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+            boolean demoRequested = "true".equalsIgnoreCase(dotenv.get("DEMO_MODE", System.getenv("DEMO_MODE")));
+            if (demoRequested) {
+                log.info("DEMO_MODE=true — iniciando en modo demo (datos ficticios en memoria).");
+                DatabaseConfig.setDemoMode(true);
+            } else {
+                log.info("Iniciando en modo offline — los cambios se guardan localmente y se sincronizan al reconectar.");
+                DatabaseConfig.setOfflineMode(true);
+                try { SyncService.startWatching(); } catch (Exception se) {
+                    log.error("Error al iniciar SyncService", se);
+                }
+            }
+        } finally {
+            Platform.runLater(() -> {
+                dbReady = true;
+                if (animReady) {
+                    progressBar.setProgress(1.0);
+                    lblStatus.setText("Sistema listo  ✓");
+                }
+                maybeTransition();
+            });
+        }
     }
 
     private void afterEntrance() {

@@ -161,7 +161,8 @@ public class MainApp extends Application {
     @Override
     public void stop() {
         AppExecutor.shutdown();
-        com.sibim.db.DatabaseConfig.close();
+        try { com.sibim.db.offline.SyncService.stopWatching(); } catch (Exception e) { /* ignore on exit */ }
+        try { com.sibim.db.DatabaseConfig.close(); } catch (Exception e) { /* ignore on exit */ }
     }
 
     public static Stage getPrimaryStage() { return primaryStage; }

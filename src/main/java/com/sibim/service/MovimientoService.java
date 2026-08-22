@@ -7,6 +7,8 @@ import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.ProductoUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -14,6 +16,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class MovimientoService {
+
+    private static final Logger log = LoggerFactory.getLogger(MovimientoService.class);
 
     private final MovimientoRepository movimientoRepo = new MovimientoRepository();
     private final ProductoRepository productoRepo = new ProductoRepository();
@@ -113,10 +117,17 @@ public class MovimientoService {
         // Non-admin transfers go through an approval workflow: saved as PENDIENTE,
         // stock and area unchanged until an admin approves.
         if (tipo == TipoMovimiento.TRANSFERENCIA && !SessionManager.isAdmin()) {
-            return movimientoRepo.addMovimientoPendiente(m);
+            Movimiento saved = movimientoRepo.addMovimientoPendiente(m);
+            log.info("Transferencia PENDIENTE [{}] '{}' {} uds → área '{}'",
+                saved.getId(), m.getProductoNombre(), m.getCantidad(), m.getAreaDestino());
+            return saved;
         }
         try {
-            return movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
+            Movimiento saved = movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
+            log.info("Movimiento {} [{}] '{}' {} uds — stock {} → {}",
+                tipo, saved.getId(), m.getProductoNombre(), m.getCantidad(),
+                m.getStockAnterior(), m.getStockNuevo());
+            return saved;
         } catch (SQLException e) {
             if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
             throw e;
@@ -136,6 +147,11 @@ public class MovimientoService {
     }
 
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
+        Optional<String> estado = movimientoRepo.findEstadoById(movimientoId);
+        if (estado.isPresent() && Movimiento.ESTADO_PENDIENTE.equals(estado.get()))
+            throw new ValidationException(
+                "No se puede eliminar una transferencia pendiente. Primero apruébala o recházala.");
+
         Optional<String> productoId = movimientoRepo.findProductoIdById(movimientoId);
         if (!SessionManager.isAdmin()) {
             // Orphaned movement (product deleted) — can't verify area, deny.
@@ -147,6 +163,7 @@ public class MovimientoService {
         }
         try {
             movimientoRepo.deleteMovimientoAtomic(movimientoId);
+            log.info("Movimiento eliminado [{}]", movimientoId);
         } catch (SQLException e) {
             if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
             throw e;
