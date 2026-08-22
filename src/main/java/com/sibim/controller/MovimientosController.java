@@ -5,8 +5,8 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
-import com.sibim.repository.ProductoRepository;
 import com.sibim.service.MovimientoService;
+import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -87,7 +87,7 @@ public class MovimientosController {
     @FXML private ComboBox<String> categoriaFilter;
 
     private final MovimientoService movimientoService = new MovimientoService();
-    private final ProductoRepository productoRepo = new ProductoRepository();
+    private final ProductoService productoService = new ProductoService();
     private final ReporteService reporteService = new ReporteService();
 
     private ObservableList<Movimiento> allData = FXCollections.observableArrayList();
@@ -373,7 +373,7 @@ public class MovimientosController {
         if (categoriaFilter == null) return;
         if (!loadingCategorias.compareAndSet(false, true)) return;
         AppExecutor.submit(new Task<List<Producto>>() {
-            @Override protected List<Producto> call() throws Exception { return productoRepo.findAll(); }
+            @Override protected List<Producto> call() throws Exception { return productoService.getAll(); }
             @Override protected void succeeded() {
                 loadingCategorias.set(false);
                 List<Producto> productos = getValue();
@@ -722,7 +722,7 @@ public class MovimientosController {
 
     private void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo, MovimientoDialogFactory.Result retryFrom) {
         try {
-            List<Producto> productos = productoRepo.findAll();
+            List<Producto> productos = productoService.getAll();
             MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r ->
                 DialogUtil.runAsync(
                     () -> movimientoService.registrar(

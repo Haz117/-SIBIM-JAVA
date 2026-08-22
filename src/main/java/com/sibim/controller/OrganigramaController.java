@@ -3,7 +3,7 @@ package com.sibim.controller;
 import com.sibim.config.Areas;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
-import com.sibim.repository.ProductoRepository;
+import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
@@ -39,7 +39,7 @@ public class OrganigramaController {
     @FXML private Label helpBienes;
     @FXML private Label helpTopArea;
 
-    private final ProductoRepository productoRepo = new ProductoRepository();
+    private final ProductoService productoService = new ProductoService();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
 
     @FXML private void onRefresh() { loadData(true); }
@@ -63,7 +63,7 @@ public class OrganigramaController {
     private void loadData(boolean showSuccessToast) {
         spinner.setVisible(true); spinner.setManaged(true);
         DialogUtil.runAsync(
-            () -> productoRepo.findAll().stream().collect(Collectors.groupingBy(Producto::getArea)),
+            () -> productoService.getAll().stream().collect(Collectors.groupingBy(Producto::getArea)),
             porArea -> {
                 productosPorArea = porArea;
                 spinner.setVisible(false); spinner.setManaged(false);

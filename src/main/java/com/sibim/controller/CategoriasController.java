@@ -1,7 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.model.Categoria;
-import com.sibim.repository.CategoriaRepository;
+import com.sibim.service.CategoriaService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
@@ -46,7 +46,7 @@ public class CategoriasController {
     @FXML private ProgressIndicator spinner;
     @FXML private Label helpCategorias;
 
-    private final CategoriaRepository categoriaRepo = new CategoriaRepository();
+    private final CategoriaService categoriaService = new CategoriaService();
     private ObservableList<Categoria> allData = FXCollections.observableArrayList();
 
     @FXML
@@ -163,7 +163,7 @@ public class CategoriasController {
     private void loadData() {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         DialogUtil.runAsync(
-            () -> categoriaRepo.findAll(),
+            () -> categoriaService.findAll(),
             cats -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 allData.setAll(cats);
@@ -209,10 +209,10 @@ public class CategoriasController {
         if (!ConfirmacionUtil.confirmarEliminar(sel.getNombre())) return;
         DialogUtil.runAsync(
             () -> {
-                if (categoriaRepo.tieneProductos(sel.getId())) {
+                if (categoriaService.tieneProductos(sel.getId())) {
                     throw new IllegalStateException("No se puede eliminar: hay bienes asignados a esta categoria");
                 }
-                categoriaRepo.delete(sel.getId());
+                categoriaService.delete(sel.getId());
             },
             () -> {
                 allData.remove(sel);
@@ -367,7 +367,7 @@ public class CategoriasController {
         });
 
         dialog.showAndWait().ifPresent(c -> DialogUtil.runAsync(
-            () -> categoriaRepo.save(c),
+            () -> categoriaService.save(c),
             () -> {
                 if (isNew) allData.add(c);
                 NotificacionUtil.exito(table.getScene(),

@@ -169,6 +169,8 @@ public final class SyncService {
                     repo.saveOnline(c);
                 }
                 markOutbox("category_outbox", r.id(), "SYNCED", null);
+                writeAuditEntry("categoria", r.categoriaId(), r.nombre(),
+                    r.operacion().toLowerCase(), "Replicado desde modo offline");
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar categoría {} ({})", r.categoriaId(), r.operacion(), ex);
@@ -237,6 +239,8 @@ public final class SyncService {
                     default -> repo.saveOnline(productFromRow(r));
                 }
                 markOutbox("product_outbox", r.id(), "SYNCED", null);
+                writeAuditEntry("producto", r.productoId(), r.nombre(),
+                    r.operacion().toLowerCase(), "Replicado desde modo offline");
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar producto {} ({})", r.productoId(), r.operacion(), ex);
@@ -392,6 +396,8 @@ public final class SyncService {
                     repo.addMovimientoAtomicOnline(m, null);
                 }
                 markOutbox("movement_outbox", r.id(), "SYNCED", null);
+                writeAuditEntry("movimiento", r.movimientoId(), r.productoId(),
+                    r.operacion().toLowerCase(), "Replicado desde modo offline");
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar movimiento {} ({})", r.movimientoId(), r.operacion(), ex);
@@ -516,6 +522,24 @@ public final class SyncService {
     }
 
     // ─────────────────────────────── Outbox bookkeeping ────────────────────
+
+    private static void writeAuditEntry(String entidad, String entidadId, String entidadNombre,
+                                         String accion, String detalle) {
+        try {
+            AuditLog a = new AuditLog();
+            a.setId(UUID.randomUUID().toString());
+            a.setEntidad(entidad);
+            a.setEntidadId(entidadId);
+            a.setEntidadNombre(entidadNombre != null ? entidadNombre : entidadId);
+            a.setAccion("offline_sync:" + accion);
+            a.setDetalle(detalle);
+            a.setCreadoEn(LocalDateTime.now());
+            a.setUsuarioNombre("Sistema (offline sync)");
+            new AuditLogRepository().logOnline(a);
+        } catch (Exception e) {
+            log.warn("SyncService: no se pudo escribir audit entry para {} {}", entidad, entidadId, e);
+        }
+    }
 
     private static void markOutbox(String table, int rowId, String status, String error) {
         String sql = "UPDATE " + table + " SET status = ?, error = ? WHERE id = ?";

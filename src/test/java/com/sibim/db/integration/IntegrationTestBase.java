@@ -91,6 +91,18 @@ abstract class IntegrationTestBase {
                 "TRUNCATE conteo_items, conteos_fisicos, movements, products, categories, users, audit_log CASCADE"
             );
         }
+        // Re-seed the admin user row so FK constraints on movements and
+        // conteos_fisicos (usuario_id → users.id) are satisfied after the TRUNCATE.
+        try (Connection c = dataSource.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                "INSERT INTO users (id, username, password, nombre, role) VALUES (?,?,?,?,?)")) {
+            ps.setString(1, "test-admin");
+            ps.setString(2, "admin-test");
+            ps.setString(3, "$2a$10$placeholder");
+            ps.setString(4, "Admin Test");
+            ps.setString(5, "admin");
+            ps.executeUpdate();
+        }
     }
 
     /** Returns a raw connection to the embedded Postgres for direct JDBC assertions. */

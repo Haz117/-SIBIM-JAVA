@@ -6,7 +6,7 @@ import com.sibim.controller.dialogs.ProductoDialogFactory;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
-import com.sibim.repository.CategoriaRepository;
+import com.sibim.service.CategoriaService;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
@@ -116,7 +116,7 @@ public class ProductosController {
     @FXML private Label helpValor;
 
     private final ProductoService productoService = new ProductoService();
-    private final CategoriaRepository categoriaRepo = new CategoriaRepository();
+    private final CategoriaService categoriaService = new CategoriaService();
     private final ReporteService reporteService = new ReporteService();
     private final MovimientoService movimientoService = new MovimientoService();
 
@@ -443,7 +443,7 @@ public class ProductosController {
 
     private void setupFilters() {
         DialogUtil.runAsync(
-            () -> categoriaRepo.findAll(),
+            () -> categoriaService.findAll(),
             cats -> {
                 categoriaFilter.getItems().add(null);
                 categoriaFilter.getItems().addAll(cats);
@@ -805,7 +805,7 @@ public class ProductosController {
 
     private void showProductDialog(Producto existing) {
         try {
-            List<Categoria> cats = categoriaRepo.findAll();
+            List<Categoria> cats = categoriaService.findAll();
             Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log);
             boolean isNew = existing == null;
             result.ifPresent(p -> DialogUtil.runAsync(
