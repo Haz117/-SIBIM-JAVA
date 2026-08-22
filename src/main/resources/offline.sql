@@ -80,29 +80,34 @@ CREATE TABLE IF NOT EXISTS users_cache (
 -- repository (la misma lógica de validación/locking que ya existe).
 
 CREATE TABLE IF NOT EXISTS product_outbox (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    operacion         TEXT NOT NULL, -- SAVE | BAJA | REACTIVAR
-    producto_id       TEXT NOT NULL,
-    nombre            TEXT,
-    codigo            TEXT,
-    descripcion       TEXT,
-    categoria_id      TEXT,
-    precio_compra     REAL,
-    precio_venta      REAL,
-    stock_actual      INTEGER,
-    stock_minimo      INTEGER,
-    stock_maximo      INTEGER,
-    unidad            TEXT,
-    proveedor         TEXT,
-    fecha_vencimiento TEXT,
-    foto_url          TEXT,
-    ubicacion         TEXT,
-    area              TEXT,
-    resguardante      TEXT,
-    motivo_baja       TEXT,
-    created_at        TEXT NOT NULL,
-    status            TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED
-    error             TEXT
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    operacion          TEXT NOT NULL, -- SAVE | BAJA | REACTIVAR
+    producto_id        TEXT NOT NULL,
+    nombre             TEXT,
+    codigo             TEXT,
+    descripcion        TEXT,
+    categoria_id       TEXT,
+    precio_compra      REAL,
+    precio_venta       REAL,
+    stock_actual       INTEGER,
+    stock_minimo       INTEGER,
+    stock_maximo       INTEGER,
+    unidad             TEXT,
+    proveedor          TEXT,
+    fecha_vencimiento  TEXT,
+    foto_url           TEXT,
+    ubicacion          TEXT,
+    area               TEXT,
+    resguardante       TEXT,
+    motivo_baja        TEXT,
+    created_at         TEXT NOT NULL,
+    status             TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED | CONFLICT
+    error              TEXT,
+    -- updated_at the product had on the server BEFORE this offline edit was made.
+    -- SyncService compares it against the server's current updated_at at sync time:
+    -- if the server was touched after this snapshot, another user edited it while
+    -- this PC was offline and the change is marked CONFLICT instead of being applied.
+    server_snapshot_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS movement_outbox (

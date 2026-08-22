@@ -3,8 +3,8 @@ package com.sibim.controller;
 import com.sibim.model.Movimiento;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Producto;
-import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
+import com.sibim.service.DashboardService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
@@ -68,8 +68,7 @@ public class DashboardController {
     @FXML private HBox  chartsRow;
     @FXML private VBox  activityCard;
 
-    private final ProductoRepository productoRepo     = new ProductoRepository();
-    private final MovimientoRepository movimientoRepo = new MovimientoRepository();
+    private final DashboardService dashboardService = new DashboardService();
 
     private List<Producto> lastAgotados  = List.of();
     private List<Producto> lastBajoStock = List.of();
@@ -116,15 +115,9 @@ public class DashboardController {
     }
 
     private void loadDataAsync() {
-        Task<DashboardData> task = new Task<>() {
-            @Override protected DashboardData call() throws Exception {
-                var stats      = productoRepo.getStats();
-                var catValores = productoRepo.getValorPorCategoria();
-                var agotados   = productoRepo.findAgotados();
-                var bajoStock  = productoRepo.findBajoStock();
-                var movHoy     = movimientoRepo.findToday();
-                var movSemana  = movimientoRepo.findLastNDays(7);
-                return new DashboardData(stats, catValores, agotados, bajoStock, movHoy, movSemana);
+        Task<DashboardService.Resumen> task = new Task<>() {
+            @Override protected DashboardService.Resumen call() throws Exception {
+                return dashboardService.cargarResumen();
             }
             @Override protected void succeeded() {
                 updateUI(getValue());
@@ -140,7 +133,7 @@ public class DashboardController {
         com.sibim.util.AppExecutor.submit(task);
     }
 
-    private void updateUI(DashboardData data) {
+    private void updateUI(DashboardService.Resumen data) {
         var stats = data.stats();
 
         lastAgotados  = data.agotados();
@@ -608,11 +601,4 @@ public class DashboardController {
         return "Buenas noches,";
     }
 
-    private record DashboardData(
-            com.sibim.repository.ProductoRepository.ProductoStats stats,
-            List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores,
-            List<Producto> agotados,
-            List<Producto> bajoStock,
-            List<Movimiento> movHoy,
-            List<Movimiento> movSemana) {}
 }

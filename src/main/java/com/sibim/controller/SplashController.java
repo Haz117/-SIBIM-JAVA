@@ -4,6 +4,7 @@ import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.offline.SyncService;
 import io.github.cdimascio.dotenv.Dotenv;
+import org.flywaydb.core.Flyway;
 import javafx.animation.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -149,10 +150,18 @@ public class SplashController {
     private void initDatabase() {
         try {
             DatabaseConfig.init();
-            try (Connection c = DatabaseConfig.getConnection();
-                 PreparedStatement ps = c.prepareStatement("SELECT 1 FROM products LIMIT 1")) {
-                ps.execute(); // throws if SIBIM schema isn't present yet
-            }
+            // Apply pending migrations (V1, V2, …) automatically on every startup.
+            // baselineOnMigrate=true + baselineVersion="0" handles installations that
+            // had the schema applied manually before Flyway was introduced: it marks
+            // the existing DB as "already at version 0" on first run, then applies
+            // only the migrations that come after it (V1 onwards, idempotent via
+            // IF NOT EXISTS so they're safe to run on a pre-existing schema).
+            Flyway.configure()
+                .dataSource(DatabaseConfig.getDataSource())
+                .baselineOnMigrate(true)
+                .baselineVersion("0")
+                .load()
+                .migrate();
         } catch (Exception e) {
             log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());
             DatabaseConfig.close();

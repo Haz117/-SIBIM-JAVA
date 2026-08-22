@@ -146,6 +146,16 @@
             <version>12.3.1</version>
         </dependency>
 
+        <!-- Flyway 9.x LTS - automatic schema migrations applied on startup (SplashController.initDatabase).
+             baselineOnMigrate=true handles existing installations that pre-date Flyway: it marks
+             the DB as already at version 0 on first run, then applies V1, V2, … going forward.
+             v9.x bundles PostgreSQL support in core (no separate vendor jar needed). -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>9.22.3</version>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

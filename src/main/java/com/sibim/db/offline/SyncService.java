@@ -19,6 +19,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -72,11 +74,12 @@ public final class SyncService {
         if (!postgresReachable()) return;
 
         log.info("SyncService: conexión recuperada, sincronizando cambios pendientes...");
-        AtomicInteger synced = new AtomicInteger();
-        AtomicInteger failed = new AtomicInteger();
+        AtomicInteger synced     = new AtomicInteger();
+        AtomicInteger failed     = new AtomicInteger();
+        AtomicInteger conflicted = new AtomicInteger();
         try {
             syncCategorias(synced, failed);
-            syncProductos(synced, failed);
+            syncProductos(synced, failed, conflicted);
             syncMovimientos(synced, failed);
         } catch (Exception e) {
             log.error("SyncService: fallo inesperado durante la sincronización", e);
@@ -90,7 +93,7 @@ public final class SyncService {
         } else {
             log.warn("SyncService: quedaron {} cambio(s) sin poder sincronizar — requieren revisión manual.", pending);
         }
-        notifyUi(synced.get(), failed.get(), pending);
+        notifyUi(synced.get(), failed.get(), conflicted.get(), pending);
     }
 
     private static boolean postgresReachable() {
@@ -101,7 +104,7 @@ public final class SyncService {
         }
     }
 
-    private static void notifyUi(int synced, int failed, int stillPending) {
+    private static void notifyUi(int synced, int failed, int conflicted, int stillPending) {
         Platform.runLater(() -> {
             MainController mc = MainController.getInstance();
             var scene = mc != null ? mc.getContentAreaScene() : null;
@@ -109,8 +112,14 @@ public final class SyncService {
                 String msg = "Se sincronizaron " + synced + " cambio(s) con el servidor.";
                 if (scene != null) NotificacionUtil.exito(scene, msg);
             }
+            if (conflicted > 0 && scene != null) {
+                NotificacionUtil.advertencia(scene,
+                    conflicted + " bien(es) no se sincronizaron: otro equipo los modificó "
+                    + "mientras estabas sin conexión. Revísalos en Bienes y vuelve a guardar.");
+            }
             if (failed > 0 && scene != null) {
-                NotificacionUtil.advertencia(scene, failed + " cambio(s) no se pudieron sincronizar y requieren revisión manual.");
+                NotificacionUtil.advertencia(scene,
+                    failed + " cambio(s) no se pudieron sincronizar y requieren revisión manual.");
             }
             if (stillPending == 0 && mc != null) {
                 mc.refreshCurrentViewAfterSync();
@@ -163,9 +172,10 @@ public final class SyncService {
                                String descripcion, String categoriaId, String precioCompra, String precioVenta,
                                int stockActual, int stockMinimo, int stockMaximo, String unidad, String proveedor,
                                String fechaVencimiento, String fotoUrl, String ubicacion, String area,
-                               String resguardante, String motivoBaja) {}
+                               String resguardante, String motivoBaja, String serverSnapshotAt) {}
 
-    private static void syncProductos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
+    private static void syncProductos(AtomicInteger synced, AtomicInteger failed, AtomicInteger conflicted)
+            throws SQLException {
         List<ProductRow> rows = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                 "SELECT * FROM product_outbox WHERE status = 'PENDING' ORDER BY id");
@@ -177,12 +187,35 @@ public final class SyncService {
                     rs.getInt("stock_actual"), rs.getInt("stock_minimo"), rs.getInt("stock_maximo"),
                     rs.getString("unidad"), rs.getString("proveedor"), rs.getString("fecha_vencimiento"),
                     rs.getString("foto_url"), rs.getString("ubicacion"), rs.getString("area"),
-                    rs.getString("resguardante"), rs.getString("motivo_baja")));
+                    rs.getString("resguardante"), rs.getString("motivo_baja"),
+                    rs.getString("server_snapshot_at")));
             }
         }
         ProductoRepository repo = new ProductoRepository();
         for (ProductRow r : rows) {
             try {
+                // Conflict detection for SAVE operations: if the server's updated_at is
+                // newer than the snapshot this PC had when it made the offline change,
+                // another user modified the same product in the meantime — don't overwrite.
+                if ("SAVE".equals(r.operacion()) && r.serverSnapshotAt() != null) {
+                    LocalDateTime serverUpdatedAt = fetchServerUpdatedAt(r.productoId());
+                    if (serverUpdatedAt != null) {
+                        try {
+                            LocalDateTime snapshotAt = LocalDateTime.parse(r.serverSnapshotAt());
+                            if (serverUpdatedAt.isAfter(snapshotAt)) {
+                                log.warn("SyncService: CONFLICTO bien '{}' [{}] — servidor modificado en {}, snapshot local: {}",
+                                    r.nombre(), r.productoId(), serverUpdatedAt, snapshotAt);
+                                markOutbox("product_outbox", r.id(), "CONFLICT",
+                                    "Conflicto: el bien fue modificado en el servidor (" + serverUpdatedAt
+                                    + ") mientras el equipo estuvo sin conexión. Vuelve a editarlo y guardar.");
+                                conflicted.incrementAndGet();
+                                continue;
+                            }
+                        } catch (Exception parseEx) {
+                            log.debug("SyncService: no se pudo parsear server_snapshot_at '{}'", r.serverSnapshotAt());
+                        }
+                    }
+                }
                 switch (r.operacion()) {
                     case "BAJA" -> repo.darDeBajaOnline(r.productoId(), r.motivoBaja());
                     case "REACTIVAR" -> repo.reactivarOnline(r.productoId());
@@ -216,6 +249,22 @@ public final class SyncService {
                 failed.incrementAndGet();
             }
         }
+    }
+
+    private static LocalDateTime fetchServerUpdatedAt(String productoId) {
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT updated_at FROM products WHERE id = ?")) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("updated_at");
+                    return ts != null ? ts.toLocalDateTime() : null;
+                }
+            }
+        } catch (SQLException e) {
+            log.warn("SyncService: no se pudo consultar updated_at del producto {}", productoId, e);
+        }
+        return null;
     }
 
     // ─────────────────────────────── Movimientos ───────────────────────────

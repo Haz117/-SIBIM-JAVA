@@ -24,6 +24,7 @@ module com.sibim {
     requires org.slf4j;
     requires ch.qos.logback.classic;
     requires io.github.cdimascio.dotenv.java;
+    requires org.flywaydb.core;
     requires atlantafx.base;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.materialdesign2;

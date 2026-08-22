@@ -74,11 +74,22 @@ public final class OfflineStore {
                 conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
                 conn.setAutoCommit(true);
                 runSchema(conn);
+                runOfflineMigrations(conn);
             } catch (IOException e) {
                 throw new SQLException("No se pudo abrir el almacén offline local", e);
             }
         }
         return conn;
+    }
+
+    /** Idempotent column additions for existing offline.db files that pre-date schema changes.
+     *  SQLite doesn't support IF NOT EXISTS in ALTER TABLE, so we swallow the duplicate-column
+     *  error: on a fresh DB these succeed; on an old one they're silent no-ops. */
+    private static void runOfflineMigrations(Connection c) {
+        // M1 (2025): server_snapshot_at for offline conflict detection
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE product_outbox ADD COLUMN server_snapshot_at TEXT");
+        } catch (SQLException ignored) {}
     }
 
     private static void runSchema(Connection c) throws SQLException {
@@ -206,11 +217,19 @@ public final class OfflineStore {
 
     public static void saveProducto(Producto p) throws SQLException {
         ensureLoaded();
+        // Capture the server's last-known updated_at BEFORE overwriting the product
+        // in memory. SyncService uses this to detect whether the server was modified
+        // by another machine while this PC was offline (conflict detection).
+        String serverSnapshotAt = PRODUCTOS.stream()
+            .filter(x -> x.getId().equals(p.getId()))
+            .findFirst()
+            .map(x -> str(x.getActualizadoEn()))
+            .orElse(null);
         PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
         PRODUCTOS.add(p);
         persistProducto(p);
         recomputeCategoriaCounts();
-        enqueueProduct("SAVE", p);
+        enqueueProduct("SAVE", p, serverSnapshotAt);
     }
 
     public static void darDeBajaProducto(String id, String motivo) throws SQLException {
@@ -221,7 +240,7 @@ public final class OfflineStore {
         p.setMotivoBaja(motivo);
         p.setActualizadoEn(LocalDateTime.now());
         persistProducto(p);
-        enqueueProduct("BAJA", p);
+        enqueueProduct("BAJA", p, null);
     }
 
     public static void reactivarProducto(String id) throws SQLException {
@@ -232,7 +251,7 @@ public final class OfflineStore {
         p.setMotivoBaja(null);
         p.setActualizadoEn(LocalDateTime.now());
         persistProducto(p);
-        enqueueProduct("REACTIVAR", p);
+        enqueueProduct("REACTIVAR", p, null);
     }
 
     public static void updateProductoStock(String id, int newStock) throws SQLException {
@@ -492,13 +511,13 @@ public final class OfflineStore {
 
     // ─────────────────────────────── Outbox ──────────────────────────────────
 
-    private static void enqueueProduct(String operacion, Producto p) throws SQLException {
+    private static void enqueueProduct(String operacion, Producto p, String serverSnapshotAt) throws SQLException {
         String sql = """
             INSERT INTO product_outbox (operacion, producto_id, nombre, codigo, descripcion,
                 categoria_id, precio_compra, precio_venta, stock_actual, stock_minimo, stock_maximo,
                 unidad, proveedor, fecha_vencimiento, foto_url, ubicacion, area, resguardante,
-                motivo_baja, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                motivo_baja, created_at, server_snapshot_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             int i = 1;
@@ -521,7 +540,8 @@ public final class OfflineStore {
             ps.setString(i++, p.getArea());
             ps.setString(i++, p.getResguardante());
             ps.setString(i++, p.getMotivoBaja());
-            ps.setString(i, str(LocalDateTime.now()));
+            ps.setString(i++, str(LocalDateTime.now()));
+            ps.setString(i, serverSnapshotAt);
             ps.executeUpdate();
         }
     }

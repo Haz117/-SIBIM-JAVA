@@ -94,7 +94,7 @@ public final class ProductoDialogFactory {
                             if (exists) fCodigo.getStyleClass().add("field-error");
                             else fCodigo.getStyleClass().remove("field-error");
                         });
-                    } catch (Exception e) { log.debug("Código availability check failed", e); }
+                    } catch (Exception ignored) { log.debug("Código availability check failed", ignored); }
                 })));
             codigoDebounce[0].play();
         });
