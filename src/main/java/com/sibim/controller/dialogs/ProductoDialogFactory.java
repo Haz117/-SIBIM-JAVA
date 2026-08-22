@@ -320,6 +320,7 @@ public final class ProductoDialogFactory {
         Label lblDepSection = new Label("Depreciación (línea recta)");
         lblDepSection.getStyleClass().add("dialog-field-label");
         gridStock.add(new Separator(), 0, rs, 2, 1); rs++;
+        gridStock.add(lblDepSection, 0, rs, 2, 1); rs++;
         gridStock.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
             "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
                                                               0, rs); gridStock.add(fFechaAdq,     1, rs++);

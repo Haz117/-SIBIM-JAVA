@@ -7,21 +7,13 @@ import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.ContentDisplay;
-import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 
 public class ReportesController {
-
-    private static final Logger log = LoggerFactory.getLogger(ReportesController.class);
 
     @FXML private VBox       periodCard;
     @FXML private GridPane   reportGrid;
@@ -33,6 +25,7 @@ public class ReportesController {
     @FXML private Button btnPresetMes;
     @FXML private Button btnPresetAnio;
     @FXML private Button btnPresetTodo;
+    @FXML private Label helpTiposReporte;
 
     private final ReporteService reporteService = new ReporteService();
     private boolean updatingFromPreset = false;
@@ -44,6 +37,7 @@ public class ReportesController {
         desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         onReportMes(); // default to current month
+        if (helpTiposReporte != null) DialogUtil.enableClickToShowTooltip(helpTiposReporte);
 
         if (periodCard != null) AnimationUtils.fadeInUp(periodCard, 300,  0);
         if (reportGrid != null) AnimationUtils.staggeredFadeInUp(reportGrid.getChildren(), 300, 70);
@@ -150,7 +144,7 @@ public class ReportesController {
                 if (source != null) source.setDisable(false);
                 spinner.setVisible(false);
                 spinner.setManaged(false);
-                showExportDialog(file);
+                DialogUtil.showExportResultDialog(spinner.getScene(), file);
             },
             e -> {
                 if (source != null) source.setDisable(false);
@@ -159,99 +153,6 @@ public class ReportesController {
                 NotificacionUtil.error(spinner.getScene(), "Error al generar el reporte");
             }
         );
-    }
-
-    private void showExportDialog(java.io.File file) {
-        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(460);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        HBox header = DialogUtil.gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
-            "El archivo fue exportado exitosamente.", "#047857", "#065F46");
-
-        String name  = file.getName();
-        String ext   = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toUpperCase() : "";
-        long   bytes = file.length();
-        String size  = bytes < 1024 ? bytes + " B"
-            : bytes < 1024 * 1024 ? (bytes / 1024) + " KB"
-            : String.format("%.1f MB", bytes / (1024.0 * 1024));
-
-        FontIcon iconLbl = new FontIcon("PDF".equals(ext) ? "mdi2f-file-pdf-box"
-            : "XLSX".equals(ext) ? "mdi2f-file-excel-outline" : "mdi2f-file-delimited-outline");
-        iconLbl.setIconSize(22);
-        Label nameLbl  = new Label(name);
-        nameLbl.getStyleClass().add("dlg-detail-value");
-        nameLbl.setWrapText(true);
-        Label sizeLbl  = new Label(size + " · " + file.getParent());
-        sizeLbl.getStyleClass().add("muted-sm");
-        sizeLbl.setWrapText(true);
-
-        VBox info = new VBox(3, nameLbl, sizeLbl);
-        HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
-        HBox fileCard = new HBox(14, iconLbl, info);
-        fileCard.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        fileCard.setPadding(new javafx.geometry.Insets(14, 18, 14, 18));
-        fileCard.getStyleClass().add("dlg-detail-header");
-
-        Button btnAbrir   = new Button("Abrir");
-        Button btnCarpeta = new Button("Carpeta");
-        Button btnCopiar  = new Button("Copiar ruta");
-        Button btnImpr    = new Button("Imprimir");
-        btnAbrir.setGraphic(new FontIcon("mdi2f-folder-open-outline"));
-        btnCarpeta.setGraphic(new FontIcon("mdi2f-folder-outline"));
-        btnCopiar.setGraphic(new FontIcon("mdi2c-content-copy"));
-        btnImpr.setGraphic(new FontIcon("mdi2p-printer"));
-        btnAbrir.setContentDisplay(ContentDisplay.LEFT);
-        btnCarpeta.setContentDisplay(ContentDisplay.LEFT);
-        btnCopiar.setContentDisplay(ContentDisplay.LEFT);
-        btnImpr.setContentDisplay(ContentDisplay.LEFT);
-        btnAbrir.getStyleClass().add("btn-primary");
-        btnCarpeta.getStyleClass().add("btn-secondary");
-        btnCopiar.getStyleClass().add("btn-secondary");
-        btnImpr.getStyleClass().add("btn-secondary");
-        btnImpr.setVisible("PDF".equals(ext));
-        btnImpr.setManaged("PDF".equals(ext));
-
-        btnAbrir.setOnAction(e -> {
-            try {
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN))
-                    Desktop.getDesktop().open(file);
-                else
-                    NotificacionUtil.advertencia(spinner.getScene(), "No se puede abrir el archivo en este entorno");
-            } catch (Exception ex) { log.debug("No se pudo abrir", ex); }
-        });
-        btnCarpeta.setOnAction(e -> {
-            try {
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN))
-                    Desktop.getDesktop().open(file.getParentFile());
-                else
-                    NotificacionUtil.advertencia(spinner.getScene(), "No se puede abrir la carpeta en este entorno");
-            } catch (Exception ex) { log.debug("No se pudo abrir carpeta", ex); }
-        });
-        btnCopiar.setOnAction(e -> {
-            var content = new javafx.scene.input.ClipboardContent();
-            content.putString(file.getAbsolutePath());
-            javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
-            NotificacionUtil.info(spinner.getScene(), "Ruta copiada al portapapeles");
-        });
-        btnImpr.setOnAction(e -> {
-            try {
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.PRINT))
-                    Desktop.getDesktop().print(file);
-                else
-                    NotificacionUtil.advertencia(spinner.getScene(), "La impresión directa no está disponible en este entorno");
-            } catch (Exception ex) { NotificacionUtil.error(spinner.getScene(), "No se pudo enviar a la impresora"); }
-        });
-
-        HBox actions = new HBox(8, btnAbrir, btnImpr, btnCarpeta, btnCopiar);
-        actions.setPadding(new javafx.geometry.Insets(10, 18, 8, 18));
-        actions.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, fileCard, actions), 260, 60);
-        dialog.getDialogPane().setContent(new VBox(0, header, fileCard, actions));
-        dialog.showAndWait();
     }
 
     @FunctionalInterface

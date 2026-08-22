@@ -58,7 +58,10 @@
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
                     <FontIcon iconLiteral="mdi2c-cube-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTAL DE BIENES" styleClass="rich-stat-label"/>
+                <Label text="TOTAL DE BIENES" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpTotal" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, sin importar su estado de stock." wrapText="true" maxWidth="240"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
             <Label text="bienes patrimoniales" styleClass="rich-stat-hint"/>
@@ -72,7 +75,10 @@
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
                     <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="VALOR DEL INVENTARIO" styleClass="rich-stat-label"/>
+                <Label text="VALOR DEL INVENTARIO" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpValor" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Suma de precio unitario × stock de todos los bienes activos del inventario." wrapText="true" maxWidth="240"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatValor" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
             <Label text="precio unitario × stock" styleClass="rich-stat-hint"/>
@@ -87,8 +93,7 @@
                     <FontIcon iconLiteral="mdi2b-bell-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="BIENES CON ALERTA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label styleClass="help-icon" contentDisplay="GRAPHIC_ONLY">
-                    <graphic><FontIcon iconLiteral="mdi2h-help-circle-outline" styleClass="help-icon"/></graphic>
+                <Label fx:id="helpAlertas" text="?" styleClass="help-badge">
                     <tooltip><Tooltip text="Bienes agotados (stock = 0) o con existencias por debajo del mínimo configurado."/></tooltip>
                 </Label>
             </HBox>
@@ -118,8 +123,7 @@
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="165"/>
         <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="190"/>
         <ComboBox fx:id="resguardanteFilter" promptText="Resguardante..." prefWidth="165"/>
-        <Label styleClass="help-icon" contentDisplay="GRAPHIC_ONLY">
-            <graphic><FontIcon iconLiteral="mdi2h-help-circle-outline" styleClass="help-icon"/></graphic>
+        <Label fx:id="helpResguardante" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Resguardante: persona responsable de la custodia del bien. Filtrar por encargado."/></tooltip>
         </Label>
         <Separator orientation="VERTICAL"/>

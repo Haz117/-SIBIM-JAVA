@@ -54,7 +54,10 @@
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
                     <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTAL MOVIMIENTOS" styleClass="rich-stat-label"/>
+                <Label text="TOTAL MOVIMIENTOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpTotalMov" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Cantidad de movimientos que caen dentro de los filtros activos (búsqueda, tipo, categoría y rango de fechas)." wrapText="true" maxWidth="250"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatTotalMov" text="—" styleClass="rich-stat-value"/>
             <Label text="en el período filtrado" styleClass="rich-stat-hint"/>
@@ -68,7 +71,10 @@
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
                     <FontIcon iconLiteral="mdi2t-trending-up" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="ENTRADAS" styleClass="rich-stat-label"/>
+                <Label text="ENTRADAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpEntradas" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Movimientos de tipo Entrada dentro del período filtrado — suman al stock." wrapText="true" maxWidth="230"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatEntradas" text="—" styleClass="rich-stat-value"/>
             <Label text="incrementan el stock" styleClass="rich-stat-hint"/>
@@ -82,7 +88,10 @@
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
                     <FontIcon iconLiteral="mdi2t-trending-down" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="SALIDAS" styleClass="rich-stat-label"/>
+                <Label text="SALIDAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpSalidas" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Movimientos de tipo Salida dentro del período filtrado — restan del stock." wrapText="true" maxWidth="230"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatSalidas" text="—" styleClass="rich-stat-value"/>
             <Label text="reducen el stock" styleClass="rich-stat-hint"/>
@@ -97,8 +106,7 @@
                     <FontIcon iconLiteral="mdi2t-transfer" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="AJUSTES / TRANSF." styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label styleClass="help-icon" contentDisplay="GRAPHIC_ONLY">
-                    <graphic><FontIcon iconLiteral="mdi2h-help-circle-outline" styleClass="help-icon"/></graphic>
+                <Label fx:id="helpAjustes" text="?" styleClass="help-badge">
                     <tooltip><Tooltip text="Ajuste: corrección manual de stock. Transferencia: bien trasladado de un área a otra (requiere aprobación)."/></tooltip>
                 </Label>
             </HBox>
@@ -128,6 +136,10 @@
         <Separator orientation="VERTICAL"/>
         <!-- Tipo filter chips (populated by controller) -->
         <HBox fx:id="tipoChipsBar" spacing="5" alignment="CENTER_LEFT"/>
+        <Separator orientation="VERTICAL"/>
+        <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="170">
+            <tooltip><Tooltip text="Filtrar por la categoría del bien involucrado en el movimiento"/></tooltip>
+        </ComboBox>
         <Separator orientation="VERTICAL"/>
         <Label text="Desde:" styleClass="muted"/>
         <DatePicker fx:id="desdeFilter" prefWidth="130" promptText="dd/mm/aaaa">
@@ -162,14 +174,13 @@
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
         <columns>
-            <TableColumn fx:id="colProducto"   text="Bien / Producto"    prefWidth="200" sortable="true"/>
+            <TableColumn fx:id="colProducto"   text="Bien / Producto"    prefWidth="230" sortable="true"/>
             <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="115" sortable="true"/>
             <TableColumn fx:id="colCantidad"   text="Cantidad"           prefWidth="80"  sortable="true"/>
             <TableColumn fx:id="colStock"      text="Stock Ant. → Nuevo" prefWidth="148" sortable="false"/>
-            <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="165" sortable="true"/>
-            <TableColumn fx:id="colReferencia" text="Referencia"         prefWidth="108" sortable="true"/>
-            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="128" sortable="true"/>
-            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="130" sortable="true"/>
+            <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true"/>
+            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="140" sortable="true"/>
+            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">

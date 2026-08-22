@@ -44,6 +44,7 @@ public class CategoriasController {
     @FXML private Button btnDeleteCat;
     @FXML private Button btnClearSearch;
     @FXML private ProgressIndicator spinner;
+    @FXML private Label helpCategorias;
 
     private final CategoriaRepository categoriaRepo = new CategoriaRepository();
     private ObservableList<Categoria> allData = FXCollections.observableArrayList();
@@ -51,6 +52,7 @@ public class CategoriasController {
     @FXML
     public void initialize() {
         setupTable();
+        if (helpCategorias != null) DialogUtil.enableClickToShowTooltip(helpCategorias);
 
         boolean isAdmin = SessionManager.isAdmin();
         btnNueva.setVisible(isAdmin);    btnNueva.setManaged(isAdmin);

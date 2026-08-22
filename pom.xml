@@ -82,6 +82,20 @@
             <version>8.0.5</version>
         </dependency>
 
+        <!-- Jackson - JSON serialization for the backup/restore feature
+             (dumps/restores every table via generic JDBC + JavaTimeModule
+             for LocalDate/Timestamp columns) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.18.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.18.1</version>
+        </dependency>
+
         <!-- SLF4J Logging. slf4j-api is pinned explicitly (not just pulled in
              transitively) because HikariCP/POI/etc. drag in the older
              slf4j-api 1.7.36, and without this override Maven's "nearest
@@ -242,7 +256,7 @@
                 <version>3.5.1</version>
                 <configuration>
                     <useModulePath>false</useModulePath>
-                    <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                    <argLine>-javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar" -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
                 </configuration>
             </plugin>
         </plugins>

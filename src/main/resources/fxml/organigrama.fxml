@@ -37,6 +37,10 @@
                     <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="ÁREAS CON BIENES" styleClass="rich-stat-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpAreas" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Cantidad de secretarías/direcciones de la estructura municipal que tienen al menos un bien asignado." wrapText="true" maxWidth="250"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatAreas" text="—" styleClass="rich-stat-value"/>
             <Label text="de la estructura municipal" styleClass="rich-stat-hint"/>
@@ -50,6 +54,10 @@
                     <FontIcon iconLiteral="mdi2p-package-variant" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="BIENES DISTRIBUIDOS" styleClass="rich-stat-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpBienes" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Total de bienes activos que ya tienen un área asignada, sumando todas las secretarías y direcciones." wrapText="true" maxWidth="250"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatBienes" text="—" styleClass="rich-stat-value"/>
             <Label text="en todas las áreas" styleClass="rich-stat-hint"/>
@@ -63,6 +71,10 @@
                     <FontIcon iconLiteral="mdi2s-star-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="ÁREA CON MÁS BIENES" styleClass="rich-stat-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpTopArea" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="El área con la mayor cantidad de bienes asignados, sin importar su valor." wrapText="true" maxWidth="250"/></tooltip>
+                </Label>
             </HBox>
             <Label fx:id="lblStatTopArea" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
             <Label text="mayor concentración de inventario" styleClass="rich-stat-hint"/>

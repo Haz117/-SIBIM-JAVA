@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.sibim.controller.DepreciacionController"
+            fitToWidth="true" styleClass="page-scroll">
+<VBox spacing="20">
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header">
+        <StackPane styleClass="page-header-icon page-header-icon-indigo">
+            <FontIcon iconLiteral="mdi2c-chart-line" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Depreciación de Activos" styleClass="page-title"/>
+            <Label text="Valor en libros de los bienes patrimoniales (línea recta, SAT México)" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
+                           visible="false" managed="false"/>
+        <Button text="Exportar PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar la tabla actual a PDF"/></tooltip>
+        </Button>
+        <Button text="Exportar Excel" onAction="#onExportarExcel" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar la tabla actual a Excel"/></tooltip>
+        </Button>
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Recalcular depreciación"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <VBox fx:id="statCardCompra" styleClass="rich-stat-card, rich-stat-indigo"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="VALOR TOTAL DE COMPRA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpValorCompra" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Suma del precio de compra original de todos los bienes con datos de depreciación completos (fecha de adquisición, vida útil y valor residual capturados)."/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatCompra" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
+            <Label text="suma de precio de compra" styleClass="rich-stat-hint"/>
+        </VBox>
+
+        <VBox fx:id="statCardActual" styleClass="rich-stat-card, rich-stat-teal"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2c-cash-check" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="VALOR ACTUAL EN LIBROS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpValorActual" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Valor de los mismos bienes hoy, después de aplicar la depreciación lineal (línea recta, SAT México) desde su fecha de adquisición."/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatActual" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
+            <Label text="valor depreciado a hoy" styleClass="rich-stat-hint"/>
+        </VBox>
+
+        <VBox fx:id="statCardPct" styleClass="rich-stat-card, rich-stat-amber"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <FontIcon iconLiteral="mdi2c-chart-donut" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="PROMEDIO DEPRECIADO (%)" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpPct" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Promedio del % depreciado sobre los bienes con datos de depreciación completos."/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatPct" text="—" styleClass="rich-stat-value"/>
+            <Label fx:id="lblStatSinDatos" text="—" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ GRÁFICA DE TENDENCIA ═════════════════════════════════════ -->
+    <VBox styleClass="card" spacing="10">
+        <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <FontIcon iconLiteral="mdi2c-chart-line" styleClass="card-icon-indigo"/>
+            <Label text="Proyección del Valor del Activo Fijo" styleClass="card-title"/>
+        </HBox>
+        <LineChart fx:id="chartTendencia" prefHeight="240" animated="false">
+            <xAxis><CategoryAxis label="Año"/></xAxis>
+            <yAxis><NumberAxis label="Valor ($)"/></yAxis>
+        </LineChart>
+    </VBox>
+
+    <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="DETALLE POR BIEN" styleClass="dash-section-label"/>
+    </HBox>
+
+    <!-- ══ DATA TABLE ═══════════════════════════════════════════════ -->
+    <TableView fx:id="table" prefHeight="360" styleClass="data-table">
+        <columns>
+            <TableColumn fx:id="colNombre"      text="Nombre"             prefWidth="200" sortable="true"/>
+            <TableColumn fx:id="colCategoria"   text="Categoría"          prefWidth="140" sortable="true"/>
+            <TableColumn fx:id="colFechaAdq"    text="Fecha adquisición"  prefWidth="130" sortable="true"/>
+            <TableColumn fx:id="colVidaUtil"    text="Vida útil"          prefWidth="90"  sortable="true"/>
+            <TableColumn fx:id="colValorCompra" text="Valor compra"       prefWidth="110" sortable="true"/>
+            <TableColumn fx:id="colValorActual" text="Valor actual"       prefWidth="110" sortable="true"/>
+            <TableColumn fx:id="colPct"         text="Depreciado (%)"     prefWidth="120" sortable="true"/>
+        </columns>
+        <placeholder>
+            <VBox alignment="CENTER" spacing="8">
+                <FontIcon iconLiteral="mdi2c-chart-line" styleClass="empty-icon-lg"/>
+                <Label text="No hay bienes con datos de depreciación" styleClass="empty-state-msg"/>
+                <Label text="Captura fecha de adquisición y vida útil al editar un bien" styleClass="empty-state-hint"/>
+            </VBox>
+        </placeholder>
+    </TableView>
+</VBox>
+</ScrollPane>

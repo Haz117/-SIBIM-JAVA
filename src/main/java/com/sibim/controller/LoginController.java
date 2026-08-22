@@ -17,7 +17,6 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -54,8 +53,13 @@ public class LoginController {
             testAccountsBox.setManaged(false);
         }
 
-        usernameField.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.ENTER) handleLogin(); });
-        passwordField.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.ENTER) handleLogin(); });
+        // Enter-to-submit already comes for free from onAction="#handleLogin"
+        // on both fields in login.fxml (TextField/PasswordField fire an
+        // ActionEvent on Enter natively) — a redundant KEY_PRESSED handler
+        // here used to fire handleLogin() a second time for the same
+        // keypress, submitting the login (and everything MainController does
+        // once on startup — toasts, audit log, timers) twice.
+
         // Clear error style on typing
         usernameField.textProperty().addListener((obs, o, n) -> {
             if (!n.isBlank()) usernameField.getStyleClass().remove("field-error");
@@ -107,6 +111,7 @@ public class LoginController {
 
     @FXML
     private void handleLogin() {
+        if (loginButton.isDisabled()) return; // already submitting — ignore a second trigger
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
 

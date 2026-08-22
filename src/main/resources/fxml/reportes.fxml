@@ -64,6 +64,9 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar-green"/>
         <Label text="TIPOS DE REPORTE DISPONIBLES" styleClass="dash-section-label"/>
+        <Label fx:id="helpTiposReporte" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="PDF: para imprimir o compartir tal cual. Excel: para seguir analizando o editando los datos. CSV: para importar a otro sistema. Los tres respetan el período seleccionado arriba." wrapText="true" maxWidth="280"/></tooltip>
+        </Label>
     </HBox>
 
     <!-- Grid 2×2 -->
@@ -89,21 +92,21 @@
             </HBox>
             <Label text="Listado completo de todos los bienes patrimoniales con existencias, valor unitario y estado actual."
                    styleClass="report-desc" wrapText="true"/>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="PDF" onAction="#onInventarioPdf" styleClass="btn-pdf"
+            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-indigo"
                         contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar inventario completo en PDF"/></tooltip>
-                </Button>
-                <Button text="Excel" onAction="#onInventarioExcel" styleClass="btn-excel"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar inventario completo en Excel (.xlsx)"/></tooltip>
-                </Button>
-                <Button text="CSV"      onAction="#onInventarioCsv"   styleClass="btn-csv">
-                    <tooltip><Tooltip text="Exportar inventario en CSV"/></tooltip>
-                </Button>
-            </HBox>
+                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+                <items>
+                    <MenuItem text="PDF" onAction="#onInventarioPdf">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="Excel" onAction="#onInventarioExcel">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="CSV" onAction="#onInventarioCsv">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                    </MenuItem>
+                </items>
+            </MenuButton>
         </VBox>
 
         <!-- ── Movimientos — teal ── -->
@@ -122,21 +125,21 @@
             </HBox>
             <Label text="Historial de entradas, salidas, ajustes y transferencias en el período seleccionado."
                    styleClass="report-desc" wrapText="true"/>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="PDF" onAction="#onMovimientosPdf" styleClass="btn-pdf"
+            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-teal"
                         contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar movimientos del período en PDF"/></tooltip>
-                </Button>
-                <Button text="Excel" onAction="#onMovimientosExcel" styleClass="btn-excel"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar movimientos del período en Excel (.xlsx)"/></tooltip>
-                </Button>
-                <Button text="CSV"      onAction="#onMovimientosCsv"   styleClass="btn-csv">
-                    <tooltip><Tooltip text="Exportar movimientos en CSV"/></tooltip>
-                </Button>
-            </HBox>
+                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+                <items>
+                    <MenuItem text="PDF" onAction="#onMovimientosPdf">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="Excel" onAction="#onMovimientosExcel">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="CSV" onAction="#onMovimientosCsv">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                    </MenuItem>
+                </items>
+            </MenuButton>
         </VBox>
 
         <!-- ── Alertas de Stock — amber ── -->
@@ -155,21 +158,21 @@
             </HBox>
             <Label text="Bienes agotados, con existencias bajas y garantías próximas a vencer — para gestión inmediata."
                    styleClass="report-desc" wrapText="true"/>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="PDF" onAction="#onAlertasPdf" styleClass="btn-pdf"
+            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-amber"
                         contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar alertas de stock en PDF"/></tooltip>
-                </Button>
-                <Button text="Excel" onAction="#onAlertasExcel" styleClass="btn-excel"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar bienes con alertas activas a Excel"/></tooltip>
-                </Button>
-                <Button text="CSV"      onAction="#onAlertasCsv"   styleClass="btn-csv">
-                    <tooltip><Tooltip text="Exportar alertas de stock en CSV"/></tooltip>
-                </Button>
-            </HBox>
+                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+                <items>
+                    <MenuItem text="PDF" onAction="#onAlertasPdf">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="Excel" onAction="#onAlertasExcel">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="CSV" onAction="#onAlertasCsv">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                    </MenuItem>
+                </items>
+            </MenuButton>
         </VBox>
 
         <!-- ── Distribución por Área — emerald ── -->
@@ -188,21 +191,21 @@
             </HBox>
             <Label text="Bienes patrimoniales agrupados por secretaría y dirección municipal del Ayuntamiento de Ixmiquilpan."
                    styleClass="report-desc" wrapText="true"/>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button text="PDF" onAction="#onDistribucionPdf" styleClass="btn-pdf"
+            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-green"
                         contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar distribución por área en PDF"/></tooltip>
-                </Button>
-                <Button text="Excel" onAction="#onDistribucionExcel" styleClass="btn-excel"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Exportar distribución de bienes por área a Excel"/></tooltip>
-                </Button>
-                <Button text="CSV"   onAction="#onDistribucionCsv"   styleClass="btn-csv">
-                    <tooltip><Tooltip text="Exportar resumen de distribución por área a CSV"/></tooltip>
-                </Button>
-            </HBox>
+                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+                <items>
+                    <MenuItem text="PDF" onAction="#onDistribucionPdf">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="Excel" onAction="#onDistribucionExcel">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="CSV" onAction="#onDistribucionCsv">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                    </MenuItem>
+                </items>
+            </MenuButton>
         </VBox>
     </GridPane>
 

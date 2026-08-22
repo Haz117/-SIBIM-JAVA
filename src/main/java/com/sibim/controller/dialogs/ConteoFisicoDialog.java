@@ -219,6 +219,7 @@ public final class ConteoFisicoDialog {
                     }
                     if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
                     if (!fallidosFinal.isEmpty() || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
+                    else if (discrepancias.isEmpty()) NotificacionUtil.exitoConteo(dialog.getDialogPane().getScene(), items.size());
                     else NotificacionUtil.exito(dialog.getDialogPane().getScene(), base);
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();

@@ -15,7 +15,7 @@
          WELCOME BANNER
          ══════════════════════════════════════════════════════════ -->
     <VBox fx:id="dashBanner" styleClass="dashboard-banner" spacing="0">
-        <padding><Insets top="24" right="28" bottom="0" left="28"/></padding>
+        <padding><Insets top="24" right="28" bottom="24" left="28"/></padding>
 
         <!-- Greeting row -->
         <HBox alignment="CENTER_LEFT" spacing="0">
@@ -32,42 +32,6 @@
             <VBox alignment="CENTER_RIGHT" spacing="2" styleClass="banner-date-widget">
                 <Label fx:id="lblFechaDia"  styleClass="banner-date-day"/>
                 <Label fx:id="lblFechaMes"  styleClass="banner-date-month"/>
-            </VBox>
-        </HBox>
-
-        <!-- Separator -->
-        <Separator styleClass="banner-sep">
-            <VBox.margin><Insets top="14"/></VBox.margin>
-        </Separator>
-
-        <!-- Quick actions row -->
-        <HBox spacing="0" alignment="CENTER">
-            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
-                  alignment="CENTER" spacing="6" onMouseClicked="#onVerProductos">
-                <padding><Insets top="15" bottom="17"/></padding>
-                <FontIcon iconLiteral="mdi2p-package-variant" styleClass="qa-icon"/>
-                <Label text="Inventario" styleClass="qa-label"/>
-            </VBox>
-            <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
-            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
-                  alignment="CENTER" spacing="6" onMouseClicked="#onVerMovimientos">
-                <padding><Insets top="15" bottom="17"/></padding>
-                <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="qa-icon"/>
-                <Label text="Movimientos" styleClass="qa-label"/>
-            </VBox>
-            <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
-            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
-                  alignment="CENTER" spacing="6" onMouseClicked="#onVerAlertas">
-                <padding><Insets top="15" bottom="17"/></padding>
-                <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="qa-icon"/>
-                <Label text="Alertas" styleClass="qa-label"/>
-            </VBox>
-            <Separator orientation="VERTICAL" styleClass="banner-sep-v"/>
-            <VBox styleClass="quick-action-btn" HBox.hgrow="ALWAYS"
-                  alignment="CENTER" spacing="6" onMouseClicked="#onVerReportes">
-                <padding><Insets top="15" bottom="17"/></padding>
-                <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="qa-icon"/>
-                <Label text="Reportes" styleClass="qa-label"/>
             </VBox>
         </HBox>
     </VBox>
@@ -90,117 +54,122 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="RESUMEN DEL INVENTARIO" styleClass="dash-section-label"/>
+        <Label fx:id="helpStats" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Cifras clave del inventario, actualizadas cada vez que entras al dashboard. Haz clic en una tarjeta para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblStatsActualizacion" text="" styleClass="muted"/>
     </HBox>
 
-    <!-- Stats grid 3×2 -->
+    <!-- Stats grid — 1×4: solo cifras que no se repiten en ningún otro
+         lado del dashboard (bajo-stock/agotados viven únicamente en el
+         health bar de abajo, para no mostrar el mismo número dos veces) -->
     <GridPane fx:id="statsGrid" hgap="14" vgap="14">
         <columnConstraints>
-            <ColumnConstraints hgrow="ALWAYS" percentWidth="33.3"/>
-            <ColumnConstraints hgrow="ALWAYS" percentWidth="33.3"/>
-            <ColumnConstraints hgrow="ALWAYS" percentWidth="33.3"/>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
         </columnConstraints>
 
         <!-- Total de Bienes — Indigo -->
-        <HBox styleClass="stat-card, stat-card-clickable"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerProductos" spacing="14"
+        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerProductos"
               GridPane.columnIndex="0" GridPane.rowIndex="0">
-            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
-            <StackPane styleClass="stat-icon-badge, stat-icon-badge-indigo">
-                <FontIcon iconLiteral="mdi2p-package-variant" styleClass="stat-icon"/>
-            </StackPane>
-            <VBox HBox.hgrow="ALWAYS" spacing="5">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <HBox alignment="CENTER" spacing="8">
+                <StackPane styleClass="stat-icon-badge, stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="stat-icon"/>
+                </StackPane>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpTotalBienes" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, sin importar su estado de stock." wrapText="true" maxWidth="240"/></tooltip>
+                </Label>
+            </HBox>
+            <VBox spacing="5">
                 <Label text="TOTAL DE BIENES" styleClass="stat-label"/>
                 <Label fx:id="lblTotalBienes" text="—" styleClass="stat-value"/>
                 <Label text="Ver inventario →" styleClass="stat-hint"/>
             </VBox>
-        </HBox>
+        </VBox>
 
         <!-- Valor Patrimonial — Teal -->
-        <HBox styleClass="stat-card, stat-card-clickable"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerReportes" spacing="14"
+        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerReportes"
               GridPane.columnIndex="1" GridPane.rowIndex="0">
-            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
-            <StackPane styleClass="stat-icon-badge, stat-icon-badge-teal">
-                <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="stat-icon"/>
-            </StackPane>
-            <VBox HBox.hgrow="ALWAYS" spacing="5">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <HBox alignment="CENTER" spacing="8">
+                <StackPane styleClass="stat-icon-badge, stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="stat-icon"/>
+                </StackPane>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpValorTotal" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Suma del valor de adquisición de todos los bienes activos del inventario." wrapText="true" maxWidth="240"/></tooltip>
+                </Label>
+            </HBox>
+            <VBox spacing="5">
                 <Label text="VALOR PATRIMONIAL" styleClass="stat-label"/>
                 <Label fx:id="lblValorTotal" text="—" styleClass="stat-value-currency"/>
                 <Label text="Ver reportes →" styleClass="stat-hint"/>
             </VBox>
-        </HBox>
-
-        <!-- Existencias Bajas — Amber -->
-        <HBox styleClass="stat-card, stat-card-clickable"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerBajoStock" spacing="14"
-              GridPane.columnIndex="2" GridPane.rowIndex="0">
-            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
-            <StackPane styleClass="stat-icon-badge, stat-icon-badge-amber">
-                <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="stat-icon"/>
-            </StackPane>
-            <VBox HBox.hgrow="ALWAYS" spacing="5">
-                <Label text="EXISTENCIAS BAJAS" styleClass="stat-label"/>
-                <Label fx:id="lblBajoStock" text="—" styleClass="stat-value"/>
-                <Label text="Ver alertas →" styleClass="stat-hint"/>
-            </VBox>
-        </HBox>
-
-        <!-- Agotados — Rose -->
-        <HBox styleClass="stat-card, stat-card-clickable"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerAgotados" spacing="14"
-              GridPane.columnIndex="0" GridPane.rowIndex="1">
-            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
-            <StackPane styleClass="stat-icon-badge, stat-icon-badge-rose">
-                <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="stat-icon"/>
-            </StackPane>
-            <VBox HBox.hgrow="ALWAYS" spacing="5">
-                <Label text="BIENES AGOTADOS" styleClass="stat-label"/>
-                <Label fx:id="lblAgotados" text="—" styleClass="stat-value"/>
-                <Label text="Ver alertas →" styleClass="stat-hint"/>
-            </VBox>
-        </HBox>
+        </VBox>
 
         <!-- Movimientos Hoy — Violet -->
-        <HBox styleClass="stat-card, stat-card-clickable"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerMovimientos" spacing="14"
-              GridPane.columnIndex="1" GridPane.rowIndex="1">
-            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
-            <StackPane styleClass="stat-icon-badge, stat-icon-badge-violet">
-                <FontIcon iconLiteral="mdi2s-sync" styleClass="stat-icon"/>
-            </StackPane>
-            <VBox HBox.hgrow="ALWAYS" spacing="5">
+        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerMovimientos"
+              GridPane.columnIndex="2" GridPane.rowIndex="0">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <HBox alignment="CENTER" spacing="8">
+                <StackPane styleClass="stat-icon-badge, stat-icon-badge-violet">
+                    <FontIcon iconLiteral="mdi2s-sync" styleClass="stat-icon"/>
+                </StackPane>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpMovimientosHoy" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Entradas, salidas, ajustes y transferencias registrados hoy." wrapText="true" maxWidth="240"/></tooltip>
+                </Label>
+            </HBox>
+            <VBox spacing="5">
                 <Label text="MOVIMIENTOS HOY" styleClass="stat-label"/>
                 <Label fx:id="lblMovimientosHoy" text="—" styleClass="stat-value"/>
                 <Label text="Ver historial →" styleClass="stat-hint"/>
             </VBox>
-        </HBox>
+        </VBox>
 
         <!-- Categorías — Indigo oscuro -->
-        <HBox styleClass="stat-card, stat-card-clickable"
-              alignment="CENTER_LEFT" onMouseClicked="#onVerCategorias" spacing="14"
-              GridPane.columnIndex="2" GridPane.rowIndex="1">
-            <padding><Insets top="20" right="18" bottom="20" left="22"/></padding>
-            <StackPane styleClass="stat-icon-badge, stat-icon-badge-dark-indigo">
-                <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="stat-icon"/>
-            </StackPane>
-            <VBox HBox.hgrow="ALWAYS" spacing="5">
+        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerCategorias"
+              GridPane.columnIndex="3" GridPane.rowIndex="0">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <HBox alignment="CENTER" spacing="8">
+                <StackPane styleClass="stat-icon-badge, stat-icon-badge-dark-indigo">
+                    <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="stat-icon"/>
+                </StackPane>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpCategorias" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Categorías con al menos un bien activo asignado." wrapText="true" maxWidth="240"/></tooltip>
+                </Label>
+            </HBox>
+            <VBox spacing="5">
                 <Label text="CATEGORÍAS ACTIVAS" styleClass="stat-label"/>
                 <Label fx:id="lblCategorias" text="—" styleClass="stat-value"/>
                 <Label text="Ver categorías →" styleClass="stat-hint"/>
             </VBox>
-        </HBox>
+        </VBox>
     </GridPane>
 
     <!-- ══════════════════════════════════════════════════════════
-         ESTADO DEL INVENTARIO (health bar)
+         ESTADO DEL INVENTARIO (health bar) — única fuente para las
+         cifras de bajo stock / agotados / vencidos: haz clic en una
+         leyenda para ver el detalle de esos bienes.
          ══════════════════════════════════════════════════════════ -->
     <VBox fx:id="healthSection" styleClass="dash-health-card" spacing="10"
           visible="false" managed="false">
         <padding><Insets top="14" right="18" bottom="14" left="18"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="8">
             <Label text="Estado del Inventario" styleClass="dash-health-title"/>
+            <Label fx:id="helpHealth" text="?" styleClass="help-badge">
+                <tooltip><Tooltip text="Distribución de todos los bienes activos por estado de stock. Haz clic en Bajo Stock o Agotados para ver cuáles son." wrapText="true" maxWidth="260"/></tooltip>
+            </Label>
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblHealthDetail" text="" styleClass="muted"/>
         </HBox>
@@ -211,11 +180,13 @@
                 <Label text="●" styleClass="dot-green"/>
                 <Label fx:id="lblHealthActivos" text="Activos — 0" styleClass="dash-health-legend"/>
             </HBox>
-            <HBox spacing="5" alignment="CENTER_LEFT">
+            <HBox spacing="5" alignment="CENTER_LEFT" styleClass="dash-health-legend-clickable"
+                  onMouseClicked="#onVerBajoStock">
                 <Label text="●" styleClass="dot-amber"/>
                 <Label fx:id="lblHealthBajo" text="Bajo Stock — 0" styleClass="dash-health-legend"/>
             </HBox>
-            <HBox spacing="5" alignment="CENTER_LEFT">
+            <HBox spacing="5" alignment="CENTER_LEFT" styleClass="dash-health-legend-clickable"
+                  onMouseClicked="#onVerAgotados">
                 <Label text="●" styleClass="dot-red"/>
                 <Label fx:id="lblHealthAgotado" text="Agotados — 0" styleClass="dash-health-legend"/>
             </HBox>
@@ -232,6 +203,9 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="ANÁLISIS DE INVENTARIO" styleClass="dash-section-label"/>
+        <Label fx:id="helpAnalisis" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Movimientos Semanales: entradas vs. salidas por día. Valor por Categoría: cómo se reparte el valor patrimonial entre categorías." wrapText="true" maxWidth="270"/></tooltip>
+        </Label>
         <Label text="Últimos 7 días" styleClass="dash-section-badge"/>
     </HBox>
 

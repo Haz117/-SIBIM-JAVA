@@ -10,7 +10,9 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import javafx.animation.PauseTransition;
 import javafx.util.Callback;
+import javafx.util.Duration;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -171,9 +173,44 @@ public final class DialogUtil {
         tip.setWrapText(true);
         tip.setMaxWidth(270);
         Tooltip.install(badge, tip);
+        enableClickToShowTooltip(badge, tip);
         HBox row = new HBox(5, fieldLabel(text), badge);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
+    }
+
+    /** Makes a "?" help icon respond to a click, not just JavaFX's default
+     *  ~1s hover delay — users click these expecting instant feedback rather
+     *  than hovering and waiting, and on a small icon a hover can easily miss
+     *  anyway. Shortens the hover delay too, forces wrapping so long help
+     *  text can't run past the window edge, and anchors the popup just below
+     *  the icon (not at the raw click point, which can land the tooltip in
+     *  an inconsistent spot depending on exactly where inside the icon was
+     *  clicked) before auto-hiding it a few seconds later. */
+    public static void enableClickToShowTooltip(Node node, Tooltip tip) {
+        tip.setShowDelay(Duration.millis(150));
+        tip.setWrapText(true);
+        if (tip.getMaxWidth() <= 0 || tip.getMaxWidth() == Double.MAX_VALUE) tip.setMaxWidth(280);
+        node.setOnMouseClicked(e -> {
+            var b = node.localToScreen(node.getBoundsInLocal());
+            tip.show(node, b.getMinX(), b.getMaxY() + 6);
+            PauseTransition hide = new PauseTransition(Duration.seconds(5));
+            hide.setOnFinished(ev -> tip.hide());
+            hide.play();
+            // Consumed so a badge sitting inside a clickable container (e.g.
+            // a whole dashboard stat card wired to navigate on click) shows
+            // the tooltip instead of also firing the container's own handler.
+            e.consume();
+        });
+    }
+
+    /** Same as {@link #enableClickToShowTooltip(Node, Tooltip)} but for a
+     *  node whose Tooltip was already attached elsewhere (e.g. via FXML's
+     *  &lt;tooltip&gt; element) — reads it back off the control instead of
+     *  taking it as a parameter. */
+    public static void enableClickToShowTooltip(Control node) {
+        Tooltip tip = node.getTooltip();
+        if (tip != null) enableClickToShowTooltip(node, tip);
     }
 
     // ── Spinner ──────────────────────────────────────────────────────────
@@ -233,5 +270,104 @@ public final class DialogUtil {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
             }
         });
+    }
+
+    // ── Export result dialog ─────────────────────────────────────────────
+
+    /** Shows a "file generated" dialog with Abrir/Carpeta/Copiar ruta/Imprimir
+     *  actions for a just-exported report file. Shared by every screen that
+     *  exports a PDF/Excel/CSV (Reportes, Depreciación) so this ~80-line
+     *  dialog isn't duplicated per controller. */
+    public static void showExportResultDialog(javafx.scene.Scene scene, java.io.File file) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        applyOwner(dialog);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(460);
+        applyStylesheet(dialog.getDialogPane());
+
+        HBox header = gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
+            "El archivo fue exportado exitosamente.", "#047857", "#065F46");
+
+        String name  = file.getName();
+        String ext   = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toUpperCase() : "";
+        long   bytes = file.length();
+        String size  = bytes < 1024 ? bytes + " B"
+            : bytes < 1024 * 1024 ? (bytes / 1024) + " KB"
+            : String.format("%.1f MB", bytes / (1024.0 * 1024));
+
+        FontIcon iconLbl = new FontIcon("PDF".equals(ext) ? "mdi2f-file-pdf-box"
+            : "XLSX".equals(ext) ? "mdi2f-file-excel-outline" : "mdi2f-file-delimited-outline");
+        iconLbl.setIconSize(22);
+        Label nameLbl  = new Label(name);
+        nameLbl.getStyleClass().add("dlg-detail-value");
+        nameLbl.setWrapText(true);
+        Label sizeLbl  = new Label(size + " · " + file.getParent());
+        sizeLbl.getStyleClass().add("muted-sm");
+        sizeLbl.setWrapText(true);
+
+        VBox info = new VBox(3, nameLbl, sizeLbl);
+        HBox.setHgrow(info, Priority.ALWAYS);
+        HBox fileCard = new HBox(14, iconLbl, info);
+        fileCard.setAlignment(Pos.CENTER_LEFT);
+        fileCard.setPadding(new Insets(14, 18, 14, 18));
+        fileCard.getStyleClass().add("dlg-detail-header");
+
+        Button btnAbrir   = new Button("Abrir");
+        Button btnCarpeta = new Button("Carpeta");
+        Button btnCopiar  = new Button("Copiar ruta");
+        Button btnImpr    = new Button("Imprimir");
+        btnAbrir.setGraphic(new FontIcon("mdi2f-folder-open-outline"));
+        btnCarpeta.setGraphic(new FontIcon("mdi2f-folder-outline"));
+        btnCopiar.setGraphic(new FontIcon("mdi2c-content-copy"));
+        btnImpr.setGraphic(new FontIcon("mdi2p-printer"));
+        btnAbrir.setContentDisplay(ContentDisplay.LEFT);
+        btnCarpeta.setContentDisplay(ContentDisplay.LEFT);
+        btnCopiar.setContentDisplay(ContentDisplay.LEFT);
+        btnImpr.setContentDisplay(ContentDisplay.LEFT);
+        btnAbrir.getStyleClass().add("btn-primary");
+        btnCarpeta.getStyleClass().add("btn-secondary");
+        btnCopiar.getStyleClass().add("btn-secondary");
+        btnImpr.getStyleClass().add("btn-secondary");
+        btnImpr.setVisible("PDF".equals(ext));
+        btnImpr.setManaged("PDF".equals(ext));
+
+        btnAbrir.setOnAction(e -> {
+            try {
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
+                    java.awt.Desktop.getDesktop().open(file);
+                else
+                    NotificacionUtil.advertencia(scene, "No se puede abrir el archivo en este entorno");
+            } catch (Exception ex) { /* best-effort */ }
+        });
+        btnCarpeta.setOnAction(e -> {
+            try {
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
+                    java.awt.Desktop.getDesktop().open(file.getParentFile());
+                else
+                    NotificacionUtil.advertencia(scene, "No se puede abrir la carpeta en este entorno");
+            } catch (Exception ex) { /* best-effort */ }
+        });
+        btnCopiar.setOnAction(e -> {
+            var content = new javafx.scene.input.ClipboardContent();
+            content.putString(file.getAbsolutePath());
+            javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+            NotificacionUtil.info(scene, "Ruta copiada al portapapeles");
+        });
+        btnImpr.setOnAction(e -> {
+            try {
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.PRINT))
+                    java.awt.Desktop.getDesktop().print(file);
+                else
+                    NotificacionUtil.advertencia(scene, "La impresión directa no está disponible en este entorno");
+            } catch (Exception ex) { NotificacionUtil.error(scene, "No se pudo enviar a la impresora"); }
+        });
+
+        HBox actions = new HBox(8, btnAbrir, btnImpr, btnCarpeta, btnCopiar);
+        actions.setPadding(new Insets(10, 18, 8, 18));
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, fileCard, actions), 260, 60);
+        dialog.getDialogPane().setContent(new VBox(0, header, fileCard, actions));
+        dialog.showAndWait();
     }
 }

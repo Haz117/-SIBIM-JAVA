@@ -114,6 +114,10 @@
                         <graphic><FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
                     </Button>
+                    <Button fx:id="btnDepreciacion" text="Depreciación" onAction="#onDepreciacion" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2c-chart-line" styleClass="nav-icon"/></graphic>
+                        <tooltip><Tooltip text="Depreciación de activos  (Ctrl+9)"/></tooltip>
+                    </Button>
 
                     <Region prefHeight="4"/>
                     <Separator styleClass="sidebar-divider"/>

@@ -13,6 +13,8 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría o usuario, consultable desde Configuración (solo Admin)
+- **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo JSON, o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). Solo disponible conectado a la base de datos real, no en modo offline/demo
+- **Depreciación de activos** — página dedicada con el valor total de compra, valor actual en libros y % promedio depreciado de los bienes con datos completos, una gráfica de proyección del valor a 10 años, y el detalle por bien; exportable a PDF/Excel
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
 - **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
@@ -179,7 +181,8 @@ SIBIM-Java/
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
 | Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes, valor patrimonial y alertas de stock por área, y acceso directo al Inventario filtrado |
 | Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV) |
-| Configuración | Perfil de usuario, gestión de cuentas con buscador en tiempo real, historial de auditoría e historial de conteos físicos (solo Admin) |
+| Depreciación | Valor de compra vs. valor actual en libros, % promedio depreciado, gráfica de proyección a 10 años y detalle por bien; exportable a PDF/Excel |
+| Configuración | Perfil de usuario, gestión de cuentas con buscador en tiempo real, historial de auditoría, historial de conteos físicos y respaldo/restauración de la base de datos (solo Admin) |
 
 ---
 
@@ -195,7 +198,7 @@ SIBIM-Java/
 
 ## Respaldo de la base de datos
 
-El proyecto no incluye ningún mecanismo automatizado de respaldo — es responsabilidad de quien administre el servidor PostgreSQL. Como mínimo, en producción se recomienda:
+Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo JSON, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado real — para eso, sigue siendo responsabilidad de quien administre el servidor PostgreSQL. Como mínimo, en producción se recomienda:
 
 ```bash
 # Respaldo diario (ejemplo)

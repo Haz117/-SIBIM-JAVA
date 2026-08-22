@@ -62,13 +62,20 @@ public class Producto {
      * Returns zero if fully depreciated or not yet started.
      */
     public BigDecimal getValorDepreciado() {
+        return getValorDepreciadoEn(LocalDate.now());
+    }
+
+    /** Same straight-line calculation as {@link #getValorDepreciado()} but evaluated
+     *  at an arbitrary reference date — lets callers project future/past book value
+     *  (e.g. a depreciation trend chart) without duplicating the formula. */
+    public BigDecimal getValorDepreciadoEn(LocalDate fecha) {
         if (precioCompra == null || precioCompra.compareTo(BigDecimal.ZERO) <= 0
                 || fechaAdquisicion == null || vidaUtilAnios == null || vidaUtilAnios <= 0)
             return null;
         BigDecimal residual = valorResidual != null ? valorResidual : BigDecimal.ZERO;
         BigDecimal depreciable = precioCompra.subtract(residual);
         if (depreciable.compareTo(BigDecimal.ZERO) <= 0) return residual;
-        long diasTranscurridos = java.time.temporal.ChronoUnit.DAYS.between(fechaAdquisicion, LocalDate.now());
+        long diasTranscurridos = java.time.temporal.ChronoUnit.DAYS.between(fechaAdquisicion, fecha);
         if (diasTranscurridos <= 0) return precioCompra;
         BigDecimal depAnual = depreciable.divide(BigDecimal.valueOf(vidaUtilAnios), 10, RoundingMode.HALF_UP);
         BigDecimal depAcumulada = depAnual.multiply(BigDecimal.valueOf(diasTranscurridos)).divide(BigDecimal.valueOf(365), 10, RoundingMode.HALF_UP);

@@ -63,6 +63,7 @@ public class MainController {
     @FXML private Button btnMovimientos;
     @FXML private Button btnAlertas;
     @FXML private Button btnReportes;
+    @FXML private Button btnDepreciacion;
     @FXML private Button btnConfiguracion;
     @FXML private Label alertBadge;
     @FXML private Label statusDbLabel;
@@ -185,6 +186,7 @@ public class MainController {
     @FXML private void onMovimientos()   { navigateTo("movimientos",   btnMovimientos); }
     @FXML private void onAlertas()       { navigateTo("alertas",       btnAlertas); }
     @FXML private void onReportes()      { navigateTo("reportes",      btnReportes); }
+    @FXML private void onDepreciacion()  { navigateTo("depreciacion",  btnDepreciacion); }
     @FXML private void onConfiguracion() { navigateTo("configuracion", btnConfiguracion); }
 
     @FXML
@@ -524,6 +526,7 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.DIGIT6, KeyCombination.CONTROL_DOWN), () -> onAlertas());
         a.put(new KeyCodeCombination(KeyCode.DIGIT7, KeyCombination.CONTROL_DOWN), () -> onReportes());
         a.put(new KeyCodeCombination(KeyCode.DIGIT8, KeyCombination.CONTROL_DOWN), () -> onConfiguracion());
+        a.put(new KeyCodeCombination(KeyCode.DIGIT9, KeyCombination.CONTROL_DOWN), () -> onDepreciacion());
         a.put(new KeyCodeCombination(KeyCode.F5),                                   () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
@@ -548,6 +551,7 @@ public class MainController {
         addNavTooltip(btnAlertas,       "Alertas  (Ctrl+6)");
         addNavTooltip(btnReportes,      "Reportes  (Ctrl+7)");
         addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+8)");
+        addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+9)");
     }
 
     private void addNavTooltip(Button btn, String text) {
@@ -606,6 +610,7 @@ public class MainController {
             {"Ctrl + 6",  "Alertas"},
             {"Ctrl + 7",  "Reportes"},
             {"Ctrl + 8",  "Configuración"},
+            {"Ctrl + 9",  "Depreciación"},
         });
 
         GridPane accGrid = makeSection.apply("ACCIONES EN TABLA", new String[][]{
@@ -677,6 +682,7 @@ public class MainController {
             case "alertas"       -> btnAlertas;
             case "reportes"      -> btnReportes;
             case "configuracion" -> btnConfiguracion;
+            case "depreciacion"  -> btnDepreciacion;
             default              -> btnDashboard;
         };
         navigateTo(view, btn);

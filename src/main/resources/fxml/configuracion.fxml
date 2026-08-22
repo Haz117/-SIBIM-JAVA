@@ -191,5 +191,30 @@
         </HBox>
     </VBox>
 
+    <!-- ══ RESPALDO Y RESTAURACIÓN (solo ADMIN) ═══════════════════════ -->
+    <VBox fx:id="backupSection" styleClass="card" spacing="12">
+        <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="12">
+            <StackPane styleClass="section-icon-badge">
+                <FontIcon iconLiteral="mdi2d-database-outline" styleClass="page-icon-emoji"/>
+            </StackPane>
+            <VBox spacing="2" HBox.hgrow="ALWAYS">
+                <Label text="Respaldo y Restauración" styleClass="card-title"/>
+                <Label text="Exporta toda la base de datos a un archivo, o restaura desde un respaldo previo. Solo disponible conectado a la base de datos principal."
+                       styleClass="page-subtitle"/>
+            </VBox>
+            <Button fx:id="btnGenerarRespaldo" text="Generar respaldo" onAction="#onGenerarRespaldo" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2d-database-export-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Exportar toda la base de datos a un archivo .json"/></tooltip>
+            </Button>
+            <Button fx:id="btnRestaurar" text="Restaurar desde archivo" onAction="#onRestaurar" styleClass="btn-danger"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2d-database-import-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Reemplaza TODOS los datos actuales con los del archivo de respaldo elegido"/></tooltip>
+            </Button>
+        </HBox>
+    </VBox>
+
 </VBox>
 </ScrollPane>

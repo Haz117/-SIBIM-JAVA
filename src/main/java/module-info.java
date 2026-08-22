@@ -19,6 +19,8 @@ module com.sibim {
     requires kernel;
     requires layout;
     requires io;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.datatype.jsr310;
     requires org.slf4j;
     requires ch.qos.logback.classic;
     requires io.github.cdimascio.dotenv.java;

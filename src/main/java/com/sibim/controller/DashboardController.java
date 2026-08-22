@@ -25,8 +25,6 @@ public class DashboardController {
     // ── Stats cards ──────────────────────────────────────────────────
     @FXML private Label lblTotalBienes;
     @FXML private Label lblValorTotal;
-    @FXML private Label lblBajoStock;
-    @FXML private Label lblAgotados;
     @FXML private Label lblMovimientosHoy;
     @FXML private Label lblCategorias;
 
@@ -38,6 +36,15 @@ public class DashboardController {
     @FXML private HBox  alertBanner;
     @FXML private Label lblAlertBannerText;
     @FXML private Label lblStatsActualizacion;
+
+    // ── Help badges ("?") ────────────────────────────────────────────
+    @FXML private Label helpStats;
+    @FXML private Label helpTotalBienes;
+    @FXML private Label helpValorTotal;
+    @FXML private Label helpMovimientosHoy;
+    @FXML private Label helpCategorias;
+    @FXML private Label helpHealth;
+    @FXML private Label helpAnalisis;
 
     // ── Health bar ───────────────────────────────────────────────────
     @FXML private VBox  healthSection;
@@ -80,6 +87,14 @@ public class DashboardController {
         if (lblFechaMes != null) lblFechaMes.setText(meses[hoy.getMonthValue()-1] + " " + hoy.getYear());
 
         setupTablaReciente();
+
+        // JavaFX's default tooltip only appears after ~1s of hovering, which
+        // reads as "broken" on a small icon — same click-to-show behavior
+        // used for the "?" badges everywhere else in the app (DialogUtil).
+        for (Label badge : new Label[]{ helpStats, helpTotalBienes, helpValorTotal,
+                helpMovimientosHoy, helpCategorias, helpHealth, helpAnalisis }) {
+            if (badge != null) com.sibim.util.DialogUtil.enableClickToShowTooltip(badge);
+        }
 
         // Defer data loading until the node is in a scene so that charts render
         // correctly and don't get caught mid-animation during the page transition.
@@ -132,8 +147,6 @@ public class DashboardController {
         lastBajoStock = data.bajoStock();
 
         AnimationUtils.animateCount(lblTotalBienes,    stats.total(),              750);
-        AnimationUtils.animateCount(lblBajoStock,      stats.bajoStock(),          680);
-        AnimationUtils.animateCount(lblAgotados,       stats.agotados(),           680);
         AnimationUtils.animateCount(lblMovimientosHoy, data.movHoy().size(),       580);
         AnimationUtils.animateCount(lblCategorias,     stats.categorias(),         580);
         // Currency: animate double value, format each tick for precision on last frame
@@ -445,6 +458,12 @@ public class DashboardController {
     private void setupTablaReciente() {
         if (tablaReciente == null) return;
 
+        // Columns are given a fixed sum below and then stretched to fill the
+        // card's full width — without this, the default resize policy leaves
+        // a wide blank strip to the right of the last column once the table
+        // is wider than the columns' prefWidth sum.
+        tablaReciente.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
         // Row factory — tint rows by movement type
         tablaReciente.setRowFactory(tv -> new TableRow<>() {
             @Override protected void updateItem(Movimiento m, boolean empty) {
@@ -466,12 +485,24 @@ public class DashboardController {
         TableColumn<Movimiento, String> cProd = new TableColumn<>("Bien");
         cProd.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             c.getValue().getProductoNombre() != null ? c.getValue().getProductoNombre() : ""));
-        cProd.setPrefWidth(200);
+        cProd.setPrefWidth(280);
+        cProd.setMinWidth(160);
+        cProd.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                getStyleClass().remove("recent-bien-cell");
+                if (empty || item == null) { setText(null); return; }
+                setText(item);
+                getStyleClass().add("recent-bien-cell");
+            }
+        });
 
         TableColumn<Movimiento, String> cTipo = new TableColumn<>("Tipo");
         cTipo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             c.getValue().getTipo().getEtiqueta()));
         cTipo.setPrefWidth(100);
+        cTipo.setMinWidth(90);
+        cTipo.setMaxWidth(120);
         cTipo.setCellFactory(com.sibim.util.DialogUtil.badgeCellFactory(item -> switch (item) {
             case "Entrada"       -> "cell-badge-success";
             case "Salida"        -> "cell-badge-danger";
@@ -482,17 +513,40 @@ public class DashboardController {
 
         TableColumn<Movimiento, Integer> cCant = new TableColumn<>("Cant.");
         cCant.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getCantidad()));
-        cCant.setPrefWidth(60);
+        cCant.setPrefWidth(55);
+        cCant.setMinWidth(50);
+        cCant.setMaxWidth(70);
+        cCant.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(Integer v, boolean empty) {
+                super.updateItem(v, empty);
+                getStyleClass().removeAll("qty-in", "qty-out", "qty-neutral");
+                if (empty || v == null) { setText(null); return; }
+                Movimiento row = getTableRow() != null ? getTableRow().getItem() : null;
+                String sign = "", cls = "qty-neutral";
+                if (row != null) {
+                    switch (row.getTipo()) {
+                        case ENTRADA -> { sign = "+"; cls = "qty-in"; }
+                        case SALIDA  -> { sign = "-"; cls = "qty-out"; }
+                        default -> {}
+                    }
+                }
+                setText(sign + v);
+                getStyleClass().add(cls);
+            }
+        });
 
         TableColumn<Movimiento, String> cUsuario = new TableColumn<>("Usuario");
         cUsuario.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             c.getValue().getUsuarioNombre() != null ? c.getValue().getUsuarioNombre() : ""));
-        cUsuario.setPrefWidth(130);
+        cUsuario.setPrefWidth(160);
+        cUsuario.setMinWidth(110);
 
         TableColumn<Movimiento, String> cFecha = new TableColumn<>("Fecha");
         cFecha.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
         cFecha.setPrefWidth(140);
+        cFecha.setMinWidth(130);
+        cFecha.setMaxWidth(160);
 
         tablaReciente.getColumns().add(cProd);
         tablaReciente.getColumns().add(cTipo);

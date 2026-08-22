@@ -37,6 +37,32 @@ public class NotificacionUtil {
         Platform.runLater(() -> showConAccion(scene.getWindow(), mensaje, btnLabel, onAction));
     }
 
+    /** Success toast for a Transferencia — same position/timing/style as every
+     *  other toast (no separate floating overlay), just with the origin →
+     *  destino route shown as a small chip row under the message so the route
+     *  detail doesn't need a second, differently-placed animation. */
+    public static void exitoTransferencia(Scene scene, String producto, String from, String to) {
+        if (scene == null) return;
+        Platform.runLater(() -> showTransferencia(scene.getWindow(), producto, from, to));
+    }
+
+    /** Same centered-card celebration as {@link #exitoTransferencia}, for the
+     *  "physical count closed with zero discrepancies" case — simpler content
+     *  (no route chips), same card look so both share one visual language. */
+    public static void exitoConteo(Scene scene, int totalItems) {
+        if (scene == null) return;
+        Platform.runLater(() -> showConteoOk(scene.getWindow(), totalItems));
+    }
+
+    /** Centered card for "database restore finished" — same card language as
+     *  the other one-off system events, but a calmer entrance (no bounce) and
+     *  a neutral/info tone instead of a festive one: this is a critical,
+     *  rare action (it replaces all data), not something to celebrate. */
+    public static void restauracionCompletada(Scene scene, String archivoNombre) {
+        if (scene == null) return;
+        Platform.runLater(() -> showRestauracion(scene.getWindow(), archivoNombre));
+    }
+
     private static void show(Window owner, String mensaje, Tipo tipo) {
         if (owner == null) return;
         if (activeToasts >= MAX_TOASTS) return;
@@ -126,6 +152,220 @@ public class NotificacionUtil {
             ParallelTransition quickDismiss = new ParallelTransition(quickSlide, quickFade);
             quickDismiss.setOnFinished(ev -> { popup.hide(); activeToasts--; });
             quickDismiss.play();
+        });
+    }
+
+    /** Centered (not stacked with the corner toasts — this is a one-off,
+     *  standalone celebration), a bit bigger than a normal toast, with a
+     *  proper entrance flourish: the card pops in with a slight overshoot,
+     *  then the arrow slides in and the destination chip pops in right after. */
+    private static void showTransferencia(Window owner, String producto, String from, String to) {
+        if (owner == null) return;
+
+        FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
+        iconLbl.setIconSize(26);
+        iconLbl.getStyleClass().add("toast-icon-success");
+
+        Label titleLbl = new Label("Transferencia registrada");
+        titleLbl.getStyleClass().add("transfer-cel-title");
+
+        Label productLbl = new Label(producto != null ? producto : "");
+        productLbl.getStyleClass().add("transfer-cel-product");
+        productLbl.setWrapText(true);
+
+        Label fromLbl = new Label(from != null ? from : "—");
+        fromLbl.getStyleClass().add("transfer-cel-chip-from");
+        Label arrowLbl = new Label("→");
+        arrowLbl.getStyleClass().add("transfer-cel-arrow");
+        arrowLbl.setTranslateX(-10);
+        arrowLbl.setOpacity(0);
+        Label toLbl = new Label(to != null ? to : "—");
+        toLbl.getStyleClass().add("transfer-cel-chip-to");
+        toLbl.setScaleX(0.6); toLbl.setScaleY(0.6);
+        toLbl.setOpacity(0);
+        HBox routeRow = new HBox(8, fromLbl, arrowLbl, toLbl);
+        routeRow.setAlignment(Pos.CENTER);
+
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(9, iconLbl, titleLbl, productLbl, routeRow);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(22, 30, 22, 30));
+        box.setMaxWidth(340);
+        box.getStyleClass().add("transfer-cel-card");
+
+        var css = NotificacionUtil.class.getResource("/css/styles.css");
+        if (css != null) box.getStylesheets().add(css.toExternalForm());
+
+        box.setOpacity(0);
+        box.setScaleX(0.85); box.setScaleY(0.85);
+
+        Popup popup = new Popup();
+        popup.setAutoHide(false);
+        popup.getContent().add(box);
+        popup.show(owner, owner.getX() + owner.getWidth() / 2.0, owner.getY() + owner.getHeight() / 2.0);
+
+        // Re-center now that the box has a real width/height, then start
+        // the entrance animation — width/height are 0 until after the first
+        // layout pass, so this has to happen post-show.
+        Platform.runLater(() -> {
+            popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
+            popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
+
+            ScaleTransition popIn = new ScaleTransition(Duration.millis(340), box);
+            popIn.setToX(1.04); popIn.setToY(1.04);
+            popIn.setInterpolator(Interpolator.EASE_OUT);
+            ScaleTransition settle = new ScaleTransition(Duration.millis(140), box);
+            settle.setToX(1); settle.setToY(1);
+            settle.setInterpolator(Interpolator.EASE_IN);
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(260), box);
+            fadeIn.setToValue(1);
+
+            TranslateTransition arrowSlide = new TranslateTransition(Duration.millis(280), arrowLbl);
+            arrowSlide.setToX(0);
+            arrowSlide.setDelay(Duration.millis(260));
+            arrowSlide.setInterpolator(Interpolator.EASE_OUT);
+            FadeTransition arrowFade = new FadeTransition(Duration.millis(220), arrowLbl);
+            arrowFade.setToValue(1);
+            arrowFade.setDelay(Duration.millis(260));
+
+            ScaleTransition toPop = new ScaleTransition(Duration.millis(280), toLbl);
+            toPop.setToX(1.12); toPop.setToY(1.12);
+            toPop.setDelay(Duration.millis(440));
+            toPop.setInterpolator(Interpolator.EASE_OUT);
+            ScaleTransition toSettle = new ScaleTransition(Duration.millis(140), toLbl);
+            toSettle.setToX(1); toSettle.setToY(1);
+            toSettle.setDelay(Duration.millis(720));
+            toSettle.setInterpolator(Interpolator.EASE_IN);
+            FadeTransition toFade = new FadeTransition(Duration.millis(220), toLbl);
+            toFade.setToValue(1);
+            toFade.setDelay(Duration.millis(440));
+
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(280), box);
+            fadeOut.setToValue(0);
+            fadeOut.setOnFinished(e -> popup.hide());
+
+            new SequentialTransition(
+                new ParallelTransition(fadeIn, new SequentialTransition(popIn, settle),
+                    arrowSlide, arrowFade, toPop, toSettle, toFade),
+                new PauseTransition(Duration.millis(1900)),
+                fadeOut
+            ).play();
+        });
+    }
+
+    /** Centered pop-in card, simpler than {@link #showTransferencia} (no
+     *  route chips) — just icon, title and a subtitle with the item count. */
+    private static void showConteoOk(Window owner, int totalItems) {
+        if (owner == null) return;
+
+        FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
+        iconLbl.setIconSize(26);
+        iconLbl.getStyleClass().add("toast-icon-success");
+
+        Label titleLbl = new Label("Conteo completado");
+        titleLbl.getStyleClass().add("transfer-cel-title");
+
+        Label subtitleLbl = new Label("Sin diferencias en " + totalItems + " bien(es)");
+        subtitleLbl.getStyleClass().add("transfer-cel-product");
+        subtitleLbl.setWrapText(true);
+
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(9, iconLbl, titleLbl, subtitleLbl);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(22, 30, 22, 30));
+        box.setMaxWidth(340);
+        box.getStyleClass().add("transfer-cel-card");
+
+        var css = NotificacionUtil.class.getResource("/css/styles.css");
+        if (css != null) box.getStylesheets().add(css.toExternalForm());
+
+        box.setOpacity(0);
+        box.setScaleX(0.85); box.setScaleY(0.85);
+
+        Popup popup = new Popup();
+        popup.setAutoHide(false);
+        popup.getContent().add(box);
+        popup.show(owner, owner.getX() + owner.getWidth() / 2.0, owner.getY() + owner.getHeight() / 2.0);
+
+        Platform.runLater(() -> {
+            popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
+            popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
+
+            ScaleTransition popIn = new ScaleTransition(Duration.millis(340), box);
+            popIn.setToX(1.04); popIn.setToY(1.04);
+            popIn.setInterpolator(Interpolator.EASE_OUT);
+            ScaleTransition settle = new ScaleTransition(Duration.millis(140), box);
+            settle.setToX(1); settle.setToY(1);
+            settle.setInterpolator(Interpolator.EASE_IN);
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(260), box);
+            fadeIn.setToValue(1);
+
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(280), box);
+            fadeOut.setToValue(0);
+            fadeOut.setOnFinished(e -> popup.hide());
+
+            new SequentialTransition(
+                new ParallelTransition(fadeIn, new SequentialTransition(popIn, settle)),
+                new PauseTransition(Duration.millis(1700)),
+                fadeOut
+            ).play();
+        });
+    }
+
+    /** Calmer cousin of {@link #showConteoOk}: no bounce overshoot on entry
+     *  (a plain fade+scale-up feels more "confirmed" than "celebrated"), an
+     *  info-blue icon instead of success-green, and a longer hold time since
+     *  the restart reminder in the subtitle actually needs to be read. */
+    private static void showRestauracion(Window owner, String archivoNombre) {
+        if (owner == null) return;
+
+        FontIcon iconLbl = new FontIcon("mdi2s-shield-check-outline");
+        iconLbl.setIconSize(26);
+        iconLbl.getStyleClass().add("toast-icon-info");
+
+        Label titleLbl = new Label("Base de datos restaurada");
+        titleLbl.getStyleClass().add("transfer-cel-title");
+
+        Label subtitleLbl = new Label("Desde \"" + (archivoNombre != null ? archivoNombre : "") + "\" — "
+            + "reinicia la aplicación para ver los datos actualizados");
+        subtitleLbl.getStyleClass().add("transfer-cel-product");
+        subtitleLbl.setWrapText(true);
+        subtitleLbl.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(9, iconLbl, titleLbl, subtitleLbl);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(22, 30, 22, 30));
+        box.setMaxWidth(360);
+        box.getStyleClass().add("transfer-cel-card");
+
+        var css = NotificacionUtil.class.getResource("/css/styles.css");
+        if (css != null) box.getStylesheets().add(css.toExternalForm());
+
+        box.setOpacity(0);
+        box.setScaleX(0.94); box.setScaleY(0.94);
+
+        Popup popup = new Popup();
+        popup.setAutoHide(false);
+        popup.getContent().add(box);
+        popup.show(owner, owner.getX() + owner.getWidth() / 2.0, owner.getY() + owner.getHeight() / 2.0);
+
+        Platform.runLater(() -> {
+            popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
+            popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
+
+            ScaleTransition growIn = new ScaleTransition(Duration.millis(240), box);
+            growIn.setToX(1); growIn.setToY(1);
+            growIn.setInterpolator(Interpolator.EASE_OUT);
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(240), box);
+            fadeIn.setToValue(1);
+
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(280), box);
+            fadeOut.setToValue(0);
+            fadeOut.setOnFinished(e -> popup.hide());
+
+            new SequentialTransition(
+                new ParallelTransition(fadeIn, growIn),
+                new PauseTransition(Duration.millis(3400)),
+                fadeOut
+            ).play();
         });
     }
 

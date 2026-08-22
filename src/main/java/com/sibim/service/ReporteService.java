@@ -280,6 +280,59 @@ public class ReporteService {
         return file;
     }
 
+    // ── Depreciación ── (recibe la lista ya cargada/filtrada por la pantalla
+    // de Depreciación en vez de re-consultar productoRepo — exporta
+    // exactamente lo que el usuario está viendo)
+
+    private static final String[] DEP_HEADERS = {
+        "Nombre", "Categoria", "Fecha Adquisicion", "Vida Util (años)",
+        "Valor Compra", "Valor Actual", "% Depreciado"};
+
+    public File exportDepreciacionExcel(List<Producto> productos) throws Exception {
+        File file = tempFile("depreciacion", ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = createSheet(wb, "Depreciación");
+            writeHeader(sheet, DEP_HEADERS, wb);
+            int row = 1;
+            for (Producto p : productos) {
+                Row r = sheet.createRow(row++);
+                r.createCell(0).setCellValue(p.getNombre());
+                r.createCell(1).setCellValue(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "");
+                r.createCell(2).setCellValue(FormatUtils.formatDate(p.getFechaAdquisicion()));
+                r.createCell(3).setCellValue(p.getVidaUtilAnios());
+                r.createCell(4).setCellValue(p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0);
+                r.createCell(5).setCellValue(p.getValorDepreciado() != null ? p.getValorDepreciado().doubleValue() : 0);
+                r.createCell(6).setCellValue(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0);
+            }
+            autosizeColumns(sheet, DEP_HEADERS.length);
+            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
+        }
+        return file;
+    }
+
+    public File exportDepreciacionPdf(List<Producto> productos) throws Exception {
+        File file = tempFile("depreciacion", ".pdf");
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
+            addPdfHeader(doc, "Depreciación de Activos", null, null);
+            float[] widths = {3f, 1.8f, 1.5f, 1.2f, 1.5f, 1.5f, 1.2f};
+            Table table = createPdfTable(DEP_HEADERS, widths);
+            for (Producto p : productos) {
+                table.addCell(cell(p.getNombre()));
+                table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
+                table.addCell(cell(FormatUtils.formatDate(p.getFechaAdquisicion())));
+                table.addCell(cell(String.valueOf(p.getVidaUtilAnios())));
+                table.addCell(cell(FormatUtils.formatCurrency(p.getPrecioCompra())));
+                table.addCell(cell(FormatUtils.formatCurrency(p.getValorDepreciado())));
+                table.addCell(cell(p.getPorcentajeDepreciado() + "%"));
+            }
+            doc.add(table);
+            addPdfFooter(doc, productos.size());
+        }
+        return file;
+    }
+
     // ───────────────────────────── PDF ─────────────────────────────
 
     public File exportInventarioPdf(LocalDate desde, LocalDate hasta) throws Exception {

@@ -35,6 +35,9 @@ public class OrganigramaController {
     @FXML private VBox  statCardAreas;
     @FXML private VBox  statCardBienes;
     @FXML private VBox  statCardTop;
+    @FXML private Label helpAreas;
+    @FXML private Label helpBienes;
+    @FXML private Label helpTopArea;
 
     private final ProductoRepository productoRepo = new ProductoRepository();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
@@ -43,6 +46,9 @@ public class OrganigramaController {
 
     @FXML
     public void initialize() {
+        for (Label badge : new Label[]{ helpAreas, helpBienes, helpTopArea }) {
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
+        }
         SearchUtils.debounce(searchField, 280, this::buildTree);
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
@@ -214,8 +220,9 @@ public class OrganigramaController {
             Label alertDot = new Label(" " + alertasArea);
             alertDot.setGraphic(alertIcon);
             alertDot.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            alertDot.getStyleClass().add("org-alert-badge");
-            Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) agotado(s) o bajo stock en esta área"));
+            alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
+            alertDot.setOnMouseClicked(e -> { e.consume(); showAreaProductsDialog(parentName, allAreaProds, true); });
+            Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) agotado(s) o bajo stock en esta área — clic para verlos"));
             header.getChildren().add(alertDot);
         }
 
@@ -288,8 +295,9 @@ public class OrganigramaController {
                 Label alertDot = new Label(" " + alertasChild);
                 alertDot.setGraphic(alertIcon);
                 alertDot.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-                alertDot.getStyleClass().add("org-alert-badge");
-                Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) agotado(s) o bajo stock en " + child));
+                alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
+                alertDot.setOnMouseClicked(e -> { e.consume(); showAreaProductsDialog(child, childProds, true); });
+                Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) agotado(s) o bajo stock en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(alertDot);
             }
 
@@ -371,6 +379,20 @@ public class OrganigramaController {
     }
 
     private void showAreaProductsDialog(String areaName, List<Producto> prods) {
+        showAreaProductsDialog(areaName, prods, false);
+    }
+
+    /** Same dialog, but when {@code soloAlertas} is true it's opened from the
+     *  area's "⚠ N" alert badge instead of its bien count: filters the list
+     *  down to agotados/bajo-stock only, so clicking the alert count actually
+     *  shows those bienes instead of the area's full inventory. */
+    private void showAreaProductsDialog(String areaName, List<Producto> allProds, boolean soloAlertas) {
+        List<Producto> prods = soloAlertas
+            ? allProds.stream()
+                .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
+                .toList()
+            : allProds;
+
         ButtonType btnVerInventario = new ButtonType("Ver en Inventario →", ButtonBar.ButtonData.OTHER);
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
@@ -389,9 +411,13 @@ public class OrganigramaController {
             });
         }
 
-        HBox header = DialogUtil.gradientHeader("mdi2f-folder-outline", areaName,
-            prods.size() + (prods.size() == 1 ? " bien registrado en esta área" : " bienes registrados en esta área"),
-            "#4338CA", "#6D28D9");
+        HBox header = soloAlertas
+            ? DialogUtil.gradientHeader("mdi2a-alert-circle-outline", areaName,
+                prods.size() + (prods.size() == 1 ? " bien agotado o con bajo stock" : " bienes agotados o con bajo stock"),
+                "#D97706", "#B45309")
+            : DialogUtil.gradientHeader("mdi2f-folder-outline", areaName,
+                prods.size() + (prods.size() == 1 ? " bien registrado en esta área" : " bienes registrados en esta área"),
+                "#4338CA", "#6D28D9");
 
         TableView<Producto> tbl = new TableView<>(FXCollections.observableArrayList(prods));
         tbl.setPrefHeight(360);

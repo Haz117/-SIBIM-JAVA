@@ -35,6 +35,9 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar-teal"/>
         <Label text="LISTADO DE CATEGORÍAS" styleClass="dash-section-label"/>
+        <Label fx:id="helpCategorias" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Las categorías clasifican los bienes del inventario (Mobiliario, Vehículos, etc.). La columna Bienes cuenta cuántos bienes activos tiene cada una; solo se puede eliminar una categoría si no tiene bienes asignados." wrapText="true" maxWidth="280"/></tooltip>
+        </Label>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblTotal" text="0 categorías" styleClass="muted"/>
     </HBox>

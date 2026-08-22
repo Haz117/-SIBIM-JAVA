@@ -109,6 +109,10 @@ public class ProductosController {
     @FXML private VBox statCardTotal;
     @FXML private VBox statCardValor;
     @FXML private VBox cardAlertas;
+    @FXML private Label helpAlertas;
+    @FXML private Label helpResguardante;
+    @FXML private Label helpTotal;
+    @FXML private Label helpValor;
 
     private final ProductoService productoService = new ProductoService();
     private final CategoriaRepository categoriaRepo = new CategoriaRepository();
@@ -170,6 +174,10 @@ public class ProductosController {
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardTotal, statCardValor, cardAlertas), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+        if (helpAlertas      != null) DialogUtil.enableClickToShowTooltip(helpAlertas);
+        if (helpResguardante != null) DialogUtil.enableClickToShowTooltip(helpResguardante);
+        if (helpTotal        != null) DialogUtil.enableClickToShowTooltip(helpTotal);
+        if (helpValor        != null) DialogUtil.enableClickToShowTooltip(helpValor);
     }
 
     private void setupTable() {

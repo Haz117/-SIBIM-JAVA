@@ -47,6 +47,9 @@ public class ConfiguracionController {
     @FXML private TableColumn<Usuario, String> colArea;
     @FXML private VBox adminSection;
     @FXML private VBox auditSection;
+    @FXML private VBox backupSection;
+    @FXML private Button btnGenerarRespaldo;
+    @FXML private Button btnRestaurar;
     @FXML private Button btnEditUser;
     @FXML private Button btnPasswordUser;
     @FXML private Button btnDeleteUser;
@@ -57,6 +60,7 @@ public class ConfiguracionController {
     private List<Usuario> allUsers = new java.util.ArrayList<>();
     private final com.sibim.repository.AuditLogRepository auditRepo = new com.sibim.repository.AuditLogRepository();
     private final com.sibim.repository.ConteoRepository conteoRepo = new com.sibim.repository.ConteoRepository();
+    private final com.sibim.service.BackupService backupService = new com.sibim.service.BackupService();
 
     @FXML
     public void initialize() {
@@ -89,13 +93,18 @@ public class ConfiguracionController {
             auditSection.setVisible(isAdmin);
             auditSection.setManaged(isAdmin);
         }
+        if (backupSection != null) {
+            backupSection.setVisible(isAdmin);
+            backupSection.setManaged(isAdmin);
+        }
 
         // Entrance animations — cards cascade in from below
         if (profileCard  != null) AnimationUtils.fadeInUp(profileCard,  320,   0);
         if (sysInfoCard  != null) AnimationUtils.fadeInUp(sysInfoCard,  320,  70);
         if (isAdmin) {
-            if (adminSection != null) AnimationUtils.fadeInUp(adminSection, 320, 140);
-            if (auditSection != null) AnimationUtils.fadeInUp(auditSection, 320, 210);
+            if (adminSection  != null) AnimationUtils.fadeInUp(adminSection,  320, 140);
+            if (auditSection  != null) AnimationUtils.fadeInUp(auditSection,  320, 210);
+            if (backupSection != null) AnimationUtils.fadeInUp(backupSection, 320, 280);
         }
 
         if (isAdmin) {
@@ -659,5 +668,61 @@ public class ConfiguracionController {
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
+    }
+
+    // ── Respaldo y restauración ──────────────────────────────────────────
+
+    @FXML
+    private void onGenerarRespaldo() {
+        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Guardar respaldo de la base de datos");
+        chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JSON", "*.json"));
+        chooser.setInitialFileName("sibim_backup_"
+            + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE) + ".json");
+        java.io.File destino = chooser.showSaveDialog(com.sibim.MainApp.getPrimaryStage());
+        if (destino == null) return;
+
+        btnGenerarRespaldo.setDisable(true);
+        DialogUtil.runAsync(
+            () -> { backupService.backup(destino); return destino; },
+            file -> {
+                btnGenerarRespaldo.setDisable(false);
+                NotificacionUtil.exito(backupSection.getScene(), "Respaldo generado: " + file.getName());
+            },
+            e -> {
+                btnGenerarRespaldo.setDisable(false);
+                NotificacionUtil.error(backupSection.getScene(),
+                    e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo generar el respaldo");
+            }
+        );
+    }
+
+    @FXML
+    private void onRestaurar() {
+        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Restaurar desde un archivo de respaldo");
+        chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JSON", "*.json"));
+        java.io.File origen = chooser.showOpenDialog(com.sibim.MainApp.getPrimaryStage());
+        if (origen == null) return;
+
+        if (!ConfirmacionUtil.confirmar("Restaurar base de datos",
+                "Esto reemplaza TODOS los datos actuales (bienes, movimientos, usuarios, categorías, "
+                + "auditoría y conteos) con el contenido de \"" + origen.getName() + "\". "
+                + "Esta acción no se puede deshacer. ¿Continuar?"))
+            return;
+
+        btnRestaurar.setDisable(true);
+        DialogUtil.runAsync(
+            () -> { backupService.restore(origen); return null; },
+            v -> {
+                btnRestaurar.setDisable(false);
+                NotificacionUtil.restauracionCompletada(backupSection.getScene(), origen.getName());
+            },
+            e -> {
+                btnRestaurar.setDisable(false);
+                NotificacionUtil.error(backupSection.getScene(),
+                    e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo restaurar el respaldo");
+            }
+        );
     }
 }

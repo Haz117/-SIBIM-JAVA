@@ -63,6 +63,9 @@ public class AlertasController {
     @FXML private VBox  sectionAgotados;
     @FXML private VBox  sectionBajoStock;
     @FXML private VBox  sectionGarantias;
+    @FXML private Label helpAgotados;
+    @FXML private Label helpBajoStock;
+    @FXML private Label helpGarantias;
 
     private final ProductoService productoService = new ProductoService();
 
@@ -148,6 +151,28 @@ public class AlertasController {
         miBsReponer.setOnAction(e -> onSolicitarBajoStock());
         cmBs.getItems().add(miBsReponer);
         tableBajoStock.setContextMenu(cmBs);
+
+        // tableGarantias: same double-click / context-menu "ver detalle"
+        // pattern as the other two tables — it was the only one without it.
+        tableGarantias.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
+                if (sel != null) showGarantiaInfo(sel);
+            }
+        });
+        ContextMenu cmGa = new ContextMenu();
+        MenuItem miGaDetalle = new MenuItem("Ver detalle");
+        miGaDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
+        miGaDetalle.setOnAction(e -> {
+            Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
+            if (sel != null) showGarantiaInfo(sel);
+        });
+        cmGa.getItems().add(miGaDetalle);
+        tableGarantias.setContextMenu(cmGa);
+
+        for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias }) {
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
+        }
     }
 
     private void setupColumns() {
@@ -376,6 +401,44 @@ public class AlertasController {
             grid.add(DialogUtil.fieldLabel("Stock mínimo"), 0, r);
             grid.add(new Label(String.valueOf(p.getStockMinimo())), 1, r++);
         }
+
+        VBox content = new VBox(0, header, grid);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
+        dlg.getDialogPane().setContent(content);
+        dlg.showAndWait();
+    }
+
+    /** Same detail-on-click pattern as {@link #showProductoInfo}, for the
+     *  Garantías por Vencer table — it was the only one of the three alert
+     *  tables with no way to see more than the row itself. */
+    private void showGarantiaInfo(Producto p) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dlg.getDialogPane().setPrefWidth(420);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        LocalDate fv = p.getFechaVencimiento();
+        long dias = fv != null ? ChronoUnit.DAYS.between(LocalDate.now(), fv) : 0;
+        String sub = fv == null ? "Sin fecha de vencimiento registrada"
+            : dias < 0 ? "Garantía vencida"
+            : dias == 0 ? "La garantía vence hoy"
+            : "Vence en " + dias + (dias == 1 ? " día" : " días");
+
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", p.getNombre(), sub, "#2563EB", "#1D4ED8");
+
+        GridPane grid = DialogUtil.formGrid(120);
+        int r = 0;
+        grid.add(DialogUtil.fieldLabel("Código"), 0, r);
+        Label codLbl = new Label(p.getCodigo());
+        codLbl.getStyleClass().add("codigo-cell");
+        grid.add(codLbl, 1, r++);
+        grid.add(DialogUtil.fieldLabel("Área"), 0, r); grid.add(new Label(p.getArea() != null ? p.getArea() : "—"), 1, r++);
+        grid.add(DialogUtil.fieldLabel("Fecha de vencimiento"), 0, r);
+        grid.add(new Label(fv != null ? FormatUtils.formatDate(fv) : "—"), 1, r++);
+        Label diasLbl = new Label(fv == null ? "—" : dias < 0 ? "Vencido" : dias == 0 ? "Vence hoy" : dias + " días");
+        diasLbl.getStyleClass().add(fv != null && dias <= 3 ? "days-critical" : "days-warn");
+        grid.add(DialogUtil.fieldLabel("Días restantes"), 0, r); grid.add(diasLbl, 1, r);
 
         VBox content = new VBox(0, header, grid);
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);

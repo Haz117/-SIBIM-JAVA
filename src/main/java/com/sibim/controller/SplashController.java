@@ -210,6 +210,8 @@ public class SplashController {
         ButtonType btnSalir = new ButtonType("Salir", ButtonBar.ButtonData.CANCEL_CLOSE);
         ButtonType btnContinuar = new ButtonType("Continuar en modo demo", ButtonBar.ButtonData.OK_DONE);
         alert.getButtonTypes().setAll(btnSalir, btnContinuar);
+        alert.getDialogPane().setPrefWidth(440);
+        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
         Optional<ButtonType> result = alert.showAndWait();
         return result.isPresent() && result.get() == btnContinuar;
@@ -229,6 +231,8 @@ public class SplashController {
             + "todo lo que captures se guarda en esta computadora, y se subirá automáticamente al servidor "
             + "en cuanto vuelva la conexión — no necesitas hacer nada.");
         alert.getButtonTypes().setAll(ButtonType.OK);
+        alert.getDialogPane().setPrefWidth(440);
+        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
         alert.showAndWait();
     }

@@ -56,7 +56,6 @@ public class MovimientosController {
     @FXML private TableColumn<Movimiento, Integer> colCantidad;
     @FXML private TableColumn<Movimiento, String> colStock;
     @FXML private TableColumn<Movimiento, String> colMotivo;
-    @FXML private TableColumn<Movimiento, String> colReferencia;
     @FXML private TableColumn<Movimiento, String> colUsuario;
     @FXML private TableColumn<Movimiento, String> colFecha;
     @FXML private Label lblTotal;
@@ -80,6 +79,11 @@ public class MovimientosController {
     @FXML private Button btnDelete;
     @FXML private Button btnClearSearch;
     @FXML private Button btnPendientes;
+    @FXML private Label helpAjustes;
+    @FXML private Label helpTotalMov;
+    @FXML private Label helpEntradas;
+    @FXML private Label helpSalidas;
+    @FXML private ComboBox<String> categoriaFilter;
 
     private final MovimientoService movimientoService = new MovimientoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
@@ -94,6 +98,10 @@ public class MovimientosController {
     private Label emptyStateMsg;
     private Label emptyStateHint;
     private Button btnEmptyLimpiar;
+    /** productoId → nombre de categoría, para el filtro "Categoría" — Movimiento
+     *  no trae la categoría del bien, así que se resuelve del lado del cliente
+     *  contra el catálogo de productos ya cargado en memoria. */
+    private java.util.Map<String, String> categoriaPorProducto = java.util.Map.of();
 
     @FXML
     public void initialize() {
@@ -101,6 +109,11 @@ public class MovimientosController {
         setupFilters();
         setupTipoChips();
         setupPagination();
+        if (helpAjustes   != null) DialogUtil.enableClickToShowTooltip(helpAjustes);
+        if (helpTotalMov  != null) DialogUtil.enableClickToShowTooltip(helpTotalMov);
+        if (helpEntradas  != null) DialogUtil.enableClickToShowTooltip(helpEntradas);
+        if (helpSalidas   != null) DialogUtil.enableClickToShowTooltip(helpSalidas);
+        loadCategoriaFilter();
 
         boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
         btnNuevo.setVisible(canCreate);
@@ -230,17 +243,6 @@ public class MovimientosController {
                 setTooltip(tip);
             }
         });
-        colReferencia.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getReferencia() != null ? c.getValue().getReferencia() : ""));
-        colReferencia.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().remove("codigo-cell");
-                if (empty || item == null || item.isBlank()) { setText(null); return; }
-                setText(item);
-                getStyleClass().add("codigo-cell");
-            }
-        });
         colUsuario.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsuarioNombre()));
         colFecha.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
@@ -306,6 +308,7 @@ public class MovimientosController {
             searchField.clear();
             desdeFilter.setValue(null);
             hastaFilter.setValue(null);
+            if (categoriaFilter != null) categoriaFilter.setValue(null);
             setActivePreset(null);
             if (tipoChipGroup != null)
                 tipoChipGroup.getToggles().stream()
@@ -354,6 +357,30 @@ public class MovimientosController {
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
         desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); setActivePreset(null); });
         hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); setActivePreset(null); });
+        if (categoriaFilter != null)
+            categoriaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
+    }
+
+    /** Loads the product catalog once to (a) resolve each movimiento's
+     *  categoría for the "Categoría" filter, since Movimiento itself doesn't
+     *  carry it, and (b) populate the filter's dropdown with the distinct
+     *  category names actually in use. */
+    private void loadCategoriaFilter() {
+        if (categoriaFilter == null) return;
+        AppExecutor.submit(new Task<List<Producto>>() {
+            @Override protected List<Producto> call() throws Exception { return productoRepo.findAll(); }
+            @Override protected void succeeded() {
+                List<Producto> productos = getValue();
+                categoriaPorProducto = productos.stream()
+                    .filter(p -> p.getCategoriaNombre() != null)
+                    .collect(java.util.stream.Collectors.toMap(
+                        Producto::getId, Producto::getCategoriaNombre, (a, b) -> a));
+                List<String> nombres = categoriaPorProducto.values().stream()
+                    .distinct().sorted().toList();
+                categoriaFilter.setItems(FXCollections.observableArrayList(nombres));
+            }
+            @Override protected void failed() { /* filter just stays empty — non-critical */ }
+        });
     }
 
     private void setupPagination() {
@@ -405,6 +432,7 @@ public class MovimientosController {
         String tipo = getSelectedTipo();
         LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
         LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
+        String categoria = categoriaFilter != null ? categoriaFilter.getValue() : null;
 
         filteredData.setAll(allData.stream()
             .filter(m -> query.isBlank()
@@ -414,9 +442,10 @@ public class MovimientosController {
             .filter(m -> "Todos".equals(tipo) || m.getTipo().getEtiqueta().equals(tipo))
             .filter(m -> desde == null || m.getCreadoEn() == null || !m.getCreadoEn().toLocalDate().isBefore(desde))
             .filter(m -> hasta == null || m.getCreadoEn() == null || !m.getCreadoEn().toLocalDate().isAfter(hasta))
+            .filter(m -> categoria == null || categoria.equals(categoriaPorProducto.get(m.getProductoId())))
             .toList());
 
-        boolean hasFilters = !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null;
+        boolean hasFilters = !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null || categoria != null;
         if (emptyStateMsg != null)
             emptyStateMsg.setText(hasFilters
                 ? "No se encontraron movimientos con esos filtros"
@@ -543,8 +572,8 @@ public class MovimientosController {
                     () -> {
                         list.getChildren().remove(row);
                         loadData(); loadPendientesCount();
-                        NotificacionUtil.exito(dialog.getDialogPane().getScene(),
-                            "Transferencia de \"" + m.getProductoNombre() + "\" aprobada");
+                        NotificacionUtil.exitoTransferencia(dialog.getDialogPane().getScene(),
+                            m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
                     },
                     ex -> {
                         btnAprobar.setDisable(false); btnRechazar.setDisable(false);
@@ -696,8 +725,13 @@ public class MovimientosController {
                                 pendingHighlightId = null;
                                 table.refresh();
                             })).play();
-                            if (table.getScene() != null)
-                                NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
+                            if (table.getScene() != null) {
+                                if (m.getTipo() == TipoMovimiento.TRANSFERENCIA)
+                                    NotificacionUtil.exitoTransferencia(table.getScene(),
+                                        m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
+                                else
+                                    NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
+                            }
 
                             // Animate the matching stat card + total
                             if (statCardTotal != null) AnimationUtils.statCardPop(statCardTotal);
@@ -707,14 +741,6 @@ public class MovimientosController {
                                 default      -> statCardAjuste;
                             };
                             if (targetCard != null) AnimationUtils.statCardPop(targetCard);
-
-                            // Full celebration overlay for transfers
-                            if (m.getTipo() == TipoMovimiento.TRANSFERENCIA
-                                    && rootPane != null
-                                    && rootPane.getParent() instanceof javafx.scene.layout.StackPane cp) {
-                                AnimationUtils.transferCelebration(
-                                    cp, m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
-                            }
                         }
                     },
                     e -> {

@@ -309,7 +309,7 @@
 /* Nav FontIcon colors */
 .nav-icon { -fx-icon-size: 16; -fx-icon-color: #64748B; }
 .nav-btn:hover .nav-icon { -fx-icon-color: #6366F1; }
-.nav-btn-active .nav-icon { -fx-icon-color: #6366F1; }
+.nav-btn.nav-active .nav-icon { -fx-icon-color: #6366F1; }
 .logout-btn .nav-icon { -fx-icon-color: #94A3B8; }
 .logout-btn:hover .nav-icon { -fx-icon-color: #EF4444; }
 
@@ -561,6 +561,37 @@
 .btn-csv:hover   { -fx-background-color: #334155; }
 
 /* ═══════════════════════════════════════════════════════════════════
+   REPORT EXPORT BUTTON — one "Exportar ▾" menu per report card instead
+   of three always-on PDF/Excel/CSV buttons; same 3 actions, a third of
+   the visual weight when four cards are on screen at once. Tinted to
+   match each card's own accent so it still reads as "this card's action"
+   rather than a generic button repeated four times.
+   ═══════════════════════════════════════════════════════════════════ */
+.report-export-btn {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12.5px;
+    -fx-background-radius: 8;
+    -fx-padding: 8 14;
+    -fx-cursor: hand;
+}
+.report-export-btn > .label { -fx-text-fill: white; }
+.report-export-btn > .arrow-button > .arrow { -fx-background-color: white; }
+.report-export-indigo { -fx-background-color: #6366F1; }
+.report-export-indigo:hover { -fx-background-color: #4F46E5; }
+.report-export-teal   { -fx-background-color: #0891B2; }
+.report-export-teal:hover   { -fx-background-color: #0E7490; }
+.report-export-amber  { -fx-background-color: #D97706; }
+.report-export-amber:hover  { -fx-background-color: #B45309; }
+.report-export-green  { -fx-background-color: #059669; }
+.report-export-green:hover  { -fx-background-color: #047857; }
+/* Format icons inside the dropdown menu keep their usual color coding
+   (red/green/dark) so PDF vs. Excel vs. CSV is still a glance, not a read. */
+.report-export-icon-pdf   { -fx-icon-size: 15; -fx-icon-color: #EF4444; }
+.report-export-icon-excel { -fx-icon-size: 15; -fx-icon-color: #16A34A; }
+.report-export-icon-csv   { -fx-icon-size: 15; -fx-icon-color: #475569; }
+
+/* ═══════════════════════════════════════════════════════════════════
    TABLAS
    ═══════════════════════════════════════════════════════════════════ */
 .data-table {
@@ -598,6 +629,14 @@
 .data-table .table-row-cell:odd  { -fx-background-color: white; }
 .data-table .table-row-cell:even { -fx-background-color: #FAFBFF; }
 .data-table .table-row-cell:hover { -fx-background-color: #F0EEFF; }
+/* When a table (VBox.vgrow=ALWAYS, no row limit) has fewer rows than fit
+   its viewport, JavaFX pads the remainder with empty row cells — without
+   this they still paint the zebra stripe + bottom border, reading as a grid
+   of blank rows instead of empty space below the real data. */
+.data-table .table-row-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
 .data-table .table-row-cell:selected {
     -fx-background-color: #E8E7FF;
     -fx-border-color: #6366F1 transparent transparent transparent;
@@ -964,8 +1003,11 @@
 .stock-after-warn    { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: #D97706; }
 .stock-after-empty   { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: #DC2626; }
 
-/* Category icon cell */
-.icon-cell { -fx-font-size: 18px; -fx-alignment: CENTER; }
+/* Category icon cell — icono is a plain-text emoji (🪑, 🚗, ...), and JavaFX
+   does NOT fall back to an emoji-capable font for glyphs missing from the
+   app's default font like a browser would, so without this it renders as a
+   blank "tofu" box instead of the actual emoji. */
+.icon-cell { -fx-font-size: 18px; -fx-alignment: CENTER; -fx-font-family: "Segoe UI Emoji"; }
 
 /* Category product count cell */
 .cat-count-active { -fx-text-fill: #059669; -fx-font-weight: bold; }
@@ -993,6 +1035,7 @@
     -fx-min-width: 34; -fx-min-height: 34;
     -fx-max-width: 34; -fx-max-height: 34;
     -fx-font-size: 15px;
+    -fx-font-family: "Segoe UI Emoji";
     -fx-background-color: #F8FAFC;
     -fx-background-radius: 8;
     -fx-border-radius: 8;
@@ -1325,6 +1368,31 @@
     -fx-font-weight: bold;
     -fx-padding: 2 8;
 }
+/* Help badge variant for a colored/dark header (Alertas section titles) —
+   the default .help-badge's indigo-on-lavender look disappears/clashes
+   against a red/orange/blue gradient background. */
+.help-badge-inv {
+    -fx-font-size: 9.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-color: rgba(255,255,255,0.25);
+    -fx-border-color: rgba(255,255,255,0.5);
+    -fx-border-width: 1;
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-padding: 1 5 1 5;
+    -fx-min-width: 18;
+    -fx-min-height: 18;
+    -fx-alignment: CENTER;
+    -fx-cursor: hand;
+}
+.help-badge-inv:hover { -fx-background-color: rgba(255,255,255,0.4); }
+
+.org-alert-badge-clickable { -fx-cursor: hand; }
+.org-alert-badge-clickable:hover {
+    -fx-background-color: #FEE2E2;
+    -fx-border-color: #DC2626;
+}
 .org-product-code {
     -fx-text-fill: #7C3AED;
     -fx-font-family: monospace;
@@ -1404,32 +1472,84 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   DATE PICKER POPUP  — calendario mejorado
+   DATE PICKER POPUP — closer to a native OS calendar flyout: a flat,
+   understated header (no loud gradient bar) and round day markers
+   instead of the default's tiny square highlight.
+   NOTE: the app's theme is AtlantaFX (PrimerLight), which restructures
+   the DatePicker popup's DOM one level shallower than stock JavaFX/Modena
+   — its own stylesheet targets ".date-picker-popup > .month-year-pane"
+   (direct child), not "> * > .month-year-pane". The previous rules here
+   used the Modena path and silently never matched anything.
    ═══════════════════════════════════════════════════════════════════ */
-.date-picker-popup > * > .month-year-pane {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4338CA, #6366F1);
+.date-picker-popup > .month-year-pane {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10 12 10 12;
 }
-.date-picker-popup > * > .month-year-pane .spinner > .label {
+.date-picker-popup > .month-year-pane > .spinner > .label {
+    -fx-text-fill: #1E293B;
+    -fx-font-weight: bold;
+    -fx-font-size: 1.05em;
+}
+.date-picker-popup > .month-year-pane > .spinner > .button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 99;
+    -fx-padding: 4;
+}
+.date-picker-popup > .month-year-pane > .spinner > .button:hover {
+    -fx-background-color: #E2E8F0;
+}
+.date-picker-popup > .month-year-pane > .spinner > .button > .left-arrow,
+.date-picker-popup > .month-year-pane > .spinner > .button > .right-arrow {
+    -fx-background-color: #475569;
+}
+.date-picker-popup > .calendar-grid {
+    -fx-background-radius: 0 0 10 10;
+    -fx-padding: 10;
+}
+.date-picker-popup > .calendar-grid > .day-cell,
+.date-picker-popup > .calendar-grid > .week-number-cell {
+    -fx-background-color: transparent;
+}
+.date-picker-popup > .calendar-grid .day-name-cell {
+    -fx-text-fill: #94A3B8;
+    -fx-font-weight: bold;
+    -fx-font-size: 0.82em;
+}
+/* Round "today" and "selected" markers — a filled/outlined circle inside
+   the square cell reads as native (Google/macOS/Windows calendars all use
+   a circle here); the default 4px square corner radius does not. */
+.date-picker-popup > .calendar-grid > .date-cell {
+    -fx-background-radius: 99;
+    -fx-alignment: CENTER;
+}
+.date-picker-popup > .calendar-grid > .today {
+    -fx-background-color: transparent;
+    -fx-border-color: #6366F1;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 99;
+    -fx-text-fill: #4338CA;
+    -fx-font-weight: bold;
+}
+.date-picker-popup > .calendar-grid > .selected,
+.date-picker-popup > .calendar-grid > .previous-month.selected,
+.date-picker-popup > .calendar-grid > .previous-month.today.selected,
+.date-picker-popup > .calendar-grid > .next-month.today.selected,
+.date-picker-popup > .calendar-grid > .next-month.selected {
+    -fx-background-color: #6366F1;
+    -fx-border-color: transparent;
+    -fx-background-radius: 99;
     -fx-text-fill: white;
     -fx-font-weight: bold;
 }
-.date-picker-popup > * > .month-year-pane .button {
-    -fx-background-color: transparent;
+.date-picker-popup > .calendar-grid > .day-cell:hover {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
 }
-.date-picker-popup > * > .month-year-pane .button .left-arrow,
-.date-picker-popup > * > .month-year-pane .button .right-arrow {
-    -fx-background-color: white;
-}
-.date-picker-popup .calendar-grid .today > .text {
-    -fx-fill: #4338CA;
-    -fx-font-weight: bold;
-}
-.date-picker-popup .calendar-grid .selected > .text {
-    -fx-fill: white;
-}
-.date-picker-popup .calendar-grid .selected {
-    -fx-background-color: #6366F1;
-    -fx-background-radius: 4;
+.date-picker-popup > .calendar-grid > .selected:hover {
+    -fx-background-color: #4F46E5;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1809,6 +1929,10 @@
 /* Health bar strip */
 .dash-health-bar { -fx-background-radius: 5; }
 
+/* Health legend items that open a detail dialog (Bajo Stock, Agotados) */
+.dash-health-legend-clickable { -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 2 6 2 6; }
+.dash-health-legend-clickable:hover { -fx-background-color: #F1F5F9; }
+
 /* Health legend dot labels */
 .dot-green  { -fx-text-fill: #10B981; -fx-font-size: 10px; }
 .dot-amber  { -fx-text-fill: #F59E0B; -fx-font-size: 10px; }
@@ -1819,8 +1943,6 @@
 .card-icon         { -fx-icon-size: 15; -fx-icon-color: #64748B; }
 .card-icon-indigo  { -fx-icon-size: 15; -fx-icon-color: #6366F1; }
 
-/* Inline help / question-mark icon */
-.help-icon { -fx-icon-size: 13; -fx-icon-color: #94A3B8; -fx-cursor: hand; }
 /* Icon inside area-filter ComboBox cells */
 .area-filter-icon  { -fx-icon-size: 13; -fx-icon-color: #6366F1; }
 .combo-cell-label  { -fx-font-size: 12px; }
@@ -1839,11 +1961,26 @@
 .alert-ok-icon            { -fx-icon-size: 22; -fx-icon-color: #16a34a; }
 .btn-icon                 { -fx-icon-size: 14; }
 
-/* Recent activity table rounded corners */
+/* Recent activity table rounded corners + a bit more breathing room per
+   row than the default .data-table, since this table is the dashboard's
+   closing section and reads flat/cramped at the default 44px cell size */
 .recent-table {
     -fx-background-radius: 12;
     -fx-border-radius: 12;
 }
+.recent-table .table-row-cell { -fx-cell-size: 52px; }
+.recent-table .table-cell     { -fx-padding: 0 16; }
+
+/* "Bien" column — bolder + darker so the product name reads as the row's
+   primary label instead of blending in with Usuario/Fecha */
+.recent-bien-cell { -fx-font-weight: 600; -fx-text-fill: #1E293B; -fx-font-size: 13px; }
+
+/* "Cant." column — sign + color echo the row tint (green in, red out) so
+   the direction of the movement reads at a glance without following the
+   row color all the way across */
+.qty-in      { -fx-font-weight: bold; -fx-text-fill: #059669; }
+.qty-out     { -fx-font-weight: bold; -fx-text-fill: #DC2626; }
+.qty-neutral { -fx-font-weight: 600;  -fx-text-fill: #475569; }
 
 
 /* Pagination page label */
@@ -2296,11 +2433,27 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   REPORT CARD — per-color hover glow matching their accent
+   REPORT CARD — per-color hover glow matching their accent.
+   Re-declares the same base look as plain .report-card (white card,
+   rounded corners, resting shadow) instead of relying purely on it
+   cascading in from the shared class — with two classes on one node
+   the accented cards were rendering without their card shell at rest,
+   only the teal/amber/green *hover* glow was ever being applied.
    ═══════════════════════════════════════════════════════════════════ */
-.report-card-teal:hover  { -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.32), 22, 0, 0, 6); }
-.report-card-amber:hover { -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 22, 0, 0, 6); }
-.report-card-green:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.32), 22, 0, 0, 6); }
+.report-card-teal, .report-card-amber, .report-card-green {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
+    -fx-cursor: hand;
+}
+.report-card-teal:hover  { -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-amber:hover { -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-green:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-teal:pressed, .report-card-amber:pressed, .report-card-green:pressed {
+    -fx-translate-y: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    CONFIRMATION DIALOG (ConfirmacionUtil)
@@ -2678,22 +2831,19 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   TRANSFER CELEBRATION OVERLAY
+   TRANSFERENCIA CELEBRATION — centered popup shown once a transfer is
+   registered (NotificacionUtil.exitoTransferencia)
    ═══════════════════════════════════════════════════════════════════ */
 .transfer-cel-card {
     -fx-background-color: white;
-    -fx-background-radius: 18;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.38), 48, 0.05, 0, 14);
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.28), 40, 0.05, 0, 12);
     -fx-border-color: #E0E7FF;
     -fx-border-width: 1.5;
-    -fx-border-radius: 18;
-}
-.transfer-cel-icon {
-    -fx-font-size: 38px;
-    -fx-text-fill: #059669;
+    -fx-border-radius: 20;
 }
 .transfer-cel-title {
-    -fx-font-size: 16px;
+    -fx-font-size: 15.5px;
     -fx-font-weight: bold;
     -fx-text-fill: #1E1B4B;
 }
@@ -2701,35 +2851,34 @@
     -fx-font-size: 12.5px;
     -fx-text-fill: #6366F1;
     -fx-font-weight: 600;
-    -fx-alignment: CENTER;
-    -fx-text-alignment: CENTER;
+    -fx-text-alignment: center;
 }
 .transfer-cel-chip-from {
     -fx-background-color: #F9FAFB;
-    -fx-background-radius: 8;
-    -fx-padding: 5 14 5 14;
+    -fx-background-radius: 7;
+    -fx-padding: 4 11 4 11;
     -fx-font-size: 11.5px;
     -fx-font-weight: 600;
     -fx-text-fill: #374151;
     -fx-border-color: #D1D5DB;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
+    -fx-border-radius: 7;
 }
 .transfer-cel-arrow {
-    -fx-font-size: 22px;
+    -fx-font-size: 18px;
     -fx-text-fill: #6366F1;
     -fx-font-weight: bold;
 }
 .transfer-cel-chip-to {
     -fx-background-color: #EEF2FF;
-    -fx-background-radius: 8;
-    -fx-padding: 5 14 5 14;
+    -fx-background-radius: 7;
+    -fx-padding: 4 11 4 11;
     -fx-font-size: 11.5px;
     -fx-font-weight: 600;
     -fx-text-fill: #4338CA;
     -fx-border-color: #6366F1;
     -fx-border-width: 1.5;
-    -fx-border-radius: 8;
+    -fx-border-radius: 7;
 }
 
 /* ── Password strength indicator ─────────────────────────────────────── */
