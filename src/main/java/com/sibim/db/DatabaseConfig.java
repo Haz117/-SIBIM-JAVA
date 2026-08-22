@@ -91,6 +91,21 @@ public final class DatabaseConfig {
         return dataSource;
     }
 
+    /**
+     * Replaces the active DataSource with the given one — used exclusively by
+     * integration tests (IntegrationTestBase) to point the application at an
+     * EmbeddedPostgres instance instead of the real DB configured in .env.
+     * Never call this from production code.
+     */
+    public static void setDataSourceForTest(HikariDataSource ds) {
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+        }
+        dataSource = ds;
+        demoMode = false;
+        offlineMode = false;
+    }
+
     public static void close() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();

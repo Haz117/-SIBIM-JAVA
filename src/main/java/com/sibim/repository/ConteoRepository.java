@@ -2,6 +2,7 @@ package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
+import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.session.SessionManager;
@@ -36,9 +37,70 @@ public class ConteoRepository {
             if (it.getId() == null) it.setId(UUID.randomUUID().toString());
             it.setConteoId(c.getId());
         }
+        if (DatabaseConfig.isOfflineMode()) {
+            OfflineStore.saveConteo(c);
+            return c;
+        }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.addConteo(c);
             return c;
+        }
+        String insertConteo = """
+            INSERT INTO conteos_fisicos (id, usuario_id, usuario_nombre, total_contados, total_discrepancias, created_at)
+            VALUES (?,?,?,?,?,?)
+            """;
+        String insertItem = """
+            INSERT INTO conteo_items (id, conteo_id, producto_id, producto_nombre, area, stock_sistema, stock_contado, ajustado)
+            VALUES (?,?,?,?,?,?,?,?)
+            """;
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(insertConteo)) {
+                    ps.setString(1, c.getId());
+                    ps.setString(2, c.getUsuarioId());
+                    ps.setString(3, c.getUsuarioNombre());
+                    ps.setInt(4, c.getTotalContados());
+                    ps.setInt(5, c.getTotalDiscrepancias());
+                    ps.setTimestamp(6, Timestamp.valueOf(c.getCreadoEn()));
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(insertItem)) {
+                    for (ConteoItem it : c.getItems()) {
+                        ps.setString(1, it.getId());
+                        ps.setString(2, it.getConteoId());
+                        ps.setString(3, it.getProductoId());
+                        ps.setString(4, it.getProductoNombre());
+                        ps.setString(5, it.getArea());
+                        ps.setInt(6, it.getStockSistema());
+                        ps.setInt(7, it.getStockContado());
+                        ps.setBoolean(8, it.isAjustado());
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+        return c;
+    }
+
+    /**
+     * The real-Postgres half of {@link #guardar}, callable directly from
+     * integration tests and SyncService without going through the demo/offline
+     * guards in {@link #guardar}. Same transactional upsert semantics.
+     */
+    public ConteoFisico guardarOnline(ConteoFisico c) throws SQLException {
+        if (c.getId() == null) c.setId(UUID.randomUUID().toString());
+        if (c.getCreadoEn() == null) c.setCreadoEn(LocalDateTime.now());
+        for (ConteoItem it : c.getItems()) {
+            if (it.getId() == null) it.setId(UUID.randomUUID().toString());
+            it.setConteoId(c.getId());
         }
         String insertConteo = """
             INSERT INTO conteos_fisicos (id, usuario_id, usuario_nombre, total_contados, total_discrepancias, created_at)

@@ -2,6 +2,7 @@ package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
+import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.AuditLog;
 import com.sibim.session.SessionManager;
 
@@ -50,30 +51,38 @@ public class AuditLogRepository {
             }
             a.setCreadoEn(java.time.LocalDateTime.now());
 
+            if (DatabaseConfig.isOfflineMode()) {
+                OfflineStore.logAudit(a);
+                return;
+            }
             if (DatabaseConfig.isDemoMode()) {
                 DemoDataStore.addAuditLog(a);
                 return;
             }
-            String sql = """
-                INSERT INTO audit_log (id, entidad, entidad_id, entidad_nombre, accion, detalle,
-                    usuario_id, usuario_nombre, created_at)
-                VALUES (?,?,?,?,?,?,?,?,?)
-                """;
-            try (Connection conn = DatabaseConfig.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, a.getId());
-                ps.setString(2, a.getEntidad());
-                ps.setString(3, a.getEntidadId());
-                ps.setString(4, a.getEntidadNombre());
-                ps.setString(5, a.getAccion());
-                ps.setString(6, a.getDetalle());
-                ps.setString(7, a.getUsuarioId());
-                ps.setString(8, a.getUsuarioNombre());
-                ps.setTimestamp(9, Timestamp.valueOf(a.getCreadoEn()));
-                ps.executeUpdate();
-            }
+            logOnline(a);
         } catch (Exception e) {
             log.warn("No se pudo registrar auditoría: {}", e.getMessage());
+        }
+    }
+
+    public void logOnline(AuditLog a) throws java.sql.SQLException {
+        String sql = """
+            INSERT INTO audit_log (id, entidad, entidad_id, entidad_nombre, accion, detalle,
+                usuario_id, usuario_nombre, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, a.getId());
+            ps.setString(2, a.getEntidad());
+            ps.setString(3, a.getEntidadId());
+            ps.setString(4, a.getEntidadNombre());
+            ps.setString(5, a.getAccion());
+            ps.setString(6, a.getDetalle());
+            ps.setString(7, a.getUsuarioId());
+            ps.setString(8, a.getUsuarioNombre());
+            ps.setTimestamp(9, Timestamp.valueOf(a.getCreadoEn()));
+            ps.executeUpdate();
         }
     }
 

@@ -1,6 +1,9 @@
 package com.sibim.db.offline;
 
+import com.sibim.model.AuditLog;
 import com.sibim.model.Categoria;
+import com.sibim.model.ConteoFisico;
+import com.sibim.model.ConteoItem;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.Usuario;
@@ -82,13 +85,39 @@ public final class OfflineStore {
         return conn;
     }
 
-    /** Idempotent column additions for existing offline.db files that pre-date schema changes.
+    /** Idempotent column/table additions for existing offline.db files that pre-date schema changes.
      *  SQLite doesn't support IF NOT EXISTS in ALTER TABLE, so we swallow the duplicate-column
-     *  error: on a fresh DB these succeed; on an old one they're silent no-ops. */
+     *  error: on a fresh DB these succeed; on an old one they're silent no-ops.
+     *  New tables use CREATE TABLE IF NOT EXISTS — always idempotent. */
     private static void runOfflineMigrations(Connection c) {
         // M1 (2025): server_snapshot_at for offline conflict detection
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE product_outbox ADD COLUMN server_snapshot_at TEXT");
+        } catch (SQLException ignored) {}
+        // M2 (2025): conteo físico offline outbox
+        try (Statement st = c.createStatement()) {
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS conteo_outbox (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conteo_id TEXT NOT NULL, usuario_id TEXT, usuario_nombre TEXT NOT NULL,
+                    total_contados INTEGER NOT NULL DEFAULT 0, total_discrepancias INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', error TEXT)""");
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS conteo_items_outbox (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, conteo_id TEXT NOT NULL,
+                    item_id TEXT NOT NULL, producto_id TEXT NOT NULL, producto_nombre TEXT NOT NULL,
+                    area TEXT, stock_sistema INTEGER NOT NULL, stock_contado INTEGER NOT NULL,
+                    ajustado INTEGER NOT NULL DEFAULT 0)""");
+        } catch (SQLException ignored) {}
+        // M3 (2025): audit log offline outbox
+        try (Statement st = c.createStatement()) {
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS audit_log_outbox (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, audit_id TEXT NOT NULL,
+                    entidad TEXT NOT NULL, entidad_id TEXT NOT NULL, entidad_nombre TEXT,
+                    accion TEXT NOT NULL, detalle TEXT, usuario_id TEXT,
+                    usuario_nombre TEXT NOT NULL, created_at TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'PENDING', error TEXT)""");
         } catch (SQLException ignored) {}
     }
 
@@ -583,6 +612,76 @@ public final class OfflineStore {
             ps.setString(6, c.getIcono());
             ps.setString(7, str(LocalDateTime.now()));
             ps.executeUpdate();
+        }
+    }
+
+    // ─────────────────────── ConteoFísico (outbox only) ───────────────────────
+
+    /** Queues a completed conteo session (header + items) for replay against
+     *  Postgres when the connection comes back. The conteo is NOT cached in
+     *  memory — it's append-only and only shown in the admin history view,
+     *  which is unavailable offline anyway. */
+    public static void saveConteo(ConteoFisico c) throws SQLException {
+        String sqlHeader = """
+            INSERT INTO conteo_outbox (conteo_id, usuario_id, usuario_nombre,
+                total_contados, total_discrepancias, created_at)
+            VALUES (?,?,?,?,?,?)
+            """;
+        String sqlItem = """
+            INSERT INTO conteo_items_outbox (conteo_id, item_id, producto_id, producto_nombre,
+                area, stock_sistema, stock_contado, ajustado)
+            VALUES (?,?,?,?,?,?,?,?)
+            """;
+        try (PreparedStatement ps = conn().prepareStatement(sqlHeader)) {
+            ps.setString(1, c.getId());
+            ps.setString(2, c.getUsuarioId());
+            ps.setString(3, c.getUsuarioNombre());
+            ps.setInt(4, c.getTotalContados());
+            ps.setInt(5, c.getTotalDiscrepancias());
+            ps.setString(6, str(c.getCreadoEn() != null ? c.getCreadoEn() : LocalDateTime.now()));
+            ps.executeUpdate();
+        }
+        if (c.getItems() != null) {
+            try (PreparedStatement ps = conn().prepareStatement(sqlItem)) {
+                for (ConteoItem it : c.getItems()) {
+                    ps.setString(1, c.getId());
+                    ps.setString(2, it.getId());
+                    ps.setString(3, it.getProductoId());
+                    ps.setString(4, it.getProductoNombre());
+                    ps.setString(5, it.getArea());
+                    ps.setInt(6, it.getStockSistema());
+                    ps.setInt(7, it.getStockContado());
+                    ps.setInt(8, it.isAjustado() ? 1 : 0);
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+        }
+    }
+
+    // ─────────────────────────── AuditLog (outbox only) ───────────────────────
+
+    /** Queues an audit entry for replay when Postgres comes back. Never throws —
+     *  mirrors AuditLogRepository.log()'s non-blocking contract. */
+    public static void logAudit(AuditLog a) {
+        String sql = """
+            INSERT INTO audit_log_outbox (audit_id, entidad, entidad_id, entidad_nombre, accion,
+                detalle, usuario_id, usuario_nombre, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """;
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setString(1, a.getId());
+            ps.setString(2, a.getEntidad());
+            ps.setString(3, a.getEntidadId());
+            ps.setString(4, a.getEntidadNombre());
+            ps.setString(5, a.getAccion());
+            ps.setString(6, a.getDetalle());
+            ps.setString(7, a.getUsuarioId());
+            ps.setString(8, a.getUsuarioNombre());
+            ps.setString(9, str(a.getCreadoEn() != null ? a.getCreadoEn() : LocalDateTime.now()));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            // Non-blocking: mirror AuditLogRepository.log() behaviour
         }
     }
 

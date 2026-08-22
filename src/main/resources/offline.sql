@@ -140,8 +140,52 @@ CREATE TABLE IF NOT EXISTS category_outbox (
     error       TEXT
 );
 
+-- Conteo físico outbox — header row per session
+CREATE TABLE IF NOT EXISTS conteo_outbox (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    conteo_id           TEXT NOT NULL,
+    usuario_id          TEXT,
+    usuario_nombre      TEXT NOT NULL,
+    total_contados      INTEGER NOT NULL DEFAULT 0,
+    total_discrepancias INTEGER NOT NULL DEFAULT 0,
+    created_at          TEXT NOT NULL,
+    status              TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED
+    error               TEXT
+);
+
+-- One row per item reviewed during an offline conteo físico
+CREATE TABLE IF NOT EXISTS conteo_items_outbox (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    conteo_id       TEXT NOT NULL,
+    item_id         TEXT NOT NULL,
+    producto_id     TEXT NOT NULL,
+    producto_nombre TEXT NOT NULL,
+    area            TEXT,
+    stock_sistema   INTEGER NOT NULL,
+    stock_contado   INTEGER NOT NULL,
+    ajustado        INTEGER NOT NULL DEFAULT 0
+);
+
+-- AuditLog outbox — one row per audit entry captured while offline
+CREATE TABLE IF NOT EXISTS audit_log_outbox (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    audit_id        TEXT NOT NULL,
+    entidad         TEXT NOT NULL,
+    entidad_id      TEXT NOT NULL,
+    entidad_nombre  TEXT,
+    accion          TEXT NOT NULL,
+    detalle         TEXT,
+    usuario_id      TEXT,
+    usuario_nombre  TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED
+    error           TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_offline_products_area     ON products(area);
 CREATE INDEX IF NOT EXISTS idx_offline_movements_producto ON movements(producto_id);
 CREATE INDEX IF NOT EXISTS idx_offline_product_outbox_status  ON product_outbox(status);
 CREATE INDEX IF NOT EXISTS idx_offline_movement_outbox_status ON movement_outbox(status);
 CREATE INDEX IF NOT EXISTS idx_offline_category_outbox_status ON category_outbox(status);
+CREATE INDEX IF NOT EXISTS idx_offline_conteo_outbox_status   ON conteo_outbox(status);
+CREATE INDEX IF NOT EXISTS idx_offline_audit_outbox_status    ON audit_log_outbox(status);
