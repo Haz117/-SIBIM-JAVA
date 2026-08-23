@@ -623,7 +623,7 @@ public class MovimientosController {
         javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(list);
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(400);
-        scroll.getStyleClass().add("page-scroll");
+        scroll.getStyleClass().add("dlg-tabs-scroll");
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));

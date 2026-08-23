@@ -148,11 +148,11 @@
             <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Garantías por Vencer" styleClass="alert-section-title-inv"/>
-                <Label text="Vencen en los próximos 7 días · Revisa y documenta"
+                <Label text="Ya vencidas o que vencen en los próximos 7 días · Revisa y documenta"
                        styleClass="alert-section-subtitle"/>
             </VBox>
             <Label fx:id="helpGarantias" text="?" styleClass="help-badge-inv">
-                <tooltip><Tooltip text="Bienes cuya garantía vence dentro de los próximos 7 días. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="250"/></tooltip>
+                <tooltip><Tooltip text="Bienes cuya garantía ya venció, o vence dentro de los próximos 7 días. La columna &quot;Días Restantes&quot; indica cuál es cuál. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
             </Label>
             <Label fx:id="lblGarantiasCount" styleClass="badge-count-inv"/>
         </HBox>

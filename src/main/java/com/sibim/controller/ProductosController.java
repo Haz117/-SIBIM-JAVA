@@ -642,7 +642,25 @@ public class ProductosController {
 
     @FXML
     private void onConteoFisico() {
-        ConteoFisicoDialog.show(new ArrayList<>(allData), movimientoService, () -> { refreshing = true; loadData(); });
+        // Scoped to whatever is currently filtered/visible in the table
+        // (búsqueda, categoría, área, estado) instead of always dumping the
+        // entire inventory in — the dialog builds one non-virtualized row
+        // per bien, so "todo el inventario" on a large municipio would be
+        // both slow to open and impossible to actually work through in one
+        // sitting. Filtering by área/categoría first is how you scope a
+        // conteo to a batch — see the "?" on the button.
+        List<Producto> aContar = new ArrayList<>(filteredData);
+        if (aContar.isEmpty()) {
+            NotificacionUtil.advertencia(table.getScene(),
+                "No hay bienes que coincidan con el filtro actual — ajusta la búsqueda/filtros antes de iniciar un conteo.");
+            return;
+        }
+        if (aContar.size() > 150 && !ConfirmacionUtil.confirmar("Conteo grande",
+                "Vas a iniciar un conteo físico de " + aContar.size() + " bienes a la vez — puede ser lento de "
+                + "cargar y difícil de terminar en una sola sesión. Considera filtrar por área o categoría primero "
+                + "para hacerlo en lotes más manejables.\n\n¿Continuar de todas formas con los " + aContar.size() + "?"))
+            return;
+        ConteoFisicoDialog.show(aContar, movimientoService, () -> { refreshing = true; loadData(); });
     }
 
     @FXML

@@ -1,7 +1,6 @@
 package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
-import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Producto;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.service.DashboardService;

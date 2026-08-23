@@ -6,8 +6,8 @@
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.ProductosController"
-      fx:id="rootPane" spacing="12">
-    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
+      fx:id="rootPane" spacing="9">
+    <padding><Insets top="16" right="22" bottom="16" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header">
@@ -28,7 +28,7 @@
         <Button fx:id="btnConteoFisico" text="Conteo físico" onAction="#onConteoFisico" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Iniciar una toma de inventario físico y ajustar diferencias"/></tooltip>
+            <tooltip><Tooltip text="Cuenta SOLO los bienes que estén filtrados en la tabla ahora mismo (búsqueda, categoría, área, estado). Filtra primero por área/categoría para hacer el conteo por lotes; sin filtros, cuenta todo el inventario." wrapText="true" maxWidth="280"/></tooltip>
         </Button>
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
@@ -52,8 +52,8 @@
     <HBox spacing="12">
         <!-- Total de Bienes — indigo -->
         <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-indigo"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
-            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+              HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
+            <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
                     <FontIcon iconLiteral="mdi2c-cube-outline" styleClass="rich-stat-icon"/>
@@ -69,8 +69,8 @@
 
         <!-- Valor del Inventario — teal -->
         <VBox fx:id="statCardValor" styleClass="rich-stat-card, rich-stat-teal"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
-            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+              HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
+            <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
                     <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
@@ -86,8 +86,8 @@
 
         <!-- Bienes con Alerta — amber -->
         <VBox fx:id="cardAlertas" styleClass="rich-stat-card, rich-stat-amber"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
-            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+              HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
+            <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
                     <FontIcon iconLiteral="mdi2b-bell-outline" styleClass="rich-stat-icon"/>

@@ -6,8 +6,6 @@ import com.sibim.db.offline.SyncService;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.flywaydb.core.Flyway;
 import javafx.animation.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;

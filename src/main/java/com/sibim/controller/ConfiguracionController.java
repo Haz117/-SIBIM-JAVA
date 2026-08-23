@@ -519,7 +519,7 @@ public class ConfiguracionController {
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(400);
-        scroll.getStyleClass().add("page-scroll");
+        scroll.getStyleClass().add("dlg-tabs-scroll");
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
@@ -537,18 +537,26 @@ public class ConfiguracionController {
             com.sibim.util.FormatUtils.formatDateTime(conteo.getCreadoEn()) + " · " + conteo.getUsuarioNombre(),
             "#0891B2", "#0E7490");
 
-        // Column headers
+        // Column headers — widths must match the data row cells built below
+        // (Nombre grows, the rest are fixed) exactly, or the header labels
+        // drift out of alignment with their own column. colWidths used to be
+        // computed as percentages and then never actually applied (every
+        // header got prefWidth(0) + Hgrow.ALWAYS instead, so all six ended
+        // up equal-width regardless of these numbers).
         HBox colHeaders = new HBox();
         colHeaders.setPadding(new javafx.geometry.Insets(6, 14, 4, 14));
         colHeaders.setSpacing(0);
         String[] colTitles = { "Bien", "Área", "Sistema", "Contado", "Delta", "Ajustado" };
-        double[] colWidths  = { 0.35, 0.20, 0.10, 0.10, 0.10, 0.15 };
+        double[] colWidths  = { -1, 120, 60, 60, 60, 80 };
         for (int i = 0; i < colTitles.length; i++) {
             Label lbl = new Label(colTitles[i]);
             lbl.getStyleClass().add("col-header");
-            lbl.setPrefWidth(0);
-            HBox.setHgrow(lbl, javafx.scene.layout.Priority.ALWAYS);
-            lbl.setMaxWidth(Double.MAX_VALUE);
+            if (colWidths[i] < 0) {
+                HBox.setHgrow(lbl, javafx.scene.layout.Priority.ALWAYS);
+                lbl.setMaxWidth(Double.MAX_VALUE);
+            } else {
+                lbl.setPrefWidth(colWidths[i]);
+            }
             colHeaders.getChildren().add(lbl);
         }
 
@@ -600,7 +608,7 @@ public class ConfiguracionController {
         ScrollPane scroll = new ScrollPane(rows);
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(380);
-        scroll.getStyleClass().add("page-scroll");
+        scroll.getStyleClass().add("dlg-tabs-scroll");
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, colHeaders, scroll), 260, 60);
         dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll));
@@ -690,7 +698,7 @@ public class ConfiguracionController {
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(400);
-        scroll.getStyleClass().add("page-scroll");
+        scroll.getStyleClass().add("dlg-tabs-scroll");
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));

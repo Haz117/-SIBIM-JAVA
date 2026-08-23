@@ -59,6 +59,19 @@ public final class ConteoFisicoDialog {
             "Captura lo contado y compáralo contra el sistema — " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
             "#0891B2", "#0E7490");
 
+        // Search + "solo diferencias" — once a conteo covers a real batch
+        // (a whole área/categoría filtered from Bienes, potentially 50-150+
+        // items), scrolling sequentially through everything to find one
+        // bien or to see which ones still need attention isn't practical.
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍  Buscar por nombre o código...");
+        searchField.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+        CheckBox soloDiferencias = new CheckBox("Solo diferencias");
+        HBox toolbar = new HBox(10, searchField, soloDiferencias);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        toolbar.setPadding(new Insets(14, 14, 8, 14));
+
         VBox list = new VBox(6);
         list.setPadding(new Insets(4));
         List<Row> rows = new ArrayList<>();
@@ -96,21 +109,44 @@ public final class ConteoFisicoDialog {
                 delta.setText(diff == 0 ? "✓ igual" : (diff > 0 ? "+" + diff : String.valueOf(diff)));
                 delta.getStyleClass().removeAll("dlg-stock-new-ok", "dlg-stock-new-warn");
                 delta.getStyleClass().add(diff == 0 ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
+                // Re-run the search/diferencias filter whenever a count
+                // changes, so a row leaving "diferencias" (fixed to match)
+                // or entering it disappears/appears from that view live.
+                if (row.getUserData() != null) ((Runnable) row.getUserData()).run();
             };
             updateDelta.run();
             contado.valueProperty().addListener((o, a, b) -> updateDelta.run());
 
             row.getChildren().addAll(info, sistema, contado, delta);
             list.getChildren().add(row);
-            rows.add(new Row(p, contado));
+            Row rowRecord = new Row(p, contado);
+            rows.add(rowRecord);
+
+            Runnable applyVisibility = () -> {
+                String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
+                boolean matchesSearch = q.isBlank()
+                    || p.getNombre().toLowerCase().contains(q)
+                    || p.getCodigo().toLowerCase().contains(q);
+                boolean isDiff = contado.getValue() != p.getStockActual();
+                boolean visible = matchesSearch && (!soloDiferencias.isSelected() || isDiff);
+                row.setVisible(visible);
+                row.setManaged(visible);
+            };
+            row.setUserData(applyVisibility);
         }
         if (!list.getChildren().isEmpty())
             AnimationUtils.staggeredFadeInUp(list.getChildren(), 180, 38);
 
+        Runnable applyAllVisibility = () -> list.getChildren().forEach(n -> {
+            if (n.getUserData() instanceof Runnable r) r.run();
+        });
+        searchField.textProperty().addListener((o, a, b) -> applyAllVisibility.run());
+        soloDiferencias.selectedProperty().addListener((o, a, b) -> applyAllVisibility.run());
+
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(380);
-        scroll.getStyleClass().add("page-scroll");
+        scroll.getStyleClass().add("dlg-tabs-scroll");
 
         Label summary = new Label(productos.isEmpty()
             ? "No hay bienes activos en tu área para contar."
@@ -228,7 +264,7 @@ public final class ConteoFisicoDialog {
         });
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, colHeaders, scroll, actions), 260, 60);
-        dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll, actions));
+        dialog.getDialogPane().setContent(new VBox(0, header, toolbar, colHeaders, scroll, actions));
 
         // Intercept window X-close when the user has entered unsaved values
         dialog.setOnShowing(e -> dialog.getDialogPane().getScene().getWindow().addEventFilter(

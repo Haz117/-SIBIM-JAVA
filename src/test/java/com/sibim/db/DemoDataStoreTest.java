@@ -6,7 +6,6 @@ import com.sibim.model.Producto;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.model.enums.Rol;
-import com.sibim.model.enums.TipoMovimiento;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
