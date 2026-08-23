@@ -104,7 +104,12 @@
                 <FontIcon iconLiteral="mdi2a-account-group-outline" styleClass="page-icon-emoji"/>
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
-                <Label text="Gestión de Usuarios" styleClass="card-title"/>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Gestión de Usuarios" styleClass="card-title"/>
+                    <Label fx:id="helpUsuarios" text="?" styleClass="help-badge">
+                        <tooltip><Tooltip text="El Área es obligatoria para Secretario y Dirección (define qué ven en el resto del sistema); Admin la ignora porque ya tiene acceso a todo. Cualquier cuenta que crees o restablezcas aquí queda forzada a cambiar su contraseña en el primer login." wrapText="true" maxWidth="280"/></tooltip>
+                    </Label>
+                </HBox>
                 <Label text="Crea, edita y administra cuentas de acceso al sistema"
                        styleClass="page-subtitle"/>
             </VBox>
@@ -174,7 +179,12 @@
                 <FontIcon iconLiteral="mdi2h-history" styleClass="page-icon-emoji"/>
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
-                <Label text="Auditoría del Sistema" styleClass="card-title"/>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Auditoría del Sistema" styleClass="card-title"/>
+                    <Label fx:id="helpAuditoria" text="?" styleClass="help-badge">
+                        <tooltip><Tooltip text="Cada creación, edición, eliminación, baja o reactivación de un bien, categoría o usuario queda registrada con quién la hizo y cuándo — incluyendo los cambios que llegan de una PC que estuvo offline." wrapText="true" maxWidth="270"/></tooltip>
+                    </Label>
+                </HBox>
                 <Label text="Historial de cambios en bienes, categorías y usuarios; y de tomas de inventario físico"
                        styleClass="page-subtitle"/>
             </VBox>
@@ -199,7 +209,12 @@
                 <FontIcon iconLiteral="mdi2d-database-outline" styleClass="page-icon-emoji"/>
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
-                <Label text="Respaldo y Restauración" styleClass="card-title"/>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Respaldo y Restauración" styleClass="card-title"/>
+                    <Label fx:id="helpRespaldo" text="?" styleClass="help-badge">
+                        <tooltip><Tooltip text="&quot;Restaurar&quot; REEMPLAZA todos los bienes, movimientos, usuarios, categorías, auditoría y conteos actuales con los del archivo elegido — no es un merge. Úsalo solo para recuperar un respaldo, no como forma de compartir datos entre instalaciones. Requiere conexión a la base de datos real." wrapText="true" maxWidth="290"/></tooltip>
+                    </Label>
+                </HBox>
                 <Label text="Exporta toda la base de datos a un archivo, o restaura desde un respaldo previo. Solo disponible conectado a la base de datos principal."
                        styleClass="page-subtitle"/>
             </VBox>

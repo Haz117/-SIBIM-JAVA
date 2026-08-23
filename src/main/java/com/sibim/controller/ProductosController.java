@@ -100,6 +100,7 @@ public class ProductosController {
     @FXML private Button btnNext;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
+    @FXML private MenuButton btnExportarSeleccion;
     @FXML private Button btnNuevoBien;
     @FXML private Button btnConteoFisico;
     @FXML private Button btnClearSearch;
@@ -197,11 +198,19 @@ public class ProductosController {
                 box = new StackPane(lbl, iv);
                 box.setPrefSize(40, 40); box.setMinSize(40, 40); box.setMaxSize(40, 40);
                 box.getStyleClass().add("foto-cell-box");
+                // Click a loaded thumbnail to see the photo full-size — otherwise
+                // a 38px thumbnail is the only view of it anywhere in the app.
+                box.setOnMouseClicked(e -> {
+                    if (!iv.isVisible()) return;
+                    Producto p = getTableRow() != null ? getTableRow().getItem() : null;
+                    DialogUtil.showPhotoViewer(p != null ? p.getFotoUrl() : null, p != null ? p.getNombre() : null);
+                });
             }
             @Override
             protected void updateItem(String url, boolean empty) {
                 super.updateItem(url, empty);
                 setGraphic(null);
+                box.getStyleClass().remove("foto-cell-box-clickable");
                 if (empty) return;
                 if (url != null && !url.isBlank()) {
                     try {
@@ -209,6 +218,7 @@ public class ProductosController {
                             u -> new Image(Path.of(u).toUri().toString(), 38, 38, true, true, true));
                         iv.setImage(cached);
                         iv.setVisible(true); lbl.setVisible(false);
+                        box.getStyleClass().add("foto-cell-box-clickable");
                     } catch (Exception ex) { log.warn("No se pudo cargar thumbnail: {}", url, ex); iv.setVisible(false); lbl.setVisible(true); }
                 } else {
                     iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
@@ -337,19 +347,27 @@ public class ProductosController {
             }
         });
 
+        // Ctrl/Shift-click to pick several rows for "Exportar seleccionados" —
+        // Editar/Dar de baja stay single-item actions (see the listener below).
+        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
         // Selection → enable/disable action buttons
-        table.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-            boolean s = sel != null;
-            if (btnEditar   != null && canEdit) btnEditar.setDisable(!s);
-            if (btnEliminar != null && canEdit) btnEliminar.setDisable(!s);
+        table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<Producto>) c -> {
+            int n = table.getSelectionModel().getSelectedItems().size();
+            if (btnEditar   != null && canEdit) btnEditar.setDisable(n != 1);
+            if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
+            if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
         });
         if (btnEditar   != null && canEdit) btnEditar.setDisable(true);
         if (btnEliminar != null && canEdit) btnEliminar.setDisable(true);
+        if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(true);
 
-        // Delete key on table
+        // Delete key on table — only when exactly one row is selected, same
+        // as the "Dar de baja" button (a formal baja needs a motivo per bien,
+        // it doesn't make sense as a bulk action from a bare Delete keypress).
         table.setOnKeyPressed(ev -> {
             if (ev.getCode() == javafx.scene.input.KeyCode.DELETE
-                    && canEdit && table.getSelectionModel().getSelectedItem() != null) {
+                    && canEdit && table.getSelectionModel().getSelectedItems().size() == 1) {
                 onDelete(); ev.consume();
             }
         });
@@ -693,7 +711,9 @@ public class ProductosController {
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(360);
-        scroll.getStyleClass().add("page-scroll");
+        // Was "page-scroll" (the app's full-page gray background) — inside a
+        // white dialog card that read as a mismatched gray panel bolted on.
+        scroll.getStyleClass().add("dlg-tabs-scroll");
 
         if (!list.getChildren().isEmpty())
             AnimationUtils.staggeredFadeInUp(new java.util.ArrayList<>(list.getChildren()), 240, 40);
@@ -803,6 +823,36 @@ public class ProductosController {
         );
     }
 
+    @FXML
+    private void onExportSeleccionCsv() {
+        List<Producto> seleccion = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (seleccion.isEmpty()) return;
+        DialogUtil.runAsync(
+            () -> reporteService.exportInventarioCsv(seleccion),
+            file -> {
+                NotificacionUtil.exito(table.getScene(),
+                    seleccion.size() + " bien(es) exportado(s) a CSV");
+                openFile(file);
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
+        );
+    }
+
+    @FXML
+    private void onExportSeleccionExcel() {
+        List<Producto> seleccion = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (seleccion.isEmpty()) return;
+        DialogUtil.runAsync(
+            () -> reporteService.exportInventarioExcel(seleccion),
+            file -> {
+                NotificacionUtil.exito(table.getScene(),
+                    seleccion.size() + " bien(es) exportado(s) a Excel");
+                openFile(file);
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
+        );
+    }
+
     private void showProductDialog(Producto existing) {
         try {
             List<Categoria> cats = categoriaService.findAll();
@@ -885,7 +935,8 @@ public class ProductosController {
                     new Image(Path.of(p.getFotoUrl()).toUri().toString(), 52, 52, true, true, true));
                 iv.setFitWidth(52); iv.setFitHeight(52); iv.setPreserveRatio(true);
                 thumbPane.getChildren().add(iv);
-                thumbPane.getStyleClass().add("dlg-thumb-photo");
+                thumbPane.getStyleClass().addAll("dlg-thumb-photo", "foto-cell-box-clickable");
+                thumbPane.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(p.getFotoUrl(), p.getNombre()));
                 photoLoaded = true;
             } catch (Exception ex) { log.warn("No se pudo cargar thumbnail de detalle: {}", p.getFotoUrl(), ex); }
         }
@@ -1017,7 +1068,16 @@ public class ProductosController {
             root.getChildren().addAll(headerCard, g);
         }
         AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
-        dialog.getDialogPane().setContent(root);
+
+        // Same overflow risk as the create/edit "Nuevo Bien" dialog: the header
+        // card + 12-row detail grid + depreciación block easily exceed a
+        // laptop's usable screen height with nothing bounding it. Capping it
+        // in a ScrollPane keeps the dialog (and its Close button) on-screen.
+        ScrollPane rootScroll = new ScrollPane(root);
+        rootScroll.setFitToWidth(true);
+        rootScroll.setMaxHeight(520);
+        rootScroll.getStyleClass().add("dlg-tabs-scroll");
+        dialog.getDialogPane().setContent(rootScroll);
         dialog.showAndWait();
     }
 

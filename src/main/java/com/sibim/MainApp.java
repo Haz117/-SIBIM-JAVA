@@ -16,15 +16,24 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.util.Objects;
+import java.util.prefs.Preferences;
 
 public class MainApp extends Application {
 
     private static final String STYLESHEET =
         Objects.requireNonNull(MainApp.class.getResource("/css/styles.css")).toExternalForm();
+
+    /** Remembers the main window's size/position/maximized state between
+     *  sessions — it used to always reopen centered at the fixed default
+     *  size even if the user had maximized it last time. Only ever read/
+     *  written for the main screen (see the resizable+minWidth guard in
+     *  saveMainWindowState) — splash and login stay fixed-size by design. */
+    private static final Preferences WINDOW_PREFS = Preferences.userNodeForPackage(MainApp.class);
 
     private static Stage primaryStage;
 
@@ -81,8 +90,60 @@ public class MainApp extends Application {
             primaryStage.setResizable(true);
             primaryStage.setMinWidth(1024);
             primaryStage.setMinHeight(680);
-            primaryStage.centerOnScreen();
+            restoreMainWindowState();
         });
+    }
+
+    /** Applies the size/position/maximized state saved by
+     *  {@link #saveMainWindowState()} on the previous exit, if any and if
+     *  it still fits a currently connected screen (a saved position from a
+     *  second monitor that's since been unplugged would otherwise put the
+     *  window off-screen with no way to reach it). Falls back to the
+     *  centered default (already set as this Scene's width/height by
+     *  transitionTo) when there's nothing usable saved. */
+    private static void restoreMainWindowState() {
+        double w = WINDOW_PREFS.getDouble("main.width", -1);
+        double h = WINDOW_PREFS.getDouble("main.height", -1);
+        double x = WINDOW_PREFS.getDouble("main.x", Double.NaN);
+        double y = WINDOW_PREFS.getDouble("main.y", Double.NaN);
+        boolean maximized = WINDOW_PREFS.getBoolean("main.maximized", false);
+
+        boolean hasValidSize = w >= primaryStage.getMinWidth() && h >= primaryStage.getMinHeight();
+        boolean hasValidPos = !Double.isNaN(x) && !Double.isNaN(y)
+            && !Screen.getScreensForRectangle(x, y, hasValidSize ? w : 1, hasValidSize ? h : 1).isEmpty();
+
+        if (hasValidSize) {
+            primaryStage.setWidth(w);
+            primaryStage.setHeight(h);
+        }
+        if (hasValidSize && hasValidPos) {
+            primaryStage.setX(x);
+            primaryStage.setY(y);
+        } else {
+            primaryStage.centerOnScreen();
+        }
+        if (maximized) primaryStage.setMaximized(true);
+    }
+
+    /** Called on exit — see {@link #stop()}. No-ops unless the main screen
+     *  is actually what's showing (resizable + at least its own min size),
+     *  so an exit from the splash or login screen never overwrites a
+     *  previously saved main-window state with their own fixed dimensions. */
+    private static void saveMainWindowState() {
+        if (primaryStage == null || !primaryStage.isResizable()
+                || primaryStage.getWidth() < primaryStage.getMinWidth()) return;
+        boolean maximized = primaryStage.isMaximized();
+        WINDOW_PREFS.putBoolean("main.maximized", maximized);
+        // While maximized, width/height/x/y reflect the maximized bounds, not
+        // the restored size the user would expect back if they un-maximize —
+        // only persist real geometry when not maximized, so restoreMain-
+        // WindowState() has a sane un-maximized size/position to fall back to.
+        if (!maximized) {
+            WINDOW_PREFS.putDouble("main.width", primaryStage.getWidth());
+            WINDOW_PREFS.putDouble("main.height", primaryStage.getHeight());
+            WINDOW_PREFS.putDouble("main.x", primaryStage.getX());
+            WINDOW_PREFS.putDouble("main.y", primaryStage.getY());
+        }
     }
 
     /**
@@ -160,6 +221,7 @@ public class MainApp extends Application {
 
     @Override
     public void stop() {
+        saveMainWindowState();
         AppExecutor.shutdown();
         try { com.sibim.db.offline.SyncService.stopWatching(); } catch (Exception e) { /* ignore on exit */ }
         try { com.sibim.db.DatabaseConfig.close(); } catch (Exception e) { /* ignore on exit */ }

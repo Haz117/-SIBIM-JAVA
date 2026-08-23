@@ -208,7 +208,9 @@ public class MainController {
             { "Versión",         "1.0.0" },
             { "Plataforma",      "Java " + System.getProperty("java.version") + " · JavaFX 21" },
             { "Sistema",         System.getProperty("os.name") + " " + System.getProperty("os.version") },
-            { "Modo de datos",   DatabaseConfig.isDemoMode() ? "Demo (sin base de datos)" : "PostgreSQL (conectado)" },
+            { "Modo de datos",   DatabaseConfig.isDemoMode() ? "Demo (sin base de datos)"
+                                : DatabaseConfig.isOfflineMode() ? "Offline (" + SyncService.pendingCount() + " pendiente(s) de sincronizar)"
+                                : "PostgreSQL (conectado)" },
             { "Desarrollado por","H. Ayuntamiento Municipal" },
             { "Año",             "2026" },
         };

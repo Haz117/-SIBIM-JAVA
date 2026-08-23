@@ -54,23 +54,13 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 
 ## Configuración de base de datos
 
-1. Crear la base de datos en PostgreSQL:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+
+1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
    CREATE DATABASE sibim;
    ```
-2. Ejecutar el script de esquema (seguro de correr contra producción — no trae datos ni cuentas):
-   ```
-   src/main/resources/sibim.sql
-   ```
-3. **Si estás actualizando una instalación existente**, aplica las migraciones incrementales en orden:
-   El propio `sibim.sql` ya incluye todas las migraciones en su bloque `DO $$ ... END $$` — basta con volver a ejecutarlo contra la base existente para que se apliquen solo los cambios que faltan (`IF NOT EXISTS` en cada `ALTER TABLE`). Si por alguna razón prefieres aplicar migraciones de forma incremental, también están disponibles por separado en `sql/migrations/`.
-   Las migraciones usan `IF NOT EXISTS` — son seguras de correr más de una vez.
-4. **Solo para desarrollo/pruebas locales**, opcionalmente ejecutar después los datos de ejemplo (usuarios, categorías y bienes ficticios):
-   ```
-   src/main/resources/seed_demo.sql
-   ```
-   ⚠️ **Nunca ejecutes `seed_demo.sql` contra la base de datos de producción real** — crea 3 cuentas con contraseñas conocidas y públicas en este repositorio (`admin123456`, `sec123456`, `dir123456`). Todas quedan marcadas para forzar el cambio de contraseña en su primer login, pero de todas formas no deben usarse como cuentas reales del ayuntamiento.
-5. Crear el archivo `.env` con las credenciales (puedes partir de `.env.example`, que trae todas las variables documentadas). En **producción (Windows)** colócalo en `%APPDATA%\SIBIM\.env`; en desarrollo puedes colocarlo en la raíz del proyecto:
+2. Crear el archivo `.env` con las credenciales (puedes partir de `.env.example`, que trae todas las variables documentadas). En **producción (Windows)** colócalo en `%APPDATA%\SIBIM\.env`; en desarrollo puedes colocarlo en la raíz del proyecto:
    ```env
    DB_URL=jdbc:postgresql://localhost:5432/sibim
    DB_USER=tu_usuario
@@ -85,7 +75,13 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
    IMG_DIR=\\servidor\sibim\imagenes
    ```
    ⚠️ **Importante en un despliegue con varias PCs**: las fotos de los bienes se guardan como archivo en disco, y la ruta se persiste en la base de datos compartida. Si `IMG_DIR` no se configura, cada PC guarda las fotos en su propia carpeta local — y una foto subida desde una PC aparecerá rota al verla desde cualquier otra. Para que las fotos se vean igual en todas las computadoras del ayuntamiento, `IMG_DIR` debe apuntar a una ruta de red (UNC o unidad mapeada) accesible **con la misma ruta** desde cada PC que use el sistema.
-6. Crea las cuentas reales del ayuntamiento desde Configuración (solo Admin) una vez levantado el sistema — cualquier cuenta que crees o restablezcas ahí queda forzada a cambiar su contraseña en el primer login.
+3. Inicia SIBIM una vez (ver "Cómo ejecutar" abajo) — Flyway aplica el esquema completo (`V1__schema_inicial.sql`) contra la base vacía en ese primer arranque. **Si estás actualizando una instalación existente**, simplemente vuelve a iniciar la app con la versión nueva: Flyway detecta y aplica solo las migraciones que falten (son idempotentes, seguras de correr más de una vez).
+4. **Solo para desarrollo/pruebas locales**, y solo después del paso 3 (las tablas ya deben existir), opcionalmente carga los datos de ejemplo (usuarios, categorías y bienes ficticios):
+   ```
+   src/main/resources/seed_demo.sql
+   ```
+   ⚠️ **Nunca ejecutes `seed_demo.sql` contra la base de datos de producción real** — crea 3 cuentas con contraseñas conocidas y públicas en este repositorio (`admin123456`, `sec123456`, `dir123456`). Todas quedan marcadas para forzar el cambio de contraseña en su primer login, pero de todas formas no deben usarse como cuentas reales del ayuntamiento.
+5. Crea las cuentas reales del ayuntamiento desde Configuración (solo Admin) una vez levantado el sistema — cualquier cuenta que crees o restablezcas ahí queda forzada a cambiar su contraseña en el primer login.
 
 ---
 
@@ -159,10 +155,8 @@ SIBIM-Java/
 │       └── resources/
 │           ├── fxml/          # Vistas de la interfaz
 │           ├── css/           # Hoja de estilos del sistema de diseño
-│           ├── sibim.sql      # Esquema de base de datos (seguro para producción)
+│           ├── db/migration/  # Migraciones Flyway (V1__..., V2__...) — se aplican solas al arrancar
 │           └── seed_demo.sql  # Datos de ejemplo (solo desarrollo, nunca producción)
-├── sql/
-│   └── migrations/            # Migraciones incrementales para instalaciones existentes
 ├── docs/                      # Documentación técnica (CI/CD, arquitectura)
 ├── maven-dist/                 # Maven embebido para ejecución sin instalar
 ├── iniciar.bat                 # Script de inicio para Windows
@@ -209,7 +203,7 @@ pg_dump -U tu_usuario -d sibim -F c -f sibim_$(date +%Y%m%d).dump
 pg_restore -U tu_usuario -d sibim --clean sibim_20260101.dump
 ```
 
-`src/main/resources/sibim.sql` no usa una herramienta de migraciones (Flyway/Liquibase), pero sí es seguro volver a ejecutarlo contra una base ya existente: usa `CREATE TABLE IF NOT EXISTS` para las tablas y un bloque `DO $$ ... ALTER TABLE IF NOT EXISTS` al final para agregar columnas nuevas sin tocar los datos existentes, y una tabla `schema_version` registra qué versión del script se aplicó por última vez a cada base de datos. Para un cambio de esquema futuro: sube el número en el `INSERT INTO schema_version` y agrega el `ALTER TABLE` correspondiente al bloque `DO $$` — así el mismo script sigue siendo el único que hay que volver a correr en cada instalación.
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V2__descripcion.sql` (numeración consecutiva) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites `V1__schema_inicial.sql` una vez publicado — Flyway rechaza una migración ya aplicada si su contenido cambia.
 
 ---
 

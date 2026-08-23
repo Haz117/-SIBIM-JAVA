@@ -43,6 +43,14 @@ public class ReporteService {
         List<Producto> productos = (desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll();
+        return exportInventarioExcel(productos);
+    }
+
+    /** Same Excel report, given an explicit list instead of querying by date
+     *  range — used by the "Exportar seleccionados" bulk action so a user
+     *  can export just the rows they picked in the table instead of the
+     *  whole filtered inventory. */
+    public File exportInventarioExcel(List<Producto> productos) throws Exception {
         String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Stock", "Min", "Max",
                             "Precio Venta", "Valor Total", "Estado", "Proveedor", "Ubicacion", "Fecha Registro"};
         File file = tempFile("inventario", ".xlsx");
@@ -393,6 +401,11 @@ public class ReporteService {
         List<Producto> productos = (desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll();
+        return exportInventarioCsv(productos);
+    }
+
+    /** Same CSV report, given an explicit list — see the Excel overload above. */
+    public File exportInventarioCsv(List<Producto> productos) throws Exception {
         File file = tempFile("inventario", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
             pw.println("Nombre,Codigo,Categoria,Area,Resguardante,Stock,Stock Min,Stock Max,Precio Compra,Precio Venta,Valor Total,Estado,Proveedor,Ubicacion,Fecha Registro");

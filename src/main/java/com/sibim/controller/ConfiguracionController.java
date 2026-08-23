@@ -37,6 +37,9 @@ public class ConfiguracionController {
     @FXML private Label lblAvatarPerfil;
     @FXML private Label dotSistemaModo;
     @FXML private Label lblSistemaModo;
+    @FXML private Label helpUsuarios;
+    @FXML private Label helpAuditoria;
+    @FXML private Label helpRespaldo;
     @FXML private Label lblSistemaHora;
 
     @FXML private TableView<Usuario> usersTable;
@@ -64,6 +67,10 @@ public class ConfiguracionController {
 
     @FXML
     public void initialize() {
+        for (Label badge : new Label[]{ helpUsuarios, helpAuditoria, helpRespaldo }) {
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
+        }
+
         Usuario me = SessionManager.getCurrentUser();
         if (me == null) return;
         String nombre = me.getNombre();
@@ -75,12 +82,32 @@ public class ConfiguracionController {
             lblAvatarPerfil.setText(String.valueOf(nombre.charAt(0)).toUpperCase());
         }
 
-        // System info
+        // System info — mirrors the status bar's own tri-state check
+        // (MainController#updateStatusBar): this used to only ever check
+        // isDemoMode(), so a PC working offline (real, unplanned case) saw
+        // "Base de datos activa" with a green dot here — actively wrong at
+        // exactly the moment a user most needs to know they're offline.
         if (lblSistemaModo != null) {
-            boolean demo = com.sibim.db.DatabaseConfig.isDemoMode();
-            lblSistemaModo.setText(demo ? "Modo demostración" : "Base de datos activa");
-            lblSistemaModo.getStyleClass().add(demo ? "sys-info-demo" : "sys-info-ok");
-            if (dotSistemaModo != null) dotSistemaModo.getStyleClass().add(demo ? "dot-amber" : "dot-green");
+            boolean demo    = com.sibim.db.DatabaseConfig.isDemoMode();
+            boolean offline = com.sibim.db.DatabaseConfig.isOfflineMode();
+            String texto, dotClass;
+            if (offline) {
+                texto = "Modo offline · " + com.sibim.db.offline.SyncService.pendingCount() + " pendiente(s)";
+                dotClass = "dot-amber";
+            } else if (demo) {
+                texto = "Modo demostración";
+                dotClass = "dot-amber";
+            } else {
+                texto = "Base de datos activa";
+                dotClass = "dot-green";
+            }
+            lblSistemaModo.setText(texto);
+            lblSistemaModo.getStyleClass().removeAll("sys-info-demo", "sys-info-ok");
+            lblSistemaModo.getStyleClass().add((demo || offline) ? "sys-info-demo" : "sys-info-ok");
+            if (dotSistemaModo != null) {
+                dotSistemaModo.getStyleClass().removeAll("dot-amber", "dot-green");
+                dotSistemaModo.getStyleClass().add(dotClass);
+            }
         }
         if (lblSistemaHora != null)
             lblSistemaHora.setText(java.time.LocalDateTime.now()

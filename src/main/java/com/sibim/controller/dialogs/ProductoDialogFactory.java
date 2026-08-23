@@ -381,9 +381,21 @@ public final class ProductoDialogFactory {
             fCat.valueProperty().addListener((o, a, b) -> checkOk.run());
         }
 
+        // The "Stock y Precios" tab (stock, precios, depreciación) is tall
+        // enough on its own that the dialog used to grow past the window's
+        // visible height with nothing bounding it — wrapping the tabs in a
+        // scroll pane caps the dialog at a sane height and scrolls the tab
+        // content instead, while the submit button stays pinned below it
+        // (not inside the scroll) so it's always reachable without scrolling
+        // all the way down.
+        ScrollPane tabsScroll = new ScrollPane(tabs);
+        tabsScroll.setFitToWidth(true);
+        tabsScroll.setMaxHeight(420);
+        tabsScroll.getStyleClass().add("dlg-tabs-scroll");
+
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
         VBox.setMargin(btnGuardar,   new Insets(4, 22, 16, 22));
-        VBox dialogContent = new VBox(0, dialogHeader, tabs, lblFormError, btnGuardar);
+        VBox dialogContent = new VBox(0, dialogHeader, tabsScroll, lblFormError, btnGuardar);
         dialog.getDialogPane().setContent(dialogContent);
         AnimationUtils.staggeredFadeInUp(java.util.List.of(dialogHeader, tabs, btnGuardar), 280, 70);
 

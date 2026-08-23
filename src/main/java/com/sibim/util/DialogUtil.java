@@ -11,9 +11,12 @@ import javafx.stage.Modality;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import javafx.animation.PauseTransition;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
+import java.nio.file.Path;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -141,6 +144,42 @@ public final class DialogUtil {
         header.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%,"
             + color1 + "," + color2 + "); -fx-background-radius: 8 8 0 0;");
         return header;
+    }
+
+    /** Opens a full-size view of a bien's photo — every other place in the
+     *  app only ever shows it as a ~40-50px thumbnail, which isn't enough to
+     *  actually verify "is this really the camera the inventory says it is"
+     *  from a photo. No-ops silently if there's no photo or it fails to
+     *  load (thumbnails already handle that case with a placeholder icon;
+     *  this is only reachable by clicking one that loaded). */
+    public static void showPhotoViewer(String fotoUrl, String titulo) {
+        if (fotoUrl == null || fotoUrl.isBlank()) return;
+        Image img;
+        try {
+            img = new Image(Path.of(fotoUrl).toUri().toString());
+            if (img.isError()) return;
+        } catch (Exception e) {
+            return;
+        }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        applyOwner(dialog);
+        dialog.setTitle(titulo != null && !titulo.isBlank() ? titulo : "Foto del bien");
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        applyStylesheet(dialog.getDialogPane());
+
+        ImageView iv = new ImageView(img);
+        iv.setPreserveRatio(true);
+        iv.setFitWidth(Math.min(560, Math.max(img.getWidth(), 240)));
+        iv.setFitHeight(Math.min(560, Math.max(img.getHeight(), 240)));
+        iv.getStyleClass().add("photo-viewer-image");
+
+        StackPane frame = new StackPane(iv);
+        frame.setPadding(new Insets(12));
+        frame.getStyleClass().add("photo-viewer-frame");
+
+        dialog.getDialogPane().setContent(frame);
+        dialog.showAndWait();
     }
 
     // ── Form grid ────────────────────────────────────────────────────────

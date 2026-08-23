@@ -84,9 +84,12 @@ $id = [System.Guid]::NewGuid().ToString()
 $sql = @"
 
 -- ============================================================
--- Pega este bloque en psql o pgAdmin DESPUÉS de ejecutar sibim.sql
--- La contraseña está hasheada con BCrypt — el sistema pedirá
--- cambiarla en el primer inicio de sesión (debe_cambiar_password = TRUE).
+-- Pega este bloque en psql o pgAdmin DESPUÉS de iniciar SIBIM al
+-- menos una vez contra esta base de datos (Flyway crea el esquema
+-- automáticamente al arrancar — ya no hace falta correr sibim.sql
+-- a mano). La contraseña está hasheada con BCrypt — el sistema
+-- pedirá cambiarla en el primer inicio de sesión
+-- (debe_cambiar_password = TRUE).
 -- ============================================================
 
 INSERT INTO users (id, username, password, nombre, cargo, role, area, debe_cambiar_password)
@@ -113,8 +116,8 @@ Write-Host $sql
 Write-Host "======================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Pasos siguientes:" -ForegroundColor Yellow
-Write-Host "  1. Ejecuta sibim.sql contra tu base de datos de produccion."
-Write-Host "  2. Ejecuta el INSERT de arriba."
-Write-Host "  3. Configura .env con tus credenciales de PostgreSQL."
-Write-Host "  4. Inicia SIBIM — el sistema pedira cambiar la contraseña en el primer login."
+Write-Host "  1. Configura .env con tus credenciales de PostgreSQL."
+Write-Host "  2. Inicia SIBIM una vez — Flyway crea el esquema automaticamente."
+Write-Host "  3. Ejecuta el INSERT de arriba contra esa misma base de datos."
+Write-Host "  4. Inicia sesion con esa cuenta — el sistema pedira cambiar la contraseña."
 Write-Host ""

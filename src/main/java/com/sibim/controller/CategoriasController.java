@@ -217,7 +217,18 @@ public class CategoriasController {
             () -> {
                 allData.remove(sel);
                 applyFilter(searchField.getText());
-                NotificacionUtil.exito(table.getScene(), "Categoría \"" + sel.getNombre() + "\" eliminada");
+                // save() upserts by id — re-running it after the delete recreates
+                // the exact same row (same id/nombre/color/ícono), the same undo
+                // pattern already used for "dar de baja" in ProductosController.
+                NotificacionUtil.exitoConAccion(table.getScene(),
+                    "Categoría \"" + sel.getNombre() + "\" eliminada",
+                    "Deshacer",
+                    () -> DialogUtil.runAsync(
+                        () -> categoriaService.save(sel),
+                        () -> { loadData(); NotificacionUtil.info(table.getScene(), "\"" + sel.getNombre() + "\" restaurada"); },
+                        e2 -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer la eliminación")
+                    )
+                );
             },
             e -> NotificacionUtil.error(table.getScene(),
                 e instanceof IllegalStateException ? e.getMessage() : "No se pudo eliminar la categoría")

@@ -992,6 +992,8 @@
 
 /* Photo thumbnail cell */
 .foto-cell-box    { -fx-background-color: #F1F5F9; -fx-background-radius: 7; }
+.foto-cell-box-clickable { -fx-cursor: hand; }
+.foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 6, 0.3, 0, 0); }
 .foto-placeholder { -fx-font-size: 16px; -fx-text-fill: #C4CDD6; }
 
 /* Stock movement arrow cell (Mov. → Nuevo) */
@@ -1126,25 +1128,32 @@
     -fx-font-size: 12.5px;
     -fx-font-weight: bold;
 }
+/* Matches the global .text-field/.combo-box/.spinner look (white fill,
+   10px radius, faint resting shadow) instead of the flatter/grayer look
+   this used to reset dialogs to — inputs inside a dialog form (Usuario,
+   Movimiento, Categoría, Bien) were the one place in the app where fields
+   looked visibly plainer than everywhere else. */
 .dialog-pane .text-field, .dialog-pane .text-area,
 .dialog-pane .combo-box,  .dialog-pane .date-picker,
 .dialog-pane .spinner {
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: white;
     -fx-border-color: #D1D9E6;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
-    -fx-effect: none;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.04), 4, 0, 0, 1);
 }
 .dialog-pane .text-field:hover, .dialog-pane .text-area:hover,
-.dialog-pane .combo-box:hover, .dialog-pane .date-picker:hover {
+.dialog-pane .combo-box:hover, .dialog-pane .date-picker:hover,
+.dialog-pane .spinner:hover {
     -fx-border-color: #A5B4FC;
-    -fx-background-color: white;
 }
 .dialog-pane .text-field:focused, .dialog-pane .combo-box:focused,
-.dialog-pane .text-area:focused {
+.dialog-pane .text-area:focused, .dialog-pane .date-picker:focused,
+.dialog-pane .spinner:focused {
     -fx-border-color: #6366F1;
     -fx-background-color: white;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 8, 0, 0, 0);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1387,6 +1396,16 @@
     -fx-cursor: hand;
 }
 .help-badge-inv:hover { -fx-background-color: rgba(255,255,255,0.4); }
+
+/* Full-size photo viewer (DialogUtil.showPhotoViewer) */
+.photo-viewer-frame {
+    -fx-background-color: #0F172A;
+    -fx-background-radius: 0 0 8 8;
+    -fx-alignment: CENTER;
+}
+.photo-viewer-image {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 16, 0, 0, 4);
+}
 
 .org-alert-badge-clickable { -fx-cursor: hand; }
 .org-alert-badge-clickable:hover {
@@ -2184,6 +2203,13 @@
 .dlg-tabpane > .tab-content-area {
     -fx-background-color: white;
     -fx-padding: 0;
+}
+/* Wraps .dlg-tabpane when a tab's content is tall enough to need capping
+   (see ProductoDialogFactory) — transparent so it reads as part of the
+   dialog body, not as a separate scrollable panel. */
+.dlg-tabs-scroll, .dlg-tabs-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

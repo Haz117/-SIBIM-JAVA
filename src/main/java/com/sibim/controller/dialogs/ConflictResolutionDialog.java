@@ -37,8 +37,16 @@ public final class ConflictResolutionDialog {
             + " en otro equipo mientras estabas sin conexión.\n"
             + "Elige qué versión conservar para cada uno.");
 
+        // Single button on purpose — see the note on showAndWait() below for why
+        // there's no Cancel: every row already has a safe default selected
+        // ("conservar versión del servidor"), so any way of leaving this dialog
+        // resolves every conflict one way or another. A Cancel button that let
+        // the user walk away with nothing decided used to leave the row stuck
+        // forever as status='CONFLICT' — nothing else in the app ever re-reads
+        // or re-shows an unresolved conflict, so it was effectively silent data
+        // loss for that offline edit.
         ButtonType aplicarType = new ButtonType("Aplicar decisiones", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(aplicarType, ButtonType.CANCEL);
+        dialog.getDialogPane().getButtonTypes().add(aplicarType);
 
         // outboxId → ToggleGroup with selected toggle's userData = "SERVER" | "MINE"
         Map<Integer, ToggleGroup> decisions = new LinkedHashMap<>();
@@ -57,11 +65,12 @@ public final class ConflictResolutionDialog {
         dialog.getDialogPane().setContent(scroll);
         dialog.getDialogPane().setPrefWidth(700);
 
-        dialog.showAndWait().ifPresent(bt -> {
-            if (bt == aplicarType) {
-                applyDecisions(conflictos, decisions);
-            }
-        });
+        // Deliberately unconditional: apply the current selections regardless
+        // of how the dialog closed (the button, Escape, or the window's own
+        // close box all end showAndWait() the same way here since there's no
+        // second button to distinguish "cancel" from "confirm" anymore).
+        dialog.showAndWait();
+        applyDecisions(conflictos, decisions);
     }
 
     private static VBox buildCard(ConflictoInfo c, Map<Integer, ToggleGroup> decisions) {

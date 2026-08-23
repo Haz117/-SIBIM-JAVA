@@ -102,9 +102,23 @@
         <!-- Password -->
         <VBox fx:id="passwordBox" spacing="7">
             <Label text="Contraseña" styleClass="form-label"/>
-            <PasswordField fx:id="passwordField" promptText="••••••••"
+            <StackPane>
+                <PasswordField fx:id="passwordField" promptText="••••••••"
+                               onAction="#handleLogin"
+                               styleClass="form-input" maxWidth="Infinity"/>
+                <!-- PasswordField can't reveal its own text — this plain
+                     TextField is kept text-bound to it and swapped in when
+                     the eye toggle is on (see LoginController#initialize). -->
+                <TextField fx:id="passwordRevealField" promptText="••••••••"
                            onAction="#handleLogin"
-                           styleClass="form-input" maxWidth="Infinity"/>
+                           styleClass="form-input" maxWidth="Infinity"
+                           visible="false" managed="false"/>
+                <Button fx:id="btnTogglePassword" text="" styleClass="search-clear-btn"
+                        StackPane.alignment="CENTER_RIGHT" focusTraversable="false">
+                    <graphic><FontIcon fx:id="iconTogglePassword" iconLiteral="mdi2e-eye-outline"/></graphic>
+                    <tooltip><Tooltip text="Mostrar contraseña"/></tooltip>
+                </Button>
+            </StackPane>
         </VBox>
 
         <Region prefHeight="6"/>

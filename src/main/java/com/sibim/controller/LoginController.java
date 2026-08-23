@@ -25,6 +25,9 @@ public class LoginController {
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private TextField passwordRevealField;
+    @FXML private Button btnTogglePassword;
+    @FXML private org.kordamp.ikonli.javafx.FontIcon iconTogglePassword;
     @FXML private Button loginButton;
     @FXML private Label errorLabel;
     @FXML private ProgressIndicator spinner;
@@ -44,6 +47,27 @@ public class LoginController {
     public void initialize() {
         errorLabel.setVisible(false);
         spinner.setVisible(false);
+
+        // Show/hide password — PasswordField itself can't reveal its text,
+        // so passwordRevealField is a plain TextField kept in sync and
+        // swapped in visually; passwordField.getText() (what handleLogin
+        // reads) stays correct either way since they're bound together.
+        if (passwordRevealField != null && btnTogglePassword != null) {
+            passwordRevealField.textProperty().bindBidirectional(passwordField.textProperty());
+            btnTogglePassword.setOnAction(e -> {
+                boolean revealing = !passwordRevealField.isVisible();
+                passwordField.setVisible(!revealing);
+                passwordField.setManaged(!revealing);
+                passwordRevealField.setVisible(revealing);
+                passwordRevealField.setManaged(revealing);
+                if (iconTogglePassword != null)
+                    iconTogglePassword.setIconLiteral(revealing ? "mdi2e-eye-off-outline" : "mdi2e-eye-outline");
+                Tooltip.install(btnTogglePassword,
+                    new Tooltip(revealing ? "Ocultar contraseña" : "Mostrar contraseña"));
+                (revealing ? passwordRevealField : passwordField).requestFocus();
+                (revealing ? passwordRevealField : passwordField).end();
+            });
+        }
 
         // Test-account quick-fill only makes sense against the seeded demo
         // data — a real deployment with a production Postgres has no such

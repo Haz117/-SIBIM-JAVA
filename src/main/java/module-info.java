@@ -9,6 +9,7 @@ module com.sibim {
 
     requires java.sql;
     requires java.net.http;
+    requires java.prefs;
     requires com.zaxxer.hikari;
     requires org.postgresql.jdbc;
     requires org.xerial.sqlitejdbc;
