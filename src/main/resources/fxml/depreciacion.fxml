@@ -17,7 +17,14 @@
             <FontIcon iconLiteral="mdi2c-chart-line" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Depreciación de Activos" styleClass="page-title"/>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="Depreciación de Activos" styleClass="page-title"/>
+                <Label fx:id="helpConcepto" text="?" styleClass="help-badge">
+                    <tooltip>
+                        <Tooltip text="¿Cómo funciona? Cada bien pierde valor de forma pareja cada año (depreciación lineal, método de línea recta - SAT México): se resta el mismo monto anual desde su fecha de adquisición hasta llegar a su valor residual al cumplir la vida útil que le asignaste al capturarlo. Sirve para saber cuánto vale hoy cada bien en libros y para planear cuándo conviene darlo de baja o reemplazarlo — revisa la columna &quot;Depreciado el&quot; de la tabla para ver esa fecha por bien."/>
+                    </tooltip>
+                </Label>
+            </HBox>
             <Label text="Valor en libros de los bienes patrimoniales (línea recta, SAT México)" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
@@ -88,6 +95,22 @@
             <Label fx:id="lblStatPct" text="—" styleClass="rich-stat-value"/>
             <Label fx:id="lblStatSinDatos" text="—" styleClass="rich-stat-hint"/>
         </VBox>
+
+        <VBox fx:id="statCardTotalmente" styleClass="rich-stat-card, rich-stat-card-clickable"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT" onMouseClicked="#onFiltrarTotalmenteDepreciados">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
+                    <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="TOTALMENTE DEPRECIADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpTotalmente" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Bienes que ya llegaron a su valor residual (100% depreciado) según su vida útil capturada — candidatos a revisar para baja o reemplazo. Haz clic en la tarjeta para filtrar la tabla."/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatTotalmente" text="—" styleClass="rich-stat-value"/>
+            <Label text="candidatos a baja o reemplazo" styleClass="rich-stat-hint"/>
+        </VBox>
     </HBox>
 
     <!-- ══ GRÁFICA DE TENDENCIA ═════════════════════════════════════ -->
@@ -107,6 +130,25 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="DETALLE POR BIEN" styleClass="dash-section-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblTotalFiltrado" text="—" styleClass="muted"/>
+    </HBox>
+
+    <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+        <StackPane prefWidth="280">
+            <TextField fx:id="searchField"
+                       promptText="🔍  Buscar por nombre o categoría..."
+                       maxWidth="Infinity" styleClass="search-field"/>
+            <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
+                <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+            </Button>
+        </StackPane>
+        <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="240"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFiltros" styleClass="btn-secondary"/>
     </HBox>
 
     <!-- ══ DATA TABLE ═══════════════════════════════════════════════ -->
@@ -114,17 +156,20 @@
         <columns>
             <TableColumn fx:id="colNombre"      text="Nombre"             prefWidth="200" sortable="true"/>
             <TableColumn fx:id="colCategoria"   text="Categoría"          prefWidth="140" sortable="true"/>
+            <TableColumn fx:id="colArea"        text="Área"               prefWidth="170" sortable="true"/>
             <TableColumn fx:id="colFechaAdq"    text="Fecha adquisición"  prefWidth="130" sortable="true"/>
             <TableColumn fx:id="colVidaUtil"    text="Vida útil"          prefWidth="90"  sortable="true"/>
+            <TableColumn fx:id="colRestante"    text="Vida útil restante" prefWidth="130" sortable="true"/>
             <TableColumn fx:id="colValorCompra" text="Valor compra"       prefWidth="110" sortable="true"/>
             <TableColumn fx:id="colValorActual" text="Valor actual"       prefWidth="110" sortable="true"/>
             <TableColumn fx:id="colPct"         text="Depreciado (%)"     prefWidth="120" sortable="true"/>
+            <TableColumn fx:id="colFechaTotal"  text="Depreciado el"      prefWidth="120" sortable="true"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
                 <FontIcon iconLiteral="mdi2c-chart-line" styleClass="empty-icon-lg"/>
-                <Label text="No hay bienes con datos de depreciación" styleClass="empty-state-msg"/>
-                <Label text="Captura fecha de adquisición y vida útil al editar un bien" styleClass="empty-state-hint"/>
+                <Label fx:id="lblPlaceholderMsg"  text="No hay bienes con datos de depreciación" styleClass="empty-state-msg"/>
+                <Label fx:id="lblPlaceholderHint" text="Captura fecha de adquisición y vida útil al editar un bien" styleClass="empty-state-hint"/>
             </VBox>
         </placeholder>
     </TableView>

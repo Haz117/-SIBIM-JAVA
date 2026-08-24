@@ -57,10 +57,7 @@
                 </VBox>
             </HBox>
 
-            <Region prefHeight="10"/>
-            <Separator styleClass="sidebar-divider">
-                <padding><Insets left="10" right="18"/></padding>
-            </Separator>
+            <Region prefHeight="18"/>
 
             <!-- Scrollable nav sections -->
             <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="sidebar-scroll">
@@ -101,7 +98,7 @@
                         <Button fx:id="btnAlertas" text="Alertas" onAction="#onAlertas"
                                 styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER"
                                 contentDisplay="LEFT" graphicTextGap="10">
-                            <graphic><FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="nav-icon"/></graphic>
+                            <graphic><FontIcon iconLiteral="mdi2b-bell-alert" styleClass="nav-icon"/></graphic>
                             <tooltip><Tooltip text="Alertas de inventario  (Ctrl+6)"/></tooltip>
                         </Button>
                         <Label fx:id="alertBadge" text="0"
@@ -111,7 +108,7 @@
                     </StackPane>
 
                     <Button fx:id="btnReportes" text="Reportes" onAction="#onReportes" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="nav-icon"/></graphic>
+                        <graphic><FontIcon iconLiteral="mdi2f-file-chart" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
                     </Button>
                     <Button fx:id="btnDepreciacion" text="Depreciación" onAction="#onDepreciacion" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
@@ -142,7 +139,7 @@
                     <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
                 </Button>
                 <Button text="Acerca de" onAction="#onAcercaDe" styleClass="about-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                    <graphic><FontIcon iconLiteral="mdi2i-information-outline" styleClass="nav-icon"/></graphic>
+                    <graphic><FontIcon iconLiteral="mdi2i-information" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Versión e información del sistema"/></tooltip>
                 </Button>
                 <Region prefHeight="4"/>

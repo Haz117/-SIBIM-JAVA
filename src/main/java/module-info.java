@@ -1,5 +1,5 @@
 module com.sibim {
-    requires javafx.controls;
+    requires transitive javafx.controls;
     requires javafx.fxml;
 
     // Not JavaFX-Swing interop (no SwingNode/JFXPanel usage) — this is what

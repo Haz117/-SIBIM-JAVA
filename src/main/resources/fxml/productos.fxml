@@ -106,10 +106,14 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnToggleFiltros" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+        </Button>
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
+    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por nombre, código, proveedor..."
@@ -182,6 +186,12 @@
                 </MenuItem>
             </items>
         </MenuButton>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnMovimiento" text="Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Registrar una entrada, salida, ajuste o transferencia para el bien seleccionado, sin tener que volver a buscarlo en Movimientos" wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnEditar" text="Editar" onAction="#onEdit" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">

@@ -73,13 +73,13 @@
         </columnConstraints>
 
         <!-- Total de Bienes — Indigo -->
-        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerProductos"
               GridPane.columnIndex="0" GridPane.rowIndex="0">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="stat-icon-badge, stat-icon-badge-indigo">
-                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="stat-icon"/>
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpTotalBienes" text="?" styleClass="help-badge">
@@ -87,20 +87,20 @@
                 </Label>
             </HBox>
             <VBox spacing="5">
-                <Label text="TOTAL DE BIENES" styleClass="stat-label"/>
-                <Label fx:id="lblTotalBienes" text="—" styleClass="stat-value"/>
-                <Label text="Ver inventario →" styleClass="stat-hint"/>
+                <Label text="TOTAL DE BIENES" styleClass="rich-stat-label"/>
+                <Label fx:id="lblTotalBienes" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver inventario →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
 
         <!-- Valor Patrimonial — Teal -->
-        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerReportes"
               GridPane.columnIndex="1" GridPane.rowIndex="0">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="stat-icon-badge, stat-icon-badge-teal">
-                    <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="stat-icon"/>
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpValorTotal" text="?" styleClass="help-badge">
@@ -108,20 +108,20 @@
                 </Label>
             </HBox>
             <VBox spacing="5">
-                <Label text="VALOR PATRIMONIAL" styleClass="stat-label"/>
-                <Label fx:id="lblValorTotal" text="—" styleClass="stat-value-currency"/>
-                <Label text="Ver reportes →" styleClass="stat-hint"/>
+                <Label text="VALOR PATRIMONIAL" styleClass="rich-stat-label"/>
+                <Label fx:id="lblValorTotal" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
+                <Label text="Ver reportes →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
 
         <!-- Movimientos Hoy — Violet -->
-        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerMovimientos"
               GridPane.columnIndex="2" GridPane.rowIndex="0">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="stat-icon-badge, stat-icon-badge-violet">
-                    <FontIcon iconLiteral="mdi2s-sync" styleClass="stat-icon"/>
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
+                    <FontIcon iconLiteral="mdi2s-sync" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpMovimientosHoy" text="?" styleClass="help-badge">
@@ -129,20 +129,20 @@
                 </Label>
             </HBox>
             <VBox spacing="5">
-                <Label text="MOVIMIENTOS HOY" styleClass="stat-label"/>
-                <Label fx:id="lblMovimientosHoy" text="—" styleClass="stat-value"/>
-                <Label text="Ver historial →" styleClass="stat-hint"/>
+                <Label text="MOVIMIENTOS HOY" styleClass="rich-stat-label"/>
+                <Label fx:id="lblMovimientosHoy" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver historial →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
 
         <!-- Categorías — Indigo oscuro -->
-        <VBox styleClass="stat-card, stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerCategorias"
               GridPane.columnIndex="3" GridPane.rowIndex="0">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="stat-icon-badge, stat-icon-badge-dark-indigo">
-                    <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="stat-icon"/>
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-dark-indigo">
+                    <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpCategorias" text="?" styleClass="help-badge">
@@ -150,9 +150,9 @@
                 </Label>
             </HBox>
             <VBox spacing="5">
-                <Label text="CATEGORÍAS ACTIVAS" styleClass="stat-label"/>
-                <Label fx:id="lblCategorias" text="—" styleClass="stat-value"/>
-                <Label text="Ver categorías →" styleClass="stat-hint"/>
+                <Label text="CATEGORÍAS ACTIVAS" styleClass="rich-stat-label"/>
+                <Label fx:id="lblCategorias" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver categorías →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
     </GridPane>

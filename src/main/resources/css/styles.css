@@ -257,11 +257,11 @@
 }
 .sidebar-userrole {
     -fx-background-color: #312E81;
-    -fx-background-radius: 4;
+    -fx-background-radius: 99;
     -fx-text-fill: #A5B4FC;
     -fx-font-size: 10px;
     -fx-font-weight: bold;
-    -fx-padding: 2 7;
+    -fx-padding: 2 8;
 }
 
 /* Nav section labels */
@@ -272,13 +272,15 @@
     -fx-padding: 12 14 3 16;
 }
 
-/* Nav buttons */
+/* Nav buttons — radius bumped 8→12 to match .btn-primary/.btn-secondary
+   (every button in the content area uses 12); the sidebar was the one
+   place in the app still using the old, more "boxy" 8px radius. */
 .nav-btn {
     -fx-background-color: transparent;
     -fx-text-fill: #A8B4C8;
     -fx-alignment: CENTER_LEFT;
     -fx-padding: 10 14;
-    -fx-background-radius: 8;
+    -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-font-size: 13px;
     -fx-border-color: transparent;
@@ -298,7 +300,7 @@
     -fx-background-color: rgba(99, 102, 241, 0.20);
     -fx-text-fill: #E0E7FF;
     -fx-font-weight: 700;
-    -fx-background-radius: 8;
+    -fx-background-radius: 12;
     -fx-border-color: transparent transparent transparent #6366F1;
     -fx-border-width: 0 0 0 3;
     -fx-border-insets: 0;
@@ -327,7 +329,7 @@
 .about-btn {
     -fx-background-color: transparent;
     -fx-text-fill: rgba(148,163,184,0.65);
-    -fx-background-radius: 8;
+    -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 7 14;
     -fx-font-size: 12px;
@@ -346,7 +348,7 @@
 .logout-btn {
     -fx-background-color: rgba(239,68,68,0.08);
     -fx-text-fill: #FDA4AF;
-    -fx-background-radius: 8;
+    -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 9 14;
     -fx-font-size: 13px;
@@ -2334,12 +2336,31 @@
     -fx-background-radius: 999;
 }
 .rich-stat-icon-badge .rich-stat-icon { -fx-icon-size: 17; -fx-icon-color: white; -fx-opacity: 1; -fx-padding: 0; }
-.rich-stat-icon-badge-indigo { -fx-background-color: #5253E5; }
-.rich-stat-icon-badge-teal   { -fx-background-color: #0891B2; }
-.rich-stat-icon-badge-amber  { -fx-background-color: #D97706; }
-.rich-stat-icon-badge-purple { -fx-background-color: #7C3AED; }
-.rich-stat-icon-badge-green  { -fx-background-color: #16A34A; }
-.rich-stat-icon-badge-red    { -fx-background-color: #DC2626; }
+.rich-stat-icon-badge-indigo      { -fx-background-color: #5253E5; }
+.rich-stat-icon-badge-teal        { -fx-background-color: #0891B2; }
+.rich-stat-icon-badge-amber       { -fx-background-color: #D97706; }
+.rich-stat-icon-badge-purple      { -fx-background-color: #7C3AED; }
+.rich-stat-icon-badge-green       { -fx-background-color: #16A34A; }
+.rich-stat-icon-badge-red         { -fx-background-color: #DC2626; }
+/* Was only ever on the Dashboard's old separate .stat-card family
+   ("Categorías Activas") — added here so that card could move onto the
+   same rich-stat-card the other four list pages already use. */
+.rich-stat-icon-badge-dark-indigo { -fx-background-color: #3730A3; }
+
+/* Dashboard's four top stat cards navigate somewhere on click — the other
+   rich-stat-card users (Bienes, Organigrama, Categorías, Depreciación)
+   don't, so this is opt-in rather than baked into .rich-stat-card itself. */
+.rich-stat-card-clickable { -fx-cursor: hand; }
+
+/* Toggled state for a rich-stat-card used as a click-to-filter control
+   (Depreciación's "Totalmente depreciados" card) — a red border marks the
+   filter as active, since there's no other cue when the card itself
+   doesn't otherwise change appearance. */
+.rich-stat-card-clickable:selected {
+    -fx-border-color: #DC2626;
+    -fx-border-width: 2;
+    -fx-border-radius: 18;
+}
 
 /* Alert active — amber card pulses with stronger border+glow */
 .rich-stat-card-alert-active {

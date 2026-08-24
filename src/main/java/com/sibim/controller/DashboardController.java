@@ -2,7 +2,6 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
-import com.sibim.repository.ProductoRepository;
 import com.sibim.service.DashboardService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -288,7 +287,7 @@ public class DashboardController {
             entradas.getData().add(new XYChart.Data<>(label, entMap.getOrDefault(day, 0)));
             salidas.getData().add(new XYChart.Data<>(label, salMap.getOrDefault(day, 0)));
         }
-        chartMovimientos.getData().addAll(entradas, salidas);
+        chartMovimientos.getData().addAll(java.util.List.of(entradas, salidas));
         // A chart Data's Node is created lazily on the next layout/CSS pass,
         // not synchronously by addAll() above — checking d.getNode() right
         // here almost always sees null, so the tooltip silently never got

@@ -119,10 +119,14 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar-purple"/>
         <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnToggleFiltros" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+        </Button>
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-purple">
+    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-purple">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por producto, motivo o referencia..."

@@ -252,6 +252,94 @@ public final class DialogUtil {
         if (tip != null) enableClickToShowTooltip(node, tip);
     }
 
+    // ── Collapsible section ─────────────────────────────────────────────
+
+    private static final java.util.prefs.Preferences UI_PREFS =
+        java.util.prefs.Preferences.userNodeForPackage(DialogUtil.class);
+
+    /**
+     * Wires {@code toggle} to show/hide {@code content} (a filter bar, most
+     * likely) — list pages with many filter controls (Bienes, Movimientos)
+     * eat a lot of vertical space that could go to the table instead, so
+     * this lets the user collapse them out of the way. State is remembered
+     * across restarts under {@code prefKey} (unique per page).
+     */
+    public static void makeCollapsible(String prefKey, Button toggle, Region content) {
+        boolean collapsed = UI_PREFS.getBoolean(prefKey, false);
+        applyCollapsed(toggle, content, collapsed);
+        toggle.setOnAction(e -> {
+            boolean wasExpanded = content.isVisible();
+            applyCollapsed(toggle, content, wasExpanded);
+            UI_PREFS.putBoolean(prefKey, wasExpanded);
+        });
+    }
+
+    private static void applyCollapsed(Button toggle, Region content, boolean collapsed) {
+        content.setVisible(!collapsed);
+        content.setManaged(!collapsed);
+        toggle.setText(collapsed ? "Mostrar filtros" : "Ocultar filtros");
+        FontIcon icon = new FontIcon(collapsed ? "mdi2c-chevron-down" : "mdi2c-chevron-up");
+        icon.getStyleClass().add("btn-icon");
+        toggle.setGraphic(icon);
+    }
+
+    // ── ComboBox ─────────────────────────────────────────────────────────
+
+    /**
+     * Turns a plain (non-editable) ComboBox into a type-to-filter picker —
+     * scrolling a dropdown of hundreds/thousands of items (e.g. every
+     * product in inventory) to find one by eye doesn't scale, this lets the
+     * user just type part of the name/code. {@code toText} must be the same
+     * function used by the combo's StringConverter, so what's shown while
+     * filtering matches what's shown once an item is picked.
+     */
+    public static <T> void makeFilterable(ComboBox<T> combo, java.util.List<T> allItems, Function<T, String> toText) {
+        combo.setEditable(true);
+        combo.setItems(javafx.collections.FXCollections.observableArrayList(allItems));
+        // Distinguishes the user typing from this method's own programmatic
+        // edits to the editor text (e.g. restoring the label after a pick) —
+        // without it, that restore would re-trigger the filter and fight itself.
+        boolean[] guard = { false };
+        combo.getEditor().textProperty().addListener((obs, old, text) -> {
+            if (guard[0]) return;
+            T selected = combo.getValue();
+            if (selected != null && toText.apply(selected).equals(text)) return;
+            String q = text == null ? "" : text.toLowerCase();
+            java.util.List<T> filtered = q.isBlank() ? allItems
+                : allItems.stream().filter(i -> toText.apply(i).toLowerCase().contains(q)).toList();
+            combo.setItems(javafx.collections.FXCollections.observableArrayList(filtered));
+            if (!filtered.isEmpty()) combo.show(); else combo.hide();
+        });
+        combo.valueProperty().addListener((obs, old, val) -> {
+            guard[0] = true;
+            combo.getEditor().setText(val == null ? "" : toText.apply(val));
+            combo.getEditor().positionCaret(combo.getEditor().getText().length());
+            guard[0] = false;
+        });
+        combo.getEditor().focusedProperty().addListener((obs, was, is) -> {
+            if (is) {
+                // Clicking straight into the field (not the dropdown arrow)
+                // must open the list immediately — otherwise it looks like a
+                // dead text field instead of a searchable picker until the
+                // user already knows to start typing.
+                if (!combo.getItems().isEmpty()) combo.show();
+                return;
+            }
+            // Losing focus without picking an item from the filtered list
+            // leaves stale typed text that doesn't match any product — snap
+            // back to whatever was actually selected (or blank) instead of
+            // leaving that dangling text in the field.
+            T selected = combo.getValue();
+            String expected = selected == null ? "" : toText.apply(selected);
+            if (!expected.equals(combo.getEditor().getText())) {
+                guard[0] = true;
+                combo.getEditor().setText(expected);
+                guard[0] = false;
+            }
+            combo.setItems(javafx.collections.FXCollections.observableArrayList(allItems));
+        });
+    }
+
     // ── Spinner ──────────────────────────────────────────────────────────
 
     /**

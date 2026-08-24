@@ -254,29 +254,11 @@ public class MainController {
         if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
     }
 
-    private static final double ACTIVE_PILL_OFFSET_X = 0;
-
-    private void animateActivePill(Button newActive, Button oldActive) {
-        // ACTIVE_PILL_OFFSET_X = 0: buttons don't translate — no animation needed.
-        if (ACTIVE_PILL_OFFSET_X == 0) return;
-        if (oldActive != null && oldActive != newActive) {
-            TranslateTransition back = new TranslateTransition(Duration.millis(180), oldActive);
-            back.setInterpolator(Interpolator.EASE_OUT);
-            back.setToX(0);
-            back.play();
-        }
-        TranslateTransition forward = new TranslateTransition(Duration.millis(190), newActive);
-        forward.setInterpolator(Interpolator.EASE_OUT);
-        forward.setToX(ACTIVE_PILL_OFFSET_X);
-        forward.play();
-    }
-
     private void navigateTo(String view, Button button) {
         try {
             // Update nav state immediately for instant visual feedback
             if (activeButton != null) activeButton.getStyleClass().remove("nav-active");
             button.getStyleClass().add("nav-active");
-            animateActivePill(button, activeButton);
             activeButton = button;
             updateTabProtrusion(button);
 

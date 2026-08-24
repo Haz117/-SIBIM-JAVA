@@ -4,7 +4,6 @@ import com.sibim.MainApp;
 import com.sibim.model.Usuario;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.service.AuthService;
-import com.sibim.util.AnimationUtils;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Node;

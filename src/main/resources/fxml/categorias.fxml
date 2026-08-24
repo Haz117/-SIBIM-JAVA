@@ -31,6 +31,66 @@
         </Button>
     </HBox>
 
+    <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar-teal"/>
+        <Label text="RESUMEN DE CATEGORÍAS" styleClass="dash-section-label"/>
+    </HBox>
+
+    <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <!-- Total de Categorías — indigo -->
+        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-indigo"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="TOTAL DE CATEGORÍAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpStatTotal" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Cantidad de categorías registradas en el sistema, tengan o no bienes asignados." wrapText="true" maxWidth="240"/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
+            <Label text="clasificaciones activas" styleClass="rich-stat-hint"/>
+        </VBox>
+
+        <!-- Bienes Clasificados — teal -->
+        <VBox fx:id="statCardClasificados" styleClass="rich-stat-card, rich-stat-teal"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="BIENES CLASIFICADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpStatClasificados" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Total de bienes activos que ya tienen una categoría asignada, sumando todas las categorías." wrapText="true" maxWidth="250"/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatClasificados" text="—" styleClass="rich-stat-value"/>
+            <Label text="bienes con categoría" styleClass="rich-stat-hint"/>
+        </VBox>
+
+        <!-- Categoría con Más Bienes — amber -->
+        <VBox fx:id="statCardTop" styleClass="rich-stat-card, rich-stat-amber"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <FontIcon iconLiteral="mdi2s-star-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="CATEGORÍA CON MÁS BIENES" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpStatTop" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="La categoría con la mayor cantidad de bienes asignados, sin importar su valor." wrapText="true" maxWidth="250"/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatTop" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
+            <Label text="mayor concentración de bienes" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+
     <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar-teal"/>

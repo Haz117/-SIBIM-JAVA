@@ -60,14 +60,19 @@ public final class MovimientoDialogFactory {
         GridPane grid = DialogUtil.formGrid(128);
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
 
-        ComboBox<Producto> fProducto = new ComboBox<>(FXCollections.observableArrayList(productos));
+        ComboBox<Producto> fProducto = new ComboBox<>();
         fProducto.setMaxWidth(Double.MAX_VALUE);
         fProducto.setPromptText("Seleccionar bien del inventario...");
         fProducto.getStyleClass().add("form-input");
+        java.util.function.Function<Producto, String> productoTexto =
+            p -> p == null ? "" : p.getNombre() + "  [" + p.getCodigo() + "]";
         fProducto.setConverter(new javafx.util.StringConverter<>() {
-            public String toString(Producto p) { return p == null ? "" : p.getNombre() + "  [" + p.getCodigo() + "]"; }
+            public String toString(Producto p) { return productoTexto.apply(p); }
             public Producto fromString(String s) { return null; }
         });
+        // Editable + type-to-filter — scrolling a dropdown of hundreds/thousands
+        // of bienes to find one by eye doesn't scale (see DialogUtil.makeFilterable).
+        DialogUtil.makeFilterable(fProducto, productos, productoTexto);
         String initialProductoId = retryFrom != null ? retryFrom.producto().getId() : preProductoId;
         if (initialProductoId != null)
             productos.stream().filter(p -> p.getId().equals(initialProductoId)).findFirst().ifPresent(fProducto::setValue);
@@ -422,7 +427,12 @@ public final class MovimientoDialogFactory {
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, actionBar), 280, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, actionBar));
-        Platform.runLater(() -> fProducto.requestFocus());
+        // Only steal focus into Producto (which pops its list open on focus,
+        // see DialogUtil.makeFilterable) when there's nothing pre-selected —
+        // otherwise it'd cover an already-chosen bien with the full list
+        // right as the dialog opens.
+        if (initialProductoId == null) Platform.runLater(() -> fProducto.requestFocus());
+        else Platform.runLater(() -> fCantidad.requestFocus());
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {

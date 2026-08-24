@@ -16,7 +16,9 @@ public class HashUtil {
             password = args[0];
         } else {
             System.out.print("Contraseña a hashear: ");
-            password = new Scanner(System.in).nextLine().trim();
+            try (Scanner scanner = new Scanner(System.in)) {
+                password = scanner.nextLine().trim();
+            }
         }
         if (password.isBlank()) {
             System.err.println("ERROR: la contraseña no puede estar vacía");

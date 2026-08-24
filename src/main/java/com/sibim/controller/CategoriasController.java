@@ -41,6 +41,15 @@ public class CategoriasController {
     @FXML private Button btnClearSearch;
     @FXML private ProgressIndicator spinner;
     @FXML private Label helpCategorias;
+    @FXML private VBox  statCardTotal;
+    @FXML private VBox  statCardClasificados;
+    @FXML private VBox  statCardTop;
+    @FXML private Label lblStatTotal;
+    @FXML private Label lblStatClasificados;
+    @FXML private Label lblStatTop;
+    @FXML private Label helpStatTotal;
+    @FXML private Label helpStatClasificados;
+    @FXML private Label helpStatTop;
 
     private final CategoriaService categoriaService = new CategoriaService();
     private ObservableList<Categoria> allData = FXCollections.observableArrayList();
@@ -48,7 +57,9 @@ public class CategoriasController {
     @FXML
     public void initialize() {
         setupTable();
-        if (helpCategorias != null) DialogUtil.enableClickToShowTooltip(helpCategorias);
+        for (Label badge : new Label[]{ helpCategorias, helpStatTotal, helpStatClasificados, helpStatTop }) {
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
+        }
 
         boolean isAdmin = SessionManager.isAdmin();
         btnNueva.setVisible(isAdmin);    btnNueva.setManaged(isAdmin);
@@ -164,12 +175,36 @@ public class CategoriasController {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 allData.setAll(cats);
                 applyFilter(searchField.getText());
+                updateStats();
             },
             e -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar las categorías");
             }
         );
+    }
+
+    /** Stats always reflect the full unfiltered set (like Bienes/Depreciación
+     *  do), not whatever the search box currently narrows the table to —
+     *  they describe the whole catalog, not the current view. */
+    private void updateStats() {
+        if (lblStatTotal != null) AnimationUtils.animateCount(lblStatTotal, allData.size(), 600);
+        int clasificados = allData.stream().mapToInt(Categoria::getTotalProductos).sum();
+        if (lblStatClasificados != null) AnimationUtils.animateCount(lblStatClasificados, clasificados, 650);
+        if (lblStatTop != null) {
+            Categoria top = allData.stream()
+                .max(java.util.Comparator.comparingInt(Categoria::getTotalProductos))
+                .filter(c -> c.getTotalProductos() > 0)
+                .orElse(null);
+            lblStatTop.setText(top != null ? top.getNombre() : "—");
+        }
+        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(700));
+        pop.setOnFinished(e -> {
+            for (VBox card : new VBox[]{ statCardTotal, statCardClasificados, statCardTop }) {
+                if (card != null) AnimationUtils.statCardPop(card);
+            }
+        });
+        pop.play();
     }
 
     private void applyFilter(String query) {

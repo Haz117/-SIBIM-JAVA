@@ -4,7 +4,6 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Movimiento;
-import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.session.SessionManager;
 import com.sibim.util.ProductoUtils;

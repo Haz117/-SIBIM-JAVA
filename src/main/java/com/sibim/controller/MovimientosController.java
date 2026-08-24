@@ -47,6 +47,8 @@ public class MovimientosController {
     private static final Logger log = LoggerFactory.getLogger(MovimientosController.class);
 
     @FXML private VBox rootPane;
+    @FXML private javafx.scene.layout.FlowPane filterBar;
+    @FXML private Button btnToggleFiltros;
     @FXML private TextField searchField;
     @FXML private HBox tipoChipsBar;
     @FXML private DatePicker desdeFilter;
@@ -109,6 +111,8 @@ public class MovimientosController {
 
     @FXML
     public void initialize() {
+        if (btnToggleFiltros != null && filterBar != null)
+            DialogUtil.makeCollapsible("movimientos.filtros.colapsado", btnToggleFiltros, filterBar);
         setupTable();
         setupFilters();
         setupTipoChips();

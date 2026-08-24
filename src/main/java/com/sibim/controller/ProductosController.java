@@ -32,6 +32,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -98,6 +99,9 @@ public class ProductosController {
     @FXML private Label lblPage;
     @FXML private Button btnPrev;
     @FXML private Button btnNext;
+    @FXML private FlowPane filterBar;
+    @FXML private Button btnToggleFiltros;
+    @FXML private Button btnMovimiento;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
     @FXML private MenuButton btnExportarSeleccion;
@@ -137,9 +141,12 @@ public class ProductosController {
     @FXML
     public void initialize() {
         canEdit = SessionManager.isAdmin() || SessionManager.isSecretario();
+        if (btnToggleFiltros != null && filterBar != null)
+            DialogUtil.makeCollapsible("bienes.filtros.colapsado", btnToggleFiltros, filterBar);
         setupTable();
         setupFilters();
         setupStatusChips();
+        if (btnMovimiento != null) { btnMovimiento.setVisible(canEdit); btnMovimiento.setManaged(canEdit); }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
         if (btnEliminar != null) { btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit); }
         // "Nuevo Bien" and "Conteo físico" both write real inventory data
@@ -354,10 +361,12 @@ public class ProductosController {
         // Selection → enable/disable action buttons
         table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<Producto>) c -> {
             int n = table.getSelectionModel().getSelectedItems().size();
+            if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(n != 1);
             if (btnEditar   != null && canEdit) btnEditar.setDisable(n != 1);
             if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
             if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
         });
+        if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(true);
         if (btnEditar   != null && canEdit) btnEditar.setDisable(true);
         if (btnEliminar != null && canEdit) btnEliminar.setDisable(true);
         if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(true);
@@ -567,11 +576,6 @@ public class ProductosController {
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
         if (lblStatAlertas != null) AnimationUtils.animateCount(lblStatAlertas, alertas,            580);
 
-        if (cardAlertas != null) {
-            cardAlertas.getStyleClass().removeAll("rich-stat-card-alert-active");
-            if (alertas > 0) cardAlertas.getStyleClass().add("rich-stat-card-alert-active");
-        }
-
         // Pop the stat cards once their numbers finish counting
         javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
         pop.setOnFinished(e -> {
@@ -756,6 +760,29 @@ public class ProductosController {
     @FXML
     private void onNuevoBien() {
         showProductDialog(null);
+    }
+
+    /** Jumps to Movimientos with the selected bien pre-filled in "Nuevo
+     *  Movimiento" — lets the user skip searching for it again in that
+     *  dialog's product picker (same shortcut Alertas already uses to
+     *  register an entrada for a stock-out item). */
+    @FXML
+    private void onNuevoMovimiento() {
+        Producto sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para registrar un movimiento");
+            return;
+        }
+        try {
+            MainController main = MainController.getInstance();
+            main.navigateTo("movimientos");
+            if (main.getCurrentController() instanceof MovimientosController ctrl) {
+                ctrl.showMovimientoDialog(sel.getId(), null);
+            }
+        } catch (Exception e) {
+            log.error("Error al abrir el formulario de movimiento desde Bienes", e);
+            NotificacionUtil.error(table.getScene(), "No se pudo abrir el formulario de movimiento");
+        }
     }
 
     @FXML
