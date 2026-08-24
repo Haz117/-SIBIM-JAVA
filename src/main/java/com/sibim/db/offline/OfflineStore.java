@@ -32,7 +32,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,6 +66,7 @@ public final class OfflineStore {
     private static final List<Producto> PRODUCTOS = new ArrayList<>();
     private static final List<Categoria> CATEGORIAS = new ArrayList<>();
     private static final List<Movimiento> MOVIMIENTOS = new ArrayList<>();
+    private static final Map<String, Producto> PRODUCTOS_MAP = new HashMap<>();
 
     /** Guards the read-recompute-write sequence in addMovimiento — mirrors
      *  DemoDataStore's STOCK_LOCK for the same reason (this store, too, can
@@ -155,6 +158,8 @@ public final class OfflineStore {
              ResultSet rs = st.executeQuery("SELECT * FROM products")) {
             while (rs.next()) PRODUCTOS.add(mapProducto(rs));
         }
+        PRODUCTOS_MAP.clear();
+        PRODUCTOS.forEach(p -> PRODUCTOS_MAP.put(p.getId(), p));
         MOVIMIENTOS.clear();
         try (Statement st = conn().createStatement();
              ResultSet rs = st.executeQuery("SELECT * FROM movements ORDER BY created_at DESC")) {
@@ -185,7 +190,7 @@ public final class OfflineStore {
     // a caching failure must never break the real (online) read it's
     // piggybacking on, so every exception here is swallowed and logged.
 
-    public static void cacheProductos(List<Producto> serverProductos) {
+    public static synchronized void cacheProductos(List<Producto> serverProductos) {
         if (serverProductos == null || serverProductos.isEmpty()) return;
         try {
             for (Producto p : serverProductos) cacheProductoSnapshot(p);
@@ -194,7 +199,7 @@ public final class OfflineStore {
         }
     }
 
-    public static void cacheCategorias(List<Categoria> serverCategorias) {
+    public static synchronized void cacheCategorias(List<Categoria> serverCategorias) {
         if (serverCategorias == null || serverCategorias.isEmpty()) return;
         try {
             for (Categoria c : serverCategorias) cacheCategoriaSnapshot(c);
@@ -203,7 +208,7 @@ public final class OfflineStore {
         }
     }
 
-    public static void cacheMovimientos(List<Movimiento> serverMovimientos) {
+    public static synchronized void cacheMovimientos(List<Movimiento> serverMovimientos) {
         if (serverMovimientos == null || serverMovimientos.isEmpty()) return;
         try {
             for (Movimiento m : serverMovimientos) cacheMovimientoSnapshot(m);
@@ -317,13 +322,13 @@ public final class OfflineStore {
 
     // ───────────────────────────── Categorías ───────────────────────────────
 
-    public static List<Categoria> findAllCategorias() throws SQLException {
+    public static synchronized List<Categoria> findAllCategorias() throws SQLException {
         ensureLoaded();
         recomputeCategoriaCounts();
         return new ArrayList<>(CATEGORIAS);
     }
 
-    public static Optional<Categoria> findCategoriaById(String id) throws SQLException {
+    public static synchronized Optional<Categoria> findCategoriaById(String id) throws SQLException {
         ensureLoaded();
         return CATEGORIAS.stream().filter(c -> c.getId().equals(id)).findFirst();
     }
@@ -361,14 +366,14 @@ public final class OfflineStore {
         if (c != null) enqueueCategory("DELETE", c);
     }
 
-    public static boolean tieneProductosEnCategoria(String categoriaId) throws SQLException {
+    public static synchronized boolean tieneProductosEnCategoria(String categoriaId) throws SQLException {
         ensureLoaded();
         return PRODUCTOS.stream().anyMatch(p -> categoriaId.equals(p.getCategoriaId()));
     }
 
     // ───────────────────────────── Productos ────────────────────────────────
 
-    public static List<Producto> findAllProductos(Set<String> accessibleAreas) throws SQLException {
+    public static synchronized List<Producto> findAllProductos(Set<String> accessibleAreas) throws SQLException {
         ensureLoaded();
         return PRODUCTOS.stream()
             .filter(p -> accessibleAreas == null || accessibleAreas.contains(p.getArea()))
@@ -376,24 +381,24 @@ public final class OfflineStore {
             .collect(Collectors.toList());
     }
 
-    public static Optional<Producto> findProductoById(String id) throws SQLException {
+    public static synchronized Optional<Producto> findProductoById(String id) throws SQLException {
         ensureLoaded();
         return PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst();
     }
 
-    public static Optional<Producto> findProductoByCodigo(String codigo) throws SQLException {
+    public static synchronized Optional<Producto> findProductoByCodigo(String codigo) throws SQLException {
         ensureLoaded();
         return PRODUCTOS.stream().filter(p -> p.getCodigo().equalsIgnoreCase(codigo)).findFirst();
     }
 
-    public static boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
+    public static synchronized boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         ensureLoaded();
         return PRODUCTOS.stream()
             .anyMatch(p -> p.getCodigo().equalsIgnoreCase(codigo)
                        && !p.getId().equals(excludeId != null ? excludeId : ""));
     }
 
-    public static void saveProducto(Producto p) throws SQLException {
+    public static synchronized void saveProducto(Producto p) throws SQLException {
         ensureLoaded();
         // Capture the server's last-known updated_at BEFORE overwriting the product
         // in memory. SyncService uses this to detect whether the server was modified
@@ -405,12 +410,13 @@ public final class OfflineStore {
             .orElse(null);
         PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
         PRODUCTOS.add(p);
+        PRODUCTOS_MAP.put(p.getId(), p);
         persistProducto(p);
         recomputeCategoriaCounts();
         enqueueProduct("SAVE", p, serverSnapshotAt);
     }
 
-    public static void darDeBajaProducto(String id, String motivo) throws SQLException {
+    public static synchronized void darDeBajaProducto(String id, String motivo) throws SQLException {
         ensureLoaded();
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
@@ -421,7 +427,7 @@ public final class OfflineStore {
         enqueueProduct("BAJA", p, null);
     }
 
-    public static void reactivarProducto(String id) throws SQLException {
+    public static synchronized void reactivarProducto(String id) throws SQLException {
         ensureLoaded();
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
@@ -432,7 +438,7 @@ public final class OfflineStore {
         enqueueProduct("REACTIVAR", p, null);
     }
 
-    public static void updateProductoStock(String id, int newStock) throws SQLException {
+    public static synchronized void updateProductoStock(String id, int newStock) throws SQLException {
         ensureLoaded();
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
             p.setStockActual(newStock);
@@ -447,7 +453,7 @@ public final class OfflineStore {
         }
     }
 
-    public static void updateProductoArea(String id, String newArea) throws SQLException {
+    public static synchronized void updateProductoArea(String id, String newArea) throws SQLException {
         ensureLoaded();
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
             p.setArea(newArea);
@@ -511,7 +517,7 @@ public final class OfflineStore {
 
     // ───────────────────────────── Movimientos ──────────────────────────────
 
-    public static List<Movimiento> findAllMovimientos(Set<String> accessibleAreas) throws SQLException {
+    public static synchronized List<Movimiento> findAllMovimientos(Set<String> accessibleAreas) throws SQLException {
         ensureLoaded();
         return MOVIMIENTOS.stream()
             .filter(m -> accessibleAreas == null || accessibleAreas.contains(areaOfProducto(m.getProductoId())))
@@ -519,7 +525,7 @@ public final class OfflineStore {
             .collect(Collectors.toList());
     }
 
-    public static List<Movimiento> findMovimientosByProducto(String productoId, Set<String> accessibleAreas) throws SQLException {
+    public static synchronized List<Movimiento> findMovimientosByProducto(String productoId, Set<String> accessibleAreas) throws SQLException {
         ensureLoaded();
         return MOVIMIENTOS.stream()
             .filter(m -> productoId.equals(m.getProductoId()))
@@ -528,7 +534,7 @@ public final class OfflineStore {
             .collect(Collectors.toList());
     }
 
-    public static List<Movimiento> findMovimientosByDateRange(LocalDate desde, LocalDate hasta, Set<String> accessibleAreas) throws SQLException {
+    public static synchronized List<Movimiento> findMovimientosByDateRange(LocalDate desde, LocalDate hasta, Set<String> accessibleAreas) throws SQLException {
         ensureLoaded();
         return MOVIMIENTOS.stream()
             .filter(m -> accessibleAreas == null || accessibleAreas.contains(areaOfProducto(m.getProductoId())))
@@ -543,7 +549,7 @@ public final class OfflineStore {
             .collect(Collectors.toList());
     }
 
-    public static Optional<String> findProductoIdByMovimientoId(String movimientoId) throws SQLException {
+    public static synchronized Optional<String> findProductoIdByMovimientoId(String movimientoId) throws SQLException {
         ensureLoaded();
         return MOVIMIENTOS.stream()
             .filter(m -> m.getId().equals(movimientoId))
@@ -552,21 +558,21 @@ public final class OfflineStore {
     }
 
     private static String areaOfProducto(String productoId) {
-        return PRODUCTOS.stream().filter(p -> p.getId().equals(productoId))
-            .findFirst().map(Producto::getArea).orElse(null);
+        Producto p = PRODUCTOS_MAP.get(productoId);
+        return p != null ? p.getArea() : null;
     }
 
-    public static void addMovimiento(Movimiento m) throws SQLException {
+    public static synchronized void addMovimiento(Movimiento m) throws SQLException {
         addMovimiento(m, null);
     }
 
     /** Same "reject instead of overwrite a stale AJUSTE" contract as
      *  DemoDataStore/MovimientoRepository — see those for why. */
-    public static void addMovimiento(Movimiento m, Integer expectedStockAnterior) throws SQLException {
+    public static synchronized void addMovimiento(Movimiento m, Integer expectedStockAnterior) throws SQLException {
         ensureLoaded();
         synchronized (LOCK) {
-            Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(m.getProductoId())).findFirst()
-                .orElseThrow(() -> new SQLException("Producto no encontrado: " + m.getProductoId()));
+            Producto p = PRODUCTOS_MAP.get(m.getProductoId());
+            if (p == null) throw new SQLException("Producto no encontrado: " + m.getProductoId());
             int stockActual = p.getStockActual();
 
             if (expectedStockAnterior != null && stockActual != expectedStockAnterior) {
@@ -596,7 +602,7 @@ public final class OfflineStore {
     /** Only the most recent movement for a product may be deleted — same
      *  rule as DemoDataStore/MovimientoRepository (MOVIMIENTOS is
      *  newest-first). */
-    public static void deleteMovimiento(String id) throws SQLException {
+    public static synchronized void deleteMovimiento(String id) throws SQLException {
         ensureLoaded();
         synchronized (LOCK) {
             Movimiento m = MOVIMIENTOS.stream().filter(x -> x.getId().equals(id)).findFirst()
@@ -892,7 +898,7 @@ public final class OfflineStore {
         m.setUsuarioId(rs.getString("usuario_id"));
         m.setUsuarioNombre(rs.getString("usuario_nombre"));
         m.setCreadoEn(dt(rs.getString("created_at")));
-        Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(m.getProductoId())).findFirst().orElse(null);
+        Producto p = PRODUCTOS_MAP.get(m.getProductoId());
         if (p != null) {
             m.setProductoNombre(p.getNombre());
             m.setCategoriaColor(p.getCategoriaColor());

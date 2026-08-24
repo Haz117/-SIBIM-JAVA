@@ -1,6 +1,7 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.LocalDataStore;
 import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Categoria;
@@ -22,8 +23,8 @@ public class CategoriaRepository {
     }
 
     public List<Categoria> findAll() throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findAllCategorias();
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllCategorias();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findAllCategorias();
         List<Categoria> list = new ArrayList<>();
         String sql = """
             SELECT c.*, COUNT(p.id) AS total_productos
@@ -43,8 +44,8 @@ public class CategoriaRepository {
     }
 
     public Optional<Categoria> findById(String id) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findCategoriaById(id);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findCategoriaById(id);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findCategoriaById(id);
         String sql = """
             SELECT c.*, COUNT(p.id) AS total_productos
             FROM categories c
@@ -66,15 +67,10 @@ public class CategoriaRepository {
         requireAdmin();
         boolean isNew = c.getId() == null || findById(c.getId()).isEmpty();
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
-        if (DatabaseConfig.isOfflineMode()) {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
             if (c.getCreadoEn() == null) c.setCreadoEn(java.time.LocalDateTime.now());
-            OfflineStore.saveCategoria(c);
-            logSave(c, isNew);
-            return c;
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            if (c.getCreadoEn() == null) c.setCreadoEn(java.time.LocalDateTime.now());
-            DemoDataStore.saveCategoria(c);
+            local.saveCategoria(c);
             logSave(c, isNew);
             return c;
         }
@@ -117,13 +113,9 @@ public class CategoriaRepository {
     public void delete(String id) throws SQLException {
         requireAdmin();
         String nombre = findById(id).map(Categoria::getNombre).orElse(id);
-        if (DatabaseConfig.isOfflineMode()) {
-            OfflineStore.deleteCategoria(id);
-            new AuditLogRepository().log("categoria", id, nombre, "eliminar", "Categoría eliminada");
-            return;
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            DemoDataStore.deleteCategoria(id);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            local.deleteCategoria(id);
             new AuditLogRepository().log("categoria", id, nombre, "eliminar", "Categoría eliminada");
             return;
         }
@@ -142,8 +134,8 @@ public class CategoriaRepository {
     }
 
     public boolean tieneProductos(String id) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.tieneProductosEnCategoria(id);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.tieneProductosEnCategoria(id);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.tieneProductosEnCategoria(id);
         String sql = "SELECT 1 FROM products WHERE categoria_id = ? LIMIT 1";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

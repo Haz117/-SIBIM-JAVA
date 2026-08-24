@@ -1,6 +1,7 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.LocalDataStore;
 import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Producto;
@@ -31,12 +32,9 @@ public class ProductoRepository {
     /** @param incluirBaja true to also include bienes formally decommissioned
      *  (soft-deleted) — used only by the "dados de baja" history view. */
     public List<Producto> findAll(boolean incluirBaja) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) {
-            List<Producto> all = OfflineStore.findAllProductos(SessionManager.getAccessibleAreas());
-            return incluirBaja ? all : all.stream().filter(p -> !p.isDadoDeBaja()).toList();
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            List<Producto> all = DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Producto> all = local.findAllProductos(SessionManager.getAccessibleAreas());
             return incluirBaja ? all : all.stream().filter(p -> !p.isDadoDeBaja()).toList();
         }
         StringBuilder sb = new StringBuilder(BASE_SELECT);
@@ -60,10 +58,9 @@ public class ProductoRepository {
     }
 
     public List<Producto> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
-        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode()) {
-            List<Producto> all = DatabaseConfig.isOfflineMode()
-                ? OfflineStore.findAllProductos(SessionManager.getAccessibleAreas())
-                : DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas());
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Producto> all = local.findAllProductos(SessionManager.getAccessibleAreas());
             return all.stream()
                 .filter(p -> !p.isDadoDeBaja())
                 .filter(p -> {
@@ -91,15 +88,15 @@ public class ProductoRepository {
     }
 
     public List<Producto> findByArea(String area) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findAllProductos(Set.of(area));
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllProductos(Set.of(area));
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findAllProductos(Set.of(area));
         String sql = BASE_SELECT + " WHERE p.area = ? ORDER BY p.nombre";
         return query(sql, area);
     }
 
     public Optional<Producto> findById(String id) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findProductoById(id);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findProductoById(id);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findProductoById(id);
         String sql = BASE_SELECT + " WHERE p.id = ?";
         List<Producto> results = query(sql, id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
@@ -112,12 +109,9 @@ public class ProductoRepository {
      *  of exposing another area's product to a lookup/barcode-scan flow. */
     public Optional<Producto> findByCodigo(String codigo) throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (DatabaseConfig.isOfflineMode()) {
-            return OfflineStore.findProductoByCodigo(codigo)
-                .filter(p -> accessible == null || accessible.contains(p.getArea()));
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            return DemoDataStore.findProductoByCodigo(codigo)
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findProductoByCodigo(codigo)
                 .filter(p -> accessible == null || accessible.contains(p.getArea()));
         }
         List<Object> params = new ArrayList<>();
@@ -133,14 +127,11 @@ public class ProductoRepository {
 
     public Producto save(Producto p) throws SQLException {
         if (p.getId() == null) p.setId(UUID.randomUUID().toString());
-        if (DatabaseConfig.isOfflineMode()) {
-            OfflineStore.saveProducto(p);
-            return p;
-        }
-        if (DatabaseConfig.isDemoMode()) {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
             if (p.getCreadoEn() == null) p.setCreadoEn(java.time.LocalDateTime.now());
             p.setActualizadoEn(java.time.LocalDateTime.now());
-            DemoDataStore.saveProducto(p);
+            local.saveProducto(p);
             return p;
         }
         return saveOnline(p);
@@ -211,12 +202,9 @@ public class ProductoRepository {
     }
 
     public void updateStock(String productoId, int newStock) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) {
-            OfflineStore.updateProductoStock(productoId, newStock);
-            return;
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            DemoDataStore.updateProductoStock(productoId, newStock);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            local.updateProductoStock(productoId, newStock);
             return;
         }
         String sql = "UPDATE products SET stock_actual = ?, updated_at = NOW() WHERE id = ?";
@@ -234,12 +222,9 @@ public class ProductoRepository {
      *  the active inventory (see {@link #findAll()}). This is what the UI's
      *  "Dar de baja" action should call, not {@link #delete}. */
     public void darDeBaja(String id, String motivo) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) {
-            OfflineStore.darDeBajaProducto(id, motivo);
-            return;
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            DemoDataStore.darDeBajaProducto(id, motivo);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            local.darDeBajaProducto(id, motivo);
             return;
         }
         darDeBajaOnline(id, motivo);
@@ -261,12 +246,9 @@ public class ProductoRepository {
      *  inventory. Kept separate from {@link #save} so it can't accidentally
      *  be triggered by an unrelated edit. */
     public void reactivar(String id) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) {
-            OfflineStore.reactivarProducto(id);
-            return;
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            DemoDataStore.reactivarProducto(id);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            local.reactivarProducto(id);
             return;
         }
         reactivarOnline(id);
@@ -306,8 +288,8 @@ public class ProductoRepository {
     }
 
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.existsByCodigo(codigo, excludeId);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.existsByCodigo(codigo, excludeId);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.existsByCodigo(codigo, excludeId);
         String sql = excludeId != null
             ? "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?"
             : "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?)";

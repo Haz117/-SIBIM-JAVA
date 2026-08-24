@@ -2,6 +2,8 @@ package com.sibim.controller;
 
 import com.sibim.config.Areas;
 import com.sibim.controller.dialogs.ConteoFisicoDialog;
+import com.sibim.controller.dialogs.ProductoBajasDialog;
+import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.controller.dialogs.ProductoDialogFactory;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
@@ -33,7 +35,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -190,9 +191,25 @@ public class ProductosController {
         if (helpValor        != null) DialogUtil.enableClickToShowTooltip(helpValor);
     }
 
+    // ── Table setup ──────────────────────────────────────────────────────────
+
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        // Image thumbnail column
+        setupFotoColumn();
+        setupNombreColumn();
+        setupCodigoColumn();
+        setupCategoriaColumn();
+        setupAreaColumn();
+        setupStockColumn();
+        setupEstadoColumn();
+        setupRowFactory();
+        setupTableListeners();
+        setupContextMenu();
+        setupEmptyState();
+        setupPagination();
+    }
+
+    private void setupFotoColumn() {
         colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getFotoUrl()));
         colFoto.setCellFactory(col -> new TableCell<>() {
             private final ImageView iv = new ImageView();
@@ -235,7 +252,9 @@ public class ProductosController {
                 setPadding(new Insets(3, 7, 3, 7));
             }
         });
+    }
 
+    private void setupNombreColumn() {
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colNombre.setCellFactory(col -> new TableCell<>() {
             private final Tooltip tip = new Tooltip();
@@ -247,6 +266,9 @@ public class ProductosController {
                 setTooltip(tip);
             }
         });
+    }
+
+    private void setupCodigoColumn() {
         colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
         colCodigo.setCellFactory(col -> new TableCell<>() {
             {
@@ -267,11 +289,13 @@ public class ProductosController {
                 });
             }
         });
+    }
+
+    private void setupCategoriaColumn() {
         colCategoria.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getCategoriaNombre() != null
                 ? c.getValue().getCategoriaNombre() : ""));
 
-        // Categoria badge cell
         colCategoria.setCellFactory(col -> new TableCell<>() {
             private final Label badge = new Label();
             @Override
@@ -289,7 +313,9 @@ public class ProductosController {
                 setGraphic(badge);
             }
         });
+    }
 
+    private void setupAreaColumn() {
         colArea.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getArea() != null ? c.getValue().getArea() : ""));
         colArea.setCellFactory(col -> new TableCell<>() {
@@ -302,19 +328,12 @@ public class ProductosController {
                 setTooltip(tip);
             }
         });
+    }
+
+    private void setupStockColumn() {
         colStock.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
         colValor.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getPrecioVenta())));
-        colEstado.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
-
-        // Status badge cell
-        colEstado.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Agotado"    -> "cell-badge-danger";
-            case "Bajo Stock" -> "cell-badge-warning";
-            case "Vencido"    -> "cell-badge-purple";
-            default           -> "cell-badge-success";
-        }));
 
         // Stock number coloring
         colStock.setCellFactory(col -> new TableCell<>() {
@@ -334,7 +353,22 @@ public class ProductosController {
                 }
             }
         });
+    }
 
+    private void setupEstadoColumn() {
+        colEstado.setCellValueFactory(c ->
+            new SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
+
+        // Status badge cell
+        colEstado.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
+            case "Agotado"    -> "cell-badge-danger";
+            case "Bajo Stock" -> "cell-badge-warning";
+            case "Vencido"    -> "cell-badge-purple";
+            default           -> "cell-badge-success";
+        }));
+    }
+
+    private void setupRowFactory() {
         // Row tint via CSS classes (preserves hover/selected states)
         table.setRowFactory(tv -> new TableRow<>() {
             @Override
@@ -353,7 +387,9 @@ public class ProductosController {
                 }
             }
         });
+    }
 
+    private void setupTableListeners() {
         // Ctrl/Shift-click to pick several rows for "Exportar seleccionados" —
         // Editar/Dar de baja stay single-item actions (see the listener below).
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -388,8 +424,9 @@ public class ProductosController {
                 else showProductDetail(table.getSelectionModel().getSelectedItem());
             }
         });
+    }
 
-        // Context menu
+    private void setupContextMenu() {
         ContextMenu cm = new ContextMenu();
         MenuItem cmDetalle  = new MenuItem("Ver detalle");
         cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
@@ -409,7 +446,9 @@ public class ProductosController {
             cm.getItems().addAll(cmEditar, cmEliminar);
         }
         table.setContextMenu(cm);
+    }
 
+    private void setupEmptyState() {
         // Smart empty state (set programmatically so we can update the message)
         FontIcon emptyIcon = new FontIcon("mdi2p-package-variant");
         emptyIcon.setIconSize(52);
@@ -433,8 +472,9 @@ public class ProductosController {
             else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
         });
         table.setPlaceholder(emptyState);
+    }
 
-        // Pagination
+    private void setupPagination() {
         pageSizeBox.setItems(FXCollections.observableArrayList(25, 50, 100, 250, 500, Integer.MAX_VALUE));
         pageSizeBox.setConverter(new javafx.util.StringConverter<>() {
             public String toString(Integer n)   { return n == null ? "" : n == Integer.MAX_VALUE ? "Todos" : String.valueOf(n); }
@@ -447,6 +487,8 @@ public class ProductosController {
             updateTablePage();
         });
     }
+
+    // ── Filters & chips ──────────────────────────────────────────────────────
 
     private void setupStatusChips() {
         estadoChipGroup = new ToggleGroup();
@@ -510,6 +552,8 @@ public class ProductosController {
             areaFilter.setValue(pendingArea);
         }
     }
+
+    // ── Data loading ─────────────────────────────────────────────────────────
 
     private void loadData() {
         if (!loading.compareAndSet(false, true)) {
@@ -640,6 +684,8 @@ public class ProductosController {
             lblTotal, lblPage, btnPrev, btnNext, "resultado", "resultados");
     }
 
+    // ── FXML action handlers ─────────────────────────────────────────────────
+
     @FXML private void onPrev() { if (currentPage > 0) { currentPage--; updateTablePage(); } }
     @FXML private void onNext() { currentPage++; updateTablePage(); }
     @FXML private void onRefresh() { refreshing = true; loadData(); }
@@ -671,76 +717,9 @@ public class ProductosController {
     private void onVerBajas() {
         DialogUtil.runAsync(
             () -> productoService.getAllIncludingBaja().stream().filter(Producto::isDadoDeBaja).toList(),
-            this::showBajasDialog,
+            bajas -> ProductoBajasDialog.show(bajas, productoService, () -> { refreshing = true; loadData(); }),
             e -> NotificacionUtil.error(table.getScene(), "No se pudo cargar la lista de bienes dados de baja")
         );
-    }
-
-    private void showBajasDialog(List<Producto> bajas) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(560);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        HBox header = DialogUtil.gradientHeader("mdi2d-delete-circle-outline", "Bienes Dados de Baja",
-            "Fuera del inventario activo — su historial se conserva",
-            "#EF4444", "#B91C1C");
-
-        VBox list = new VBox(8);
-        list.setPadding(new Insets(4, 4, 4, 4));
-        if (bajas.isEmpty()) {
-            Label empty = new Label("No hay bienes dados de baja");
-            empty.getStyleClass().add("muted");
-            list.getChildren().add(empty);
-        }
-        for (Producto p : bajas) {
-            HBox row = new HBox(12);
-            row.getStyleClass().add("dlg-detail-header");
-            row.setPadding(new Insets(10, 14, 10, 14));
-            row.setAlignment(Pos.CENTER_LEFT);
-
-            VBox info = new VBox(2);
-            Label nombre = new Label(p.getNombre() + "  [" + p.getCodigo() + "]");
-            nombre.getStyleClass().add("dlg-detail-name");
-            Label detalle = new Label(p.getArea() + " · baja: " + FormatUtils.formatDate(p.getFechaBaja())
-                + (p.getMotivoBaja() != null && !p.getMotivoBaja().isBlank() ? " · " + p.getMotivoBaja() : ""));
-            detalle.getStyleClass().add("muted-sm");
-            detalle.setWrapText(true);
-            info.getChildren().addAll(nombre, detalle);
-            HBox.setHgrow(info, Priority.ALWAYS);
-
-            Button btnReactivar = new Button("Reactivar");
-            btnReactivar.setGraphic(new FontIcon("mdi2r-restore"));
-            btnReactivar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            btnReactivar.getStyleClass().add("btn-secondary");
-            btnReactivar.setOnAction(e -> {
-                DialogUtil.runAsync(
-                    () -> productoService.reactivar(p.getId()),
-                    () -> {
-                        list.getChildren().remove(row);
-                        loadData();
-                        NotificacionUtil.exito(dialog.getDialogPane().getScene(),
-                            "Bien \"" + p.getNombre() + "\" reactivado");
-                    },
-                    e2 -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo reactivar el bien")
-                );
-            });
-            row.getChildren().addAll(info, btnReactivar);
-            list.getChildren().add(row);
-        }
-
-        ScrollPane scroll = new ScrollPane(list);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(360);
-        // Was "page-scroll" (the app's full-page gray background) — inside a
-        // white dialog card that read as a mismatched gray panel bolted on.
-        scroll.getStyleClass().add("dlg-tabs-scroll");
-
-        if (!list.getChildren().isEmpty())
-            AnimationUtils.staggeredFadeInUp(new java.util.ArrayList<>(list.getChildren()), 240, 40);
-        dialog.getDialogPane().setContent(new VBox(0, header, scroll));
-        dialog.showAndWait();
     }
 
     @FXML
@@ -898,6 +877,12 @@ public class ProductosController {
         );
     }
 
+    // ── Internal helpers ─────────────────────────────────────────────────────
+
+    private void showProductDetail(Producto p) {
+        ProductoDetailDialog.show(p, log);
+    }
+
     private void showProductDialog(Producto existing) {
         try {
             List<Categoria> cats = categoriaService.findAll();
@@ -944,186 +929,6 @@ public class ProductosController {
             log.error("Error al abrir el formulario de bien", e);
             NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
         }
-    }
-
-    private javafx.scene.layout.ColumnConstraints colConstraint(double width, boolean grow) {
-        javafx.scene.layout.ColumnConstraints cc = new javafx.scene.layout.ColumnConstraints();
-        cc.setPrefWidth(width);
-        if (grow) cc.setHgrow(javafx.scene.layout.Priority.ALWAYS);
-        return cc;
-    }
-
-    private void showProductDetail(Producto p) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Detalle del Bien");
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(520);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        VBox root = new VBox(14);
-        root.setPadding(new Insets(4, 0, 0, 0));
-
-        // ── Header card ────────────────────────────────────────────────
-        HBox headerCard = new HBox(14);
-        headerCard.setAlignment(Pos.CENTER_LEFT);
-        headerCard.setPadding(new Insets(14, 18, 14, 18));
-        headerCard.getStyleClass().add("dlg-detail-header");
-
-        // Thumbnail / category monogram
-        StackPane thumbPane = new StackPane();
-        thumbPane.setMinSize(52, 52); thumbPane.setMaxSize(52, 52);
-        boolean photoLoaded = false;
-        if (p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) {
-            try {
-                ImageView iv = new ImageView(
-                    new Image(Path.of(p.getFotoUrl()).toUri().toString(), 52, 52, true, true, true));
-                iv.setFitWidth(52); iv.setFitHeight(52); iv.setPreserveRatio(true);
-                thumbPane.getChildren().add(iv);
-                thumbPane.getStyleClass().addAll("dlg-thumb-photo", "foto-cell-box-clickable");
-                thumbPane.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(p.getFotoUrl(), p.getNombre()));
-                photoLoaded = true;
-            } catch (Exception ex) { log.warn("No se pudo cargar thumbnail de detalle: {}", p.getFotoUrl(), ex); }
-        }
-        if (!photoLoaded) {
-            String monogramBg  = p.getCategoriaColor() != null ? p.getCategoriaColor() + "22" : "#EEF2FF";
-            String monogramFg  = p.getCategoriaColor() != null ? p.getCategoriaColor() : "#4338CA";
-            String monogramTxt = p.getCategoriaNombre() != null && !p.getCategoriaNombre().isBlank()
-                ? String.valueOf(p.getCategoriaNombre().charAt(0)).toUpperCase() : "B";
-            Label monogram = new Label(monogramTxt);
-            monogram.getStyleClass().add("dlg-monogram");
-            monogram.setStyle("-fx-text-fill: " + monogramFg + ";");
-            thumbPane.getChildren().add(monogram);
-            thumbPane.getStyleClass().add("dlg-thumb-monogram");
-            thumbPane.setStyle("-fx-background-color: " + monogramBg + ";");
-        }
-
-        // Name + meta row
-        VBox nameSection = new VBox(5);
-        HBox.setHgrow(nameSection, Priority.ALWAYS);
-
-        Label nameLbl = new Label(p.getNombre());
-        nameLbl.getStyleClass().add("dlg-detail-name");
-        nameLbl.setWrapText(true); nameLbl.setMaxWidth(320);
-
-        Label statusBadge = new Label(p.getEstado().getEtiqueta());
-        statusBadge.getStyleClass().add(switch (p.getEstado()) {
-            case AGOTADO    -> "dlg-status-danger";
-            case BAJO_STOCK -> "dlg-status-warn";
-            case VENCIDO    -> "dlg-status-purple";
-            default         -> "dlg-status-ok";
-        });
-        Label codeLbl = new Label("# " + p.getCodigo());
-        codeLbl.getStyleClass().add("dlg-detail-code");
-
-        HBox meta = new HBox(8, codeLbl, statusBadge);
-        meta.setAlignment(Pos.CENTER_LEFT);
-        nameSection.getChildren().addAll(nameLbl, meta);
-        headerCard.getChildren().addAll(thumbPane, nameSection);
-
-        // ── Detail grid ────────────────────────────────────────────────
-        GridPane g = new GridPane();
-        g.setHgap(16); g.setVgap(9);
-        g.setPadding(new Insets(0, 0, 4, 0));
-        g.getColumnConstraints().addAll(colConstraint(140, false), colConstraint(300, true));
-
-        String stockClass = switch (p.getEstado()) {
-            case AGOTADO    -> "dlg-detail-stock-low";
-            case BAJO_STOCK -> "dlg-detail-stock-warn";
-            default         -> "dlg-detail-stock-ok";
-        };
-
-        Object[][] rows = {
-            {"Categoría",       p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—", null},
-            {"Área",            p.getArea() != null ? p.getArea() : "—", null},
-            {"Resguardante",    p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "—", null},
-            {"Stock actual",    String.valueOf(p.getStockActual()), stockClass},
-            {"Stock mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null},
-            {"Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null},
-            {"Precio compra",   FormatUtils.formatCurrency(p.getPrecioCompra()), null},
-            {"Precio venta",    FormatUtils.formatCurrency(p.getPrecioVenta()), null},
-            {"Valor total",     FormatUtils.formatCurrency(p.getValorTotal()), "dlg-detail-total"},
-            {"Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null},
-            {"Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null},
-            {"Vencimiento",     FormatUtils.formatDate(p.getFechaVencimiento()), null},
-        };
-        for (int i = 0; i < rows.length; i++) {
-            Label key = DialogUtil.fieldLabel((String) rows[i][0]);
-            Label val = new Label((String) rows[i][1]);
-            val.setWrapText(true); val.setMaxWidth(280);
-            if (rows[i][2] != null) val.getStyleClass().add((String) rows[i][2]);
-            g.add(key, 0, i); g.add(val, 1, i);
-        }
-
-        // ── Depreciación ──────────────────────────────────────────────
-        BigDecimal valorDep = p.getValorDepreciado();
-        if (valorDep != null) {
-            Separator sep = new Separator();
-            sep.getStyleClass().add("form-separator");
-            root.getChildren().addAll(headerCard, g, sep);
-
-            GridPane gDep = new GridPane();
-            gDep.setHgap(16); gDep.setVgap(9);
-            gDep.setPadding(new Insets(0, 0, 4, 0));
-            gDep.getColumnConstraints().addAll(colConstraint(140, false), colConstraint(300, true));
-
-            Integer pct = p.getPorcentajeDepreciado();
-            String adqStr = p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : "—";
-            String vidaStr = p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() + " años" : "—";
-            String residualStr = p.getValorResidual() != null ? FormatUtils.formatCurrency(p.getValorResidual()) : "$0.00";
-
-            int dr = 0;
-            Label depTitle = new Label("Depreciación (línea recta)");
-            depTitle.getStyleClass().add("dialog-field-label");
-            gDep.add(depTitle, 0, dr, 2, 1); dr++;
-
-            gDep.add(DialogUtil.fieldLabel("Fecha adquisición"), 0, dr);
-            gDep.add(new Label(adqStr), 1, dr++);
-
-            gDep.add(DialogUtil.fieldLabel("Vida útil"), 0, dr);
-            gDep.add(new Label(vidaStr), 1, dr++);
-
-            gDep.add(DialogUtil.fieldLabel("Valor residual"), 0, dr);
-            gDep.add(new Label(residualStr), 1, dr++);
-
-            gDep.add(DialogUtil.fieldLabel("Valor actual"), 0, dr);
-            Label lblValorDep = new Label(FormatUtils.formatCurrency(valorDep));
-            lblValorDep.getStyleClass().add("dlg-detail-total");
-            gDep.add(lblValorDep, 1, dr++);
-
-            gDep.add(DialogUtil.fieldLabel("% Depreciado"), 0, dr);
-            VBox pctBox = new VBox(4);
-            if (pct != null) {
-                ProgressBar pb = new ProgressBar(pct / 100.0);
-                pb.setMaxWidth(Double.MAX_VALUE);
-                pb.getStyleClass().add("dep-progress-bar");
-                String pctClass = pct >= 90 ? "dlg-detail-stock-low"
-                    : pct >= 50 ? "dlg-detail-stock-warn"
-                    : "dlg-detail-stock-ok";
-                Label pctLbl = new Label(pct + "% depreciado");
-                pctLbl.getStyleClass().add(pctClass);
-                pctBox.getChildren().addAll(pb, pctLbl);
-            } else {
-                pctBox.getChildren().add(new Label("—"));
-            }
-            gDep.add(pctBox, 1, dr);
-
-            root.getChildren().add(gDep);
-        } else {
-            root.getChildren().addAll(headerCard, g);
-        }
-        AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
-
-        // Same overflow risk as the create/edit "Nuevo Bien" dialog: the header
-        // card + 12-row detail grid + depreciación block easily exceed a
-        // laptop's usable screen height with nothing bounding it. Capping it
-        // in a ScrollPane keeps the dialog (and its Close button) on-screen.
-        ScrollPane rootScroll = new ScrollPane(root);
-        rootScroll.setFitToWidth(true);
-        rootScroll.setMaxHeight(520);
-        rootScroll.getStyleClass().add("dlg-tabs-scroll");
-        dialog.getDialogPane().setContent(rootScroll);
-        dialog.showAndWait();
     }
 
     private void openFile(File file) {

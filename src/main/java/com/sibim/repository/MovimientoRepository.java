@@ -1,6 +1,7 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.LocalDataStore;
 import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Movimiento;
@@ -28,8 +29,8 @@ public class MovimientoRepository {
 
     public List<Movimiento> findAll() throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findAllMovimientos(accessible);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAllMovimientos(accessible);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findAllMovimientos(accessible);
         StringBuilder sb = new StringBuilder(BASE_SELECT);
         List<Object> params = new ArrayList<>();
         if (accessible != null) {
@@ -47,8 +48,8 @@ public class MovimientoRepository {
      *  apply the caller's own area filter, since the caller needs to know
      *  the product's area precisely to decide whether they're allowed to. */
     public Optional<String> findProductoIdById(String movimientoId) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findProductoIdByMovimientoId(movimientoId);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findProductoIdByMovimientoId(movimientoId);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findProductoIdByMovimientoId(movimientoId);
         String sql = "SELECT producto_id FROM movements WHERE id = ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -86,8 +87,8 @@ public class MovimientoRepository {
 
     public List<Movimiento> findByProducto(String productoId) throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findMovimientosByProducto(productoId, accessible);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByProducto(productoId, accessible);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findMovimientosByProducto(productoId, accessible);
         List<String> conditions = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         conditions.add("m.producto_id = ?");
@@ -102,8 +103,8 @@ public class MovimientoRepository {
 
     public List<Movimiento> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findMovimientosByDateRange(desde, hasta, accessible);
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findMovimientosByDateRange(desde, hasta, accessible);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.findMovimientosByDateRange(desde, hasta, accessible);
         List<String> conditions = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         if (accessible != null) {
@@ -164,14 +165,10 @@ public class MovimientoRepository {
      */
     public Movimiento addMovimientoAtomic(Movimiento m, Integer expectedStockAnterior) throws SQLException {
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
-        if (DatabaseConfig.isOfflineMode()) {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
             if (m.getCreadoEn() == null) m.setCreadoEn(java.time.LocalDateTime.now());
-            OfflineStore.addMovimiento(m, expectedStockAnterior);
-            return m;
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            if (m.getCreadoEn() == null) m.setCreadoEn(java.time.LocalDateTime.now());
-            DemoDataStore.addMovimiento(m, expectedStockAnterior);
+            local.addMovimiento(m, expectedStockAnterior);
             return m;
         }
         return addMovimientoAtomicOnline(m, expectedStockAnterior);
@@ -273,12 +270,9 @@ public class MovimientoRepository {
      * would otherwise discard every movement registered after it).
      */
     public void deleteMovimientoAtomic(String movimientoId) throws SQLException {
-        if (DatabaseConfig.isOfflineMode()) {
-            OfflineStore.deleteMovimiento(movimientoId);
-            return;
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            DemoDataStore.deleteMovimiento(movimientoId);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            local.deleteMovimiento(movimientoId);
             return;
         }
         deleteMovimientoAtomicOnline(movimientoId);

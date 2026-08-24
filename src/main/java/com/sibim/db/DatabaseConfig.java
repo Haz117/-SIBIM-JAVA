@@ -1,5 +1,6 @@
 package com.sibim.db;
 
+import com.sibim.db.offline.OfflineLocalDataStore;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -35,6 +36,13 @@ public final class DatabaseConfig {
     public static boolean isOfflineMode() { return offlineMode; }
 
     public static void setOfflineMode(boolean om) { offlineMode = om; }
+
+    /** Returns the active local data store, or null when running against live Postgres. */
+    public static LocalDataStore getLocalDataStore() {
+        if (isOfflineMode()) return new OfflineLocalDataStore();
+        if (isDemoMode()) return new DemoLocalDataStore();
+        return null;
+    }
 
     public static void init() {
         if (dataSource != null) return;
