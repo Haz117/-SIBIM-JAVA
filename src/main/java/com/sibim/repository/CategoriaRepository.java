@@ -37,6 +37,8 @@ public class CategoriaRepository {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) list.add(mapRow(rs));
         }
+        // Keeps OfflineStore's local mirror fresh — see ProductoRepository#findAll.
+        OfflineStore.cacheCategorias(list);
         return list;
     }
 

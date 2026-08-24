@@ -37,7 +37,10 @@ public class MovimientoRepository {
             params.add(accessible.toArray(new String[0]));
         }
         sb.append(" ORDER BY m.created_at DESC");
-        return queryDynamic(sb.toString(), params);
+        List<Movimiento> result = queryDynamic(sb.toString(), params);
+        // Keeps OfflineStore's local mirror fresh — see ProductoRepository#findAll.
+        OfflineStore.cacheMovimientos(result);
+        return result;
     }
 
     /** Used for authorization checks before deleting a movement — doesn't
@@ -112,7 +115,10 @@ public class MovimientoRepository {
         StringBuilder sb = new StringBuilder(BASE_SELECT);
         if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
         sb.append(" ORDER BY m.created_at DESC");
-        return queryDynamic(sb.toString(), params);
+        List<Movimiento> result = queryDynamic(sb.toString(), params);
+        // Keeps OfflineStore's local mirror fresh — see ProductoRepository#findAll.
+        OfflineStore.cacheMovimientos(result);
+        return result;
     }
 
     public List<Movimiento> findToday() throws SQLException {

@@ -146,6 +146,7 @@ public class SplashController {
     }
 
     private void initDatabase() {
+        boolean demoRequested = false;
         try {
             DatabaseConfig.init();
             // Apply pending migrations (V1, V2, …) automatically on every startup.
@@ -164,18 +165,25 @@ public class SplashController {
             log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());
             DatabaseConfig.close();
             Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-            boolean demoRequested = "true".equalsIgnoreCase(dotenv.get("DEMO_MODE", System.getenv("DEMO_MODE")));
+            demoRequested = "true".equalsIgnoreCase(dotenv.get("DEMO_MODE", System.getenv("DEMO_MODE")));
             if (demoRequested) {
                 log.info("DEMO_MODE=true — iniciando en modo demo (datos ficticios en memoria).");
                 DatabaseConfig.setDemoMode(true);
             } else {
                 log.info("Iniciando en modo offline — los cambios se guardan localmente y se sincronizan al reconectar.");
                 DatabaseConfig.setOfflineMode(true);
+            }
+        } finally {
+            // Started regardless of whether we booted online or offline (just
+            // not for demo mode, which has no real DB to watch for) — this is
+            // what lets SyncService notice a LATER disconnect too, not just
+            // the one at boot. Previously this only ran on the offline-at-boot
+            // path, so a connection lost mid-session was never detected.
+            if (!demoRequested) {
                 try { SyncService.startWatching(); } catch (Exception se) {
                     log.error("Error al iniciar SyncService", se);
                 }
             }
-        } finally {
             Platform.runLater(() -> {
                 dbReady = true;
                 if (animReady) {

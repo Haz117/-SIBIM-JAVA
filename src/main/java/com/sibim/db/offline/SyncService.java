@@ -77,9 +77,56 @@ public final class SyncService {
         tick();
     }
 
+    /** Runs on every poll regardless of which mode we're currently in — this
+     *  is what actually watches for connectivity in BOTH directions:
+     *  offline→online (replay the outbox, as before) and, just as
+     *  important, online→offline. That second direction didn't exist before
+     *  this fix: "modo offline" was only ever entered once, from the splash
+     *  screen's initial connection attempt — if the connection dropped
+     *  later, mid-session, nothing detected it, and every screen just threw
+     *  raw SQLExceptions until the app was restarted. */
     private static void tick() {
-        if (!DatabaseConfig.isOfflineMode()) return;
-        if (!postgresReachable()) return;
+        if (DatabaseConfig.isDemoMode()) return;
+        if (DatabaseConfig.isOfflineMode()) {
+            if (postgresReachable()) syncPendingChanges();
+            return;
+        }
+        if (!postgresReachable()) enterOfflineMode();
+    }
+
+    /** Mid-session connectivity loss while online — the counterpart to the
+     *  splash screen's boot-time fallback. Deliberately does NOT call
+     *  DatabaseConfig.close(): re-running init() on the next getConnection()
+     *  can throw HikariCP's (unchecked) PoolInitializationException if the
+     *  DB is still down, which postgresReachable() doesn't catch — that
+     *  would silently kill this scheduled task for good (an uncaught
+     *  exception cancels all future runs of a ScheduledExecutorService
+     *  task). Leaving the existing (dead) pool in place is both simpler and
+     *  safer: HikariCP already reports a clean, checked SQLException when
+     *  it can't hand out a connection. */
+    private static void enterOfflineMode() {
+        log.warn("SyncService: se perdió la conexión con la base de datos — entrando a modo offline.");
+        DatabaseConfig.setOfflineMode(true);
+        Platform.runLater(() -> {
+            MainController mc = MainController.getInstance();
+            var scene = mc != null ? mc.getContentAreaScene() : null;
+            if (scene != null) NotificacionUtil.advertencia(scene,
+                "Se perdió la conexión con el servidor. Trabajando en modo offline — tus cambios se "
+                + "guardan localmente y se sincronizarán automáticamente en cuanto vuelva la conexión.");
+            if (mc != null) mc.refreshCurrentViewAfterSync();
+        });
+    }
+
+    private static void syncPendingChanges() {
+        int pendingBefore = countPending();
+        if (pendingBefore > 0) {
+            Platform.runLater(() -> {
+                MainController mc = MainController.getInstance();
+                var scene = mc != null ? mc.getContentAreaScene() : null;
+                if (scene != null) NotificacionUtil.info(scene,
+                    "Conexión restablecida — sincronizando " + pendingBefore + " cambio(s) pendiente(s)...");
+            });
+        }
 
         log.info("SyncService: conexión recuperada, sincronizando cambios pendientes...");
         AtomicInteger synced = new AtomicInteger();
@@ -101,6 +148,9 @@ public final class SyncService {
         // (no PENDING rows AND no unresolved CONFLICT rows).
         if (pending == 0 && conflicts.isEmpty()) {
             DatabaseConfig.setOfflineMode(false);
+            // Next offline stint (if any) should re-read from SQLite instead
+            // of replaying whatever was in memory from before this reconnect.
+            OfflineStore.invalidateCache();
             log.info("SyncService: sincronización completa ({} cambio(s) aplicados). Volviendo a modo online.", synced.get());
         } else if (!conflicts.isEmpty()) {
             log.warn("SyncService: {} conflicto(s) requieren resolución del usuario.", conflicts.size());
@@ -113,7 +163,12 @@ public final class SyncService {
     private static boolean postgresReachable() {
         try (Connection ignored = DatabaseConfig.getConnection()) {
             return true;
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            // Broad on purpose: a dead/misconfigured pool can surface as an
+            // unchecked HikariCP exception too, and this must never let one
+            // escape — an uncaught exception here would silently cancel all
+            // future runs of the scheduled watcher (ScheduledExecutorService
+            // semantics), leaving the app stuck in whatever mode it's in.
             return false;
         }
     }
@@ -346,6 +401,7 @@ public final class SyncService {
         if (!DatabaseConfig.isOfflineMode()) return;
         if (countPending() == 0 && countConflictRows() == 0) {
             DatabaseConfig.setOfflineMode(false);
+            OfflineStore.invalidateCache();
             Platform.runLater(() -> {
                 MainController mc = MainController.getInstance();
                 if (mc != null) mc.refreshCurrentViewAfterSync();

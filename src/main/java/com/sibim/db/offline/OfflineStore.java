@@ -11,6 +11,8 @@ import com.sibim.model.enums.Rol;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.util.ProductoUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +53,8 @@ import java.util.stream.Collectors;
  * to SQLite AND appended to the matching outbox table.
  */
 public final class OfflineStore {
+
+    private static final Logger log = LoggerFactory.getLogger(OfflineStore.class);
 
     private OfflineStore() {}
 
@@ -158,6 +162,151 @@ public final class OfflineStore {
         }
         recomputeCategoriaCounts();
         loaded = true;
+    }
+
+    /** Forces the next offline read to reload from SQLite instead of reusing
+     *  the in-memory snapshot — called when leaving offline mode (see
+     *  SyncService) so that a *second* offline stint later in the same run
+     *  picks up whatever was cached (see cacheProductos/cacheCategorias/
+     *  cacheMovimientos below) while the app was back online in between,
+     *  instead of replaying the stale in-memory copy from the first stint. */
+    public static synchronized void invalidateCache() {
+        loaded = false;
+    }
+
+    // ─────────────── Write-through cache from ONLINE reads (bug fix) ───────
+    // Historically only users_cache existed (see cacheUser below) — going
+    // offline mid-session with real data already on screen showed an EMPTY
+    // inventory, because the SQLite mirror tables were only ever written to
+    // by offline WRITES, never refreshed by ordinary online reads. These
+    // three extend the same "cache what you saw while connected" pattern to
+    // products/categories/movements, called from the repositories'
+    // online-mode branches after every successful list query. Best-effort:
+    // a caching failure must never break the real (online) read it's
+    // piggybacking on, so every exception here is swallowed and logged.
+
+    public static void cacheProductos(List<Producto> serverProductos) {
+        if (serverProductos == null || serverProductos.isEmpty()) return;
+        try {
+            for (Producto p : serverProductos) cacheProductoSnapshot(p);
+        } catch (SQLException e) {
+            log.warn("OfflineStore: no se pudo refrescar el caché local de productos", e);
+        }
+    }
+
+    public static void cacheCategorias(List<Categoria> serverCategorias) {
+        if (serverCategorias == null || serverCategorias.isEmpty()) return;
+        try {
+            for (Categoria c : serverCategorias) cacheCategoriaSnapshot(c);
+        } catch (SQLException e) {
+            log.warn("OfflineStore: no se pudo refrescar el caché local de categorías", e);
+        }
+    }
+
+    public static void cacheMovimientos(List<Movimiento> serverMovimientos) {
+        if (serverMovimientos == null || serverMovimientos.isEmpty()) return;
+        try {
+            for (Movimiento m : serverMovimientos) cacheMovimientoSnapshot(m);
+        } catch (SQLException e) {
+            log.warn("OfflineStore: no se pudo refrescar el caché local de movimientos", e);
+        }
+    }
+
+    /** Unlike {@link #persistProducto}, this preserves the product's own
+     *  (real, server-side) timestamps instead of stamping "now" — stamping
+     *  now would poison future offline-conflict detection, which compares
+     *  the server's real updated_at against what this snapshot claims it
+     *  was. Doesn't touch the in-memory PRODUCTOS list or the outbox —
+     *  purely a passive local mirror of what the server has. */
+    private static void cacheProductoSnapshot(Producto p) throws SQLException {
+        String sql = """
+            INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
+                precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
+                fecha_vencimiento, foto_url, ubicacion, area, resguardante, fecha_baja, motivo_baja,
+                created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET
+                nombre=excluded.nombre, codigo=excluded.codigo, descripcion=excluded.descripcion,
+                categoria_id=excluded.categoria_id, precio_compra=excluded.precio_compra,
+                precio_venta=excluded.precio_venta, stock_actual=excluded.stock_actual,
+                stock_minimo=excluded.stock_minimo, stock_maximo=excluded.stock_maximo,
+                unidad=excluded.unidad, proveedor=excluded.proveedor,
+                fecha_vencimiento=excluded.fecha_vencimiento, foto_url=excluded.foto_url,
+                ubicacion=excluded.ubicacion, area=excluded.area, resguardante=excluded.resguardante,
+                fecha_baja=excluded.fecha_baja, motivo_baja=excluded.motivo_baja,
+                updated_at=excluded.updated_at
+            """;
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setString(1, p.getId());
+            ps.setString(2, p.getNombre());
+            ps.setString(3, p.getCodigo());
+            ps.setString(4, p.getDescripcion());
+            ps.setString(5, p.getCategoriaId());
+            ps.setBigDecimal(6, p.getPrecioCompra());
+            ps.setBigDecimal(7, p.getPrecioVenta());
+            ps.setInt(8, p.getStockActual());
+            ps.setInt(9, p.getStockMinimo());
+            ps.setInt(10, p.getStockMaximo());
+            ps.setString(11, p.getUnidad() != null ? p.getUnidad().getCodigo() : "pieza");
+            ps.setString(12, p.getProveedor());
+            ps.setString(13, p.getFechaVencimiento() != null ? p.getFechaVencimiento().toString() : null);
+            ps.setString(14, p.getFotoUrl());
+            ps.setString(15, p.getUbicacion());
+            ps.setString(16, p.getArea());
+            ps.setString(17, p.getResguardante());
+            ps.setString(18, p.getFechaBaja() != null ? p.getFechaBaja().toString() : null);
+            ps.setString(19, p.getMotivoBaja());
+            ps.setString(20, str(p.getCreadoEn()));
+            ps.setString(21, str(p.getActualizadoEn()));
+            ps.executeUpdate();
+        }
+    }
+
+    private static void cacheCategoriaSnapshot(Categoria c) throws SQLException {
+        String sql = """
+            INSERT INTO categories (id, nombre, descripcion, color, icono, created_at)
+            VALUES (?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET nombre=excluded.nombre, descripcion=excluded.descripcion,
+                color=excluded.color, icono=excluded.icono
+            """;
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setString(1, c.getId());
+            ps.setString(2, c.getNombre());
+            ps.setString(3, c.getDescripcion());
+            ps.setString(4, c.getColor());
+            ps.setString(5, c.getIcono());
+            ps.setString(6, str(c.getCreadoEn() != null ? c.getCreadoEn() : LocalDateTime.now()));
+            ps.executeUpdate();
+        }
+    }
+
+    /** Movements are effectively immutable once created, so DO NOTHING on a
+     *  repeat id (re-fetching a page/date-range that overlaps a previous
+     *  cache pass) is enough — no need for persistMovimiento's insert-only
+     *  assumption to become an UPDATE here. */
+    private static void cacheMovimientoSnapshot(Movimiento m) throws SQLException {
+        String sql = """
+            INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(id) DO NOTHING
+            """;
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setString(1, m.getId());
+            ps.setString(2, m.getProductoId());
+            ps.setString(3, m.getTipo().getCodigo());
+            ps.setInt(4, m.getCantidad());
+            ps.setInt(5, m.getStockAnterior());
+            ps.setInt(6, m.getStockNuevo());
+            ps.setString(7, m.getAreaOrigen());
+            ps.setString(8, m.getAreaDestino());
+            ps.setString(9, m.getMotivo());
+            ps.setString(10, m.getReferencia());
+            ps.setString(11, m.getUsuarioId());
+            ps.setString(12, m.getUsuarioNombre());
+            ps.setString(13, str(m.getCreadoEn()));
+            ps.executeUpdate();
+        }
     }
 
     private static void recomputeCategoriaCounts() {

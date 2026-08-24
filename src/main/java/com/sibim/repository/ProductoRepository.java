@@ -50,7 +50,13 @@ public class ProductoRepository {
         if (!incluirBaja) conditions.add("p.fecha_baja IS NULL");
         if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
         sb.append(" ORDER BY p.nombre");
-        return queryDynamic(sb.toString(), params);
+        List<Producto> result = queryDynamic(sb.toString(), params);
+        // Keeps OfflineStore's local mirror fresh with real data while
+        // connected, so a later mid-session disconnect (see SyncService)
+        // falls back to what was actually on screen instead of an empty
+        // inventory. Best-effort — never allowed to affect this read.
+        OfflineStore.cacheProductos(result);
+        return result;
     }
 
     public List<Producto> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
