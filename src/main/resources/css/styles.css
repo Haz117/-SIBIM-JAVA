@@ -170,22 +170,29 @@
 /* ═══════════════════════════════════════════════════════════════════
    SIDEBAR
    ═══════════════════════════════════════════════════════════════════ */
-/* Sidebar: single dark gradient, no competing purple top strip. The accent
-   colour is carried by the logo badge, avatar and active pill instead. */
+/* Sidebar: light card-style panel matching the rest of the app (AtlantaFX
+   PrimerLight — white cards, soft shadows) instead of the old dark navy
+   block, which was the single biggest visual mismatch in the system: every
+   other surface in SIBIM is light, so a dark sidebar read as a different
+   app bolted on the side. Depth now comes from a right-side drop shadow
+   instead of a color change, the same way .card separates itself from
+   .content-area. */
 .sidebar {
-    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #141e30, #111827);
+    -fx-background-color: white;
     -fx-background-insets: 0;
     -fx-background-radius: 0 24 24 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 24, 0, 6, 0);
 }
 
 /* Fills the strip the sidebar sits on top of, so its rounded right corners
-   (see .sidebar above) don't reveal a mismatched gap behind them. */
+   (see .sidebar above) don't reveal a mismatched gap behind them — matches
+   .content-area's background now that the sidebar itself is light. */
 .sidebar-backdrop {
-    -fx-background-color: #111827;
+    -fx-background-color: #EEF2F7;
 }
 
 /* Scrollable nav section inside the sidebar — transparent so the sidebar's
-   own dark gradient shows through, with a thin unobtrusive scrollbar (only
+   own white background shows through, with a thin unobtrusive scrollbar (only
    appears if the window is short enough that the nav list actually
    overflows; keeps the logout button always reachable below it either way). */
 .sidebar-scroll, .sidebar-scroll > .viewport {
@@ -194,7 +201,7 @@
 }
 .sidebar-scroll { -fx-border-color: transparent; -fx-padding: 0; }
 .sidebar-scroll .scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 8; }
-.sidebar-scroll .scroll-bar:vertical .thumb { -fx-background-color: rgba(255,255,255,0.14); -fx-background-radius: 99; }
+.sidebar-scroll .scroll-bar:vertical .thumb { -fx-background-color: rgba(100,116,139,0.25); -fx-background-radius: 99; }
 .sidebar-scroll .scroll-bar:vertical .increment-button,
 .sidebar-scroll .scroll-bar:vertical .decrement-button { -fx-padding: 0; -fx-background-color: transparent; }
 
@@ -211,27 +218,29 @@
     -fx-max-width: 36;
     -fx-max-height: 36;
     -fx-alignment: CENTER;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.55), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 8, 0, 0, 2);
 }
 .sidebar-logo {
     -fx-font-size: 17px;
     -fx-font-weight: bold;
-    -fx-text-fill: #F1F5F9;
+    -fx-text-fill: #1E293B;
 }
 .sidebar-logo-area {
     -fx-padding: 2 0 4 2;
 }
 .sidebar-app-sub {
     -fx-font-size: 9px;
-    -fx-text-fill: rgba(255,255,255,0.55);
+    -fx-text-fill: #94A3B8;
     -fx-padding: 0 0 0 1;
 }
 
-/* User area */
+/* User area — same light-card treatment as .filter-bar/.dlg-stock-preview
+   elsewhere (pale gray fill + hairline border) instead of a translucent
+   overlay that only read correctly against a dark background. */
 .sidebar-user-box {
-    -fx-background-color: rgba(255,255,255,0.05);
+    -fx-background-color: #F8FAFC;
     -fx-background-radius: 10;
-    -fx-border-color: rgba(255,255,255,0.07);
+    -fx-border-color: #E2E8F0;
     -fx-border-radius: 10;
     -fx-border-width: 1;
     -fx-padding: 10 10;
@@ -243,7 +252,7 @@
     -fx-min-height: 38;
     -fx-max-width: 38;
     -fx-max-height: 38;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.55), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 8, 0, 0, 0);
 }
 .user-avatar-text {
     -fx-text-fill: white;
@@ -251,33 +260,33 @@
     -fx-font-weight: bold;
 }
 .sidebar-username {
-    -fx-text-fill: #E2E8F0;
+    -fx-text-fill: #1E293B;
     -fx-font-size: 12.5px;
     -fx-font-weight: 600;
 }
 .sidebar-userrole {
-    -fx-background-color: #312E81;
+    -fx-background-color: #EEF2FF;
     -fx-background-radius: 99;
-    -fx-text-fill: #A5B4FC;
+    -fx-text-fill: #4F46E5;
     -fx-font-size: 10px;
     -fx-font-weight: bold;
     -fx-padding: 2 8;
 }
 
-/* Nav section labels */
+/* Nav section labels — same muted-gray uppercase treatment as
+   .dash-section-label in the content area. */
 .nav-section-label {
-    -fx-text-fill: rgba(148,163,184,0.55);
+    -fx-text-fill: #94A3B8;
     -fx-font-size: 10px;
     -fx-font-weight: bold;
     -fx-padding: 12 14 3 16;
 }
 
-/* Nav buttons — radius bumped 8→12 to match .btn-primary/.btn-secondary
-   (every button in the content area uses 12); the sidebar was the one
-   place in the app still using the old, more "boxy" 8px radius. */
+/* Nav buttons — radius 12 to match .btn-primary/.btn-secondary (every
+   button in the content area uses 12). */
 .nav-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #A8B4C8;
+    -fx-text-fill: #475569;
     -fx-alignment: CENTER_LEFT;
     -fx-padding: 10 14;
     -fx-background-radius: 12;
@@ -291,14 +300,15 @@
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
-/* Active item: filled pill with strong indigo left-accent — self-contained
-   inside the sidebar, no color-matching or protrusion needed. */
+/* Active item: pale indigo pill with strong indigo left-accent — the same
+   "tinted fill + colored border" language as .cell-badge-* elsewhere,
+   just rescaled for a nav row. */
 .nav-btn.nav-active,
 .nav-btn.nav-active:hover,
 .nav-btn.nav-active:focused,
 .nav-btn.nav-active:armed {
-    -fx-background-color: rgba(99, 102, 241, 0.20);
-    -fx-text-fill: #E0E7FF;
+    -fx-background-color: #EEF2FF;
+    -fx-text-fill: #4338CA;
     -fx-font-weight: 700;
     -fx-background-radius: 12;
     -fx-border-color: transparent transparent transparent #6366F1;
@@ -309,11 +319,11 @@
 }
 
 /* Nav FontIcon colors */
-.nav-icon { -fx-icon-size: 16; -fx-icon-color: #64748B; }
+.nav-icon { -fx-icon-size: 16; -fx-icon-color: #94A3B8; }
 .nav-btn:hover .nav-icon { -fx-icon-color: #6366F1; }
 .nav-btn.nav-active .nav-icon { -fx-icon-color: #6366F1; }
-.logout-btn .nav-icon { -fx-icon-color: #94A3B8; }
-.logout-btn:hover .nav-icon { -fx-icon-color: #EF4444; }
+.logout-btn .nav-icon { -fx-icon-color: #DC2626; }
+.logout-btn:hover .nav-icon { -fx-icon-color: #B91C1C; }
 
 /* Protrusion overlay — kept in DOM but invisible; no longer needed. */
 .nav-tab-extension { -fx-background-color: transparent; }
@@ -321,14 +331,14 @@
 .nav-ear-bottom    { -fx-background-color: transparent; }
 
 .sidebar-divider .line {
-    -fx-border-color: rgba(148,163,184,0.09);
+    -fx-border-color: #E2E8F0;
     -fx-border-width: 0.5;
 }
 
 /* About */
 .about-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: rgba(148,163,184,0.65);
+    -fx-text-fill: #94A3B8;
     -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 7 14;
@@ -338,16 +348,18 @@
     -fx-border-width: 0 0 0 3;
 }
 .about-btn:hover {
-    -fx-background-color: rgba(255,255,255,0.05);
-    -fx-text-fill: #94A3B8;
-    -fx-border-color: rgba(148,163,184,0.30);
+    -fx-background-color: #F1F5F9;
+    -fx-text-fill: #475569;
+    -fx-border-color: #CBD5E1;
     -fx-border-width: 0 0 0 3;
 }
 
-/* Logout */
+/* Logout — same light-danger fill used by .badge-danger/.cell-badge-danger
+   elsewhere (pale red + red text), not a full solid red button: this is a
+   low-emphasis nav row, not a primary destructive action like "Dar de baja". */
 .logout-btn {
-    -fx-background-color: rgba(239,68,68,0.08);
-    -fx-text-fill: #FDA4AF;
+    -fx-background-color: #FEE2E2;
+    -fx-text-fill: #DC2626;
     -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 9 14;
@@ -1916,7 +1928,7 @@
    SIDEBAR — version badge at bottom
    ═══════════════════════════════════════════════════════════════════ */
 .sidebar-version {
-    -fx-text-fill: rgba(255,255,255,0.22);
+    -fx-text-fill: #CBD5E1;
     -fx-font-size: 10px;
     -fx-alignment: CENTER;
 }
@@ -2428,15 +2440,15 @@
    NAV BUTTON HOVER — stronger lateral light accent
    ═══════════════════════════════════════════════════════════════════ */
 .nav-btn:hover {
-    -fx-background-color: rgba(255,255,255,0.12);
-    -fx-text-fill: #E2E8F0;
-    -fx-background-radius: 8;
-    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.65);
+    -fx-background-color: #F1F5F9;
+    -fx-text-fill: #1E293B;
+    -fx-background-radius: 12;
+    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.55);
     -fx-border-width: 0 0 0 3;
     -fx-translate-x: 3;
 }
 .nav-btn:pressed {
-    -fx-background-color: rgba(255,255,255,0.06);
+    -fx-background-color: #E2E8F0;
     -fx-translate-x: 1;
 }
 
@@ -2444,9 +2456,9 @@
    LOGOUT BUTTON — better hover feedback
    ═══════════════════════════════════════════════════════════════════ */
 .logout-btn:hover {
-    -fx-background-color: rgba(239,68,68,0.22);
-    -fx-text-fill: #FECACA;
-    -fx-border-color: rgba(239,68,68,0.45);
+    -fx-background-color: #FECACA;
+    -fx-text-fill: #B91C1C;
+    -fx-border-color: #EF4444;
     -fx-border-width: 0 0 0 3;
 }
 
