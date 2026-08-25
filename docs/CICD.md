@@ -151,7 +151,7 @@ jobs:
             --app-version $ver `
             --input target `
             --main-jar sibim-desktop-$ver.jar `
-            --main-class com.tuempresa.sibim.Main `
+            --main-class com.sibim.Main `
             --dest dist
 
       - name: Crear zip de distribución

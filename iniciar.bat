@@ -24,6 +24,12 @@ if %errorlevel% neq 0 (
 
 echo Iniciando SIBIM Desktop...
 echo.
-java -jar target\sibim-desktop-1.0.0.jar
+for %%J in (target\sibim-desktop-*.jar) do set "SIBIM_JAR=%%J"
+if not defined SIBIM_JAR (
+    echo [ERROR] No se encontro el JAR generado en target.
+    pause
+    exit /b 1
+)
+java -jar "%SIBIM_JAR%"
 pause
     

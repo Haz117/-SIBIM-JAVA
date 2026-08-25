@@ -268,7 +268,7 @@ public class DepreciacionController {
                 for (Producto p : conDepreciacion) if (p.getArea() != null) areas.add(p.getArea());
                 areaFilter.getItems().setAll(areas);
                 areaFilter.getItems().add(0, null);
-                areaFilter.setValue(areas.contains(areaPrevia) ? areaPrevia : null);
+                areaFilter.setValue(areaPrevia != null && areas.contains(areaPrevia) ? areaPrevia : null);
                 aplicarFiltro();
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
             }

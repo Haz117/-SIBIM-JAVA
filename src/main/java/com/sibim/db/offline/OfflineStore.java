@@ -101,6 +101,13 @@ public final class OfflineStore {
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE product_outbox ADD COLUMN server_snapshot_at TEXT");
         } catch (SQLException ignored) {}
+        // M1b (2026): preserve pending transfer state in the local mirror.
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE movements ADD COLUMN estado TEXT NOT NULL DEFAULT 'APROBADO'");
+        } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE movement_outbox ADD COLUMN estado TEXT NOT NULL DEFAULT 'APROBADO'");
+        } catch (SQLException ignored) {}
         // M2 (2025): conteo físico offline outbox
         try (Statement st = c.createStatement()) {
             st.execute("""
@@ -224,6 +231,12 @@ public final class OfflineStore {
      *  was. Doesn't touch the in-memory PRODUCTOS list or the outbox —
      *  purely a passive local mirror of what the server has. */
     private static void cacheProductoSnapshot(Producto p) throws SQLException {
+        try (PreparedStatement cleanup = conn().prepareStatement(
+                "DELETE FROM products WHERE codigo = ? AND id <> ?")) {
+            cleanup.setString(1, p.getCodigo());
+            cleanup.setString(2, p.getId());
+            cleanup.executeUpdate();
+        }
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
@@ -268,6 +281,12 @@ public final class OfflineStore {
     }
 
     private static void cacheCategoriaSnapshot(Categoria c) throws SQLException {
+        try (PreparedStatement cleanup = conn().prepareStatement(
+                "DELETE FROM categories WHERE nombre = ? AND id <> ?")) {
+            cleanup.setString(1, c.getNombre());
+            cleanup.setString(2, c.getId());
+            cleanup.executeUpdate();
+        }
         String sql = """
             INSERT INTO categories (id, nombre, descripcion, color, icono, created_at)
             VALUES (?,?,?,?,?,?)
@@ -292,8 +311,8 @@ public final class OfflineStore {
     private static void cacheMovimientoSnapshot(Movimiento m) throws SQLException {
         String sql = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
-                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO NOTHING
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
@@ -310,6 +329,7 @@ public final class OfflineStore {
             ps.setString(11, m.getUsuarioId());
             ps.setString(12, m.getUsuarioNombre());
             ps.setString(13, str(m.getCreadoEn()));
+            ps.setString(14, m.getEstado() != null ? m.getEstado() : Movimiento.ESTADO_APROBADO);
             ps.executeUpdate();
         }
     }
@@ -337,6 +357,9 @@ public final class OfflineStore {
         ensureLoaded();
         CATEGORIAS.removeIf(x -> x.getId().equals(c.getId()));
         CATEGORIAS.add(c);
+        Connection db = conn();
+        db.setAutoCommit(false);
+        try {
         String sql = """
             INSERT INTO categories (id, nombre, descripcion, color, icono, created_at)
             VALUES (?,?,?,?,?,?)
@@ -353,17 +376,36 @@ public final class OfflineStore {
             ps.executeUpdate();
         }
         enqueueCategory("SAVE", c);
+        db.commit();
+        } catch (SQLException e) {
+            db.rollback();
+            CATEGORIAS.remove(c);
+            throw e;
+        } finally {
+            db.setAutoCommit(true);
+        }
     }
 
     public static void deleteCategoria(String id) throws SQLException {
         ensureLoaded();
         Categoria c = CATEGORIAS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
+        Connection db = conn();
+        db.setAutoCommit(false);
+        try {
         CATEGORIAS.removeIf(x -> x.getId().equals(id));
-        try (PreparedStatement ps = conn().prepareStatement("DELETE FROM categories WHERE id = ?")) {
+        try (PreparedStatement ps = db.prepareStatement("DELETE FROM categories WHERE id = ?")) {
             ps.setString(1, id);
             ps.executeUpdate();
         }
         if (c != null) enqueueCategory("DELETE", c);
+        db.commit();
+        } catch (SQLException e) {
+            db.rollback();
+            if (c != null) CATEGORIAS.add(c);
+            throw e;
+        } finally {
+            db.setAutoCommit(true);
+        }
     }
 
     public static synchronized boolean tieneProductosEnCategoria(String categoriaId) throws SQLException {
@@ -408,12 +450,29 @@ public final class OfflineStore {
             .findFirst()
             .map(x -> str(x.getActualizadoEn()))
             .orElse(null);
-        PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
-        PRODUCTOS.add(p);
-        PRODUCTOS_MAP.put(p.getId(), p);
-        persistProducto(p);
-        recomputeCategoriaCounts();
-        enqueueProduct("SAVE", p, serverSnapshotAt);
+        Producto anterior = PRODUCTOS_MAP.get(p.getId());
+        Connection db = conn();
+        db.setAutoCommit(false);
+        try {
+            PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
+            PRODUCTOS.add(p);
+            PRODUCTOS_MAP.put(p.getId(), p);
+            persistProducto(p);
+            recomputeCategoriaCounts();
+            enqueueProduct("SAVE", p, serverSnapshotAt);
+            db.commit();
+        } catch (SQLException e) {
+            db.rollback();
+            PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
+            if (anterior != null) {
+                PRODUCTOS.add(anterior);
+                PRODUCTOS_MAP.put(anterior.getId(), anterior);
+            } else PRODUCTOS_MAP.remove(p.getId());
+            recomputeCategoriaCounts();
+            throw e;
+        } finally {
+            db.setAutoCommit(true);
+        }
     }
 
     public static synchronized void darDeBajaProducto(String id, String motivo) throws SQLException {
@@ -566,6 +625,32 @@ public final class OfflineStore {
         addMovimiento(m, null);
     }
 
+    /** Saves a transfer request locally without changing stock or area. */
+    public static synchronized void addMovimientoPendiente(Movimiento m) throws SQLException {
+        ensureLoaded();
+        if (m.getId() == null) m.setId(UUID.randomUUID().toString());
+        Producto p = PRODUCTOS_MAP.get(m.getProductoId());
+        if (p == null) throw new SQLException("Producto no encontrado: " + m.getProductoId());
+        m.setEstado(Movimiento.ESTADO_PENDIENTE);
+        m.setAreaOrigen(p.getArea());
+        m.setStockAnterior(p.getStockActual());
+        m.setStockNuevo(p.getStockActual());
+        if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
+        Connection c = conn();
+        c.setAutoCommit(false);
+        try {
+            persistMovimiento(m);
+            enqueueMovement("ADD", m);
+            c.commit();
+            MOVIMIENTOS.add(0, m);
+        } catch (SQLException e) {
+            c.rollback();
+            throw e;
+        } finally {
+            c.setAutoCommit(true);
+        }
+    }
+
     /** Same "reject instead of overwrite a stale AJUSTE" contract as
      *  DemoDataStore/MovimientoRepository — see those for why. */
     public static synchronized void addMovimiento(Movimiento m, Integer expectedStockAnterior) throws SQLException {
@@ -590,12 +675,23 @@ public final class OfflineStore {
 
             if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
                 m.setAreaOrigen(p.getArea());
-                updateProductoArea(m.getProductoId(), m.getAreaDestino());
             }
-            MOVIMIENTOS.add(0, m);
-            persistMovimiento(m);
-            updateProductoStock(m.getProductoId(), stockNuevo);
-            enqueueMovement("ADD", m);
+            Connection c = conn();
+            c.setAutoCommit(false);
+            try {
+                if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null)
+                    updateProductoArea(m.getProductoId(), m.getAreaDestino());
+                persistMovimiento(m);
+                updateProductoStock(m.getProductoId(), stockNuevo);
+                enqueueMovement("ADD", m);
+                c.commit();
+                MOVIMIENTOS.add(0, m);
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            } finally {
+                c.setAutoCommit(true);
+            }
         }
     }
 
@@ -614,22 +710,32 @@ public final class OfflineStore {
                 throw new SQLException("Solo se puede eliminar el movimiento mas reciente de este producto: "
                     + "existen movimientos registrados despues de este.");
             }
-            MOVIMIENTOS.remove(m);
-            try (PreparedStatement ps = conn().prepareStatement("DELETE FROM movements WHERE id = ?")) {
-                ps.setString(1, id);
-                ps.executeUpdate();
+            Connection c = conn();
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement("DELETE FROM movements WHERE id = ?")) {
+                    ps.setString(1, id);
+                    ps.executeUpdate();
+                }
+                updateProductoStock(m.getProductoId(), m.getStockAnterior());
+                if (m.getAreaOrigen() != null) updateProductoArea(m.getProductoId(), m.getAreaOrigen());
+                enqueueMovement("DELETE", m);
+                c.commit();
+                MOVIMIENTOS.remove(m);
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            } finally {
+                c.setAutoCommit(true);
             }
-            updateProductoStock(m.getProductoId(), m.getStockAnterior());
-            if (m.getAreaOrigen() != null) updateProductoArea(m.getProductoId(), m.getAreaOrigen());
-            enqueueMovement("DELETE", m);
         }
     }
 
     private static void persistMovimiento(Movimiento m) throws SQLException {
         String sql = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
-                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setString(1, m.getId());
@@ -645,6 +751,7 @@ public final class OfflineStore {
             ps.setString(11, m.getUsuarioId());
             ps.setString(12, m.getUsuarioNombre());
             ps.setString(13, str(m.getCreadoEn()));
+            ps.setString(14, m.getEstado() != null ? m.getEstado() : Movimiento.ESTADO_APROBADO);
             ps.executeUpdate();
         }
     }
@@ -733,8 +840,8 @@ public final class OfflineStore {
     private static void enqueueMovement(String operacion, Movimiento m) throws SQLException {
         String sql = """
             INSERT INTO movement_outbox (operacion, movimiento_id, producto_id, tipo, cantidad,
-                motivo, referencia, area_destino, usuario_id, usuario_nombre, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                motivo, referencia, area_destino, usuario_id, usuario_nombre, created_at, estado)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             int i = 1;
@@ -748,7 +855,8 @@ public final class OfflineStore {
             ps.setString(i++, m.getAreaDestino());
             ps.setString(i++, m.getUsuarioId());
             ps.setString(i++, m.getUsuarioNombre());
-            ps.setString(i, str(LocalDateTime.now()));
+            ps.setString(i++, str(LocalDateTime.now()));
+            ps.setString(i, m.getEstado() != null ? m.getEstado() : Movimiento.ESTADO_APROBADO);
             ps.executeUpdate();
         }
     }
@@ -815,6 +923,39 @@ public final class OfflineStore {
     }
 
     // ─────────────────────────── AuditLog (outbox only) ───────────────────────
+
+    /** Reads the queued audit trail from the offline SQLite outbox so the admin
+     *  audit dialog still works while Postgres is unreachable. */
+    public static List<AuditLog> findAuditLog(int limit) throws SQLException {
+        List<AuditLog> list = new ArrayList<>();
+        String sql = "SELECT * FROM audit_log_outbox ORDER BY id DESC LIMIT ?";
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    AuditLog a = new AuditLog();
+                    a.setId(rs.getString("audit_id"));
+                    a.setEntidad(rs.getString("entidad"));
+                    a.setEntidadId(rs.getString("entidad_id"));
+                    a.setEntidadNombre(rs.getString("entidad_nombre"));
+                    a.setAccion(rs.getString("accion"));
+                    a.setDetalle(rs.getString("detalle"));
+                    a.setUsuarioId(rs.getString("usuario_id"));
+                    a.setUsuarioNombre(rs.getString("usuario_nombre"));
+                    String createdAt = rs.getString("created_at");
+                    if (createdAt != null) {
+                        try {
+                            a.setCreadoEn(LocalDateTime.parse(createdAt));
+                        } catch (Exception ignored) {
+                            a.setCreadoEn(LocalDateTime.now());
+                        }
+                    }
+                    list.add(a);
+                }
+            }
+        }
+        return list;
+    }
 
     /** Queues an audit entry for replay when Postgres comes back. Never throws —
      *  mirrors AuditLogRepository.log()'s non-blocking contract. */
@@ -898,6 +1039,7 @@ public final class OfflineStore {
         m.setUsuarioId(rs.getString("usuario_id"));
         m.setUsuarioNombre(rs.getString("usuario_nombre"));
         m.setCreadoEn(dt(rs.getString("created_at")));
+        m.setEstado(rs.getString("estado"));
         Producto p = PRODUCTOS_MAP.get(m.getProductoId());
         if (p != null) {
             m.setProductoNombre(p.getNombre());

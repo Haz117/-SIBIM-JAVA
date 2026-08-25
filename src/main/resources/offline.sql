@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS movements (
     referencia     TEXT,
     usuario_id     TEXT,
     usuario_nombre TEXT NOT NULL,
-    created_at     TEXT NOT NULL
+    created_at     TEXT NOT NULL,
+    estado         TEXT NOT NULL DEFAULT 'APROBADO'
 );
 
 -- Solo-lectura desde el lado offline: se llena/actualiza cada vez que la

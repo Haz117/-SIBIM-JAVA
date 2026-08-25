@@ -252,12 +252,26 @@ public class ConfiguracionController {
         showUserDialog(sel, true);
     }
 
+    public static boolean canDeleteUser(Usuario selectedUser, Usuario currentUser) {
+        if (selectedUser == null || currentUser == null) return false;
+        String selectedId = selectedUser.getId();
+        String currentId = currentUser.getId();
+        if (selectedId == null || currentId == null) return false;
+        return !selectedId.equals(currentId);
+    }
+
+    public static boolean canUseDatabaseBackup(boolean offline, boolean demo) {
+        return !offline && !demo;
+    }
+
     @FXML
     private void onDeleteUsuario() {
         Usuario sel = usersTable.getSelectionModel().getSelectedItem();
+        Usuario me = SessionManager.getCurrentUser();
         if (sel == null) return;
-        if (sel.getId().equals(SessionManager.getCurrentUser().getId())) {
-            NotificacionUtil.error(usersTable.getScene(), "No puedes eliminar tu propia cuenta");
+        if (!canDeleteUser(sel, me)) {
+            NotificacionUtil.error(usersTable.getScene(),
+                me == null ? "No hay una sesión activa para continuar" : "No puedes eliminar tu propia cuenta");
             return;
         }
         if (!ConfirmacionUtil.confirmarEliminar(sel.getNombre())) return;
@@ -522,6 +536,12 @@ public class ConfiguracionController {
 
     @FXML
     private void onGenerarRespaldo() {
+        if (!canUseDatabaseBackup(com.sibim.db.DatabaseConfig.isOfflineMode(), com.sibim.db.DatabaseConfig.isDemoMode())) {
+            NotificacionUtil.advertencia(backupSection != null ? backupSection.getScene() : null,
+                "La copia de seguridad solo está disponible con la base de datos principal conectada.");
+            return;
+        }
+
         javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
         chooser.setTitle("Guardar respaldo de la base de datos");
         chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JSON", "*.json"));
@@ -547,6 +567,12 @@ public class ConfiguracionController {
 
     @FXML
     private void onRestaurar() {
+        if (!canUseDatabaseBackup(com.sibim.db.DatabaseConfig.isOfflineMode(), com.sibim.db.DatabaseConfig.isDemoMode())) {
+            NotificacionUtil.advertencia(backupSection != null ? backupSection.getScene() : null,
+                "La restauración solo está disponible con la base de datos principal conectada.");
+            return;
+        }
+
         javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
         chooser.setTitle("Restaurar desde un archivo de respaldo");
         chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JSON", "*.json"));

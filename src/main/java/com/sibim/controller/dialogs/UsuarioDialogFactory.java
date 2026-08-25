@@ -5,7 +5,6 @@ import com.sibim.config.Areas;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.repository.UsuarioRepository;
-import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;

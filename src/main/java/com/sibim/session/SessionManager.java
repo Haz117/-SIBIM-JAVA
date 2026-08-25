@@ -50,19 +50,28 @@ public final class SessionManager {
         if (currentUser == null) return Collections.emptySet();
         if (isAdmin()) return null; // null = no restriction
 
+        String rawArea = currentUser.getArea();
+        if (rawArea == null || rawArea.isBlank()) {
+            return Collections.emptySet();
+        }
+
+        String area = rawArea.trim();
+
         Set<String> areas = new LinkedHashSet<>();
-        areas.add(currentUser.getArea());
+        areas.add(area);
 
         if (isSecretario()) {
-            areas.addAll(Areas.getDireccionesDeSecretaria(currentUser.getArea()));
+            areas.addAll(Areas.getDireccionesDeSecretaria(area));
         }
 
         return Collections.unmodifiableSet(areas);
     }
 
     public static boolean isAreaAccessible(String area) {
+        if (isAdmin()) return true;
+        if (area == null || area.isBlank()) return false;
         Set<String> accessible = getAccessibleAreas();
         if (accessible == null) return true; // admin
-        return accessible.contains(area);
+        return accessible.contains(area.trim());
     }
 }

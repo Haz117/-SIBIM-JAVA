@@ -37,8 +37,9 @@ public class SplashController {
     @FXML private StackPane ringBl;
 
     private final java.util.List<Animation> loops = new java.util.ArrayList<>();
-    private boolean animReady = false;
-    private boolean dbReady   = false;
+    private boolean animReady    = false;
+    private boolean dbReady      = false;
+    private boolean firstRunAdmin = false;
 
     @FXML
     public void initialize() {
@@ -161,6 +162,7 @@ public class SplashController {
                 .baselineVersion("0")
                 .load()
                 .migrate();
+            firstRunAdmin = seedAdminIfEmpty();
         } catch (Exception e) {
             log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());
             DatabaseConfig.close();
@@ -203,11 +205,66 @@ public class SplashController {
         if (DatabaseConfig.isOfflineMode()) {
             notifyOfflineMode();
         }
+        if (firstRunAdmin) {
+            notifyFirstRun();
+        }
         try {
             MainApp.showLogin();
         } catch (Exception ex) {
             log.error("No se pudo cargar la pantalla de login tras el splash", ex);
         }
+    }
+
+    /**
+     * If the users table is completely empty (fresh install with no seed data),
+     * inserts a default admin account so the first login attempt doesn't fail
+     * silently with "usuario o contraseña incorrectos".
+     * Returns true if a new admin was created.
+     */
+    private boolean seedAdminIfEmpty() {
+        try (java.sql.Connection conn = DatabaseConfig.getConnection()) {
+            // Check if any user exists
+            try (java.sql.PreparedStatement check =
+                    conn.prepareStatement("SELECT COUNT(*) FROM users")) {
+                java.sql.ResultSet rs = check.executeQuery();
+                if (!rs.next() || rs.getLong(1) > 0) return false;
+            }
+            // BCrypt hash of "admin123456" (factor 12) — same hash used in seed_demo.sql
+            String hash = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj1o.FxRzFNS";
+            String id   = java.util.UUID.randomUUID().toString();
+            try (java.sql.PreparedStatement ins = conn.prepareStatement(
+                    "INSERT INTO users (id, username, password, nombre, cargo, role, debe_cambiar_password) "
+                    + "VALUES (?, 'superusuario', ?, 'Administrador del Sistema', 'Superusuario', 'admin', TRUE) "
+                    + "ON CONFLICT (username) DO NOTHING")) {
+                ins.setString(1, id);
+                ins.setString(2, hash);
+                ins.executeUpdate();
+            }
+            log.info("Primera ejecución: usuario administrador inicial creado (superusuario / admin123456).");
+            return true;
+        } catch (Exception e) {
+            log.warn("No se pudo verificar ni sembrar usuario inicial: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /** Shown before the login screen on first run so the user knows the credentials. */
+    private void notifyFirstRun() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Primera ejecución — Credenciales iniciales");
+        alert.setHeaderText("Base de datos configurada correctamente");
+        alert.setContentText(
+            "El sistema creó un usuario administrador inicial.\n\n"
+            + "Credenciales para el primer acceso:\n"
+            + "  • Usuario:     superusuario\n"
+            + "  • Contraseña:  admin123456\n\n"
+            + "Al iniciar sesión el sistema te pedirá cambiar la contraseña. "
+            + "Una vez adentro, crea los demás usuarios desde Configuración.");
+        alert.getButtonTypes().setAll(ButtonType.OK);
+        alert.getDialogPane().setPrefWidth(440);
+        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
+        alert.showAndWait();
     }
 
     /** Continuous, low-key motion that runs underneath the one-shot entrance

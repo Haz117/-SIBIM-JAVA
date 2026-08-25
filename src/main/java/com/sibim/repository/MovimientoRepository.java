@@ -357,6 +357,10 @@ public class MovimientoRepository {
     public Movimiento addMovimientoPendiente(Movimiento m) throws SQLException {
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
         m.setEstado(Movimiento.ESTADO_PENDIENTE);
+        if (DatabaseConfig.isOfflineMode()) {
+            OfflineStore.addMovimientoPendiente(m);
+            return m;
+        }
         if (DatabaseConfig.isDemoMode()) {
             if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
             DemoDataStore.addMovimientoPendiente(m);

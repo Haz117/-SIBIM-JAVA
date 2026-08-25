@@ -2,7 +2,6 @@ package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.LocalDataStore;
-import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Categoria;
 import com.sibim.session.SessionManager;

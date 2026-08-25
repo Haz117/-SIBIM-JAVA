@@ -10,6 +10,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import com.sibim.util.TutorialOverlay;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -95,6 +96,7 @@ public class MainController {
     private Region topEar;
     private Region bottomEar;
     private boolean tabPositioned = false;
+    private boolean startupTasksScheduled = false;
 
     // Only one MainController is ever active at a time — this lets child
     // views loaded into contentArea (e.g. Organigrama) trigger navigation
@@ -130,17 +132,44 @@ public class MainController {
         }
         navigateTo("dashboard", btnDashboard);
         addNavTooltips();
-        // Load alert count
-        loadAlertBadge();
-        // Wire keyboard shortcuts, activity tracking and gota ear overlay once scene is ready
+
+        // Single scene listener — consolidates what were three separate listeners.
+        // Non-critical startup tasks (badge, vencidos, update check) are staggered
+        // so they don't compete with the dashboard's 6 parallel DB queries at boot.
         contentArea.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
                 setupKeyboardShortcuts(scene);
                 scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
                 scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
                 javafx.application.Platform.runLater(this::setupTabProtrusion);
+                if (!startupTasksScheduled) {
+                    startupTasksScheduled = true;
+                    javafx.application.Platform.runLater(() -> TutorialOverlay.showIfFirstTime(outerStack));
+
+                    if (DatabaseConfig.isDemoMode())
+                        NotificacionUtil.advertencia(scene,
+                            "Modo demostración activo — los datos no son reales. "
+                            + "Para conectar a PostgreSQL, crea %APPDATA%\\SIBIM\\.env con DB_URL, DB_USER y DB_PASSWORD.");
+
+                    // Delay badge 800 ms so dashboard queries finish first
+                    javafx.animation.PauseTransition badgeDelay =
+                        new javafx.animation.PauseTransition(Duration.millis(800));
+                    badgeDelay.setOnFinished(e -> loadAlertBadge());
+                    badgeDelay.play();
+                    // Vencidos check: 1.5 s (informational toast, not blocking)
+                    javafx.animation.PauseTransition vencidosDelay =
+                        new javafx.animation.PauseTransition(Duration.millis(1500));
+                    vencidosDelay.setOnFinished(e -> checkVencidosOnStart(scene));
+                    vencidosDelay.play();
+                    // Update check: 3 s (network request, lowest priority)
+                    javafx.animation.PauseTransition updateDelay =
+                        new javafx.animation.PauseTransition(Duration.millis(3000));
+                    updateDelay.setOnFinished(e -> checkForUpdate(scene));
+                    updateDelay.play();
+                }
             }
         });
+
         // Stop any timelines left over from a previous session (re-login path)
         if (badgeRefresh  != null) badgeRefresh.stop();
         if (clock         != null) clock.stop();
@@ -160,23 +189,6 @@ public class MainController {
         sessionGuard = new Timeline(new KeyFrame(Duration.minutes(1), e -> checkInactivity()));
         sessionGuard.setCycleCount(Timeline.INDEFINITE);
         sessionGuard.play();
-
-        // Warn if running in demo mode
-        if (DatabaseConfig.isDemoMode()) {
-            contentArea.sceneProperty().addListener((obs, old, scene) -> {
-                if (scene != null)
-                    NotificacionUtil.advertencia(scene,
-                        "Modo demostración activo — los datos no son reales. "
-                        + "Para conectar a PostgreSQL, crea %APPDATA%\\SIBIM\\.env con DB_URL, DB_USER y DB_PASSWORD.");
-            });
-        }
-        // Check for soon-to-expire items and new app versions once the scene is ready
-        contentArea.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene != null) {
-                checkVencidosOnStart(scene);
-                checkForUpdate(scene);
-            }
-        });
     }
 
     @FXML private void onDashboard()     { navigateTo("dashboard",     btnDashboard); }
@@ -231,6 +243,11 @@ public class MainController {
     }
 
     @FXML
+    private void onShowTutorial() {
+        TutorialOverlay.show(outerStack);
+    }
+
+    @FXML
     private void onLogout() {
         if (!ConfirmacionUtil.confirmar("Cerrar sesión", "¿Deseas cerrar tu sesión?")) return;
         stopTimers();
@@ -254,8 +271,38 @@ public class MainController {
         if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
     }
 
+    public static Button resolveNavigationButton(String view,
+                                                Button dashboard,
+                                                Button organigrama,
+                                                Button productos,
+                                                Button categorias,
+                                                Button movimientos,
+                                                Button alertas,
+                                                Button reportes,
+                                                Button configuracion,
+                                                Button depreciacion,
+                                                Button fallback) {
+        Button resolved = switch (view) {
+            case "dashboard"     -> dashboard;
+            case "organigrama"   -> organigrama;
+            case "productos"     -> productos;
+            case "categorias"    -> categorias;
+            case "movimientos"   -> movimientos;
+            case "alertas"       -> alertas;
+            case "reportes"      -> reportes;
+            case "configuracion" -> configuracion;
+            case "depreciacion"  -> depreciacion;
+            default              -> fallback;
+        };
+        return resolved != null ? resolved : fallback;
+    }
+
     private void navigateTo(String view, Button button) {
         try {
+            if (button == null) {
+                log.warn("Intento de navegación con botón nulo para vista: {}", view);
+                return;
+            }
             // Update nav state immediately for instant visual feedback
             if (activeButton != null) activeButton.getStyleClass().remove("nav-active");
             button.getStyleClass().add("nav-active");
@@ -657,18 +704,9 @@ public class MainController {
 
     /** Called from child controllers (e.g. Alertas → Movimientos). */
     public void navigateTo(String view) {
-        Button btn = switch (view) {
-            case "dashboard"     -> btnDashboard;
-            case "organigrama"   -> btnOrganigrama;
-            case "productos"     -> btnProductos;
-            case "categorias"    -> btnCategorias;
-            case "movimientos"   -> btnMovimientos;
-            case "alertas"       -> btnAlertas;
-            case "reportes"      -> btnReportes;
-            case "configuracion" -> btnConfiguracion;
-            case "depreciacion"  -> btnDepreciacion;
-            default              -> btnDashboard;
-        };
+        Button btn = resolveNavigationButton(view, btnDashboard, btnOrganigrama, btnProductos,
+            btnCategorias, btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
+            btnDepreciacion, btnDashboard);
         navigateTo(view, btn);
     }
 }

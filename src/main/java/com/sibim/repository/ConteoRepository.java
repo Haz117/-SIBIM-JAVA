@@ -33,16 +33,19 @@ public class ConteoRepository {
     public ConteoFisico guardar(ConteoFisico c) throws SQLException {
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
         if (c.getCreadoEn() == null) c.setCreadoEn(LocalDateTime.now());
+        if (c.getItems() == null) c.setItems(List.of());
         for (ConteoItem it : c.getItems()) {
             if (it.getId() == null) it.setId(UUID.randomUUID().toString());
             it.setConteoId(c.getId());
         }
         if (DatabaseConfig.isOfflineMode()) {
             OfflineStore.saveConteo(c);
+            auditConteo(c);
             return c;
         }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.addConteo(c);
+            auditConteo(c);
             return c;
         }
         String insertConteo = """
@@ -87,7 +90,15 @@ public class ConteoRepository {
                 conn.setAutoCommit(true);
             }
         }
+        auditConteo(c);
         return c;
+    }
+
+    private void auditConteo(ConteoFisico c) {
+        new AuditLogRepository().log("conteo", c.getId(),
+            "Conteo físico de inventario", "crear",
+            "Conteo finalizado: " + c.getTotalContados() + " bien(es), "
+                + c.getTotalDiscrepancias() + " discrepancia(s)");
     }
 
     /**
@@ -98,6 +109,7 @@ public class ConteoRepository {
     public ConteoFisico guardarOnline(ConteoFisico c) throws SQLException {
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
         if (c.getCreadoEn() == null) c.setCreadoEn(LocalDateTime.now());
+        if (c.getItems() == null) c.setItems(List.of());
         for (ConteoItem it : c.getItems()) {
             if (it.getId() == null) it.setId(UUID.randomUUID().toString());
             it.setConteoId(c.getId());

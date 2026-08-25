@@ -121,6 +121,17 @@ class SessionManagerTest {
         assertTrue(areas.contains("Direccion X"));
     }
 
+    @Test
+    void usuarioSinArea_noRompeAccesoNiIdentificaAreasNulas() {
+        Usuario u = usuario(Rol.DIRECCION, null);
+        SessionManager.setCurrentUser(u);
+
+        assertFalse(SessionManager.isAreaAccessible("Direccion X"));
+        assertFalse(SessionManager.isAreaAccessible(null));
+        assertNotNull(SessionManager.getAccessibleAreas());
+        assertTrue(SessionManager.getAccessibleAreas().isEmpty());
+    }
+
     // ── Logout ────────────────────────────────────────────────────────────────
 
     @Test

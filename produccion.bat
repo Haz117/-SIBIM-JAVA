@@ -11,14 +11,14 @@ REM
 REM Para desplegar en una PC nueva del ayuntamiento, copia a esa PC
 REM UNICAMENTE estos 3 elementos (nunca el codigo fuente completo):
 REM   1. Este archivo (produccion.bat)
-REM   2. El archivo sibim-desktop-1.0.0.jar (generado con
+REM   2. El archivo sibim-desktop-X.Y.Z.jar (generado con
 REM      "mvn package" una sola vez, en una maquina de desarrollo —
 REM      el shade plugin lo deja en target\ con este nombre, ya
 REM      autocontenido con todas las dependencias)
 REM   3. El archivo .env con las credenciales reales de esa instalacion
 REM
 REM Estructura esperada junto a este .bat:
-REM   .\sibim-desktop-1.0.0.jar
+REM   .\sibim-desktop-X.Y.Z.jar
 REM   .\.env
 
 REM Verificar Java
@@ -29,8 +29,10 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-if not exist "sibim-desktop-1.0.0.jar" (
-    echo [ERROR] No se encontro sibim-desktop-1.0.0.jar junto a este script.
+set "SIBIM_JAR="
+for %%J in (sibim-desktop-*.jar) do set "SIBIM_JAR=%%J"
+if not defined SIBIM_JAR (
+    echo [ERROR] No se encontro un sibim-desktop-*.jar junto a este script.
     echo Copia aqui el .jar generado con "mvn package" en la maquina de desarrollo
     echo (queda en target\sibim-desktop-1.0.0.jar).
     pause
@@ -39,5 +41,5 @@ if not exist "sibim-desktop-1.0.0.jar" (
 
 echo Iniciando SIBIM Desktop...
 echo.
-java -jar sibim-desktop-1.0.0.jar
+java -jar "%SIBIM_JAR%"
 pause

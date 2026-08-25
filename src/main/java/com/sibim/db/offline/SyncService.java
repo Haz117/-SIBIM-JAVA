@@ -118,6 +118,7 @@ public final class SyncService {
     }
 
     private static void syncPendingChanges() {
+        requeueFailedChanges();
         int pendingBefore = countPending();
         if (pendingBefore > 0) {
             Platform.runLater(() -> {
@@ -413,7 +414,7 @@ public final class SyncService {
 
     private record MovementRow(int id, String operacion, String movimientoId, String productoId, String tipo,
                                 int cantidad, String motivo, String referencia, String areaDestino,
-                                String usuarioId, String usuarioNombre) {}
+                                String usuarioId, String usuarioNombre, String estado) {}
 
     private static void syncMovimientos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<MovementRow> rows = new ArrayList<>();
@@ -424,7 +425,7 @@ public final class SyncService {
                 rows.add(new MovementRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("movimiento_id"),
                     rs.getString("producto_id"), rs.getString("tipo"), rs.getInt("cantidad"), rs.getString("motivo"),
                     rs.getString("referencia"), rs.getString("area_destino"), rs.getString("usuario_id"),
-                    rs.getString("usuario_nombre")));
+                    rs.getString("usuario_nombre"), rs.getString("estado")));
             }
         }
         MovimientoRepository repo = new MovimientoRepository();
@@ -449,7 +450,12 @@ public final class SyncService {
                     // while this PC was offline) — recomputing fresh against
                     // Postgres's current stock, the same as any other
                     // movement, is correct here.
-                    repo.addMovimientoAtomicOnline(m, null);
+                    if (TipoMovimiento.TRANSFERENCIA == m.getTipo()
+                            && Movimiento.ESTADO_PENDIENTE.equals(r.estado())) {
+                        repo.addMovimientoPendiente(m);
+                    } else {
+                        repo.addMovimientoAtomicOnline(m, null);
+                    }
                 }
                 markOutbox("movement_outbox", r.id(), "SYNCED", null);
                 writeAuditEntry("movimiento", r.movimientoId(), r.productoId(),
@@ -615,7 +621,7 @@ public final class SyncService {
                 "category_outbox", "product_outbox", "movement_outbox",
                 "conteo_outbox", "audit_log_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                    "SELECT COUNT(*) FROM " + table + " WHERE status = 'PENDING'");
+                    "SELECT COUNT(*) FROM " + table + " WHERE status IN ('PENDING', 'FAILED')");
                  ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) total += rs.getInt(1);
             } catch (SQLException e) {
@@ -623,6 +629,20 @@ public final class SyncService {
             }
         }
         return total;
+    }
+
+    /** Retries transient failures on the next successful connectivity check. */
+    private static void requeueFailedChanges() {
+        for (String table : new String[]{
+                "category_outbox", "product_outbox", "movement_outbox",
+                "conteo_outbox", "audit_log_outbox"}) {
+            try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                    "UPDATE " + table + " SET status = 'PENDING' WHERE status = 'FAILED'")) {
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                log.error("SyncService: no se pudieron reencolar fallos en {}", table, e);
+            }
+        }
     }
 
     private static int countConflictRows() {

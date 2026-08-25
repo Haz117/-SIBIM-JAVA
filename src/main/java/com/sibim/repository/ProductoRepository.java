@@ -449,6 +449,12 @@ public class ProductoRepository {
 
     /** Bienes with stock_actual = 0 (agotados) — filtered in SQL. */
     public List<Producto> findAgotados() throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> !p.isDadoDeBaja() && p.getStockActual() == 0)
+                .toList();
+        }
         if (DatabaseConfig.isDemoMode()) {
             return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
                 .stream().filter(p -> !p.isDadoDeBaja() && p.getStockActual() == 0).toList();
@@ -467,6 +473,15 @@ public class ProductoRepository {
 
     /** Bienes whose stock is above zero but at or below their minimum threshold. */
     public List<Producto> findBajoStock() throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> !p.isDadoDeBaja()
+                    && p.getStockActual() > 0
+                    && p.getStockActual() <= p.getStockMinimo())
+                .sorted(Comparator.comparingInt(Producto::getStockActual))
+                .toList();
+        }
         if (DatabaseConfig.isDemoMode()) {
             return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
                 .stream().filter(p -> !p.isDadoDeBaja()
@@ -488,6 +503,16 @@ public class ProductoRepository {
 
     /** Bienes expiring within the next {@code dias} days (inclusive of already-expired). */
     public List<Producto> findVencidosProximos(int dias) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            LocalDate limite = LocalDate.now().plusDays(dias);
+            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> !p.isDadoDeBaja()
+                    && p.getFechaVencimiento() != null
+                    && !p.getFechaVencimiento().isAfter(limite))
+                .sorted(Comparator.comparing(Producto::getFechaVencimiento))
+                .toList();
+        }
         if (DatabaseConfig.isDemoMode()) {
             LocalDate limite = LocalDate.now().plusDays(dias);
             return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())

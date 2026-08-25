@@ -88,6 +88,7 @@ public class AuditLogRepository {
 
     public List<AuditLog> findAll(int limit) throws SQLException {
         requireAdmin();
+        if (DatabaseConfig.isOfflineMode()) return OfflineStore.findAuditLog(limit);
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findAuditLog(limit);
         String sql = "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT ?";
         List<AuditLog> list = new ArrayList<>();

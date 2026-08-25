@@ -3,6 +3,7 @@ package com.sibim.service;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
@@ -21,6 +22,7 @@ public class MovimientoService {
 
     private final MovimientoRepository movimientoRepo = new MovimientoRepository();
     private final ProductoRepository productoRepo = new ProductoRepository();
+    private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     public List<Movimiento> getAll() throws SQLException {
         return movimientoRepo.findAll();
@@ -118,12 +120,17 @@ public class MovimientoService {
         // stock and area unchanged until an admin approves.
         if (tipo == TipoMovimiento.TRANSFERENCIA && !SessionManager.isAdmin()) {
             Movimiento saved = movimientoRepo.addMovimientoPendiente(m);
+            auditRepo.log("movimiento", saved.getId(), saved.getProductoNombre(), "transferencia_pendiente",
+                "Transferencia pendiente hacia " + saved.getAreaDestino());
             log.info("Transferencia PENDIENTE [{}] '{}' {} uds → área '{}'",
                 saved.getId(), m.getProductoNombre(), m.getCantidad(), m.getAreaDestino());
             return saved;
         }
         try {
             Movimiento saved = movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
+            auditRepo.log("movimiento", saved.getId(), m.getProductoNombre(), "crear",
+                "Movimiento " + tipo.getCodigo() + ": " + cantidad
+                    + " uds (stock " + m.getStockAnterior() + " → " + m.getStockNuevo() + ")");
             log.info("Movimiento {} [{}] '{}' {} uds — stock {} → {}",
                 tipo, saved.getId(), m.getProductoNombre(), m.getCantidad(),
                 m.getStockAnterior(), m.getStockNuevo());
@@ -139,11 +146,23 @@ public class MovimientoService {
     }
 
     public void aprobarTransferencia(String movimientoId) throws SQLException {
+        requireAdminForTransferWorkflow();
         movimientoRepo.aprobarTransferencia(movimientoId);
+        auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_aprobada",
+            "Transferencia aprobada por administrador");
     }
 
     public void rechazarTransferencia(String movimientoId) throws SQLException {
+        requireAdminForTransferWorkflow();
         movimientoRepo.rechazarTransferencia(movimientoId);
+        auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_rechazada",
+            "Transferencia rechazada por administrador");
+    }
+
+    private void requireAdminForTransferWorkflow() {
+        if (!SessionManager.isAdmin()) {
+            throw new SecurityException("Solo el administrador puede aprobar o rechazar transferencias");
+        }
     }
 
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
@@ -163,6 +182,7 @@ public class MovimientoService {
         }
         try {
             movimientoRepo.deleteMovimientoAtomic(movimientoId);
+            auditRepo.log("movimiento", movimientoId, movimientoId, "eliminar", "Movimiento eliminado");
             log.info("Movimiento eliminado [{}]", movimientoId);
         } catch (SQLException e) {
             if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());

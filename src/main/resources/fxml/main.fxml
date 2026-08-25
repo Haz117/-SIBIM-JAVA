@@ -138,6 +138,10 @@
                     <graphic><FontIcon iconLiteral="mdi2l-logout" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
                 </Button>
+                <Button text="Tutorial" onAction="#onShowTutorial" styleClass="about-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <graphic><FontIcon iconLiteral="mdi2b-book-open-outline" styleClass="nav-icon"/></graphic>
+                    <tooltip><Tooltip text="Ver tutorial de uso del sistema"/></tooltip>
+                </Button>
                 <Button text="Acerca de" onAction="#onAcercaDe" styleClass="about-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                     <graphic><FontIcon iconLiteral="mdi2i-information" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Versión e información del sistema"/></tooltip>

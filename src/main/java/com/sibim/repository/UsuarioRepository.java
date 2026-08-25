@@ -131,8 +131,14 @@ public class UsuarioRepository {
      * since the user themself just chose this password.
      */
     public void completarCambioPassword(String userId, String newHash) throws SQLException {
+        Usuario currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null || !userId.equals(currentUser.getId())) {
+            throw new SecurityException("Solo puedes cambiar la contraseña de tu propia cuenta");
+        }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.updateUsuarioPassword(userId, newHash, false);
+            new AuditLogRepository().log("usuario", userId, currentUser.getNombre(), "actualizar",
+                "Contraseña cambiada por el usuario");
             return;
         }
         String sql = "UPDATE users SET password = ?, debe_cambiar_password = FALSE WHERE id = ?";
@@ -142,6 +148,8 @@ public class UsuarioRepository {
             ps.setString(2, userId);
             ps.executeUpdate();
         }
+        new AuditLogRepository().log("usuario", userId, currentUser.getNombre(), "actualizar",
+            "Contraseña cambiada por el usuario");
     }
 
     public void delete(String userId) throws SQLException {

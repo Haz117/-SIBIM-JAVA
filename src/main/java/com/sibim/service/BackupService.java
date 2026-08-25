@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.repository.AuditLogRepository;
+import com.sibim.session.SessionManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Whole-database backup/restore, driven purely over JDBC (no pg_dump/psql
  *  available or bundled) — for each table, a plain {@code SELECT *} is read
@@ -59,6 +62,8 @@ public class BackupService {
         }
         raiz.put("tablas", tablas);
         mapper.writeValue(destino, raiz);
+        new AuditLogRepository().log("backup", destino.getName(), destino.getName(), "crear",
+            "Respaldo completo generado");
     }
 
     /** Replaces every row in every table with what's in {@code origen}.
@@ -73,6 +78,7 @@ public class BackupService {
         Map<String, List<Map<String, Object>>> tablas = (Map<String, List<Map<String, Object>>>) tablasObj;
 
         try (Connection conn = DatabaseConfig.getConnection()) {
+            validarTablas(conn, tablas);
             conn.setAutoCommit(false);
             try {
                 for (int i = TABLAS.size() - 1; i >= 0; i--) {
@@ -89,6 +95,8 @@ public class BackupService {
             } finally {
                 conn.setAutoCommit(true);
             }
+            new AuditLogRepository().log("backup", origen.getName(), origen.getName(), "restaurar",
+                "Restauración completa aplicada");
         }
     }
 
@@ -97,6 +105,8 @@ public class BackupService {
             throw new SQLException(
                 "Respaldo/restauración solo disponible conectado a la base de datos principal "
                 + "(no en modo offline ni demostración)");
+        if (!SessionManager.isAdmin())
+            throw new SecurityException("Solo el administrador puede realizar respaldos y restauraciones");
     }
 
     private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {
@@ -162,5 +172,25 @@ public class BackupService {
 
     private boolean looksLikeDate(String s) {
         return s.length() == 10 && s.charAt(4) == '-' && s.charAt(7) == '-';
+    }
+
+    private void validarTablas(Connection conn, Map<String, List<Map<String, Object>>> tablas) throws SQLException, IOException {
+        if (!tablas.keySet().stream().allMatch(TABLAS::contains))
+            throw new IOException("El respaldo contiene tablas no permitidas");
+        for (Map.Entry<String, List<Map<String, Object>>> entry : tablas.entrySet()) {
+            if (entry.getValue() == null) continue;
+            Set<String> columnasPermitidas;
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT * FROM " + entry.getKey() + " LIMIT 0")) {
+                ResultSetMetaData meta = rs.getMetaData();
+                columnasPermitidas = new java.util.HashSet<>();
+                for (int i = 1; i <= meta.getColumnCount(); i++)
+                    columnasPermitidas.add(meta.getColumnLabel(i));
+            }
+            for (Map<String, Object> fila : entry.getValue()) {
+                if (fila == null || fila.keySet().stream().anyMatch(c -> !columnasPermitidas.contains(c)))
+                    throw new IOException("El respaldo contiene columnas no permitidas en " + entry.getKey());
+            }
+        }
     }
 }

@@ -10,7 +10,6 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;

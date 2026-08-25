@@ -3044,3 +3044,122 @@
 }
 .btn-warning-outline:hover   { -fx-background-color: #FEF3C7; }
 .btn-warning-outline:pressed { -fx-background-color: #FDE68A; -fx-translate-y: 1; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TUTORIAL OVERLAY — first-time inductive guide
+   ═══════════════════════════════════════════════════════════════════ */
+.tutorial-backdrop {
+    -fx-background-color: rgba(15, 23, 42, 0.70);
+}
+
+/* Card: white content area + clipped top-left/right radius to match header */
+.tutorial-card {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.32), 44, 0, 0, 12);
+}
+
+/* Gradient header radius matches card */
+.tutorial-card > VBox > StackPane {
+    -fx-background-radius: 20 20 0 0;
+}
+
+/* Floating icon badge — white circle with shadow, sits on header/content border */
+.tutorial-icon-badge {
+    -fx-background-radius: 38;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 14, 0, 0, 3);
+}
+
+/* Progress track inside header (transparent white) */
+.tutorial-progress-track {
+    -fx-background-color: rgba(255,255,255,0.22);
+}
+
+/* Progress fill (bright white) — width is animated in Java */
+.tutorial-progress-fill {
+    -fx-background-color: rgba(255,255,255,0.85);
+    -fx-background-radius: 0 3 3 0;
+}
+
+/* Step title */
+.tutorial-title {
+    -fx-font-size: 18.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F172A;
+    -fx-text-alignment: CENTER;
+    -fx-alignment: CENTER;
+}
+
+/* Bullet rows */
+.tutorial-bullet-row {
+    -fx-padding: 0 0 0 0;
+}
+.tutorial-bullet-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: #475569;
+    -fx-line-spacing: 1;
+}
+
+/* Shortcut pill — color & border set inline per step */
+.tutorial-shortcut-icon {
+    -fx-icon-size: 13;
+}
+.tutorial-shortcut-text {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+}
+
+/* Progress dots */
+.tutorial-dot        { -fx-fill: #CBD5E1; }
+.tutorial-dot-active { -fx-fill: #6366F1; } /* overridden inline per step */
+
+/* Step counter */
+.tutorial-counter {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94A3B8;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.5px;
+}
+
+/* Primary action button — background & shadow set inline per step */
+.tutorial-btn-primary {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 9;
+    -fx-padding: 9 22;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+}
+.tutorial-btn-primary:hover   { -fx-opacity: 0.88; }
+.tutorial-btn-primary:pressed { -fx-opacity: 0.75; -fx-translate-y: 1; }
+.tutorial-btn-primary:disabled { -fx-opacity: 0.55; }
+
+/* Secondary (Anterior) button */
+.tutorial-btn-secondary {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748B;
+    -fx-background-radius: 9;
+    -fx-padding: 9 16;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 9;
+    -fx-border-width: 1;
+}
+.tutorial-btn-secondary:hover   { -fx-background-color: #F8FAFC; -fx-text-fill: #334155; }
+.tutorial-btn-secondary:pressed { -fx-background-color: #F1F5F9; -fx-translate-y: 1; }
+
+/* Ghost skip button */
+.tutorial-btn-skip {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94A3B8;
+    -fx-background-radius: 8;
+    -fx-padding: 9 10;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+}
+.tutorial-btn-skip:hover {
+    -fx-text-fill: #64748B;
+    -fx-background-color: #F1F5F9;
+    -fx-background-radius: 8;
+}

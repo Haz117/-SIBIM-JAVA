@@ -300,10 +300,13 @@ public final class DialogUtil {
         // edits to the editor text (e.g. restoring the label after a pick) —
         // without it, that restore would re-trigger the filter and fight itself.
         boolean[] guard = { false };
+        java.util.concurrent.atomic.AtomicReference<T> lastSelection =
+            new java.util.concurrent.atomic.AtomicReference<>();
         combo.getEditor().textProperty().addListener((obs, old, text) -> {
             if (guard[0]) return;
             T selected = combo.getValue();
             if (selected != null && toText.apply(selected).equals(text)) return;
+            if (selected != null) lastSelection.set(null);
             String q = text == null ? "" : text.toLowerCase();
             java.util.List<T> filtered = q.isBlank() ? allItems
                 : allItems.stream().filter(i -> toText.apply(i).toLowerCase().contains(q)).toList();
@@ -311,6 +314,15 @@ public final class DialogUtil {
             if (!filtered.isEmpty()) combo.show(); else combo.hide();
         });
         combo.valueProperty().addListener((obs, old, val) -> {
+            if (val != null) {
+                lastSelection.set(val);
+            } else if (lastSelection.get() != null
+                    && toText.apply(lastSelection.get()).equals(combo.getEditor().getText())) {
+                guard[0] = true;
+                combo.setValue(lastSelection.get());
+                guard[0] = false;
+                return;
+            }
             guard[0] = true;
             combo.getEditor().setText(val == null ? "" : toText.apply(val));
             combo.getEditor().positionCaret(combo.getEditor().getText().length());
@@ -320,8 +332,9 @@ public final class DialogUtil {
             if (is) {
                 // Clicking straight into the field (not the dropdown arrow)
                 // must open the list immediately — otherwise it looks like a
-                // dead text field instead of a searchable picker until the
-                // user already knows to start typing.
+                // dead text field instead of a searchable picker until
+                // the user already knows to start typing.
+                combo.setItems(javafx.collections.FXCollections.observableArrayList(allItems));
                 if (!combo.getItems().isEmpty()) combo.show();
                 return;
             }
@@ -329,14 +342,17 @@ public final class DialogUtil {
             // leaves stale typed text that doesn't match any product — snap
             // back to whatever was actually selected (or blank) instead of
             // leaving that dangling text in the field.
-            T selected = combo.getValue();
-            String expected = selected == null ? "" : toText.apply(selected);
-            if (!expected.equals(combo.getEditor().getText())) {
-                guard[0] = true;
-                combo.getEditor().setText(expected);
-                guard[0] = false;
-            }
-            combo.setItems(javafx.collections.FXCollections.observableArrayList(allItems));
+            // Do not replace the items here. JavaFX may clear the selected
+            // value while replacing items during the same focus event.
+            Platform.runLater(() -> {
+                T selected = combo.getValue();
+                String expected = selected == null ? "" : toText.apply(selected);
+                if (!expected.equals(combo.getEditor().getText())) {
+                    guard[0] = true;
+                    combo.getEditor().setText(expected);
+                    guard[0] = false;
+                }
+            });
         });
     }
 
