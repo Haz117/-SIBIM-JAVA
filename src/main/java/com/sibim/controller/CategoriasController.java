@@ -147,12 +147,13 @@ public class CategoriasController {
         });
         colIcono.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getIcono() != null ? c.getValue().getIcono() : ""));
         colIcono.setCellFactory(col -> new TableCell<>() {
+            private final Label lbl = new Label();
+            { lbl.setStyle("-fx-font-size: 18px;"); setContentDisplay(ContentDisplay.GRAPHIC_ONLY); setAlignment(javafx.geometry.Pos.CENTER); }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                getStyleClass().remove("icon-cell");
-                if (empty || item == null || item.isBlank()) { setText(null); return; }
-                setText(item);
-                getStyleClass().add("icon-cell");
+                if (empty || item == null || item.isBlank()) { setGraphic(null); return; }
+                lbl.setText(item);
+                setGraphic(lbl);
             }
         });
         colProductos.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalProductos"));

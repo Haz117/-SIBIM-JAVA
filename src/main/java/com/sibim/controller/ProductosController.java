@@ -848,11 +848,8 @@ public class ProductosController {
     private void onExportCsv() {
         DialogUtil.runAsync(
             () -> reporteService.exportInventarioCsv(null, null),
-            file -> {
-                NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
-                openFile(file);
-            },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
+            file -> { NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente"); openFile(file); },
+            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportCsv)
         );
     }
 
@@ -860,11 +857,8 @@ public class ProductosController {
     private void onExportExcel() {
         DialogUtil.runAsync(
             () -> reporteService.exportInventarioExcel(null, null),
-            file -> {
-                NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
-                openFile(file);
-            },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
+            file -> { NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente"); openFile(file); },
+            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportExcel)
         );
     }
 
@@ -874,12 +868,8 @@ public class ProductosController {
         if (seleccion.isEmpty()) return;
         DialogUtil.runAsync(
             () -> reporteService.exportInventarioCsv(seleccion),
-            file -> {
-                NotificacionUtil.exito(table.getScene(),
-                    seleccion.size() + " bien(es) exportado(s) a CSV");
-                openFile(file);
-            },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
+            file -> { NotificacionUtil.exito(table.getScene(), seleccion.size() + " bien(es) exportado(s) a CSV"); openFile(file); },
+            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportSeleccionCsv)
         );
     }
 
@@ -889,12 +879,8 @@ public class ProductosController {
         if (seleccion.isEmpty()) return;
         DialogUtil.runAsync(
             () -> reporteService.exportInventarioExcel(seleccion),
-            file -> {
-                NotificacionUtil.exito(table.getScene(),
-                    seleccion.size() + " bien(es) exportado(s) a Excel");
-                openFile(file);
-            },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
+            file -> { NotificacionUtil.exito(table.getScene(), seleccion.size() + " bien(es) exportado(s) a Excel"); openFile(file); },
+            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportSeleccionExcel)
         );
     }
 

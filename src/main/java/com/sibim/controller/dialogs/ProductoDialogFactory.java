@@ -78,6 +78,10 @@ public final class ProductoDialogFactory {
         Label lblCodigoHint = new Label();
         lblCodigoHint.getStyleClass().add("field-hint");
         lblCodigoHint.setVisible(false); lblCodigoHint.setManaged(false);
+        // Used below (inside the async debounce callback) to re-run the OK
+        // enablement check after the availability result arrives — without this
+        // the OK button stays enabled even when the hint shows "ya existe".
+        Runnable[] checkOkRef = {null};
         javafx.animation.Timeline[] codigoDebounce = {null};
         fCodigo.textProperty().addListener((obs, old, val) -> {
             if (codigoDebounce[0] != null) codigoDebounce[0].stop();
@@ -94,6 +98,7 @@ public final class ProductoDialogFactory {
                             lblCodigoHint.setVisible(true); lblCodigoHint.setManaged(true);
                             if (exists) fCodigo.getStyleClass().add("field-error");
                             else fCodigo.getStyleClass().remove("field-error");
+                            if (checkOkRef[0] != null) checkOkRef[0].run();
                         });
                     } catch (Exception ignored) { log.debug("Código availability check failed", ignored); }
                 })));
@@ -382,13 +387,15 @@ public final class ProductoDialogFactory {
 
         if (okBtn != null) {
             Runnable checkOk = () -> {
+                boolean codigoError = lblCodigoHint.getStyleClass().contains("field-hint-error");
                 boolean invalid = fNombre.getText().isBlank() || fCodigo.getText().isBlank()
                     || fArea.getValue() == null || fArea.getValue().isBlank()
-                    || fCat.getValue() == null;
+                    || fCat.getValue() == null || codigoError;
                 okBtn.setDisable(invalid);
                 btnGuardar.setDisable(invalid);
             };
             checkOk.run();
+            checkOkRef[0] = checkOk;
             fNombre.textProperty().addListener((o, a, b) -> checkOk.run());
             fCodigo.textProperty().addListener((o, a, b) -> checkOk.run());
             fArea.valueProperty().addListener((o, a, b) -> checkOk.run());
@@ -451,6 +458,17 @@ public final class ProductoDialogFactory {
                 e.consume();
         });
 
+        // Enter in any non-TextArea, non-ComboBox field confirms the dialog —
+        // mirrors what clicking "Guardar" does, so keyboard-only users don't
+        // have to reach for the mouse after filling the last tab field.
+        dialogContent.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.ENTER || e.isAltDown()) return;
+            javafx.scene.Node t = (javafx.scene.Node) e.getTarget();
+            for (javafx.scene.Node n = t; n != null; n = n.getParent()) {
+                if (n instanceof ComboBox || n instanceof TextArea) return;
+            }
+            if (okBtn instanceof Button b && !b.isDisabled()) { b.fire(); e.consume(); }
+        });
         Platform.runLater(() -> fNombre.requestFocus());
         dialog.setResultConverter(btn -> {
             if (btn != ButtonType.OK) return null;

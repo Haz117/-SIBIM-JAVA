@@ -160,8 +160,8 @@
             <TableColumn fx:id="colFechaAdq"    text="Fecha adquisición"  prefWidth="130" sortable="true"/>
             <TableColumn fx:id="colVidaUtil"    text="Vida útil"          prefWidth="90"  sortable="true"/>
             <TableColumn fx:id="colRestante"    text="Vida útil restante" prefWidth="130" sortable="true"/>
-            <TableColumn fx:id="colValorCompra" text="Valor compra"       prefWidth="110" sortable="true"/>
-            <TableColumn fx:id="colValorActual" text="Valor actual"       prefWidth="110" sortable="true"/>
+            <TableColumn fx:id="colValorCompra" text="Valor compra"       prefWidth="140" sortable="true"/>
+            <TableColumn fx:id="colValorActual" text="Valor actual"       prefWidth="140" sortable="true"/>
             <TableColumn fx:id="colPct"         text="Depreciado (%)"     prefWidth="120" sortable="true"/>
             <TableColumn fx:id="colFechaTotal"  text="Depreciado el"      prefWidth="120" sortable="true"/>
         </columns>

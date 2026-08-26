@@ -427,7 +427,19 @@ public final class MovimientoDialogFactory {
         });
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, actionBar), 280, 70);
-        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, actionBar));
+        VBox dialogContent = new VBox(0, header, grid, lblFormError, actionBar);
+        // Enter in a Spinner or TextField (not inside a ComboBox editor) confirms
+        // the dialog — all ComboBoxes here are product/area pickers where Enter
+        // already commits the selection, so we only intercept it for fCantidad/fRef.
+        dialogContent.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.ENTER || e.isAltDown()) return;
+            javafx.scene.Node t = (javafx.scene.Node) e.getTarget();
+            for (javafx.scene.Node n = t; n != null; n = n.getParent()) {
+                if (n instanceof ComboBox) return;
+            }
+            if (okBtn instanceof Button b && !b.isDisabled()) { b.fire(); e.consume(); }
+        });
+        dialog.getDialogPane().setContent(dialogContent);
 
         // Dirty tracking — only prompt if the user actually selected a product
         // (at that point they've done meaningful work worth protecting).
