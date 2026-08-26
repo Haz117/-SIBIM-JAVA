@@ -49,8 +49,8 @@ public class AuthService {
             if (DatabaseConfig.isOfflineMode()) {
                 Optional<Usuario> cached = OfflineStore.findCachedUserByUsername(key);
                 if (cached.isEmpty()) {
-                    throw new AuthException("No hay conexión y esta cuenta nunca inició sesión en esta PC estando "
-                        + "en línea, así que no se puede verificar sin conexión.");
+                    throw new AuthException("No hay conexión. El acceso sin conexión requiere haber iniciado sesión "
+                        + "en esta PC con conexión activa en los últimos 30 días.");
                 }
                 Usuario user = cached.get();
                 BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash());

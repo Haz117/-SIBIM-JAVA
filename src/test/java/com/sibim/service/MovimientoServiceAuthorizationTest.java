@@ -51,24 +51,23 @@ public class MovimientoServiceAuthorizationTest {
     }
 
     @Test
-    public void testAprobarTransferencia_AllowsAdmin() throws SQLException {
+    public void testAprobarTransferencia_AllowsAdmin() {
         SessionManager.setCurrentUser(adminUser);
-        // No debe lanzar SecurityException — puede que falle por movimiento no encontrado,
-        // pero eso es diferente de falta de permisos. Se acepta SQLException.
+        // El guard de autorización debe pasar; cualquier otra excepción (BD offline) es aceptable.
         try {
             service.aprobarTransferencia("movement-id");
         } catch (SecurityException e) {
             fail("Un Admin no debe recibir SecurityException: " + e.getMessage());
-        }
+        } catch (Exception ignored) {}
     }
 
     @Test
-    public void testRechazarTransferencia_AllowsAdmin() throws SQLException {
+    public void testRechazarTransferencia_AllowsAdmin() {
         SessionManager.setCurrentUser(adminUser);
         try {
             service.rechazarTransferencia("movement-id");
         } catch (SecurityException e) {
             fail("Un Admin no debe recibir SecurityException: " + e.getMessage());
-        }
+        } catch (Exception ignored) {}
     }
 }

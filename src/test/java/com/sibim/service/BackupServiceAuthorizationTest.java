@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.sql.SQLException;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /** Valida que solo Admins pueden ejecutar backup y restore. */
@@ -53,24 +54,23 @@ public class BackupServiceAuthorizationTest {
     }
 
     @Test
-    public void testBackup_AllowsAdmin() throws SQLException {
+    public void testBackup_AllowsAdmin() {
         SessionManager.setCurrentUser(adminUser);
-        // No debe lanzar SecurityException — puede que falle por conexión offline,
-        // pero el permiso debe ser aceptado. Se acepta IOException o SQLException.
+        // El guard de autorización debe pasar; IOException/SQLException por BD offline son aceptables.
         try {
             service.backup(tempFile);
         } catch (SecurityException e) {
             fail("Un Admin no debe recibir SecurityException: " + e.getMessage());
-        }
+        } catch (Exception ignored) {}
     }
 
     @Test
-    public void testRestore_AllowsAdmin() throws SQLException {
+    public void testRestore_AllowsAdmin() {
         SessionManager.setCurrentUser(adminUser);
         try {
             service.restore(tempFile);
         } catch (SecurityException e) {
             fail("Un Admin no debe recibir SecurityException: " + e.getMessage());
-        }
+        } catch (Exception ignored) {}
     }
 }

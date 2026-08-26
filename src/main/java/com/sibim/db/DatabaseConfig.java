@@ -86,6 +86,13 @@ public final class DatabaseConfig {
         String sslMode = getEnv(dotenv, "DB_SSL_MODE", "prefer");
         config.addDataSourceProperty("sslmode", sslMode);
 
+        boolean isRemote = !url.contains("localhost") && !url.contains("127.0.0.1") && !url.contains("::1");
+        if (isRemote && !"require".equalsIgnoreCase(sslMode) && !"verify-full".equalsIgnoreCase(sslMode)) {
+            log.warn("ATENCIÓN DE SEGURIDAD: La BD es remota ({}) pero DB_SSL_MODE='{}' — "
+                + "las credenciales podrían viajar sin cifrar. "
+                + "Agrega DB_SSL_MODE=require al .env para producción.", url, sslMode);
+        }
+
         dataSource = new HikariDataSource(config);
     }
 

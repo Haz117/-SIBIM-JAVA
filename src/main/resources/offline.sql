@@ -64,6 +64,9 @@ CREATE TABLE IF NOT EXISTS movements (
 -- Solo-lectura desde el lado offline: se llena/actualiza cada vez que la
 -- app SÍ logra conectar a Postgres (ver AuthService), para que un usuario
 -- ya conocido pueda seguir iniciando sesión si luego se pierde la conexión.
+-- cached_at: marca cuándo se actualizó por última vez esta entrada; entradas
+-- con más de 30 días de antigüedad son rechazadas en modo offline para forzar
+-- una reconexión periódica y verificar que el usuario sigue activo en Postgres.
 CREATE TABLE IF NOT EXISTS users_cache (
     id                     TEXT PRIMARY KEY,
     username               TEXT UNIQUE NOT NULL,
@@ -71,7 +74,8 @@ CREATE TABLE IF NOT EXISTS users_cache (
     nombre                 TEXT NOT NULL,
     rol                    TEXT NOT NULL,
     area                   TEXT,
-    debe_cambiar_password  INTEGER NOT NULL DEFAULT 0
+    debe_cambiar_password  INTEGER NOT NULL DEFAULT 0,
+    cached_at              TEXT
 );
 
 -- ───────────────────────────── Outbox ─────────────────────────────

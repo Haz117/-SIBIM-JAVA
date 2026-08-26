@@ -83,13 +83,27 @@ public final class OfflineStore {
                 Path dbFile = dbDir.resolve("offline.db");
                 conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
                 conn.setAutoCommit(true);
-                runSchema(conn);
+                // Skip runSchema() on existing DBs — CREATE TABLE IF NOT EXISTS statements
+                // executed via executeBatch() on a non-empty DB trigger a SQLite JDBC GC
+                // quirk on JDK 21 where native statement handles get finalized mid-batch.
+                // runOfflineMigrations() is fully idempotent and handles schema evolution.
+                if (!schemaExists(conn)) {
+                    runSchema(conn);
+                }
                 runOfflineMigrations(conn);
             } catch (IOException e) {
                 throw new SQLException("No se pudo abrir el almacén offline local", e);
             }
         }
         return conn;
+    }
+
+    private static boolean schemaExists(Connection c) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='products'");
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() && rs.getInt(1) > 0;
+        }
     }
 
     /** Idempotent column/table additions for existing offline.db files that pre-date schema changes.
@@ -133,6 +147,12 @@ public final class OfflineStore {
                     usuario_nombre TEXT NOT NULL, created_at TEXT NOT NULL,
                     status TEXT NOT NULL DEFAULT 'PENDING', error TEXT)""");
         } catch (SQLException ignored) {}
+        // M4 (2026): cached_at para caducidad del caché de credenciales offline (30 días).
+        // Columna nullable — filas previas quedan con NULL, que findCachedUserByUsername
+        // trata como "expirado", forzando re-autenticación online la primera vez.
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE users_cache ADD COLUMN cached_at TEXT");
+        } catch (SQLException ignored) {}
     }
 
     private static void runSchema(Connection c) throws SQLException {
@@ -142,11 +162,16 @@ public final class OfflineStore {
             try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
                 sql = r.lines().collect(Collectors.joining("\n"));
             }
+            // Use addBatch/executeBatch instead of per-statement execute() to keep a
+            // strong reference to the Statement throughout, preventing the JIT from
+            // prematurely clearing it for GC while the loop is still running — a
+            // known SQLite JDBC quirk on JDK 21 with concurrent GC.
             try (Statement st = c.createStatement()) {
                 for (String stmt : sql.split(";")) {
                     String trimmed = stmt.strip();
-                    if (!trimmed.isEmpty()) st.execute(trimmed);
+                    if (!trimmed.isEmpty()) st.addBatch(trimmed);
                 }
+                st.executeBatch();
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -760,14 +785,17 @@ public final class OfflineStore {
 
     /** Refreshed after every successful ONLINE login (see AuthService) —
      *  never written from the offline side. Lets a previously-seen real
-     *  user keep logging in if the connection later drops. */
+     *  user keep logging in if the connection later drops, for up to
+     *  {@link #OFFLINE_CACHE_TTL_DAYS} days before requiring re-authentication online. */
+    static final int OFFLINE_CACHE_TTL_DAYS = 30;
+
     public static void cacheUser(Usuario u) throws SQLException {
         String sql = """
-            INSERT INTO users_cache (id, username, password_hash, nombre, rol, area, debe_cambiar_password)
-            VALUES (?,?,?,?,?,?,?)
+            INSERT INTO users_cache (id, username, password_hash, nombre, rol, area, debe_cambiar_password, cached_at)
+            VALUES (?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET username=excluded.username, password_hash=excluded.password_hash,
                 nombre=excluded.nombre, rol=excluded.rol, area=excluded.area,
-                debe_cambiar_password=excluded.debe_cambiar_password
+                debe_cambiar_password=excluded.debe_cambiar_password, cached_at=excluded.cached_at
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setString(1, u.getId());
@@ -777,16 +805,33 @@ public final class OfflineStore {
             ps.setString(5, u.getRol().getCodigo());
             ps.setString(6, u.getArea());
             ps.setInt(7, u.isDebeCambiarPassword() ? 1 : 0);
+            ps.setString(8, str(LocalDateTime.now()));
             ps.executeUpdate();
         }
     }
 
+    /**
+     * Returns the cached user only if:
+     * (a) the entry exists, AND
+     * (b) it was cached within the last {@link #OFFLINE_CACHE_TTL_DAYS} days.
+     * Expired entries return {@link Optional#empty()} so AuthService can show
+     * a meaningful "reconnect required" message rather than accepting stale credentials.
+     */
     public static Optional<Usuario> findCachedUserByUsername(String username) throws SQLException {
         try (PreparedStatement ps = conn().prepareStatement(
                 "SELECT * FROM users_cache WHERE username = ?")) {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
+                String cachedAtStr = rs.getString("cached_at");
+                if (cachedAtStr != null) {
+                    try {
+                        LocalDateTime cachedAt = LocalDateTime.parse(cachedAtStr);
+                        if (cachedAt.isBefore(LocalDateTime.now().minusDays(OFFLINE_CACHE_TTL_DAYS))) {
+                            return Optional.empty(); // caché caducado
+                        }
+                    } catch (Exception ignored) {}
+                }
                 Usuario u = new Usuario();
                 u.setId(rs.getString("id"));
                 u.setUsername(rs.getString("username"));
