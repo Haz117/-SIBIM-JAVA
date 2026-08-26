@@ -277,7 +277,7 @@ public class DepreciacionController {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 log.error("No se pudo cargar la depreciación", getException());
                 if (table.getScene() != null)
-                    NotificacionUtil.errorConAccion(table.getScene(), "No se pudo cargar la depreciación", "Reintentar", this::loadData);
+                    NotificacionUtil.errorConAccion(table.getScene(), "No se pudo cargar la depreciación", "Reintentar", DepreciacionController.this::loadData);
             }
         };
         com.sibim.util.AppExecutor.submit(task);

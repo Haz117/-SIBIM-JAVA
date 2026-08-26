@@ -125,7 +125,7 @@ public class DashboardController {
                 lblValorTotal.setText("Sin datos");
                 if (statsGrid != null && statsGrid.getScene() != null)
                     com.sibim.util.NotificacionUtil.errorConAccion(statsGrid.getScene(),
-                        "No se pudo cargar el resumen. Verifica la conexión.", "Reintentar", this::loadDataAsync);
+                        "No se pudo cargar el resumen. Verifica la conexión.", "Reintentar", DashboardController.this::loadDataAsync);
             }
         };
         com.sibim.util.AppExecutor.submit(task);
