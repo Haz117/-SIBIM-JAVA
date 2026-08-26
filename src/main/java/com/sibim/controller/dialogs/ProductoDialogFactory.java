@@ -207,19 +207,21 @@ public final class ProductoDialogFactory {
 
         VBox codigoBox = new VBox(2, fCodigo, lblCodigoHint);
         int r = 0;
+        // Required fields first, optional image below a visual divider
+        Label lblInfoReq = new Label("* Campos obligatorios");
+        lblInfoReq.getStyleClass().addAll("muted-sm");
         gridInfo.add(DialogUtil.fieldLabel("Nombre *"),    0, r); gridInfo.add(fNombre,    1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Código *"),     0, r); gridInfo.add(codigoBox,  1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Descripción"), 0, r); gridInfo.add(fDesc,      1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Código *"),    0, r); gridInfo.add(codigoBox,  1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Categoría *"), 0, r); gridInfo.add(fCat,       1, r++);
         gridInfo.add(DialogUtil.fieldLabelWithHelp("Área *",
             "Secretaría o Dirección responsable del bien.\n" +
             "Solo los usuarios de esa área podrán gestionarlo.\n" +
             "Para DIRECCIÓN el área se fija automáticamente."),
                                                              0, r); gridInfo.add(fArea,      1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Proveedor"),   0, r); gridInfo.add(fProveedor, 1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Ubicación"),   0, r); gridInfo.add(fUbicacion, 1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Resguardante"), 0, r); gridInfo.add(fResguardante, 1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Imagen"),      0, r); gridInfo.add(imgSection, 1, r);
+        gridInfo.add(new Separator(), 0, r, 2, 1); r++;
+        gridInfo.add(DialogUtil.fieldLabel("Descripción"), 0, r); gridInfo.add(fDesc,      1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Imagen"),      0, r); gridInfo.add(imgSection, 1, r++);
+        gridInfo.add(lblInfoReq,                           1, r);
 
         // ── Tab: Stock & Precios ──
         GridPane gridStock = DialogUtil.formGrid(140);
@@ -318,29 +320,38 @@ public final class ProductoDialogFactory {
         gridStock.add(DialogUtil.fieldLabel("Precio Venta"),    0, rs); gridStock.add(new VBox(2, fPrecioV, lblPrecioVHint), 1, rs++);
         gridStock.add(DialogUtil.fieldLabel("Fecha Venc."),     0, rs); gridStock.add(fVenc,     1, rs++);
 
-        // ── Sección Depreciación ──
+        // ── Tab: Datos Patrimoniales ──
+        GridPane gridPatrimonio = DialogUtil.formGrid(140);
+        int rp = 0;
+        gridPatrimonio.add(DialogUtil.fieldLabel("Proveedor"),    0, rp); gridPatrimonio.add(fProveedor,    1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabel("Ubicación"),    0, rp); gridPatrimonio.add(fUbicacion,    1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Resguardante",
+            "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
+                                                                  0, rp); gridPatrimonio.add(fResguardante, 1, rp++);
+        gridPatrimonio.add(new Separator(), 0, rp, 2, 1); rp++;
         Label lblDepSection = new Label("Depreciación (línea recta)");
         lblDepSection.getStyleClass().add("dialog-field-label");
-        gridStock.add(new Separator(), 0, rs, 2, 1); rs++;
-        gridStock.add(lblDepSection, 0, rs, 2, 1); rs++;
-        gridStock.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
+        gridPatrimonio.add(lblDepSection, 0, rp, 2, 1); rp++;
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
             "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
-                                                              0, rs); gridStock.add(fFechaAdq,     1, rs++);
-        gridStock.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
+                                                                  0, rp); gridPatrimonio.add(fFechaAdq,      1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
             "Número de años en que el bien se deprecia completamente\n(SAT México: equipos de cómputo 3 años, vehículos 4, mobiliario 10)."),
-                                                              0, rs); gridStock.add(fVidaUtil,     1, rs++);
-        gridStock.add(DialogUtil.fieldLabelWithHelp("Valor residual",
+                                                                  0, rp); gridPatrimonio.add(fVidaUtil,      1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Valor residual",
             "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
-                                                              0, rs); gridStock.add(fValorResidual, 1, rs);
+                                                                  0, rp); gridPatrimonio.add(fValorResidual, 1, rp);
 
         // ── TabPane ──
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        Tab tabInfo  = new Tab("Información General", gridInfo);
+        Tab tabInfo       = new Tab("Información General", gridInfo);
         tabInfo.setGraphic(new FontIcon("mdi2i-information-outline"));
-        Tab tabStock = new Tab("Stock y Precios", gridStock);
+        Tab tabStock      = new Tab("Stock y Precios", gridStock);
         tabStock.setGraphic(new FontIcon("mdi2c-chart-bar"));
-        tabs.getTabs().addAll(tabInfo, tabStock);
+        Tab tabPatrimonio = new Tab("Datos Patrimoniales", gridPatrimonio);
+        tabPatrimonio.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
+        tabs.getTabs().addAll(tabInfo, tabStock, tabPatrimonio);
         tabs.getStyleClass().add("dlg-tabpane");
 
         Label lblFormError = new Label();
