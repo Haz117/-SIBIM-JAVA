@@ -185,6 +185,7 @@
             <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true"/>
             <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="140" sortable="true"/>
             <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true"/>
+            <TableColumn fx:id="colEstado"     text="Estado"             prefWidth="120" sortable="true"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">

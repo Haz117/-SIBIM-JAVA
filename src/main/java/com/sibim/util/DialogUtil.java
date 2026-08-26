@@ -17,6 +17,7 @@ import javafx.util.Callback;
 import javafx.util.Duration;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -252,10 +253,60 @@ public final class DialogUtil {
         if (tip != null) enableClickToShowTooltip(node, tip);
     }
 
-    // ── Collapsible section ─────────────────────────────────────────────
+    // ── Column visibility toggle ─────────────────────────────────────────
 
     private static final java.util.prefs.Preferences UI_PREFS =
         java.util.prefs.Preferences.userNodeForPackage(DialogUtil.class);
+
+    /**
+     * Adds a right-click context menu on a TableView's header that lets the
+     * user show/hide individual columns. Columns passed in {@code alwaysVisible}
+     * are omitted from the menu. Visibility choices are persisted in
+     * Preferences under {@code prefKeyPrefix.<columnText>} so the layout
+     * survives restarts. Call this inside {@code setupTable()} after all
+     * columns are configured — the lookup needs the skin, which is resolved
+     * lazily via skinProperty().
+     */
+    @SuppressWarnings({"unchecked","rawtypes"})
+    public static void setupColumnVisibilityMenu(String prefKeyPrefix,
+            TableView<?> table, List<? extends TableColumn<?, ?>> alwaysVisible) {
+        table.skinProperty().addListener((obs, old, skin) -> {
+            if (skin == null) return;
+            Platform.runLater(() -> {
+                Node headerBg = table.lookup(".column-header-background");
+                if (headerBg == null) return;
+
+                ContextMenu menu = new ContextMenu();
+                Label hint = new Label("Columnas visibles  (clic derecho en encabezado)");
+                hint.getStyleClass().addAll("muted-sm");
+                hint.setPadding(new Insets(4, 10, 2, 10));
+                CustomMenuItem hintItem = new CustomMenuItem(hint, false);
+                menu.getItems().addAll(hintItem, new SeparatorMenuItem());
+
+                for (TableColumn<?, ?> col : table.getColumns()) {
+                    if (alwaysVisible.contains(col) || col.getText() == null || col.getText().isBlank())
+                        continue;
+                    String prefKey = prefKeyPrefix + "." + col.getText();
+                    col.setVisible(UI_PREFS.getBoolean(prefKey, true));
+                    CheckMenuItem item = new CheckMenuItem(col.getText());
+                    item.setSelected(col.isVisible());
+                    col.visibleProperty().addListener((o, ov, nv) -> item.setSelected(nv));
+                    item.selectedProperty().addListener((o, ov, nv) -> {
+                        col.setVisible(nv);
+                        UI_PREFS.putBoolean(prefKey, nv);
+                    });
+                    menu.getItems().add(item);
+                }
+
+                headerBg.setOnContextMenuRequested(e -> {
+                    menu.show(headerBg, e.getScreenX(), e.getScreenY());
+                    e.consume();
+                });
+            });
+        });
+    }
+
+    // ── Collapsible section ─────────────────────────────────────────────
 
     /**
      * Wires {@code toggle} to show/hide {@code content} (a filter bar, most

@@ -46,6 +46,12 @@ public class MovimientosController {
 
     private static final Logger log = LoggerFactory.getLogger(MovimientosController.class);
 
+    // Tracks estado of current user's transfers across navigations (static = survives
+    // controller re-instantiation when the user navigates away and back).
+    // key=movimientoId, value=last-known estado string.
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> ESTADO_TRACK =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
     @FXML private VBox rootPane;
     @FXML private javafx.scene.layout.FlowPane filterBar;
     @FXML private Button btnToggleFiltros;
@@ -61,6 +67,7 @@ public class MovimientosController {
     @FXML private TableColumn<Movimiento, String> colMotivo;
     @FXML private TableColumn<Movimiento, String> colUsuario;
     @FXML private TableColumn<Movimiento, String> colFecha;
+    @FXML private TableColumn<Movimiento, String> colEstado;
     @FXML private Label lblTotal;
     @FXML private ProgressIndicator spinner;
     @FXML private Button btnNuevo;
@@ -252,6 +259,16 @@ public class MovimientosController {
             }
         });
         colUsuario.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsuarioNombre()));
+        colUsuario.setCellFactory(col -> new TableCell<>() {
+            private final Tooltip tip = new Tooltip();
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setText(null); setTooltip(null); return; }
+                setText(item);
+                tip.setText(item);
+                setTooltip(tip);
+            }
+        });
         colFecha.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
 
@@ -339,6 +356,26 @@ public class MovimientosController {
             else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
         });
         table.setPlaceholder(emptyState);
+
+        // Estado badge — only meaningful for TRANSFERENCIA rows
+        colEstado.setCellValueFactory(c -> {
+            Movimiento m = c.getValue();
+            if (m.getTipo() != com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA) return new SimpleStringProperty("");
+            return new SimpleStringProperty(switch (m.getEstado()) {
+                case Movimiento.ESTADO_PENDIENTE -> "Pendiente";
+                case Movimiento.ESTADO_RECHAZADO -> "Rechazada";
+                default -> "";
+            });
+        });
+        colEstado.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
+            case "Pendiente" -> "cell-badge-warning";
+            case "Rechazada" -> "cell-badge-danger";
+            default          -> "cell-badge-hidden";
+        }));
+
+        // Clic derecho en encabezado → toggle columnas secundarias
+        DialogUtil.setupColumnVisibilityMenu("movimientos.cols", table,
+            List.of(colProducto, colTipo, colCantidad));
     }
 
     private void setupTipoChips() {
@@ -417,7 +454,9 @@ public class MovimientosController {
             @Override protected List<Movimiento> call() throws Exception { return movimientoService.getAll(); }
             @Override protected void succeeded() {
                 loading.set(false);
-                allData.setAll(getValue());
+                List<Movimiento> nuevos = getValue();
+                checkEstadoCambios(nuevos);
+                allData.setAll(nuevos);
                 currentPage = 0;
                 applyFilters();
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
@@ -517,6 +556,40 @@ public class MovimientosController {
             this::showPendientesDialog,
             e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar las transferencias pendientes")
         );
+    }
+
+    /** Compares the new movement list against the last-known estados for the
+     *  current user's transfers. Shows a toast if any changed to APROBADO or
+     *  RECHAZADO since the previous load. */
+    private void checkEstadoCambios(List<Movimiento> nuevos) {
+        var user = SessionManager.getCurrentUser();
+        if (user == null) return;
+        String myId = user.getId();
+        boolean firstLoad = ESTADO_TRACK.isEmpty();
+
+        for (Movimiento m : nuevos) {
+            if (m.getTipo() != com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA) continue;
+            if (!myId.equals(m.getUsuarioId())) continue;
+            String prev = ESTADO_TRACK.get(m.getId());
+            String curr = m.getEstado();
+            if (!firstLoad && prev != null && !prev.equals(curr)) {
+                if (Movimiento.ESTADO_APROBADO.equals(curr)) {
+                    NotificacionUtil.exito(table.getScene(),
+                        "Tu transferencia de \"" + m.getProductoNombre() + "\" fue aprobada");
+                } else if (Movimiento.ESTADO_RECHAZADO.equals(curr)) {
+                    NotificacionUtil.error(table.getScene(),
+                        "Tu transferencia de \"" + m.getProductoNombre() + "\" fue rechazada");
+                }
+            }
+            ESTADO_TRACK.put(m.getId(), curr);
+        }
+        // Seed on first load so subsequent refreshes can detect changes
+        if (firstLoad) {
+            nuevos.stream()
+                .filter(m -> m.getTipo() == com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA
+                          && myId.equals(m.getUsuarioId()))
+                .forEach(m -> ESTADO_TRACK.put(m.getId(), m.getEstado()));
+        }
     }
 
     private void loadPendientesCount() {

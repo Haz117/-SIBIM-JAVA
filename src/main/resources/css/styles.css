@@ -955,6 +955,7 @@
 .cell-badge-purple  { -fx-background-color: #EDE9FE; -fx-text-fill: #4C1D95; }
 .cell-badge-blue    { -fx-background-color: #DBEAFE; -fx-text-fill: #1E3A8A; }
 .cell-badge-teal    { -fx-background-color: #CCFBF1; -fx-text-fill: #134E4A; }
+.cell-badge-hidden  { -fx-background-color: transparent; -fx-text-fill: transparent; -fx-padding: 0; }
 
 .badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: #DC2626; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
 .badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #D97706; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }

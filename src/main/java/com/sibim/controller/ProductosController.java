@@ -206,6 +206,9 @@ public class ProductosController {
         setupContextMenu();
         setupEmptyState();
         setupPagination();
+        // Clic derecho en encabezado → toggle columnas secundarias
+        DialogUtil.setupColumnVisibilityMenu("bienes.cols", table,
+            List.of(colFoto, colNombre, colStock, colEstado));
     }
 
     private void setupFotoColumn() {
