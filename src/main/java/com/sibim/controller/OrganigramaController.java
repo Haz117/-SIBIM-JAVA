@@ -74,7 +74,7 @@ public class OrganigramaController {
             },
             e -> {
                 spinner.setVisible(false); spinner.setManaged(false);
-                NotificacionUtil.error(searchField.getScene(), "No se pudo cargar el organigrama");
+                NotificacionUtil.errorConAccion(searchField.getScene(), "No se pudo cargar el organigrama", "Reintentar", () -> loadData(false));
             }
         );
     }
@@ -341,40 +341,63 @@ public class OrganigramaController {
             .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
 
+    private HBox buildProductRow(Producto p) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("org-product-row");
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(4, 8, 4, 12));
+        Label code = new Label(p.getCodigo());
+        code.getStyleClass().add("org-product-code");
+        code.setMinWidth(80);
+        Label name = new Label(p.getNombre());
+        name.getStyleClass().add("org-product-name");
+        name.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(name, Priority.ALWAYS);
+        Label stock = new Label("Stock: " + p.getStockActual());
+        stock.getStyleClass().add("org-product-stock");
+        stock.getStyleClass().add(switch (p.getEstado()) {
+            case AGOTADO    -> "stock-low";
+            case BAJO_STOCK -> "stock-warn";
+            default         -> "stock-ok";
+        });
+        row.getChildren().addAll(code, name, stock);
+        return row;
+    }
+
     private void addProductPreview(Pane container, List<Producto> prods, String areaName) {
         int preview = Math.min(prods.size(), 5);
-        for (int i = 0; i < preview; i++) {
-            Producto p = prods.get(i);
-            HBox row = new HBox(8);
-            row.getStyleClass().add("org-product-row");
-            row.setAlignment(Pos.CENTER_LEFT);
-            row.setPadding(new Insets(4, 8, 4, 12));
+        for (int i = 0; i < preview; i++)
+            container.getChildren().add(buildProductRow(prods.get(i)));
 
-            Label code = new Label(p.getCodigo());
-            code.getStyleClass().add("org-product-code");
-            code.setMinWidth(80);
+        if (prods.size() > 5) {
+            List<javafx.scene.Node> extras = new ArrayList<>();
+            for (int j = 5; j < prods.size(); j++) {
+                HBox row = buildProductRow(prods.get(j));
+                row.setVisible(false);
+                row.setManaged(false);
+                container.getChildren().add(row);
+                extras.add(row);
+            }
 
-            Label name = new Label(p.getNombre());
-            name.getStyleClass().add("org-product-name");
-            name.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(name, Priority.ALWAYS);
+            Hyperlink more = new Hyperlink("  +" + (prods.size() - 5) + " bienes más");
+            more.getStyleClass().add("org-more-link");
+            Hyperlink less = new Hyperlink("  Mostrar menos");
+            less.getStyleClass().add("org-more-link");
+            less.setVisible(false);
+            less.setManaged(false);
 
-            Label stock = new Label("Stock: " + p.getStockActual());
-            stock.getStyleClass().add("org-product-stock");
-            stock.getStyleClass().add(switch (p.getEstado()) {
-                case AGOTADO    -> "stock-low";
-                case BAJO_STOCK -> "stock-warn";
-                default         -> "stock-ok";
+            more.setOnAction(e -> {
+                extras.forEach(n -> { n.setVisible(true); n.setManaged(true); });
+                more.setVisible(false); more.setManaged(false);
+                less.setVisible(true); less.setManaged(true);
+            });
+            less.setOnAction(e -> {
+                extras.forEach(n -> { n.setVisible(false); n.setManaged(false); });
+                less.setVisible(false); less.setManaged(false);
+                more.setVisible(true); more.setManaged(true);
             });
 
-            row.getChildren().addAll(code, name, stock);
-            container.getChildren().add(row);
-        }
-        if (prods.size() > 5) {
-            Hyperlink more = new Hyperlink("  +" + (prods.size() - 5) + " bienes más — ver todos");
-            more.getStyleClass().add("org-more-link");
-            more.setOnAction(e -> showAreaProductsDialog(areaName, prods));
-            container.getChildren().add(more);
+            container.getChildren().addAll(more, less);
         }
     }
 

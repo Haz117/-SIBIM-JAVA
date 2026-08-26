@@ -179,7 +179,7 @@ public class CategoriasController {
             },
             e -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                NotificacionUtil.error(table.getScene(), "No se pudo cargar las categorías");
+                NotificacionUtil.errorConAccion(table.getScene(), "No se pudo cargar las categorías", "Reintentar", this::loadData);
             }
         );
     }

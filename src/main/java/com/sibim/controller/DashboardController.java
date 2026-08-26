@@ -124,8 +124,8 @@ public class DashboardController {
                 lblTotalBienes.setText("—");
                 lblValorTotal.setText("Sin datos");
                 if (statsGrid != null && statsGrid.getScene() != null)
-                    com.sibim.util.NotificacionUtil.error(statsGrid.getScene(),
-                        "No se pudo cargar el resumen. Verifica la conexión a la base de datos.");
+                    com.sibim.util.NotificacionUtil.errorConAccion(statsGrid.getScene(),
+                        "No se pudo cargar el resumen. Verifica la conexión.", "Reintentar", this::loadDataAsync);
             }
         };
         com.sibim.util.AppExecutor.submit(task);
@@ -314,6 +314,11 @@ public class DashboardController {
         chartValorCategoria.getData().clear();
         catValores.forEach(cv -> chartValorCategoria.getData().add(
             new PieChart.Data(cv.nombre(), cv.valor().doubleValue())));
+
+        // With 6+ categories the built-in radial labels overlap each other.
+        // Disable them and let the legend (always visible at the bottom) be
+        // the sole label source — tooltips still show the full value on hover.
+        chartValorCategoria.setLabelsVisible(catValores.size() <= 5);
 
         for (PieChart.Data d : chartValorCategoria.getData()) {
             String text = d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()));

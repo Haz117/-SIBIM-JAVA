@@ -150,7 +150,8 @@ public class ReportesController {
                 if (source != null) source.setDisable(false);
                 spinner.setVisible(false);
                 spinner.setManaged(false);
-                NotificacionUtil.error(spinner.getScene(), "Error al generar el reporte");
+                NotificacionUtil.errorConAccion(spinner.getScene(),
+                    "Error al generar el reporte", "Reintentar", () -> exportar(null, task));
             }
         );
     }
