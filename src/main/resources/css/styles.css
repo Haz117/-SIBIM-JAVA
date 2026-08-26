@@ -1617,6 +1617,47 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   OFFLINE / DEMO BANNER  — barra superior cuando no hay BD real
+   ═══════════════════════════════════════════════════════════════════ */
+.offline-banner {
+    -fx-background-color: #78350F;
+    -fx-border-color: transparent transparent #92400E transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-min-height: 36;
+    -fx-max-height: 36;
+}
+.offline-banner-demo {
+    -fx-background-color: #1E3A5F;
+    -fx-border-color: transparent transparent #1D4ED8 transparent;
+}
+.offline-banner-icon {
+    -fx-icon-color: #FDE68A;
+    -fx-icon-size: 16;
+}
+.offline-banner-text {
+    -fx-text-fill: #FEF3C7;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+.offline-banner-btn {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-text-fill: #FEF3C7;
+    -fx-font-size: 11px;
+    -fx-background-radius: 6;
+    -fx-padding: 4 12;
+    -fx-cursor: hand;
+    -fx-border-color: rgba(255,255,255,0.30);
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+}
+.offline-banner-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.25);
+}
+.offline-banner-btn:disabled {
+    -fx-opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    STATUS BAR  — barra inferior de estado
    ═══════════════════════════════════════════════════════════════════ */
 .status-bar {

@@ -67,6 +67,9 @@ public class MainController {
     @FXML private Button btnDepreciacion;
     @FXML private Button btnConfiguracion;
     @FXML private Label alertBadge;
+    @FXML private javafx.scene.layout.HBox offlineBanner;
+    @FXML private Label offlineBannerLabel;
+    @FXML private javafx.scene.control.Button offlineBannerSyncBtn;
     @FXML private Label statusDbLabel;
     @FXML private Label statusUserLabel;
     @FXML private Label statusTimeLabel;
@@ -453,17 +456,55 @@ public class MainController {
         if (statusUserLabel != null && SessionManager.getCurrentUser() != null)
             statusUserLabel.setText(SessionManager.getCurrentUser().getNombre() +
                 "  ·  " + SessionManager.getCurrentUser().getRol().getEtiqueta());
+
+        boolean offline = DatabaseConfig.isOfflineMode();
+        boolean demo    = DatabaseConfig.isDemoMode();
+        int pending     = offline ? SyncService.pendingCount() : 0;
+
         if (statusDbLabel != null) {
-            boolean offline = DatabaseConfig.isOfflineMode();
-            boolean demo = DatabaseConfig.isDemoMode();
             String text = offline
-                ? "⬤  Modo offline · " + SyncService.pendingCount() + " pendiente(s)"
+                ? "⬤  Modo offline · " + pending + " pendiente(s)"
                 : demo ? "⬤  Modo demo" : "⬤  Base de datos conectada";
             statusDbLabel.setText(text);
             statusDbLabel.getStyleClass().removeAll("status-dot-ok", "status-dot-demo");
             statusDbLabel.getStyleClass().add((demo || offline) ? "status-dot-demo" : "status-dot-ok");
         }
+
+        if (offlineBanner != null) {
+            boolean show = offline || demo;
+            offlineBanner.setVisible(show);
+            offlineBanner.setManaged(show);
+            if (show && offlineBannerLabel != null) {
+                offlineBannerLabel.setText(offline
+                    ? (pending > 0
+                        ? "Sin conexión — " + pending + " cambio(s) guardados localmente, se sincronizarán al reconectar"
+                        : "Sin conexión — trabajando en modo offline")
+                    : "Modo demostración — los datos no se guardan");
+            }
+            if (offlineBannerSyncBtn != null) {
+                offlineBannerSyncBtn.setVisible(offline);
+                offlineBannerSyncBtn.setManaged(offline);
+            }
+            if (offlineBanner.getStyleClass().contains("offline-banner-demo") == demo
+                    && offlineBanner.getStyleClass().contains("offline-banner-demo") != offline) {
+                offlineBanner.getStyleClass().removeAll("offline-banner-demo");
+                if (demo) offlineBanner.getStyleClass().add("offline-banner-demo");
+            }
+        }
+
         updateStatusTime();
+    }
+
+    @FXML
+    private void onSyncNow() {
+        if (offlineBannerSyncBtn != null) offlineBannerSyncBtn.setDisable(true);
+        com.sibim.util.AppExecutor.submit(() -> {
+            com.sibim.db.offline.SyncService.syncNow();
+            javafx.application.Platform.runLater(() -> {
+                updateStatusBar();
+                if (offlineBannerSyncBtn != null) offlineBannerSyncBtn.setDisable(false);
+            });
+        });
     }
 
     private void updateStatusTime() {

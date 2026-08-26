@@ -8,6 +8,20 @@
       fx:controller="com.sibim.controller.MainController"
       prefWidth="1300" prefHeight="820">
 
+    <!-- ── Offline / demo mode banner — appears at the top of the window
+         when the app is not connected to the live database. Hidden (and
+         not managed) when online so it doesn't eat vertical space. ── -->
+    <HBox fx:id="offlineBanner" visible="false" managed="false"
+          styleClass="offline-banner" alignment="CENTER_LEFT" spacing="10">
+        <padding><Insets top="7" right="16" bottom="7" left="16"/></padding>
+        <FontIcon fx:id="offlineBannerIcon" iconLiteral="mdi2c-cloud-off-outline" styleClass="offline-banner-icon"/>
+        <Label fx:id="offlineBannerLabel" styleClass="offline-banner-text"
+               text="Sin conexión — trabajando en modo offline"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="offlineBannerSyncBtn" text="Sincronizar ahora"
+                styleClass="offline-banner-btn" onAction="#onSyncNow"/>
+    </HBox>
+
     <!-- ── Main row: sidebar + content ──
          The sidebar is layered ON TOP of the content row (via the outer
          StackPane) rather than laid out beside it as a plain HBox sibling.
