@@ -116,7 +116,9 @@ public final class ProductoDialogFactory {
         ComboBox<String> fArea = new ComboBox<>(FXCollections.observableArrayList(areaNames));
         fArea.setMaxWidth(Double.MAX_VALUE);
         fArea.setPromptText("Área responsable");
-        fArea.setValue(existing != null ? existing.getArea() : SessionManager.getCurrentUser().getArea());
+        var sessionUser = SessionManager.getCurrentUser();
+        fArea.setValue(existing != null ? existing.getArea()
+            : sessionUser != null ? sessionUser.getArea() : null);
         if (SessionManager.isDireccion()) fArea.setDisable(true);
         fArea.getStyleClass().add("form-input");
 

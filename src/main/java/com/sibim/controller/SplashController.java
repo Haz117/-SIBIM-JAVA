@@ -149,32 +149,29 @@ public class SplashController {
     private void initDatabase() {
         boolean demoRequested = false;
         try {
-            DatabaseConfig.init();
-            // Apply pending migrations (V1, V2, …) automatically on every startup.
-            // baselineOnMigrate=true + baselineVersion="0" handles installations that
-            // had the schema applied manually before Flyway was introduced: it marks
-            // the existing DB as "already at version 0" on first run, then applies
-            // only the migrations that come after it (V1 onwards, idempotent via
-            // IF NOT EXISTS so they're safe to run on a pre-existing schema).
-            Flyway.configure()
-                .dataSource(DatabaseConfig.getDataSource())
-                .baselineOnMigrate(true)
-                .baselineVersion("0")
-                .load()
-                .migrate();
-            firstRunAdmin = seedAdminIfEmpty();
-        } catch (Exception e) {
-            log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());
-            DatabaseConfig.close();
+            // Check DEMO_MODE before attempting any DB connection so the flag
+            // works even when Postgres happens to be reachable on this machine.
             Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
             demoRequested = "true".equalsIgnoreCase(dotenv.get("DEMO_MODE", System.getenv("DEMO_MODE")));
             if (demoRequested) {
                 log.info("DEMO_MODE=true — iniciando en modo demo (datos ficticios en memoria).");
                 DatabaseConfig.setDemoMode(true);
             } else {
-                log.info("Iniciando en modo offline — los cambios se guardan localmente y se sincronizan al reconectar.");
-                DatabaseConfig.setOfflineMode(true);
+                DatabaseConfig.init();
+                Flyway.configure()
+                    .dataSource(DatabaseConfig.getDataSource())
+                    .baselineOnMigrate(true)
+                    .baselineVersion("0")
+                    .load()
+                    .migrate();
+                firstRunAdmin = seedAdminIfEmpty();
             }
+        } catch (Exception e) {
+            log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());
+            DatabaseConfig.close();
+            log.info("Iniciando en modo offline — los cambios se guardan localmente y se sincronizan al reconectar.");
+            DatabaseConfig.setOfflineMode(true);
+            demoRequested = false;
         } finally {
             // Started regardless of whether we booted online or offline (just
             // not for demo mode, which has no real DB to watch for) — this is

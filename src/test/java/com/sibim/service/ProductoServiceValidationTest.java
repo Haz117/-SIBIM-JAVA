@@ -18,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProductoServiceValidationTest {
 
     private final ProductoService service = new ProductoService();
+    private static final java.util.concurrent.atomic.AtomicInteger SEQ =
+        new java.util.concurrent.atomic.AtomicInteger();
 
     @BeforeEach
     void setUp() {
@@ -106,10 +108,71 @@ class ProductoServiceValidationTest {
         assertTrue(ex.getMessage().contains("minimo") || ex.getMessage().contains("mínimo"));
     }
 
+    // ── Validaciones patrimoniales de depreciación ────────────────────────────
+
+    @Test
+    void save_vidaUtilCero_throwsValidation() {
+        Producto p = validProducto();
+        p.setVidaUtilAnios(0);
+        var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
+        assertTrue(ex.getMessage().contains("vida") || ex.getMessage().contains("util"));
+    }
+
+    @Test
+    void save_vidaUtilNegativa_throwsValidation() {
+        Producto p = validProducto();
+        p.setVidaUtilAnios(-5);
+        var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
+        assertTrue(ex.getMessage().contains("vida") || ex.getMessage().contains("util"));
+    }
+
+    @Test
+    void save_vidaUtilPositiva_noThrows() throws Exception {
+        Producto p = validProducto();
+        p.setVidaUtilAnios(10);
+        p.setPrecioCompra(new BigDecimal("1000"));
+        // no debe lanzar ValidationException por vida_util
+        assertDoesNotThrow(() -> service.save(p));
+    }
+
+    @Test
+    void save_valorResidualMayorQueCompra_throwsValidation() {
+        Producto p = validProducto();
+        p.setPrecioCompra(new BigDecimal("5000"));
+        p.setValorResidual(new BigDecimal("6000"));
+        var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
+        assertTrue(ex.getMessage().contains("residual") || ex.getMessage().contains("compra"));
+    }
+
+    @Test
+    void save_valorResidualIgualACompra_noThrows() throws Exception {
+        Producto p = validProducto();
+        p.setPrecioCompra(new BigDecimal("5000"));
+        p.setValorResidual(new BigDecimal("5000"));
+        // residual == compra es el límite exacto, debe aceptarse
+        assertDoesNotThrow(() -> service.save(p));
+    }
+
+    @Test
+    void save_fechaAdquisicionFutura_throwsValidation() {
+        Producto p = validProducto();
+        p.setFechaAdquisicion(java.time.LocalDate.now().plusDays(1));
+        var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
+        assertTrue(ex.getMessage().contains("adquisicion") || ex.getMessage().contains("futuro"));
+    }
+
+    @Test
+    void save_fechaAdquisicionHoy_noThrows() throws Exception {
+        Producto p = validProducto();
+        p.setFechaAdquisicion(java.time.LocalDate.now());
+        // hoy es válido — el bien acaba de adquirirse
+        assertDoesNotThrow(() -> service.save(p));
+    }
+
     private Producto validProducto() {
         Producto p = new Producto();
         p.setNombre("Bien de Prueba Unit");
-        p.setCodigo("TEST-UNIT-999");
+        p.setCodigo("TEST-UNIT-" + SEQ.incrementAndGet());
         p.setCategoriaId("cat-mob");
         p.setArea("Direccion de Administracion");
         p.setUnidad(UnidadMedida.PIEZA);

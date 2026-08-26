@@ -113,8 +113,10 @@ public class MovimientoService {
         if (tipo == TipoMovimiento.TRANSFERENCIA) m.setAreaDestino(areaDestino);
         m.setMotivo(motivo);
         m.setReferencia(referencia);
-        m.setUsuarioId(SessionManager.getCurrentUser().getId());
-        m.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
+        var currentUser = SessionManager.getCurrentUser();
+        if (currentUser == null) throw new ValidationException("Sesión expirada — inicia sesión de nuevo");
+        m.setUsuarioId(currentUser.getId());
+        m.setUsuarioNombre(currentUser.getNombre());
 
         // Non-admin transfers go through an approval workflow: saved as PENDIENTE,
         // stock and area unchanged until an admin approves.

@@ -7,7 +7,9 @@ import com.sibim.session.SessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -141,6 +143,14 @@ public class ProductoService {
             throw new ValidationException("El stock maximo no puede ser negativo");
         if (p.getStockMinimo() > p.getStockMaximo())
             throw new ValidationException("El stock minimo no puede ser mayor al stock maximo");
+        // Validaciones patrimoniales de depreciación
+        if (p.getVidaUtilAnios() != null && p.getVidaUtilAnios() <= 0)
+            throw new ValidationException("La vida util debe ser mayor a cero");
+        if (p.getValorResidual() != null && p.getPrecioCompra() != null
+                && p.getValorResidual().compareTo(p.getPrecioCompra()) > 0)
+            throw new ValidationException("El valor residual no puede ser mayor al precio de compra");
+        if (p.getFechaAdquisicion() != null && p.getFechaAdquisicion().isAfter(LocalDate.now()))
+            throw new ValidationException("La fecha de adquisicion no puede ser en el futuro");
     }
 
     public static class ValidationException extends Exception {
