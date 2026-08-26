@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ProductoUtils;
 import javafx.animation.*;
@@ -427,6 +428,30 @@ public final class MovimientoDialogFactory {
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, actionBar), 280, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError, actionBar));
+
+        // Dirty tracking — only prompt if the user actually selected a product
+        // (at that point they've done meaningful work worth protecting).
+        boolean[] dirty = {false};
+        fProducto.valueProperty().addListener((o, a, b) -> { if (b != null) dirty[0] = true; });
+        fCantidad.valueProperty().addListener((o, a, b) -> dirty[0] = true);
+        fMotivo.getEditor().textProperty().addListener((o, a, b) -> { if (!b.isBlank()) dirty[0] = true; });
+        fRef.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) dirty[0] = true; });
+        fAreaDestino.valueProperty().addListener((o, a, b) -> dirty[0] = true);
+
+        Node cancelBtnNode = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (cancelBtnNode != null) {
+            cancelBtnNode.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+                if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar movimiento",
+                        "Tienes datos ingresados.\n¿Seguro que deseas cancelar el movimiento?"))
+                    e.consume();
+            });
+        }
+        dialog.setOnCloseRequest(e -> {
+            if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar movimiento",
+                    "Tienes datos ingresados.\n¿Seguro que deseas cancelar el movimiento?"))
+                e.consume();
+        });
+
         // Only steal focus into Producto (which pops its list open on focus,
         // see DialogUtil.makeFilterable) when there's nothing pre-selected —
         // otherwise it'd cover an already-chosen bien with the full list

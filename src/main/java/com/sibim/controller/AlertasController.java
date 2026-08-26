@@ -271,7 +271,8 @@ public class AlertasController {
             e -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (tableAgotados.getScene() != null)
-                    NotificacionUtil.error(tableAgotados.getScene(), "No se pudo cargar las alertas de inventario");
+                    NotificacionUtil.errorConAccion(tableAgotados.getScene(),
+                        "No se pudo cargar las alertas de inventario", "Reintentar", () -> loadData(false));
             }
         );
     }

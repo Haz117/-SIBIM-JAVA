@@ -157,7 +157,7 @@
             <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="135" sortable="true"/>
             <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="160" sortable="true"/>
             <TableColumn fx:id="colStock"     text="Stock"           prefWidth="72"  sortable="true"/>
-            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="110" sortable="true"/>
+            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="130" minWidth="100" sortable="true"/>
             <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="110" sortable="true"/>
         </columns>
         <placeholder>
@@ -172,6 +172,7 @@
     <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 resultados" styleClass="muted"/>
+        <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
         <Region HBox.hgrow="ALWAYS"/>
         <MenuButton fx:id="btnExportarSeleccion" text="Exportar seleccionados" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8" disable="true">

@@ -7,6 +7,7 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
+import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ImageUtils;
 import javafx.application.Platform;
@@ -411,6 +412,44 @@ public final class ProductoDialogFactory {
         VBox dialogContent = new VBox(0, dialogHeader, tabsScroll, lblFormError, btnGuardar);
         dialog.getDialogPane().setContent(dialogContent);
         AnimationUtils.staggeredFadeInUp(java.util.List.of(dialogHeader, tabs, btnGuardar), 280, 70);
+
+        // ── Dirty tracking: warn before losing unsaved work ──
+        // Listeners attached AFTER all initial setValue() calls so pre-filled
+        // values on edit don't immediately mark the form dirty.
+        boolean[] dirty = {false};
+        Runnable markDirty = () -> dirty[0] = true;
+        fNombre.textProperty().addListener((o, a, b) -> markDirty.run());
+        fCodigo.textProperty().addListener((o, a, b) -> markDirty.run());
+        fDesc.textProperty().addListener((o, a, b) -> markDirty.run());
+        fCat.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fArea.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fProveedor.textProperty().addListener((o, a, b) -> markDirty.run());
+        fUbicacion.textProperty().addListener((o, a, b) -> markDirty.run());
+        fResguardante.textProperty().addListener((o, a, b) -> markDirty.run());
+        fStock.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fStockMin.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fStockMax.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fUnidad.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fPrecioC.textProperty().addListener((o, a, b) -> markDirty.run());
+        fPrecioV.textProperty().addListener((o, a, b) -> markDirty.run());
+        fVenc.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fFechaAdq.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fVidaUtil.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fValorResidual.textProperty().addListener((o, a, b) -> markDirty.run());
+
+        javafx.scene.Node cancelBtn = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (cancelBtn != null) {
+            cancelBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+                if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar cambios",
+                        "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?"))
+                    e.consume();
+            });
+        }
+        dialog.setOnCloseRequest(e -> {
+            if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar cambios",
+                    "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?"))
+                e.consume();
+        });
 
         Platform.runLater(() -> fNombre.requestFocus());
         dialog.setResultConverter(btn -> {

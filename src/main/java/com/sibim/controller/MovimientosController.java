@@ -69,6 +69,8 @@ public class MovimientosController {
     @FXML private TableColumn<Movimiento, String> colFecha;
     @FXML private TableColumn<Movimiento, String> colEstado;
     @FXML private Label lblTotal;
+    @FXML private Label lblTotalAll;
+    @FXML private Button btnClearFilters;
     @FXML private ProgressIndicator spinner;
     @FXML private Button btnNuevo;
     @FXML private Button btnPresetHoy;
@@ -465,7 +467,8 @@ public class MovimientosController {
             @Override protected void failed() {
                 loading.set(false);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                NotificacionUtil.error(table.getScene(), "No se pudo cargar los movimientos");
+                NotificacionUtil.errorConAccion(table.getScene(),
+                    "No se pudo cargar los movimientos", "Reintentar", () -> loadData());
             }
         });
     }
@@ -509,6 +512,20 @@ public class MovimientosController {
         if (btnEmptyLimpiar != null) {
             btnEmptyLimpiar.setVisible(hasFilters);
             btnEmptyLimpiar.setManaged(hasFilters);
+        }
+        if (btnClearFilters != null) {
+            btnClearFilters.setVisible(hasFilters);
+            btnClearFilters.setManaged(hasFilters);
+        }
+        if (lblTotalAll != null) {
+            if (hasFilters) {
+                lblTotalAll.setText("de " + allData.size() + " total");
+                lblTotalAll.setVisible(true);
+                lblTotalAll.setManaged(true);
+            } else {
+                lblTotalAll.setVisible(false);
+                lblTotalAll.setManaged(false);
+            }
         }
         if (emptyStateHint != null) {
             boolean canAddMov = SessionManager.isAdmin() || SessionManager.isSecretario();
@@ -725,6 +742,21 @@ public class MovimientosController {
     @FXML private void onLimpiarFechas() {
         desdeFilter.setValue(null); hastaFilter.setValue(null);
         setActivePreset(null);
+    }
+
+    @FXML
+    private void onClearFilters() {
+        searchField.clear();
+        desdeFilter.setValue(null);
+        hastaFilter.setValue(null);
+        if (categoriaFilter != null) categoriaFilter.setValue(null);
+        setActivePreset(null);
+        if (tipoChipGroup != null)
+            tipoChipGroup.getToggles().stream()
+                .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
+                .findFirst().ifPresent(t -> t.setSelected(true));
+        currentPage = 0;
+        applyFilters();
     }
 
     private void setActivePreset(Button active) {

@@ -95,6 +95,7 @@ public class ProductosController {
     @FXML private TableColumn<Producto, String> colValor;
     @FXML private TableColumn<Producto, String> colEstado;
     @FXML private Label lblTotal;
+    @FXML private Label lblTotalAll;
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private Label lblPage;
     @FXML private Button btnPrev;
@@ -409,6 +410,13 @@ public class ProductosController {
         if (btnEliminar != null && canEdit) btnEliminar.setDisable(true);
         if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(true);
 
+        // JavaFX doesn't show tooltips on disabled nodes by default —
+        // Tooltip.install() uses a separate mechanism that works regardless.
+        if (btnEditar        != null && canEdit) Tooltip.install(btnEditar,        new Tooltip("Selecciona un bien para editarlo"));
+        if (btnEliminar      != null && canEdit) Tooltip.install(btnEliminar,      new Tooltip("Selecciona un bien para darlo de baja"));
+        if (btnMovimiento    != null && canEdit) Tooltip.install(btnMovimiento,    new Tooltip("Selecciona un bien para registrar un movimiento"));
+        if (btnExportarSeleccion != null)        Tooltip.install(btnExportarSeleccion, new Tooltip("Selecciona uno o más bienes para exportarlos"));
+
         // Delete key on table — only when exactly one row is selected, same
         // as the "Dar de baja" button (a formal baja needs a motivo per bien,
         // it doesn't make sense as a bulk action from a bare Delete keypress).
@@ -580,7 +588,8 @@ public class ProductosController {
             @Override protected void failed() {
                 loading.set(false);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                NotificacionUtil.error(table.getScene(), "No se pudo cargar los bienes. Verifica la conexión.");
+                NotificacionUtil.errorConAccion(table.getScene(),
+                    "No se pudo cargar los bienes. Verifica la conexión.", "Reintentar", () -> loadData());
             }
         };
         com.sibim.util.AppExecutor.submit(task);
@@ -666,6 +675,16 @@ public class ProductosController {
         if (btnClearFilters != null) {
             btnClearFilters.setVisible(hasFilters);
             btnClearFilters.setManaged(hasFilters);
+        }
+        if (lblTotalAll != null) {
+            if (hasFilters) {
+                lblTotalAll.setText("de " + allData.size() + " total");
+                lblTotalAll.setVisible(true);
+                lblTotalAll.setManaged(true);
+            } else {
+                lblTotalAll.setVisible(false);
+                lblTotalAll.setManaged(false);
+            }
         }
         if (emptyStateMsg != null)
             emptyStateMsg.setText(hasFilters

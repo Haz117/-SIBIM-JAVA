@@ -167,6 +167,13 @@
             <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
+                styleClass="btn-secondary" visible="false" managed="false"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Quitar todos los filtros activos"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
         <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
             <tooltip><Tooltip text="Exportar movimientos filtrados a CSV"/></tooltip>
         </Button>
@@ -199,6 +206,7 @@
     <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 movimientos" styleClass="muted"/>
+        <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnDelete" text="Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true"
                 contentDisplay="LEFT" graphicTextGap="8">

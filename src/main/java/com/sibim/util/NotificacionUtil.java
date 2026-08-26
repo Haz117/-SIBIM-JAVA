@@ -34,7 +34,13 @@ public class NotificacionUtil {
     /** Toast de éxito con botón de acción (p.ej. "↶ Deshacer"). Se oculta a los 8 s o al pulsar el botón. */
     public static void exitoConAccion(Scene scene, String mensaje, String btnLabel, Runnable onAction) {
         if (scene == null) return;
-        Platform.runLater(() -> showConAccion(scene.getWindow(), mensaje, btnLabel, onAction));
+        Platform.runLater(() -> showConAccion(scene.getWindow(), mensaje, btnLabel, onAction, Tipo.EXITO));
+    }
+
+    /** Toast de error con botón de acción (p.ej. "Reintentar"). Se oculta a los 8 s o al pulsar el botón. */
+    public static void errorConAccion(Scene scene, String mensaje, String btnLabel, Runnable onAction) {
+        if (scene == null) return;
+        Platform.runLater(() -> showConAccion(scene.getWindow(), mensaje, btnLabel, onAction, Tipo.ERROR));
     }
 
     /** Success toast for a Transferencia — same position/timing/style as every
@@ -369,15 +375,22 @@ public class NotificacionUtil {
         });
     }
 
-    private static void showConAccion(Window owner, String mensaje, String btnLabel, Runnable onAction) {
+    private static void showConAccion(Window owner, String mensaje, String btnLabel, Runnable onAction, Tipo tipo) {
         if (owner == null) return;
         if (activeToasts >= MAX_TOASTS) return;
 
-        FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
+        String iconLiteral, toastClass, iconClass;
+        switch (tipo) {
+            case ERROR       -> { iconLiteral = "mdi2c-close-circle";      toastClass = "toast-error";   iconClass = "toast-icon-error"; }
+            case ADVERTENCIA -> { iconLiteral = "mdi2a-alert-circle";      toastClass = "toast-warning"; iconClass = "toast-icon-warning"; }
+            default          -> { iconLiteral = "mdi2c-check-circle";      toastClass = "toast-success"; iconClass = "toast-icon-success"; }
+        }
+
+        FontIcon iconLbl = new FontIcon(iconLiteral);
         iconLbl.setIconSize(16);
-        iconLbl.getStyleClass().add("toast-icon-success");
+        iconLbl.getStyleClass().add(iconClass);
         StackPane iconBadge = new StackPane(iconLbl);
-        iconBadge.getStyleClass().addAll("toast-icon-badge", "toast-icon-success");
+        iconBadge.getStyleClass().addAll("toast-icon-badge", iconClass);
 
         Label lbl = new Label(mensaje);
         lbl.getStyleClass().add("toast-msg");
@@ -395,7 +408,7 @@ public class NotificacionUtil {
         HBox box = new HBox(10, iconBadge, lbl, actionBtn, closeBtn);
         box.setAlignment(Pos.CENTER_LEFT);
         box.setPadding(new Insets(13, 16, 13, 16));
-        box.getStyleClass().addAll("toast-box", "toast-success");
+        box.getStyleClass().addAll("toast-box", toastClass);
 
         var css = NotificacionUtil.class.getResource("/css/styles.css");
         if (css != null) box.getStylesheets().add(css.toExternalForm());
