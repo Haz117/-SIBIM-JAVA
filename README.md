@@ -1,6 +1,6 @@
 # SIBIM — Sistema Integral de Bienes Municipales
 
-Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión del inventario patrimonial del **H. Ayuntamiento de Ixmiquilpan, Hidalgo**.
+Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión del inventario patrimonial del **H. Ayuntamiento de Huejutla, Hidalgo**.
 
 ---
 
@@ -34,12 +34,35 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 |---|---|
 | Lenguaje | Java 21 |
 | UI | JavaFX 21 + FXML + CSS + AtlantaFX |
-| Base de datos | PostgreSQL |
-| Conexión BD | HikariCP (pool de conexiones) |
+| Base de datos principal | PostgreSQL (gestionado por Flyway) |
+| Base de datos offline | SQLite 3.46 (`~/.sibim/offline.db`) |
+| Conexión BD | HikariCP (pool 10 conexiones, 8 s timeout) |
 | Reportes PDF | iText 7 |
 | Reportes Excel | Apache POI |
-| Cifrado | jBCrypt |
+| Cifrado de contraseñas | BCrypt (at.favre.lib, factor 12) |
+| Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (264 tests) |
+
+---
+
+## Seguridad
+
+El sistema implementa múltiples capas de defensa:
+
+| Área | Mecanismo |
+|---|---|
+| Contraseñas | BCrypt (factor 12) — nunca se almacena texto plano |
+| Intentos de login | Bloqueo tras 5 fallos en 15 min; mensaje con minutos restantes |
+| Sesión activa | Timeout de inactividad a los 30 min con countdown UI; cierre automático o manual |
+| Credenciales offline | Caché local expira a los **30 días** — requiere conexión periódica al servidor para renovar |
+| Autorización | Guards en capa de servicio/repositorio: `SecurityException` si el rol no tiene permiso (no solo en UI) |
+| Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área |
+| Cifrado en tránsito | Configurable via `DB_SSL_MODE` en `.env`; la app emite advertencia en log si la BD es remota y SSL no está en modo `require` |
+| Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías y usuarios queda en `audit_log` con usuario y timestamp |
+| Backup | Solo Admin puede ejecutar respaldo/restauración; verificación de tablas y columnas permitidas antes de restaurar |
+
+> **Limitación conocida**: el archivo SQLite de modo offline (`offline.db`) no está cifrado. Los hashes BCrypt que contiene son robustos, pero los datos de inventario son legibles por quien tenga acceso físico al sistema de archivos. Si en el futuro se manejan datos personales sujetos a regulación, se puede migrar a SQLCipher.
 
 ---
 
@@ -127,7 +150,7 @@ Así el código fuente y las credenciales de producción no quedan expuestos en 
 
 Si una PC no logra conectar a la base de datos real al arrancar (red caída, servidor apagado, etc.), el sistema **no pierde el trabajo**: entra en modo offline automáticamente.
 
-- **Qué sí funciona sin conexión**: Bienes, Movimientos y Categorías — crear, editar, registrar entradas/salidas/ajustes/transferencias — todo se guarda en un archivo local en esa PC (`%USERPROFILE%\.sibim\offline.db`). Un usuario que ya haya iniciado sesión antes en esa PC estando conectado también puede seguir entrando sin conexión.
+- **Qué sí funciona sin conexión**: Bienes, Movimientos y Categorías — crear, editar, registrar entradas/salidas/ajustes/transferencias — todo se guarda en un archivo local en esa PC (`%USERPROFILE%\.sibim\offline.db`). Un usuario que ya haya iniciado sesión antes en esa PC estando conectado puede seguir entrando sin conexión **hasta 30 días** después de su último login online; pasado ese plazo, la app exige reconexión para renovar el caché de credenciales.
 - **Qué necesita conexión**: crear/editar usuarios, conteos físicos, auditoría, y el cambio de contraseña obligatorio (se pospone hasta el siguiente login ya conectado).
 - **Sincronización**: en cuanto la app detecta que la base de datos real volvió a estar disponible (revisa cada minuto), sube automáticamente todo lo capturado offline — bienes, movimientos, categorías, conteos físicos y entradas de auditoría — en el mismo orden en que se hizo. Un aviso confirma cuántos cambios se sincronizaron.
 - **Resolución de conflictos**: si un bien fue editado en otro equipo mientras esta PC estaba offline, el sistema lo detecta comparando fechas de modificación y muestra un **diálogo de resolución** con ambas versiones lado a lado (campo por campo, con los valores que difieren resaltados en amarillo). El usuario elige para cada bien si conservar la versión del servidor o aplicar la suya, antes de que se escriba cualquier cambio.
@@ -142,25 +165,39 @@ Este modo offline es distinto del **modo demo** (datos ficticios que se pierden 
 ```
 SIBIM-Java/
 ├── src/
-│   └── main/
-│       ├── java/com/sibim/
-│       │   ├── controller/    # Controladores JavaFX por módulo
-│       │   │   └── dialogs/   # Formularios de diálogo extraídos (alta/edición)
-│       │   ├── model/         # Entidades del dominio
-│       │   ├── repository/    # Acceso a base de datos
-│       │   ├── service/       # Lógica de negocio
-│       │   ├── util/          # Utilidades (notificaciones, diálogos, animaciones)
-│       │   ├── session/       # Manejo de sesión de usuario
-│       │   └── config/        # Configuración de áreas y BD
-│       └── resources/
-│           ├── fxml/          # Vistas de la interfaz
-│           ├── css/           # Hoja de estilos del sistema de diseño
-│           ├── db/migration/  # Migraciones Flyway (V1__..., V2__...) — se aplican solas al arrancar
-│           └── seed_demo.sql  # Datos de ejemplo (solo desarrollo, nunca producción)
-├── docs/                      # Documentación técnica (CI/CD, arquitectura)
-├── maven-dist/                 # Maven embebido para ejecución sin instalar
-├── iniciar.bat                 # Script de inicio para Windows
-└── pom.xml                     # Configuración de dependencias
+│   ├── main/
+│   │   ├── java/com/sibim/
+│   │   │   ├── controller/    # Controladores JavaFX por módulo
+│   │   │   │   └── dialogs/   # Formularios de diálogo extraídos (alta/edición)
+│   │   │   ├── model/         # Entidades del dominio + enums
+│   │   │   ├── repository/    # Acceso a base de datos (PreparedStatements)
+│   │   │   ├── service/       # Lógica de negocio y validaciones
+│   │   │   ├── db/
+│   │   │   │   └── offline/   # OfflineStore (SQLite), SyncService, outbox
+│   │   │   ├── util/          # Notificaciones, diálogos, animaciones, formato
+│   │   │   ├── session/       # SessionManager (usuario activo, áreas accesibles)
+│   │   │   └── config/        # Áreas del organigrama y configuración de BD
+│   │   └── resources/
+│   │       ├── fxml/          # 12 vistas de la interfaz
+│   │       ├── css/           # Design System v2.3 (tema indigo/purple)
+│   │       ├── db/migration/  # Migraciones Flyway — se aplican solas al arrancar
+│   │       ├── offline.sql    # Esquema del almacén SQLite offline
+│   │       └── seed_demo.sql  # Datos de ejemplo (solo desarrollo, nunca producción)
+│   └── test/java/com/sibim/
+│       ├── controller/        # Tests de lógica de filtros y navegación
+│       ├── db/integration/    # 5 clases contra EmbeddedPostgres real
+│       ├── db/offline/        # Tests del almacén offline (caducidad, outbox)
+│       ├── model/             # Tests de entidades
+│       ├── repository/        # Tests de autorización de repositorios
+│       ├── service/           # Tests unitarios + autorización de servicios (264 tests total)
+│       ├── session/           # Tests de SessionManager
+│       └── util/              # Tests de utilidades
+├── packaging/
+│   └── build-installer.ps1    # Genera instalador .exe/.msi con jpackage
+├── maven-dist/                # Maven embebido (no requiere Maven instalado)
+├── iniciar.bat                # Arranque para desarrollo (compila y ejecuta)
+├── produccion.bat             # Arranque para producción (solo ejecuta el JAR)
+└── pom.xml                    # Dependencias y configuración de build
 ```
 
 ---
@@ -207,7 +244,21 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 
 ---
 
+## Tests
+
+```bash
+# Correr todos los tests (264 en total)
+maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
+
+# Solo tests de una clase
+maven-dist/apache-maven-3.9.9/bin/mvn.cmd test -Dtest=AuthServiceTest
+```
+
+Los tests de integración (`db/integration/`) levantan una instancia efímera de PostgreSQL con EmbeddedPostgres — no requieren ninguna instalación externa. Los tests de autorización verifican que los guards de seguridad lanzan `SecurityException` para roles sin permiso, independientemente de si hay BD disponible.
+
+---
+
 ## Licencia
 
-Proyecto desarrollado para uso interno del **H. Ayuntamiento de Ixmiquilpan, Hidalgo**.
+Proyecto desarrollado para uso interno del **H. Ayuntamiento de Huejutla, Hidalgo**.
 Todos los derechos reservados.
