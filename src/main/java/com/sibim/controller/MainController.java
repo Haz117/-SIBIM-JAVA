@@ -4,9 +4,11 @@ import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.offline.SyncService;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.service.CategoriaService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.CommandPalette;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -81,6 +83,7 @@ public class MainController {
     private Timeline clock;
     private Timeline sessionGuard;
     private final ProductoService alertProductoService = new ProductoService();
+    private final CategoriaService categoriaService    = new CategoriaService();
     private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     // Session inactivity timeout — 30 minutes
@@ -602,6 +605,7 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.F5),                                   () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
+        a.put(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN),      this::onCommandPalette);
         a.put(new KeyCodeCombination(KeyCode.F1), () -> showShortcutHelp());
     }
 
@@ -612,6 +616,21 @@ public class MainController {
             tf.requestFocus();
             tf.selectAll();
         }
+    }
+
+    private void onCommandPalette() {
+        java.util.List<CommandPalette.NavEntry> entries = java.util.List.of(
+            new CommandPalette.NavEntry("mdi2v-view-dashboard-outline", "#0EA5E9", "Dashboard",          "Ctrl+1", this::onDashboard),
+            new CommandPalette.NavEntry("mdi2a-account-tree-outline",   "#7C3AED", "Organigrama",        "Ctrl+2", this::onOrganigrama),
+            new CommandPalette.NavEntry("mdi2p-package-variant",        "#6366F1", "Bienes / Inventario","Ctrl+3", this::onProductos),
+            new CommandPalette.NavEntry("mdi2t-tag-outline",            "#EC4899", "Categorías",         "Ctrl+4", this::onCategorias),
+            new CommandPalette.NavEntry("mdi2s-swap-vertical-bold",     "#7C3AED", "Movimientos",        "Ctrl+5", this::onMovimientos),
+            new CommandPalette.NavEntry("mdi2b-bell-ring-outline",      "#DC2626", "Alertas",            "Ctrl+6", this::onAlertas),
+            new CommandPalette.NavEntry("mdi2f-file-chart-outline",     "#059669", "Reportes",           "Ctrl+7", this::onReportes),
+            new CommandPalette.NavEntry("mdi2c-cog-outline",            "#64748B", "Configuración",      "Ctrl+8", this::onConfiguracion),
+            new CommandPalette.NavEntry("mdi2d-domain",                 "#6366F1", "Depreciación",       "Ctrl+9", this::onDepreciacion)
+        );
+        CommandPalette.show(outerStack, entries, alertProductoService, categoriaService);
     }
 
     private void addNavTooltips() {
@@ -700,9 +719,10 @@ public class MainController {
         });
 
         GridPane sysGrid = makeSection.apply("SISTEMA", new String[][]{
-            {"F1",        "Mostrar esta ayuda de atajos"},
+            {"Ctrl+K",      "Búsqueda global / paleta de comandos"},
+            {"F1",          "Mostrar esta ayuda de atajos"},
             {"F5 / Ctrl+R", "Actualizar vista actual"},
-            {"Ctrl+F",    "Enfocar campo de búsqueda"},
+            {"Ctrl+F",      "Enfocar campo de búsqueda"},
         });
 
         VBox content = new VBox(0, header, navGrid, new Separator(),

@@ -3,6 +3,7 @@ package com.sibim.service;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.repository.MovimientoRepository;
+import com.sibim.repository.MovimientoRepository.MonthlyStats;
 import com.sibim.repository.ProductoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,27 +29,30 @@ public class DashboardService {
 
     public Resumen cargarResumen() throws SQLException {
         try (ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()) {
-            var fStats      = async(() -> productoRepo.getStats(),             exec);
-            var fCatValores = async(() -> productoRepo.getValorPorCategoria(), exec);
-            var fAgotados   = async(() -> productoRepo.findAgotados(),         exec);
-            var fBajoStock  = async(() -> productoRepo.findBajoStock(),        exec);
-            var fMovHoy     = async(() -> movimientoRepo.findToday(),          exec);
-            var fMovSemana  = async(() -> movimientoRepo.findLastNDays(7),     exec);
+            var fStats      = async(() -> productoRepo.getStats(),              exec);
+            var fCatValores = async(() -> productoRepo.getValorPorCategoria(),  exec);
+            var fAgotados   = async(() -> productoRepo.findAgotados(),          exec);
+            var fBajoStock  = async(() -> productoRepo.findBajoStock(),         exec);
+            var fMovHoy     = async(() -> movimientoRepo.findToday(),           exec);
+            var fMovSemana  = async(() -> movimientoRepo.findLastNDays(7),      exec);
+            var fMovMensual = async(() -> movimientoRepo.findMonthlyStats(6),   exec);
 
             try {
-                CompletableFuture.allOf(fStats, fCatValores, fAgotados, fBajoStock, fMovHoy, fMovSemana).join();
+                CompletableFuture.allOf(
+                    fStats, fCatValores, fAgotados, fBajoStock,
+                    fMovHoy, fMovSemana, fMovMensual).join();
             } catch (CompletionException ce) {
                 Throwable cause = ce.getCause();
                 if (cause instanceof SQLException sql) throw sql;
                 throw new RuntimeException(cause);
             }
 
-            var stats   = fStats.join();
-            var movHoy  = fMovHoy.join();
+            var stats  = fStats.join();
+            var movHoy = fMovHoy.join();
             log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
                 stats.total(), stats.categorias(), movHoy.size());
             return new Resumen(stats, fCatValores.join(), fAgotados.join(),
-                               fBajoStock.join(), movHoy, fMovSemana.join());
+                               fBajoStock.join(), movHoy, fMovSemana.join(), fMovMensual.join());
         }
     }
 
@@ -69,5 +73,6 @@ public class DashboardService {
             List<Producto> agotados,
             List<Producto> bajoStock,
             List<Movimiento> movHoy,
-            List<Movimiento> movSemana) {}
+            List<Movimiento> movSemana,
+            List<MovimientoRepository.MonthlyStats> movMensual) {}
 }

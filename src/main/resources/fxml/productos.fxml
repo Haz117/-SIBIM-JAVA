@@ -173,6 +173,7 @@
     <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 resultados" styleClass="muted"/>
         <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
+        <Label fx:id="lblSeleccionados" text="" styleClass="status-bar-selection" visible="false" managed="false"/>
         <Region HBox.hgrow="ALWAYS"/>
         <MenuButton fx:id="btnExportarSeleccion" text="Exportar seleccionados" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8" disable="true">

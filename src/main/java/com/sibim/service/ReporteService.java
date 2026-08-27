@@ -80,6 +80,32 @@ public class ReporteService {
         return file;
     }
 
+    public File exportMovimientosExcel(List<Movimiento> movimientos) throws Exception {
+        String[] headers = {"Producto", "Tipo", "Cantidad", "Stock Anterior", "Stock Nuevo",
+                            "Motivo", "Referencia", "Usuario", "Fecha"};
+        File file = tempFile("movimientos", ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = createSheet(wb, "Movimientos");
+            writeHeader(sheet, headers, wb);
+            int row = 1;
+            for (Movimiento m : movimientos) {
+                Row r = sheet.createRow(row++);
+                r.createCell(0).setCellValue(m.getProductoNombre());
+                r.createCell(1).setCellValue(m.getTipo().getEtiqueta());
+                r.createCell(2).setCellValue(m.getCantidad());
+                r.createCell(3).setCellValue(m.getStockAnterior());
+                r.createCell(4).setCellValue(m.getStockNuevo());
+                r.createCell(5).setCellValue(m.getMotivo() != null ? m.getMotivo() : "");
+                r.createCell(6).setCellValue(m.getReferencia() != null ? m.getReferencia() : "");
+                r.createCell(7).setCellValue(m.getUsuarioNombre());
+                r.createCell(8).setCellValue(FormatUtils.formatDateTime(m.getCreadoEn()));
+            }
+            autosizeColumns(sheet, headers.length);
+            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
+        }
+        return file;
+    }
+
     public File exportMovimientosExcel(LocalDate desde, LocalDate hasta) throws Exception {
         List<Movimiento> movimientos = movimientoRepo.findByDateRange(desde, hasta);
         String[] headers = {"Producto", "Tipo", "Cantidad", "Stock Anterior", "Stock Nuevo",
@@ -419,6 +445,21 @@ public class ReporteService {
                     p.getEstado().getEtiqueta(),
                     esc(p.getProveedor()), esc(p.getUbicacion()),
                     p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
+            }
+        }
+        return file;
+    }
+
+    public File exportMovimientosCsv(List<Movimiento> movimientos) throws Exception {
+        File file = tempFile("movimientos", ".csv");
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println("Producto,Tipo,Cantidad,Stock Anterior,Stock Nuevo,Motivo,Referencia,Usuario,Fecha");
+            for (Movimiento m : movimientos) {
+                pw.printf("\"%s\",\"%s\",%d,%d,%d,\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                    esc(m.getProductoNombre()), m.getTipo().getEtiqueta(),
+                    m.getCantidad(), m.getStockAnterior(), m.getStockNuevo(),
+                    esc(m.getMotivo()), esc(m.getReferencia()),
+                    esc(m.getUsuarioNombre()), FormatUtils.formatDateTime(m.getCreadoEn()));
             }
         }
         return file;

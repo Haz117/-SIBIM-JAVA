@@ -242,6 +242,29 @@
     </HBox>
 
     <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: TENDENCIA MENSUAL
+         ══════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="TENDENCIA MENSUAL" styleClass="dash-section-label"/>
+        <Label text="Últimos 6 meses" styleClass="dash-section-badge"/>
+    </HBox>
+
+    <VBox fx:id="trendCard" styleClass="card" spacing="10">
+        <padding><Insets top="18" right="18" bottom="14" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <FontIcon iconLiteral="mdi2t-trending-up" styleClass="card-icon-indigo"/>
+            <Label text="Entradas vs. Salidas" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblTrendEmpty" text="Sin datos suficientes para mostrar tendencia"
+                   styleClass="muted" visible="false" managed="false"/>
+        </HBox>
+        <AreaChart fx:id="chartTendencia" prefHeight="210" animated="false">
+            <xAxis><CategoryAxis/></xAxis>
+            <yAxis><NumberAxis minorTickCount="1"/></yAxis>
+        </AreaChart>
+    </VBox>
+
+    <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: ACTIVIDAD RECIENTE
          ══════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">

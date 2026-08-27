@@ -96,6 +96,7 @@ public class ProductosController {
     @FXML private TableColumn<Producto, String> colEstado;
     @FXML private Label lblTotal;
     @FXML private Label lblTotalAll;
+    @FXML private Label lblSeleccionados;
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private Label lblPage;
     @FXML private Button btnPrev;
@@ -404,6 +405,7 @@ public class ProductosController {
             if (btnEditar   != null && canEdit) btnEditar.setDisable(n != 1);
             if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
             if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
+            updateSelectionLabel(lblSeleccionados, n);
         });
         if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(true);
         if (btnEditar   != null && canEdit) btnEditar.setDisable(true);
@@ -935,6 +937,18 @@ public class ProductosController {
         } catch (Exception e) {
             log.error("Error al abrir el formulario de bien", e);
             NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
+        }
+    }
+
+    private static void updateSelectionLabel(Label lbl, int n) {
+        if (lbl == null) return;
+        if (n > 0) {
+            lbl.setText("· " + n + (n == 1 ? " seleccionado" : " seleccionados"));
+            lbl.setVisible(true);
+            lbl.setManaged(true);
+        } else {
+            lbl.setVisible(false);
+            lbl.setManaged(false);
         }
     }
 

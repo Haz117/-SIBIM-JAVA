@@ -70,6 +70,8 @@ public class MovimientosController {
     @FXML private TableColumn<Movimiento, String> colEstado;
     @FXML private Label lblTotal;
     @FXML private Label lblTotalAll;
+    @FXML private Label lblSeleccionados;
+    @FXML private javafx.scene.control.MenuButton btnExportarSeleccion;
     @FXML private Button btnClearFilters;
     @FXML private ProgressIndicator spinner;
     @FXML private Button btnNuevo;
@@ -123,6 +125,13 @@ public class MovimientosController {
         if (btnToggleFiltros != null && filterBar != null)
             DialogUtil.makeCollapsible("movimientos.filtros.colapsado", btnToggleFiltros, filterBar);
         setupTable();
+        // Default a los últimos 90 días — evita cargar toda la historia
+        // de movimientos en el arranque. Los listeners se conectan en
+        // setupFilters(), así que asignar aquí no dispara ninguna carga prematura.
+        if (desdeFilter != null && desdeFilter.getValue() == null)
+            desdeFilter.setValue(java.time.LocalDate.now().minusDays(89));
+        if (hastaFilter != null && hastaFilter.getValue() == null)
+            hastaFilter.setValue(java.time.LocalDate.now());
         setupFilters();
         setupTipoChips();
         setupPagination();
@@ -151,9 +160,14 @@ public class MovimientosController {
             });
         }
 
-        // Selection → enable/disable delete button
-        table.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-            if (btnDelete != null) btnDelete.setDisable(sel == null);
+        table.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
+
+        // Selection → enable/disable action buttons + status label
+        table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<com.sibim.model.Movimiento>) c -> {
+            int n = table.getSelectionModel().getSelectedItems().size();
+            if (btnDelete            != null) btnDelete.setDisable(n != 1);
+            if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
+            updateSelectionLabel(n);
         });
 
         // Delete key on table
@@ -402,8 +416,8 @@ public class MovimientosController {
 
     private void setupFilters() {
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
-        desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); setActivePreset(null); });
-        hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); setActivePreset(null); });
+        desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
+        hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         if (categoriaFilter != null)
             categoriaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
     }
@@ -452,8 +466,12 @@ public class MovimientosController {
             return;
         }
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
+        java.time.LocalDate desde = desdeFilter != null && desdeFilter.getValue() != null
+            ? desdeFilter.getValue() : java.time.LocalDate.now().minusDays(89);
+        java.time.LocalDate hasta = hastaFilter != null && hastaFilter.getValue() != null
+            ? hastaFilter.getValue() : java.time.LocalDate.now();
         AppExecutor.submit(new Task<List<Movimiento>>() {
-            @Override protected List<Movimiento> call() throws Exception { return movimientoService.getAll(); }
+            @Override protected List<Movimiento> call() throws Exception { return movimientoService.getByDateRange(desde, hasta); }
             @Override protected void succeeded() {
                 loading.set(false);
                 List<Movimiento> nuevos = getValue();
@@ -499,8 +517,6 @@ public class MovimientosController {
                 || (m.getReferencia() != null && m.getReferencia().toLowerCase().contains(query))
                 || (m.getMotivo() != null && m.getMotivo().toLowerCase().contains(query)))
             .filter(m -> "Todos".equals(tipo) || m.getTipo().getEtiqueta().equals(tipo))
-            .filter(m -> desde == null || m.getCreadoEn() == null || !m.getCreadoEn().toLocalDate().isBefore(desde))
-            .filter(m -> hasta == null || m.getCreadoEn() == null || !m.getCreadoEn().toLocalDate().isAfter(hasta))
             .filter(m -> categoria == null || categoria.equals(categoriaPorProducto.get(m.getProductoId())))
             .toList());
 
@@ -880,6 +896,40 @@ public class MovimientosController {
             log.error("Error al abrir el formulario de movimiento", e);
             if (table != null && table.getScene() != null)
                 NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
+        }
+    }
+
+    @FXML
+    private void onExportSeleccionCsv() {
+        java.util.List<com.sibim.model.Movimiento> sel = java.util.List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.isEmpty()) return;
+        DialogUtil.runAsync(
+            () -> reporteService.exportMovimientosCsv(sel),
+            file -> { NotificacionUtil.exito(table.getScene(), sel.size() + " movimiento(s) exportado(s) a CSV"); openFile(file); },
+            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportSeleccionCsv)
+        );
+    }
+
+    @FXML
+    private void onExportSeleccionExcel() {
+        java.util.List<com.sibim.model.Movimiento> sel = java.util.List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.isEmpty()) return;
+        DialogUtil.runAsync(
+            () -> reporteService.exportMovimientosExcel(sel),
+            file -> { NotificacionUtil.exito(table.getScene(), sel.size() + " movimiento(s) exportado(s) a Excel"); openFile(file); },
+            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportSeleccionExcel)
+        );
+    }
+
+    private void updateSelectionLabel(int n) {
+        if (lblSeleccionados == null) return;
+        if (n > 0) {
+            lblSeleccionados.setText("· " + n + (n == 1 ? " seleccionado" : " seleccionados"));
+            lblSeleccionados.setVisible(true);
+            lblSeleccionados.setManaged(true);
+        } else {
+            lblSeleccionados.setVisible(false);
+            lblSeleccionados.setManaged(false);
         }
     }
 

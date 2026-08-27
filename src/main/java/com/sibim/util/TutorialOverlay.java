@@ -121,7 +121,6 @@ public final class TutorialOverlay {
         // Icon badge floats at header bottom, extends 38px into white area
         FontIcon icon = new FontIcon();
         icon.setIconSize(34);
-        icon.setIconColor(Color.WHITE);
 
         StackPane iconBadge = new StackPane(icon);
         iconBadge.getStyleClass().add("tutorial-icon-badge");
@@ -228,11 +227,11 @@ public final class TutorialOverlay {
             header.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
                 + s.color() + ", " + s.gradEnd() + ");");
 
-            // Icon
+            // Icon — white badge with colored icon
             icon.setIconLiteral(s.icon());
-            iconBadge.setStyle("-fx-background-color: " + hexToRgba(s.color(), 0.22)
-                + "; -fx-background-radius: 38;"
-                + " -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.45) + ", 18, 0, 0, 3);");
+            icon.setIconColor(Color.web(s.color()));
+            iconBadge.setStyle("-fx-background-color: white; -fx-background-radius: 38;"
+                + " -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.50) + ", 22, 0.04, 0, 5);");
 
             // Title
             lblTitle.setText(s.title());

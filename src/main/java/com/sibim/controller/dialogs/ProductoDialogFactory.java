@@ -107,16 +107,41 @@ public final class ProductoDialogFactory {
         TextArea fDesc = new TextArea(existing != null && existing.getDescripcion() != null ? existing.getDescripcion() : "");
         fDesc.setPrefRowCount(2); fDesc.setPromptText("Descripción opcional");
         fDesc.getStyleClass().add("form-input");
-        ComboBox<Categoria> fCat = new ComboBox<>(FXCollections.observableArrayList(cats));
+        javafx.collections.ObservableList<Categoria> allCats = FXCollections.observableArrayList(cats);
+        ComboBox<Categoria> fCat = new ComboBox<>(allCats);
         fCat.setMaxWidth(Double.MAX_VALUE);
-        fCat.setPromptText("Seleccionar categoría");
+        fCat.setPromptText("Buscar categoría…");
+        fCat.setEditable(true);
         fCat.getStyleClass().add("form-input");
         fCat.setConverter(new javafx.util.StringConverter<>() {
             public String toString(Categoria c) { return c == null ? "" : c.getNombre(); }
-            public Categoria fromString(String s) { return null; }
+            public Categoria fromString(String s) {
+                if (s == null || s.isBlank()) return null;
+                return cats.stream()
+                    .filter(c -> c.getNombre().equalsIgnoreCase(s.trim()))
+                    .findFirst().orElse(null);
+            }
         });
         if (existing != null) cats.stream()
             .filter(c -> c.getId().equals(existing.getCategoriaId())).findFirst().ifPresent(fCat::setValue);
+
+        // Autocomplete: filter dropdown as user types
+        boolean[] catSelecting = {false};
+        fCat.valueProperty().addListener((obs, old, val) -> {
+            catSelecting[0] = true;
+            if (val != null) fCat.setItems(allCats);
+            Platform.runLater(() -> catSelecting[0] = false);
+        });
+        fCat.getEditor().textProperty().addListener((obs, old, val) -> {
+            if (catSelecting[0]) return;
+            String lower = val == null ? "" : val.toLowerCase();
+            if (lower.isBlank()) { fCat.setItems(allCats); return; }
+            List<Categoria> filtered = cats.stream()
+                .filter(c -> c.getNombre().toLowerCase().contains(lower))
+                .toList();
+            fCat.setItems(FXCollections.observableArrayList(filtered));
+            if (!filtered.isEmpty() && !fCat.isShowing()) fCat.show();
+        });
 
         List<String> areaNames = new java.util.ArrayList<>(com.sibim.config.Areas.getAllAreaNames());
         ComboBox<String> fArea = new ComboBox<>(FXCollections.observableArrayList(areaNames));
@@ -127,6 +152,50 @@ public final class ProductoDialogFactory {
             : sessionUser != null ? sessionUser.getArea() : null);
         if (SessionManager.isDireccion()) fArea.setDisable(true);
         fArea.getStyleClass().add("form-input");
+
+        // ── Inline blur-validation hints for required fields ──────────────
+        Label lblNombreHint = new Label("Campo requerido");
+        lblNombreHint.getStyleClass().addAll("field-hint", "field-hint-error");
+        lblNombreHint.setVisible(false); lblNombreHint.setManaged(false);
+
+        Label lblCatHint = new Label("Selecciona una categoría");
+        lblCatHint.getStyleClass().addAll("field-hint", "field-hint-error");
+        lblCatHint.setVisible(false); lblCatHint.setManaged(false);
+
+        Label lblAreaHint = new Label("Campo requerido");
+        lblAreaHint.getStyleClass().addAll("field-hint", "field-hint-error");
+        lblAreaHint.setVisible(false); lblAreaHint.setManaged(false);
+
+        fNombre.focusedProperty().addListener((obs, was, now) -> {
+            if (!now) {
+                boolean empty = fNombre.getText().isBlank();
+                lblNombreHint.setVisible(empty); lblNombreHint.setManaged(empty);
+                if (empty) fNombre.getStyleClass().add("field-error");
+            }
+        });
+        fCodigo.focusedProperty().addListener((obs, was, now) -> {
+            if (!now && fCodigo.getText().isBlank()) {
+                lblCodigoHint.setText("Campo requerido");
+                lblCodigoHint.getStyleClass().removeAll("field-hint-ok");
+                lblCodigoHint.getStyleClass().add("field-hint-error");
+                lblCodigoHint.setVisible(true); lblCodigoHint.setManaged(true);
+                fCodigo.getStyleClass().add("field-error");
+            }
+        });
+        fCat.focusedProperty().addListener((obs, was, now) -> {
+            if (!now) {
+                boolean empty = fCat.getValue() == null;
+                lblCatHint.setVisible(empty); lblCatHint.setManaged(empty);
+                if (empty) fCat.getStyleClass().add("field-error");
+            }
+        });
+        fArea.focusedProperty().addListener((obs, was, now) -> {
+            if (!now && !fArea.isDisabled()) {
+                boolean empty = fArea.getValue() == null || fArea.getValue().isBlank();
+                lblAreaHint.setVisible(empty); lblAreaHint.setManaged(empty);
+                if (empty) fArea.getStyleClass().add("field-error");
+            }
+        });
 
         TextField fProveedor = new TextField(existing != null && existing.getProveedor() != null ? existing.getProveedor() : "");
         fProveedor.setPromptText("Nombre del proveedor");
@@ -216,14 +285,14 @@ public final class ProductoDialogFactory {
         // Required fields first, optional image below a visual divider
         Label lblInfoReq = new Label("* Campos obligatorios");
         lblInfoReq.getStyleClass().addAll("muted-sm");
-        gridInfo.add(DialogUtil.fieldLabel("Nombre *"),    0, r); gridInfo.add(fNombre,    1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Nombre *"),    0, r); gridInfo.add(new VBox(2, fNombre, lblNombreHint), 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Código *"),    0, r); gridInfo.add(codigoBox,  1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Categoría *"), 0, r); gridInfo.add(fCat,       1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Categoría *"), 0, r); gridInfo.add(new VBox(2, fCat, lblCatHint), 1, r++);
         gridInfo.add(DialogUtil.fieldLabelWithHelp("Área *",
             "Secretaría o Dirección responsable del bien.\n" +
             "Solo los usuarios de esa área podrán gestionarlo.\n" +
             "Para DIRECCIÓN el área se fija automáticamente."),
-                                                             0, r); gridInfo.add(fArea,      1, r++);
+                                                             0, r); gridInfo.add(new VBox(2, fArea, lblAreaHint), 1, r++);
         gridInfo.add(new Separator(), 0, r, 2, 1); r++;
         gridInfo.add(DialogUtil.fieldLabel("Descripción"), 0, r); gridInfo.add(fDesc,      1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Imagen"),      0, r); gridInfo.add(imgSection, 1, r++);
@@ -376,10 +445,19 @@ public final class ProductoDialogFactory {
         btnGuardar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
 
         Runnable hideFormError = () -> { lblFormError.setVisible(false); lblFormError.setManaged(false); };
-        fNombre.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fNombre.getStyleClass().remove("field-error"); hideFormError.run(); });
+        fNombre.textProperty().addListener((o, a, b) -> {
+            if (!b.isBlank()) { fNombre.getStyleClass().remove("field-error"); lblNombreHint.setVisible(false); lblNombreHint.setManaged(false); }
+            hideFormError.run();
+        });
         fCodigo.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fCodigo.getStyleClass().remove("field-error"); hideFormError.run(); });
-        fArea.valueProperty().addListener((o, a, b) -> { if (b != null && !b.isBlank()) fArea.getStyleClass().remove("field-error"); hideFormError.run(); });
-        fCat.valueProperty().addListener((o, a, b) -> { if (b != null) fCat.getStyleClass().remove("field-error"); hideFormError.run(); });
+        fArea.valueProperty().addListener((o, a, b) -> {
+            if (b != null && !b.isBlank()) { fArea.getStyleClass().remove("field-error"); lblAreaHint.setVisible(false); lblAreaHint.setManaged(false); }
+            hideFormError.run();
+        });
+        fCat.valueProperty().addListener((o, a, b) -> {
+            if (b != null) { fCat.getStyleClass().remove("field-error"); lblCatHint.setVisible(false); lblCatHint.setManaged(false); }
+            hideFormError.run();
+        });
         fPrecioC.textProperty().addListener((o, a, b) -> { fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
         fPrecioV.textProperty().addListener((o, a, b) -> { fPrecioV.getStyleClass().remove("field-error"); hideFormError.run(); });
         fStockMin.valueProperty().addListener((o, a, b) -> { fStockMin.getStyleClass().remove("field-error"); fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });

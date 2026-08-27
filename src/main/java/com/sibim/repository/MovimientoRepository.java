@@ -12,10 +12,7 @@ import com.sibim.util.ProductoUtils;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.UUID;
 
 public class MovimientoRepository {
@@ -128,6 +125,76 @@ public class MovimientoRepository {
 
     public List<Movimiento> findLastNDays(int days) throws SQLException {
         return findByDateRange(LocalDate.now().minusDays(days - 1), LocalDate.now());
+    }
+
+    public record MonthlyStats(String label, int entradas, int salidas) {}
+
+    private static final String[] MES_ABREV = {
+        "Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"
+    };
+
+    public List<MonthlyStats> findMonthlyStats(int months) throws SQLException {
+        LocalDate fromMonth = LocalDate.now().withDayOfMonth(1).minusMonths(months - 1);
+
+        // Ordered map: "YYYY-MM" → [entradas, salidas], oldest → newest
+        LinkedHashMap<String, int[]> byMonth = new LinkedHashMap<>();
+        for (int i = months - 1; i >= 0; i--) {
+            LocalDate m = LocalDate.now().withDayOfMonth(1).minusMonths(i);
+            byMonth.put(m.getYear() + "-" + String.format("%02d", m.getMonthValue()), new int[]{0, 0});
+        }
+
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            // Offline/demo: aggregate in Java from all available movements
+            List<Movimiento> movs = local.findMovimientosByDateRange(
+                fromMonth, LocalDate.now(), SessionManager.getAccessibleAreas());
+            for (Movimiento m : movs) {
+                LocalDate d = m.getCreadoEn().toLocalDate();
+                int[] arr = byMonth.get(d.getYear() + "-" + String.format("%02d", d.getMonthValue()));
+                if (arr == null) continue;
+                switch (m.getTipo()) {
+                    case ENTRADA -> arr[0] += m.getCantidad();
+                    case SALIDA  -> arr[1] += m.getCantidad();
+                    default -> {}
+                }
+            }
+        } else {
+            // Online: single aggregate SQL query
+            Set<String> accessible = SessionManager.getAccessibleAreas();
+            StringBuilder sql = new StringBuilder("""
+                SELECT
+                    TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS ym,
+                    SUM(CASE WHEN m.tipo = 'ENTRADA' THEN m.cantidad ELSE 0 END)::int AS entradas,
+                    SUM(CASE WHEN m.tipo = 'SALIDA'  THEN m.cantidad ELSE 0 END)::int AS salidas
+                FROM movements m
+                JOIN products p ON p.id = m.producto_id
+                WHERE m.created_at >= ?
+                """);
+            if (accessible != null) sql.append("AND p.area = ANY(?) ");
+            sql.append("GROUP BY DATE_TRUNC('month', m.created_at) ORDER BY ym ASC");
+
+            try (Connection conn = DatabaseConfig.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setTimestamp(1, Timestamp.valueOf(fromMonth.atStartOfDay()));
+                if (accessible != null)
+                    ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    int[] arr = byMonth.get(rs.getString("ym"));
+                    if (arr != null) {
+                        arr[0] = rs.getInt("entradas");
+                        arr[1] = rs.getInt("salidas");
+                    }
+                }
+            }
+        }
+
+        return byMonth.entrySet().stream().map(e -> {
+            String[] parts = e.getKey().split("-");
+            int monthIdx = Integer.parseInt(parts[1]) - 1;
+            return new MonthlyStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
+                e.getValue()[0], e.getValue()[1]);
+        }).toList();
     }
 
     /**

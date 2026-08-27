@@ -318,7 +318,7 @@ public class SplashController {
      *  glow pulse · gentle float · sonar ping rings · deco ring breathe · floating particles */
     private void startAmbientLoops() {
         // Glow pulse
-        DropShadow glow = new DropShadow(38, Color.rgb(99, 102, 241, 0.65));
+        DropShadow glow = new DropShadow(38, Color.rgb(99, 102, 241, 0.70));
         glow.setSpread(0); glow.setOffsetY(10);
         logoBadge.setEffect(glow);
         Timeline glowPulse = new Timeline(

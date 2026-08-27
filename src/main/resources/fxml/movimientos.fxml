@@ -207,7 +207,22 @@
     <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 movimientos" styleClass="muted"/>
         <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
+        <Label fx:id="lblSeleccionados" text="" styleClass="status-bar-selection" visible="false" managed="false"/>
         <Region HBox.hgrow="ALWAYS"/>
+        <MenuButton fx:id="btnExportarSeleccion" text="Exportar" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8" disable="true">
+            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exporta los movimientos seleccionados (Ctrl+clic o Shift+clic para elegir varios)" wrapText="true" maxWidth="260"/></tooltip>
+            <items>
+                <MenuItem text="CSV" onAction="#onExportSeleccionCsv">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                </MenuItem>
+                <MenuItem text="Excel" onAction="#onExportSeleccionExcel">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                </MenuItem>
+            </items>
+        </MenuButton>
+        <Separator orientation="VERTICAL"/>
         <Button fx:id="btnDelete" text="Eliminar" onAction="#onDelete" styleClass="btn-danger" disable="true"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-delete-outline" styleClass="btn-icon"/></graphic>

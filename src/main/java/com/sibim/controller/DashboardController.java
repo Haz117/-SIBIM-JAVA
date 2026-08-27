@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
+import com.sibim.repository.MovimientoRepository.MonthlyStats;
 import com.sibim.service.DashboardService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -54,9 +55,12 @@ public class DashboardController {
     @FXML private Label lblHealthDetail;
 
     // ── Charts ───────────────────────────────────────────────────────
-    @FXML private LineChart<String, Number> chartMovimientos;
-    @FXML private PieChart chartValorCategoria;
-    @FXML private VBox pieEmptyState;
+    @FXML private LineChart<String, Number>  chartMovimientos;
+    @FXML private PieChart                   chartValorCategoria;
+    @FXML private VBox                       pieEmptyState;
+    @FXML private AreaChart<String, Number>  chartTendencia;
+    @FXML private VBox                       trendCard;
+    @FXML private Label                      lblTrendEmpty;
 
     // ── Layout ───────────────────────────────────────────────────────
     @FXML private GridPane statsGrid;
@@ -171,6 +175,7 @@ public class DashboardController {
         buildMovimientosChart(data.movSemana());
         buildCategoriaChart(data.catValores());
         buildHealthBar(stats);
+        buildTrendChart(data.movMensual());
 
         if (tablaReciente != null) {
             List<Movimiento> ultimos = data.movSemana().stream()
@@ -340,6 +345,42 @@ public class DashboardController {
             pieEmptyState.setManaged(!hasData);
             if (!hasData && !wasVisible) AnimationUtils.springIn(pieEmptyState);
         }
+    }
+
+    private void buildTrendChart(List<MonthlyStats> monthly) {
+        if (chartTendencia == null || trendCard == null) return;
+        chartTendencia.getData().clear();
+
+        boolean allZero = monthly.stream()
+            .allMatch(m -> m.entradas() == 0 && m.salidas() == 0);
+
+        if (lblTrendEmpty != null) {
+            lblTrendEmpty.setVisible(allZero);
+            lblTrendEmpty.setManaged(allZero);
+        }
+        chartTendencia.setVisible(!allZero);
+        chartTendencia.setManaged(!allZero);
+
+        if (allZero) return;
+
+        XYChart.Series<String, Number> entradas = new XYChart.Series<>();
+        entradas.setName("Entradas");
+        XYChart.Series<String, Number> salidas  = new XYChart.Series<>();
+        salidas.setName("Salidas");
+
+        for (MonthlyStats m : monthly) {
+            entradas.getData().add(new XYChart.Data<>(m.label(), m.entradas()));
+            salidas.getData().add(new XYChart.Data<>(m.label(), m.salidas()));
+        }
+
+        chartTendencia.getData().addAll(java.util.List.of(entradas, salidas));
+
+        for (XYChart.Data<String, Number> d : entradas.getData())
+            installTooltipWhenReady(d, "Entradas " + d.getXValue() + ": " + d.getYValue() + " uds.");
+        for (XYChart.Data<String, Number> d : salidas.getData())
+            installTooltipWhenReady(d, "Salidas " + d.getXValue() + ": " + d.getYValue() + " uds.");
+
+        AnimationUtils.fadeInUp(trendCard, 300, 0);
     }
 
     // ── Navigation ───────────────────────────────────────────────────

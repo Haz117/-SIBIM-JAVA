@@ -89,7 +89,7 @@ public class IconGenerator {
         // Clip so building never bleeds outside rounded corners
         g.setClip(bg);
 
-        if (sz <= 32) {
+        if (sz <= 16) {
             renderTiny(g, sz);
         } else {
             renderBuilding(g, sz);
