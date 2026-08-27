@@ -25,6 +25,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +33,14 @@ import java.util.stream.Collectors;
 
 public class ReporteService {
 
-    private final ProductoRepository productoRepo = new ProductoRepository();
-    private final MovimientoRepository movimientoRepo = new MovimientoRepository();
+    private final ProductoRepository   productoRepo;
+    private final MovimientoRepository movimientoRepo;
+
+    public ReporteService() { this(new ProductoRepository(), new MovimientoRepository()); }
+    ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo) {
+        this.productoRepo   = productoRepo;
+        this.movimientoRepo = movimientoRepo;
+    }
 
     private static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");

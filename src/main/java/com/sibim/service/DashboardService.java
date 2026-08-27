@@ -24,8 +24,14 @@ public class DashboardService {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardService.class);
 
-    private final ProductoRepository   productoRepo   = new ProductoRepository();
-    private final MovimientoRepository movimientoRepo = new MovimientoRepository();
+    private final ProductoRepository   productoRepo;
+    private final MovimientoRepository movimientoRepo;
+
+    public DashboardService() { this(new ProductoRepository(), new MovimientoRepository()); }
+    DashboardService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo) {
+        this.productoRepo   = productoRepo;
+        this.movimientoRepo = movimientoRepo;
+    }
 
     public Resumen cargarResumen() throws SQLException {
         try (ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()) {

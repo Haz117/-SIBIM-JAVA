@@ -20,8 +20,14 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    private final UsuarioRepository usuarioRepo = new UsuarioRepository();
-    private final AuditLogRepository auditRepo = new AuditLogRepository();
+    private final UsuarioRepository  usuarioRepo;
+    private final AuditLogRepository auditRepo;
+
+    public AuthService() { this(new UsuarioRepository(), new AuditLogRepository()); }
+    AuthService(UsuarioRepository usuarioRepo, AuditLogRepository auditRepo) {
+        this.usuarioRepo = usuarioRepo;
+        this.auditRepo   = auditRepo;
+    }
 
     private static final int    MAX_INTENTOS = 5;
     private static final long   VENTANA_MS   = 15 * 60_000L; // 15 minutos

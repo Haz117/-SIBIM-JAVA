@@ -9,7 +9,10 @@ import java.util.Optional;
 
 public class CategoriaService {
 
-    private final CategoriaRepository categoriaRepo = new CategoriaRepository();
+    private final CategoriaRepository categoriaRepo;
+
+    public CategoriaService() { this(new CategoriaRepository()); }
+    CategoriaService(CategoriaRepository categoriaRepo) { this.categoriaRepo = categoriaRepo; }
 
     public List<Categoria> findAll() throws SQLException {
         return categoriaRepo.findAll();

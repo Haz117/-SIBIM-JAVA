@@ -20,9 +20,19 @@ public class MovimientoService {
 
     private static final Logger log = LoggerFactory.getLogger(MovimientoService.class);
 
-    private final MovimientoRepository movimientoRepo = new MovimientoRepository();
-    private final ProductoRepository productoRepo = new ProductoRepository();
-    private final AuditLogRepository auditRepo = new AuditLogRepository();
+    private final MovimientoRepository movimientoRepo;
+    private final ProductoRepository   productoRepo;
+    private final AuditLogRepository   auditRepo;
+
+    public MovimientoService() {
+        this(new MovimientoRepository(), new ProductoRepository(), new AuditLogRepository());
+    }
+    MovimientoService(MovimientoRepository movimientoRepo, ProductoRepository productoRepo,
+                      AuditLogRepository auditRepo) {
+        this.movimientoRepo = movimientoRepo;
+        this.productoRepo   = productoRepo;
+        this.auditRepo      = auditRepo;
+    }
 
     public List<Movimiento> getAll() throws SQLException {
         return movimientoRepo.findAll();

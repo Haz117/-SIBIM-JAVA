@@ -17,8 +17,14 @@ public class ProductoService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductoService.class);
 
-    private final ProductoRepository productoRepo = new ProductoRepository();
-    private final AuditLogRepository auditRepo = new AuditLogRepository();
+    private final ProductoRepository productoRepo;
+    private final AuditLogRepository auditRepo;
+
+    public ProductoService() { this(new ProductoRepository(), new AuditLogRepository()); }
+    ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo) {
+        this.productoRepo = productoRepo;
+        this.auditRepo    = auditRepo;
+    }
 
     public List<Producto> getAll() throws SQLException {
         return productoRepo.findAll();
