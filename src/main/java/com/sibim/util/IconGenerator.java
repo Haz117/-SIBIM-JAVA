@@ -22,51 +22,40 @@ public class IconGenerator {
             ImageIO.write(imgs[i], "PNG", out);
             System.out.printf("OK  %s%n", out.getPath());
         }
-        // Multi-resolution ICO (PNG-inside-ICO, supported Windows Vista+)
         writeIco(new File(outDir, "icon.ico"), imgs, sizes);
         System.out.println("OK  icon.ico");
         System.out.println("Iconos generados correctamente.");
     }
 
-    /** Writes a multi-resolution ICO file embedding PNG-compressed images.
-     *  Windows Vista+ reads PNG-inside-ICO natively, giving crisp icons at
-     *  every DPI. */
     private static void writeIco(File out, BufferedImage[] imgs, int[] sizes) throws IOException {
-        // Collect PNG bytes for each image
         byte[][] pngBytes = new byte[imgs.length][];
         for (int i = 0; i < imgs.length; i++) {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ImageIO.write(imgs[i], "PNG", bos);
             pngBytes[i] = bos.toByteArray();
         }
-
         try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(out))) {
             int count = imgs.length;
-            // ICONDIR header (6 bytes)
-            dos.writeShort(leShort(0));     // reserved
-            dos.writeShort(leShort(1));     // type = 1 (ICO)
-            dos.writeShort(leShort(count)); // image count
-
-            // Image directory (16 bytes × count)
+            dos.writeShort(leShort(0));
+            dos.writeShort(leShort(1));
+            dos.writeShort(leShort(count));
             int offset = 6 + 16 * count;
             for (int i = 0; i < count; i++) {
                 int sz = sizes[i];
-                dos.writeByte(sz == 256 ? 0 : sz); // width  (0 = 256)
-                dos.writeByte(sz == 256 ? 0 : sz); // height (0 = 256)
-                dos.writeByte(0);                   // color count
-                dos.writeByte(0);                   // reserved
-                dos.writeShort(leShort(1));          // planes
-                dos.writeShort(leShort(32));         // bit count
+                dos.writeByte(sz == 256 ? 0 : sz);
+                dos.writeByte(sz == 256 ? 0 : sz);
+                dos.writeByte(0);
+                dos.writeByte(0);
+                dos.writeShort(leShort(1));
+                dos.writeShort(leShort(32));
                 dos.writeInt(leInt(pngBytes[i].length));
                 dos.writeInt(leInt(offset));
                 offset += pngBytes[i].length;
             }
-            // Image data
             for (byte[] png : pngBytes) dos.write(png);
         }
     }
 
-    // ICO uses little-endian; DataOutputStream is big-endian — swap bytes.
     private static short leShort(int v) { return (short)(((v & 0xFF) << 8) | ((v >> 8) & 0xFF)); }
     private static int   leInt(int v) {
         return ((v & 0xFF) << 24) | (((v >> 8) & 0xFF) << 16) | (((v >> 16) & 0xFF) << 8) | ((v >> 24) & 0xFF);
@@ -75,18 +64,29 @@ public class IconGenerator {
     private static BufferedImage render(int sz) {
         BufferedImage img = new BufferedImage(sz, sz, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,      RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setRenderingHint(RenderingHints.KEY_RENDERING,         RenderingHints.VALUE_RENDER_QUALITY);
-        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,    RenderingHints.VALUE_STROKE_PURE);
-        g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING,   RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,    RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING,       RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,  RenderingHints.VALUE_STROKE_PURE);
+        g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // ── Background: indigo → violet gradient rounded square ──
         float arc = sz * 0.22f;
         RoundRectangle2D bg = new RoundRectangle2D.Float(0, 0, sz, sz, arc * 2, arc * 2);
-        g.setPaint(new GradientPaint(0, 0, new Color(0x4F46E5), sz, sz, new Color(0x7C3AED)));
+
+        // ── 3-stop diagonal gradient: near-black indigo → dark indigo → vivid violet ──
+        float[] bgFrac = {0f, 0.42f, 1f};
+        Color[] bgCol  = {new Color(0x0F0E1A), new Color(0x1E1B4B), new Color(0x5B21B6)};
+        g.setPaint(new LinearGradientPaint(0, 0, sz, sz, bgFrac, bgCol));
         g.fill(bg);
 
-        // Clip so building silhouette never bleeds outside rounded corners
+        // ── Top-left radial sheen (subtle specular highlight) ──
+        float[] sheenFrac = {0f, 1f};
+        Color[] sheenCol  = {new Color(255, 255, 255, 52), new Color(255, 255, 255, 0)};
+        g.setPaint(new RadialGradientPaint(
+            new Point2D.Float(sz * 0.18f, sz * 0.14f), sz * 0.60f, sheenFrac, sheenCol));
+        g.fill(bg);
+
+        // Clip so building never bleeds outside rounded corners
         g.setClip(bg);
 
         if (sz <= 32) {
@@ -99,34 +99,32 @@ public class IconGenerator {
         return img;
     }
 
-    /** Simplified silhouette for 16–32 px where fine detail would be noise. */
+    /** Simplified letter mark for 16–32 px where building detail is noise. */
     private static void renderTiny(Graphics2D g, int sz) {
+        Font font = new Font("SansSerif", Font.BOLD, (int)(sz * 0.60));
+        g.setFont(font);
+        FontMetrics fm = g.getFontMetrics();
+        String s = "S";
+        int tw = fm.stringWidth(s);
+        int x  = (sz - tw) / 2;
+        int y  = (sz + fm.getAscent() - fm.getDescent()) / 2;
+        // Subtle depth shadow
+        g.setColor(new Color(0, 0, 0, 65));
+        g.drawString(s, x + 1, y + 1);
         g.setColor(Color.WHITE);
-        double p  = sz * 0.18;
-        double cw = sz - 2 * p;
-        // Roof triangle
-        Path2D roof = new Path2D.Double();
-        roof.moveTo(sz / 2.0,      p);
-        roof.lineTo(p,             sz * 0.48);
-        roof.lineTo(sz - p,        sz * 0.48);
-        roof.closePath();
-        g.fill(roof);
-        // Body + base
-        double bx = p + cw * 0.12, bw = cw * 0.76;
-        g.fill(new Rectangle2D.Double(bx, sz * 0.45, bw, sz * 0.38));
-        g.fill(new Rectangle2D.Double(p,  sz * 0.83, cw, sz * 0.09));
+        g.drawString(s, x, y);
     }
 
-    /** Full building with pediment, wings, windows, and door. */
+    /** Full building silhouette with dome, pediment, wings, windows, and door. */
     private static void renderBuilding(Graphics2D g, int sz) {
         double cx   = sz / 2.0;
-        double pad  = sz * 0.11;
+        double pad  = sz * 0.10;
         double totW = sz - 2 * pad;
 
         // Pediment (triangular roof)
-        double roofTop = sz * 0.16;
-        double roofBot = sz * 0.41;
-        double roofHW  = totW * 0.46;
+        double roofTop = sz * 0.20;
+        double roofBot = sz * 0.42;
+        double roofHW  = totW * 0.44;
         Path2D roof = new Path2D.Double();
         roof.moveTo(cx,          roofTop);
         roof.lineTo(cx - roofHW, roofBot);
@@ -134,26 +132,38 @@ public class IconGenerator {
         roof.closePath();
 
         // Centre body
-        double bodyW = totW * 0.62;
+        double bodyW = totW * 0.60;
         double bodyX = cx - bodyW / 2;
-        double bodyY = roofBot - 1; // 1 px overlap for crisp edge
-        double bodyH = sz * 0.37;
+        double bodyY = roofBot - 1;
+        double bodyH = sz * 0.35;
 
-        // Side wings (shorter than body)
-        double wingW = totW * 0.155;
-        double wingY = bodyY + bodyH * 0.30;
-        double wingH = bodyH * 0.70;
+        // Side wings
+        double wingW = totW * 0.15;
+        double wingY = bodyY + bodyH * 0.28;
+        double wingH = bodyH * 0.72;
         double lWingX = pad;
         double rWingX = sz - pad - wingW;
 
         // Base step
-        double baseH = sz * 0.055;
-        double baseX = pad * 0.55;
+        double baseH = sz * 0.052;
+        double baseX = pad * 0.50;
         double baseW = sz - 2 * baseX;
         double baseY = bodyY + bodyH;
 
+        // Dome on pediment peak
+        double domeW = totW * 0.17;
+        double domeH = sz * 0.075;
+        double domeX = cx - domeW / 2;
+        double domeY = roofTop - domeH;
+
         // ── Draw white building ──
         g.setColor(Color.WHITE);
+        // Dome
+        g.fill(new Ellipse2D.Double(domeX, domeY, domeW, domeH));
+        // Slender stem connecting dome base to pediment apex
+        double stemW = Math.max(1.5, sz * 0.022);
+        g.fill(new Rectangle2D.Double(cx - stemW / 2, roofTop - domeH * 0.55, stemW, domeH * 0.55));
+        // Main silhouette
         g.fill(roof);
         g.fill(new Rectangle2D.Double(bodyX, bodyY, bodyW, bodyH));
         g.fill(new Rectangle2D.Double(lWingX, wingY, wingW, wingH));
@@ -163,32 +173,29 @@ public class IconGenerator {
         // ── Punch holes (door + windows) to expose gradient behind ──
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
 
-        // Door arch — centred, arched top
-        double doorW = bodyW * 0.24;
-        double doorH = bodyH * 0.50;
+        // Door arch — centred
+        double doorW = bodyW * 0.23;
+        double doorH = bodyH * 0.48;
         double doorX = cx - doorW / 2;
         double doorY = bodyY + bodyH - doorH;
         g.fill(new RoundRectangle2D.Double(doorX, doorY, doorW, doorH, doorW * 0.9, doorW * 0.9));
 
         // Three windows in body
-        double winW  = bodyW * 0.135;
-        double winH  = bodyH * 0.25;
-        double winY2 = bodyY + bodyH * 0.13;
-        double gap   = (bodyW - 3 * winW) / 4;
+        double winW = bodyW * 0.13;
+        double winH = bodyH * 0.24;
+        double winY = bodyY + bodyH * 0.12;
+        double gap  = (bodyW - 3 * winW) / 4;
         for (int i = 0; i < 3; i++) {
             double winX = bodyX + gap + i * (winW + gap);
-            g.fill(new RoundRectangle2D.Double(winX, winY2, winW, winH, winW * 0.35, winW * 0.35));
+            g.fill(new RoundRectangle2D.Double(winX, winY, winW, winH, winW * 0.35, winW * 0.35));
         }
 
-        // One small window on each wing
+        // Wing windows (only visible at ≥64 px)
         if (sz >= 64) {
-            double swinW = wingW * 0.50;
-            double swinH = wingH * 0.28;
-            double swinY = wingY + wingH * 0.20;
-            double swinXL = lWingX + (wingW - swinW) / 2;
-            double swinXR = rWingX + (wingW - swinW) / 2;
-            g.fill(new RoundRectangle2D.Double(swinXL, swinY, swinW, swinH, swinW * 0.3, swinW * 0.3));
-            g.fill(new RoundRectangle2D.Double(swinXR, swinY, swinW, swinH, swinW * 0.3, swinW * 0.3));
+            double sw = wingW * 0.48, sh = wingH * 0.26;
+            double sy = wingY + wingH * 0.18;
+            g.fill(new RoundRectangle2D.Double(lWingX + (wingW - sw) / 2, sy, sw, sh, sw * 0.3, sw * 0.3));
+            g.fill(new RoundRectangle2D.Double(rWingX + (wingW - sw) / 2, sy, sw, sh, sw * 0.3, sw * 0.3));
         }
 
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));

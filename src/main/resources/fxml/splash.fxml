@@ -18,23 +18,28 @@
     <!-- ── Centro ─────────────────────────────────────────────── -->
     <VBox alignment="CENTER" spacing="24" maxWidth="380">
 
-        <!-- Logo badge -->
-        <StackPane fx:id="logoBadge" styleClass="splash-logo-badge" alignment="CENTER">
-            <StackPane styleClass="splash-logo-inner" alignment="CENTER">
-                <Label text="S" styleClass="splash-logo-letter"/>
+        <!-- Logo badge + sonar ping rings in one StackPane so rings expand
+             from the exact same center as the badge. The wrapper is sized
+             to the badge (110×110); rings render outside those bounds
+             because JavaFX does not clip children of StackPane by default. -->
+        <StackPane fx:id="logoWrapper" alignment="CENTER"
+                   minWidth="110" minHeight="110"
+                   maxWidth="110" maxHeight="110">
+            <StackPane fx:id="pingRing1" styleClass="splash-ping-ring" opacity="0"/>
+            <StackPane fx:id="pingRing2" styleClass="splash-ping-ring" opacity="0"/>
+            <StackPane fx:id="logoBadge" styleClass="splash-logo-badge" alignment="CENTER">
+                <StackPane styleClass="splash-logo-inner" alignment="CENTER">
+                    <Label text="S" styleClass="splash-logo-letter"/>
+                </StackPane>
             </StackPane>
         </StackPane>
 
-        <!-- Brand text — each line kept to a single row (no wrapText) so the
-             three lines form one clean centered block instead of the
-             subtitle wrapping into an uneven two-line shape next to the
-             single-line title/org. -->
+        <!-- Brand text — labels get individual fx:ids so the controller can
+             stagger their entrance animations separately. -->
         <VBox fx:id="brandBox" alignment="CENTER" spacing="7">
-            <Label text="SIBIM" styleClass="splash-title"/>
-            <Label text="Sistema Integral de Bienes Municipales"
-                   styleClass="splash-subtitle"/>
-            <Label text="H. Ayuntamiento de Ixmiquilpan · Hidalgo"
-                   styleClass="splash-org"/>
+            <Label fx:id="lblTitle"    text="SIBIM"                                    styleClass="splash-title"/>
+            <Label fx:id="lblSubtitle" text="Sistema Integral de Bienes Municipales"   styleClass="splash-subtitle"/>
+            <Label fx:id="lblOrg"      text="H. Ayuntamiento de Ixmiquilpan · Hidalgo" styleClass="splash-org"/>
         </VBox>
 
         <!-- Progress section -->

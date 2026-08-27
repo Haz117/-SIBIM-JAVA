@@ -2741,7 +2741,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 .splash-root {
-    -fx-background-color: #0F172A;
+    -fx-background-color: radial-gradient(center 30% 28%, radius 62%, #1e1b4b 0%, #0f0e1a 100%);
 }
 
 /* Decorative background rings */
@@ -2762,37 +2762,54 @@
     -fx-translate-y: 100;
 }
 
-/* Logo badge — outer indigo-to-violet square */
+/* Sonar ping rings — start at 110×110, scale outward + fade */
+.splash-ping-ring {
+    -fx-border-color: rgba(99,102,241,0.65);
+    -fx-border-width: 2;
+    -fx-border-radius: 999;
+    -fx-background-color: transparent;
+    -fx-background-radius: 999;
+    -fx-min-width: 110; -fx-min-height: 110;
+    -fx-max-width: 110; -fx-max-height: 110;
+}
+
+/* Logo badge — deep indigo-to-violet square */
 .splash-logo-badge {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #4338CA, #7C3AED);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2d1b69, #4338ca 52%, #7c3aed);
     -fx-background-radius: 28;
     -fx-min-width: 110; -fx-min-height: 110;
     -fx-max-width: 110; -fx-max-height: 110;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.65), 38, 0, 0, 10);
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.70), 42, 0.12, 0, 12);
 }
 
 /* Inner frosted circle */
 .splash-logo-inner {
-    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-background-color: rgba(255,255,255,0.13);
     -fx-background-radius: 99;
-    -fx-min-width: 70; -fx-min-height: 70;
-    -fx-max-width: 70; -fx-max-height: 70;
+    -fx-min-width: 72; -fx-min-height: 72;
+    -fx-max-width: 72; -fx-max-height: 72;
+    -fx-border-color: rgba(255,255,255,0.18);
+    -fx-border-radius: 99;
+    -fx-border-width: 1;
 }
 
 /* The "S" letter */
 .splash-logo-letter {
-    -fx-font-size: 42px;
-    -fx-font-weight: bold;
+    -fx-font-size: 44px;
+    -fx-font-weight: 900;
     -fx-text-fill: white;
     -fx-font-family: 'Segoe UI';
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 4, 0, 0, 2);
 }
 
 /* "SIBIM" headline */
 .splash-title {
-    -fx-font-size: 36px;
-    -fx-font-weight: bold;
+    -fx-font-size: 38px;
+    -fx-font-weight: 900;
     -fx-text-fill: white;
     -fx-font-family: 'Segoe UI';
+    -fx-letter-spacing: 3;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 14, 0.2, 0, 2);
 }
 
 /* Subtitle line */
