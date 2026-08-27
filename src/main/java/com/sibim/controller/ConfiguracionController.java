@@ -550,18 +550,11 @@ public class ConfiguracionController {
         java.io.File destino = chooser.showSaveDialog(com.sibim.MainApp.getPrimaryStage());
         if (destino == null) return;
 
-        btnGenerarRespaldo.setDisable(true);
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(backupSection.getScene(), "Generando respaldo…",
             () -> { backupService.backup(destino); return destino; },
-            file -> {
-                btnGenerarRespaldo.setDisable(false);
-                NotificacionUtil.exito(backupSection.getScene(), "Respaldo generado: " + file.getName());
-            },
-            e -> {
-                btnGenerarRespaldo.setDisable(false);
-                NotificacionUtil.error(backupSection.getScene(),
-                    e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo generar el respaldo");
-            }
+            file -> NotificacionUtil.exito(backupSection.getScene(), "Respaldo generado: " + file.getName()),
+            e -> NotificacionUtil.error(backupSection.getScene(),
+                e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo generar el respaldo")
         );
     }
 
@@ -585,18 +578,11 @@ public class ConfiguracionController {
                 + "Esta acción no se puede deshacer. ¿Continuar?"))
             return;
 
-        btnRestaurar.setDisable(true);
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(backupSection.getScene(), "Restaurando base de datos…",
             () -> { backupService.restore(origen); return null; },
-            v -> {
-                btnRestaurar.setDisable(false);
-                NotificacionUtil.restauracionCompletada(backupSection.getScene(), origen.getName());
-            },
-            e -> {
-                btnRestaurar.setDisable(false);
-                NotificacionUtil.error(backupSection.getScene(),
-                    e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo restaurar el respaldo");
-            }
+            v -> NotificacionUtil.restauracionCompletada(backupSection.getScene(), origen.getName()),
+            e -> NotificacionUtil.error(backupSection.getScene(),
+                e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo restaurar el respaldo")
         );
     }
 }

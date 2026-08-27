@@ -2,10 +2,12 @@ package com.sibim.controller;
 
 import com.sibim.config.Areas;
 import com.sibim.controller.dialogs.ConteoFisicoDialog;
+import com.sibim.controller.dialogs.ImportacionBienesDialog;
 import com.sibim.controller.dialogs.ProductoBajasDialog;
 import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.controller.dialogs.ProductoDialogFactory;
 import com.sibim.model.Categoria;
+import com.sibim.model.FilterPreset;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.service.CategoriaService;
@@ -17,6 +19,7 @@ import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.FilterPresetStore;
 import com.sibim.util.FormatUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.util.NotificacionUtil;
@@ -102,7 +105,14 @@ public class ProductosController {
     @FXML private Button btnPrev;
     @FXML private Button btnNext;
     @FXML private FlowPane filterBar;
+    @FXML private FlowPane presetsBar;
+    @FXML private HBox presetsHeader;
+    @FXML private Button btnGuardarPreset;
     @FXML private Button btnToggleFiltros;
+    @FXML private HBox bulkBar;
+    @FXML private Label lblBulkCount;
+    @FXML private Button btnBulkArea;
+    @FXML private Button btnBulkResguardante;
     @FXML private Button btnMovimiento;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
@@ -134,6 +144,7 @@ public class ProductosController {
     private boolean refreshing = false;
     private final AtomicBoolean loading = new AtomicBoolean(false);
     private boolean canEdit = false;
+    private java.util.List<FilterPreset> presets = new java.util.ArrayList<>();
     private String pendingHighlightId;
     private ToggleGroup estadoChipGroup;
     private Label emptyStateMsg;
@@ -148,6 +159,7 @@ public class ProductosController {
         setupTable();
         setupFilters();
         setupStatusChips();
+        loadPresets();
         if (btnMovimiento != null) { btnMovimiento.setVisible(canEdit); btnMovimiento.setManaged(canEdit); }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
         if (btnEliminar != null) { btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit); }
@@ -164,9 +176,14 @@ public class ProductosController {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
                     onNuevoBien(); ev.consume();
+                } else if (ev.getCode() == javafx.scene.input.KeyCode.I && ev.isControlDown()) {
+                    onImportarCsv(); ev.consume();
                 } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
                         && table.getSelectionModel().getSelectedItem() != null) {
                     onEdit(); ev.consume();
+                } else if (ev.getCode() == javafx.scene.input.KeyCode.G && ev.isControlDown()
+                        && btnGuardarPreset != null && btnGuardarPreset.isVisible()) {
+                    onGuardarPreset(); ev.consume();
                 }
             });
         }
@@ -406,6 +423,7 @@ public class ProductosController {
             if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
             if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
             updateSelectionLabel(lblSeleccionados, n);
+            updateBulkBar(n);
         });
         if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(true);
         if (btnEditar   != null && canEdit) btnEditar.setDisable(true);
@@ -426,6 +444,8 @@ public class ProductosController {
             if (ev.getCode() == javafx.scene.input.KeyCode.DELETE
                     && canEdit && table.getSelectionModel().getSelectedItems().size() == 1) {
                 onDelete(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume();
             }
         });
 
@@ -447,6 +467,19 @@ public class ProductosController {
             if (sel != null) showProductDetail(sel);
         });
         cm.getItems().add(cmDetalle);
+        MenuItem cmFicha = new MenuItem("Imprimir ficha técnica");
+        cmFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        cmFicha.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) {
+                DialogUtil.runAsyncWithProgress(table.getScene(), "Generando ficha…",
+                    () -> reporteService.exportFichaTecnica(sel, movimientoService.getByProducto(sel.getId())),
+                    file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+                    ex -> { log.error("Error ficha técnica", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la ficha técnica"); });
+            }
+        });
+        cm.getItems().add(new SeparatorMenuItem());
+        cm.getItems().add(cmFicha);
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());
             MenuItem cmEditar   = new MenuItem("Editar");
@@ -678,6 +711,10 @@ public class ProductosController {
             btnClearFilters.setVisible(hasFilters);
             btnClearFilters.setManaged(hasFilters);
         }
+        if (btnGuardarPreset != null) {
+            btnGuardarPreset.setVisible(hasFilters);
+            btnGuardarPreset.setManaged(hasFilters);
+        }
         if (lblTotalAll != null) {
             if (hasFilters) {
                 lblTotalAll.setText("de " + allData.size() + " total");
@@ -764,6 +801,18 @@ public class ProductosController {
         showProductDialog(null);
     }
 
+    @FXML
+    private void onImportarCsv() {
+        if (!canEdit) {
+            NotificacionUtil.advertencia(table.getScene(), "No tienes permiso para importar bienes");
+            return;
+        }
+        List<Categoria> cats;
+        try { cats = categoriaService.findAll(); }
+        catch (Exception e) { NotificacionUtil.error(table.getScene(), "No se pudieron cargar las categorías"); return; }
+        ImportacionBienesDialog.show(table.getScene(), cats, productoService, () -> { refreshing = true; loadData(); });
+    }
+
     /** Jumps to Movimientos with the selected bien pre-filled in "Nuevo
      *  Movimiento" — lets the user skip searching for it again in that
      *  dialog's product picker (same shortcut Alertas already uses to
@@ -824,7 +873,7 @@ public class ProductosController {
                 allData.remove(seleccionado);
                 updateStats();
                 applyFilters();
-                NotificacionUtil.exitoConAccion(table.getScene(),
+                NotificacionUtil.exitoConAccionCountdown(table.getScene(),
                     "Bien \"" + nombre + "\" dado de baja",
                     "Deshacer",
                     () -> DialogUtil.runAsync(
@@ -848,7 +897,7 @@ public class ProductosController {
 
     @FXML
     private void onExportCsv() {
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
             () -> reporteService.exportInventarioCsv(null, null),
             file -> { NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente"); openFile(file); },
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportCsv)
@@ -857,7 +906,7 @@ public class ProductosController {
 
     @FXML
     private void onExportExcel() {
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
             () -> reporteService.exportInventarioExcel(null, null),
             file -> { NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente"); openFile(file); },
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportExcel)
@@ -868,7 +917,7 @@ public class ProductosController {
     private void onExportSeleccionCsv() {
         List<Producto> seleccion = List.copyOf(table.getSelectionModel().getSelectedItems());
         if (seleccion.isEmpty()) return;
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
             () -> reporteService.exportInventarioCsv(seleccion),
             file -> { NotificacionUtil.exito(table.getScene(), seleccion.size() + " bien(es) exportado(s) a CSV"); openFile(file); },
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportSeleccionCsv)
@@ -879,17 +928,214 @@ public class ProductosController {
     private void onExportSeleccionExcel() {
         List<Producto> seleccion = List.copyOf(table.getSelectionModel().getSelectedItems());
         if (seleccion.isEmpty()) return;
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
             () -> reporteService.exportInventarioExcel(seleccion),
             file -> { NotificacionUtil.exito(table.getScene(), seleccion.size() + " bien(es) exportado(s) a Excel"); openFile(file); },
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportSeleccionExcel)
         );
     }
 
+    // ── Bulk actions ─────────────────────────────────────────────────────────
+
+    private boolean bulkBarVisible = false;
+
+    private void updateBulkBar(int n) {
+        if (bulkBar == null) return;
+        boolean show = n >= 2;
+        if (lblBulkCount != null && show)
+            lblBulkCount.setText(n + " bienes seleccionados");
+        if (btnBulkArea        != null) { btnBulkArea.setVisible(canEdit);        btnBulkArea.setManaged(canEdit); }
+        if (btnBulkResguardante != null) { btnBulkResguardante.setVisible(canEdit); btnBulkResguardante.setManaged(canEdit); }
+        if (show == bulkBarVisible) return;
+        bulkBarVisible = show;
+        if (show) {
+            bulkBar.setOpacity(0);
+            bulkBar.setTranslateY(12);
+            bulkBar.setVisible(true);
+            bulkBar.setManaged(true);
+            var ft = new javafx.animation.FadeTransition(javafx.util.Duration.millis(180), bulkBar);
+            ft.setToValue(1);
+            var tt = new javafx.animation.TranslateTransition(javafx.util.Duration.millis(180), bulkBar);
+            tt.setToY(0);
+            new javafx.animation.ParallelTransition(ft, tt).play();
+        } else {
+            var ft = new javafx.animation.FadeTransition(javafx.util.Duration.millis(140), bulkBar);
+            ft.setToValue(0);
+            ft.setOnFinished(e -> { bulkBar.setVisible(false); bulkBar.setManaged(false); });
+            ft.play();
+        }
+    }
+
+    @FXML
+    private void onBulkCambiarArea() {
+        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.size() < 2 || !canEdit) return;
+        var areaNames = new java.util.ArrayList<>(Areas.getAllAreaNames());
+        ChoiceDialog<String> dlg = new ChoiceDialog<>(areaNames.get(0), areaNames);
+        dlg.setTitle("Cambiar área");
+        dlg.setHeaderText("Nueva área para " + sel.size() + " bienes seleccionados");
+        dlg.setContentText("Área:");
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.showAndWait().ifPresent(area ->
+            DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando área…",
+                () -> {
+                    for (Producto p : sel) { p.setArea(area); productoService.save(p); }
+                    return sel.size();
+                },
+                count -> {
+                    refreshing = true; loadData();
+                    NotificacionUtil.exito(table.getScene(), count + " bien(es) movidos a \"" + area + "\"");
+                },
+                e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el área")
+            )
+        );
+    }
+
+    @FXML
+    private void onBulkCambiarResguardante() {
+        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.size() < 2 || !canEdit) return;
+        TextInputDialog dlg = new TextInputDialog();
+        dlg.setTitle("Cambiar resguardante");
+        dlg.setHeaderText("Nuevo resguardante para " + sel.size() + " bienes seleccionados");
+        dlg.setContentText("Nombre:");
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.showAndWait().map(String::trim).filter(s -> !s.isBlank()).ifPresent(nombre ->
+            DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando resguardante…",
+                () -> {
+                    for (Producto p : sel) { p.setResguardante(nombre); productoService.save(p); }
+                    return sel.size();
+                },
+                count -> {
+                    refreshing = true; loadData();
+                    NotificacionUtil.exito(table.getScene(), count + " bien(es) asignados a \"" + nombre + "\"");
+                },
+                e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el resguardante")
+            )
+        );
+    }
+
+    @FXML
+    private void onDeseleccionar() {
+        table.getSelectionModel().clearSelection();
+    }
+
+    // ── Filter presets ───────────────────────────────────────────────────────
+
+    private void loadPresets() {
+        presets = FilterPresetStore.load();
+        refreshPresetChips();
+    }
+
+    @FXML
+    private void onGuardarPreset() {
+        String search = searchField.getText().trim();
+        Categoria cat = categoriaFilter.getValue();
+        String area = areaFilter.getValue();
+        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
+        String estado = getSelectedEstado();
+
+        TextInputDialog dlg = new TextInputDialog();
+        dlg.setTitle("Guardar filtro");
+        dlg.setHeaderText("Nombre para este acceso rápido");
+        dlg.setContentText("Nombre:");
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.showAndWait().map(String::trim).filter(n -> !n.isBlank()).ifPresent(name -> {
+            if (presets.size() >= 10 && presets.stream().noneMatch(p -> p.name().equalsIgnoreCase(name))) {
+                NotificacionUtil.advertencia(table.getScene(), "Máximo 10 presets — elimina uno antes de guardar otro");
+                return;
+            }
+            presets.removeIf(p -> p.name().equalsIgnoreCase(name));
+            presets.add(new FilterPreset(name, search,
+                cat != null ? cat.getId() : null, area, resguardante, estado));
+            FilterPresetStore.save(presets);
+            refreshPresetChips();
+            NotificacionUtil.exito(table.getScene(), "Filtro \"" + name + "\" guardado");
+        });
+    }
+
+    private void refreshPresetChips() {
+        if (presetsBar == null) return;
+        presetsBar.getChildren().clear();
+        for (FilterPreset fp : presets)
+            presetsBar.getChildren().add(buildPresetChip(fp));
+        boolean hasPresets = !presets.isEmpty();
+        presetsBar.setVisible(hasPresets);
+        presetsBar.setManaged(hasPresets);
+        if (presetsHeader != null) {
+            presetsHeader.setVisible(hasPresets);
+            presetsHeader.setManaged(hasPresets);
+        }
+    }
+
+    private HBox buildPresetChip(FilterPreset fp) {
+        Button label = new Button(fp.name());
+        label.getStyleClass().add("preset-chip");
+        label.setOnAction(e -> applyPreset(fp));
+        label.setTooltip(new Tooltip(buildPresetTooltip(fp)));
+
+        Button del = new Button();
+        del.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2c-close"));
+        del.getStyleClass().add("preset-chip-delete");
+        del.setTooltip(new Tooltip("Eliminar acceso rápido"));
+        del.setOnAction(e -> {
+            presets.remove(fp);
+            FilterPresetStore.save(presets);
+            refreshPresetChips();
+        });
+
+        HBox chip = new HBox(0, label, del);
+        chip.getStyleClass().add("preset-chip-box");
+        chip.setAlignment(Pos.CENTER_LEFT);
+        return chip;
+    }
+
+    private String buildPresetTooltip(FilterPreset fp) {
+        var sb = new StringBuilder("Aplicar filtros guardados:\n");
+        if (fp.search() != null && !fp.search().isBlank())
+            sb.append("  Búsqueda: ").append(fp.search()).append("\n");
+        if (fp.categoriaId() != null) {
+            String catName = categoriaFilter.getItems().stream()
+                .filter(c -> c != null && c.getId().equals(fp.categoriaId()))
+                .map(Categoria::getNombre).findFirst().orElse(fp.categoriaId());
+            sb.append("  Categoría: ").append(catName).append("\n");
+        }
+        if (fp.area() != null)
+            sb.append("  Área: ").append(fp.area()).append("\n");
+        if (fp.resguardante() != null)
+            sb.append("  Resguardante: ").append(fp.resguardante()).append("\n");
+        if (fp.estado() != null && !"Todos".equals(fp.estado()))
+            sb.append("  Estado: ").append(fp.estado()).append("\n");
+        return sb.toString().stripTrailing();
+    }
+
+    private void applyPreset(FilterPreset fp) {
+        searchField.setText(fp.search() != null ? fp.search() : "");
+        if (fp.categoriaId() != null) {
+            categoriaFilter.getItems().stream()
+                .filter(c -> c != null && c.getId().equals(fp.categoriaId()))
+                .findFirst().ifPresent(categoriaFilter::setValue);
+        } else {
+            categoriaFilter.setValue(null);
+        }
+        areaFilter.setValue(fp.area());
+        if (resguardanteFilter != null) resguardanteFilter.setValue(fp.resguardante());
+        if (estadoChipGroup != null && fp.estado() != null) {
+            estadoChipGroup.getToggles().stream()
+                .filter(t -> fp.estado().equals(((ToggleButton) t).getText()))
+                .findFirst().ifPresent(estadoChipGroup::selectToggle);
+        }
+        currentPage = 0;
+        applyFilters();
+    }
+
     // ── Internal helpers ─────────────────────────────────────────────────────
 
     private void showProductDetail(Producto p) {
-        ProductoDetailDialog.show(p, log);
+        ProductoDetailDialog.show(p, table.getScene(), movimientoService, log);
     }
 
     private void showProductDialog(Producto existing) {

@@ -134,25 +134,11 @@ public class ReportesController {
     }
 
     private void exportar(ActionEvent event, ExportTask task) {
-        Button source = event != null && event.getSource() instanceof Button b ? b : null;
-        if (source != null) source.setDisable(true);
-        spinner.setVisible(true);
-        spinner.setManaged(true);
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(spinner.getScene(), "Generando reporte…",
             task::run,
-            file -> {
-                if (source != null) source.setDisable(false);
-                spinner.setVisible(false);
-                spinner.setManaged(false);
-                DialogUtil.showExportResultDialog(spinner.getScene(), file);
-            },
-            e -> {
-                if (source != null) source.setDisable(false);
-                spinner.setVisible(false);
-                spinner.setManaged(false);
-                NotificacionUtil.errorConAccion(spinner.getScene(),
-                    "Error al generar el reporte", "Reintentar", () -> exportar(null, task));
-            }
+            file -> DialogUtil.showExportResultDialog(spinner.getScene(), file),
+            e -> NotificacionUtil.errorConAccion(spinner.getScene(),
+                "Error al generar el reporte", "Reintentar", () -> exportar(null, task))
         );
     }
 

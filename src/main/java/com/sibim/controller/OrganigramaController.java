@@ -1,8 +1,10 @@
 package com.sibim.controller;
 
 import com.sibim.config.Areas;
+import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
+import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -11,6 +13,8 @@ import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -24,6 +28,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class OrganigramaController {
+
+    private static final Logger log = LoggerFactory.getLogger(OrganigramaController.class);
 
     @FXML private TextField searchField;
     @FXML private Button btnClearSearch;
@@ -40,6 +46,8 @@ public class OrganigramaController {
     @FXML private Label helpTopArea;
 
     private final ProductoService productoService = new ProductoService();
+    private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
+    private final MovimientoService movimientoService = new MovimientoService();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
 
     @FXML private void onRefresh() { loadData(true); }
@@ -138,6 +146,19 @@ public class OrganigramaController {
             orgTree.getChildren().add(empty);
         }
         AnimationUtils.staggeredFadeInUp(orgTree.getChildren(), 270, 50);
+    }
+
+    @FXML
+    private void onExportarPdf() {
+        if (productosPorArea.isEmpty()) {
+            NotificacionUtil.advertencia(searchField.getScene(), "No hay datos de organigrama para exportar");
+            return;
+        }
+        DialogUtil.runAsyncWithProgress(searchField.getScene(), "Generando reporte de organigrama…",
+            () -> reporteService.exportOrganigrama(productosPorArea),
+            file -> DialogUtil.showExportResultDialog(searchField.getScene(), file),
+            ex -> NotificacionUtil.error(searchField.getScene(), "No se pudo exportar el organigrama")
+        );
     }
 
     @FXML private void onExpandAll() {
@@ -420,7 +441,7 @@ public class OrganigramaController {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().addAll(btnVerInventario, ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(580);
+        dialog.getDialogPane().setPrefWidth(680);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         // Jumps to the real Inventario module pre-filtered by this área, so
@@ -452,7 +473,12 @@ public class OrganigramaController {
 
         TableColumn<Producto, String> cNombre = new TableColumn<>("Bien");
         cNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        cNombre.setPrefWidth(230);
+        cNombre.setPrefWidth(180);
+
+        TableColumn<Producto, String> cResguard = new TableColumn<>("Resguardante");
+        cResguard.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getResguardante() != null ? c.getValue().getResguardante() : "—"));
+        cResguard.setPrefWidth(110);
 
         TableColumn<Producto, String> cStock = new TableColumn<>("Stock");
         cStock.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().getStockActual())));
@@ -483,8 +509,45 @@ public class OrganigramaController {
 
         tbl.getColumns().add(cCod);
         tbl.getColumns().add(cNombre);
+        tbl.getColumns().add(cResguard);
         tbl.getColumns().add(cStock);
         tbl.getColumns().add(cEstado);
+
+        tbl.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                Producto sel = tbl.getSelectionModel().getSelectedItem();
+                if (sel != null) ProductoDetailDialog.show(sel, searchField.getScene(), movimientoService, log);
+            }
+        });
+        tbl.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                tbl.getSelectionModel().clearSelection(); e.consume();
+            }
+        });
+        MenuItem cmDetalle = new MenuItem("Ver detalle");
+        cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
+        cmDetalle.setOnAction(e -> {
+            Producto sel = tbl.getSelectionModel().getSelectedItem();
+            if (sel != null) ProductoDetailDialog.show(sel, searchField.getScene(), movimientoService, log);
+        });
+        MenuItem cmFicha = new MenuItem("Imprimir ficha técnica");
+        cmFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        cmFicha.setOnAction(e -> {
+            Producto sel = tbl.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            DialogUtil.runAsyncWithProgress(searchField.getScene(), "Generando ficha…",
+                () -> reporteService.exportFichaTecnica(sel, movimientoService.getByProducto(sel.getId())),
+                file -> DialogUtil.showExportResultDialog(searchField.getScene(), file),
+                ex -> { log.error("Error ficha técnica desde organigrama", ex); NotificacionUtil.error(searchField.getScene(), "No se pudo generar la ficha técnica"); });
+        });
+        ContextMenu cm = new ContextMenu(cmDetalle, new SeparatorMenuItem(), cmFicha);
+        cm.setOnShowing(e -> {
+            boolean none = tbl.getSelectionModel().getSelectedItem() == null;
+            cmDetalle.setDisable(none);
+            cmFicha.setDisable(none);
+        });
+        tbl.setContextMenu(cm);
+
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, tbl));
         dialog.showAndWait();

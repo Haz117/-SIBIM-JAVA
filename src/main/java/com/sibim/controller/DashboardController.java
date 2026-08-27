@@ -1,12 +1,19 @@
 package com.sibim.controller;
 
+import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.repository.MovimientoRepository.MonthlyStats;
 import com.sibim.service.DashboardService;
+import com.sibim.service.MovimientoService;
+import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.NotificacionUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
@@ -20,6 +27,11 @@ import java.time.format.TextStyle;
 import java.util.*;
 
 public class DashboardController {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
+
+    private final ProductoService productoService = new ProductoService();
+    private final MovimientoService movimientoService = new MovimientoService();
 
     // ── Stats cards ──────────────────────────────────────────────────
     @FXML private Label lblTotalBienes;
@@ -597,6 +609,35 @@ public class DashboardController {
                 if (sel != null) showMovimientoDetalle(sel);
             }
         });
+
+        tablaReciente.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                tablaReciente.getSelectionModel().clearSelection();
+                e.consume();
+            }
+        });
+
+        MenuItem cmDetalle = new MenuItem("Ver detalle del movimiento");
+        cmDetalle.setOnAction(e -> {
+            Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
+            if (sel != null) showMovimientoDetalle(sel);
+        });
+        MenuItem cmVerBien = new MenuItem("Ver ficha del bien");
+        cmVerBien.setOnAction(e -> {
+            Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
+            if (sel == null || sel.getProductoId() == null) return;
+            DialogUtil.runAsyncWithProgress(tablaReciente.getScene(), "Cargando bien…",
+                () -> productoService.findById(sel.getProductoId()),
+                opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, tablaReciente.getScene(), movimientoService, log)),
+                ex -> { log.error("Error cargando bien desde dashboard", ex); NotificacionUtil.error(tablaReciente.getScene(), "No se pudo cargar el bien"); });
+        });
+        ContextMenu cm = new ContextMenu(cmDetalle, new SeparatorMenuItem(), cmVerBien);
+        tablaReciente.setContextMenu(cm);
+        cm.setOnShowing(e -> {
+            boolean none = tablaReciente.getSelectionModel().getSelectedItem() == null;
+            cmDetalle.setDisable(none);
+            cmVerBien.setDisable(none);
+        });
     }
 
     private void showMovimientoDetalle(Movimiento m) {
@@ -625,7 +666,25 @@ public class DashboardController {
         javafx.scene.layout.HBox stockRow = new javafx.scene.layout.HBox(8, antes, arrow, despues);
         stockRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-        grid.add(com.sibim.util.DialogUtil.fieldLabel("Bien"),     0, r); grid.add(new javafx.scene.control.Label(m.getProductoNombre()), 1, r++);
+        javafx.scene.control.Label bienLbl = new javafx.scene.control.Label(m.getProductoNombre());
+        bienLbl.setWrapText(true);
+        javafx.scene.control.Hyperlink linkVerBien = new javafx.scene.control.Hyperlink("Ver ficha →");
+        linkVerBien.getStyleClass().add("muted-sm");
+        if (m.getProductoId() != null) {
+            linkVerBien.setOnAction(ev -> {
+                dlg.close();
+                DialogUtil.runAsyncWithProgress(tablaReciente.getScene(), "Cargando bien…",
+                    () -> productoService.findById(m.getProductoId()),
+                    opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, tablaReciente.getScene(), movimientoService, log)),
+                    ex -> { log.error("Error cargando bien desde dashboard movimiento", ex); NotificacionUtil.error(tablaReciente.getScene(), "No se pudo cargar el bien"); });
+            });
+        } else {
+            linkVerBien.setDisable(true);
+        }
+        javafx.scene.layout.HBox bienRow = new javafx.scene.layout.HBox(10, bienLbl, linkVerBien);
+        bienRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        grid.add(com.sibim.util.DialogUtil.fieldLabel("Bien"),     0, r); grid.add(bienRow,  1, r++);
         grid.add(com.sibim.util.DialogUtil.fieldLabel("Stock"),    0, r); grid.add(stockRow, 1, r++);
         grid.add(com.sibim.util.DialogUtil.fieldLabel("Motivo"),   0, r); grid.add(new javafx.scene.control.Label(m.getMotivo() != null ? m.getMotivo() : "—"), 1, r++);
         grid.add(com.sibim.util.DialogUtil.fieldLabel("Usuario"),  0, r); grid.add(new javafx.scene.control.Label(m.getUsuarioNombre()), 1, r++);

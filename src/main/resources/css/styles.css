@@ -3328,3 +3328,200 @@
     -fx-text-alignment: CENTER;
     -fx-alignment: CENTER;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 10 — BARRA DE ACCIONES EN LOTE
+   ═══════════════════════════════════════════════════════════════════ */
+
+.bulk-action-bar {
+    -fx-background-color: #312E81;
+    -fx-padding: 9 18 9 18;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(49,46,129,0.35), 10, 0, 0, -2);
+}
+.bulk-bar-icon {
+    -fx-icon-color: #A5B4FC;
+    -fx-icon-size: 18;
+}
+.bulk-count-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+.bulk-action-bar .btn-secondary {
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(255,255,255,0.28);
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+.bulk-action-bar .btn-secondary:hover {
+    -fx-background-color: rgba(255,255,255,0.22);
+}
+.bulk-action-bar .btn-secondary:pressed {
+    -fx-background-color: rgba(255,255,255,0.32);
+}
+.bulk-action-bar .btn-icon {
+    -fx-icon-color: #C7D2FE;
+}
+.bulk-action-bar .separator {
+    -fx-background-color: rgba(255,255,255,0.20);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 9 — PRESETS DE FILTROS GUARDADOS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.preset-bar {
+    -fx-padding: 0 0 2 4;
+}
+
+/* Chip outer container — pill border */
+.preset-chip-box {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 20;
+    -fx-border-color: #A5B4FC;
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.10), 3, 0, 0, 1);
+}
+
+/* Label button — click to apply */
+.preset-chip {
+    -fx-background-color: transparent;
+    -fx-text-fill: #4338CA;
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-padding: 3 6 3 10;
+    -fx-background-radius: 20;
+    -fx-cursor: hand;
+}
+.preset-chip:hover { -fx-background-color: #E0E7FF; }
+.preset-chip:pressed { -fx-background-color: #C7D2FE; }
+
+/* Delete (×) button inside chip */
+.preset-chip-delete {
+    -fx-background-color: transparent;
+    -fx-padding: 2 7 2 2;
+    -fx-background-radius: 20;
+    -fx-cursor: hand;
+}
+.preset-chip-delete .ikonli-font-icon {
+    -fx-icon-color: #9CA3AF;
+    -fx-icon-size: 11;
+}
+.preset-chip-delete:hover { -fx-background-color: #FEE2E2; }
+.preset-chip-delete:hover .ikonli-font-icon { -fx-icon-color: #DC2626; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 7 — IMPORTACIÓN CSV DE BIENES
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Toolbar import button — indigo outline, matches export buttons' weight */
+.btn-import {
+    -fx-background-color: #EEF2FF;
+    -fx-text-fill: #4338CA;
+    -fx-border-color: #A5B4FC;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-weight: 600;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-padding: 5 12;
+}
+.btn-import:hover  { -fx-background-color: #E0E7FF; -fx-border-color: #818CF8; }
+.btn-import:pressed { -fx-background-color: #C7D2FE; }
+.btn-import .btn-icon { -fx-icon-color: #4338CA; }
+
+/* Instructions card inside the dialog */
+.import-instructions-card {
+    -fx-background-color: #F5F3FF;
+    -fx-background-radius: 10;
+    -fx-border-color: #DDD6FE;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-margin: 0 18 0 18;
+}
+
+/* Step number badge */
+.import-step-num {
+    -fx-background-color: #6366F1;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-min-width: 22;
+    -fx-min-height: 22;
+    -fx-max-width: 22;
+    -fx-max-height: 22;
+    -fx-background-radius: 99;
+    -fx-alignment: center;
+}
+
+/* Step description text */
+.import-step-text {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #374151;
+}
+
+/* Summary label — two variants */
+.import-summary-label {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 600;
+    -fx-padding: 6 10 6 10;
+    -fx-background-radius: 8;
+}
+.import-summary-ok   { -fx-text-fill: #065F46; -fx-background-color: #ECFDF5; }
+.import-summary-warn { -fx-text-fill: #92400E; -fx-background-color: #FFFBEB; }
+
+/* Preview table — tighter row height than the main data-table */
+.import-preview-table .table-row-cell { -fx-pref-height: 30; }
+
+/* Status icon colors */
+.import-row-ok    { -fx-icon-color: #16A34A; }
+.import-row-error { -fx-icon-color: #DC2626; }
+
+/* Error text in the Observación column */
+.import-row-error-text {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: #B91C1C;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 6 — COUNTDOWN UNDO TOAST + EXPORT PROGRESS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* The content HBox when a countdown bar sits below it — square the bottom corners
+   so the bar joins seamlessly (the outer VBox has no style; the bar provides the radius). */
+.toast-box-top {
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-radius: 10 10 0 0;
+}
+
+/* Countdown progress bar — indigo track & bar, bottom-rounded to close the toast shape */
+.toast-countdown {
+    -fx-pref-height: 4px;
+    -fx-min-height: 4px;
+    -fx-max-height: 4px;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-background-radius: 0 0 10 10;
+    -fx-border-color: transparent;
+}
+.toast-countdown .track {
+    -fx-background-color: rgba(99,102,241,0.18);
+    -fx-background-radius: 0 0 10 10;
+    -fx-background-insets: 0;
+}
+.toast-countdown .bar {
+    -fx-background-color: #6366F1;
+    -fx-background-radius: 0 0 10 10;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+/* Indeterminate spinner inside the progress toast */
+.toast-spinner {
+    -fx-progress-color: #6366F1;
+}
+.toast-spinner .percentage { visibility: hidden; }

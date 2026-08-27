@@ -20,6 +20,11 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24"
                            visible="false" managed="false"/>
+        <Button text="Exportar PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el organigrama completo con bienes por área a PDF" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>

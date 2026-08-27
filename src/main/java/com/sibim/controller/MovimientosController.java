@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.controller.dialogs.MovimientoDialogFactory;
+import com.sibim.controller.dialogs.ProductoDetailDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
@@ -175,6 +176,8 @@ public class MovimientosController {
             if (ev.getCode() == javafx.scene.input.KeyCode.DELETE
                     && table.getSelectionModel().getSelectedItem() != null) {
                 onDelete(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume();
             }
         });
 
@@ -192,6 +195,18 @@ public class MovimientosController {
             if (sel != null) showMovimientoDetail(sel);
         });
         cm.getItems().add(cmDetalle);
+        cm.getItems().add(new SeparatorMenuItem());
+        MenuItem cmVerBien = new MenuItem("Ver ficha del bien");
+        cmVerBien.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        cmVerBien.setOnAction(e -> {
+            Movimiento sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null || sel.getProductoId() == null) return;
+            DialogUtil.runAsyncWithProgress(table.getScene(), "Cargando bien…",
+                () -> productoService.findById(sel.getProductoId()),
+                opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, table.getScene(), movimientoService, log)),
+                ex -> { log.error("Error cargando ficha del bien desde movimientos", ex); NotificacionUtil.error(table.getScene(), "No se pudo cargar el bien"); });
+        });
+        cm.getItems().add(cmVerBien);
         boolean canDelete = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (canDelete) {
             cm.getItems().add(new SeparatorMenuItem());
@@ -418,8 +433,13 @@ public class MovimientosController {
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
         desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
-        if (categoriaFilter != null)
+        if (categoriaFilter != null) {
+            categoriaFilter.setConverter(new javafx.util.StringConverter<>() {
+                public String toString(String s)   { return s == null ? "Todas las categorías" : s; }
+                public String fromString(String s) { return null; }
+            });
             categoriaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
+        }
     }
 
     /** Loads the product catalog once to (a) resolve each movimiento's
@@ -440,7 +460,10 @@ public class MovimientosController {
                         Producto::getId, Producto::getCategoriaNombre, (a, b) -> a));
                 List<String> nombres = categoriaPorProducto.values().stream()
                     .distinct().sorted().toList();
-                categoriaFilter.setItems(FXCollections.observableArrayList(nombres));
+                List<String> opciones = new java.util.ArrayList<>(nombres.size() + 1);
+                opciones.add(null);
+                opciones.addAll(nombres);
+                categoriaFilter.setItems(FXCollections.observableArrayList(opciones));
             }
             @Override protected void failed() { loadingCategorias.set(false); }
         });
@@ -815,28 +838,22 @@ public class MovimientosController {
 
     @FXML
     private void onExportCsv() {
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
             () -> reporteService.exportMovimientosCsv(
                 desdeFilter != null ? desdeFilter.getValue() : null,
                 hastaFilter != null ? hastaFilter.getValue() : null),
-            file -> {
-                NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
-                openFile(file);
-            },
+            file -> { NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente"); openFile(file); },
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
         );
     }
 
     @FXML
     private void onExportExcel() {
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
             () -> reporteService.exportMovimientosExcel(
                 desdeFilter != null ? desdeFilter.getValue() : null,
                 hastaFilter != null ? hastaFilter.getValue() : null),
-            file -> {
-                NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
-                openFile(file);
-            },
+            file -> { NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente"); openFile(file); },
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
         );
     }
@@ -903,7 +920,7 @@ public class MovimientosController {
     private void onExportSeleccionCsv() {
         java.util.List<com.sibim.model.Movimiento> sel = java.util.List.copyOf(table.getSelectionModel().getSelectedItems());
         if (sel.isEmpty()) return;
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
             () -> reporteService.exportMovimientosCsv(sel),
             file -> { NotificacionUtil.exito(table.getScene(), sel.size() + " movimiento(s) exportado(s) a CSV"); openFile(file); },
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportSeleccionCsv)
@@ -914,7 +931,7 @@ public class MovimientosController {
     private void onExportSeleccionExcel() {
         java.util.List<com.sibim.model.Movimiento> sel = java.util.List.copyOf(table.getSelectionModel().getSelectedItems());
         if (sel.isEmpty()) return;
-        DialogUtil.runAsync(
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
             () -> reporteService.exportMovimientosExcel(sel),
             file -> { NotificacionUtil.exito(table.getScene(), sel.size() + " movimiento(s) exportado(s) a Excel"); openFile(file); },
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportSeleccionExcel)
@@ -1000,7 +1017,22 @@ public class MovimientosController {
         for (Label l : new Label[]{fProducto, fMotivo, fRef, fUsuario, fFecha})
             l.getStyleClass().add("dlg-detail-value");
 
-        grid.add(DialogUtil.fieldLabel("Bien"),           0, r); grid.add(fProducto, 1, r++);
+        Hyperlink linkVerBien = new Hyperlink("Ver ficha →");
+        linkVerBien.getStyleClass().add("muted-sm");
+        if (m.getProductoId() != null) {
+            linkVerBien.setOnAction(ev -> {
+                dialog.close();
+                DialogUtil.runAsyncWithProgress(table.getScene(), "Cargando bien…",
+                    () -> productoService.findById(m.getProductoId()),
+                    opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, table.getScene(), movimientoService, log)),
+                    ex -> { log.error("Error cargando bien desde movimiento detail", ex); NotificacionUtil.error(table.getScene(), "No se pudo cargar el bien"); });
+            });
+        } else {
+            linkVerBien.setDisable(true);
+        }
+        HBox bienRow = new HBox(10, fProducto, linkVerBien);
+        bienRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        grid.add(DialogUtil.fieldLabel("Bien"),           0, r); grid.add(bienRow,    1, r++);
         grid.add(DialogUtil.fieldLabel("Stock"),          0, r); grid.add(stockRow,  1, r++);
         if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
             HBox areaRow = new HBox(8);

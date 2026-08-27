@@ -6,7 +6,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 
 ## Características
 
-- **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios, foto y datos de depreciación
+- **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios, foto y datos de depreciación; filtros combinables guardables como **presets de acceso rápido** (máx. 10, persistidos en `~/.sibim/presets-bienes.json`); importación masiva desde CSV
 - **Depreciación en línea recta (SAT)** — cada bien puede tener fecha de adquisición, vida útil en años y valor residual; el sistema calcula automáticamente el valor depreciado actual y el porcentaje depreciado, visible en el detalle del bien con una barra de progreso codificada por color (verde / ámbar / rojo)
 - **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino
 - **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
@@ -16,7 +16,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo JSON, o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). Solo disponible conectado a la base de datos real, no en modo offline/demo
 - **Depreciación de activos** — página dedicada con el valor total de compra, valor actual en libros y % promedio depreciado de los bienes con datos completos, una gráfica de proyección del valor a 10 años, y el detalle por bien; exportable a PDF/Excel
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
-- **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer
+- **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer; exportables a PDF y Excel directamente desde la pantalla de alertas (Ctrl+F para filtrar, atajos de teclado en todos los módulos)
 - **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
 - **Organigrama** — bienes distribuidos por secretaría y dirección municipal, con valor patrimonial y alertas de stock por área, y salto directo al Inventario filtrado por esa área
@@ -42,7 +42,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de contraseñas | BCrypt (at.favre.lib, factor 12) |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (264 tests) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (291 tests) |
 
 ---
 
@@ -189,7 +189,7 @@ SIBIM-Java/
 │       ├── db/offline/        # Tests del almacén offline (caducidad, outbox)
 │       ├── model/             # Tests de entidades
 │       ├── repository/        # Tests de autorización de repositorios
-│       ├── service/           # Tests unitarios + autorización de servicios (264 tests total)
+│       ├── service/           # Tests unitarios + autorización de servicios + exports (291 tests total)
 │       ├── session/           # Tests de SessionManager
 │       └── util/              # Tests de utilidades
 ├── packaging/
@@ -207,9 +207,9 @@ SIBIM-Java/
 | Módulo | Descripción |
 |---|---|
 | Dashboard | Tarjetas resumen, gráfica de movimientos semanal, gráfica por categoría, barra de salud del inventario, animaciones de entrada y contadores animados |
-| Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría, paginación, baja patrimonial con motivo, conteo físico, vista de bajas y panel de depreciación en el detalle |
+| Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría/resguardante, presets de filtro guardables, importación CSV masiva, paginación, baja patrimonial con motivo, conteo físico, vista de bajas y panel de depreciación en el detalle |
 | Movimientos | Registro de entradas/salidas/ajustes/transferencias; flujo de aprobación para transferencias de usuarios no-Admin (quedan como PENDIENTE hasta que un Admin las autorice o rechace desde el panel "⏳ Pendientes") |
-| Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer |
+| Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer; búsqueda en tiempo real (Ctrl+F), export a PDF y Excel desde la cabecera, botones de reposición de stock guardados por rol |
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
 | Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes, valor patrimonial y alertas de stock por área, y acceso directo al Inventario filtrado |
 | Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV) |
@@ -247,7 +247,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (264 en total)
+# Correr todos los tests (291 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

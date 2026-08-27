@@ -6,8 +6,11 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Popup;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -35,6 +38,13 @@ public class NotificacionUtil {
     public static void exitoConAccion(Scene scene, String mensaje, String btnLabel, Runnable onAction) {
         if (scene == null) return;
         Platform.runLater(() -> showConAccion(scene.getWindow(), mensaje, btnLabel, onAction, Tipo.EXITO));
+    }
+
+    /** Toast de éxito con botón de acción Y una barra de cuenta regresiva visible de 5 segundos.
+     *  Úsalo para acciones "deshacer" donde el usuario necesita ver cuánto tiempo le queda. */
+    public static void exitoConAccionCountdown(Scene scene, String mensaje, String btnLabel, Runnable onAction) {
+        if (scene == null) return;
+        Platform.runLater(() -> showConAccionCountdown(scene.getWindow(), mensaje, btnLabel, onAction));
     }
 
     /** Toast de error con botón de acción (p.ej. "Reintentar"). Se oculta a los 8 s o al pulsar el botón. */
@@ -373,6 +383,98 @@ public class NotificacionUtil {
                 fadeOut
             ).play();
         });
+    }
+
+    private static void showConAccionCountdown(Window owner, String mensaje, String btnLabel, Runnable onAction) {
+        if (owner == null) return;
+        if (activeToasts >= MAX_TOASTS) return;
+
+        FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
+        iconLbl.setIconSize(16);
+        iconLbl.getStyleClass().add("toast-icon-success");
+        StackPane iconBadge = new StackPane(iconLbl);
+        iconBadge.getStyleClass().addAll("toast-icon-badge", "toast-icon-success");
+
+        Label lbl = new Label(mensaje);
+        lbl.getStyleClass().add("toast-msg");
+        lbl.setWrapText(true);
+        lbl.setMaxWidth(220);
+        HBox.setHgrow(lbl, Priority.ALWAYS);
+
+        javafx.scene.control.Button actionBtn = new javafx.scene.control.Button(btnLabel);
+        actionBtn.getStyleClass().add("toast-action-btn");
+
+        FontIcon closeIcon = new FontIcon("mdi2c-close");
+        closeIcon.setIconSize(14);
+        closeIcon.getStyleClass().add("toast-close");
+
+        HBox content = new HBox(10, iconBadge, lbl, actionBtn, closeIcon);
+        content.setAlignment(Pos.CENTER_LEFT);
+        content.setPadding(new Insets(13, 16, 13, 16));
+        content.getStyleClass().addAll("toast-box", "toast-success", "toast-box-top");
+
+        ProgressBar countdownBar = new ProgressBar(1.0);
+        countdownBar.getStyleClass().add("toast-countdown");
+        countdownBar.setMaxWidth(Double.MAX_VALUE);
+        countdownBar.setPrefHeight(4);
+        countdownBar.setMaxHeight(4);
+        countdownBar.setMinHeight(4);
+
+        VBox box = new VBox(0, content, countdownBar);
+
+        var css = NotificacionUtil.class.getResource("/css/styles.css");
+        if (css != null) box.getStylesheets().add(css.toExternalForm());
+
+        box.setOpacity(0);
+        box.setTranslateY(-16);
+
+        Popup popup = new Popup();
+        popup.setAutoHide(false);
+        popup.getContent().add(box);
+
+        double x = owner.getX() + (owner.getWidth() - 500) / 2.0;
+        double y = owner.getY() + 22 + (activeToasts * TOAST_OFFSET);
+        activeToasts++;
+        popup.show(owner, x, y);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(200), box);
+        fadeIn.setFromValue(0); fadeIn.setToValue(1);
+        TranslateTransition slideIn = new TranslateTransition(Duration.millis(200), box);
+        slideIn.setFromY(-16); slideIn.setToY(0);
+        slideIn.setInterpolator(Interpolator.EASE_OUT);
+        new ParallelTransition(fadeIn, slideIn).play();
+
+        Timeline countdown = new Timeline(
+            new KeyFrame(Duration.ZERO,      new KeyValue(countdownBar.progressProperty(), 1.0)),
+            new KeyFrame(Duration.seconds(5), new KeyValue(countdownBar.progressProperty(), 0.0, Interpolator.LINEAR))
+        );
+
+        TranslateTransition slideOut = new TranslateTransition(Duration.millis(260), box);
+        slideOut.setToX(54);
+        slideOut.setInterpolator(Interpolator.EASE_IN);
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(260), box);
+        fadeOut.setFromValue(1); fadeOut.setToValue(0);
+        ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
+        dismissAnim.setOnFinished(e -> { popup.hide(); activeToasts--; });
+        countdown.setOnFinished(e -> dismissAnim.play());
+        countdown.play();
+
+        boolean[] closing = { false };
+        Runnable dismiss = () -> {
+            if (closing[0]) return;
+            closing[0] = true;
+            countdown.stop();
+            TranslateTransition qs = new TranslateTransition(Duration.millis(190), box);
+            qs.setToX(54); qs.setInterpolator(Interpolator.EASE_IN);
+            FadeTransition qf = new FadeTransition(Duration.millis(190), box);
+            qf.setFromValue(box.getOpacity()); qf.setToValue(0);
+            ParallelTransition qd = new ParallelTransition(qs, qf);
+            qd.setOnFinished(ev -> { popup.hide(); activeToasts--; });
+            qd.play();
+        };
+
+        actionBtn.setOnAction(e -> { dismiss.run(); onAction.run(); });
+        closeIcon.setOnMouseClicked(e -> dismiss.run());
     }
 
     private static void showConAccion(Window owner, String mensaje, String btnLabel, Runnable onAction, Tipo tipo) {

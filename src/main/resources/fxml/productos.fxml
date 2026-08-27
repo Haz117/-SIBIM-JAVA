@@ -139,6 +139,12 @@
             <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Quitar todos los filtros activos"/></tooltip>
         </Button>
+        <Button fx:id="btnGuardarPreset" text="Guardar filtro" onAction="#onGuardarPreset"
+                styleClass="btn-secondary" visible="false" managed="false"
+                contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2b-bookmark-plus-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Guardar la combinación de filtros actual como acceso rápido"/></tooltip>
+        </Button>
         <Separator orientation="VERTICAL"/>
         <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
             <tooltip><Tooltip text="Exportar inventario filtrado a CSV"/></tooltip>
@@ -146,7 +152,22 @@
         <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
             <tooltip><Tooltip text="Exportar inventario filtrado a Excel (.xlsx)"/></tooltip>
         </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button text="Importar CSV" onAction="#onImportarCsv" styleClass="btn-import"
+                contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Importar bienes en lote desde un archivo CSV — descarga la plantilla desde el mismo diálogo" wrapText="true" maxWidth="250"/></tooltip>
+        </Button>
     </FlowPane>
+
+    <!-- ══ PRESET BAR ══════════════════════════════════════════════ -->
+    <HBox fx:id="presetsHeader" alignment="CENTER_LEFT" spacing="8"
+          visible="false" managed="false">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ACCESOS RÁPIDOS" styleClass="dash-section-label"/>
+    </HBox>
+    <FlowPane fx:id="presetsBar" hgap="6" vgap="6" alignment="CENTER_LEFT"
+              styleClass="preset-bar" visible="false" managed="false"/>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
@@ -168,6 +189,29 @@
             </VBox>
         </placeholder>
     </TableView>
+
+    <!-- ══ BULK ACTION BAR (visible when ≥2 rows selected) ════════════ -->
+    <HBox fx:id="bulkBar" alignment="CENTER_LEFT" spacing="12"
+          styleClass="bulk-action-bar" visible="false" managed="false">
+        <FontIcon iconLiteral="mdi2c-checkbox-multiple-marked-outline" styleClass="bulk-bar-icon"/>
+        <Label fx:id="lblBulkCount" text="" styleClass="bulk-count-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnBulkArea" text="Cambiar área" onAction="#onBulkCambiarArea"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2m-map-marker-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Reasignar el área/dirección de todos los bienes seleccionados"/></tooltip>
+        </Button>
+        <Button fx:id="btnBulkResguardante" text="Cambiar resguardante" onAction="#onBulkCambiarResguardante"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2a-account-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Asignar un nuevo resguardante a todos los bienes seleccionados"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button text="Deseleccionar" onAction="#onDeseleccionar" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
+        </Button>
+    </HBox>
 
     <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">

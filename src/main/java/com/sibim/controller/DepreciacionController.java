@@ -1,6 +1,8 @@
 package com.sibim.controller;
 
+import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.model.Producto;
+import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
@@ -14,15 +16,10 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +43,7 @@ public class DepreciacionController {
 
     private final ProductoService productoService = new ProductoService();
     private final ReporteService reporteService = new ReporteService();
+    private final MovimientoService movimientoService = new MovimientoService();
 
     /** Lo que la tabla está mostrando ahora mismo — exportar reusa esta misma
      *  lista en vez de re-consultar, así el archivo coincide con la pantalla. */
@@ -132,6 +130,15 @@ public class DepreciacionController {
             new SimpleStringProperty(c.getValue().getVidaUtilAnios() + " años"));
         colRestante.setCellValueFactory(c ->
             new SimpleStringProperty(vidaUtilRestante(c.getValue())));
+        colRestante.setCellFactory(DialogUtil.badgeCellFactory(item -> {
+            if (item == null || item.equals("—")) return null;
+            if (item.equals("Cumplida")) return "cell-badge-danger";
+            if (item.endsWith("meses")) return "cell-badge-warning";
+            try {
+                int anios = Integer.parseInt(item.replace(" años", ""));
+                return anios <= 2 ? "cell-badge-warning" : "cell-badge-success";
+            } catch (NumberFormatException ex) { return null; }
+        }));
         colValorCompra.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getPrecioCompra())));
         colValorActual.setCellValueFactory(c ->
@@ -151,6 +158,47 @@ public class DepreciacionController {
 
         colPct.setSortType(TableColumn.SortType.DESCENDING);
         table.getSortOrder().setAll(List.<TableColumn<Producto, ?>>of(colPct));
+
+        table.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
+                showDetalle(table.getSelectionModel().getSelectedItem());
+        });
+        table.setOnKeyPressed(ev -> {
+            if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
+                ev.consume();
+            }
+        });
+
+        ContextMenu cm = new ContextMenu();
+        MenuItem cmDetalle = new MenuItem("Ver detalle");
+        cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
+        cmDetalle.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) showDetalle(sel);
+        });
+        MenuItem cmFicha = new MenuItem("Imprimir ficha técnica");
+        cmFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        cmFicha.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            DialogUtil.runAsyncWithProgress(table.getScene(), "Generando ficha técnica…",
+                () -> {
+                    var movs = movimientoService.getByProducto(sel.getId());
+                    return reporteService.exportFichaTecnica(sel, movs);
+                },
+                file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+                ex -> NotificacionUtil.error(table.getScene(), "No se pudo generar la ficha técnica")
+            );
+        });
+        cm.getItems().addAll(cmDetalle, new SeparatorMenuItem(), cmFicha);
+        table.setContextMenu(cm);
+    }
+
+    private void showDetalle(Producto p) {
+        ProductoDetailDialog.show(p, table.getScene(), movimientoService, log);
     }
 
     /** Años (o meses, si falta menos de uno) que le quedan a un bien antes de
@@ -235,15 +283,33 @@ public class DepreciacionController {
         exportar(() -> reporteService.exportDepreciacionExcel(conDepreciacion));
     }
 
+    @FXML
+    private void onExportarFichas() {
+        List<Producto> lista = new java.util.ArrayList<>(table.getItems());
+        if (lista.isEmpty()) {
+            NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para generar fichas");
+            return;
+        }
+        if (lista.size() > 100) {
+            NotificacionUtil.advertencia(table.getScene(),
+                "Hay " + lista.size() + " bienes — filtra primero para reducir el lote (máx. 100 por exportación)");
+            return;
+        }
+        DialogUtil.runAsyncWithProgress(table.getScene(),
+            "Generando " + lista.size() + " ficha(s)…",
+            () -> reporteService.exportFichasTecnicasMasivas(lista, movimientoService),
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+            ex -> {
+                log.error("Error al exportar fichas masivas", ex);
+                NotificacionUtil.error(table.getScene(), "No se pudieron generar las fichas técnicas");
+            });
+    }
+
     private void exportar(java.util.concurrent.Callable<java.io.File> task) {
-        if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        DialogUtil.runAsync(task,
-            file -> {
-                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                DialogUtil.showExportResultDialog(table.getScene(), file);
-            },
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando reporte…",
+            task,
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> {
-                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 log.error("No se pudo exportar la depreciación", e);
                 if (table.getScene() != null)
                     NotificacionUtil.errorConAccion(table.getScene(),

@@ -1,11 +1,15 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
+import com.sibim.service.MovimientoService;
+import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.NotificacionUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -21,13 +25,31 @@ public final class ProductoDetailDialog {
 
     private ProductoDetailDialog() {}
 
-    public static void show(Producto p, Logger log) {
+    public static void show(Producto p, Scene scene, MovimientoService movimientoService, Logger log) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Detalle del Bien");
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        ButtonType fichaBtn = new ButtonType("Imprimir ficha", ButtonBar.ButtonData.LEFT);
+        dialog.getDialogPane().getButtonTypes().addAll(fichaBtn, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(520);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        Button btnFicha = (Button) dialog.getDialogPane().lookupButton(fichaBtn);
+        btnFicha.getStyleClass().add("btn-secondary");
+        btnFicha.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            event.consume();
+            DialogUtil.runAsyncWithProgress(
+                scene,
+                "Generando ficha técnica…",
+                () -> {
+                    var movs = movimientoService.getByProducto(p.getId());
+                    return new ReporteService().exportFichaTecnica(p, movs);
+                },
+                file -> DialogUtil.showExportResultDialog(scene, file),
+                ex -> NotificacionUtil.error(scene, "No se pudo generar la ficha técnica")
+            );
+        });
 
         VBox root = new VBox(14);
         root.setPadding(new Insets(4, 0, 0, 0));
@@ -113,7 +135,7 @@ public final class ProductoDetailDialog {
             {"Valor total",     FormatUtils.formatCurrency(p.getValorTotal()), "dlg-detail-total"},
             {"Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null},
             {"Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null},
-            {"Vencimiento",     FormatUtils.formatDate(p.getFechaVencimiento()), null},
+            {"Vencimiento",     p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "—", null},
         };
         for (int i = 0; i < rows.length; i++) {
             Label key = DialogUtil.fieldLabel((String) rows[i][0]);

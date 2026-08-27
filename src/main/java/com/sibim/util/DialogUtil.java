@@ -46,9 +46,11 @@ public final class DialogUtil {
                 super.updateItem(item, empty);
                 setGraphic(null); setText(null);
                 if (empty || item == null) return;
+                String css = cssClassOf.apply(item);
+                if (css == null) { setText(item); return; }
                 badge.setText(item);
                 badge.getStyleClass().removeIf(c -> c.startsWith("cell-badge-"));
-                badge.getStyleClass().add(cssClassOf.apply(item));
+                badge.getStyleClass().add(css);
                 setGraphic(badge);
             }
         };
@@ -463,6 +465,63 @@ public final class DialogUtil {
             } catch (Exception ex) {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
             }
+        });
+    }
+
+    /** Same as {@link #runAsync(java.util.concurrent.Callable, Consumer, Consumer)} but shows a
+     *  non-dismissable "working…" toast while the task runs. Use for exports and other
+     *  operations that can take a noticeable moment so the user knows something is happening. */
+    public static <R> void runAsyncWithProgress(javafx.scene.Scene scene, String mensaje,
+            java.util.concurrent.Callable<R> task,
+            Consumer<R> onSuccess, Consumer<Exception> onError) {
+        javafx.stage.Window owner = scene == null ? null : scene.getWindow();
+
+        javafx.scene.control.ProgressIndicator spinner = new javafx.scene.control.ProgressIndicator(-1);
+        spinner.setPrefSize(18, 18);
+        spinner.setMaxSize(18, 18);
+        spinner.getStyleClass().add("toast-spinner");
+
+        Label lbl = new Label(mensaje);
+        lbl.getStyleClass().add("toast-msg");
+        HBox.setHgrow(lbl, Priority.ALWAYS);
+
+        HBox box = new HBox(12, spinner, lbl);
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.setPadding(new Insets(13, 18, 13, 16));
+        box.getStyleClass().addAll("toast-box", "toast-info");
+
+        var css = DialogUtil.class.getResource("/css/styles.css");
+        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.setOpacity(0);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.setAutoHide(false);
+        popup.getContent().add(box);
+
+        if (owner != null) {
+            double x = owner.getX() + (owner.getWidth() - 500) / 2.0;
+            double y = owner.getY() + 22;
+            popup.show(owner, x, y);
+            javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
+                javafx.util.Duration.millis(180), box);
+            ft.setToValue(1); ft.play();
+        }
+
+        AppExecutor.submit(() -> {
+            R result = null;
+            Exception error = null;
+            try { result = task.call(); } catch (Exception ex) { error = ex; }
+            final R finalResult = result;
+            final Exception finalError = error;
+            Platform.runLater(() -> {
+                javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
+                    javafx.util.Duration.millis(160), box);
+                ft.setToValue(0);
+                ft.setOnFinished(e -> popup.hide());
+                ft.play();
+                if (finalError == null && onSuccess != null) onSuccess.accept(finalResult);
+                if (finalError != null && onError   != null) onError.accept(finalError);
+            });
         });
     }
 

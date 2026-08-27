@@ -3,7 +3,9 @@ package com.sibim.controller;
 import com.sibim.model.Producto;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
+import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
@@ -59,6 +61,7 @@ public class AlertasController {
     @FXML private TextField searchField;
     @FXML private Button btnClearSearch;
     @FXML private Label lblActualizado;
+    @FXML private VBox  rootPane;
     @FXML private VBox  sectionAgotados;
     @FXML private VBox  sectionBajoStock;
     @FXML private VBox  sectionGarantias;
@@ -67,6 +70,8 @@ public class AlertasController {
     @FXML private Label helpGarantias;
 
     private final ProductoService productoService = new ProductoService();
+    private final MovimientoService movimientoService = new MovimientoService();
+    private final ReporteService reporteService = new ReporteService();
 
     private List<Producto> allAgotados  = List.of();
     private List<Producto> allBajoStock = List.of();
@@ -83,6 +88,14 @@ public class AlertasController {
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(sectionAgotados, sectionBajoStock, sectionGarantias), 300, 65);
         javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+        if (rootPane != null) {
+            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                    if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
+                    ev.consume();
+                }
+            });
+        }
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
         autoRefresh.play();
@@ -126,29 +139,62 @@ public class AlertasController {
             if (ev.getCode() == javafx.scene.input.KeyCode.ENTER
                     && tableAgotados.getSelectionModel().getSelectedItem() != null) {
                 onReponerAgotado(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                tableAgotados.getSelectionModel().clearSelection(); ev.consume();
             }
         });
         tableBajoStock.setOnKeyPressed(ev -> {
             if (ev.getCode() == javafx.scene.input.KeyCode.ENTER
                     && tableBajoStock.getSelectionModel().getSelectedItem() != null) {
                 onSolicitarBajoStock(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                tableBajoStock.getSelectionModel().clearSelection(); ev.consume();
+            }
+        });
+        tableGarantias.setOnKeyPressed(ev -> {
+            if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                tableGarantias.getSelectionModel().clearSelection(); ev.consume();
             }
         });
 
         // Context menu for tableAgotados
         ContextMenu cmAg = new ContextMenu();
+        MenuItem miAgDetalle = new MenuItem("Ver detalle");
+        miAgDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
+        miAgDetalle.setOnAction(e -> {
+            Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
+            if (sel != null) showProductoInfo(sel, true);
+        });
         MenuItem miAgReponer = new MenuItem("Registrar Entrada");
         miAgReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
         miAgReponer.setOnAction(e -> onReponerAgotado());
-        cmAg.getItems().add(miAgReponer);
+        MenuItem miAgFicha = new MenuItem("Imprimir ficha técnica");
+        miAgFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        miAgFicha.setOnAction(e -> {
+            Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
+            if (sel != null) imprimirFicha(sel);
+        });
+        cmAg.getItems().addAll(miAgDetalle, new SeparatorMenuItem(), miAgReponer, new SeparatorMenuItem(), miAgFicha);
         tableAgotados.setContextMenu(cmAg);
 
         // Context menu for tableBajoStock
         ContextMenu cmBs = new ContextMenu();
+        MenuItem miBsDetalle = new MenuItem("Ver detalle");
+        miBsDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
+        miBsDetalle.setOnAction(e -> {
+            Producto sel = tableBajoStock.getSelectionModel().getSelectedItem();
+            if (sel != null) showProductoInfo(sel, false);
+        });
         MenuItem miBsReponer = new MenuItem("Registrar Entrada");
         miBsReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
         miBsReponer.setOnAction(e -> onSolicitarBajoStock());
-        cmBs.getItems().add(miBsReponer);
+        MenuItem miBsFicha = new MenuItem("Imprimir ficha técnica");
+        miBsFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        miBsFicha.setOnAction(e -> {
+            Producto sel = tableBajoStock.getSelectionModel().getSelectedItem();
+            if (sel != null) imprimirFicha(sel);
+        });
+        cmBs.getItems().addAll(miBsDetalle, new SeparatorMenuItem(), miBsReponer, new SeparatorMenuItem(), miBsFicha);
         tableBajoStock.setContextMenu(cmBs);
 
         // tableGarantias: same double-click / context-menu "ver detalle"
@@ -167,6 +213,14 @@ public class AlertasController {
             if (sel != null) showGarantiaInfo(sel);
         });
         cmGa.getItems().add(miGaDetalle);
+        cmGa.getItems().add(new SeparatorMenuItem());
+        MenuItem miGaFicha = new MenuItem("Imprimir ficha técnica");
+        miGaFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        miGaFicha.setOnAction(e -> {
+            Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
+            if (sel != null) imprimirFicha(sel);
+        });
+        cmGa.getItems().add(miGaFicha);
         tableGarantias.setContextMenu(cmGa);
 
         for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias }) {
@@ -321,6 +375,24 @@ public class AlertasController {
     @FXML private void onRefresh() { loadData(true); }
 
     @FXML
+    private void onExportarPdf() {
+        DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando reporte PDF…",
+            () -> reporteService.exportAlertasPdf(),
+            file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
+            ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo generar el reporte PDF")
+        );
+    }
+
+    @FXML
+    private void onExportarExcel() {
+        DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando reporte Excel…",
+            () -> reporteService.exportAlertasExcel(),
+            file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
+            ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo generar el reporte Excel")
+        );
+    }
+
+    @FXML
     private void onReponerTodosAgotados() {
         if (allAgotados.isEmpty()) return;
         openMovimientoForm(allAgotados.get(0).getId(), TipoMovimiento.ENTRADA);
@@ -444,6 +516,17 @@ public class AlertasController {
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
         dlg.getDialogPane().setContent(content);
         dlg.showAndWait();
+    }
+
+    private void imprimirFicha(Producto p) {
+        DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando ficha técnica…",
+            () -> {
+                var movs = movimientoService.getByProducto(p.getId());
+                return reporteService.exportFichaTecnica(p, movs);
+            },
+            file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
+            ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo generar la ficha técnica")
+        );
     }
 
     /** Stops the auto-refresh timer. Must be called before this controller's view is discarded. */

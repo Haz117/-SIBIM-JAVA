@@ -7,7 +7,7 @@
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sibim.controller.AlertasController"
             fitToWidth="true" styleClass="page-scroll">
-<VBox spacing="20">
+<VBox fx:id="rootPane" spacing="20">
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
@@ -21,6 +21,16 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
                            visible="false" managed="false"/>
+        <Button text="Exportar PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar reporte de alertas en PDF"/></tooltip>
+        </Button>
+        <Button text="Exportar Excel" onAction="#onExportarExcel" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2m-microsoft-excel" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar reporte de alertas en Excel"/></tooltip>
+        </Button>
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>

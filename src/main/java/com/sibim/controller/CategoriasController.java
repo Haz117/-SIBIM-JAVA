@@ -93,10 +93,12 @@ public class CategoriasController {
             if (ev.getCode() == javafx.scene.input.KeyCode.DELETE && isAdmin
                     && table.getSelectionModel().getSelectedItem() != null) {
                 onDelete(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume();
             }
         });
         table.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
+            if (e.getClickCount() == 2 && isAdmin && table.getSelectionModel().getSelectedItem() != null)
                 onEdit();
         });
 
