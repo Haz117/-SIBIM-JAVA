@@ -3,6 +3,7 @@ package com.sibim.model;
 import com.sibim.model.enums.TipoMovimiento;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class Movimiento {
     /** "APROBADO" (default) | "PENDIENTE" | "RECHAZADO" */
@@ -81,4 +82,14 @@ public class Movimiento {
     public boolean isPendiente()  { return ESTADO_PENDIENTE.equals(estado); }
     public boolean isAprobado()   { return ESTADO_APROBADO.equals(estado) || estado == null; }
     public boolean isRechazado()  { return ESTADO_RECHAZADO.equals(estado); }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Movimiento m)) return false;
+        return Objects.equals(id, m.id);
+    }
+
+    @Override
+    public int hashCode() { return Objects.hashCode(id); }
 }

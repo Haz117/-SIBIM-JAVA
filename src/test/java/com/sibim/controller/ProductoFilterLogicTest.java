@@ -21,6 +21,7 @@ class ProductoFilterLogicTest {
     @BeforeEach
     void setUp() {
         laptop = new Producto();
+        laptop.setId("prod-laptop");
         laptop.setNombre("Laptop HP");
         laptop.setCodigo("INF-001");
         laptop.setArea("Sala de cómputo");
@@ -32,6 +33,7 @@ class ProductoFilterLogicTest {
         laptop.setStockMinimo(2);
 
         impresora = new Producto();
+        impresora.setId("prod-impresora");
         impresora.setNombre("Impresora Epson");
         impresora.setCodigo("INF-002");
         impresora.setArea("Sala de cómputo");
@@ -43,6 +45,7 @@ class ProductoFilterLogicTest {
         impresora.setStockMinimo(1);
 
         silla = new Producto();
+        silla.setId("prod-silla");
         silla.setNombre("Silla Ejecutiva");
         silla.setCodigo("MOB-001");
         silla.setArea("Dirección");
@@ -52,6 +55,7 @@ class ProductoFilterLogicTest {
         silla.setStockMinimo(3);
 
         escritorio = new Producto();
+        escritorio.setId("prod-escritorio");
         escritorio.setNombre("Escritorio de Madera");
         escritorio.setCodigo("MOB-002");
         escritorio.setArea("Recursos Humanos");

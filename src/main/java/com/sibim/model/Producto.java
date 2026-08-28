@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class Producto {
     private String id;
@@ -170,6 +171,16 @@ public class Producto {
 
     public BigDecimal getValorResidual() { return valorResidual; }
     public void setValorResidual(BigDecimal valorResidual) { this.valorResidual = valorResidual; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Producto p)) return false;
+        return Objects.equals(id, p.id);
+    }
+
+    @Override
+    public int hashCode() { return Objects.hashCode(id); }
 
     @Override
     public String toString() { return nombre + " (" + codigo + ")"; }

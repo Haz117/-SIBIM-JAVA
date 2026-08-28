@@ -49,6 +49,12 @@ public final class SyncService {
     private static final Logger log = LoggerFactory.getLogger(SyncService.class);
     private static final long POLL_SECONDS = 60;
 
+    static final String STATUS_PENDING   = "PENDING";
+    static final String STATUS_SYNCED    = "SYNCED";
+    static final String STATUS_FAILED    = "FAILED";
+    static final String STATUS_CONFLICT  = "CONFLICT";
+    static final String STATUS_DISCARDED = "DISCARDED";
+
     private static ScheduledExecutorService executor;
 
     private SyncService() {}
@@ -200,10 +206,10 @@ public final class SyncService {
     private record CategoryRow(int id, String operacion, String categoriaId, String nombre,
                                 String descripcion, String color, String icono) {}
 
-    private static void syncCategorias(AtomicInteger synced, AtomicInteger failed) throws SQLException {
+    static void syncCategorias(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<CategoryRow> rows = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                "SELECT * FROM category_outbox WHERE status = 'PENDING' ORDER BY id");
+                "SELECT * FROM category_outbox WHERE status = '" + STATUS_PENDING + "' ORDER BY id");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 rows.add(new CategoryRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("categoria_id"),
@@ -224,13 +230,13 @@ public final class SyncService {
                     c.setIcono(r.icono());
                     repo.saveOnline(c);
                 }
-                markOutbox("category_outbox", r.id(), "SYNCED", null);
+                markOutbox("category_outbox", r.id(), STATUS_SYNCED, null);
                 writeAuditEntry("categoria", r.categoriaId(), r.nombre(),
                     r.operacion().toLowerCase(), "Replicado desde modo offline");
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar categoría {} ({})", r.categoriaId(), r.operacion(), ex);
-                markOutbox("category_outbox", r.id(), "FAILED", ex.getMessage());
+                markOutbox("category_outbox", r.id(), STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -244,12 +250,12 @@ public final class SyncService {
                                String fechaVencimiento, String fotoUrl, String ubicacion, String area,
                                String resguardante, String motivoBaja, String serverSnapshotAt) {}
 
-    private static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
+    static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
             throws SQLException {
         List<ConflictoInfo> conflicts = new ArrayList<>();
         List<ProductRow> rows = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                "SELECT * FROM product_outbox WHERE status = 'PENDING' ORDER BY id");
+                "SELECT * FROM product_outbox WHERE status = '" + STATUS_PENDING + "' ORDER BY id");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 rows.add(new ProductRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("producto_id"),
@@ -278,7 +284,7 @@ public final class SyncService {
                                     r.nombre(), r.productoId(), serverUpdatedAt, snapshotAt);
                                 Producto offlineVersion = productFromRow(r);
                                 Producto serverVersion  = fetchServerProduct(r.productoId());
-                                markOutbox("product_outbox", r.id(), "CONFLICT",
+                                markOutbox("product_outbox", r.id(), STATUS_CONFLICT,
                                     "Conflicto: el bien fue modificado en el servidor (" + serverUpdatedAt
                                     + ") mientras el equipo estuvo sin conexión. Vuelve a editarlo y guardar.");
                                 conflicts.add(new ConflictoInfo(r.id(), offlineVersion, serverVersion));
@@ -294,13 +300,13 @@ public final class SyncService {
                     case "REACTIVAR" -> repo.reactivarOnline(r.productoId());
                     default -> repo.saveOnline(productFromRow(r));
                 }
-                markOutbox("product_outbox", r.id(), "SYNCED", null);
+                markOutbox("product_outbox", r.id(), STATUS_SYNCED, null);
                 writeAuditEntry("producto", r.productoId(), r.nombre(),
                     r.operacion().toLowerCase(), "Replicado desde modo offline");
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar producto {} ({})", r.productoId(), r.operacion(), ex);
-                markOutbox("product_outbox", r.id(), "FAILED", ex.getMessage());
+                markOutbox("product_outbox", r.id(), STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -388,14 +394,14 @@ public final class SyncService {
         if (versionOffline != null) {
             try {
                 new ProductoRepository().saveOnline(versionOffline);
-                markOutbox("product_outbox", outboxId, "SYNCED", null);
+                markOutbox("product_outbox", outboxId, STATUS_SYNCED, null);
                 log.info("SyncService: conflicto {} resuelto — versión offline aplicada", outboxId);
             } catch (Exception e) {
-                markOutbox("product_outbox", outboxId, "FAILED", e.getMessage());
+                markOutbox("product_outbox", outboxId, STATUS_FAILED, e.getMessage());
                 log.error("SyncService: fallo aplicando versión offline para conflicto {}", outboxId, e);
             }
         } else {
-            markOutbox("product_outbox", outboxId, "DISCARDED", "Conservado: versión del servidor");
+            markOutbox("product_outbox", outboxId, STATUS_DISCARDED, "Conservado: versión del servidor");
             log.info("SyncService: conflicto {} descartado — conservando versión del servidor", outboxId);
         }
         // If there are no more actionable rows, switch back to online mode
@@ -416,10 +422,10 @@ public final class SyncService {
                                 int cantidad, String motivo, String referencia, String areaDestino,
                                 String usuarioId, String usuarioNombre, String estado) {}
 
-    private static void syncMovimientos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
+    static void syncMovimientos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<MovementRow> rows = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                "SELECT * FROM movement_outbox WHERE status = 'PENDING' ORDER BY id");
+                "SELECT * FROM movement_outbox WHERE status = '" + STATUS_PENDING + "' ORDER BY id");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 rows.add(new MovementRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("movimiento_id"),
@@ -457,13 +463,13 @@ public final class SyncService {
                         repo.addMovimientoAtomicOnline(m, null);
                     }
                 }
-                markOutbox("movement_outbox", r.id(), "SYNCED", null);
+                markOutbox("movement_outbox", r.id(), STATUS_SYNCED, null);
                 writeAuditEntry("movimiento", r.movimientoId(), r.productoId(),
                     r.operacion().toLowerCase(), "Replicado desde modo offline");
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar movimiento {} ({})", r.movimientoId(), r.operacion(), ex);
-                markOutbox("movement_outbox", r.id(), "FAILED", ex.getMessage());
+                markOutbox("movement_outbox", r.id(), STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -477,10 +483,10 @@ public final class SyncService {
     private record ConteoItemRow(String itemId, String productoId, String productoNombre,
                                   String area, int stockSistema, int stockContado, boolean ajustado) {}
 
-    private static void syncConteos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
+    static void syncConteos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<ConteoRow> rows = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                "SELECT * FROM conteo_outbox WHERE status = 'PENDING' ORDER BY id");
+                "SELECT * FROM conteo_outbox WHERE status = '" + STATUS_PENDING + "' ORDER BY id");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 rows.add(new ConteoRow(rs.getInt("id"), rs.getString("conteo_id"), rs.getString("usuario_id"),
@@ -514,11 +520,11 @@ public final class SyncService {
                 }
                 c.setItems(items);
                 repo.guardarOnline(c);
-                markOutbox("conteo_outbox", r.id(), "SYNCED", null);
+                markOutbox("conteo_outbox", r.id(), STATUS_SYNCED, null);
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar conteo {}", r.conteoId(), ex);
-                markOutbox("conteo_outbox", r.id(), "FAILED", ex.getMessage());
+                markOutbox("conteo_outbox", r.id(), STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -547,10 +553,10 @@ public final class SyncService {
                              String accion, String detalle, String usuarioId, String usuarioNombre,
                              String createdAt) {}
 
-    private static void syncAuditLog(AtomicInteger synced, AtomicInteger failed) throws SQLException {
+    static void syncAuditLog(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<AuditRow> rows = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                "SELECT * FROM audit_log_outbox WHERE status = 'PENDING' ORDER BY id");
+                "SELECT * FROM audit_log_outbox WHERE status = '" + STATUS_PENDING + "' ORDER BY id");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 rows.add(new AuditRow(rs.getInt("id"), rs.getString("audit_id"), rs.getString("entidad"),
@@ -573,11 +579,11 @@ public final class SyncService {
                 a.setUsuarioNombre(r.usuarioNombre());
                 try { a.setCreadoEn(LocalDateTime.parse(r.createdAt())); } catch (Exception ignored) {}
                 repo.logOnline(a);
-                markOutbox("audit_log_outbox", r.id(), "SYNCED", null);
+                markOutbox("audit_log_outbox", r.id(), STATUS_SYNCED, null);
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar audit entry {}", r.auditId(), ex);
-                markOutbox("audit_log_outbox", r.id(), "FAILED", ex.getMessage());
+                markOutbox("audit_log_outbox", r.id(), STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -615,13 +621,13 @@ public final class SyncService {
         }
     }
 
-    private static int countPending() {
+    static int countPending() {
         int total = 0;
         for (String table : new String[]{
                 "category_outbox", "product_outbox", "movement_outbox",
                 "conteo_outbox", "audit_log_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                    "SELECT COUNT(*) FROM " + table + " WHERE status IN ('PENDING', 'FAILED')");
+                    "SELECT COUNT(*) FROM " + table + " WHERE status IN ('" + STATUS_PENDING + "', '" + STATUS_FAILED + "')");
                  ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) total += rs.getInt(1);
             } catch (SQLException e) {
@@ -632,12 +638,14 @@ public final class SyncService {
     }
 
     /** Retries transient failures on the next successful connectivity check. */
-    private static void requeueFailedChanges() {
+    static void requeueFailedChanges() {
         for (String table : new String[]{
                 "category_outbox", "product_outbox", "movement_outbox",
                 "conteo_outbox", "audit_log_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                    "UPDATE " + table + " SET status = 'PENDING' WHERE status = 'FAILED'")) {
+                    "UPDATE " + table + " SET status = ? WHERE status = ?")) {
+                ps.setString(1, STATUS_PENDING);
+                ps.setString(2, STATUS_FAILED);
                 ps.executeUpdate();
             } catch (SQLException e) {
                 log.error("SyncService: no se pudieron reencolar fallos en {}", table, e);
@@ -647,7 +655,7 @@ public final class SyncService {
 
     private static int countConflictRows() {
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                "SELECT COUNT(*) FROM product_outbox WHERE status = 'CONFLICT'");
+                "SELECT COUNT(*) FROM product_outbox WHERE status = '" + STATUS_CONFLICT + "'");
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {

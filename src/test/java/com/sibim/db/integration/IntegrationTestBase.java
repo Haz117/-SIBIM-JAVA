@@ -25,7 +25,7 @@ import java.sql.Statement;
  *   @AfterAll   — logs out, closes HikariCP pool, stops EmbeddedPostgres.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-abstract class IntegrationTestBase {
+public abstract class IntegrationTestBase {
 
     private EmbeddedPostgres postgres;
     protected HikariDataSource dataSource;

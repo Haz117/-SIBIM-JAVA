@@ -1,6 +1,7 @@
 package com.sibim.model;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class Categoria {
     private String id;
@@ -45,6 +46,16 @@ public class Categoria {
 
     public int getTotalProductos() { return totalProductos; }
     public void setTotalProductos(int totalProductos) { this.totalProductos = totalProductos; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Categoria c)) return false;
+        return Objects.equals(id, c.id);
+    }
+
+    @Override
+    public int hashCode() { return Objects.hashCode(id); }
 
     @Override
     public String toString() { return nombre; }

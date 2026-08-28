@@ -2,6 +2,7 @@ package com.sibim.model;
 
 import com.sibim.model.enums.Rol;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class Usuario {
     private String id;
@@ -58,6 +59,16 @@ public class Usuario {
     public boolean esAdmin() { return rol == Rol.ADMIN; }
     public boolean esSecretario() { return rol == Rol.SECRETARIO; }
     public boolean esDireccion() { return rol == Rol.DIRECCION; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Usuario u)) return false;
+        return Objects.equals(id, u.id);
+    }
+
+    @Override
+    public int hashCode() { return Objects.hashCode(id); }
 
     @Override
     public String toString() { return nombre + " (" + username + ")"; }
