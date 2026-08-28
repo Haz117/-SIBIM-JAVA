@@ -7,7 +7,6 @@ import com.sibim.controller.dialogs.ProductoBajasDialog;
 import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.controller.dialogs.ProductoDialogFactory;
 import com.sibim.model.Categoria;
-import com.sibim.model.FilterPreset;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.service.CategoriaService;
@@ -19,14 +18,12 @@ import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
-import com.sibim.util.FilterPresetStore;
 import com.sibim.util.FormatUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
 import com.sibim.util.SearchUtils;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -34,12 +31,9 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +41,6 @@ import org.slf4j.LoggerFactory;
 import java.awt.Desktop;
 import java.io.File;
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -137,14 +130,14 @@ public class ProductosController {
     private final ReporteService reporteService = new ReporteService();
     private final MovimientoService movimientoService = new MovimientoService();
 
-    private ObservableList<Producto> allData = FXCollections.observableArrayList();
+    private int totalFiltered = 0;
     private ObservableList<Producto> filteredData = FXCollections.observableArrayList();
     private int currentPage = 0;
     private int pageSize = 25;
     private boolean refreshing = false;
     private final AtomicBoolean loading = new AtomicBoolean(false);
     private boolean canEdit = false;
-    private java.util.List<FilterPreset> presets = new java.util.ArrayList<>();
+    private FilterPresetPanel presetPanel;
     private String pendingHighlightId;
     private ToggleGroup estadoChipGroup;
     private Label emptyStateMsg;
@@ -159,7 +152,9 @@ public class ProductosController {
         setupTable();
         setupFilters();
         setupStatusChips();
-        loadPresets();
+        presetPanel = new FilterPresetPanel(presetsBar, presetsHeader, categoriaFilter,
+            searchField, areaFilter, resguardanteFilter, estadoChipGroup, this::applyFilters);
+        presetPanel.load();
         if (btnMovimiento != null) { btnMovimiento.setVisible(canEdit); btnMovimiento.setManaged(canEdit); }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
         if (btnEliminar != null) { btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit); }
@@ -213,14 +208,14 @@ public class ProductosController {
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        setupFotoColumn();
-        setupNombreColumn();
-        setupCodigoColumn();
-        setupCategoriaColumn();
-        setupAreaColumn();
-        setupStockColumn();
-        setupEstadoColumn();
-        setupRowFactory();
+        ProductosColumnSetup.configureFoto(colFoto, table, THUMBNAIL_CACHE, log);
+        ProductosColumnSetup.configureNombre(colNombre);
+        ProductosColumnSetup.configureCodigo(colCodigo);
+        ProductosColumnSetup.configureCategoria(colCategoria, CAT_EMOJI);
+        ProductosColumnSetup.configureArea(colArea);
+        ProductosColumnSetup.configureStockYValor(colStock, colValor);
+        ProductosColumnSetup.configureEstado(colEstado);
+        ProductosColumnSetup.configureRowFactory(table, () -> pendingHighlightId);
         setupTableListeners();
         setupContextMenu();
         setupEmptyState();
@@ -228,186 +223,6 @@ public class ProductosController {
         // Clic derecho en encabezado → toggle columnas secundarias
         DialogUtil.setupColumnVisibilityMenu("bienes.cols", table,
             List.of(colFoto, colNombre, colStock, colEstado));
-    }
-
-    private void setupFotoColumn() {
-        colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getFotoUrl()));
-        colFoto.setCellFactory(col -> new TableCell<>() {
-            private final ImageView iv = new ImageView();
-            private final FontIcon lbl = new FontIcon("mdi2c-camera-outline");
-            private final StackPane box;
-            {
-                iv.setFitWidth(38); iv.setFitHeight(38); iv.setPreserveRatio(true);
-                lbl.setIconSize(16);
-                lbl.getStyleClass().add("foto-placeholder");
-                box = new StackPane(lbl, iv);
-                box.setPrefSize(40, 40); box.setMinSize(40, 40); box.setMaxSize(40, 40);
-                box.getStyleClass().add("foto-cell-box");
-                // Click a loaded thumbnail to see the photo full-size — otherwise
-                // a 38px thumbnail is the only view of it anywhere in the app.
-                box.setOnMouseClicked(e -> {
-                    if (!iv.isVisible()) return;
-                    Producto p = getTableRow() != null ? getTableRow().getItem() : null;
-                    DialogUtil.showPhotoViewer(p != null ? p.getFotoUrl() : null, p != null ? p.getNombre() : null);
-                });
-            }
-            @Override
-            protected void updateItem(String url, boolean empty) {
-                super.updateItem(url, empty);
-                setGraphic(null);
-                box.getStyleClass().remove("foto-cell-box-clickable");
-                if (empty) return;
-                if (url != null && !url.isBlank()) {
-                    try {
-                        Image cached = THUMBNAIL_CACHE.computeIfAbsent(url,
-                            u -> new Image(Path.of(u).toUri().toString(), 38, 38, true, true, true));
-                        iv.setImage(cached);
-                        iv.setVisible(true); lbl.setVisible(false);
-                        box.getStyleClass().add("foto-cell-box-clickable");
-                    } catch (Exception ex) { log.warn("No se pudo cargar thumbnail: {}", url, ex); iv.setVisible(false); lbl.setVisible(true); }
-                } else {
-                    iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
-                }
-                setGraphic(box);
-                setAlignment(Pos.CENTER);
-                setPadding(new Insets(3, 7, 3, 7));
-            }
-        });
-    }
-
-    private void setupNombreColumn() {
-        colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        colNombre.setCellFactory(col -> new TableCell<>() {
-            private final Tooltip tip = new Tooltip();
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) { setText(null); setTooltip(null); return; }
-                setText(item);
-                tip.setText(item);
-                setTooltip(tip);
-            }
-        });
-    }
-
-    private void setupCodigoColumn() {
-        colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
-        colCodigo.setCellFactory(col -> new TableCell<>() {
-            {
-                setTooltip(new Tooltip("Clic para copiar el código"));
-            }
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().remove("codigo-cell");
-                if (empty || item == null) { setText(null); return; }
-                setText(item);
-                getStyleClass().add("codigo-cell");
-                setOnMouseClicked(e -> {
-                    javafx.scene.input.Clipboard cb = javafx.scene.input.Clipboard.getSystemClipboard();
-                    javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
-                    cc.putString(item);
-                    cb.setContent(cc);
-                    NotificacionUtil.info(getScene(), "Código copiado: " + item);
-                });
-            }
-        });
-    }
-
-    private void setupCategoriaColumn() {
-        colCategoria.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getCategoriaNombre() != null
-                ? c.getValue().getCategoriaNombre() : ""));
-
-        colCategoria.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
-            @Override
-            protected void updateItem(String value, boolean empty) {
-                super.updateItem(value, empty);
-                setGraphic(null); setText(null);
-                if (empty || value == null || value.isBlank()) return;
-                Producto p = getTableRow() != null ? (Producto) getTableRow().getItem() : null;
-                String emoji = CAT_EMOJI.getOrDefault(value, "");
-                badge.setText(emoji.isBlank() ? value : emoji + "  " + value);
-                badge.getStyleClass().add("cat-badge");
-                badge.setStyle(p != null && p.getCategoriaColor() != null
-                    ? "-fx-background-color: " + p.getCategoriaColor() + "22; -fx-text-fill: " + p.getCategoriaColor() + ";"
-                    : "-fx-background-color: #EEF2FF; -fx-text-fill: #4338CA;");
-                setGraphic(badge);
-            }
-        });
-    }
-
-    private void setupAreaColumn() {
-        colArea.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getArea() != null ? c.getValue().getArea() : ""));
-        colArea.setCellFactory(col -> new TableCell<>() {
-            private final Tooltip tip = new Tooltip();
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null || item.isBlank()) { setText(null); setTooltip(null); return; }
-                setText(item);
-                tip.setText(item);
-                setTooltip(tip);
-            }
-        });
-    }
-
-    private void setupStockColumn() {
-        colStock.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
-        colValor.setCellValueFactory(c ->
-            new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getPrecioVenta())));
-
-        // Stock number coloring
-        colStock.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Integer value, boolean empty) {
-                super.updateItem(value, empty);
-                setText(null);
-                getStyleClass().removeAll("stock-ok","stock-warn","stock-low");
-                if (empty || value == null) return;
-                setText(String.valueOf(value));
-                if (getTableRow() != null && getTableRow().getItem() != null) {
-                    getStyleClass().add(switch (getTableRow().getItem().getEstado()) {
-                        case AGOTADO    -> "stock-low";
-                        case BAJO_STOCK -> "stock-warn";
-                        default         -> "stock-ok";
-                    });
-                }
-            }
-        });
-    }
-
-    private void setupEstadoColumn() {
-        colEstado.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
-
-        // Status badge cell
-        colEstado.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Agotado"    -> "cell-badge-danger";
-            case "Bajo Stock" -> "cell-badge-warning";
-            case "Vencido"    -> "cell-badge-purple";
-            default           -> "cell-badge-success";
-        }));
-    }
-
-    private void setupRowFactory() {
-        // Row tint via CSS classes (preserves hover/selected states)
-        table.setRowFactory(tv -> new TableRow<>() {
-            @Override
-            protected void updateItem(Producto p, boolean empty) {
-                super.updateItem(p, empty);
-                getStyleClass().removeAll("row-danger","row-warning","row-vencido","row-new");
-                if (!empty && p != null) {
-                    switch (p.getEstado()) {
-                        case AGOTADO    -> getStyleClass().add("row-danger");
-                        case BAJO_STOCK -> getStyleClass().add("row-warning");
-                        case VENCIDO    -> getStyleClass().add("row-vencido");
-                        default -> {}
-                    }
-                    if (p.getId() != null && p.getId().equals(pendingHighlightId))
-                        getStyleClass().add("row-new");
-                }
-            }
-        });
     }
 
     private void setupTableListeners() {
@@ -529,7 +344,7 @@ public class ProductosController {
         pageSizeBox.setOnAction(e -> {
             pageSize = pageSizeBox.getValue();
             currentPage = 0;
-            updateTablePage();
+            loadPage();
         });
     }
 
@@ -608,18 +423,42 @@ public class ProductosController {
             return;
         }
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        Task<List<Producto>> task = new Task<>() {
-            @Override protected List<Producto> call() throws Exception {
-                return productoService.getAll();
+
+        // Read filter values on the FX thread before spawning the background task
+        String busqueda = searchField != null ? searchField.getText().toLowerCase().strip() : "";
+        String catId = categoriaFilter != null && categoriaFilter.getValue() != null
+            ? categoriaFilter.getValue().getId() : null;
+        String area = areaFilter != null && areaFilter.getValue() != null ? areaFilter.getValue() : null;
+        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
+        EstadoProducto estado = parseEstado(getSelectedEstado());
+
+        Task<Void> task = new Task<>() {
+            private List<Producto> pageData;
+            private int count;
+            private com.sibim.repository.ProductoRepository.InventarioStats stats;
+            private List<String> resguardantes;
+
+            @Override protected Void call() throws Exception {
+                resguardantes = productoService.getResguardantes();
+                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado);
+                pageData = productoService.getPaginated(busqueda, catId, area, resguardante, estado,
+                    pageSize, currentPage * pageSize);
+                stats = productoService.getStats();
+                return null;
             }
+
             @Override protected void succeeded() {
                 loading.set(false);
-                allData.setAll(getValue());
-                updateStats();
-                applyFilters();
+                refreshResguardanteOptions(resguardantes);
+                totalFiltered = count;
+                filteredData.setAll(pageData);
+                updateTablePage();
+                updateHasFiltersUi(busqueda, catId, area, resguardante, estado);
+                updateStats(stats);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             }
+
             @Override protected void failed() {
                 loading.set(false);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
@@ -630,15 +469,53 @@ public class ProductosController {
         com.sibim.util.AppExecutor.submit(task);
     }
 
-    private void refreshResguardanteOptions() {
+    /** Loads a single page in the background using current filter state. */
+    private void loadPage() {
+        if (!loading.compareAndSet(false, true)) { refreshing = true; return; }
+        if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
+
+        // Read filter values on the FX thread before spawning the background task
+        String busqueda = searchField != null ? searchField.getText().toLowerCase().strip() : "";
+        String catId = categoriaFilter != null && categoriaFilter.getValue() != null
+            ? categoriaFilter.getValue().getId() : null;
+        String area = areaFilter != null && areaFilter.getValue() != null ? areaFilter.getValue() : null;
+        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
+        EstadoProducto estado = parseEstado(getSelectedEstado());
+        int offset = currentPage * pageSize;
+
+        Task<Void> task = new Task<>() {
+            List<Producto> page;
+            int count;
+
+            @Override protected Void call() throws Exception {
+                page = productoService.getPaginated(busqueda, catId, area, resguardante, estado, pageSize, offset);
+                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado);
+                return null;
+            }
+
+            @Override protected void succeeded() {
+                loading.set(false);
+                totalFiltered = count;
+                filteredData.setAll(page);
+                updateTablePage();
+                updateHasFiltersUi(busqueda, catId, area, resguardante, estado);
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
+            }
+
+            @Override protected void failed() {
+                loading.set(false);
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                NotificacionUtil.errorConAccion(table.getScene(),
+                    "No se pudo cargar los bienes. Verifica la conexión.", "Reintentar", () -> loadPage());
+            }
+        };
+        com.sibim.util.AppExecutor.submit(task);
+    }
+
+    private void refreshResguardanteOptions(List<String> options) {
         if (resguardanteFilter == null) return;
         String current = resguardanteFilter.getValue();
-        List<String> options = allData.stream()
-            .map(Producto::getResguardante)
-            .filter(r -> r != null && !r.isBlank())
-            .distinct()
-            .sorted(String.CASE_INSENSITIVE_ORDER)
-            .toList();
         resguardanteFilter.getItems().setAll(new java.util.ArrayList<>());
         resguardanteFilter.getItems().add(null);
         resguardanteFilter.getItems().addAll(options);
@@ -646,25 +523,11 @@ public class ProductosController {
             resguardanteFilter.setValue(current);
     }
 
-    private void updateStats() {
-        refreshResguardanteOptions();
-        int total = allData.size();
-        BigDecimal valor = allData.stream()
-            .map(p -> {
-                BigDecimal precio = p.getPrecioVenta() != null ? p.getPrecioVenta() : BigDecimal.ZERO;
-                return precio.multiply(BigDecimal.valueOf(p.getStockActual()));
-            })
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        long alertas = allData.stream()
-            .filter(p -> p.getEstado() == EstadoProducto.AGOTADO
-                      || p.getEstado() == EstadoProducto.BAJO_STOCK
-                      || p.getEstado() == EstadoProducto.VENCIDO)
-            .count();
-
-        if (lblStatTotal   != null) AnimationUtils.animateCount(lblStatTotal,   total,              700);
-        if (lblStatValor   != null) AnimationUtils.animateCount(lblStatValor,   valor.longValue(),  880,
+    private void updateStats(com.sibim.repository.ProductoRepository.InventarioStats stats) {
+        if (lblStatTotal   != null) AnimationUtils.animateCount(lblStatTotal,   stats.total(), 700);
+        if (lblStatValor   != null) AnimationUtils.animateCount(lblStatValor,   stats.valorTotal().longValue(), 880,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
-        if (lblStatAlertas != null) AnimationUtils.animateCount(lblStatAlertas, alertas,            580);
+        if (lblStatAlertas != null) AnimationUtils.animateCount(lblStatAlertas, stats.alertas(), 580);
 
         // Pop the stat cards once their numbers finish counting
         javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
@@ -682,31 +545,16 @@ public class ProductosController {
     }
 
     private void applyFilters() {
-        String query = searchField.getText().toLowerCase();
-        Categoria cat = categoriaFilter.getValue();
-        String area = areaFilter.getValue();
-        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
-        String estado = getSelectedEstado();
-
-        filteredData.setAll(allData.stream()
-            .filter(p -> query.isBlank()
-                || p.getNombre().toLowerCase().contains(query)
-                || p.getCodigo().toLowerCase().contains(query)
-                || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(query))
-                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(query))
-                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(query)))
-            .filter(p -> cat == null || cat.getId().equals(p.getCategoriaId()))
-            .filter(p -> area == null || area.equals(p.getArea()))
-            .filter(p -> resguardante == null || resguardante.equals(p.getResguardante()))
-            .filter(p -> "Todos".equals(estado) || p.getEstado().getEtiqueta().equalsIgnoreCase(estado))
-            .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
-            .toList());
-
         currentPage = 0;
-        updateTablePage();
+        loadPage();
+    }
 
-        boolean hasFilters = !query.isBlank() || cat != null || area != null
-            || resguardante != null || !"Todos".equals(estado);
+    /** Updates the "has filters" UI elements (clear button, preset button, total label, empty state).
+     *  Called after page loads complete so the UI reflects the current filter state. */
+    private void updateHasFiltersUi(String busqueda, String catId, String area,
+            String resguardante, EstadoProducto estado) {
+        boolean hasFilters = !busqueda.isBlank() || catId != null || area != null
+            || resguardante != null || estado != null;
         if (btnClearFilters != null) {
             btnClearFilters.setVisible(hasFilters);
             btnClearFilters.setManaged(hasFilters);
@@ -717,7 +565,7 @@ public class ProductosController {
         }
         if (lblTotalAll != null) {
             if (hasFilters) {
-                lblTotalAll.setText("de " + allData.size() + " total");
+                lblTotalAll.setText("de " + totalFiltered + " total");
                 lblTotalAll.setVisible(true);
                 lblTotalAll.setManaged(true);
             } else {
@@ -739,15 +587,23 @@ public class ProductosController {
         }
     }
 
+    private static EstadoProducto parseEstado(String etiqueta) {
+        if (etiqueta == null || "Todos".equalsIgnoreCase(etiqueta)) return null;
+        for (EstadoProducto e : EstadoProducto.values()) {
+            if (e.getEtiqueta().equalsIgnoreCase(etiqueta)) return e;
+        }
+        return null;
+    }
+
     private void updateTablePage() {
-        PaginationUtils.updatePage(table, filteredData, currentPage, pageSize,
+        PaginationUtils.updatePageServer(table, filteredData, currentPage, pageSize, totalFiltered,
             lblTotal, lblPage, btnPrev, btnNext, "resultado", "resultados");
     }
 
     // ── FXML action handlers ─────────────────────────────────────────────────
 
-    @FXML private void onPrev() { if (currentPage > 0) { currentPage--; updateTablePage(); } }
-    @FXML private void onNext() { currentPage++; updateTablePage(); }
+    @FXML private void onPrev() { if (currentPage > 0) { currentPage--; loadPage(); } }
+    @FXML private void onNext() { currentPage++; loadPage(); }
     @FXML private void onRefresh() { refreshing = true; loadData(); }
 
     @FXML
@@ -759,18 +615,37 @@ public class ProductosController {
         // both slow to open and impossible to actually work through in one
         // sitting. Filtering by área/categoría first is how you scope a
         // conteo to a batch — see the "?" on the button.
-        List<Producto> aContar = new ArrayList<>(filteredData);
-        if (aContar.isEmpty()) {
-            NotificacionUtil.advertencia(table.getScene(),
-                "No hay bienes que coincidan con el filtro actual — ajusta la búsqueda/filtros antes de iniciar un conteo.");
-            return;
-        }
-        if (aContar.size() > 150 && !ConfirmacionUtil.confirmar("Conteo grande",
-                "Vas a iniciar un conteo físico de " + aContar.size() + " bienes a la vez — puede ser lento de "
-                + "cargar y difícil de terminar en una sola sesión. Considera filtrar por área o categoría primero "
-                + "para hacerlo en lotes más manejables.\n\n¿Continuar de todas formas con los " + aContar.size() + "?"))
-            return;
-        ConteoFisicoDialog.show(aContar, movimientoService, () -> { refreshing = true; loadData(); });
+        // Read filter values on the FX thread before spawning the background task
+        String busqueda = searchField != null ? searchField.getText().toLowerCase().strip() : "";
+        String catId = categoriaFilter != null && categoriaFilter.getValue() != null
+            ? categoriaFilter.getValue().getId() : null;
+        String area = areaFilter != null && areaFilter.getValue() != null ? areaFilter.getValue() : null;
+        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
+        EstadoProducto estado = parseEstado(getSelectedEstado());
+
+        Task<List<Producto>> task = new Task<>() {
+            @Override protected List<Producto> call() throws Exception {
+                return productoService.getAllFiltrado(busqueda, catId, area, resguardante, estado);
+            }
+            @Override protected void succeeded() {
+                List<Producto> aContar = getValue();
+                if (aContar.isEmpty()) {
+                    NotificacionUtil.advertencia(table.getScene(),
+                        "No hay bienes que coincidan con el filtro actual — ajusta la búsqueda/filtros antes de iniciar un conteo.");
+                    return;
+                }
+                if (aContar.size() > 150 && !ConfirmacionUtil.confirmar("Conteo grande",
+                        "Vas a iniciar un conteo físico de " + aContar.size() + " bienes a la vez — puede ser lento de "
+                        + "cargar y difícil de terminar en una sola sesión. Considera filtrar por área o categoría primero "
+                        + "para hacerlo en lotes más manejables.\n\n¿Continuar de todas formas con los " + aContar.size() + "?"))
+                    return;
+                ConteoFisicoDialog.show(aContar, movimientoService, () -> { refreshing = true; loadData(); });
+            }
+            @Override protected void failed() {
+                NotificacionUtil.error(table.getScene(), "No se pudo cargar los bienes para el conteo físico");
+            }
+        };
+        com.sibim.util.AppExecutor.submit(task);
     }
 
     @FXML
@@ -870,9 +745,7 @@ public class ProductosController {
         Runnable doDelete = () -> DialogUtil.runAsync(
             () -> productoService.darDeBaja(idBaja, motivo.get()),
             () -> {
-                allData.remove(seleccionado);
-                updateStats();
-                applyFilters();
+                loadData();
                 NotificacionUtil.exitoConAccionCountdown(table.getScene(),
                     "Bien \"" + nombre + "\" dado de baja",
                     "Deshacer",
@@ -1024,112 +897,16 @@ public class ProductosController {
 
     // ── Filter presets ───────────────────────────────────────────────────────
 
-    private void loadPresets() {
-        presets = FilterPresetStore.load();
-        refreshPresetChips();
-    }
-
     @FXML
     private void onGuardarPreset() {
-        String search = searchField.getText().trim();
-        Categoria cat = categoriaFilter.getValue();
-        String area = areaFilter.getValue();
-        String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
-        String estado = getSelectedEstado();
-
         TextInputDialog dlg = new TextInputDialog();
         dlg.setTitle("Guardar filtro");
         dlg.setHeaderText("Nombre para este acceso rápido");
         dlg.setContentText("Nombre:");
         DialogUtil.applyOwner(dlg);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.showAndWait().map(String::trim).filter(n -> !n.isBlank()).ifPresent(name -> {
-            if (presets.size() >= 10 && presets.stream().noneMatch(p -> p.name().equalsIgnoreCase(name))) {
-                NotificacionUtil.advertencia(table.getScene(), "Máximo 10 presets — elimina uno antes de guardar otro");
-                return;
-            }
-            presets.removeIf(p -> p.name().equalsIgnoreCase(name));
-            presets.add(new FilterPreset(name, search,
-                cat != null ? cat.getId() : null, area, resguardante, estado));
-            FilterPresetStore.save(presets);
-            refreshPresetChips();
-            NotificacionUtil.exito(table.getScene(), "Filtro \"" + name + "\" guardado");
-        });
-    }
-
-    private void refreshPresetChips() {
-        if (presetsBar == null) return;
-        presetsBar.getChildren().clear();
-        for (FilterPreset fp : presets)
-            presetsBar.getChildren().add(buildPresetChip(fp));
-        boolean hasPresets = !presets.isEmpty();
-        presetsBar.setVisible(hasPresets);
-        presetsBar.setManaged(hasPresets);
-        if (presetsHeader != null) {
-            presetsHeader.setVisible(hasPresets);
-            presetsHeader.setManaged(hasPresets);
-        }
-    }
-
-    private HBox buildPresetChip(FilterPreset fp) {
-        Button label = new Button(fp.name());
-        label.getStyleClass().add("preset-chip");
-        label.setOnAction(e -> applyPreset(fp));
-        label.setTooltip(new Tooltip(buildPresetTooltip(fp)));
-
-        Button del = new Button();
-        del.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2c-close"));
-        del.getStyleClass().add("preset-chip-delete");
-        del.setTooltip(new Tooltip("Eliminar acceso rápido"));
-        del.setOnAction(e -> {
-            presets.remove(fp);
-            FilterPresetStore.save(presets);
-            refreshPresetChips();
-        });
-
-        HBox chip = new HBox(0, label, del);
-        chip.getStyleClass().add("preset-chip-box");
-        chip.setAlignment(Pos.CENTER_LEFT);
-        return chip;
-    }
-
-    private String buildPresetTooltip(FilterPreset fp) {
-        var sb = new StringBuilder("Aplicar filtros guardados:\n");
-        if (fp.search() != null && !fp.search().isBlank())
-            sb.append("  Búsqueda: ").append(fp.search()).append("\n");
-        if (fp.categoriaId() != null) {
-            String catName = categoriaFilter.getItems().stream()
-                .filter(c -> c != null && c.getId().equals(fp.categoriaId()))
-                .map(Categoria::getNombre).findFirst().orElse(fp.categoriaId());
-            sb.append("  Categoría: ").append(catName).append("\n");
-        }
-        if (fp.area() != null)
-            sb.append("  Área: ").append(fp.area()).append("\n");
-        if (fp.resguardante() != null)
-            sb.append("  Resguardante: ").append(fp.resguardante()).append("\n");
-        if (fp.estado() != null && !"Todos".equals(fp.estado()))
-            sb.append("  Estado: ").append(fp.estado()).append("\n");
-        return sb.toString().stripTrailing();
-    }
-
-    private void applyPreset(FilterPreset fp) {
-        searchField.setText(fp.search() != null ? fp.search() : "");
-        if (fp.categoriaId() != null) {
-            categoriaFilter.getItems().stream()
-                .filter(c -> c != null && c.getId().equals(fp.categoriaId()))
-                .findFirst().ifPresent(categoriaFilter::setValue);
-        } else {
-            categoriaFilter.setValue(null);
-        }
-        areaFilter.setValue(fp.area());
-        if (resguardanteFilter != null) resguardanteFilter.setValue(fp.resguardante());
-        if (estadoChipGroup != null && fp.estado() != null) {
-            estadoChipGroup.getToggles().stream()
-                .filter(t -> fp.estado().equals(((ToggleButton) t).getText()))
-                .findFirst().ifPresent(estadoChipGroup::selectToggle);
-        }
-        currentPage = 0;
-        applyFilters();
+        dlg.showAndWait().map(String::trim).filter(n -> !n.isBlank())
+           .ifPresent(name -> presetPanel.saveCurrentAs(name, table.getScene()));
     }
 
     // ── Internal helpers ─────────────────────────────────────────────────────
@@ -1147,14 +924,12 @@ public class ProductosController {
                 () -> productoService.save(p),
                 saved -> {
                     if (isNew) {
-                        allData.add(saved);
                         NotificacionUtil.exito(table.getScene(), "Bien registrado exitosamente");
                     } else {
                         NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
                     }
                     pendingHighlightId = saved.getId();
-                    updateStats();
-                    applyFilters();
+                    loadData();
                     Platform.runLater(() -> {
                         table.getSelectionModel().select(saved);
                         int idx = table.getSelectionModel().getSelectedIndex();

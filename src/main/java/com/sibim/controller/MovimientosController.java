@@ -1,6 +1,8 @@
 package com.sibim.controller;
 
+import com.sibim.controller.dialogs.MovimientoDetailDialog;
 import com.sibim.controller.dialogs.MovimientoDialogFactory;
+import com.sibim.controller.dialogs.PendientesTransferenciasDialog;
 import com.sibim.controller.dialogs.ProductoDetailDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Movimiento;
@@ -30,7 +32,6 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.util.Duration;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -183,7 +184,7 @@ public class MovimientosController {
 
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
-                showMovimientoDetail(table.getSelectionModel().getSelectedItem());
+                MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(), table.getScene(), productoService, movimientoService, log);
         });
 
         // Context menu
@@ -192,7 +193,7 @@ public class MovimientosController {
         cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
         cmDetalle.setOnAction(e -> {
             Movimiento sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) showMovimientoDetail(sel);
+            if (sel != null) MovimientoDetailDialog.show(sel, table.getScene(), productoService, movimientoService, log);
         });
         cm.getItems().add(cmDetalle);
         cm.getItems().add(new SeparatorMenuItem());
@@ -609,7 +610,7 @@ public class MovimientosController {
     private void onVerPendientes() {
         DialogUtil.runAsync(
             () -> movimientoService.getPendientesTransferencias(),
-            this::showPendientesDialog,
+            pendientes -> PendientesTransferenciasDialog.show(pendientes, table.getScene(), movimientoService, this::loadData, this::loadPendientesCount),
             e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar las transferencias pendientes")
         );
     }
@@ -661,106 +662,6 @@ public class MovimientosController {
             },
             e -> { /* silent */ }
         );
-    }
-
-    private void showPendientesDialog(java.util.List<com.sibim.model.Movimiento> pendientes) {
-        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
-            new javafx.scene.control.Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(660);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        HBox header = DialogUtil.gradientHeader("mdi2t-timer-sand", "Transferencias Pendientes de Aprobación",
-            "Solicitudes de traslado que requieren tu autorización",
-            "#D97706", "#B45309");
-
-        VBox list = new VBox(6);
-        list.setPadding(new javafx.geometry.Insets(4));
-
-        if (pendientes.isEmpty()) {
-            javafx.scene.control.Label empty = new javafx.scene.control.Label("No hay transferencias pendientes");
-            empty.getStyleClass().add("muted");
-            list.getChildren().add(empty);
-        }
-
-        for (com.sibim.model.Movimiento m : pendientes) {
-            HBox row = new HBox(12);
-            row.getStyleClass().add("dlg-detail-header");
-            row.setPadding(new javafx.geometry.Insets(10, 14, 10, 14));
-            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            VBox info = new VBox(3);
-            javafx.scene.control.Label titulo = new javafx.scene.control.Label(
-                m.getProductoNombre() + "  ·  " + (m.getAreaOrigen() != null ? m.getAreaOrigen() : "—") + " → " + m.getAreaDestino());
-            titulo.getStyleClass().add("dlg-detail-value");
-            javafx.scene.control.Label detalle = new javafx.scene.control.Label(
-                "Solicitado por " + m.getUsuarioNombre() + " · " + com.sibim.util.FormatUtils.formatDateTime(m.getCreadoEn())
-                + (m.getMotivo() != null && !m.getMotivo().isBlank() ? " · " + m.getMotivo() : ""));
-            detalle.getStyleClass().add("muted-sm");
-            detalle.setWrapText(true);
-            info.getChildren().addAll(titulo, detalle);
-            HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
-
-            javafx.scene.control.Button btnAprobar  = new javafx.scene.control.Button("Aprobar");
-            javafx.scene.control.Button btnRechazar = new javafx.scene.control.Button("Rechazar");
-            btnAprobar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
-            btnRechazar.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
-            btnAprobar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            btnRechazar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            btnAprobar.getStyleClass().add("btn-primary");
-            btnRechazar.getStyleClass().add("btn-danger");
-
-            btnAprobar.setOnAction(e -> {
-                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
-                DialogUtil.runAsync(
-                    () -> movimientoService.aprobarTransferencia(m.getId()),
-                    () -> {
-                        list.getChildren().remove(row);
-                        loadData(); loadPendientesCount();
-                        NotificacionUtil.exitoTransferencia(dialog.getDialogPane().getScene(),
-                            m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
-                    },
-                    ex -> {
-                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
-                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aprobar la transferencia");
-                    }
-                );
-            });
-
-            btnRechazar.setOnAction(e -> {
-                if (!com.sibim.util.ConfirmacionUtil.confirmar("Rechazar transferencia",
-                        "¿Rechazar la transferencia de \"" + m.getProductoNombre() + "\"?")) return;
-                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
-                DialogUtil.runAsync(
-                    () -> movimientoService.rechazarTransferencia(m.getId()),
-                    () -> {
-                        list.getChildren().remove(row);
-                        loadData(); loadPendientesCount();
-                        NotificacionUtil.info(dialog.getDialogPane().getScene(),
-                            "Transferencia de \"" + m.getProductoNombre() + "\" rechazada");
-                    },
-                    ex -> {
-                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
-                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo rechazar la transferencia");
-                    }
-                );
-            });
-
-            HBox actions = new HBox(8, btnAprobar, btnRechazar);
-            actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-            row.getChildren().addAll(info, actions);
-            list.getChildren().add(row);
-        }
-
-        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(list);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(400);
-        scroll.getStyleClass().add("dlg-tabs-scroll");
-
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
-        dialog.getDialogPane().setContent(new VBox(0, header, scroll));
-        dialog.showAndWait();
     }
 
     @FXML private void onPresetHoy() {
@@ -959,101 +860,4 @@ public class MovimientosController {
         }
     }
 
-    private void showMovimientoDetail(Movimiento m) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(470);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        String tipoIcon = switch (m.getTipo()) {
-            case ENTRADA       -> "mdi2a-arrow-up-bold-circle-outline";
-            case SALIDA        -> "mdi2a-arrow-down-bold-circle-outline";
-            case AJUSTE        -> "mdi2s-swap-horizontal";
-            case TRANSFERENCIA -> "mdi2a-arrow-right-bold-circle-outline";
-        };
-        String color1 = switch (m.getTipo()) {
-            case ENTRADA       -> "#059669";
-            case SALIDA        -> "#DC2626";
-            case AJUSTE        -> "#D97706";
-            case TRANSFERENCIA -> "#2563EB";
-        };
-        String color2 = switch (m.getTipo()) {
-            case ENTRADA       -> "#047857";
-            case SALIDA        -> "#B91C1C";
-            case AJUSTE        -> "#B45309";
-            case TRANSFERENCIA -> "#1D4ED8";
-        };
-
-        HBox header = DialogUtil.gradientHeader(tipoIcon,
-            m.getTipo().getEtiqueta() + "  —  " + m.getCantidad() + " uds.",
-            m.getProductoNombre(),
-            color1, color2);
-
-        GridPane grid = DialogUtil.formGrid(120);
-        int r = 0;
-
-        // Stock change row
-        HBox stockRow = new HBox(10);
-        stockRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        Label antes = new Label(String.valueOf(m.getStockAnterior()));
-        antes.getStyleClass().add("dlg-stock-val");
-        Label arrowLbl = new Label("→");
-        boolean up = m.getStockNuevo() > m.getStockAnterior();
-        boolean down = m.getStockNuevo() < m.getStockAnterior();
-        arrowLbl.getStyleClass().add(up ? "dlg-stock-arrow-up" : down ? "dlg-stock-arrow-down" : "dlg-stock-arrow");
-        Label despues = new Label(String.valueOf(m.getStockNuevo()));
-        despues.getStyleClass().add(m.getStockNuevo() <= 0 ? "dlg-stock-new-empty"
-            : up ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
-        stockRow.getChildren().addAll(antes, arrowLbl, despues);
-
-        Label fProducto = new Label(m.getProductoNombre());
-        fProducto.setWrapText(true);
-        Label fMotivo    = new Label(m.getMotivo()     != null && !m.getMotivo().isBlank()     ? m.getMotivo()     : "—");
-        Label fRef       = new Label(m.getReferencia() != null && !m.getReferencia().isBlank() ? m.getReferencia() : "—");
-        Label fUsuario   = new Label(m.getUsuarioNombre());
-        Label fFecha     = new Label(FormatUtils.formatDateTime(m.getCreadoEn()));
-
-        for (Label l : new Label[]{fProducto, fMotivo, fRef, fUsuario, fFecha})
-            l.getStyleClass().add("dlg-detail-value");
-
-        Hyperlink linkVerBien = new Hyperlink("Ver ficha →");
-        linkVerBien.getStyleClass().add("muted-sm");
-        if (m.getProductoId() != null) {
-            linkVerBien.setOnAction(ev -> {
-                dialog.close();
-                DialogUtil.runAsyncWithProgress(table.getScene(), "Cargando bien…",
-                    () -> productoService.findById(m.getProductoId()),
-                    opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, table.getScene(), movimientoService, log)),
-                    ex -> { log.error("Error cargando bien desde movimiento detail", ex); NotificacionUtil.error(table.getScene(), "No se pudo cargar el bien"); });
-            });
-        } else {
-            linkVerBien.setDisable(true);
-        }
-        HBox bienRow = new HBox(10, fProducto, linkVerBien);
-        bienRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        grid.add(DialogUtil.fieldLabel("Bien"),           0, r); grid.add(bienRow,    1, r++);
-        grid.add(DialogUtil.fieldLabel("Stock"),          0, r); grid.add(stockRow,  1, r++);
-        if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
-            HBox areaRow = new HBox(8);
-            areaRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-            Label areaOrigenLbl = new Label(m.getAreaOrigen() != null ? m.getAreaOrigen() : "—");
-            areaOrigenLbl.getStyleClass().add("dlg-detail-value");
-            Label areaArrow = new Label("→");
-            areaArrow.getStyleClass().add("dlg-stock-arrow");
-            Label areaDestinoLbl = new Label(m.getAreaDestino());
-            areaDestinoLbl.getStyleClass().add("dlg-detail-value");
-            areaRow.getChildren().addAll(areaOrigenLbl, areaArrow, areaDestinoLbl);
-            grid.add(DialogUtil.fieldLabel("Área"), 0, r); grid.add(areaRow, 1, r++);
-        }
-        grid.add(DialogUtil.fieldLabel("Motivo"),         0, r); grid.add(fMotivo,   1, r++);
-        grid.add(DialogUtil.fieldLabel("Referencia"),     0, r); grid.add(fRef,      1, r++);
-        grid.add(DialogUtil.fieldLabel("Registrado por"), 0, r); grid.add(fUsuario,  1, r++);
-        grid.add(DialogUtil.fieldLabel("Fecha"),          0, r); grid.add(fFecha,    1, r);
-
-        VBox content = new VBox(0, header, grid);
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
-        dialog.getDialogPane().setContent(content);
-        dialog.showAndWait();
-    }
 }
