@@ -21,12 +21,13 @@ public class MovimientoService {
     private static final Logger log = LoggerFactory.getLogger(MovimientoService.class);
 
     private final MovimientoRepository movimientoRepo;
-    private final ProductoRepository   productoRepo;
-    private final AuditLogRepository   auditRepo;
+    private final ProductoRepository productoRepo;
+    private final AuditLogRepository auditRepo;
 
     public MovimientoService() {
         this(new MovimientoRepository(), new ProductoRepository(), new AuditLogRepository());
     }
+
     MovimientoService(MovimientoRepository movimientoRepo, ProductoRepository productoRepo,
                       AuditLogRepository auditRepo) {
         this.movimientoRepo = movimientoRepo;
@@ -52,6 +53,27 @@ public class MovimientoService {
 
     public List<Movimiento> getByProducto(String productoId) throws SQLException {
         return movimientoRepo.findByProducto(productoId);
+    }
+
+    // ── Server-side pagination ────────────────────────────────────────────────
+
+    public List<Movimiento> getPaginated(LocalDate desde, LocalDate hasta,
+            String query, String tipo, String categoriaNombre,
+            int limit, int offset) throws SQLException {
+        return movimientoRepo.findPaginated(desde, hasta, query, tipo, categoriaNombre, limit, offset);
+    }
+
+    public int countFiltrado(LocalDate desde, LocalDate hasta,
+            String query, String tipo, String categoriaNombre) throws SQLException {
+        return movimientoRepo.countFiltrado(desde, hasta, query, tipo, categoriaNombre);
+    }
+
+    public MovimientoRepository.MovimientoStats getStats(LocalDate desde, LocalDate hasta) throws SQLException {
+        return movimientoRepo.findStats(desde, hasta);
+    }
+
+    public List<String> getCategorias(LocalDate desde, LocalDate hasta) throws SQLException {
+        return movimientoRepo.findDistinctCategorias(desde, hasta);
     }
 
     public Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad,
@@ -123,10 +145,8 @@ public class MovimientoService {
         if (tipo == TipoMovimiento.TRANSFERENCIA) m.setAreaDestino(areaDestino);
         m.setMotivo(motivo);
         m.setReferencia(referencia);
-        var currentUser = SessionManager.getCurrentUser();
-        if (currentUser == null) throw new ValidationException("Sesión expirada — inicia sesión de nuevo");
-        m.setUsuarioId(currentUser.getId());
-        m.setUsuarioNombre(currentUser.getNombre());
+        m.setUsuarioId(SessionManager.getCurrentUser().getId());
+        m.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
 
         // Non-admin transfers go through an approval workflow: saved as PENDIENTE,
         // stock and area unchanged until an admin approves.

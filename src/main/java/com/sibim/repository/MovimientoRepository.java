@@ -12,10 +12,20 @@ import com.sibim.util.ProductoUtils;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MovimientoRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(MovimientoRepository.class);
+
+    /** Aggregate stats for the movement list view — mirrors ProductoRepository.InventarioStats. */
+    public record MovimientoStats(long total, long entradas, long salidas, long ajustes) {}
 
     private static final String BASE_SELECT = """
         SELECT m.*, p.nombre AS producto_nombre, c.color AS categoria_color
@@ -119,82 +129,229 @@ public class MovimientoRepository {
         return result;
     }
 
+    // ── Server-side pagination support ───────────────────────────────────────
+
+    /** Builds the shared WHERE clause (with "WHERE" prefix) used by
+     *  {@link #findPaginated} and {@link #countFiltrado}.  Conditions and
+     *  their bound values are appended to {@code params} in lock-step. */
+    private String buildFiltroWhere(LocalDate desde, LocalDate hasta,
+                                    String query, String tipo, String categoriaNombre,
+                                    List<Object> params, Set<String> accessible) {
+        List<String> conditions = new ArrayList<>();
+
+        if (accessible != null) {
+            conditions.add("p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        if (desde != null) {
+            conditions.add("m.created_at >= ?");
+            params.add(Timestamp.valueOf(desde.atStartOfDay()));
+        }
+        if (hasta != null) {
+            conditions.add("m.created_at <= ?");
+            params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59)));
+        }
+        if (tipo != null && !"Todos".equals(tipo)) {
+            for (TipoMovimiento tm : TipoMovimiento.values()) {
+                if (tm.getEtiqueta().equals(tipo)) {
+                    conditions.add("m.tipo = ?");
+                    params.add(tm.getCodigo());
+                    break;
+                }
+            }
+        }
+        if (categoriaNombre != null) {
+            conditions.add("c.nombre = ?");
+            params.add(categoriaNombre);
+        }
+        if (query != null && !query.isBlank()) {
+            conditions.add("(p.nombre ILIKE ? OR m.motivo ILIKE ? OR m.referencia ILIKE ?)");
+            String likeVal = "%" + query + "%";
+            params.add(likeVal);
+            params.add(likeVal);
+            params.add(likeVal);
+        }
+
+        return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
+    }
+
+    /** Returns one page of movements matching the given filters, ordered by
+     *  created_at DESC (most recent first). */
+    public List<Movimiento> findPaginated(LocalDate desde, LocalDate hasta,
+                                          String query, String tipo, String categoriaNombre,
+                                          int limit, int offset) throws SQLException {
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Movimiento> all = local.findMovimientosByDateRange(desde, hasta, accessible);
+            return applyClientFilters(all, query, tipo, categoriaNombre)
+                .stream().skip(offset).limit(limit).toList();
+        }
+        List<Object> params = new ArrayList<>();
+        String where = buildFiltroWhere(desde, hasta, query, tipo, categoriaNombre, params, accessible);
+        String sql = BASE_SELECT + where + " ORDER BY m.created_at DESC LIMIT ? OFFSET ?";
+        params.add(limit);
+        params.add(offset);
+        return queryDynamic(sql, params);
+    }
+
+    /** Returns the total count of movements matching the given filters — used
+     *  to compute the number of pages without loading the full result set. */
+    public int countFiltrado(LocalDate desde, LocalDate hasta,
+                              String query, String tipo, String categoriaNombre) throws SQLException {
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Movimiento> all = local.findMovimientosByDateRange(desde, hasta, accessible);
+            return applyClientFilters(all, query, tipo, categoriaNombre).size();
+        }
+        List<Object> params = new ArrayList<>();
+        String where = buildFiltroWhere(desde, hasta, query, tipo, categoriaNombre, params, accessible);
+        String sql = "SELECT COUNT(*) FROM movements m "
+            + "JOIN products p ON p.id = m.producto_id "
+            + "LEFT JOIN categories c ON c.id = p.categoria_id"
+            + where;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
+                else ps.setObject(i + 1, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    /** Client-side filter for offline / demo mode fallback.  Category is
+     *  skipped because Movimiento doesn't carry the category name in local
+     *  store — offline mode can tolerate this. */
+    private List<Movimiento> applyClientFilters(List<Movimiento> all,
+                                                String query, String tipo,
+                                                String categoriaNombre) {
+        if (categoriaNombre != null) {
+            log.warn("applyClientFilters: categoria filter not supported in offline mode, ignored");
+        }
+        return all.stream()
+            .filter(m -> query == null || query.isBlank()
+                || (m.getProductoNombre() != null && m.getProductoNombre().toLowerCase().contains(query.toLowerCase()))
+                || (m.getMotivo() != null && m.getMotivo().toLowerCase().contains(query.toLowerCase()))
+                || (m.getReferencia() != null && m.getReferencia().toLowerCase().contains(query.toLowerCase())))
+            .filter(m -> tipo == null || "Todos".equals(tipo)
+                || m.getTipo().getEtiqueta().equals(tipo))
+            .toList();
+    }
+
+    /** Aggregate stats (total, entradas, salidas, ajustes+transferencias)
+     *  for the given date range, scoped to the current user's areas. */
+    public MovimientoStats findStats(LocalDate desde, LocalDate hasta) throws SQLException {
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Movimiento> all = local.findMovimientosByDateRange(desde, hasta, accessible);
+            long total    = all.size();
+            long entradas = all.stream().filter(m -> m.getTipo() == TipoMovimiento.ENTRADA).count();
+            long salidas  = all.stream().filter(m -> m.getTipo() == TipoMovimiento.SALIDA).count();
+            long ajustes  = all.stream().filter(m ->
+                m.getTipo() == TipoMovimiento.AJUSTE || m.getTipo() == TipoMovimiento.TRANSFERENCIA).count();
+            return new MovimientoStats(total, entradas, salidas, ajustes);
+        }
+        List<Object> params = new ArrayList<>();
+        StringBuilder sb = new StringBuilder("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE m.tipo = 'entrada') AS entradas,
+                COUNT(*) FILTER (WHERE m.tipo = 'salida')  AS salidas,
+                COUNT(*) FILTER (WHERE m.tipo IN ('ajuste','transferencia')) AS ajustes
+            FROM movements m
+            JOIN products p ON p.id = m.producto_id
+            LEFT JOIN categories c ON c.id = p.categoria_id
+            """);
+        List<String> conditions = new ArrayList<>();
+        if (accessible != null) {
+            conditions.add("p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        if (desde != null) {
+            conditions.add("m.created_at >= ?");
+            params.add(Timestamp.valueOf(desde.atStartOfDay()));
+        }
+        if (hasta != null) {
+            conditions.add("m.created_at <= ?");
+            params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59)));
+        }
+        if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
+                else ps.setObject(i + 1, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new MovimientoStats(
+                        rs.getLong("total"), rs.getLong("entradas"),
+                        rs.getLong("salidas"), rs.getLong("ajustes"));
+                }
+            }
+        }
+        return new MovimientoStats(0, 0, 0, 0);
+    }
+
+    /** Distinct category names present in movements for the given date range,
+     *  sorted alphabetically — used to populate the Categoría filter dropdown. */
+    public List<String> findDistinctCategorias(LocalDate desde, LocalDate hasta) throws SQLException {
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return List.of(); // caller prepends null for "Todas"
+        List<Object> params = new ArrayList<>();
+        StringBuilder sb = new StringBuilder("""
+            SELECT DISTINCT c.nombre
+            FROM categories c
+            JOIN products p ON c.id = p.categoria_id
+            JOIN movements m ON m.producto_id = p.id
+            """);
+        List<String> conditions = new ArrayList<>();
+        if (desde != null) {
+            conditions.add("m.created_at >= ?");
+            params.add(Timestamp.valueOf(desde.atStartOfDay()));
+        }
+        if (hasta != null) {
+            conditions.add("m.created_at <= ?");
+            params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59)));
+        }
+        if (accessible != null) {
+            conditions.add("p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
+        sb.append(" ORDER BY c.nombre");
+        List<String> result = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
+                else ps.setObject(i + 1, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String nombre = rs.getString(1);
+                    if (nombre != null) result.add(nombre);
+                }
+            }
+        }
+        return result;
+    }
+
     public List<Movimiento> findToday() throws SQLException {
         return findByDateRange(LocalDate.now(), LocalDate.now());
     }
 
     public List<Movimiento> findLastNDays(int days) throws SQLException {
         return findByDateRange(LocalDate.now().minusDays(days - 1), LocalDate.now());
-    }
-
-    public record MonthlyStats(String label, int entradas, int salidas) {}
-
-    private static final String[] MES_ABREV = {
-        "Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"
-    };
-
-    public List<MonthlyStats> findMonthlyStats(int months) throws SQLException {
-        LocalDate fromMonth = LocalDate.now().withDayOfMonth(1).minusMonths(months - 1);
-
-        // Ordered map: "YYYY-MM" → [entradas, salidas], oldest → newest
-        LinkedHashMap<String, int[]> byMonth = new LinkedHashMap<>();
-        for (int i = months - 1; i >= 0; i--) {
-            LocalDate m = LocalDate.now().withDayOfMonth(1).minusMonths(i);
-            byMonth.put(m.getYear() + "-" + String.format("%02d", m.getMonthValue()), new int[]{0, 0});
-        }
-
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) {
-            // Offline/demo: aggregate in Java from all available movements
-            List<Movimiento> movs = local.findMovimientosByDateRange(
-                fromMonth, LocalDate.now(), SessionManager.getAccessibleAreas());
-            for (Movimiento m : movs) {
-                LocalDate d = m.getCreadoEn().toLocalDate();
-                int[] arr = byMonth.get(d.getYear() + "-" + String.format("%02d", d.getMonthValue()));
-                if (arr == null) continue;
-                switch (m.getTipo()) {
-                    case ENTRADA -> arr[0] += m.getCantidad();
-                    case SALIDA  -> arr[1] += m.getCantidad();
-                    default -> {}
-                }
-            }
-        } else {
-            // Online: single aggregate SQL query
-            Set<String> accessible = SessionManager.getAccessibleAreas();
-            StringBuilder sql = new StringBuilder("""
-                SELECT
-                    TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS ym,
-                    SUM(CASE WHEN m.tipo = 'ENTRADA' THEN m.cantidad ELSE 0 END)::int AS entradas,
-                    SUM(CASE WHEN m.tipo = 'SALIDA'  THEN m.cantidad ELSE 0 END)::int AS salidas
-                FROM movements m
-                JOIN products p ON p.id = m.producto_id
-                WHERE m.created_at >= ?
-                """);
-            if (accessible != null) sql.append("AND p.area = ANY(?) ");
-            sql.append("GROUP BY DATE_TRUNC('month', m.created_at) ORDER BY ym ASC");
-
-            try (Connection conn = DatabaseConfig.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-                ps.setTimestamp(1, Timestamp.valueOf(fromMonth.atStartOfDay()));
-                if (accessible != null)
-                    ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    int[] arr = byMonth.get(rs.getString("ym"));
-                    if (arr != null) {
-                        arr[0] = rs.getInt("entradas");
-                        arr[1] = rs.getInt("salidas");
-                    }
-                }
-            }
-        }
-
-        return byMonth.entrySet().stream().map(e -> {
-            String[] parts = e.getKey().split("-");
-            int monthIdx = Integer.parseInt(parts[1]) - 1;
-            return new MonthlyStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
-                e.getValue()[0], e.getValue()[1]);
-        }).toList();
     }
 
     /**

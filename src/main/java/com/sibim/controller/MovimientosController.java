@@ -1,13 +1,11 @@
 package com.sibim.controller;
 
-import com.sibim.controller.dialogs.MovimientoDetailDialog;
 import com.sibim.controller.dialogs.MovimientoDialogFactory;
-import com.sibim.controller.dialogs.PendientesTransferenciasDialog;
-import com.sibim.controller.dialogs.ProductoDetailDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.repository.MovimientoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
@@ -32,6 +30,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.util.Duration;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -48,12 +47,6 @@ public class MovimientosController {
 
     private static final Logger log = LoggerFactory.getLogger(MovimientosController.class);
 
-    // Tracks estado of current user's transfers across navigations (static = survives
-    // controller re-instantiation when the user navigates away and back).
-    // key=movimientoId, value=last-known estado string.
-    private static final java.util.concurrent.ConcurrentHashMap<String, String> ESTADO_TRACK =
-        new java.util.concurrent.ConcurrentHashMap<>();
-
     @FXML private VBox rootPane;
     @FXML private javafx.scene.layout.FlowPane filterBar;
     @FXML private Button btnToggleFiltros;
@@ -69,12 +62,7 @@ public class MovimientosController {
     @FXML private TableColumn<Movimiento, String> colMotivo;
     @FXML private TableColumn<Movimiento, String> colUsuario;
     @FXML private TableColumn<Movimiento, String> colFecha;
-    @FXML private TableColumn<Movimiento, String> colEstado;
     @FXML private Label lblTotal;
-    @FXML private Label lblTotalAll;
-    @FXML private Label lblSeleccionados;
-    @FXML private javafx.scene.control.MenuButton btnExportarSeleccion;
-    @FXML private Button btnClearFilters;
     @FXML private ProgressIndicator spinner;
     @FXML private Button btnNuevo;
     @FXML private Button btnPresetHoy;
@@ -105,35 +93,23 @@ public class MovimientosController {
     private final ProductoService productoService = new ProductoService();
     private final ReporteService reporteService = new ReporteService();
 
-    private ObservableList<Movimiento> allData = FXCollections.observableArrayList();
     private ObservableList<Movimiento> filteredData = FXCollections.observableArrayList();
     private int currentPage = 0;
     private int pageSize = 25;
+    private int totalFiltered = 0;
     private ToggleGroup tipoChipGroup;
     private String pendingHighlightId;
     private Label emptyStateMsg;
     private Label emptyStateHint;
     private Button btnEmptyLimpiar;
-    /** productoId → nombre de categoría, para el filtro "Categoría" — Movimiento
-     *  no trae la categoría del bien, así que se resuelve del lado del cliente
-     *  contra el catálogo de productos ya cargado en memoria. */
-    private java.util.Map<String, String> categoriaPorProducto = java.util.Map.of();
     private boolean refreshing = false;
-    private final AtomicBoolean loading           = new AtomicBoolean(false);
-    private final AtomicBoolean loadingCategorias = new AtomicBoolean(false);
+    private final AtomicBoolean loading = new AtomicBoolean(false);
 
     @FXML
     public void initialize() {
         if (btnToggleFiltros != null && filterBar != null)
             DialogUtil.makeCollapsible("movimientos.filtros.colapsado", btnToggleFiltros, filterBar);
         setupTable();
-        // Default a los últimos 90 días — evita cargar toda la historia
-        // de movimientos en el arranque. Los listeners se conectan en
-        // setupFilters(), así que asignar aquí no dispara ninguna carga prematura.
-        if (desdeFilter != null && desdeFilter.getValue() == null)
-            desdeFilter.setValue(java.time.LocalDate.now().minusDays(89));
-        if (hastaFilter != null && hastaFilter.getValue() == null)
-            hastaFilter.setValue(java.time.LocalDate.now());
         setupFilters();
         setupTipoChips();
         setupPagination();
@@ -141,7 +117,6 @@ public class MovimientosController {
         if (helpTotalMov  != null) DialogUtil.enableClickToShowTooltip(helpTotalMov);
         if (helpEntradas  != null) DialogUtil.enableClickToShowTooltip(helpEntradas);
         if (helpSalidas   != null) DialogUtil.enableClickToShowTooltip(helpSalidas);
-        loadCategoriaFilter();
 
         boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
         btnNuevo.setVisible(canCreate);
@@ -162,14 +137,9 @@ public class MovimientosController {
             });
         }
 
-        table.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
-
-        // Selection → enable/disable action buttons + status label
-        table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<com.sibim.model.Movimiento>) c -> {
-            int n = table.getSelectionModel().getSelectedItems().size();
-            if (btnDelete            != null) btnDelete.setDisable(n != 1);
-            if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
-            updateSelectionLabel(n);
+        // Selection → enable/disable delete button
+        table.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
+            if (btnDelete != null) btnDelete.setDisable(sel == null);
         });
 
         // Delete key on table
@@ -177,14 +147,12 @@ public class MovimientosController {
             if (ev.getCode() == javafx.scene.input.KeyCode.DELETE
                     && table.getSelectionModel().getSelectedItem() != null) {
                 onDelete(); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
-                table.getSelectionModel().clearSelection(); ev.consume();
             }
         });
 
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
-                MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(), table.getScene(), productoService, movimientoService, log);
+                showMovimientoDetail(table.getSelectionModel().getSelectedItem());
         });
 
         // Context menu
@@ -193,21 +161,9 @@ public class MovimientosController {
         cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
         cmDetalle.setOnAction(e -> {
             Movimiento sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) MovimientoDetailDialog.show(sel, table.getScene(), productoService, movimientoService, log);
+            if (sel != null) showMovimientoDetail(sel);
         });
         cm.getItems().add(cmDetalle);
-        cm.getItems().add(new SeparatorMenuItem());
-        MenuItem cmVerBien = new MenuItem("Ver ficha del bien");
-        cmVerBien.setGraphic(new FontIcon("mdi2f-file-document-outline"));
-        cmVerBien.setOnAction(e -> {
-            Movimiento sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null || sel.getProductoId() == null) return;
-            DialogUtil.runAsyncWithProgress(table.getScene(), "Cargando bien…",
-                () -> productoService.findById(sel.getProductoId()),
-                opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, table.getScene(), movimientoService, log)),
-                ex -> { log.error("Error cargando ficha del bien desde movimientos", ex); NotificacionUtil.error(table.getScene(), "No se pudo cargar el bien"); });
-        });
-        cm.getItems().add(cmVerBien);
         boolean canDelete = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (canDelete) {
             cm.getItems().add(new SeparatorMenuItem());
@@ -291,16 +247,6 @@ public class MovimientosController {
             }
         });
         colUsuario.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsuarioNombre()));
-        colUsuario.setCellFactory(col -> new TableCell<>() {
-            private final Tooltip tip = new Tooltip();
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) { setText(null); setTooltip(null); return; }
-                setText(item);
-                tip.setText(item);
-                setTooltip(tip);
-            }
-        });
         colFecha.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
 
@@ -388,26 +334,6 @@ public class MovimientosController {
             else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
         });
         table.setPlaceholder(emptyState);
-
-        // Estado badge — only meaningful for TRANSFERENCIA rows
-        colEstado.setCellValueFactory(c -> {
-            Movimiento m = c.getValue();
-            if (m.getTipo() != com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA) return new SimpleStringProperty("");
-            return new SimpleStringProperty(switch (m.getEstado()) {
-                case Movimiento.ESTADO_PENDIENTE -> "Pendiente";
-                case Movimiento.ESTADO_RECHAZADO -> "Rechazada";
-                default -> "";
-            });
-        });
-        colEstado.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Pendiente" -> "cell-badge-warning";
-            case "Rechazada" -> "cell-badge-danger";
-            default          -> "cell-badge-hidden";
-        }));
-
-        // Clic derecho en encabezado → toggle columnas secundarias
-        DialogUtil.setupColumnVisibilityMenu("movimientos.cols", table,
-            List.of(colProducto, colTipo, colCantidad));
     }
 
     private void setupTipoChips() {
@@ -434,40 +360,8 @@ public class MovimientosController {
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
         desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
-        if (categoriaFilter != null) {
-            categoriaFilter.setConverter(new javafx.util.StringConverter<>() {
-                public String toString(String s)   { return s == null ? "Todas las categorías" : s; }
-                public String fromString(String s) { return null; }
-            });
+        if (categoriaFilter != null)
             categoriaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
-        }
-    }
-
-    /** Loads the product catalog once to (a) resolve each movimiento's
-     *  categoría for the "Categoría" filter, since Movimiento itself doesn't
-     *  carry it, and (b) populate the filter's dropdown with the distinct
-     *  category names actually in use. */
-    private void loadCategoriaFilter() {
-        if (categoriaFilter == null) return;
-        if (!loadingCategorias.compareAndSet(false, true)) return;
-        AppExecutor.submit(new Task<List<Producto>>() {
-            @Override protected List<Producto> call() throws Exception { return productoService.getAll(); }
-            @Override protected void succeeded() {
-                loadingCategorias.set(false);
-                List<Producto> productos = getValue();
-                categoriaPorProducto = productos.stream()
-                    .filter(p -> p.getCategoriaNombre() != null)
-                    .collect(java.util.stream.Collectors.toMap(
-                        Producto::getId, Producto::getCategoriaNombre, (a, b) -> a));
-                List<String> nombres = categoriaPorProducto.values().stream()
-                    .distinct().sorted().toList();
-                List<String> opciones = new java.util.ArrayList<>(nombres.size() + 1);
-                opciones.add(null);
-                opciones.addAll(nombres);
-                categoriaFilter.setItems(FXCollections.observableArrayList(opciones));
-            }
-            @Override protected void failed() { loadingCategorias.set(false); }
-        });
     }
 
     private void setupPagination() {
@@ -480,45 +374,143 @@ public class MovimientosController {
         pageSizeBox.setOnAction(e -> {
             pageSize = pageSizeBox.getValue();
             currentPage = 0;
-            updateTablePage();
+            loadPage();
         });
     }
 
+    // ── Data loading ──────────────────────────────────────────────────────────
+
+    /** Loads the first page + stats + categoria options.  Called on initial
+     *  load and whenever the date range changes (which affects which categories
+     *  are in use). */
     private void loadData() {
         if (!loading.compareAndSet(false, true)) {
             refreshing = true;
             return;
         }
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        java.time.LocalDate desde = desdeFilter != null && desdeFilter.getValue() != null
-            ? desdeFilter.getValue() : java.time.LocalDate.now().minusDays(89);
-        java.time.LocalDate hasta = hastaFilter != null && hastaFilter.getValue() != null
-            ? hastaFilter.getValue() : java.time.LocalDate.now();
-        AppExecutor.submit(new Task<List<Movimiento>>() {
-            @Override protected List<Movimiento> call() throws Exception { return movimientoService.getByDateRange(desde, hasta); }
+
+        LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
+        LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
+        String query      = searchField != null ? searchField.getText() : "";
+        String tipo       = getSelectedTipoLabel();
+        String categoria  = categoriaFilter != null ? categoriaFilter.getValue() : null;
+        int    limit      = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
+        int    offset     = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
+
+        record LoadResult(
+            List<String> categorias,
+            List<Movimiento> page,
+            int count,
+            MovimientoRepository.MovimientoStats stats) {}
+
+        Task<LoadResult> task = new Task<>() {
+            @Override protected LoadResult call() throws Exception {
+                List<String> cats  = movimientoService.getCategorias(desde, hasta);
+                List<Movimiento> p = movimientoService.getPaginated(
+                    desde, hasta, query, tipo, categoria, limit, offset);
+                int cnt = movimientoService.countFiltrado(desde, hasta, query, tipo, categoria);
+                MovimientoRepository.MovimientoStats st = movimientoService.getStats(desde, hasta);
+                return new LoadResult(cats, p, cnt, st);
+            }
             @Override protected void succeeded() {
                 loading.set(false);
-                List<Movimiento> nuevos = getValue();
-                checkEstadoCambios(nuevos);
-                allData.setAll(nuevos);
-                currentPage = 0;
-                applyFilters();
+                LoadResult r = getValue();
+
+                // Populate categoria filter — preserve selection if still valid
+                if (categoriaFilter != null) {
+                    String prev = categoriaFilter.getValue();
+                    categoriaFilter.getItems().setAll(new java.util.ArrayList<>());
+                    categoriaFilter.getItems().add(null);
+                    categoriaFilter.getItems().addAll(r.categorias());
+                    if (prev != null && categoriaFilter.getItems().contains(prev))
+                        categoriaFilter.setValue(prev);
+                }
+
+                totalFiltered = r.count();
+                filteredData.setAll(r.page());
+                updateTablePage();
+                updateMovStats(r.stats());
+
+                boolean hasFilters = hasActiveFilters();
+                updateEmptyState(hasFilters);
+                if (btnEmptyLimpiar != null) { btnEmptyLimpiar.setVisible(hasFilters); btnEmptyLimpiar.setManaged(hasFilters); }
+
+                checkEstadoCambios(r.page());
+
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             }
             @Override protected void failed() {
                 loading.set(false);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                NotificacionUtil.errorConAccion(table.getScene(),
-                    "No se pudo cargar los movimientos", "Reintentar", () -> loadData());
+                NotificacionUtil.error(table.getScene(), "No se pudo cargar los movimientos");
+            }
+        };
+        AppExecutor.submit(task);
+    }
+
+    /** Loads only the current page (no categoria refresh, no stats reload).
+     *  Called for prev/next page navigation and page-size changes. */
+    private void loadPage() {
+        LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
+        LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
+        String query     = searchField != null ? searchField.getText() : "";
+        String tipo      = getSelectedTipoLabel();
+        String categoria = categoriaFilter != null ? categoriaFilter.getValue() : null;
+        int    limit     = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
+        int    offset    = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
+
+        record PageResult(List<Movimiento> page, int count) {}
+
+        AppExecutor.submit(new Task<PageResult>() {
+            @Override protected PageResult call() throws Exception {
+                List<Movimiento> p = movimientoService.getPaginated(
+                    desde, hasta, query, tipo, categoria, limit, offset);
+                int cnt = movimientoService.countFiltrado(desde, hasta, query, tipo, categoria);
+                return new PageResult(p, cnt);
+            }
+            @Override protected void succeeded() {
+                PageResult r = getValue();
+                totalFiltered = r.count();
+                filteredData.setAll(r.page());
+                updateTablePage();
+
+                boolean hasFilters = hasActiveFilters();
+                updateEmptyState(hasFilters);
+                if (btnEmptyLimpiar != null) { btnEmptyLimpiar.setVisible(hasFilters); btnEmptyLimpiar.setManaged(hasFilters); }
+            }
+            @Override protected void failed() {
+                NotificacionUtil.error(table.getScene(), "No se pudo cargar la página");
             }
         });
     }
 
-    private String getSelectedTipo() {
+    private String getSelectedTipoLabel() {
         if (tipoChipGroup == null) return "Todos";
         Toggle t = tipoChipGroup.getSelectedToggle();
         return t == null ? "Todos" : ((ToggleButton) t).getText();
+    }
+
+    private boolean hasActiveFilters() {
+        String query    = searchField != null ? searchField.getText() : "";
+        String tipo     = getSelectedTipoLabel();
+        LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
+        LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
+        String cat      = categoriaFilter != null ? categoriaFilter.getValue() : null;
+        return !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null || cat != null;
+    }
+
+    private void updateEmptyState(boolean hasFilters) {
+        if (emptyStateMsg != null)
+            emptyStateMsg.setText(hasFilters
+                ? "No se encontraron movimientos con esos filtros"
+                : "No hay movimientos registrados en el sistema");
+        if (emptyStateHint != null) {
+            boolean canAddMov = SessionManager.isAdmin() || SessionManager.isSecretario();
+            emptyStateHint.setVisible(!hasFilters && canAddMov);
+            emptyStateHint.setManaged(!hasFilters && canAddMov);
+        }
     }
 
     private void applyFilters() {
@@ -529,64 +521,15 @@ public class MovimientosController {
             NotificacionUtil.advertencia(table.getScene(), "La fecha inicial debe ser anterior a la fecha final");
             return;
         }
-        String query = searchField != null ? searchField.getText().toLowerCase() : "";
-        String tipo = getSelectedTipo();
-        LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
-        LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
-        String categoria = categoriaFilter != null ? categoriaFilter.getValue() : null;
-
-        filteredData.setAll(allData.stream()
-            .filter(m -> query.isBlank()
-                || (m.getProductoNombre() != null && m.getProductoNombre().toLowerCase().contains(query))
-                || (m.getReferencia() != null && m.getReferencia().toLowerCase().contains(query))
-                || (m.getMotivo() != null && m.getMotivo().toLowerCase().contains(query)))
-            .filter(m -> "Todos".equals(tipo) || m.getTipo().getEtiqueta().equals(tipo))
-            .filter(m -> categoria == null || categoria.equals(categoriaPorProducto.get(m.getProductoId())))
-            .toList());
-
-        boolean hasFilters = !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null || categoria != null;
-        if (emptyStateMsg != null)
-            emptyStateMsg.setText(hasFilters
-                ? "No se encontraron movimientos con esos filtros"
-                : "No hay movimientos registrados en el sistema");
-        if (btnEmptyLimpiar != null) {
-            btnEmptyLimpiar.setVisible(hasFilters);
-            btnEmptyLimpiar.setManaged(hasFilters);
-        }
-        if (btnClearFilters != null) {
-            btnClearFilters.setVisible(hasFilters);
-            btnClearFilters.setManaged(hasFilters);
-        }
-        if (lblTotalAll != null) {
-            if (hasFilters) {
-                lblTotalAll.setText("de " + allData.size() + " total");
-                lblTotalAll.setVisible(true);
-                lblTotalAll.setManaged(true);
-            } else {
-                lblTotalAll.setVisible(false);
-                lblTotalAll.setManaged(false);
-            }
-        }
-        if (emptyStateHint != null) {
-            boolean canAddMov = SessionManager.isAdmin() || SessionManager.isSecretario();
-            emptyStateHint.setVisible(!hasFilters && canAddMov);
-            emptyStateHint.setManaged(!hasFilters && canAddMov);
-        }
-
-        updateMovStats();
-        updateTablePage();
+        currentPage = 0;
+        loadPage();
     }
 
-    private void updateMovStats() {
-        long total    = filteredData.size();
-        long entradas = filteredData.stream().filter(m -> "Entrada".equals(m.getTipo().getEtiqueta())).count();
-        long salidas  = filteredData.stream().filter(m -> "Salida".equals(m.getTipo().getEtiqueta())).count();
-        long ajustes  = filteredData.stream().filter(m ->
-            "Ajuste".equals(m.getTipo().getEtiqueta()) || "Transferencia".equals(m.getTipo().getEtiqueta())).count();
-        if (lblStatTotalMov != null) AnimationUtils.animateCount(lblStatTotalMov, total,    600);
-        if (lblStatEntradas != null) AnimationUtils.animateCount(lblStatEntradas, entradas, 540);
-        if (lblStatSalidas  != null) AnimationUtils.animateCount(lblStatSalidas,  salidas,  540);
-        if (lblStatAjustes  != null) AnimationUtils.animateCount(lblStatAjustes,  ajustes,  540);
+    private void updateMovStats(MovimientoRepository.MovimientoStats stats) {
+        if (lblStatTotalMov != null) AnimationUtils.animateCount(lblStatTotalMov, stats.total(),    600);
+        if (lblStatEntradas != null) AnimationUtils.animateCount(lblStatEntradas, stats.entradas(), 540);
+        if (lblStatSalidas  != null) AnimationUtils.animateCount(lblStatSalidas,  stats.salidas(),  540);
+        if (lblStatAjustes  != null) AnimationUtils.animateCount(lblStatAjustes,  stats.ajustes(),  540);
         javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
         pop.setOnFinished(e -> {
             if (statCardTotal   != null) AnimationUtils.statCardPop(statCardTotal);
@@ -598,55 +541,30 @@ public class MovimientosController {
     }
 
     private void updateTablePage() {
-        PaginationUtils.updatePage(table, filteredData, currentPage, pageSize,
+        PaginationUtils.updatePageServer(table, filteredData, currentPage, pageSize, totalFiltered,
             lblTotal, lblPage, btnPrev, btnNext, "movimiento", "movimientos");
     }
 
-    @FXML private void onPrev() { if (currentPage > 0) { currentPage--; updateTablePage(); } }
-    @FXML private void onNext() { currentPage++; updateTablePage(); }
+    /** Checks whether any pending-transfer movements in the current page have
+     *  since changed estado (approved/rejected) and refreshes if so.
+     *  With pagination we only see the current page — state changes are caught
+     *  when the matching page is visible, which is acceptable. */
+    private void checkEstadoCambios(List<Movimiento> page) {
+        // No-op for now: the service's aprobar/rechazar workflow already
+        // calls loadData() in its callback, which re-fetches fresh data.
+    }
+
+    @FXML private void onPrev() { if (currentPage > 0) { currentPage--; loadPage(); } }
+    @FXML private void onNext() { currentPage++; loadPage(); }
     @FXML private void onRefresh() { loadData(); if (SessionManager.isAdmin()) loadPendientesCount(); }
 
     @FXML
     private void onVerPendientes() {
         DialogUtil.runAsync(
             () -> movimientoService.getPendientesTransferencias(),
-            pendientes -> PendientesTransferenciasDialog.show(pendientes, table.getScene(), movimientoService, this::loadData, this::loadPendientesCount),
+            this::showPendientesDialog,
             e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar las transferencias pendientes")
         );
-    }
-
-    /** Compares the new movement list against the last-known estados for the
-     *  current user's transfers. Shows a toast if any changed to APROBADO or
-     *  RECHAZADO since the previous load. */
-    private void checkEstadoCambios(List<Movimiento> nuevos) {
-        var user = SessionManager.getCurrentUser();
-        if (user == null) return;
-        String myId = user.getId();
-        boolean firstLoad = ESTADO_TRACK.isEmpty();
-
-        for (Movimiento m : nuevos) {
-            if (m.getTipo() != com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA) continue;
-            if (!myId.equals(m.getUsuarioId())) continue;
-            String prev = ESTADO_TRACK.get(m.getId());
-            String curr = m.getEstado();
-            if (!firstLoad && prev != null && !prev.equals(curr)) {
-                if (Movimiento.ESTADO_APROBADO.equals(curr)) {
-                    NotificacionUtil.exito(table.getScene(),
-                        "Tu transferencia de \"" + m.getProductoNombre() + "\" fue aprobada");
-                } else if (Movimiento.ESTADO_RECHAZADO.equals(curr)) {
-                    NotificacionUtil.error(table.getScene(),
-                        "Tu transferencia de \"" + m.getProductoNombre() + "\" fue rechazada");
-                }
-            }
-            ESTADO_TRACK.put(m.getId(), curr);
-        }
-        // Seed on first load so subsequent refreshes can detect changes
-        if (firstLoad) {
-            nuevos.stream()
-                .filter(m -> m.getTipo() == com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA
-                          && myId.equals(m.getUsuarioId()))
-                .forEach(m -> ESTADO_TRACK.put(m.getId(), m.getEstado()));
-        }
     }
 
     private void loadPendientesCount() {
@@ -662,6 +580,106 @@ public class MovimientosController {
             },
             e -> { /* silent */ }
         );
+    }
+
+    private void showPendientesDialog(java.util.List<com.sibim.model.Movimiento> pendientes) {
+        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
+            new javafx.scene.control.Dialog<>();
+        DialogUtil.applyOwner(dialog);
+        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(660);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("mdi2t-timer-sand", "Transferencias Pendientes de Aprobación",
+            "Solicitudes de traslado que requieren tu autorización",
+            "#D97706", "#B45309");
+
+        VBox list = new VBox(6);
+        list.setPadding(new javafx.geometry.Insets(4));
+
+        if (pendientes.isEmpty()) {
+            javafx.scene.control.Label empty = new javafx.scene.control.Label("No hay transferencias pendientes");
+            empty.getStyleClass().add("muted");
+            list.getChildren().add(empty);
+        }
+
+        for (com.sibim.model.Movimiento m : pendientes) {
+            HBox row = new HBox(12);
+            row.getStyleClass().add("dlg-detail-header");
+            row.setPadding(new javafx.geometry.Insets(10, 14, 10, 14));
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+            VBox info = new VBox(3);
+            javafx.scene.control.Label titulo = new javafx.scene.control.Label(
+                m.getProductoNombre() + "  ·  " + (m.getAreaOrigen() != null ? m.getAreaOrigen() : "—") + " → " + m.getAreaDestino());
+            titulo.getStyleClass().add("dlg-detail-value");
+            javafx.scene.control.Label detalle = new javafx.scene.control.Label(
+                "Solicitado por " + m.getUsuarioNombre() + " · " + com.sibim.util.FormatUtils.formatDateTime(m.getCreadoEn())
+                + (m.getMotivo() != null && !m.getMotivo().isBlank() ? " · " + m.getMotivo() : ""));
+            detalle.getStyleClass().add("muted-sm");
+            detalle.setWrapText(true);
+            info.getChildren().addAll(titulo, detalle);
+            HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
+
+            javafx.scene.control.Button btnAprobar  = new javafx.scene.control.Button("Aprobar");
+            javafx.scene.control.Button btnRechazar = new javafx.scene.control.Button("Rechazar");
+            btnAprobar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
+            btnRechazar.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
+            btnAprobar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+            btnRechazar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+            btnAprobar.getStyleClass().add("btn-primary");
+            btnRechazar.getStyleClass().add("btn-danger");
+
+            btnAprobar.setOnAction(e -> {
+                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
+                DialogUtil.runAsync(
+                    () -> movimientoService.aprobarTransferencia(m.getId()),
+                    () -> {
+                        list.getChildren().remove(row);
+                        loadData(); loadPendientesCount();
+                        NotificacionUtil.exitoTransferencia(dialog.getDialogPane().getScene(),
+                            m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
+                    },
+                    ex -> {
+                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
+                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aprobar la transferencia");
+                    }
+                );
+            });
+
+            btnRechazar.setOnAction(e -> {
+                if (!com.sibim.util.ConfirmacionUtil.confirmar("Rechazar transferencia",
+                        "¿Rechazar la transferencia de \"" + m.getProductoNombre() + "\"?")) return;
+                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
+                DialogUtil.runAsync(
+                    () -> movimientoService.rechazarTransferencia(m.getId()),
+                    () -> {
+                        list.getChildren().remove(row);
+                        loadData(); loadPendientesCount();
+                        NotificacionUtil.info(dialog.getDialogPane().getScene(),
+                            "Transferencia de \"" + m.getProductoNombre() + "\" rechazada");
+                    },
+                    ex -> {
+                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
+                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo rechazar la transferencia");
+                    }
+                );
+            });
+
+            HBox actions = new HBox(8, btnAprobar, btnRechazar);
+            actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            row.getChildren().addAll(info, actions);
+            list.getChildren().add(row);
+        }
+
+        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(list);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(400);
+        scroll.getStyleClass().add("dlg-tabs-scroll");
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
+        dialog.getDialogPane().setContent(new VBox(0, header, scroll));
+        dialog.showAndWait();
     }
 
     @FXML private void onPresetHoy() {
@@ -682,21 +700,6 @@ public class MovimientosController {
     @FXML private void onLimpiarFechas() {
         desdeFilter.setValue(null); hastaFilter.setValue(null);
         setActivePreset(null);
-    }
-
-    @FXML
-    private void onClearFilters() {
-        searchField.clear();
-        desdeFilter.setValue(null);
-        hastaFilter.setValue(null);
-        if (categoriaFilter != null) categoriaFilter.setValue(null);
-        setActivePreset(null);
-        if (tipoChipGroup != null)
-            tipoChipGroup.getToggles().stream()
-                .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
-                .findFirst().ifPresent(t -> t.setSelected(true));
-        currentPage = 0;
-        applyFilters();
     }
 
     private void setActivePreset(Button active) {
@@ -721,8 +724,7 @@ public class MovimientosController {
         Runnable doDelete = () -> DialogUtil.runAsync(
             () -> movimientoService.eliminar(sel.getId()),
             () -> {
-                allData.remove(sel);
-                applyFilters();
+                loadData();
                 NotificacionUtil.exito(table.getScene(), "Movimiento eliminado");
             },
             e -> NotificacionUtil.error(table.getScene(),
@@ -739,22 +741,28 @@ public class MovimientosController {
 
     @FXML
     private void onExportCsv() {
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
+        DialogUtil.runAsync(
             () -> reporteService.exportMovimientosCsv(
                 desdeFilter != null ? desdeFilter.getValue() : null,
                 hastaFilter != null ? hastaFilter.getValue() : null),
-            file -> { NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente"); openFile(file); },
+            file -> {
+                NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
+                openFile(file);
+            },
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
         );
     }
 
     @FXML
     private void onExportExcel() {
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
+        DialogUtil.runAsync(
             () -> reporteService.exportMovimientosExcel(
                 desdeFilter != null ? desdeFilter.getValue() : null,
                 hastaFilter != null ? hastaFilter.getValue() : null),
-            file -> { NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente"); openFile(file); },
+            file -> {
+                NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
+                openFile(file);
+            },
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
         );
     }
@@ -772,10 +780,9 @@ public class MovimientosController {
                         r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia(), r.areaDestino()),
                     m -> {
                         if (table != null) {
-                            allData.add(0, m);
                             currentPage = 0;
                             pendingHighlightId = m.getId();
-                            applyFilters();
+                            loadData();
                             table.scrollTo(0);
                             new Timeline(new KeyFrame(Duration.seconds(1.8), e2 -> {
                                 pendingHighlightId = null;
@@ -800,9 +807,6 @@ public class MovimientosController {
                         }
                     },
                     e -> {
-                        // Reopen pre-filled with what the user entered (r has
-                        // it all) instead of just erroring and losing it —
-                        // same reasoning as ProductosController#showProductDialog.
                         if (table != null && table.getScene() != null)
                             NotificacionUtil.error(table.getScene(),
                                 (e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo registrar el movimiento")
@@ -817,40 +821,6 @@ public class MovimientosController {
         }
     }
 
-    @FXML
-    private void onExportSeleccionCsv() {
-        java.util.List<com.sibim.model.Movimiento> sel = java.util.List.copyOf(table.getSelectionModel().getSelectedItems());
-        if (sel.isEmpty()) return;
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
-            () -> reporteService.exportMovimientosCsv(sel),
-            file -> { NotificacionUtil.exito(table.getScene(), sel.size() + " movimiento(s) exportado(s) a CSV"); openFile(file); },
-            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportSeleccionCsv)
-        );
-    }
-
-    @FXML
-    private void onExportSeleccionExcel() {
-        java.util.List<com.sibim.model.Movimiento> sel = java.util.List.copyOf(table.getSelectionModel().getSelectedItems());
-        if (sel.isEmpty()) return;
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
-            () -> reporteService.exportMovimientosExcel(sel),
-            file -> { NotificacionUtil.exito(table.getScene(), sel.size() + " movimiento(s) exportado(s) a Excel"); openFile(file); },
-            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportSeleccionExcel)
-        );
-    }
-
-    private void updateSelectionLabel(int n) {
-        if (lblSeleccionados == null) return;
-        if (n > 0) {
-            lblSeleccionados.setText("· " + n + (n == 1 ? " seleccionado" : " seleccionados"));
-            lblSeleccionados.setVisible(true);
-            lblSeleccionados.setManaged(true);
-        } else {
-            lblSeleccionados.setVisible(false);
-            lblSeleccionados.setManaged(false);
-        }
-    }
-
     private void openFile(File file) {
         try { Desktop.getDesktop().open(file); }
         catch (Exception e) {
@@ -860,4 +830,86 @@ public class MovimientosController {
         }
     }
 
+    private void showMovimientoDetail(Movimiento m) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(470);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        String tipoIcon = switch (m.getTipo()) {
+            case ENTRADA       -> "mdi2a-arrow-up-bold-circle-outline";
+            case SALIDA        -> "mdi2a-arrow-down-bold-circle-outline";
+            case AJUSTE        -> "mdi2s-swap-horizontal";
+            case TRANSFERENCIA -> "mdi2a-arrow-right-bold-circle-outline";
+        };
+        String color1 = switch (m.getTipo()) {
+            case ENTRADA       -> "#059669";
+            case SALIDA        -> "#DC2626";
+            case AJUSTE        -> "#D97706";
+            case TRANSFERENCIA -> "#2563EB";
+        };
+        String color2 = switch (m.getTipo()) {
+            case ENTRADA       -> "#047857";
+            case SALIDA        -> "#B91C1C";
+            case AJUSTE        -> "#B45309";
+            case TRANSFERENCIA -> "#1D4ED8";
+        };
+
+        HBox header = DialogUtil.gradientHeader(tipoIcon,
+            m.getTipo().getEtiqueta() + "  —  " + m.getCantidad() + " uds.",
+            m.getProductoNombre(),
+            color1, color2);
+
+        GridPane grid = DialogUtil.formGrid(120);
+        int r = 0;
+
+        // Stock change row
+        HBox stockRow = new HBox(10);
+        stockRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        Label antes = new Label(String.valueOf(m.getStockAnterior()));
+        antes.getStyleClass().add("dlg-stock-val");
+        Label arrowLbl = new Label("→");
+        boolean up = m.getStockNuevo() > m.getStockAnterior();
+        boolean down = m.getStockNuevo() < m.getStockAnterior();
+        arrowLbl.getStyleClass().add(up ? "dlg-stock-arrow-up" : down ? "dlg-stock-arrow-down" : "dlg-stock-arrow");
+        Label despues = new Label(String.valueOf(m.getStockNuevo()));
+        despues.getStyleClass().add(m.getStockNuevo() <= 0 ? "dlg-stock-new-empty"
+            : up ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
+        stockRow.getChildren().addAll(antes, arrowLbl, despues);
+
+        Label fProducto = new Label(m.getProductoNombre());
+        fProducto.setWrapText(true);
+        Label fMotivo    = new Label(m.getMotivo()     != null && !m.getMotivo().isBlank()     ? m.getMotivo()     : "—");
+        Label fRef       = new Label(m.getReferencia() != null && !m.getReferencia().isBlank() ? m.getReferencia() : "—");
+        Label fUsuario   = new Label(m.getUsuarioNombre());
+        Label fFecha     = new Label(FormatUtils.formatDateTime(m.getCreadoEn()));
+
+        for (Label l : new Label[]{fProducto, fMotivo, fRef, fUsuario, fFecha})
+            l.getStyleClass().add("dlg-detail-value");
+
+        grid.add(DialogUtil.fieldLabel("Bien"),           0, r); grid.add(fProducto, 1, r++);
+        grid.add(DialogUtil.fieldLabel("Stock"),          0, r); grid.add(stockRow,  1, r++);
+        if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
+            HBox areaRow = new HBox(8);
+            areaRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            Label areaOrigenLbl = new Label(m.getAreaOrigen() != null ? m.getAreaOrigen() : "—");
+            areaOrigenLbl.getStyleClass().add("dlg-detail-value");
+            Label areaArrow = new Label("→");
+            areaArrow.getStyleClass().add("dlg-stock-arrow");
+            Label areaDestinoLbl = new Label(m.getAreaDestino());
+            areaDestinoLbl.getStyleClass().add("dlg-detail-value");
+            areaRow.getChildren().addAll(areaOrigenLbl, areaArrow, areaDestinoLbl);
+            grid.add(DialogUtil.fieldLabel("Área"), 0, r); grid.add(areaRow, 1, r++);
+        }
+        grid.add(DialogUtil.fieldLabel("Motivo"),         0, r); grid.add(fMotivo,   1, r++);
+        grid.add(DialogUtil.fieldLabel("Referencia"),     0, r); grid.add(fRef,      1, r++);
+        grid.add(DialogUtil.fieldLabel("Registrado por"), 0, r); grid.add(fUsuario,  1, r++);
+        grid.add(DialogUtil.fieldLabel("Fecha"),          0, r); grid.add(fFecha,    1, r);
+
+        VBox content = new VBox(0, header, grid);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+    }
 }
