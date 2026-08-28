@@ -89,16 +89,33 @@ public final class OfflineStore {
                 javax.crypto.SecretKey key =
                     OfflineEncryption.keyFrom(OfflineKeyManager.deriveKey());
 
-                // Migrate plaintext legacy DB on first run after this update
-                if (java.nio.file.Files.exists(legacyDb)
-                        && !OfflineEncryption.isEncrypted(legacyDb)) {
+                // Migrate plaintext legacy DB on first run after encryption was introduced
+                if (Files.exists(legacyDb) && !OfflineEncryption.isEncrypted(legacyDb)) {
                     log.info("offline.db: migrando a almacenamiento cifrado...");
                     OfflineEncryption.encryptFrom(legacyDb, encFile, key);
                     log.info("offline.db: migración completada");
                 }
 
-                // Decrypt enc blob → work file (no-op on first run; SQLite creates workFile)
-                OfflineEncryption.decryptTo(encFile, workFile, key);
+                // Stale work file from a previous crash — discard it; enc is authoritative
+                if (Files.exists(encFile)) {
+                    Files.deleteIfExists(workFile);
+                }
+
+                // Decrypt enc → work, with automatic one-time migration from the old
+                // hostname-based key (SIBIM-v1) to the stable MachineGuid-based key (SIBIM-v2)
+                if (Files.exists(encFile)) {
+                    if (!OfflineEncryption.tryDecryptTo(encFile, workFile, key)) {
+                        log.warn("offline.db: clave actual no coincide — probando clave legacy "
+                            + "(¿se renombró la computadora?)...");
+                        javax.crypto.SecretKey legacyKey =
+                            OfflineEncryption.keyFrom(OfflineKeyManager.deriveLegacyKey());
+                        OfflineEncryption.decryptTo(encFile, workFile, legacyKey);
+                        log.info("offline.db: re-cifrando con clave estable (MachineGuid)...");
+                        OfflineEncryption.encryptFrom(workFile, encFile, key);
+                        OfflineEncryption.decryptTo(encFile, workFile, key);
+                        log.info("offline.db: migración de clave completada");
+                    }
+                }
 
                 conn = DriverManager.getConnection("jdbc:sqlite:" + workFile);
                 conn.setAutoCommit(true);

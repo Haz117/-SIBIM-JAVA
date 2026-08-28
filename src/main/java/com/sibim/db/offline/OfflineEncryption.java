@@ -1,5 +1,6 @@
 package com.sibim.db.offline;
 
+import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
@@ -82,6 +83,42 @@ final class OfflineEncryption {
             Files.write(tmp, plain);
             Files.move(tmp, plainFile, StandardCopyOption.REPLACE_EXISTING,
                                        StandardCopyOption.ATOMIC_MOVE);
+        } catch (Exception e) {
+            throw new IOException("No se pudo descifrar offline.db.enc", e);
+        }
+    }
+
+    /**
+     * Like {@link #decryptTo} but returns {@code false} instead of throwing when the
+     * GCM authentication tag doesn't match (wrong key). Used to detect a key mismatch
+     * before attempting migration with the legacy key.
+     */
+    static boolean tryDecryptTo(Path encFile, Path plainFile, SecretKey key) throws IOException {
+        if (!Files.exists(encFile)) return true;
+        byte[] blob = Files.readAllBytes(encFile);
+        if (blob.length < MAGIC.length + IV_LEN) {
+            throw new IOException("Archivo cifrado dañado o truncado: " + encFile);
+        }
+        for (int i = 0; i < MAGIC.length; i++) {
+            if (blob[i] != MAGIC[i]) {
+                throw new IOException("El archivo offline.db.enc no tiene la firma esperada.");
+            }
+        }
+        byte[] iv         = new byte[IV_LEN];
+        byte[] ciphertext = new byte[blob.length - MAGIC.length - IV_LEN];
+        System.arraycopy(blob, MAGIC.length,          iv,         0, IV_LEN);
+        System.arraycopy(blob, MAGIC.length + IV_LEN, ciphertext, 0, ciphertext.length);
+        try {
+            Cipher cipher = Cipher.getInstance(ALGO);
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
+            byte[] plain = cipher.doFinal(ciphertext);
+            Path tmp = plainFile.resolveSibling(plainFile.getFileName() + ".dectemp");
+            Files.write(tmp, plain);
+            Files.move(tmp, plainFile, StandardCopyOption.REPLACE_EXISTING,
+                                       StandardCopyOption.ATOMIC_MOVE);
+            return true;
+        } catch (AEADBadTagException e) {
+            return false;
         } catch (Exception e) {
             throw new IOException("No se pudo descifrar offline.db.enc", e);
         }
