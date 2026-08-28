@@ -11,6 +11,7 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Set;
 
 public final class DatabaseConfig {
 
@@ -18,6 +19,8 @@ public final class DatabaseConfig {
     private static HikariDataSource dataSource;
     private static boolean demoMode = false;
     private static boolean offlineMode = false;
+
+    private static final Set<String> STRONG_SSL = Set.of("require", "verify-ca", "verify-full");
 
     private DatabaseConfig() {}
 
@@ -81,17 +84,13 @@ public final class DatabaseConfig {
         config.addDataSourceProperty("prepareThreshold", "3");
         config.addDataSourceProperty("preparedStatementCacheQueries", "25");
         config.addDataSourceProperty("socketTimeout", "30");
-        // SSL: defaults to "prefer" (uses SSL when available, no error if not).
-        // Set DB_SSL_MODE=require in .env for Supabase or any remote/production DB.
-        String sslMode = getEnv(dotenv, "DB_SSL_MODE", "prefer");
-        config.addDataSourceProperty("sslmode", sslMode);
 
-        boolean isRemote = !url.contains("localhost") && !url.contains("127.0.0.1") && !url.contains("::1");
-        if (isRemote && !"require".equalsIgnoreCase(sslMode) && !"verify-full".equalsIgnoreCase(sslMode)) {
-            log.warn("ATENCIÓN DE SEGURIDAD: La BD es remota ({}) pero DB_SSL_MODE='{}' — "
-                + "las credenciales podrían viajar sin cifrar. "
-                + "Agrega DB_SSL_MODE=require al .env para producción.", url, sslMode);
-        }
+        boolean isRemote = isRemoteUrl(url);
+        boolean bypass   = "true".equalsIgnoreCase(getEnv(dotenv, "DB_SSL_BYPASS", "false"));
+        // Remote connections default to "require"; local connections to "prefer".
+        String sslMode = resolveSslMode(getEnv(dotenv, "DB_SSL_MODE", null), isRemote);
+        enforceSslPolicy(url, sslMode, isRemote, bypass);
+        config.addDataSourceProperty("sslmode", sslMode);
 
         dataSource = new HikariDataSource(config);
     }
@@ -126,6 +125,35 @@ public final class DatabaseConfig {
             dataSource.close();
         }
         dataSource = null;
+    }
+
+    static boolean isRemoteUrl(String url) {
+        return !url.contains("localhost") && !url.contains("127.0.0.1") && !url.contains("::1");
+    }
+
+    /** Returns the explicit sslMode if set, or a safe default based on whether the host is remote. */
+    static String resolveSslMode(String explicitMode, boolean isRemote) {
+        if (explicitMode != null && !explicitMode.isBlank()) return explicitMode;
+        return isRemote ? "require" : "prefer";
+    }
+
+    /**
+     * Enforces SSL policy for remote connections.
+     * Remote + weak SSL + no bypass → throws (blocks startup).
+     * Remote + weak SSL + DB_SSL_BYPASS=true → warns and continues (dev escape hatch).
+     * Local connections are not checked.
+     */
+    static void enforceSslPolicy(String url, String sslMode, boolean isRemote, boolean bypass) {
+        if (!isRemote || STRONG_SSL.contains(sslMode.toLowerCase())) return;
+        String msg = String.format(
+            "BLOQUEADO: conexión remota (%s) con DB_SSL_MODE='%s' — las credenciales viajarían "
+            + "sin cifrar. Agrega DB_SSL_MODE=require al .env. "
+            + "Para desarrollo sin SSL usa DB_SSL_BYPASS=true.", url, sslMode);
+        if (bypass) {
+            log.warn(msg);
+        } else {
+            throw new IllegalStateException(msg);
+        }
     }
 
     private static Dotenv loadDotenv() {
