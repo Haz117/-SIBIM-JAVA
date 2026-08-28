@@ -57,6 +57,188 @@ public class ProductoRepository {
         return result;
     }
 
+    // ── Server-side filtering & pagination ───────────────────────────────────
+
+    /** Aggregate stats for the Bienes screen stat cards — one round-trip. */
+    public record InventarioStats(long total, java.math.BigDecimal valorTotal, long alertas) {}
+
+    /** SQL expression that mirrors ProductoUtils.computeEstado logic. */
+    private static final String ESTADO_SQL =
+        "CASE WHEN p.fecha_vencimiento IS NOT NULL AND p.fecha_vencimiento < CURRENT_DATE THEN 'vencido' " +
+        "WHEN p.stock_actual = 0 THEN 'agotado' " +
+        "WHEN p.stock_actual <= p.stock_minimo THEN 'bajo_stock' " +
+        "ELSE 'activo' END";
+
+    /** Builds a WHERE clause (with leading space) and populates {@code params}
+     *  for all server-side filter queries. */
+    private static String buildFiltroWhere(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean incluirBaja, List<Object> params) {
+        List<String> conds = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null) {
+            conds.add("p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        if (!incluirBaja) conds.add("p.fecha_baja IS NULL");
+        if (busqueda != null && !busqueda.isBlank()) {
+            String like = "%" + busqueda.toLowerCase() + "%";
+            conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ?)");
+            params.add(like); params.add(like); params.add(like); params.add(like); params.add(like);
+        }
+        if (categoriaId != null) { conds.add("p.categoria_id = ?"); params.add(categoriaId); }
+        if (area != null) { conds.add("p.area = ?"); params.add(area); }
+        if (resguardante != null) { conds.add("p.resguardante = ?"); params.add(resguardante); }
+        if (estado != null) {
+            conds.add("(" + ESTADO_SQL + ") = ?");
+            params.add(estado.getCodigo());
+        }
+        return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
+    }
+
+    /** Returns one page of products matching the given filters (LIMIT/OFFSET). */
+    public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean incluirBaja, int limit, int offset) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Producto> all = findAll(incluirBaja);
+            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado)
+                .stream().skip(offset).limit(limit).toList();
+        }
+        List<Object> params = new ArrayList<>();
+        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, params);
+        String sql = BASE_SELECT + where + " ORDER BY p.nombre LIMIT ? OFFSET ?";
+        params.add(limit); params.add(offset);
+        return queryDynamic(sql, params);
+    }
+
+    /** Returns the COUNT(*) of products matching the given filters — for pagination. */
+    public int countFiltrado(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean incluirBaja) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Producto> all = findAll(incluirBaja);
+            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado).size();
+        }
+        List<Object> params = new ArrayList<>();
+        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, params);
+        String sql = "SELECT COUNT(*) FROM products p" + where;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = buildStatement(conn, sql, params);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
+    /** Returns ALL products matching the given filters — for export and conteo físico
+     *  (no LIMIT/OFFSET, always excludes bienes dados de baja). */
+    public List<Producto> findAllFiltrado(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return applyClientFilters(local.findAllProductos(SessionManager.getAccessibleAreas()),
+                busqueda, categoriaId, area, resguardante, estado);
+        }
+        List<Object> params = new ArrayList<>();
+        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, false, params);
+        return queryDynamic(BASE_SELECT + where + " ORDER BY p.nombre", params);
+    }
+
+    /** Returns distinct non-blank resguardante values (for the dropdown). */
+    public List<String> findDistinctResguardantes() throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .map(Producto::getResguardante).filter(r -> r != null && !r.isBlank())
+                .distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
+        }
+        StringBuilder sb = new StringBuilder(
+            "SELECT DISTINCT resguardante FROM products WHERE fecha_baja IS NULL AND resguardante IS NOT NULL AND resguardante <> ''");
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        List<Object> params = new ArrayList<>();
+        if (accessible != null) { sb.append(" AND area = ANY(?)"); params.add(accessible.toArray(new String[0])); }
+        sb.append(" ORDER BY 1");
+        List<String> result = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = buildStatement(conn, sb.toString(), params);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) result.add(rs.getString(1));
+        }
+        return result;
+    }
+
+    /** Aggregate stats for the Bienes stat cards — one round-trip, full inventory. */
+    public InventarioStats findStats() throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            List<Producto> all = findAll(false);
+            long total = all.size();
+            java.math.BigDecimal valor = all.stream()
+                .map(p -> { java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
+                            return v.multiply(java.math.BigDecimal.valueOf(p.getStockActual())); })
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+            long alertas = all.stream()
+                .filter(p -> p.getEstado() != com.sibim.model.enums.EstadoProducto.ACTIVO).count();
+            return new InventarioStats(total, valor, alertas);
+        }
+        String sql = """
+            SELECT COUNT(*) AS total,
+                   COALESCE(SUM(precio_venta * stock_actual), 0) AS valor_total,
+                   COUNT(*) FILTER (WHERE %s IN ('agotado','bajo_stock','vencido')) AS alertas
+            FROM products p
+            WHERE fecha_baja IS NULL
+            """.formatted(ESTADO_SQL);
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        List<Object> params = new ArrayList<>();
+        if (accessible != null) {
+            sql += " AND p.area = ANY(?)";
+            params.add(accessible.toArray(new String[0]));
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = buildStatement(conn, sql, params);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return new InventarioStats(rs.getLong("total"),
+                    rs.getBigDecimal("valor_total"), rs.getLong("alertas"));
+            }
+        }
+        return new InventarioStats(0, java.math.BigDecimal.ZERO, 0);
+    }
+
+    /** In-memory filter for offline/demo mode — mirrors {@link #buildFiltroWhere}. */
+    private static List<Producto> applyClientFilters(List<Producto> all, String busqueda,
+            String categoriaId, String area, String resguardante,
+            com.sibim.model.enums.EstadoProducto estado) {
+        return all.stream()
+            .filter(p -> busqueda == null || busqueda.isBlank()
+                || p.getNombre().toLowerCase().contains(busqueda.toLowerCase())
+                || p.getCodigo().toLowerCase().contains(busqueda.toLowerCase())
+                || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(busqueda.toLowerCase()))
+                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(busqueda.toLowerCase()))
+                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(busqueda.toLowerCase())))
+            .filter(p -> categoriaId == null || categoriaId.equals(p.getCategoriaId()))
+            .filter(p -> area == null || area.equals(p.getArea()))
+            .filter(p -> resguardante == null || resguardante.equals(p.getResguardante()))
+            .filter(p -> estado == null || p.getEstado() == estado)
+            .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
+            .toList();
+    }
+
+    /** Builds a PreparedStatement with heterogeneous param types (String[], Object). */
+    private static PreparedStatement buildStatement(Connection conn, String sql, List<Object> params) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement(sql);
+        for (int i = 0; i < params.size(); i++) {
+            Object v = params.get(i);
+            if (v instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
+            else ps.setObject(i + 1, v);
+        }
+        return ps;
+    }
+
+    // ── Existing methods ─────────────────────────────────────────────────────
+
     public List<Producto> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {

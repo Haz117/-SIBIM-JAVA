@@ -38,4 +38,26 @@ public final class PaginationUtils {
         if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
         if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
     }
+
+    /**
+     * Server-side pagination variant: {@code pageData} already contains exactly
+     * the rows for the current page (fetched via LIMIT/OFFSET) and
+     * {@code totalFiltered} is the COUNT(*) result from the DB.  No slicing is
+     * done here — the list is pushed into the table as-is.
+     */
+    public static <T> void updatePageServer(TableView<T> table, List<T> pageData,
+            int currentPage, int pageSize, int totalFiltered,
+            Label lblTotal, Label lblPage, Button btnPrev, Button btnNext,
+            String singular, String plural) {
+        table.setItems(FXCollections.observableArrayList(pageData));
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalFiltered / pageSize));
+        int clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
+        int from = clampedPage * pageSize;
+        int to = Math.min(from + pageSize, totalFiltered);
+        if (lblTotal != null) lblTotal.setText(totalFiltered + (totalFiltered == 1 ? " " + singular : " " + plural));
+        if (lblPage != null) lblPage.setText(totalFiltered == 0 ? "—"
+            : "Pág " + (clampedPage + 1) + " de " + totalPages + "  ·  " + (from + 1) + "–" + to);
+        if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
+        if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
+    }
 }

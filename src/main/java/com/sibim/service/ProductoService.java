@@ -30,6 +30,29 @@ public class ProductoService {
         return productoRepo.findAll();
     }
 
+    public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado, int limit, int offset) throws SQLException {
+        return productoRepo.findPaginated(busqueda, categoriaId, area, resguardante, estado, false, limit, offset);
+    }
+
+    public int countFiltrado(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
+        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false);
+    }
+
+    public List<Producto> getAllFiltrado(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
+        return productoRepo.findAllFiltrado(busqueda, categoriaId, area, resguardante, estado);
+    }
+
+    public List<String> getResguardantes() throws SQLException {
+        return productoRepo.findDistinctResguardantes();
+    }
+
+    public ProductoRepository.InventarioStats getStats() throws SQLException {
+        return productoRepo.findStats();
+    }
+
     public Optional<Producto> findById(String id) throws SQLException {
         return productoRepo.findById(id);
     }
