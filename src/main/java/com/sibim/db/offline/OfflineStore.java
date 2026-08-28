@@ -81,8 +81,26 @@ public final class OfflineStore {
             try {
                 Path dbDir = Path.of(System.getProperty("user.home"), ".sibim");
                 Files.createDirectories(dbDir);
-                Path dbFile = dbDir.resolve("offline.db");
-                conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
+
+                Path legacyDb = dbDir.resolve("offline.db");
+                Path encFile  = dbDir.resolve("offline.db.enc");
+                Path workFile = dbDir.resolve("offline.db.work");
+
+                javax.crypto.SecretKey key =
+                    OfflineEncryption.keyFrom(OfflineKeyManager.deriveKey());
+
+                // Migrate plaintext legacy DB on first run after this update
+                if (java.nio.file.Files.exists(legacyDb)
+                        && !OfflineEncryption.isEncrypted(legacyDb)) {
+                    log.info("offline.db: migrando a almacenamiento cifrado...");
+                    OfflineEncryption.encryptFrom(legacyDb, encFile, key);
+                    log.info("offline.db: migración completada");
+                }
+
+                // Decrypt enc blob → work file (no-op on first run; SQLite creates workFile)
+                OfflineEncryption.decryptTo(encFile, workFile, key);
+
+                conn = DriverManager.getConnection("jdbc:sqlite:" + workFile);
                 conn.setAutoCommit(true);
                 // Skip runSchema() on existing DBs — CREATE TABLE IF NOT EXISTS statements
                 // executed via executeBatch() on a non-empty DB trigger a SQLite JDBC GC
@@ -92,6 +110,21 @@ public final class OfflineStore {
                     runSchema(conn);
                 }
                 runOfflineMigrations(conn);
+
+                // Re-encrypt on JVM shutdown so the plaintext work file doesn't linger
+                final Path fEnc = encFile, fWork = workFile;
+                final javax.crypto.SecretKey fKey = key;
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    try {
+                        if (conn != null && !conn.isClosed()) conn.close();
+                    } catch (Exception ignored) {}
+                    try {
+                        OfflineEncryption.encryptFrom(fWork, fEnc, fKey);
+                    } catch (IOException e) {
+                        System.err.println("[SIBIM] Error al cifrar offline.db al cerrar: " + e.getMessage());
+                    }
+                }, "offline-db-encrypt-on-shutdown"));
+
             } catch (IOException e) {
                 throw new SQLException("No se pudo abrir el almacén offline local", e);
             }
