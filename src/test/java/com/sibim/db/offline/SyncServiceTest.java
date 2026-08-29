@@ -402,6 +402,103 @@ class SyncServiceTest extends IntegrationTestBase {
         }
     }
 
+    // ════════════════════ syncConteos ════════════════════════════════════
+
+    private int insertConteoOutbox(String conteoId, String usuarioId, String usuarioNombre,
+                                   int totalContados, int totalDiscrepancias) throws SQLException {
+        String sql = """
+            INSERT INTO conteo_outbox (conteo_id, usuario_id, usuario_nombre,
+                total_contados, total_discrepancias, created_at, status)
+            VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%S', 'now'), 'PENDING')
+            """;
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, conteoId);
+            ps.setString(2, usuarioId);
+            ps.setString(3, usuarioNombre);
+            ps.setInt(4, totalContados);
+            ps.setInt(5, totalDiscrepancias);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) { return rs.next() ? rs.getInt(1) : -1; }
+        }
+    }
+
+    private void insertConteoItemOutbox(String conteoId, String itemId, String productoId,
+                                        String productoNombre, String area,
+                                        int stockSistema, int stockContado, boolean ajustado) throws SQLException {
+        String sql = """
+            INSERT INTO conteo_items_outbox (conteo_id, item_id, producto_id, producto_nombre,
+                area, stock_sistema, stock_contado, ajustado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(sql)) {
+            ps.setString(1, conteoId);
+            ps.setString(2, itemId);
+            ps.setString(3, productoId);
+            ps.setString(4, productoNombre);
+            ps.setString(5, area);
+            ps.setInt(6, stockSistema);
+            ps.setInt(7, stockContado);
+            ps.setInt(8, ajustado ? 1 : 0);
+            ps.executeUpdate();
+        }
+    }
+
+    @Test
+    void syncConteos_SAVE_replicaEnPostgresYMarcaSynced() throws Exception {
+        String catId  = insertPgCategory("Mobiliario Conteo");
+        String prodId = insertPgProduct("Escritorio Roble", "ESC-001", catId);
+        String conteoId = UUID.randomUUID().toString();
+        String itemId   = UUID.randomUUID().toString();
+        int rowId = insertConteoOutbox(conteoId, "test-admin", "Admin Test", 3, 1);
+        insertConteoItemOutbox(conteoId, itemId, prodId, "Escritorio", "Almacen", 10, 8, true);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        SyncService.syncConteos(synced, failed);
+
+        assertEquals(1, synced.get());
+        assertEquals(0, failed.get());
+        assertTrue(pgExists("conteos_fisicos", conteoId), "conteo debe existir en Postgres");
+        assertEquals("SYNCED", getOutboxStatus("conteo_outbox", rowId));
+        // Verify item was replicated
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                "SELECT COUNT(*) FROM conteo_items WHERE conteo_id = ?")) {
+            ps.setString(1, conteoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1), "Debe haber 1 item replicado en Postgres");
+            }
+        }
+    }
+
+    @Test
+    void syncConteos_conteoYaExisteEnPostgres_marcaFailed() throws Exception {
+        String conteoId = UUID.randomUUID().toString();
+        // Pre-insert conteo in Postgres so the sync will hit a PK duplicate
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                "INSERT INTO conteos_fisicos (id, usuario_id, usuario_nombre, " +
+                "total_contados, total_discrepancias, created_at) VALUES (?,?,?,?,?,NOW())")) {
+            ps.setString(1, conteoId);
+            ps.setString(2, "test-admin");
+            ps.setString(3, "Admin Test");
+            ps.setInt(4, 1);
+            ps.setInt(5, 0);
+            ps.executeUpdate();
+        }
+        int rowId = insertConteoOutbox(conteoId, "test-admin", "Admin Test", 1, 0);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        SyncService.syncConteos(synced, failed);
+
+        assertEquals(0, synced.get());
+        assertEquals(1, failed.get());
+        assertEquals("FAILED", getOutboxStatus("conteo_outbox", rowId));
+    }
+
     // ════════════════════ syncAuditLog ═══════════════════════════════════
 
     @Test

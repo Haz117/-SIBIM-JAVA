@@ -11,9 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
-import java.lang.reflect.Field;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -22,13 +20,10 @@ import static org.mockito.Mockito.*;
 class AuthServiceTest {
 
     @BeforeEach
-    void reset() throws Exception {
-        // Limpia el rate-limiter entre tests (campo estático privado)
-        Field f = AuthService.class.getDeclaredField("fallidos");
-        f.setAccessible(true);
-        ((ConcurrentHashMap<?, ?>) f.get(null)).clear();
+    void reset() {
+        AuthAttemptStore.clearAll();
         SessionManager.logout();
-        DatabaseConfig.setDemoMode(false); // usa BCrypt real, sin DemoDataStore
+        DatabaseConfig.setDemoMode(false);
     }
 
     @AfterEach

@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class AuthService {
 
@@ -29,10 +28,8 @@ public class AuthService {
         this.auditRepo   = auditRepo;
     }
 
-    private static final int    MAX_INTENTOS = 5;
-    private static final long   VENTANA_MS   = 15 * 60_000L; // 15 minutos
-    // username → [intentos_fallidos, timestamp_primer_fallo_de_la_ventana]
-    private static final ConcurrentHashMap<String, long[]> fallidos = new ConcurrentHashMap<>();
+    private static final int  MAX_INTENTOS = 5;
+    private static final long VENTANA_MS   = 15 * 60_000L; // 15 minutos
 
     /**
      * Authenticates user credentials. Returns the user on success.
@@ -65,17 +62,16 @@ public class AuthService {
                 return user;
             }
 
-            // ── Rate-limit check ─────────────────────────────────────────────
-            long[] estado = fallidos.get(key);
-            if (estado != null) {
-                long ahora = System.currentTimeMillis();
-                if (ahora - estado[1] < VENTANA_MS && estado[0] >= MAX_INTENTOS) {
-                    long mins = Math.max(1, (VENTANA_MS - (ahora - estado[1])) / 60_000 + 1);
-                    throw new AuthException(
-                        "Demasiados intentos fallidos. Espera " + mins + " minuto(s) antes de volver a intentar.");
-                } else if (ahora - estado[1] > VENTANA_MS) {
-                    fallidos.remove(key); // ventana expirada — reiniciar
-                }
+            // ── Rate-limit check (persisted across restarts) ─────────────────
+            long ahora = System.currentTimeMillis();
+            long windowStart = AuthAttemptStore.getWindowStart(key);
+            int  intentos    = AuthAttemptStore.getCount(key);
+            if (windowStart > 0 && ahora - windowStart < VENTANA_MS && intentos >= MAX_INTENTOS) {
+                long mins = Math.max(1, (VENTANA_MS - (ahora - windowStart)) / 60_000 + 1);
+                throw new AuthException(
+                    "Demasiados intentos fallidos. Espera " + mins + " minuto(s) antes de volver a intentar.");
+            } else if (windowStart > 0 && ahora - windowStart > VENTANA_MS) {
+                AuthAttemptStore.clear(key); // ventana expirada — reiniciar
             }
 
             Optional<Usuario> opt = usuarioRepo.findByUsername(key);
@@ -102,7 +98,7 @@ public class AuthService {
                 registrarFallo(key);
                 throw new AuthException("Usuario o contraseña incorrectos");
             }
-            fallidos.remove(key); // login exitoso — limpiar contadores
+            AuthAttemptStore.clear(key); // login exitoso — limpiar contadores
             SessionManager.setCurrentUser(user);
             auditRepo.log("sesion", user.getId(), user.getNombre(), "login",
                 "Inicio de sesión — " + (DatabaseConfig.isDemoMode() ? "modo demo" : "base de datos"));
@@ -113,12 +109,7 @@ public class AuthService {
     }
 
     private static void registrarFallo(String key) {
-        long ahora = System.currentTimeMillis();
-        fallidos.compute(key, (k, v) -> {
-            if (v == null || ahora - v[1] > VENTANA_MS) return new long[]{1, ahora};
-            v[0]++;
-            return v;
-        });
+        AuthAttemptStore.increment(key);
     }
 
     public void logout() {
