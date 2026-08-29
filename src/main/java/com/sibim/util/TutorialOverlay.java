@@ -9,9 +9,11 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -20,6 +22,8 @@ import java.util.prefs.Preferences;
 public final class TutorialOverlay {
 
     private static final Preferences PREFS = Preferences.userNodeForPackage(TutorialOverlay.class);
+    private static final double CARD_W  = 370;  // card body width
+    private static final double ARROW_W = 14;   // left-pointing arrow width
 
     private record Step(
         String icon, String color, String gradEnd,
@@ -94,14 +98,14 @@ public final class TutorialOverlay {
         new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
             "Atajos de Teclado", "F1", null, new String[]{
             "Ctrl+1 a Ctrl+9 navega entre módulos sin el mouse",
-            "Ctrl+F busca · F5 actualiza · Ctrl+K paleta de comandos",
+            "Ctrl+F busca · F5 actualiza · Ctrl+K abre la paleta de comandos",
             "En tablas: Ctrl+N nuevo · Ctrl+E editar · Supr eliminar"
         }),
         // 10 — ¡Todo listo!
         new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
             "¡Todo listo!", null, "dashboard", new String[]{
             "Explora cada módulo desde la barra lateral izquierda",
-            "Presiona F1 en cualquier momento para ver los atajos",
+            "Presiona F1 en cualquier momento para ver todos los atajos",
             "El sistema guarda tus cambios aunque pierdas la conexión"
         })
     };
@@ -111,7 +115,7 @@ public final class TutorialOverlay {
     public static void showIfFirstTime(StackPane outerStack) {
         String username = SessionManager.getCurrentUser() != null
             ? SessionManager.getCurrentUser().getUsername() : "unknown";
-        String key = "tutorial.v2." + username;
+        String key = "tutorial.v3." + username;
         if (PREFS.getBoolean(key, false)) return;
         PREFS.putBoolean(key, true);
         javafx.application.Platform.runLater(() -> buildAndShow(outerStack));
@@ -122,69 +126,65 @@ public final class TutorialOverlay {
     }
 
     private static void buildAndShow(StackPane outerStack) {
-        int[] step = {0};
+        int[]      step      = {0};
         Timeline[] pulseAnim = {null};
+        Timeline[] posAnim   = {null};
+        boolean[]  firstPos  = {true};
 
-        // ── Layer 1: dim overlay (absorbs mouse so main app is blocked) ─────────
+        // ── Layer 1: dim (absorbs mouse, full-screen) ─────────────────────────
         Region dimLayer = new Region();
         dimLayer.getStyleClass().add("tutorial-dim-layer");
         dimLayer.setOnMousePressed(javafx.event.Event::consume);
         dimLayer.setOnMouseClicked(javafx.event.Event::consume);
 
-        // ── Layer 2: ring layer (mouse-transparent, drawn above dim) ─────────────
+        // ── Layer 2: ring (mouse-transparent, above dim) ──────────────────────
         Pane ringLayer = new Pane();
         ringLayer.setMouseTransparent(true);
         ringLayer.setPickOnBounds(false);
-
         StackPane ring = new StackPane();
         ring.setMouseTransparent(true);
         ring.setVisible(false);
         ringLayer.getChildren().add(ring);
 
-        // ── Gradient header ────────────────────────────────────────────────────
+        // ── Card header (gradient + progress + icon badge) ────────────────────
         StackPane header = new StackPane();
-        header.setPrefHeight(102);
-        header.setMaxHeight(102);
+        header.setPrefHeight(88);
+        header.setMaxHeight(88);
 
         Region progressTrack = new Region();
         progressTrack.getStyleClass().add("tutorial-progress-track");
-        progressTrack.setPrefHeight(5);
-        progressTrack.setMaxHeight(5);
+        progressTrack.setPrefHeight(4); progressTrack.setMaxHeight(4);
 
         Region progressFill = new Region();
         progressFill.getStyleClass().add("tutorial-progress-fill");
-        progressFill.setPrefHeight(5);
-        progressFill.setMaxHeight(5);
+        progressFill.setPrefHeight(4); progressFill.setMaxHeight(4);
         progressFill.setPrefWidth(0);
 
         StackPane progressPane = new StackPane(progressTrack, progressFill);
         progressPane.setAlignment(Pos.CENTER_LEFT);
-        progressPane.setPrefHeight(5);
-        progressPane.setMaxHeight(5);
+        progressPane.setPrefHeight(4); progressPane.setMaxHeight(4);
         progressTrack.prefWidthProperty().bind(header.widthProperty());
         StackPane.setAlignment(progressPane, Pos.TOP_LEFT);
 
         FontIcon icon = new FontIcon();
-        icon.setIconSize(34);
+        icon.setIconSize(28);
         StackPane iconBadge = new StackPane(icon);
         iconBadge.getStyleClass().add("tutorial-icon-badge");
-        iconBadge.setPrefSize(76, 76);
-        iconBadge.setMaxSize(76, 76);
-        iconBadge.setTranslateY(38);
+        iconBadge.setPrefSize(60, 60); iconBadge.setMaxSize(60, 60);
+        iconBadge.setTranslateY(30);
         StackPane.setAlignment(iconBadge, Pos.BOTTOM_CENTER);
-
         header.getChildren().addAll(progressPane, iconBadge);
 
-        // ── Sliding content pane ───────────────────────────────────────────────
+        // ── Slide content (title + bullets + shortcut) ─────────────────────────
         Label lblTitle = new Label();
         lblTitle.getStyleClass().add("tutorial-title");
         lblTitle.setWrapText(true);
-        lblTitle.setMaxWidth(360);
+        lblTitle.setMaxWidth(CARD_W - 56);
         lblTitle.setAlignment(Pos.CENTER);
 
-        VBox bulletBox = new VBox(10);
+        VBox bulletBox = new VBox(7);
         bulletBox.setAlignment(Pos.CENTER_LEFT);
-        bulletBox.setMaxWidth(352);
+        bulletBox.setMaxWidth(CARD_W - 56);
 
         FontIcon kbIcon = new FontIcon("mdi2k-keyboard-outline");
         kbIcon.setIconSize(13);
@@ -198,165 +198,221 @@ public final class TutorialOverlay {
         StackPane shortcutWrap = new StackPane(shortcutPill);
         shortcutWrap.setAlignment(Pos.CENTER);
 
-        // Nav tip label — appears when a module is being shown
-        Label navTipLabel = new Label();
-        navTipLabel.getStyleClass().add("tutorial-nav-tip");
-        navTipLabel.setVisible(false);
-        navTipLabel.setManaged(false);
-
-        VBox slideContent = new VBox(16, lblTitle, bulletBox, shortcutWrap, navTipLabel);
+        VBox slideContent = new VBox(13, lblTitle, bulletBox, shortcutWrap);
         slideContent.setAlignment(Pos.CENTER);
-        slideContent.setMaxWidth(380);
+        slideContent.setMaxWidth(CARD_W - 56);
 
-        // ── Dots & counter ─────────────────────────────────────────────────────
-        HBox dotsRow = new HBox(9);
+        // ── Dots + counter ─────────────────────────────────────────────────────
+        HBox dotsRow = new HBox(7);
         dotsRow.setAlignment(Pos.CENTER);
         Circle[] circles = new Circle[STEPS.length];
         for (int i = 0; i < STEPS.length; i++) {
-            circles[i] = new Circle(4);
+            circles[i] = new Circle(3.5);
             circles[i].getStyleClass().add("tutorial-dot");
             circles[i].setCursor(Cursor.HAND);
             dotsRow.getChildren().add(circles[i]);
         }
-
         Label lblCounter = new Label();
         lblCounter.getStyleClass().add("tutorial-counter");
-
-        VBox dotsArea = new VBox(6, dotsRow, lblCounter);
+        VBox dotsArea = new VBox(5, dotsRow, lblCounter);
         dotsArea.setAlignment(Pos.CENTER);
 
-        // ── Buttons ────────────────────────────────────────────────────────────
+        // ── Navigation buttons ─────────────────────────────────────────────────
         Button btnPrev = new Button("← Anterior");
         btnPrev.getStyleClass().add("tutorial-btn-secondary");
         Button btnNext = new Button("Siguiente →");
         btnNext.getStyleClass().add("tutorial-btn-primary");
         Button btnSkip = new Button("Saltar");
         btnSkip.getStyleClass().add("tutorial-btn-skip");
-
         Region btnSpacer = new Region();
         HBox.setHgrow(btnSpacer, Priority.ALWAYS);
         HBox btnRow = new HBox(8, btnSkip, btnSpacer, btnPrev, btnNext);
         btnRow.setAlignment(Pos.CENTER_RIGHT);
 
-        // ── Card assembly ──────────────────────────────────────────────────────
-        VBox contentArea = new VBox(22, slideContent, dotsArea, btnRow);
-        contentArea.setAlignment(Pos.CENTER);
-        contentArea.setPadding(new Insets(54, 32, 20, 32));
+        // ── Card body VBox ─────────────────────────────────────────────────────
+        VBox contentPad = new VBox(16, slideContent, dotsArea, btnRow);
+        contentPad.setAlignment(Pos.CENTER);
+        // top padding = badge overlap (30) + gap (12)
+        contentPad.setPadding(new Insets(42, 24, 18, 24));
 
-        VBox card = new VBox(0, header, contentArea);
+        VBox card = new VBox(0, header, contentPad);
         card.getStyleClass().add("tutorial-card");
         card.setAlignment(Pos.TOP_CENTER);
-        card.setPrefWidth(420);
-        card.setMaxWidth(420);
+        card.setPrefWidth(CARD_W);
+        card.setMaxWidth(CARD_W);
 
-        // ── Layer 3: card layer (transparent background, contains card) ───────
-        StackPane cardLayer = new StackPane(card);
-        cardLayer.setStyle("-fx-background-color: transparent;");
-        cardLayer.setPickOnBounds(false);
-        cardLayer.setFocusTraversable(true);
+        // ── Left-pointing arrow caret (connects card to nav button) ───────────
+        // Polygon: tip=(0,10), top-right=(14,0), bottom-right=(14,20)
+        Polygon arrowPoly = new Polygon(0.0, 10.0, ARROW_W, 0.0, ARROW_W, 20.0);
+        arrowPoly.setFill(Color.WHITE);
+        arrowPoly.setEffect(new DropShadow(6, -3, 0, Color.rgb(15, 23, 42, 0.18)));
+        arrowPoly.setVisible(false);
 
-        // Dock card to bottom-right corner
-        StackPane.setAlignment(card, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(card, new Insets(0, 24, 24, 0));
+        // HBox wraps [arrowPoly | card] for unified positioning
+        HBox cardWithArrow = new HBox(0, arrowPoly, card);
+        cardWithArrow.setAlignment(Pos.CENTER_LEFT);
 
-        // Add all three layers to outerStack
-        outerStack.getChildren().addAll(dimLayer, ringLayer, cardLayer);
+        // ── Layer 3: card container (Pane = absolute coordinates) ─────────────
+        Pane cardContainer = new Pane(cardWithArrow);
+        cardContainer.setPickOnBounds(false);
+        cardContainer.setFocusTraversable(true);
+
+        outerStack.getChildren().addAll(dimLayer, ringLayer, cardContainer);
 
         // ── Dismiss ────────────────────────────────────────────────────────────
         Runnable dismiss = () -> {
             if (pulseAnim[0] != null) { pulseAnim[0].stop(); pulseAnim[0] = null; }
-            FadeTransition fadeDim  = new FadeTransition(Duration.millis(230), dimLayer);
+            if (posAnim[0]   != null) { posAnim[0].stop();   posAnim[0]   = null; }
+            FadeTransition fadeDim  = new FadeTransition(Duration.millis(220), dimLayer);
             fadeDim.setToValue(0);
-            FadeTransition fadeCard = new FadeTransition(Duration.millis(230), cardLayer);
+            FadeTransition fadeCard = new FadeTransition(Duration.millis(220), cardContainer);
             fadeCard.setToValue(0);
-            ScaleTransition shrink  = new ScaleTransition(Duration.millis(230), card);
-            shrink.setToX(0.91); shrink.setToY(0.91);
+            ScaleTransition shrink  = new ScaleTransition(Duration.millis(220), card);
+            shrink.setToX(0.92); shrink.setToY(0.92);
             shrink.setInterpolator(Interpolator.EASE_IN);
             ParallelTransition exit = new ParallelTransition(fadeDim, fadeCard, shrink);
-            exit.setOnFinished(e -> outerStack.getChildren().removeAll(dimLayer, ringLayer, cardLayer));
+            exit.setOnFinished(e -> outerStack.getChildren().removeAll(dimLayer, ringLayer, cardContainer));
             exit.play();
         };
 
-        // ── Position ring on nav button ────────────────────────────────────────
-        Runnable[] positionRing = {null};
-        positionRing[0] = () -> {
+        // ── positionOverlay: place ring on nav button + dock card beside it ────
+        Runnable[] positionOverlay = {null};
+        positionOverlay[0] = () -> {
             Step s = STEPS[step[0]];
             if (pulseAnim[0] != null) { pulseAnim[0].stop(); ring.setScaleX(1); ring.setScaleY(1); }
+
             MainController mc = MainController.getInstance();
             if (s.navigateId() != null && mc != null) {
                 Button navBtn = mc.getNavButton(s.navigateId());
                 if (navBtn != null && navBtn.getScene() != null) {
                     Bounds bScene = navBtn.localToScene(navBtn.getBoundsInLocal());
                     Bounds bStack = outerStack.sceneToLocal(bScene);
+
+                    // ── Ring around nav button ────────────────────────────────
                     double pad = 5;
                     ring.setLayoutX(bStack.getMinX() - pad);
                     ring.setLayoutY(bStack.getMinY() - pad);
-                    ring.setPrefWidth(bStack.getWidth() + pad * 2);
+                    ring.setPrefWidth(bStack.getWidth()  + pad * 2);
                     ring.setPrefHeight(bStack.getHeight() + pad * 2);
                     ring.setStyle(
                         "-fx-border-color: " + s.color() + ";"
                         + "-fx-border-width: 3;"
                         + "-fx-border-radius: 10;"
-                        + "-fx-background-color: " + hexToRgba(s.color(), 0.18) + ";"
+                        + "-fx-background-color: " + hexToRgba(s.color(), 0.20) + ";"
                         + "-fx-background-radius: 10;"
-                        + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.75) + ", 28, 0.10, 0, 0);"
+                        + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.80) + ", 28, 0.12, 0, 0);"
                     );
                     ring.setVisible(true);
 
+                    // ── Card positioned to the right of the nav button ────────
+                    double cardH    = cardWithArrow.getHeight() > 20 ? cardWithArrow.getHeight() : 340;
+                    double totalW   = CARD_W + ARROW_W;
+                    double stackW   = outerStack.getWidth();
+                    double stackH   = outerStack.getHeight();
+                    double btnCY    = (bStack.getMinY() + bStack.getMaxY()) / 2;
+
+                    double targetX  = bStack.getMaxX() + 12;
+                    double targetY  = btnCY - cardH / 2;
+                    // Clamp to stay within window
+                    targetY = Math.max(12, Math.min(targetY, stackH - cardH - 12));
+                    if (targetX + totalW > stackW - 12) targetX = stackW - totalW - 12;
+
+                    // Arrow: translate to point at nav button center
+                    double arrowCenter  = cardH / 2;
+                    double arrowTarget  = btnCY - targetY;
+                    arrowTarget = Math.max(18, Math.min(arrowTarget, cardH - 26));
+                    arrowPoly.setTranslateY(arrowTarget - arrowCenter);
+                    arrowPoly.setVisible(true);
+
+                    // Animate card to new position (snap on first time)
+                    if (posAnim[0] != null) posAnim[0].stop();
+                    if (firstPos[0]) {
+                        cardWithArrow.setLayoutX(targetX);
+                        cardWithArrow.setLayoutY(targetY);
+                        firstPos[0] = false;
+                    } else {
+                        posAnim[0] = new Timeline(
+                            new KeyFrame(Duration.ZERO,
+                                new KeyValue(cardWithArrow.layoutXProperty(), cardWithArrow.getLayoutX(), Interpolator.EASE_OUT),
+                                new KeyValue(cardWithArrow.layoutYProperty(), cardWithArrow.getLayoutY(), Interpolator.EASE_OUT)),
+                            new KeyFrame(Duration.millis(300),
+                                new KeyValue(cardWithArrow.layoutXProperty(), targetX, Interpolator.EASE_OUT),
+                                new KeyValue(cardWithArrow.layoutYProperty(), targetY, Interpolator.EASE_OUT))
+                        );
+                        posAnim[0].play();
+                    }
+
+                    // Pulsing ring animation
                     pulseAnim[0] = new Timeline(
                         new KeyFrame(Duration.ZERO,
                             new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
                             new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH)),
                         new KeyFrame(Duration.millis(900),
-                            new KeyValue(ring.scaleXProperty(), 1.09, Interpolator.EASE_BOTH),
-                            new KeyValue(ring.scaleYProperty(), 1.09, Interpolator.EASE_BOTH)),
+                            new KeyValue(ring.scaleXProperty(), 1.10, Interpolator.EASE_BOTH),
+                            new KeyValue(ring.scaleYProperty(), 1.10, Interpolator.EASE_BOTH)),
                         new KeyFrame(Duration.millis(1800),
                             new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
                             new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
                     );
                     pulseAnim[0].setCycleCount(Timeline.INDEFINITE);
                     pulseAnim[0].play();
-                } else {
-                    ring.setVisible(false);
+                    return;
                 }
+            }
+
+            // Intro / outro steps: center the card, hide ring + arrow
+            ring.setVisible(false);
+            arrowPoly.setVisible(false);
+            double cardH  = cardWithArrow.getHeight() > 20 ? cardWithArrow.getHeight() : 340;
+            double totalW = CARD_W + ARROW_W;
+            double targetX = (outerStack.getWidth()  - totalW) / 2;
+            double targetY = (outerStack.getHeight() - cardH)  / 2;
+            targetX = Math.max(12, targetX);
+            targetY = Math.max(12, targetY);
+            if (posAnim[0] != null) posAnim[0].stop();
+            if (firstPos[0]) {
+                cardWithArrow.setLayoutX(targetX);
+                cardWithArrow.setLayoutY(targetY);
+                firstPos[0] = false;
             } else {
-                ring.setVisible(false);
+                posAnim[0] = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(cardWithArrow.layoutXProperty(), cardWithArrow.getLayoutX(), Interpolator.EASE_OUT),
+                        new KeyValue(cardWithArrow.layoutYProperty(), cardWithArrow.getLayoutY(), Interpolator.EASE_OUT)),
+                    new KeyFrame(Duration.millis(300),
+                        new KeyValue(cardWithArrow.layoutXProperty(), targetX, Interpolator.EASE_OUT),
+                        new KeyValue(cardWithArrow.layoutYProperty(), targetY, Interpolator.EASE_OUT))
+                );
+                posAnim[0].play();
             }
         };
 
-        // ── Render (instant, no animation) ────────────────────────────────────
+        // ── render: update card content and trigger overlay positioning ────────
         Runnable render = () -> {
             Step s = STEPS[step[0]];
 
-            // Header gradient
             header.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
                 + s.color() + ", " + s.gradEnd() + ");");
-
-            // Icon badge
             icon.setIconLiteral(s.icon());
             icon.setIconColor(Color.web(s.color()));
-            iconBadge.setStyle("-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.50) + ", 22, 0.04, 0, 5);");
-
-            // Title
+            iconBadge.setStyle("-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.50) + ", 18, 0.04, 0, 4);");
             lblTitle.setText(s.title());
 
-            // Bullets
             bulletBox.getChildren().clear();
             for (String b : s.bullets()) {
                 FontIcon chevron = new FontIcon("mdi2c-chevron-right");
-                chevron.setIconSize(15);
+                chevron.setIconSize(14);
                 chevron.setStyle("-fx-icon-color: " + s.color() + ";");
                 Label lbl = new Label(b);
                 lbl.getStyleClass().add("tutorial-bullet-text");
                 lbl.setWrapText(true);
-                lbl.setMaxWidth(320);
-                HBox row = new HBox(9, chevron, lbl);
+                lbl.setMaxWidth(CARD_W - 72);
+                HBox row = new HBox(8, chevron, lbl);
                 row.setAlignment(Pos.TOP_LEFT);
                 row.getStyleClass().add("tutorial-bullet-row");
                 bulletBox.getChildren().add(row);
             }
 
-            // Shortcut pill
             if (s.shortcut() != null) {
                 lblShortcut.setText(s.shortcut());
                 kbIcon.setStyle("-fx-icon-color: " + s.color() + ";");
@@ -364,69 +420,51 @@ public final class TutorialOverlay {
                     "-fx-background-color: " + hexToRgba(s.color(), 0.09) + ";"
                     + "-fx-border-color: " + hexToRgba(s.color(), 0.30) + ";");
                 lblShortcut.setStyle("-fx-text-fill: " + s.color() + ";");
-                shortcutWrap.setVisible(true);
-                shortcutWrap.setManaged(true);
+                shortcutWrap.setVisible(true);  shortcutWrap.setManaged(true);
             } else {
-                shortcutWrap.setVisible(false);
-                shortcutWrap.setManaged(false);
+                shortcutWrap.setVisible(false); shortcutWrap.setManaged(false);
             }
 
-            // Nav tip — shown only on module steps
-            if (s.navigateId() != null) {
-                navTipLabel.setText("↑ Activo en la barra lateral");
-                navTipLabel.setStyle("-fx-text-fill: " + hexToRgba(s.color(), 0.75) + ";");
-                navTipLabel.setVisible(true);
-                navTipLabel.setManaged(true);
-            } else {
-                navTipLabel.setVisible(false);
-                navTipLabel.setManaged(false);
-            }
-
-            // Navigate to module; set dim opacity based on step type
-            MainController mc = MainController.getInstance();
-            if (s.navigateId() != null && mc != null) {
-                mc.navigateToView(s.navigateId());
-                dimLayer.setOpacity(0.28);
-            } else {
-                dimLayer.setOpacity(0.58);
-            }
-            javafx.application.Platform.runLater(positionRing[0]);
-
-            // Dots
             for (int i = 0; i < circles.length; i++) {
                 circles[i].getStyleClass().removeAll("tutorial-dot-active");
                 if (i == step[0]) {
                     circles[i].getStyleClass().add("tutorial-dot-active");
                     circles[i].setStyle("-fx-fill: " + s.color() + ";");
-                    circles[i].setRadius(5.5);
+                    circles[i].setRadius(5.0);
                 } else {
                     circles[i].setStyle("");
                     circles[i].setRadius(3.5);
                 }
             }
 
-            // Counter & buttons
-            lblCounter.setText("Paso " + (step[0] + 1) + " de " + STEPS.length);
             boolean isFirst = step[0] == 0;
             boolean isLast  = step[0] == STEPS.length - 1;
+            lblCounter.setText("Paso " + (step[0] + 1) + " de " + STEPS.length);
             btnPrev.setVisible(!isFirst); btnPrev.setManaged(!isFirst);
             btnNext.setText(isLast ? "Comenzar  ✓" : "Siguiente →");
             btnNext.setStyle("-fx-background-color: " + s.color()
                 + "; -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.40) + ", 10, 0, 0, 2);");
             btnSkip.setVisible(!isLast); btnSkip.setManaged(!isLast);
+
+            MainController mc = MainController.getInstance();
+            if (s.navigateId() != null && mc != null) {
+                mc.navigateToView(s.navigateId());
+                dimLayer.setOpacity(0.22);
+            } else {
+                dimLayer.setOpacity(0.55);
+            }
+            javafx.application.Platform.runLater(positionOverlay[0]);
         };
 
-        // ── Animated transition ────────────────────────────────────────────────
+        // ── Animated step transition ───────────────────────────────────────────
         java.util.function.BiConsumer<Integer, Integer> goTo = (newIdx, dir) -> {
-            btnNext.setDisable(true);
-            btnPrev.setDisable(true);
-            btnSkip.setDisable(true);
-            dotsRow.setMouseTransparent(true);
+            btnNext.setDisable(true); btnPrev.setDisable(true);
+            btnSkip.setDisable(true); dotsRow.setMouseTransparent(true);
 
-            TranslateTransition slideOut = new TranslateTransition(Duration.millis(170), slideContent);
-            slideOut.setToX(dir * -55.0);
+            TranslateTransition slideOut = new TranslateTransition(Duration.millis(155), slideContent);
+            slideOut.setToX(dir * -48.0);
             slideOut.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition fadeOut = new FadeTransition(Duration.millis(150), slideContent);
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(135), slideContent);
             fadeOut.setToValue(0);
             ParallelTransition exitAnim = new ParallelTransition(slideOut, fadeOut);
 
@@ -439,7 +477,7 @@ public final class TutorialOverlay {
                 new Timeline(
                     new KeyFrame(Duration.ZERO,
                         new KeyValue(progressFill.prefWidthProperty(), progressFill.getPrefWidth())),
-                    new KeyFrame(Duration.millis(290),
+                    new KeyFrame(Duration.millis(270),
                         new KeyValue(progressFill.prefWidthProperty(), targetW, Interpolator.EASE_OUT))
                 ).play();
 
@@ -449,39 +487,36 @@ public final class TutorialOverlay {
                     new KeyFrame(Duration.ZERO,
                         new KeyValue(iconBadge.scaleXProperty(), 0.5, Interpolator.EASE_OUT),
                         new KeyValue(iconBadge.scaleYProperty(), 0.5, Interpolator.EASE_OUT)),
-                    new KeyFrame(Duration.millis(220),
+                    new KeyFrame(Duration.millis(200),
                         new KeyValue(iconBadge.scaleXProperty(), 1.08, Interpolator.EASE_OUT),
                         new KeyValue(iconBadge.scaleYProperty(), 1.08, Interpolator.EASE_OUT)),
-                    new KeyFrame(Duration.millis(320),
+                    new KeyFrame(Duration.millis(290),
                         new KeyValue(iconBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
                         new KeyValue(iconBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
                 ).play();
 
-                // Slide + fade in
-                slideContent.setTranslateX(dir * 55.0);
-                TranslateTransition slideIn = new TranslateTransition(Duration.millis(230), slideContent);
-                slideIn.setToX(0);
-                slideIn.setInterpolator(Interpolator.EASE_OUT);
-                FadeTransition fadeIn = new FadeTransition(Duration.millis(210), slideContent);
+                // Slide + fade in new content
+                slideContent.setTranslateX(dir * 48.0);
+                TranslateTransition slideIn = new TranslateTransition(Duration.millis(210), slideContent);
+                slideIn.setToX(0); slideIn.setInterpolator(Interpolator.EASE_OUT);
+                FadeTransition fadeIn = new FadeTransition(Duration.millis(190), slideContent);
                 fadeIn.setFromValue(0); fadeIn.setToValue(1);
                 ParallelTransition enterAnim = new ParallelTransition(slideIn, fadeIn);
                 enterAnim.setOnFinished(done -> {
-                    btnNext.setDisable(false);
-                    btnPrev.setDisable(false);
-                    btnSkip.setDisable(false);
-                    dotsRow.setMouseTransparent(false);
+                    btnNext.setDisable(false); btnPrev.setDisable(false);
+                    btnSkip.setDisable(false); dotsRow.setMouseTransparent(false);
                 });
                 enterAnim.play();
 
                 // Stagger bullets in
-                bulletBox.getChildren().forEach(n -> { n.setOpacity(0); n.setTranslateY(14); });
+                bulletBox.getChildren().forEach(n -> { n.setOpacity(0); n.setTranslateY(11); });
                 int[] idx = {0};
                 bulletBox.getChildren().forEach(n -> {
-                    int delay = 80 + idx[0] * 65;
-                    FadeTransition bf = new FadeTransition(Duration.millis(210), n);
+                    int delay = 75 + idx[0] * 55;
+                    FadeTransition bf = new FadeTransition(Duration.millis(195), n);
                     bf.setFromValue(0); bf.setToValue(1); bf.setDelay(Duration.millis(delay));
-                    TranslateTransition bt = new TranslateTransition(Duration.millis(210), n);
-                    bt.setFromY(14); bt.setToY(0); bt.setDelay(Duration.millis(delay));
+                    TranslateTransition bt = new TranslateTransition(Duration.millis(195), n);
+                    bt.setFromY(11); bt.setToY(0); bt.setDelay(Duration.millis(delay));
                     bt.setInterpolator(Interpolator.EASE_OUT);
                     new ParallelTransition(bf, bt).play();
                     idx[0]++;
@@ -491,12 +526,12 @@ public final class TutorialOverlay {
                 if (shortcutWrap.isVisible()) {
                     shortcutPill.setOpacity(0);
                     shortcutPill.setScaleX(0.65); shortcutPill.setScaleY(0.65);
-                    FadeTransition sf = new FadeTransition(Duration.millis(220), shortcutPill);
-                    sf.setFromValue(0); sf.setToValue(1); sf.setDelay(Duration.millis(200));
-                    ScaleTransition sp = new ScaleTransition(Duration.millis(260), shortcutPill);
+                    FadeTransition sf = new FadeTransition(Duration.millis(200), shortcutPill);
+                    sf.setFromValue(0); sf.setToValue(1); sf.setDelay(Duration.millis(180));
+                    ScaleTransition sp = new ScaleTransition(Duration.millis(240), shortcutPill);
                     sp.setFromX(0.65); sp.setFromY(0.65);
                     sp.setToX(1); sp.setToY(1);
-                    sp.setInterpolator(Interpolator.EASE_OUT); sp.setDelay(Duration.millis(200));
+                    sp.setInterpolator(Interpolator.EASE_OUT); sp.setDelay(Duration.millis(180));
                     new ParallelTransition(sf, sp).play();
                 }
             });
@@ -512,7 +547,7 @@ public final class TutorialOverlay {
             });
         }
 
-        // ── Button actions ─────────────────────────────────────────────────────
+        // ── Buttons ────────────────────────────────────────────────────────────
         btnNext.setOnAction(e -> {
             if (step[0] < STEPS.length - 1) goTo.accept(step[0] + 1, 1);
             else dismiss.run();
@@ -522,8 +557,8 @@ public final class TutorialOverlay {
         });
         btnSkip.setOnAction(e -> dismiss.run());
 
-        // ── Keyboard nav ───────────────────────────────────────────────────────
-        cardLayer.setOnKeyPressed(e -> {
+        // ── Keyboard ───────────────────────────────────────────────────────────
+        cardContainer.setOnKeyPressed(e -> {
             switch (e.getCode()) {
                 case RIGHT -> { if (!btnNext.isDisabled()) btnNext.fire(); }
                 case LEFT  -> { if (step[0] > 0 && !btnPrev.isDisabled()) btnPrev.fire(); }
@@ -532,43 +567,50 @@ public final class TutorialOverlay {
             }
         });
 
-        // ── Initial render + entrance animation ────────────────────────────────
+        // ── Initial render ──────────────────────────────────────────────────────
         render.run();
         double targetDimOpacity = dimLayer.getOpacity();
 
-        // Progress bar initial width (needs layout pass)
+        // Progress bar initial width after first layout
         javafx.application.Platform.runLater(() -> {
             double w = progressPane.getWidth();
             if (w > 0) progressFill.setPrefWidth(w / STEPS.length);
         });
 
-        dimLayer.setOpacity(0);
-        cardLayer.setOpacity(0);
-        card.setScaleX(0.82); card.setScaleY(0.82);
+        // Pre-position card centered (step 0 = Bienvenido, no navigateId)
+        double initCardH = 340;
+        double initTotalW = CARD_W + ARROW_W;
+        cardWithArrow.setLayoutX(Math.max(12, (outerStack.getWidth()  - initTotalW) / 2));
+        cardWithArrow.setLayoutY(Math.max(12, (outerStack.getHeight() - initCardH)  / 2));
 
-        FadeTransition dimIn = new FadeTransition(Duration.millis(280), dimLayer);
+        // ── Entrance animation ──────────────────────────────────────────────────
+        dimLayer.setOpacity(0);
+        cardContainer.setOpacity(0);
+        card.setScaleX(0.84); card.setScaleY(0.84);
+
+        FadeTransition  dimIn     = new FadeTransition(Duration.millis(280), dimLayer);
         dimIn.setToValue(targetDimOpacity);
-        FadeTransition cardLayerIn = new FadeTransition(Duration.millis(280), cardLayer);
-        cardLayerIn.setFromValue(0); cardLayerIn.setToValue(1);
-        ScaleTransition cardIn = new ScaleTransition(Duration.millis(380), card);
-        cardIn.setFromX(0.82); cardIn.setFromY(0.82);
-        cardIn.setToX(1.0); cardIn.setToY(1.0);
-        cardIn.setInterpolator(Interpolator.EASE_OUT);
-        FadeTransition cardFade = new FadeTransition(Duration.millis(380), card);
+        FadeTransition  ctrIn     = new FadeTransition(Duration.millis(280), cardContainer);
+        ctrIn.setFromValue(0); ctrIn.setToValue(1);
+        ScaleTransition cardScale = new ScaleTransition(Duration.millis(360), card);
+        cardScale.setFromX(0.84); cardScale.setFromY(0.84);
+        cardScale.setToX(1.0);   cardScale.setToY(1.0);
+        cardScale.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition  cardFade  = new FadeTransition(Duration.millis(360), card);
         cardFade.setFromValue(0); cardFade.setToValue(1);
 
-        ParallelTransition entrance = new ParallelTransition(dimIn, cardLayerIn, cardIn, cardFade);
+        ParallelTransition entrance = new ParallelTransition(dimIn, ctrIn, cardScale, cardFade);
         entrance.setOnFinished(ev -> {
-            cardLayer.requestFocus();
-            // Stagger initial bullets in
-            bulletBox.getChildren().forEach(n -> { n.setOpacity(0); n.setTranslateY(12); });
+            cardContainer.requestFocus();
+            // Stagger initial bullets
+            bulletBox.getChildren().forEach(n -> { n.setOpacity(0); n.setTranslateY(10); });
             int[] idx = {0};
             bulletBox.getChildren().forEach(n -> {
-                int delay = idx[0] * 70;
-                FadeTransition bf = new FadeTransition(Duration.millis(210), n);
+                int delay = idx[0] * 60;
+                FadeTransition bf = new FadeTransition(Duration.millis(195), n);
                 bf.setFromValue(0); bf.setToValue(1); bf.setDelay(Duration.millis(delay));
-                TranslateTransition bt = new TranslateTransition(Duration.millis(210), n);
-                bt.setFromY(12); bt.setToY(0); bt.setDelay(Duration.millis(delay));
+                TranslateTransition bt = new TranslateTransition(Duration.millis(195), n);
+                bt.setFromY(10); bt.setToY(0); bt.setDelay(Duration.millis(delay));
                 bt.setInterpolator(Interpolator.EASE_OUT);
                 new ParallelTransition(bf, bt).play();
                 idx[0]++;
