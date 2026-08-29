@@ -767,6 +767,43 @@ public class MovimientosController {
         );
     }
 
+    @FXML
+    private void onClearFilters() {
+        if (searchField != null) searchField.clear();
+        if (desdeFilter != null) desdeFilter.setValue(null);
+        if (hastaFilter != null) hastaFilter.setValue(null);
+        if (categoriaFilter != null) categoriaFilter.setValue(null);
+        setActivePreset(null);
+        if (tipoChipGroup != null)
+            tipoChipGroup.getToggles().stream()
+                .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
+                .findFirst().ifPresent(t -> t.setSelected(true));
+        currentPage = 0;
+        loadData();
+    }
+
+    @FXML
+    private void onExportSeleccionCsv() {
+        List<Movimiento> sel = new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems());
+        if (sel.isEmpty()) { onExportCsv(); return; }
+        DialogUtil.runAsync(
+            () -> reporteService.exportMovimientosCsv(sel),
+            file -> { NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente"); openFile(file); },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
+        );
+    }
+
+    @FXML
+    private void onExportSeleccionExcel() {
+        List<Movimiento> sel = new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems());
+        if (sel.isEmpty()) { onExportExcel(); return; }
+        DialogUtil.runAsync(
+            () -> reporteService.exportMovimientosExcel(sel),
+            file -> { NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente"); openFile(file); },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
+        );
+    }
+
     public void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo) {
         showMovimientoDialog(preProductoId, preTipo, null);
     }
