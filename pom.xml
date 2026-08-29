@@ -185,6 +185,16 @@
             <version>2.0.7</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- TestFX — JavaFX UI smoke tests. Depends on testfx-core transitively.
+             Tests open a real window; on headless CI add -Dtestfx.headless=true
+             -Dprism.order=sw -Dtestfx.robot=glass to the surefire argLine. -->
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>testfx-junit5</artifactId>
+            <version>4.0.18</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -269,15 +279,77 @@
                  module (classpath) so test code can access all packages in the
                  main module without add-exports gymnastics. The shade plugin
                  already flattens everything to classpath for production, so
-                 this mirrors the actual runtime. -->
+                 this mirrors the actual runtime.
+                 @{argLine} is the late-binding placeholder that JaCoCo's
+                 prepare-agent fills with its own -javaagent path at build time
+                 (expands to empty string when JaCoCo is not active). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.1</version>
                 <configuration>
                     <useModulePath>false</useModulePath>
-                    <argLine>-javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar" -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                    <argLine>@{argLine} -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar" -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
                 </configuration>
+            </plugin>
+
+            <!-- JaCoCo — coverage report + 70 % line-coverage gate on
+                 non-UI code. Run `mvn verify` to generate the report
+                 (target/site/jacoco/index.html) and enforce the threshold.
+                 JavaFX controllers and one-shot CLI utilities are excluded
+                 because they require a running display to test. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <configuration>
+                    <excludes>
+                        <exclude>com/sibim/controller/**</exclude>
+                        <exclude>com/sibim/util/AnimationUtils.class</exclude>
+                        <exclude>com/sibim/util/NotificacionUtil.class</exclude>
+                        <exclude>com/sibim/util/ConfirmacionUtil.class</exclude>
+                        <exclude>com/sibim/util/CambiarPasswordDialog.class</exclude>
+                        <exclude>com/sibim/util/TutorialOverlay.class</exclude>
+                        <exclude>com/sibim/util/CommandPalette.class</exclude>
+                        <exclude>com/sibim/util/DialogUtil.class</exclude>
+                        <exclude>com/sibim/util/ImageUtils.class</exclude>
+                        <exclude>com/sibim/util/HashUtil.class</exclude>
+                        <exclude>com/sibim/util/IconGenerator.class</exclude>
+                        <exclude>com/sibim/util/UpdateChecker.class</exclude>
+                        <exclude>com/sibim/Main.class</exclude>
+                        <exclude>com/sibim/MainApp.class</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals><goal>prepare-agent</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

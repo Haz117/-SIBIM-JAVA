@@ -12,7 +12,6 @@ import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
-import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -211,32 +210,29 @@ public class LoginController {
         passwordField.requestFocus();
     }
 
+    // Both call sites (handleLogin direct path + Task.succeeded/failed) run on
+    // the FX application thread, so Platform.runLater() is never needed here.
     private void showError(String msg) {
-        Platform.runLater(() -> {
-            errorLabel.setText(msg);
-            errorLabel.setVisible(true);
-            errorLabel.setManaged(true);
-            AnimationUtils.fadeIn(errorLabel, 200, 0);
-            AnimationUtils.shake(passwordField);
-            // Auto-dismiss after 5 seconds
-            PauseTransition dismiss = new PauseTransition(Duration.seconds(5));
-            dismiss.setOnFinished(e -> {
-                errorLabel.setVisible(false);
-                errorLabel.setManaged(false);
-            });
-            dismiss.play();
+        errorLabel.setText(msg);
+        errorLabel.setVisible(true);
+        errorLabel.setManaged(true);
+        AnimationUtils.fadeIn(errorLabel, 200, 0);
+        AnimationUtils.shake(passwordField);
+        PauseTransition dismiss = new PauseTransition(Duration.seconds(5));
+        dismiss.setOnFinished(e -> {
+            errorLabel.setVisible(false);
+            errorLabel.setManaged(false);
         });
+        dismiss.play();
     }
 
     private void setLoading(boolean loading) {
-        Platform.runLater(() -> {
-            loginButton.setDisable(loading);
-            spinner.setVisible(loading);
-            spinner.setManaged(loading);
-            if (loading) {
-                errorLabel.setVisible(false);
-                errorLabel.setManaged(false);
-            }
-        });
+        loginButton.setDisable(loading);
+        spinner.setVisible(loading);
+        spinner.setManaged(loading);
+        if (loading) {
+            errorLabel.setVisible(false);
+            errorLabel.setManaged(false);
+        }
     }
 }

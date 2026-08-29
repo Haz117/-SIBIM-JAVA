@@ -98,7 +98,27 @@ El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente l
    ```env
    IMG_DIR=\\servidor\sibim\imagenes
    ```
-   ⚠️ **Importante en un despliegue con varias PCs**: las fotos de los bienes se guardan como archivo en disco, y la ruta se persiste en la base de datos compartida. Si `IMG_DIR` no se configura, cada PC guarda las fotos en su propia carpeta local — y una foto subida desde una PC aparecerá rota al verla desde cualquier otra. Para que las fotos se vean igual en todas las computadoras del ayuntamiento, `IMG_DIR` debe apuntar a una ruta de red (UNC o unidad mapeada) accesible **con la misma ruta** desde cada PC que use el sistema.
+
+   **Configuración de la carpeta compartida de imágenes (despliegue multiPC)**
+
+   Las fotos de bienes se guardan como archivos en disco y su **ruta queda en la base de datos**. Si dos PCs tienen rutas distintas para la misma carpeta, las fotos aparecerán rotas en una de ellas. Sigue este procedimiento antes de poner en producción:
+
+   1. **Crea la carpeta en el servidor** (o en cualquier PC que permanezca encendida):
+      ```
+      \\servidor\sibim\imagenes          ← comparte esta carpeta con permisos Lectura+Escritura
+      ```
+   2. **Verifica desde cada PC del ayuntamiento** que la ruta UNC es accesible:
+      ```
+      # En CMD de cada PC:
+      dir \\servidor\sibim\imagenes
+      ```
+      Si falla: revisa que el recurso compartido exista, el firewall permita SMB (puerto 445) y la cuenta de Windows tenga acceso.
+   3. **Configura `IMG_DIR` en el `.env` de cada PC** usando exactamente la misma cadena UNC:
+      ```env
+      IMG_DIR=\\servidor\sibim\imagenes
+      ```
+      > ⚠️ No uses letras de unidad mapeada (p. ej. `Z:\imagenes`) — el mapeo puede diferir entre PCs o no estar disponible al arrancar el servicio. La ruta UNC (`\\servidor\...`) es siempre inequívoca.
+   4. **Prueba antes de go-live**: desde dos PCs distintas, sube la foto de un bien y comprueba que la otra PC la ve correctamente en la pantalla de detalle del bien.
 3. Inicia SIBIM una vez (ver "Cómo ejecutar" abajo) — Flyway aplica el esquema completo (`V1__schema_inicial.sql`) contra la base vacía en ese primer arranque. **Si estás actualizando una instalación existente**, simplemente vuelve a iniciar la app con la versión nueva: Flyway detecta y aplica solo las migraciones que falten (son idempotentes, seguras de correr más de una vez).
 4. **Solo para desarrollo/pruebas locales**, y solo después del paso 3 (las tablas ya deben existir), opcionalmente carga los datos de ejemplo (usuarios, categorías y bienes ficticios):
    ```

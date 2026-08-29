@@ -11,7 +11,11 @@ class MainControllerNavigationTest {
 
     @BeforeAll
     static void initJavaFx() {
-        Platform.startup(() -> {});
+        try {
+            Platform.startup(() -> {});
+        } catch (IllegalStateException ignored) {
+            // toolkit already running (e.g. started by a TestFX class earlier in the suite)
+        }
     }
 
     @Test
