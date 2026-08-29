@@ -40,9 +40,10 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Reportes PDF | iText 7 |
 | Reportes Excel | Apache POI |
 | Cifrado de contraseñas | BCrypt (at.favre.lib, factor 12) |
+| Cifrado de datos en reposo | AES-256-GCM — `offline.db` cifrada con clave derivada de `MachineGuid` |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (291 tests) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (331 tests) |
 
 ---
 
@@ -62,7 +63,7 @@ El sistema implementa múltiples capas de defensa:
 | Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías y usuarios queda en `audit_log` con usuario y timestamp |
 | Backup | Solo Admin puede ejecutar respaldo/restauración; verificación de tablas y columnas permitidas antes de restaurar |
 
-> **Limitación conocida**: el archivo SQLite de modo offline (`offline.db`) no está cifrado. Los hashes BCrypt que contiene son robustos, pero los datos de inventario son legibles por quien tenga acceso físico al sistema de archivos. Si en el futuro se manejan datos personales sujetos a regulación, se puede migrar a SQLCipher.
+> **Cifrado en reposo**: el archivo `offline.db` está cifrado con **AES-256-GCM**. La clave se deriva del `MachineGuid` de Windows y es estable ante renombres de equipo. Los datos de inventario **no son legibles** sin la clave; solo los hashes BCrypt de credenciales están además protegidos por su propio factor de costo.
 
 ---
 
@@ -189,7 +190,7 @@ SIBIM-Java/
 │       ├── db/offline/        # Tests del almacén offline (caducidad, outbox)
 │       ├── model/             # Tests de entidades
 │       ├── repository/        # Tests de autorización de repositorios
-│       ├── service/           # Tests unitarios + autorización de servicios + exports (291 tests total)
+│       ├── service/           # Tests unitarios + autorización de servicios + exports (331 tests total)
 │       ├── session/           # Tests de SessionManager
 │       └── util/              # Tests de utilidades
 ├── packaging/
