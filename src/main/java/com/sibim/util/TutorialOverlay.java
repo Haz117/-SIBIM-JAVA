@@ -27,52 +27,81 @@ public final class TutorialOverlay {
     ) {}
 
     private static final Step[] STEPS = {
+        // 0 — Bienvenido
         new Step("mdi2b-book-open-outline", "#6366F1", "#3730A3",
             "Bienvenido a SIBIM", null, null, new String[]{
             "Sistema integral de gestión del patrimonio municipal",
-            "Inventario, movimientos y reportes en un solo lugar",
+            "Inventario, movimientos, reportes y depreciación en un solo lugar",
             "Funciona en línea, sin conexión y en modo demo"
         }),
+        // 1 — Dashboard
         new Step("mdi2v-view-dashboard-outline", "#0EA5E9", "#0369A1",
             "Dashboard", "Ctrl + 1", "dashboard", new String[]{
             "Métricas en tiempo real: total de bienes y valor del inventario",
-            "Gráfica de salud del inventario (normal / bajo stock / agotado)",
-            "Acciones rápidas para los flujos más frecuentes del día"
+            "Gráfica de salud del inventario y tendencia mensual de movimientos",
+            "Accesos rápidos a los flujos más frecuentes"
         }),
+        // 2 — Bienes / Inventario
         new Step("mdi2p-package-variant", "#6366F1", "#3730A3",
             "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
-            "Búsqueda en tiempo real por nombre, código o área asignada",
-            "Doble clic en un bien para ver ficha completa e historial",
-            "Altas, bajas y edición desde la misma pantalla"
+            "Alta, edición y baja de bienes patrimoniales con foto y código",
+            "Búsqueda en tiempo real por nombre, código, categoría o área",
+            "Doble clic en cualquier bien para ver su ficha completa e historial"
         }),
+        // 3 — Categorías
+        new Step("mdi2t-tag-multiple-outline", "#0891B2", "#0E7490",
+            "Categorías", "Ctrl + 4", "categorias", new String[]{
+            "Organiza los bienes en grupos: vehículos, mobiliario, equipo de cómputo…",
+            "Cada categoría tiene ícono y color personalizables",
+            "Los filtros de Bienes, Movimientos y Alertas usan estas categorías"
+        }),
+        // 4 — Movimientos
         new Step("mdi2s-swap-vertical-bold", "#7C3AED", "#5B21B6",
             "Movimientos", "Ctrl + 5", "movimientos", new String[]{
-            "Entradas (adquisiciones), salidas (bajas) y asignaciones entre áreas",
-            "Conteo físico para verificar el inventario en campo",
-            "Cada movimiento actualiza el stock automáticamente"
+            "Registra entradas, salidas, ajustes y transferencias entre áreas",
+            "Las transferencias requieren aprobación del administrador",
+            "Exporta el historial a CSV o Excel con los filtros activos"
         }),
+        // 5 — Alertas
         new Step("mdi2b-bell-ring-outline", "#DC2626", "#991B1B",
             "Alertas", "Ctrl + 6", "alertas", new String[]{
-            "Alerta automática cuando un bien llega a su stock mínimo",
-            "Aviso de bienes próximos a vencer con período configurable",
-            "Badge rojo en el menú lateral cuando hay alertas pendientes"
+            "Notificación automática cuando el stock baja del mínimo definido",
+            "Aviso de bienes cuya fecha de vencimiento se aproxima",
+            "Badge rojo en el menú cuando hay alertas activas sin resolver"
         }),
+        // 6 — Reportes
         new Step("mdi2f-file-chart-outline", "#059669", "#065F46",
             "Reportes", "Ctrl + 7", "reportes", new String[]{
+            "Genera inventario general, movimientos y bienes por área",
             "Exporta a Excel (.xlsx) y PDF con un solo clic",
-            "Filtra por rango de fechas, área y categoría de bien",
-            "Incluye gráficas y resúmenes listos para auditorías"
+            "Los reportes respetan los filtros de fecha y categoría activos"
         }),
-        new Step("mdi2k-keyboard-outline", "#0891B2", "#0E7490",
+        // 7 — Depreciación
+        new Step("mdi2c-chart-line", "#4338CA", "#3730A3",
+            "Depreciación", "Ctrl + 8", "depreciacion", new String[]{
+            "Calcula el valor en libros por método de línea recta (SAT México)",
+            "Identifica bienes totalmente depreciados — candidatos a baja o reemplazo",
+            "Exporta fichas técnicas individuales o en lote a PDF"
+        }),
+        // 8 — Organigrama
+        new Step("mdi2o-office-building-outline", "#2563EB", "#1D4ED8",
+            "Organigrama", "Ctrl + 2", "organigrama", new String[]{
+            "Visualiza la distribución de bienes por secretaría y dirección",
+            "Expande cada área para ver sus bienes asignados",
+            "Exporta el organigrama completo a PDF"
+        }),
+        // 9 — Atajos
+        new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
             "Atajos de Teclado", "F1", null, new String[]{
-            "Ctrl+1 al Ctrl+9 para navegar entre módulos al instante",
-            "Ctrl+F para buscar · F5 para actualizar · F1 para esta ayuda",
-            "En tablas: Ctrl+N nuevo · Ctrl+E editar · Supr para eliminar"
+            "Ctrl+1 a Ctrl+9 navega entre módulos sin el mouse",
+            "Ctrl+F busca · F5 actualiza · Ctrl+K paleta de comandos",
+            "En tablas: Ctrl+N nuevo · Ctrl+E editar · Supr eliminar"
         }),
+        // 10 — ¡Todo listo!
         new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
             "¡Todo listo!", null, "dashboard", new String[]{
-            "Presiona F1 en cualquier momento para ver todos los atajos",
-            "Botón \"Tutorial\" en el menú lateral para volver a este recorrido",
+            "Explora cada módulo desde la barra lateral izquierda",
+            "Presiona F1 en cualquier momento para ver los atajos",
             "El sistema guarda tus cambios aunque pierdas la conexión"
         })
     };
@@ -212,19 +241,23 @@ public final class TutorialOverlay {
         // ── Card assembly ──────────────────────────────────────────────────────
         VBox contentArea = new VBox(22, slideContent, dotsArea, btnRow);
         contentArea.setAlignment(Pos.CENTER);
-        contentArea.setPadding(new Insets(54, 42, 30, 42));
+        contentArea.setPadding(new Insets(54, 32, 20, 32));
 
         VBox card = new VBox(0, header, contentArea);
         card.getStyleClass().add("tutorial-card");
         card.setAlignment(Pos.TOP_CENTER);
-        card.setPrefWidth(490);
-        card.setMaxWidth(490);
+        card.setPrefWidth(420);
+        card.setMaxWidth(420);
 
-        // ── Layer 3: card layer (transparent background, contains card + keyboard) ─
+        // ── Layer 3: card layer (transparent background, contains card) ───────
         StackPane cardLayer = new StackPane(card);
         cardLayer.setStyle("-fx-background-color: transparent;");
         cardLayer.setPickOnBounds(false);
         cardLayer.setFocusTraversable(true);
+
+        // Dock card to bottom-right corner
+        StackPane.setAlignment(card, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(card, new Insets(0, 24, 24, 0));
 
         // Add all three layers to outerStack
         outerStack.getChildren().addAll(dimLayer, ringLayer, cardLayer);
@@ -266,7 +299,7 @@ public final class TutorialOverlay {
                         + "-fx-border-radius: 10;"
                         + "-fx-background-color: " + hexToRgba(s.color(), 0.18) + ";"
                         + "-fx-background-radius: 10;"
-                        + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.75) + ", 22, 0, 0, 0);"
+                        + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.75) + ", 28, 0.10, 0, 0);"
                     );
                     ring.setVisible(true);
 
@@ -349,13 +382,13 @@ public final class TutorialOverlay {
                 navTipLabel.setManaged(false);
             }
 
-            // Navigate to module and position ring
+            // Navigate to module; set dim opacity based on step type
             MainController mc = MainController.getInstance();
             if (s.navigateId() != null && mc != null) {
                 mc.navigateToView(s.navigateId());
-                dimLayer.setOpacity(0.62);
+                dimLayer.setOpacity(0.28);
             } else {
-                dimLayer.setOpacity(0.85);
+                dimLayer.setOpacity(0.58);
             }
             javafx.application.Platform.runLater(positionRing[0]);
 
@@ -499,9 +532,9 @@ public final class TutorialOverlay {
             }
         });
 
-        // ── Initial render ─────────────────────────────────────────────────────
+        // ── Initial render + entrance animation ────────────────────────────────
         render.run();
-        double targetDimOpacity = dimLayer.getOpacity(); // captured from render()
+        double targetDimOpacity = dimLayer.getOpacity();
 
         // Progress bar initial width (needs layout pass)
         javafx.application.Platform.runLater(() -> {
@@ -509,7 +542,6 @@ public final class TutorialOverlay {
             if (w > 0) progressFill.setPrefWidth(w / STEPS.length);
         });
 
-        // ── Entrance animation ─────────────────────────────────────────────────
         dimLayer.setOpacity(0);
         cardLayer.setOpacity(0);
         card.setScaleX(0.82); card.setScaleY(0.82);
