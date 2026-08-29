@@ -3147,19 +3147,22 @@
     -fx-padding: 4 0 0 0;
 }
 
-/* Card: white content area + clipped top-left/right radius to match header */
+/* Card: border-radius and left-side radius are overridden inline when arrow is shown */
 .tutorial-card {
     -fx-background-color: white;
     -fx-background-radius: 20;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.52), 72, 0.05, 0, 22);
+    -fx-border-color: #E4EAF4;
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.26), 44, 0.04, 0, 14);
 }
 
-/* card IS the VBox — target header StackPane directly */
+/* Header radius is set inline per step (dynamic left-corner); this is a fallback */
 .tutorial-card > StackPane {
     -fx-background-radius: 20 20 0 0;
 }
 
-/* Floating icon badge — white circle with colored icon */
+/* Floating icon badge — white circle, border + glow set inline per step */
 .tutorial-icon-badge {
     -fx-background-color: white;
     -fx-background-radius: 38;
@@ -3167,7 +3170,7 @@
 
 /* Progress track inside header */
 .tutorial-progress-track {
-    -fx-background-color: rgba(255,255,255,0.22);
+    -fx-background-color: rgba(255,255,255,0.20);
     -fx-background-radius: 20 20 0 0;
 }
 
@@ -3258,6 +3261,15 @@
     -fx-text-fill: #64748B;
     -fx-background-color: #F1F5F9;
     -fx-background-radius: 8;
+}
+
+/* Keyboard navigation hint below buttons */
+.tutorial-kb-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #B0BCCC;
+    -fx-font-style: italic;
+    -fx-padding: 0 0 2 0;
+    -fx-alignment: CENTER;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
