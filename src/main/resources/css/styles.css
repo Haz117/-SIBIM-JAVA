@@ -451,6 +451,10 @@
 .filter-bar-teal:hover   { -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.10), 8, 0, 0, 2); }
 .filter-bar-danger { -fx-border-color: #EF4444 #E2E8F0 #E2E8F0 #EF4444; }
 .filter-bar-danger:hover { -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.10), 8, 0, 0, 2); }
+.filter-bar-indigo { -fx-border-color: #4338CA #E2E8F0 #E2E8F0 #4338CA; }
+.filter-bar-indigo:hover { -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 8, 0, 0, 2); }
+.filter-bar-blue   { -fx-border-color: #1D4ED8 #E2E8F0 #E2E8F0 #1D4ED8; }
+.filter-bar-blue:hover   { -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.10), 8, 0, 0, 2); }
 
 /* ═══════════════════════════════════════════════════════════════════
    STAT CARDS (Dashboard)
@@ -1826,6 +1830,7 @@
 .page-header-teal    { -fx-border-color: #0891B2 #E2E8F0 #E2E8F0 #0891B2; -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.10), 10, 0, 0, 2); }
 .page-header-emerald { -fx-border-color: #059669 #E2E8F0 #E2E8F0 #059669; -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.10), 10, 0, 0, 2); }
 .page-header-slate   { -fx-border-color: #475569 #E2E8F0 #E2E8F0 #475569; -fx-effect: dropshadow(gaussian, rgba(71,85,105,0.10), 10, 0, 0, 2); }
+.page-header-indigo  { -fx-border-color: #4338CA #E2E8F0 #E2E8F0 #4338CA; -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 10, 0, 0, 2); }
 .page-header-blue    { -fx-border-color: #1D4ED8 #E2E8F0 #E2E8F0 #1D4ED8; -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.10), 10, 0, 0, 2); }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -3178,9 +3183,15 @@
     -fx-line-spacing: 1;
 }
 
-/* Shortcut pill */
+/* Shortcut pill — static layout here; dynamic bg/border colors set inline per step */
 .tutorial-shortcut-icon { -fx-icon-size: 13; }
 .tutorial-shortcut-text { -fx-font-size: 12.5px; -fx-font-weight: bold; }
+.tutorial-shortcut-pill {
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-border-width: 1.5;
+    -fx-padding: 6 16;
+}
 
 /* Progress dots */
 .tutorial-dot        { -fx-fill: #CBD5E1; }
@@ -3285,6 +3296,11 @@
     -fx-background-color: transparent;
 }
 
+.cmd-scroll {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
 .cmd-scroll .viewport {
     -fx-background-color: transparent;
 }
@@ -3525,3 +3541,24 @@
     -fx-progress-color: #6366F1;
 }
 .toast-spinner .percentage { visibility: hidden; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONFLICT RESOLUTION DIALOG
+   ═══════════════════════════════════════════════════════════════════ */
+.conflict-scroll {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.conflict-card {
+    -fx-border-color: -color-border-default;
+    -fx-border-radius: 6;
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 6;
+}
+.conflict-card-title { -fx-font-weight: bold; -fx-font-size: 13px; }
+.conflict-differs    { -fx-font-weight: bold; -fx-text-fill: -color-warning-fg; }
+.conflict-bold       { -fx-font-weight: bold; }
+
+/* Categorías — emoji icon inside icon column cell */
+.cat-icon-cell-label { -fx-font-size: 18px; }

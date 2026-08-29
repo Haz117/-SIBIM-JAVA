@@ -87,7 +87,7 @@
     </HBox>
 
     <!-- ══ SEARCH BAR ════════════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-blue">
         <StackPane HBox.hgrow="ALWAYS">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar área, secretaría o departamento..."

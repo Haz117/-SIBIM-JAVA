@@ -268,10 +268,8 @@ public class DashboardController {
         healthSection.setManaged(true);
         AnimationUtils.fadeInUp(healthSection, 320, 0);
 
-        // Reveal bar from left to right once layout finishes (two pulses away).
-        javafx.application.Platform.runLater(() ->
-            javafx.application.Platform.runLater(() ->
-                AnimationUtils.revealBarLTR(healthBar, 900)));
+        // Defer one FX pulse so layout computes segment widths before animating.
+        javafx.application.Platform.runLater(() -> AnimationUtils.revealBarLTR(healthBar, 900));
     }
 
     // ── Charts ───────────────────────────────────────────────────────

@@ -10,7 +10,7 @@
     <padding><Insets top="16" right="22" bottom="16" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-indigo">
         <!-- Icon badge -->
         <StackPane styleClass="page-header-icon page-header-icon-indigo">
             <FontIcon iconLiteral="mdi2p-package-variant" styleClass="page-icon-emoji"/>
@@ -113,7 +113,7 @@
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
+    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-indigo">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por nombre, código, proveedor..."

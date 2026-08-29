@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.db.offline.ConflictoInfo;
 import com.sibim.db.offline.SyncService;
 import com.sibim.model.Producto;
+import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -30,6 +31,7 @@ public final class ConflictResolutionDialog {
         if (conflictos == null || conflictos.isEmpty()) return;
 
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
         dialog.setTitle("Conflictos de sincronización");
         int n = conflictos.size();
         dialog.setHeaderText(
@@ -60,10 +62,11 @@ public final class ConflictResolutionDialog {
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
         scroll.setPrefSize(660, 380);
-        scroll.setStyle("-fx-background-color: transparent;");
+        scroll.getStyleClass().add("conflict-scroll");
 
         dialog.getDialogPane().setContent(scroll);
         dialog.getDialogPane().setPrefWidth(700);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         // Deliberately unconditional: apply the current selections regardless
         // of how the dialog closed (the button, Escape, or the window's own
@@ -79,11 +82,10 @@ public final class ConflictResolutionDialog {
 
         VBox card = new VBox(10);
         card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color: -color-border-default; -fx-border-radius: 6; "
-                    + "-fx-background-color: -color-bg-subtle; -fx-background-radius: 6;");
+        card.getStyleClass().add("conflict-card");
 
         Label nameLabel = new Label(off.getNombre() != null ? off.getNombre() : "(sin nombre)");
-        nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13;");
+        nameLabel.getStyleClass().add("conflict-card-title");
 
         GridPane grid = new GridPane();
         grid.setHgap(20);
@@ -133,9 +135,8 @@ public final class ConflictResolutionDialog {
         Label lOff   = new Label(offline);
         Label lSrv   = new Label(server);
         if (differs) {
-            String warn = "-fx-font-weight: bold; -fx-text-fill: -color-warning-fg;";
-            lOff.setStyle(warn);
-            lSrv.setStyle(warn);
+            lOff.getStyleClass().add("conflict-differs");
+            lSrv.getStyleClass().add("conflict-differs");
         }
         grid.add(lCampo, 0, row);
         grid.add(lOff,   1, row);
@@ -158,7 +159,7 @@ public final class ConflictResolutionDialog {
 
     private static Label bold(String text) {
         Label l = new Label(text);
-        l.setStyle("-fx-font-weight: bold;");
+        l.getStyleClass().add("conflict-bold");
         return l;
     }
 

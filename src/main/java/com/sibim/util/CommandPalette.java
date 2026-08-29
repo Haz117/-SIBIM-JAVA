@@ -72,7 +72,7 @@ public final class CommandPalette {
         scroll.setMaxHeight(368);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent;");
+        // Transparent bg handled by .cmd-scroll in CSS
 
         // ── Panel ─────────────────────────────────────────────────────────────
         VBox panel = new VBox(0, inputRow, scroll);

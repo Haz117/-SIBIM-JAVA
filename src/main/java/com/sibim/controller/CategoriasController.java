@@ -150,7 +150,7 @@ public class CategoriasController {
         colIcono.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getIcono() != null ? c.getValue().getIcono() : ""));
         colIcono.setCellFactory(col -> new TableCell<>() {
             private final Label lbl = new Label();
-            { lbl.setStyle("-fx-font-size: 18px;"); setContentDisplay(ContentDisplay.GRAPHIC_ONLY); setAlignment(javafx.geometry.Pos.CENTER); }
+            { lbl.getStyleClass().add("cat-icon-cell-label"); setContentDisplay(ContentDisplay.GRAPHIC_ONLY); setAlignment(javafx.geometry.Pos.CENTER); }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null || item.isBlank()) { setGraphic(null); return; }

@@ -12,7 +12,7 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-indigo">
         <StackPane styleClass="page-header-icon page-header-icon-indigo">
             <FontIcon iconLiteral="mdi2c-chart-line" styleClass="page-icon-emoji"/>
         </StackPane>
@@ -140,7 +140,7 @@
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-indigo">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por nombre o categoría..."

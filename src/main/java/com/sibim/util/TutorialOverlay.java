@@ -227,11 +227,10 @@ public final class TutorialOverlay {
             header.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
                 + s.color() + ", " + s.gradEnd() + ");");
 
-            // Icon — white badge with colored icon
+            // Icon — white badge (bg+radius in .tutorial-icon-badge CSS) with per-step drop shadow
             icon.setIconLiteral(s.icon());
             icon.setIconColor(Color.web(s.color()));
-            iconBadge.setStyle("-fx-background-color: white; -fx-background-radius: 38;"
-                + " -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.50) + ", 22, 0.04, 0, 5);");
+            iconBadge.setStyle("-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.50) + ", 22, 0.04, 0, 5);");
 
             // Title
             lblTitle.setText(s.title());
@@ -255,14 +254,13 @@ public final class TutorialOverlay {
             // Shortcut pill
             if (s.shortcut() != null) {
                 lblShortcut.setText(s.shortcut());
+                // Static layout (radius, border-width, padding) in .tutorial-shortcut-pill CSS
+                // Static text style (font-size, font-weight) in .tutorial-shortcut-text CSS
                 kbIcon.setStyle("-fx-icon-color: " + s.color() + ";");
                 shortcutPill.setStyle(
                     "-fx-background-color: " + hexToRgba(s.color(), 0.09) + ";"
-                    + "-fx-border-color: " + hexToRgba(s.color(), 0.30) + ";"
-                    + "-fx-background-radius: 99; -fx-border-radius: 99;"
-                    + "-fx-border-width: 1.5; -fx-padding: 6 16;");
-                lblShortcut.setStyle("-fx-text-fill: " + s.color()
-                    + "; -fx-font-weight: bold; -fx-font-size: 12.5px;");
+                    + "-fx-border-color: " + hexToRgba(s.color(), 0.30) + ";");
+                lblShortcut.setStyle("-fx-text-fill: " + s.color() + ";");
                 shortcutWrap.setVisible(true);
                 shortcutWrap.setManaged(true);
             } else {
