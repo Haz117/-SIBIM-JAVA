@@ -1,7 +1,9 @@
 package com.sibim.util;
 
+import com.sibim.controller.MainController;
 import com.sibim.session.SessionManager;
 import javafx.animation.*;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -21,54 +23,54 @@ public final class TutorialOverlay {
 
     private record Step(
         String icon, String color, String gradEnd,
-        String title, String shortcut, String[] bullets
+        String title, String shortcut, String navigateId, String[] bullets
     ) {}
 
     private static final Step[] STEPS = {
         new Step("mdi2b-book-open-outline", "#6366F1", "#3730A3",
-            "Bienvenido a SIBIM", null, new String[]{
+            "Bienvenido a SIBIM", null, null, new String[]{
             "Sistema integral de gestión del patrimonio municipal",
             "Inventario, movimientos y reportes en un solo lugar",
             "Funciona en línea, sin conexión y en modo demo"
         }),
         new Step("mdi2v-view-dashboard-outline", "#0EA5E9", "#0369A1",
-            "Dashboard", "Ctrl + 1", new String[]{
+            "Dashboard", "Ctrl + 1", "dashboard", new String[]{
             "Métricas en tiempo real: total de bienes y valor del inventario",
             "Gráfica de salud del inventario (normal / bajo stock / agotado)",
             "Acciones rápidas para los flujos más frecuentes del día"
         }),
         new Step("mdi2p-package-variant", "#6366F1", "#3730A3",
-            "Bienes / Inventario", "Ctrl + 3", new String[]{
+            "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
             "Búsqueda en tiempo real por nombre, código o área asignada",
             "Doble clic en un bien para ver ficha completa e historial",
             "Altas, bajas y edición desde la misma pantalla"
         }),
         new Step("mdi2s-swap-vertical-bold", "#7C3AED", "#5B21B6",
-            "Movimientos", "Ctrl + 5", new String[]{
+            "Movimientos", "Ctrl + 5", "movimientos", new String[]{
             "Entradas (adquisiciones), salidas (bajas) y asignaciones entre áreas",
             "Conteo físico para verificar el inventario en campo",
             "Cada movimiento actualiza el stock automáticamente"
         }),
         new Step("mdi2b-bell-ring-outline", "#DC2626", "#991B1B",
-            "Alertas", "Ctrl + 6", new String[]{
+            "Alertas", "Ctrl + 6", "alertas", new String[]{
             "Alerta automática cuando un bien llega a su stock mínimo",
             "Aviso de bienes próximos a vencer con período configurable",
             "Badge rojo en el menú lateral cuando hay alertas pendientes"
         }),
         new Step("mdi2f-file-chart-outline", "#059669", "#065F46",
-            "Reportes", "Ctrl + 7", new String[]{
+            "Reportes", "Ctrl + 7", "reportes", new String[]{
             "Exporta a Excel (.xlsx) y PDF con un solo clic",
             "Filtra por rango de fechas, área y categoría de bien",
             "Incluye gráficas y resúmenes listos para auditorías"
         }),
         new Step("mdi2k-keyboard-outline", "#0891B2", "#0E7490",
-            "Atajos de Teclado", "F1", new String[]{
+            "Atajos de Teclado", "F1", null, new String[]{
             "Ctrl+1 al Ctrl+9 para navegar entre módulos al instante",
             "Ctrl+F para buscar · F5 para actualizar · F1 para esta ayuda",
             "En tablas: Ctrl+N nuevo · Ctrl+E editar · Supr para eliminar"
         }),
         new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
-            "¡Todo listo!", null, new String[]{
+            "¡Todo listo!", null, "dashboard", new String[]{
             "Presiona F1 en cualquier momento para ver todos los atajos",
             "Botón \"Tutorial\" en el menú lateral para volver a este recorrido",
             "El sistema guarda tus cambios aunque pierdas la conexión"
@@ -80,7 +82,7 @@ public final class TutorialOverlay {
     public static void showIfFirstTime(StackPane outerStack) {
         String username = SessionManager.getCurrentUser() != null
             ? SessionManager.getCurrentUser().getUsername() : "unknown";
-        String key = "tutorial.v1." + username;
+        String key = "tutorial.v2." + username;
         if (PREFS.getBoolean(key, false)) return;
         PREFS.putBoolean(key, true);
         javafx.application.Platform.runLater(() -> buildAndShow(outerStack));
@@ -92,13 +94,29 @@ public final class TutorialOverlay {
 
     private static void buildAndShow(StackPane outerStack) {
         int[] step = {0};
+        Timeline[] pulseAnim = {null};
+
+        // ── Layer 1: dim overlay (absorbs mouse so main app is blocked) ─────────
+        Region dimLayer = new Region();
+        dimLayer.getStyleClass().add("tutorial-dim-layer");
+        dimLayer.setOnMousePressed(javafx.event.Event::consume);
+        dimLayer.setOnMouseClicked(javafx.event.Event::consume);
+
+        // ── Layer 2: ring layer (mouse-transparent, drawn above dim) ─────────────
+        Pane ringLayer = new Pane();
+        ringLayer.setMouseTransparent(true);
+        ringLayer.setPickOnBounds(false);
+
+        StackPane ring = new StackPane();
+        ring.setMouseTransparent(true);
+        ring.setVisible(false);
+        ringLayer.getChildren().add(ring);
 
         // ── Gradient header ────────────────────────────────────────────────────
         StackPane header = new StackPane();
         header.setPrefHeight(102);
         header.setMaxHeight(102);
 
-        // Progress bar track + fill inside header at top
         Region progressTrack = new Region();
         progressTrack.getStyleClass().add("tutorial-progress-track");
         progressTrack.setPrefHeight(5);
@@ -115,19 +133,15 @@ public final class TutorialOverlay {
         progressPane.setPrefHeight(5);
         progressPane.setMaxHeight(5);
         progressTrack.prefWidthProperty().bind(header.widthProperty());
-
         StackPane.setAlignment(progressPane, Pos.TOP_LEFT);
 
-        // Icon badge floats at header bottom, extends 38px into white area
         FontIcon icon = new FontIcon();
         icon.setIconSize(34);
-
         StackPane iconBadge = new StackPane(icon);
         iconBadge.getStyleClass().add("tutorial-icon-badge");
         iconBadge.setPrefSize(76, 76);
         iconBadge.setMaxSize(76, 76);
-        iconBadge.setTranslateY(38); // extend below header
-
+        iconBadge.setTranslateY(38);
         StackPane.setAlignment(iconBadge, Pos.BOTTOM_CENTER);
 
         header.getChildren().addAll(progressPane, iconBadge);
@@ -143,7 +157,6 @@ public final class TutorialOverlay {
         bulletBox.setAlignment(Pos.CENTER_LEFT);
         bulletBox.setMaxWidth(352);
 
-        // Shortcut pill
         FontIcon kbIcon = new FontIcon("mdi2k-keyboard-outline");
         kbIcon.setIconSize(13);
         kbIcon.getStyleClass().add("tutorial-shortcut-icon");
@@ -156,7 +169,13 @@ public final class TutorialOverlay {
         StackPane shortcutWrap = new StackPane(shortcutPill);
         shortcutWrap.setAlignment(Pos.CENTER);
 
-        VBox slideContent = new VBox(16, lblTitle, bulletBox, shortcutWrap);
+        // Nav tip label — appears when a module is being shown
+        Label navTipLabel = new Label();
+        navTipLabel.getStyleClass().add("tutorial-nav-tip");
+        navTipLabel.setVisible(false);
+        navTipLabel.setManaged(false);
+
+        VBox slideContent = new VBox(16, lblTitle, bulletBox, shortcutWrap, navTipLabel);
         slideContent.setAlignment(Pos.CENTER);
         slideContent.setMaxWidth(380);
 
@@ -193,7 +212,6 @@ public final class TutorialOverlay {
         // ── Card assembly ──────────────────────────────────────────────────────
         VBox contentArea = new VBox(22, slideContent, dotsArea, btnRow);
         contentArea.setAlignment(Pos.CENTER);
-        // top padding = iconBadge overlap (38) + gap (16)
         contentArea.setPadding(new Insets(54, 42, 30, 42));
 
         VBox card = new VBox(0, header, contentArea);
@@ -202,21 +220,75 @@ public final class TutorialOverlay {
         card.setPrefWidth(490);
         card.setMaxWidth(490);
 
-        // ── Backdrop ───────────────────────────────────────────────────────────
-        StackPane backdrop = new StackPane(card);
-        backdrop.getStyleClass().add("tutorial-backdrop");
-        outerStack.getChildren().add(backdrop);
+        // ── Layer 3: card layer (transparent background, contains card + keyboard) ─
+        StackPane cardLayer = new StackPane(card);
+        cardLayer.setStyle("-fx-background-color: transparent;");
+        cardLayer.setPickOnBounds(false);
+        cardLayer.setFocusTraversable(true);
+
+        // Add all three layers to outerStack
+        outerStack.getChildren().addAll(dimLayer, ringLayer, cardLayer);
 
         // ── Dismiss ────────────────────────────────────────────────────────────
         Runnable dismiss = () -> {
-            FadeTransition fade = new FadeTransition(Duration.millis(230), backdrop);
-            fade.setToValue(0);
-            ScaleTransition shrink = new ScaleTransition(Duration.millis(230), card);
+            if (pulseAnim[0] != null) { pulseAnim[0].stop(); pulseAnim[0] = null; }
+            FadeTransition fadeDim  = new FadeTransition(Duration.millis(230), dimLayer);
+            fadeDim.setToValue(0);
+            FadeTransition fadeCard = new FadeTransition(Duration.millis(230), cardLayer);
+            fadeCard.setToValue(0);
+            ScaleTransition shrink  = new ScaleTransition(Duration.millis(230), card);
             shrink.setToX(0.91); shrink.setToY(0.91);
             shrink.setInterpolator(Interpolator.EASE_IN);
-            ParallelTransition exit = new ParallelTransition(fade, shrink);
-            exit.setOnFinished(e -> outerStack.getChildren().remove(backdrop));
+            ParallelTransition exit = new ParallelTransition(fadeDim, fadeCard, shrink);
+            exit.setOnFinished(e -> outerStack.getChildren().removeAll(dimLayer, ringLayer, cardLayer));
             exit.play();
+        };
+
+        // ── Position ring on nav button ────────────────────────────────────────
+        Runnable[] positionRing = {null};
+        positionRing[0] = () -> {
+            Step s = STEPS[step[0]];
+            if (pulseAnim[0] != null) { pulseAnim[0].stop(); ring.setScaleX(1); ring.setScaleY(1); }
+            MainController mc = MainController.getInstance();
+            if (s.navigateId() != null && mc != null) {
+                Button navBtn = mc.getNavButton(s.navigateId());
+                if (navBtn != null && navBtn.getScene() != null) {
+                    Bounds bScene = navBtn.localToScene(navBtn.getBoundsInLocal());
+                    Bounds bStack = outerStack.sceneToLocal(bScene);
+                    double pad = 5;
+                    ring.setLayoutX(bStack.getMinX() - pad);
+                    ring.setLayoutY(bStack.getMinY() - pad);
+                    ring.setPrefWidth(bStack.getWidth() + pad * 2);
+                    ring.setPrefHeight(bStack.getHeight() + pad * 2);
+                    ring.setStyle(
+                        "-fx-border-color: " + s.color() + ";"
+                        + "-fx-border-width: 3;"
+                        + "-fx-border-radius: 10;"
+                        + "-fx-background-color: " + hexToRgba(s.color(), 0.18) + ";"
+                        + "-fx-background-radius: 10;"
+                        + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.75) + ", 22, 0, 0, 0);"
+                    );
+                    ring.setVisible(true);
+
+                    pulseAnim[0] = new Timeline(
+                        new KeyFrame(Duration.ZERO,
+                            new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                            new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH)),
+                        new KeyFrame(Duration.millis(900),
+                            new KeyValue(ring.scaleXProperty(), 1.09, Interpolator.EASE_BOTH),
+                            new KeyValue(ring.scaleYProperty(), 1.09, Interpolator.EASE_BOTH)),
+                        new KeyFrame(Duration.millis(1800),
+                            new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                            new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+                    );
+                    pulseAnim[0].setCycleCount(Timeline.INDEFINITE);
+                    pulseAnim[0].play();
+                } else {
+                    ring.setVisible(false);
+                }
+            } else {
+                ring.setVisible(false);
+            }
         };
 
         // ── Render (instant, no animation) ────────────────────────────────────
@@ -227,7 +299,7 @@ public final class TutorialOverlay {
             header.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
                 + s.color() + ", " + s.gradEnd() + ");");
 
-            // Icon — white badge (bg+radius in .tutorial-icon-badge CSS) with per-step drop shadow
+            // Icon badge
             icon.setIconLiteral(s.icon());
             icon.setIconColor(Color.web(s.color()));
             iconBadge.setStyle("-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.50) + ", 22, 0.04, 0, 5);");
@@ -254,8 +326,6 @@ public final class TutorialOverlay {
             // Shortcut pill
             if (s.shortcut() != null) {
                 lblShortcut.setText(s.shortcut());
-                // Static layout (radius, border-width, padding) in .tutorial-shortcut-pill CSS
-                // Static text style (font-size, font-weight) in .tutorial-shortcut-text CSS
                 kbIcon.setStyle("-fx-icon-color: " + s.color() + ";");
                 shortcutPill.setStyle(
                     "-fx-background-color: " + hexToRgba(s.color(), 0.09) + ";"
@@ -267,6 +337,27 @@ public final class TutorialOverlay {
                 shortcutWrap.setVisible(false);
                 shortcutWrap.setManaged(false);
             }
+
+            // Nav tip — shown only on module steps
+            if (s.navigateId() != null) {
+                navTipLabel.setText("↑ Activo en la barra lateral");
+                navTipLabel.setStyle("-fx-text-fill: " + hexToRgba(s.color(), 0.75) + ";");
+                navTipLabel.setVisible(true);
+                navTipLabel.setManaged(true);
+            } else {
+                navTipLabel.setVisible(false);
+                navTipLabel.setManaged(false);
+            }
+
+            // Navigate to module and position ring
+            MainController mc = MainController.getInstance();
+            if (s.navigateId() != null && mc != null) {
+                mc.navigateToView(s.navigateId());
+                dimLayer.setOpacity(0.62);
+            } else {
+                dimLayer.setOpacity(0.85);
+            }
+            javafx.application.Platform.runLater(positionRing[0]);
 
             // Dots
             for (int i = 0; i < circles.length; i++) {
@@ -292,15 +383,13 @@ public final class TutorialOverlay {
             btnSkip.setVisible(!isLast); btnSkip.setManaged(!isLast);
         };
 
-        // ── Animated go-to (handles both advance and retreat) ─────────────────
+        // ── Animated transition ────────────────────────────────────────────────
         java.util.function.BiConsumer<Integer, Integer> goTo = (newIdx, dir) -> {
-            // Lock controls during transition
             btnNext.setDisable(true);
             btnPrev.setDisable(true);
             btnSkip.setDisable(true);
             dotsRow.setMouseTransparent(true);
 
-            // Slide + fade out current content
             TranslateTransition slideOut = new TranslateTransition(Duration.millis(170), slideContent);
             slideOut.setToX(dir * -55.0);
             slideOut.setInterpolator(Interpolator.EASE_IN);
@@ -312,7 +401,7 @@ public final class TutorialOverlay {
                 step[0] = newIdx;
                 render.run();
 
-                // Animate progress bar fill width
+                // Progress bar
                 double targetW = progressPane.getWidth() * (newIdx + 1.0) / STEPS.length;
                 new Timeline(
                     new KeyFrame(Duration.ZERO,
@@ -321,9 +410,9 @@ public final class TutorialOverlay {
                         new KeyValue(progressFill.prefWidthProperty(), targetW, Interpolator.EASE_OUT))
                 ).play();
 
-                // Icon badge bounce (scale from 0.5 → 1.08 → 1.0)
+                // Icon badge bounce
                 iconBadge.setScaleX(0.5); iconBadge.setScaleY(0.5);
-                Timeline iconPop = new Timeline(
+                new Timeline(
                     new KeyFrame(Duration.ZERO,
                         new KeyValue(iconBadge.scaleXProperty(), 0.5, Interpolator.EASE_OUT),
                         new KeyValue(iconBadge.scaleYProperty(), 0.5, Interpolator.EASE_OUT)),
@@ -333,10 +422,9 @@ public final class TutorialOverlay {
                     new KeyFrame(Duration.millis(320),
                         new KeyValue(iconBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
                         new KeyValue(iconBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
-                );
-                iconPop.play();
+                ).play();
 
-                // Slide + fade in from opposite direction
+                // Slide + fade in
                 slideContent.setTranslateX(dir * 55.0);
                 TranslateTransition slideIn = new TranslateTransition(Duration.millis(230), slideContent);
                 slideIn.setToX(0);
@@ -344,9 +432,7 @@ public final class TutorialOverlay {
                 FadeTransition fadeIn = new FadeTransition(Duration.millis(210), slideContent);
                 fadeIn.setFromValue(0); fadeIn.setToValue(1);
                 ParallelTransition enterAnim = new ParallelTransition(slideIn, fadeIn);
-
                 enterAnim.setOnFinished(done -> {
-                    // Unlock controls
                     btnNext.setDisable(false);
                     btnPrev.setDisable(false);
                     btnSkip.setDisable(false);
@@ -404,8 +490,7 @@ public final class TutorialOverlay {
         btnSkip.setOnAction(e -> dismiss.run());
 
         // ── Keyboard nav ───────────────────────────────────────────────────────
-        backdrop.setFocusTraversable(true);
-        backdrop.setOnKeyPressed(e -> {
+        cardLayer.setOnKeyPressed(e -> {
             switch (e.getCode()) {
                 case RIGHT -> { if (!btnNext.isDisabled()) btnNext.fire(); }
                 case LEFT  -> { if (step[0] > 0 && !btnPrev.isDisabled()) btnPrev.fire(); }
@@ -414,19 +499,25 @@ public final class TutorialOverlay {
             }
         });
 
-        // ── Initial render + entrance animation ────────────────────────────────
+        // ── Initial render ─────────────────────────────────────────────────────
         render.run();
+        double targetDimOpacity = dimLayer.getOpacity(); // captured from render()
 
-        // Set progress bar initial width after first layout
+        // Progress bar initial width (needs layout pass)
         javafx.application.Platform.runLater(() -> {
             double w = progressPane.getWidth();
             if (w > 0) progressFill.setPrefWidth(w / STEPS.length);
         });
 
-        backdrop.setOpacity(0);
+        // ── Entrance animation ─────────────────────────────────────────────────
+        dimLayer.setOpacity(0);
+        cardLayer.setOpacity(0);
         card.setScaleX(0.82); card.setScaleY(0.82);
-        FadeTransition backdropIn = new FadeTransition(Duration.millis(280), backdrop);
-        backdropIn.setFromValue(0); backdropIn.setToValue(1);
+
+        FadeTransition dimIn = new FadeTransition(Duration.millis(280), dimLayer);
+        dimIn.setToValue(targetDimOpacity);
+        FadeTransition cardLayerIn = new FadeTransition(Duration.millis(280), cardLayer);
+        cardLayerIn.setFromValue(0); cardLayerIn.setToValue(1);
         ScaleTransition cardIn = new ScaleTransition(Duration.millis(380), card);
         cardIn.setFromX(0.82); cardIn.setFromY(0.82);
         cardIn.setToX(1.0); cardIn.setToY(1.0);
@@ -434,9 +525,9 @@ public final class TutorialOverlay {
         FadeTransition cardFade = new FadeTransition(Duration.millis(380), card);
         cardFade.setFromValue(0); cardFade.setToValue(1);
 
-        ParallelTransition entrance = new ParallelTransition(backdropIn, cardIn, cardFade);
+        ParallelTransition entrance = new ParallelTransition(dimIn, cardLayerIn, cardIn, cardFade);
         entrance.setOnFinished(ev -> {
-            backdrop.requestFocus();
+            cardLayer.requestFocus();
             // Stagger initial bullets in
             bulletBox.getChildren().forEach(n -> { n.setOpacity(0); n.setTranslateY(12); });
             int[] idx = {0};

@@ -303,6 +303,22 @@ public class MainController {
         return resolved != null ? resolved : fallback;
     }
 
+    /** Navigate programmatically by view name — used by TutorialOverlay. */
+    public void navigateToView(String view) {
+        navigateTo(view, resolveNavigationButton(view,
+            btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
+            btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
+            btnDepreciacion, btnDashboard));
+    }
+
+    /** Return the sidebar Button for a given view — used by TutorialOverlay for ring positioning. */
+    public Button getNavButton(String view) {
+        return resolveNavigationButton(view,
+            btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
+            btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
+            btnDepreciacion, null);
+    }
+
     private void navigateTo(String view, Button button) {
         try {
             if (button == null) {
