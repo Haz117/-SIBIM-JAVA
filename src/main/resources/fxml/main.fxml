@@ -178,7 +178,7 @@
         <Label text="SIBIM v1.0" styleClass="sidebar-version"/>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label text="⌨ Atajos (F1)" styleClass="status-shortcut-hint" onMouseClicked="#onShowShortcuts">
-            <tooltip><Tooltip text="Ver todos los atajos de teclado"/></tooltip>
+            <tooltip><Tooltip text="Ver todos los atajos de teclado  ·  F2 = Tutorial"/></tooltip>
         </Label>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusTimeLabel" text="00:00" styleClass="status-time"/>

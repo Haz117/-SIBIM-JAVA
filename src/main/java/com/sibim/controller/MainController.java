@@ -757,6 +757,7 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
         a.put(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN),      this::onCommandPalette);
         a.put(new KeyCodeCombination(KeyCode.F1), () -> showShortcutHelp());
+        a.put(new KeyCodeCombination(KeyCode.F2), () -> onShowTutorial());
     }
 
     private void focusCurrentSearch(javafx.scene.Scene scene) {
@@ -915,6 +916,7 @@ public class MainController {
         GridPane sysGrid = makeSection.apply("SISTEMA", new String[][]{
             {"Ctrl+K",      "Búsqueda global / paleta de comandos"},
             {"F1",          "Mostrar esta ayuda de atajos"},
+            {"F2",          "Tutorial interactivo del sistema"},
             {"F5 / Ctrl+R", "Actualizar vista actual"},
             {"Ctrl+F",      "Enfocar campo de búsqueda"},
         });
