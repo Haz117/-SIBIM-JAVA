@@ -28,8 +28,10 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
+import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -80,6 +82,13 @@ public class MainController {
     @FXML private Label statusUserLabel;
     @FXML private Label statusTimeLabel;
     @FXML private StackPane outerStack;
+    @FXML private VBox     sidebar;
+    @FXML private Region   sidebarBackdrop;
+    @FXML private VBox     logoTextBox;
+    @FXML private VBox     userInfoVBox;
+    @FXML private Button   btnToggleSidebar;
+    @FXML private FontIcon statusDotIcon;
+    private boolean sidebarCollapsed = false;
 
     private Button   activeButton;
     private Object   currentController;
@@ -441,6 +450,10 @@ public class MainController {
         javafx.application.Platform.runLater(() -> updateTabProtrusion(btnDashboard));
     }
 
+    private double currentSidebarWidth() {
+        return (sidebar != null && sidebar.getWidth() > 0) ? sidebar.getWidth() : SIDEBAR_WIDTH;
+    }
+
     private void updateTabProtrusion(Button btn) {
         if (tabProtrusion == null || outerStack == null || outerStack.getScene() == null) return;
         javafx.application.Platform.runLater(() -> {
@@ -451,8 +464,9 @@ public class MainController {
             double  btnBot = b.getMaxY() + org.getY();
             double  btnH   = btnBot - btnTop;
 
-            double earX  = SIDEBAR_WIDTH - EAR_SIZE;
-            double extX  = SIDEBAR_WIDTH - TAB_OVERLAP;
+            double sw    = currentSidebarWidth();
+            double earX  = sw - EAR_SIZE;
+            double extX  = sw - TAB_OVERLAP;
             double topY  = btnTop - EAR_SIZE;
             double botY  = btnBot;
 
@@ -526,11 +540,13 @@ public class MainController {
 
         if (statusDbLabel != null) {
             String text = offline
-                ? "⬤  Modo offline · " + pending + " pendiente(s)"
-                : demo ? "⬤  Modo demo" : "⬤  Base de datos conectada";
+                ? "Modo offline · " + pending + " pendiente(s)"
+                : demo ? "Modo demo" : "Base de datos conectada";
             statusDbLabel.setText(text);
-            statusDbLabel.getStyleClass().removeAll("status-dot-ok", "status-dot-demo");
-            statusDbLabel.getStyleClass().add((demo || offline) ? "status-dot-demo" : "status-dot-ok");
+            if (statusDotIcon != null) {
+                statusDotIcon.getStyleClass().removeAll("status-dot-icon-ok", "status-dot-icon-demo");
+                statusDotIcon.getStyleClass().add((demo || offline) ? "status-dot-icon-demo" : "status-dot-icon-ok");
+            }
         }
 
         if (offlineBanner != null) {
@@ -568,6 +584,78 @@ public class MainController {
                 if (offlineBannerSyncBtn != null) offlineBannerSyncBtn.setDisable(false);
             });
         });
+    }
+
+    private static final double SIDEBAR_COLLAPSED_WIDTH = 76;
+
+    @FXML
+    private void onToggleSidebar() {
+        sidebarCollapsed = !sidebarCollapsed;
+        double targetW = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+
+        sidebar.setMinWidth(Region.USE_PREF_SIZE);
+        sidebar.setMaxWidth(Region.USE_PREF_SIZE);
+        sidebarBackdrop.setMinWidth(Region.USE_PREF_SIZE);
+        sidebarBackdrop.setMaxWidth(Region.USE_PREF_SIZE);
+
+        // Collect nodes to show/hide
+        java.util.Set<javafx.scene.Node> sectionLabels = sidebar.lookupAll(".nav-section-label");
+        java.util.List<Button> navBtns = java.util.stream.Stream.of(
+                btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
+                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion)
+            .filter(b -> b != null).collect(java.util.stream.Collectors.toList());
+        java.util.List<Button> footerBtns = new java.util.ArrayList<>();
+        sidebar.lookupAll(".logout-btn").forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });
+        sidebar.lookupAll(".about-btn" ).forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });
+
+        // The logo HBox and its badge label; user card HBox
+        javafx.scene.Node logoBadge = sidebar.lookup(".sidebar-logo-badge");
+        javafx.scene.layout.HBox logoHBox = (logoTextBox != null && logoTextBox.getParent() instanceof javafx.scene.layout.HBox h) ? h : null;
+        javafx.scene.Node userCard = (userInfoVBox != null) ? userInfoVBox.getParent() : null;
+
+        // Nav scroll VBox — reduce inner padding so icons fit at collapsed width
+        javafx.scene.control.ScrollPane navScroll =
+            sidebar.lookup(".sidebar-scroll") instanceof javafx.scene.control.ScrollPane sp ? sp : null;
+        javafx.scene.layout.VBox navVBox =
+            (navScroll != null && navScroll.getContent() instanceof javafx.scene.layout.VBox v) ? v : null;
+
+        if (sidebarCollapsed) {
+            // Logo: hide badge + text, shrink HBox padding so only toggle button shows
+            if (logoBadge != null) { logoBadge.setVisible(false); logoBadge.setManaged(false); }
+            logoTextBox.setVisible(false); logoTextBox.setManaged(false);
+            if (logoHBox != null) { logoHBox.setPadding(new Insets(10, 4, 0, 4)); logoHBox.setSpacing(0); }
+            // User card: hide entirely (avatar 38px would overflow 76px with its padding)
+            if (userCard != null) { userCard.setVisible(false); userCard.setManaged(false); }
+            // Nav
+            sectionLabels.forEach(n -> { n.setVisible(false); n.setManaged(false); });
+            navBtns.forEach(b -> b.setContentDisplay(ContentDisplay.GRAPHIC_ONLY));
+            if (navVBox != null) navVBox.setPadding(new Insets(6, 12, 6, 12));
+            // Footer
+            footerBtns.forEach(b -> b.setContentDisplay(ContentDisplay.GRAPHIC_ONLY));
+            ((FontIcon) btnToggleSidebar.getGraphic()).setIconLiteral("mdi2c-chevron-right");
+        } else {
+            ((FontIcon) btnToggleSidebar.getGraphic()).setIconLiteral("mdi2c-chevron-left");
+        }
+
+        Timeline t = new Timeline(
+            new KeyFrame(Duration.millis(220),
+                new KeyValue(sidebar.prefWidthProperty(), targetW, Interpolator.EASE_BOTH),
+                new KeyValue(sidebarBackdrop.prefWidthProperty(), targetW, Interpolator.EASE_BOTH))
+        );
+        t.setOnFinished(ev -> {
+            if (!sidebarCollapsed) {
+                if (logoBadge != null) { logoBadge.setVisible(true); logoBadge.setManaged(true); }
+                logoTextBox.setVisible(true); logoTextBox.setManaged(true);
+                if (logoHBox != null) { logoHBox.setPadding(new Insets(18, 18, 0, 10)); logoHBox.setSpacing(10); }
+                if (userCard != null) { userCard.setVisible(true); userCard.setManaged(true); }
+                sectionLabels.forEach(n -> { n.setVisible(true); n.setManaged(true); });
+                navBtns.forEach(b -> b.setContentDisplay(ContentDisplay.LEFT));
+                if (navVBox != null) navVBox.setPadding(new Insets(6, 18, 6, 10));
+                footerBtns.forEach(b -> b.setContentDisplay(ContentDisplay.LEFT));
+            }
+            if (activeButton != null) updateTabProtrusion(activeButton);
+        });
+        t.play();
     }
 
     private void updateStatusTime() {
@@ -660,8 +748,8 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.DIGIT5, KeyCombination.CONTROL_DOWN), () -> onMovimientos());
         a.put(new KeyCodeCombination(KeyCode.DIGIT6, KeyCombination.CONTROL_DOWN), () -> onAlertas());
         a.put(new KeyCodeCombination(KeyCode.DIGIT7, KeyCombination.CONTROL_DOWN), () -> onReportes());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT8, KeyCombination.CONTROL_DOWN), () -> onConfiguracion());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT9, KeyCombination.CONTROL_DOWN), () -> onDepreciacion());
+        a.put(new KeyCodeCombination(KeyCode.DIGIT8, KeyCombination.CONTROL_DOWN), () -> onDepreciacion());
+        a.put(new KeyCodeCombination(KeyCode.DIGIT9, KeyCombination.CONTROL_DOWN), () -> onConfiguracion());
         a.put(new KeyCodeCombination(KeyCode.F5),                                   () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
@@ -707,8 +795,8 @@ public class MainController {
         addNavTooltip(btnMovimientos,   "Movimientos  (Ctrl+5)");
         addNavTooltip(btnAlertas,       "Alertas  (Ctrl+6)");
         addNavTooltip(btnReportes,      "Reportes  (Ctrl+7)");
-        addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+8)");
-        addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+9)");
+        addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+8)");
+        addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+9)");
     }
 
     private void setupNavHover(Button... buttons) {
@@ -798,8 +886,8 @@ public class MainController {
             {"Ctrl + 5",  "Movimientos"},
             {"Ctrl + 6",  "Alertas"},
             {"Ctrl + 7",  "Reportes"},
-            {"Ctrl + 8",  "Configuración"},
-            {"Ctrl + 9",  "Depreciación"},
+            {"Ctrl + 8",  "Depreciación"},
+            {"Ctrl + 9",  "Configuración"},
         });
 
         GridPane accGrid = makeSection.apply("ACCIONES EN TABLA", new String[][]{

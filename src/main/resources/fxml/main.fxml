@@ -6,7 +6,7 @@
 
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sibim.controller.MainController"
-      prefWidth="1300" prefHeight="820">
+      prefWidth="1200" prefHeight="760">
 
     <!-- ── Offline / demo mode banner — appears at the top of the window
          when the app is not connected to the live database. Hidden (and
@@ -33,7 +33,7 @@
          space with a transparent spacer. -->
     <StackPane fx:id="outerStack" VBox.vgrow="ALWAYS">
         <HBox>
-            <Region prefWidth="220" minWidth="220" maxWidth="220" styleClass="sidebar-backdrop"/>
+            <Region fx:id="sidebarBackdrop" prefWidth="220" minWidth="220" maxWidth="220" styleClass="sidebar-backdrop"/>
             <StackPane fx:id="contentArea" HBox.hgrow="ALWAYS" styleClass="content-area"/>
         </HBox>
 
@@ -44,17 +44,22 @@
              logout button can never be pushed off-screen by overflowing
              nav content the way it could when everything was one plain
              VBox with no scroll. -->
-        <VBox styleClass="sidebar" prefWidth="220" minWidth="220" maxWidth="220" spacing="0"
+        <VBox fx:id="sidebar" styleClass="sidebar" prefWidth="220" minWidth="220" maxWidth="220" spacing="0"
               StackPane.alignment="TOP_LEFT">
 
             <!-- Logo -->
             <HBox spacing="10" alignment="CENTER_LEFT" styleClass="sidebar-logo-area">
                 <padding><Insets top="18" right="18" bottom="0" left="10"/></padding>
                 <Label text="S" styleClass="sidebar-logo-badge"/>
-                <VBox spacing="0">
+                <VBox fx:id="logoTextBox" spacing="0" HBox.hgrow="ALWAYS">
                     <Label text="SIBIM" styleClass="sidebar-logo"/>
                     <Label text="Bienes Municipales" styleClass="sidebar-app-sub"/>
                 </VBox>
+                <Button fx:id="btnToggleSidebar" onAction="#onToggleSidebar"
+                        styleClass="sidebar-toggle-btn" contentDisplay="GRAPHIC_ONLY">
+                    <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="nav-icon"/></graphic>
+                    <tooltip><Tooltip text="Contraer/expandir barra lateral"/></tooltip>
+                </Button>
             </HBox>
 
             <Region prefHeight="14"/>
@@ -65,7 +70,7 @@
                 <StackPane styleClass="user-avatar">
                     <Label fx:id="userAvatarLabel" text="U" styleClass="user-avatar-text"/>
                 </StackPane>
-                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <VBox fx:id="userInfoVBox" spacing="4" HBox.hgrow="ALWAYS">
                     <Label fx:id="userNameLabel" styleClass="sidebar-username" wrapText="true"/>
                     <Label fx:id="userRolLabel" styleClass="sidebar-userrole"/>
                 </VBox>
@@ -127,7 +132,7 @@
                     </Button>
                     <Button fx:id="btnDepreciacion" text="Depreciación" onAction="#onDepreciacion" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2c-chart-line" styleClass="nav-icon"/></graphic>
-                        <tooltip><Tooltip text="Depreciación de activos  (Ctrl+9)"/></tooltip>
+                        <tooltip><Tooltip text="Depreciación de activos  (Ctrl+8)"/></tooltip>
                     </Button>
 
                     <Region prefHeight="4"/>
@@ -137,7 +142,7 @@
 
                     <Button fx:id="btnConfiguracion" text="Configuración" onAction="#onConfiguracion" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2c-cog-outline" styleClass="nav-icon"/></graphic>
-                        <tooltip><Tooltip text="Configuración  (Ctrl+8)"/></tooltip>
+                        <tooltip><Tooltip text="Configuración  (Ctrl+9)"/></tooltip>
                     </Button>
                 </VBox>
             </ScrollPane>
@@ -152,16 +157,10 @@
                     <graphic><FontIcon iconLiteral="mdi2l-logout" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Cerrar sesión actual"/></tooltip>
                 </Button>
-                <Button text="Tutorial" onAction="#onShowTutorial" styleClass="about-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                    <graphic><FontIcon iconLiteral="mdi2b-book-open-outline" styleClass="nav-icon"/></graphic>
-                    <tooltip><Tooltip text="Ver tutorial de uso del sistema"/></tooltip>
-                </Button>
                 <Button text="Acerca de" onAction="#onAcercaDe" styleClass="about-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                     <graphic><FontIcon iconLiteral="mdi2i-information" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Versión e información del sistema"/></tooltip>
                 </Button>
-                <Region prefHeight="4"/>
-                <Label text="SIBIM v1.0 · 2026" styleClass="sidebar-version" maxWidth="Infinity"/>
             </VBox>
         </VBox>
     </StackPane>
@@ -169,12 +168,13 @@
     <!-- ── Status bar ── -->
     <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="16">
         <padding><Insets top="5" right="16" bottom="5" left="16"/></padding>
-        <Label fx:id="statusDbLabel" text="⬤  Conectado" styleClass="status-dot-ok"/>
+        <HBox alignment="CENTER_LEFT" spacing="6">
+            <FontIcon fx:id="statusDotIcon" iconLiteral="mdi2c-circle" iconSize="8" styleClass="status-dot-icon-ok"/>
+            <Label fx:id="statusDbLabel" text="Conectado" styleClass="status-text"/>
+        </HBox>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusUserLabel" text="—" styleClass="status-text"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Label text="H. Ayuntamiento de Ixmiquilpan" styleClass="status-text"/>
-        <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label text="⌨ Atajos (F1)" styleClass="status-shortcut-hint" onMouseClicked="#onShowShortcuts">
             <tooltip><Tooltip text="Ver todos los atajos de teclado"/></tooltip>
         </Label>

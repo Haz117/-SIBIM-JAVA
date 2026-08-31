@@ -62,6 +62,7 @@ public class MovimientosController {
     @FXML private TableColumn<Movimiento, String> colMotivo;
     @FXML private TableColumn<Movimiento, String> colUsuario;
     @FXML private TableColumn<Movimiento, String> colFecha;
+    @FXML private TableColumn<Movimiento, String> colEstado;
     @FXML private Label lblTotal;
     @FXML private ProgressIndicator spinner;
     @FXML private Button btnNuevo;
@@ -249,6 +250,12 @@ public class MovimientosController {
         colUsuario.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsuarioNombre()));
         colFecha.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
+        colEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
+        colEstado.setCellFactory(DialogUtil.badgeCellFactory(estado -> switch (estado) {
+            case "PENDIENTE"  -> "cell-badge-warning";
+            case "RECHAZADO"  -> "cell-badge-danger";
+            default           -> "cell-badge-success";   // APROBADO — green, no llama la atención
+        }));
 
         // Tipo badge cell
         colTipo.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {

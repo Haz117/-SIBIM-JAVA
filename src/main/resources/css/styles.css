@@ -1990,6 +1990,34 @@
 .table-row-cell.row-new > .table-cell    { -fx-background-color: transparent; }
 
 /* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR — collapse toggle button
+   ═══════════════════════════════════════════════════════════════════ */
+.sidebar-toggle-btn {
+    -fx-background-color: transparent;
+    -fx-padding: 4 6;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-min-width: 28;
+    -fx-min-height: 28;
+    -fx-max-width: 28;
+    -fx-max-height: 28;
+}
+.sidebar-toggle-btn:hover {
+    -fx-background-color: rgba(99,102,241,0.08);
+}
+.sidebar-toggle-btn .ikonli-font-icon {
+    -fx-icon-color: #94A3B8;
+    -fx-icon-size: 16;
+}
+.sidebar-toggle-btn:hover .ikonli-font-icon {
+    -fx-icon-color: #6366F1;
+}
+
+/* Status bar connection dot — replaces the Unicode ⬤ character */
+.status-dot-icon-ok   { -fx-icon-color: #4ADE80; -fx-icon-size: 8; }
+.status-dot-icon-demo { -fx-icon-color: #FBBF24; -fx-icon-size: 8; }
+
+/* ═══════════════════════════════════════════════════════════════════
    SIDEBAR — version badge at bottom
    ═══════════════════════════════════════════════════════════════════ */
 .sidebar-version {

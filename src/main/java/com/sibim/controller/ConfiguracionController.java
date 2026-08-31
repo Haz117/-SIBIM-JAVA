@@ -581,7 +581,18 @@ public class ConfiguracionController {
 
         DialogUtil.runAsyncWithProgress(backupSection.getScene(), "Restaurando base de datos…",
             () -> { backupService.restore(origen); return null; },
-            v -> NotificacionUtil.restauracionCompletada(backupSection.getScene(), origen.getName()),
+            v -> {
+                NotificacionUtil.restauracionCompletada(backupSection.getScene(), origen.getName());
+                // Redirect to login so all in-memory caches reload with restored data
+                javafx.animation.PauseTransition delay =
+                    new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+                delay.setOnFinished(e -> {
+                    com.sibim.session.SessionManager.logout();
+                    try { com.sibim.MainApp.showLogin(); }
+                    catch (Exception ex) { /* already showing the toast — user will restart manually */ }
+                });
+                delay.play();
+            },
             e -> NotificacionUtil.error(backupSection.getScene(),
                 e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo restaurar el respaldo")
         );
