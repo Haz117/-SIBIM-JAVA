@@ -30,7 +30,8 @@ public class ImportacionBienesDialog {
         "Nombre", "Codigo", "Categoria", "Area", "Resguardante",
         "Cantidad", "Stock Min", "Stock Max",
         "Precio Compra", "Precio Venta",
-        "Proveedor", "Ubicacion", "Descripcion", "Fecha Adquisicion"
+        "Proveedor", "Marca", "Modelo", "Numero Serie",
+        "Ubicacion", "Descripcion", "Fecha Adquisicion"
     };
 
     private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
@@ -157,8 +158,16 @@ public class ImportacionBienesDialog {
             return new javafx.beans.property.SimpleStringProperty(p != null ? String.valueOf(p.getStockActual()) : "—");
         });
 
+        TableColumn<ParsedRow, String> colSerie = new TableColumn<>("N° de Serie");
+        colSerie.setPrefWidth(110);
+        colSerie.setCellValueFactory(c -> {
+            Producto p = c.getValue().producto();
+            return new javafx.beans.property.SimpleStringProperty(
+                p != null && p.getNumeroSerie() != null ? p.getNumeroSerie() : "");
+        });
+
         TableColumn<ParsedRow, String> colError = new TableColumn<>("Observación");
-        colError.setPrefWidth(200);
+        colError.setPrefWidth(180);
         colError.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             c.getValue().error() != null ? c.getValue().error() : ""));
         colError.setCellFactory(col -> new TableCell<>() {
@@ -172,7 +181,7 @@ public class ImportacionBienesDialog {
             }
         });
 
-        preview.getColumns().addAll(colNum, colStatus, colNombre, colCat, colArea, colCant, colError);
+        preview.getColumns().addAll(colNum, colStatus, colNombre, colCat, colArea, colCant, colSerie, colError);
         preview.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         VBox content = new VBox(12, header, instructions, new Separator(), fileRow, lblResumen, preview);
@@ -345,6 +354,9 @@ public class ImportacionBienesDialog {
                 String pcStr     = col(cols, colIdx, "precio compra");
                 String pvStr     = col(cols, colIdx, "precio venta");
                 String proveed   = col(cols, colIdx, "proveedor");
+                String marca     = col(cols, colIdx, "marca");
+                String modelo    = col(cols, colIdx, "modelo");
+                String numSerie  = col(cols, colIdx, "numero serie");
                 String ubicac    = col(cols, colIdx, "ubicacion");
                 String desc      = col(cols, colIdx, "descripcion");
                 String fechaStr  = col(cols, colIdx, "fecha adquisicion");
@@ -422,6 +434,9 @@ public class ImportacionBienesDialog {
                     // Optional fields — parse silently, use defaults on failure
                     if (!resguard.isBlank()) p.setResguardante(resguard);
                     if (!proveed.isBlank())  p.setProveedor(proveed.length() > 200 ? proveed.substring(0, 200) : proveed);
+                    if (!marca.isBlank())    p.setMarca(marca.length() > 100 ? marca.substring(0, 100) : marca);
+                    if (!modelo.isBlank())   p.setModelo(modelo.length() > 100 ? modelo.substring(0, 100) : modelo);
+                    if (!numSerie.isBlank()) p.setNumeroSerie(numSerie.length() > 100 ? numSerie.substring(0, 100) : numSerie);
                     if (!ubicac.isBlank())   p.setUbicacion(ubicac.length() > 200 ? ubicac.substring(0, 200) : ubicac);
                     if (!desc.isBlank())     p.setDescripcion(desc.length() > 1000 ? desc.substring(0, 1000) : desc);
 
@@ -531,8 +546,8 @@ public class ImportacionBienesDialog {
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(
                 new FileOutputStream(dest), java.nio.charset.StandardCharsets.UTF_8))) {
             pw.println(String.join(",", TEMPLATE_HEADERS));
-            pw.println("Laptop Dell XPS,,Equipo de Cómputo,Direccion de Tecnologias de la Informacion,Juan Pérez García,1,1,3,24999.00,27500.00,Dell,Sala de Servidores,Laptop i7 16GB RAM,2024-01-15");
-            pw.println("Silla Ejecutiva,,Mobiliario,Despacho de la Presidencia,María García López,2,1,5,3200.00,3500.00,OfficeMax,Oficina Presidencia,,2024-02-01");
+            pw.println("Laptop Dell XPS,,Equipo de Cómputo,Direccion de Tecnologias de la Informacion,Juan Pérez García,1,1,3,24999.00,27500.00,Dell,Dell,XPS 15 9530,SN-ABC123456,Sala de Servidores,Laptop i7 16GB RAM,2024-01-15");
+            pw.println("Silla Ejecutiva,,Mobiliario,Despacho de la Presidencia,María García López,2,1,5,3200.00,3500.00,OfficeMax,,,, Oficina Presidencia,,2024-02-01");
         }
     }
 }

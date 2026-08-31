@@ -83,8 +83,9 @@ public class ProductoRepository {
         if (!incluirBaja) conds.add("p.fecha_baja IS NULL");
         if (busqueda != null && !busqueda.isBlank()) {
             String like = "%" + busqueda.toLowerCase() + "%";
-            conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ?)");
+            conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ? OR LOWER(COALESCE(p.marca,'')) LIKE ? OR LOWER(COALESCE(p.modelo,'')) LIKE ? OR LOWER(COALESCE(p.numero_serie,'')) LIKE ?)");
             params.add(like); params.add(like); params.add(like); params.add(like); params.add(like);
+            params.add(like); params.add(like); params.add(like);
         }
         if (categoriaId != null) { conds.add("p.categoria_id = ?"); params.add(categoriaId); }
         if (area != null) { conds.add("p.area = ?"); params.add(area); }
