@@ -200,6 +200,15 @@ public final class ProductoDialogFactory {
         TextField fProveedor = new TextField(existing != null && existing.getProveedor() != null ? existing.getProveedor() : "");
         fProveedor.setPromptText("Nombre del proveedor");
         fProveedor.getStyleClass().add("form-input");
+        TextField fMarca = new TextField(existing != null && existing.getMarca() != null ? existing.getMarca() : "");
+        fMarca.setPromptText("Ej. HP, Dell, Brother…");
+        fMarca.getStyleClass().add("form-input");
+        TextField fModelo = new TextField(existing != null && existing.getModelo() != null ? existing.getModelo() : "");
+        fModelo.setPromptText("Modelo del bien");
+        fModelo.getStyleClass().add("form-input");
+        TextField fNumeroSerie = new TextField(existing != null && existing.getNumeroSerie() != null ? existing.getNumeroSerie() : "");
+        fNumeroSerie.setPromptText("Número de serie o placa");
+        fNumeroSerie.getStyleClass().add("form-input");
         TextField fUbicacion = new TextField(existing != null && existing.getUbicacion() != null ? existing.getUbicacion() : "");
         fUbicacion.setPromptText("Ubicación física");
         fUbicacion.getStyleClass().add("form-input");
@@ -280,6 +289,81 @@ public final class ProductoDialogFactory {
 
         VBox imgSection = new VBox(6, imgBox, new HBox(6, btnSelImg, btnQuitarImg));
 
+        // ── Factura picker ──
+        String[] facturaHolder = { existing != null ? existing.getFacturaUrl() : null };
+
+        FontIcon docIcon = new FontIcon("mdi2f-file-document-outline");
+        docIcon.setIconSize(28);
+        Label factPlaceholder = new Label("Sin factura", docIcon);
+        factPlaceholder.setContentDisplay(javafx.scene.control.ContentDisplay.TOP);
+        factPlaceholder.getStyleClass().add("dlg-img-placeholder");
+        factPlaceholder.setAlignment(Pos.CENTER);
+
+        ImageView factPreview = new ImageView();
+        factPreview.setFitWidth(150); factPreview.setFitHeight(112);
+        factPreview.setPreserveRatio(true);
+
+        StackPane factBox = new StackPane(factPlaceholder, factPreview);
+        factBox.setPrefSize(150, 112);
+        factBox.getStyleClass().add("dlg-img-box");
+
+        Runnable loadFact = () -> {
+            if (facturaHolder[0] != null && !facturaHolder[0].isBlank()) {
+                try {
+                    Image img = new Image(Path.of(facturaHolder[0]).toUri().toString(), 150, 112, true, true, true);
+                    factPreview.setImage(img);
+                    factPlaceholder.setVisible(false);
+                } catch (Exception ex) {
+                    factPlaceholder.setVisible(true);
+                }
+            } else {
+                factPreview.setImage(null);
+                factPlaceholder.setVisible(true);
+            }
+        };
+        loadFact.run();
+
+        Button btnSelFact    = new Button("Seleccionar");
+        btnSelFact.setGraphic(new FontIcon("mdi2f-file-document-outline"));
+        Button btnQuitarFact = new Button("Quitar");
+        btnQuitarFact.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
+        btnSelFact.getStyleClass().add("btn-secondary");
+        btnQuitarFact.getStyleClass().add("btn-secondary");
+        btnQuitarFact.setDisable(facturaHolder[0] == null || facturaHolder[0].isBlank());
+
+        // markDirty is defined later but btnSelFact/btnQuitarFact need it — use a holder
+        Runnable[] markDirtyRef = {null};
+        btnSelFact.setOnAction(ev -> {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Seleccionar foto de factura");
+            chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Imágenes", "*.png","*.jpg","*.jpeg","*.gif","*.bmp","*.webp"));
+            File file = chooser.showOpenDialog(dialog.getOwner());
+            if (file != null) {
+                if (ImageUtils.exceedsMaxSize(file)) {
+                    Alert tooBig = new Alert(Alert.AlertType.WARNING,
+                        "La imagen pesa " + (file.length() / (1024 * 1024)) + " MB — el máximo permitido es "
+                        + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB. Elige un archivo más pequeño.");
+                    tooBig.setHeaderText("Imagen demasiado pesada");
+                    tooBig.initOwner(dialog.getOwner());
+                    tooBig.showAndWait();
+                    return;
+                }
+                facturaHolder[0] = file.getAbsolutePath();
+                loadFact.run();
+                btnQuitarFact.setDisable(false);
+                if (markDirtyRef[0] != null) markDirtyRef[0].run();
+            }
+        });
+        btnQuitarFact.setOnAction(ev -> {
+            facturaHolder[0] = null;
+            loadFact.run();
+            btnQuitarFact.setDisable(true);
+            if (markDirtyRef[0] != null) markDirtyRef[0].run();
+        });
+
+        VBox factSection = new VBox(6, factBox, new HBox(6, btnSelFact, btnQuitarFact));
+
         VBox codigoBox = new VBox(2, fCodigo, lblCodigoHint);
         int r = 0;
         // Required fields first, optional image below a visual divider
@@ -296,6 +380,7 @@ public final class ProductoDialogFactory {
         gridInfo.add(new Separator(), 0, r, 2, 1); r++;
         gridInfo.add(DialogUtil.fieldLabel("Descripción"), 0, r); gridInfo.add(fDesc,      1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Imagen"),      0, r); gridInfo.add(imgSection, 1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Foto factura"), 0, r); gridInfo.add(factSection, 1, r++);
         gridInfo.add(lblInfoReq,                           1, r);
 
         // ── Tab: Stock & Precios ──
@@ -398,8 +483,11 @@ public final class ProductoDialogFactory {
         // ── Tab: Datos Patrimoniales ──
         GridPane gridPatrimonio = DialogUtil.formGrid(140);
         int rp = 0;
-        gridPatrimonio.add(DialogUtil.fieldLabel("Proveedor"),    0, rp); gridPatrimonio.add(fProveedor,    1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabel("Ubicación"),    0, rp); gridPatrimonio.add(fUbicacion,    1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabel("Proveedor"),     0, rp); gridPatrimonio.add(fProveedor,    1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabel("Marca"),         0, rp); gridPatrimonio.add(fMarca,        1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabel("Modelo"),        0, rp); gridPatrimonio.add(fModelo,       1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); gridPatrimonio.add(fNumeroSerie,  1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabel("Ubicación"),     0, rp); gridPatrimonio.add(fUbicacion,    1, rp++);
         gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Resguardante",
             "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
                                                                   0, rp); gridPatrimonio.add(fResguardante, 1, rp++);
@@ -442,7 +530,28 @@ public final class ProductoDialogFactory {
         if (!isNewProduct) btnGuardar.getStyleClass().add("form-submit-btn-edit");
         btnGuardar.setMaxWidth(Double.MAX_VALUE);
         btnGuardar.setDisable(true);
-        btnGuardar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
+        btnGuardar.setOnAction(e -> {
+            // Validate inline so we can keep the dialog open on errors without
+            // triggering setOnCloseRequest (which would show "Descartar cambios").
+            boolean inv = false;
+            if (fNombre.getText().isBlank()) { fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            if (fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            if (fCat.getValue() == null) { fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            String pcText = fPrecioC.getText().trim(), pvText = fPrecioV.getText().trim();
+            try { var bd = new java.math.BigDecimal(pcText); if (bd.signum() < 0) throw new NumberFormatException(); fPrecioC.getStyleClass().remove("field-error"); }
+            catch (Exception ex) { fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
+            try { var bd = new java.math.BigDecimal(pvText); if (bd.signum() < 0) throw new NumberFormatException(); fPrecioV.getStyleClass().remove("field-error"); }
+            catch (Exception ex) { fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
+            if (fStockMin.getValue() > fStockMax.getValue()) { fStockMin.getStyleClass().add("field-error"); fStockMax.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
+            if (inv) {
+                lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos y no negativos (ej. 1500.00), y el Stock Mínimo no puede superar al Stock Máximo.");
+                lblFormError.setVisible(true); lblFormError.setManaged(true);
+                AnimationUtils.shake(lblFormError);
+                return; // keep dialog open — do NOT fire okBtn
+            }
+            if (okBtn instanceof Button b) b.fire();
+        });
 
         Runnable hideFormError = () -> { lblFormError.setVisible(false); lblFormError.setManaged(false); };
         fNombre.textProperty().addListener((o, a, b) -> {
@@ -503,12 +612,16 @@ public final class ProductoDialogFactory {
         // values on edit don't immediately mark the form dirty.
         boolean[] dirty = {false};
         Runnable markDirty = () -> dirty[0] = true;
+        markDirtyRef[0] = markDirty;
         fNombre.textProperty().addListener((o, a, b) -> markDirty.run());
         fCodigo.textProperty().addListener((o, a, b) -> markDirty.run());
         fDesc.textProperty().addListener((o, a, b) -> markDirty.run());
         fCat.valueProperty().addListener((o, a, b) -> markDirty.run());
         fArea.valueProperty().addListener((o, a, b) -> markDirty.run());
         fProveedor.textProperty().addListener((o, a, b) -> markDirty.run());
+        fMarca.textProperty().addListener((o, a, b) -> markDirty.run());
+        fModelo.textProperty().addListener((o, a, b) -> markDirty.run());
+        fNumeroSerie.textProperty().addListener((o, a, b) -> markDirty.run());
         fUbicacion.textProperty().addListener((o, a, b) -> markDirty.run());
         fResguardante.textProperty().addListener((o, a, b) -> markDirty.run());
         fStock.valueProperty().addListener((o, a, b) -> markDirty.run());
@@ -622,6 +735,9 @@ public final class ProductoDialogFactory {
             p.setStockMaximo(fStockMax.getValue());
             p.setUnidad(fUnidad.getValue());
             p.setProveedor(fProveedor.getText().trim());
+            p.setMarca(fMarca.getText().trim().isEmpty() ? null : fMarca.getText().trim());
+            p.setModelo(fModelo.getText().trim().isEmpty() ? null : fModelo.getText().trim());
+            p.setNumeroSerie(fNumeroSerie.getText().trim().isEmpty() ? null : fNumeroSerie.getText().trim());
             p.setUbicacion(fUbicacion.getText().trim());
             p.setResguardante(fResguardante.getText().trim());
             p.setFechaVencimiento(fVenc.getValue());
@@ -634,6 +750,7 @@ public final class ProductoDialogFactory {
                 p.setValorResidual(BigDecimal.ZERO);
             }
             p.setArea(fArea.getValue());
+            dirty[0] = false; // clear so setOnCloseRequest doesn't prompt after a successful save
             if (fotoHolder[0] != null && !fotoHolder[0].isBlank()) {
                 try {
                     Path imgDir = imgDir();
@@ -651,6 +768,24 @@ public final class ProductoDialogFactory {
                 }
             } else {
                 p.setFotoUrl(null);
+            }
+            if (facturaHolder[0] != null && !facturaHolder[0].isBlank()) {
+                try {
+                    Path factDir = ImageUtils.storageDir().resolve("facturas");
+                    Files.createDirectories(factDir);
+                    Path dest = factDir.resolve(p.getId() + ".jpg");
+                    Path src = Path.of(facturaHolder[0]);
+                    if (!src.equals(dest)) {
+                        ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                        thumbnailCache.remove(dest.toString());
+                    }
+                    p.setFacturaUrl(dest.toString());
+                } catch (Exception ex) {
+                    log.error("No se pudo procesar la foto de factura del bien '{}', se conserva la anterior", p.getNombre(), ex);
+                    p.setFacturaUrl(existing != null ? existing.getFacturaUrl() : null);
+                }
+            } else {
+                p.setFacturaUrl(null);
             }
             return p;
         });

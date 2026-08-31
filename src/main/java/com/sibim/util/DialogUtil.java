@@ -269,7 +269,6 @@ public final class DialogUtil {
      * columns are configured — the lookup needs the skin, which is resolved
      * lazily via skinProperty().
      */
-    @SuppressWarnings({"unchecked","rawtypes"})
     public static void setupColumnVisibilityMenu(String prefKeyPrefix,
             TableView<?> table, List<? extends TableColumn<?, ?>> alwaysVisible) {
         table.skinProperty().addListener((obs, old, skin) -> {

@@ -54,7 +54,7 @@ public final class PendientesTransferenciasDialog {
 
             VBox info = new VBox(3);
             Label titulo = new Label(
-                m.getProductoNombre() + "  ·  " + (m.getAreaOrigen() != null ? m.getAreaOrigen() : "—") + " → " + m.getAreaDestino());
+                (m.getProductoNombre() != null ? m.getProductoNombre() : "—") + "  ·  " + (m.getAreaOrigen() != null ? m.getAreaOrigen() : "—") + " → " + (m.getAreaDestino() != null ? m.getAreaDestino() : "—"));
             titulo.getStyleClass().add("dlg-detail-value");
             Label detalle = new Label(
                 "Solicitado por " + m.getUsuarioNombre() + " · " + FormatUtils.formatDateTime(m.getCreadoEn())

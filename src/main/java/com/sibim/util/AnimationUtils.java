@@ -236,7 +236,6 @@ public final class AnimationUtils {
      * Must be called on the FX thread; uses Platform.runLater to wait one
      * pulse so JavaFX finishes laying out the new rows before we animate them.
      */
-    @SuppressWarnings("unchecked")
     public static <T> void staggerTableRows(TableView<T> table) {
         Platform.runLater(() -> {
             var rows = table.lookupAll(".table-row-cell").stream()

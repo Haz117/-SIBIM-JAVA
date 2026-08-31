@@ -13,6 +13,7 @@ public final class NavigationContext {
     private NavigationContext() {}
 
     private static String pendingAreaFilter;
+    private static String pendingProductId;
 
     public static void setPendingAreaFilter(String area) {
         pendingAreaFilter = area;
@@ -22,6 +23,19 @@ public final class NavigationContext {
     public static String consumePendingAreaFilter() {
         String value = pendingAreaFilter;
         pendingAreaFilter = null;
+        return value;
+    }
+
+    /** Set before navigating to Productos — the controller will scroll to
+     *  and select the bien with this ID on first load. */
+    public static void setPendingProductId(String id) {
+        pendingProductId = id;
+    }
+
+    /** Reads and clears the pending product ID — null if none was set. */
+    public static String consumePendingProductId() {
+        String value = pendingProductId;
+        pendingProductId = null;
         return value;
     }
 }

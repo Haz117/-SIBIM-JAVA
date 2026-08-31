@@ -173,7 +173,7 @@ public class ImportacionBienesDialog {
         });
 
         preview.getColumns().addAll(colNum, colStatus, colNombre, colCat, colArea, colCant, colError);
-        preview.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        preview.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         VBox content = new VBox(12, header, instructions, new Separator(), fileRow, lblResumen, preview);
         content.setPadding(new Insets(0, 0, 12, 0));

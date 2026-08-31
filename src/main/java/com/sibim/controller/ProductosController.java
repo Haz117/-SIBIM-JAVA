@@ -19,6 +19,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.QrUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
@@ -41,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import java.awt.Desktop;
 import java.io.File;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -107,6 +107,7 @@ public class ProductosController {
     @FXML private Button btnBulkArea;
     @FXML private Button btnBulkResguardante;
     @FXML private Button btnMovimiento;
+    @FXML private Button btnQr;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
     @FXML private MenuButton btnExportarSeleccion;
@@ -234,6 +235,7 @@ public class ProductosController {
         table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<Producto>) c -> {
             int n = table.getSelectionModel().getSelectedItems().size();
             if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(n != 1);
+            if (btnQr        != null) btnQr.setDisable(n != 1);
             if (btnEditar   != null && canEdit) btnEditar.setDisable(n != 1);
             if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
             if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
@@ -241,6 +243,7 @@ public class ProductosController {
             updateBulkBar(n);
         });
         if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(true);
+        if (btnQr        != null) btnQr.setDisable(true);
         if (btnEditar   != null && canEdit) btnEditar.setDisable(true);
         if (btnEliminar != null && canEdit) btnEliminar.setDisable(true);
         if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(true);
@@ -457,6 +460,21 @@ public class ProductosController {
                 updateStats(stats);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
+                // Highlight a product selected via the search palette (Ctrl+K)
+                String pendingId = NavigationContext.consumePendingProductId();
+                if (pendingId != null) {
+                    final String id = pendingId;
+                    Platform.runLater(() -> {
+                        for (int i = 0; i < filteredData.size(); i++) {
+                            if (id.equals(filteredData.get(i).getId())) {
+                                table.getSelectionModel().clearAndSelect(i);
+                                table.scrollTo(i);
+                                table.requestFocus();
+                                break;
+                            }
+                        }
+                    });
+                }
             }
 
             @Override protected void failed() {
@@ -888,6 +906,57 @@ public class ProductosController {
                 e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el resguardante")
             )
         );
+    }
+
+    @FXML
+    private void onBulkResguardoPdf() {
+        java.util.List<Producto> seleccionados = new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems());
+        if (seleccionados.isEmpty()) return;
+        // Tomar el primer resguardante y área no-nulos del lote
+        String resguardante = seleccionados.stream()
+            .map(Producto::getResguardante)
+            .filter(r -> r != null && !r.isBlank())
+            .findFirst().orElse("Sin resguardante");
+        String area = seleccionados.stream()
+            .map(Producto::getArea)
+            .filter(a -> a != null && !a.isBlank())
+            .findFirst().orElse("");
+        DialogUtil.runAsync(
+            () -> reporteService.exportarResguardoPdf(resguardante, area, seleccionados),
+            file -> {
+                NotificacionUtil.exito(table.getScene(), "Resguardo PDF generado");
+                try { java.awt.Desktop.getDesktop().open(file); } catch (Exception ignored) {}
+            },
+            e -> NotificacionUtil.error(table.getScene(), "Error al generar el resguardo PDF")
+        );
+    }
+
+    @FXML
+    private void onImprimirQr() {
+        Producto sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) return;
+
+        javafx.scene.image.Image qrImg = QrUtils.generateQr(sel.getCodigo(), 260);
+        if (qrImg == null) { NotificacionUtil.error(table.getScene(), "No se pudo generar el QR"); return; }
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Código QR — " + sel.getNombre());
+        dlg.initOwner(table.getScene().getWindow());
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
+        dlg.getDialogPane().getStylesheets().addAll(table.getScene().getStylesheets());
+
+        javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(qrImg);
+        iv.setFitWidth(260); iv.setFitHeight(260); iv.setPreserveRatio(true);
+        javafx.scene.control.Label lblCodigo = new javafx.scene.control.Label(sel.getCodigo());
+        lblCodigo.getStyleClass().add("dlg-detail-value");
+        javafx.scene.control.Label lblNombre = new javafx.scene.control.Label(sel.getNombre());
+        lblNombre.getStyleClass().add("muted-sm");
+
+        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(8, iv, lblCodigo, lblNombre);
+        content.setAlignment(javafx.geometry.Pos.CENTER);
+        content.setPadding(new javafx.geometry.Insets(16));
+        dlg.getDialogPane().setContent(content);
+        dlg.showAndWait();
     }
 
     @FXML

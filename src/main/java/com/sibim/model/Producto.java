@@ -27,6 +27,10 @@ public class Producto {
     private String proveedor;
     private LocalDate fechaVencimiento;
     private String fotoUrl;
+    private String facturaUrl;
+    private String numeroSerie;
+    private String marca;
+    private String modelo;
     private String ubicacion;
     private String area;
     private String resguardante;
@@ -141,6 +145,16 @@ public class Producto {
 
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
+
+    public String getFacturaUrl() { return facturaUrl; }
+    public void setFacturaUrl(String facturaUrl) { this.facturaUrl = facturaUrl; }
+
+    public String getNumeroSerie() { return numeroSerie; }
+    public void setNumeroSerie(String numeroSerie) { this.numeroSerie = numeroSerie; }
+    public String getMarca() { return marca; }
+    public void setMarca(String marca) { this.marca = marca; }
+    public String getModelo() { return modelo; }
+    public void setModelo(String modelo) { this.modelo = modelo; }
 
     public String getUbicacion() { return ubicacion; }
     public void setUbicacion(String ubicacion) { this.ubicacion = ubicacion; }

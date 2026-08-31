@@ -247,7 +247,9 @@ public final class SyncService {
     private record ProductRow(int id, String operacion, String productoId, String nombre, String codigo,
                                String descripcion, String categoriaId, String precioCompra, String precioVenta,
                                int stockActual, int stockMinimo, int stockMaximo, String unidad, String proveedor,
-                               String fechaVencimiento, String fotoUrl, String ubicacion, String area,
+                               String fechaVencimiento, String fotoUrl, String facturaUrl,
+                               String numeroSerie, String marca, String modelo,
+                               String ubicacion, String area,
                                String resguardante, String motivoBaja, String serverSnapshotAt) {}
 
     static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
@@ -263,7 +265,9 @@ public final class SyncService {
                     rs.getString("categoria_id"), rs.getString("precio_compra"), rs.getString("precio_venta"),
                     rs.getInt("stock_actual"), rs.getInt("stock_minimo"), rs.getInt("stock_maximo"),
                     rs.getString("unidad"), rs.getString("proveedor"), rs.getString("fecha_vencimiento"),
-                    rs.getString("foto_url"), rs.getString("ubicacion"), rs.getString("area"),
+                    rs.getString("foto_url"), rs.getString("factura_url"),
+                    rs.getString("numero_serie"), rs.getString("marca"), rs.getString("modelo"),
+                    rs.getString("ubicacion"), rs.getString("area"),
                     rs.getString("resguardante"), rs.getString("motivo_baja"),
                     rs.getString("server_snapshot_at")));
             }
@@ -329,6 +333,10 @@ public final class SyncService {
         p.setProveedor(r.proveedor());
         if (r.fechaVencimiento() != null) p.setFechaVencimiento(LocalDate.parse(r.fechaVencimiento()));
         p.setFotoUrl(r.fotoUrl());
+        p.setFacturaUrl(r.facturaUrl());
+        p.setNumeroSerie(r.numeroSerie());
+        p.setMarca(r.marca());
+        p.setModelo(r.modelo());
         p.setUbicacion(r.ubicacion());
         p.setArea(r.area());
         p.setResguardante(r.resguardante());

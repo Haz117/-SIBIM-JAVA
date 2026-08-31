@@ -6,6 +6,7 @@ import com.sibim.db.offline.SyncService;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.service.CategoriaService;
 import com.sibim.service.ProductoService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.CommandPalette;
@@ -678,18 +679,24 @@ public class MainController {
     }
 
     private void onCommandPalette() {
-        java.util.List<CommandPalette.NavEntry> entries = java.util.List.of(
-            new CommandPalette.NavEntry("mdi2v-view-dashboard-outline", "#0EA5E9", "Dashboard",          "Ctrl+1", this::onDashboard),
-            new CommandPalette.NavEntry("mdi2a-account-tree-outline",   "#7C3AED", "Organigrama",        "Ctrl+2", this::onOrganigrama),
-            new CommandPalette.NavEntry("mdi2p-package-variant",        "#6366F1", "Bienes / Inventario","Ctrl+3", this::onProductos),
-            new CommandPalette.NavEntry("mdi2t-tag-outline",            "#EC4899", "Categorías",         "Ctrl+4", this::onCategorias),
-            new CommandPalette.NavEntry("mdi2s-swap-vertical-bold",     "#7C3AED", "Movimientos",        "Ctrl+5", this::onMovimientos),
-            new CommandPalette.NavEntry("mdi2b-bell-ring-outline",      "#DC2626", "Alertas",            "Ctrl+6", this::onAlertas),
-            new CommandPalette.NavEntry("mdi2f-file-chart-outline",     "#059669", "Reportes",           "Ctrl+7", this::onReportes),
-            new CommandPalette.NavEntry("mdi2c-cog-outline",            "#64748B", "Configuración",      "Ctrl+8", this::onConfiguracion),
-            new CommandPalette.NavEntry("mdi2d-domain",                 "#6366F1", "Depreciación",       "Ctrl+9", this::onDepreciacion)
-        );
-        CommandPalette.show(outerStack, entries, alertProductoService, categoriaService);
+        javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
+        // Load products on a background thread, then show the palette on the FX thread
+        com.sibim.util.AppExecutor.submit(() -> {
+            java.util.List<com.sibim.model.Producto> productos;
+            try {
+                productos = alertProductoService.getAll();
+            } catch (Exception e) {
+                log.warn("No se pudieron cargar bienes para la paleta de búsqueda", e);
+                productos = java.util.List.of();
+            }
+            final java.util.List<com.sibim.model.Producto> finalProductos = productos;
+            javafx.application.Platform.runLater(() ->
+                SearchPaletteDialog.show(stage, finalProductos, producto -> {
+                    NavigationContext.setPendingProductId(producto.getId());
+                    navigateTo("productos", btnProductos);
+                })
+            );
+        });
     }
 
     private void addNavTooltips() {

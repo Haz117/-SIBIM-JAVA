@@ -206,6 +206,11 @@
             <graphic><FontIcon iconLiteral="mdi2a-account-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Asignar un nuevo resguardante a todos los bienes seleccionados"/></tooltip>
         </Button>
+        <Button text="Resguardo PDF" onAction="#onBulkResguardoPdf"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Genera un PDF de resguardo con los bienes seleccionados"/></tooltip>
+        </Button>
         <Separator orientation="VERTICAL"/>
         <Button text="Deseleccionar" onAction="#onDeseleccionar" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="6">
@@ -239,6 +244,11 @@
             <tooltip><Tooltip text="Registrar una entrada, salida, ajuste o transferencia para el bien seleccionado, sin tener que volver a buscarlo en Movimientos" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnQr" text="QR" onAction="#onImprimirQr" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2q-qrcode" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Ver e imprimir el código QR del bien seleccionado"/></tooltip>
+        </Button>
         <Button fx:id="btnEditar" text="Editar" onAction="#onEdit" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-pencil" styleClass="btn-icon"/></graphic>

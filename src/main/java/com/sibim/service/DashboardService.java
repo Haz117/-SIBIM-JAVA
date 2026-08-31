@@ -3,7 +3,6 @@ package com.sibim.service;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.repository.MovimientoRepository;
-import com.sibim.repository.MovimientoRepository.MonthlyStats;
 import com.sibim.repository.ProductoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

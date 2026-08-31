@@ -3585,3 +3585,40 @@
 
 /* Categorías — emoji icon inside icon column cell */
 .cat-icon-cell-label { -fx-font-size: 18px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEARCH PALETTE DIALOG (Ctrl+K)
+   ═══════════════════════════════════════════════════════════════════ */
+.search-palette-pane {
+    -fx-background-color: -fx-base;
+    -fx-padding: 0;
+}
+.search-palette-header {
+    -fx-padding: 12 16 12 16;
+    -fx-background-color: -fx-base;
+}
+.search-palette-field {
+    -fx-font-size: 15px;
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+.search-palette-icon {
+    -fx-icon-size: 20px;
+    -fx-fill: -color-fg-muted;
+}
+.search-palette-list {
+    -fx-border-width: 0;
+    -fx-background-insets: 0;
+    -fx-padding: 4 0 4 0;
+}
+.palette-item-box {
+    -fx-padding: 4 8 4 8;
+}
+.palette-item-nombre {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.palette-item-meta {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}

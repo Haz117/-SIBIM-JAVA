@@ -344,11 +344,16 @@ public final class MovimientoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
+        boolean[] saving = {false}; // set true on submit so setOnCloseRequest doesn't prompt
+
         Button btnRegistrar = new Button("Registrar movimiento");
         btnRegistrar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
         btnRegistrar.getStyleClass().add("form-submit-btn");
         btnRegistrar.setDisable(true);
-        btnRegistrar.setOnAction(e -> { if (okBtn instanceof Button b) b.fire(); });
+        btnRegistrar.setOnAction(e -> {
+            saving[0] = true;
+            if (okBtn instanceof Button b) b.fire();
+        });
         HBox.setHgrow(btnRegistrar, Priority.ALWAYS);
         btnRegistrar.setMaxWidth(Double.MAX_VALUE);
 
@@ -459,7 +464,7 @@ public final class MovimientoDialogFactory {
             });
         }
         dialog.setOnCloseRequest(e -> {
-            if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar movimiento",
+            if (!saving[0] && dirty[0] && !ConfirmacionUtil.confirmar("Descartar movimiento",
                     "Tienes datos ingresados.\n¿Seguro que deseas cancelar el movimiento?"))
                 e.consume();
         });

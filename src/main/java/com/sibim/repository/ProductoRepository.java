@@ -327,10 +327,10 @@ public class ProductoRepository {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
-                fecha_vencimiento, foto_url, ubicacion, area, resguardante,
+                fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
                 fecha_adquisicion, vida_util_anios, valor_residual,
                 created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -345,6 +345,10 @@ public class ProductoRepository {
                 proveedor = EXCLUDED.proveedor,
                 fecha_vencimiento = EXCLUDED.fecha_vencimiento,
                 foto_url = EXCLUDED.foto_url,
+                factura_url = EXCLUDED.factura_url,
+                numero_serie = EXCLUDED.numero_serie,
+                marca = EXCLUDED.marca,
+                modelo = EXCLUDED.modelo,
                 ubicacion = EXCLUDED.ubicacion,
                 area = EXCLUDED.area,
                 resguardante = EXCLUDED.resguardante,
@@ -370,14 +374,18 @@ public class ProductoRepository {
             ps.setString(12, p.getProveedor());
             ps.setObject(13, p.getFechaVencimiento());
             ps.setString(14, p.getFotoUrl());
-            ps.setString(15, p.getUbicacion());
-            ps.setString(16, p.getArea());
-            ps.setString(17, p.getResguardante());
-            ps.setObject(18, p.getFechaAdquisicion());
-            ps.setObject(19, p.getVidaUtilAnios());
-            ps.setBigDecimal(20, p.getValorResidual() != null ? p.getValorResidual() : BigDecimal.ZERO);
-            ps.setTimestamp(21, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(22, Timestamp.valueOf(now));
+            ps.setString(15, p.getFacturaUrl());
+            ps.setString(16, p.getNumeroSerie());
+            ps.setString(17, p.getMarca());
+            ps.setString(18, p.getModelo());
+            ps.setString(19, p.getUbicacion());
+            ps.setString(20, p.getArea());
+            ps.setString(21, p.getResguardante());
+            ps.setObject(22, p.getFechaAdquisicion());
+            ps.setObject(23, p.getVidaUtilAnios());
+            ps.setBigDecimal(24, p.getValorResidual() != null ? p.getValorResidual() : BigDecimal.ZERO);
+            ps.setTimestamp(25, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
+            ps.setTimestamp(26, Timestamp.valueOf(now));
             ps.executeUpdate();
         }
         return p;
@@ -771,6 +779,10 @@ public class ProductoRepository {
         java.sql.Date fv = rs.getDate("fecha_vencimiento");
         if (fv != null) p.setFechaVencimiento(fv.toLocalDate());
         p.setFotoUrl(rs.getString("foto_url"));
+        p.setFacturaUrl(rs.getString("factura_url"));
+        p.setNumeroSerie(rs.getString("numero_serie"));
+        p.setMarca(rs.getString("marca"));
+        p.setModelo(rs.getString("modelo"));
         p.setUbicacion(rs.getString("ubicacion"));
         p.setArea(rs.getString("area"));
         p.setResguardante(rs.getString("resguardante"));

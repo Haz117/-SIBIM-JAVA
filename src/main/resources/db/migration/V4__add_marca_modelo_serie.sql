@@ -1,0 +1,3 @@
+ALTER TABLE products ADD COLUMN IF NOT EXISTS numero_serie TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS marca        TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS modelo       TEXT;

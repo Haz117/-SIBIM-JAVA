@@ -12,7 +12,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
 /** Read-only detail dialog for a {@link Movimiento}.

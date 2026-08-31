@@ -1,5 +1,6 @@
 package com.sibim.controller.dialogs;
 
+import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteService;
@@ -14,10 +15,12 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.util.List;
 
 /** Read-only detail dialog for a {@link Producto}.
  *  Extracted from ProductosController to keep it under 700 lines. */
@@ -26,13 +29,18 @@ public final class ProductoDetailDialog {
     private ProductoDetailDialog() {}
 
     public static void show(Producto p, Scene scene, MovimientoService movimientoService, Logger log) {
+        // Load movements eagerly so we can show history inline and reuse them for ficha
+        List<Movimiento> movimientos = List.of();
+        try { movimientos = movimientoService.getByProducto(p.getId()); } catch (Exception ignored) {}
+        final List<Movimiento> movs = movimientos;
+
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Detalle del Bien");
 
         ButtonType fichaBtn = new ButtonType("Imprimir ficha", ButtonBar.ButtonData.LEFT);
         dialog.getDialogPane().getButtonTypes().addAll(fichaBtn, ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(520);
+        dialog.getDialogPane().setPrefWidth(560);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         Button btnFicha = (Button) dialog.getDialogPane().lookupButton(fichaBtn);
@@ -42,10 +50,7 @@ public final class ProductoDetailDialog {
             DialogUtil.runAsyncWithProgress(
                 scene,
                 "Generando ficha técnica…",
-                () -> {
-                    var movs = movimientoService.getByProducto(p.getId());
-                    return new ReporteService().exportFichaTecnica(p, movs);
-                },
+                () -> new ReporteService().exportFichaTecnica(p, movs),
                 file -> DialogUtil.showExportResultDialog(scene, file),
                 ex -> NotificacionUtil.error(scene, "No se pudo generar la ficha técnica")
             );
@@ -123,26 +128,50 @@ public final class ProductoDetailDialog {
             default         -> "dlg-detail-stock-ok";
         };
 
-        Object[][] rows = {
-            {"Categoría",       p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—", null},
-            {"Área",            p.getArea() != null ? p.getArea() : "—", null},
-            {"Resguardante",    p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "—", null},
-            {"Stock actual",    String.valueOf(p.getStockActual()), stockClass},
-            {"Stock mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null},
-            {"Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null},
-            {"Precio compra",   FormatUtils.formatCurrency(p.getPrecioCompra()), null},
-            {"Precio venta",    FormatUtils.formatCurrency(p.getPrecioVenta()), null},
-            {"Valor total",     FormatUtils.formatCurrency(p.getValorTotal()), "dlg-detail-total"},
-            {"Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null},
-            {"Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null},
-            {"Vencimiento",     p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "—", null},
-        };
-        for (int i = 0; i < rows.length; i++) {
-            Label key = DialogUtil.fieldLabel((String) rows[i][0]);
-            Label val = new Label((String) rows[i][1]);
-            val.setWrapText(true); val.setMaxWidth(280);
-            if (rows[i][2] != null) val.getStyleClass().add((String) rows[i][2]);
+        // Build rows dynamically so new fields (marca/modelo/serie) are shown only when present
+        record Row(String key, String val, String styleClass) {}
+        java.util.ArrayList<Row> rowList = new java.util.ArrayList<>();
+        rowList.add(new Row("Categoría",       p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—", null));
+        rowList.add(new Row("Área",            p.getArea() != null ? p.getArea() : "—", null));
+        rowList.add(new Row("Resguardante",    p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "—", null));
+        // Marca / Modelo / Número de serie — shown only when the field exists on the model
+        try { String v = p.getMarca();       if (v != null && !v.isBlank()) rowList.add(new Row("Marca",          v, null)); } catch (Exception ignored) {}
+        try { String v = p.getModelo();      if (v != null && !v.isBlank()) rowList.add(new Row("Modelo",         v, null)); } catch (Exception ignored) {}
+        try { String v = p.getNumeroSerie(); if (v != null && !v.isBlank()) rowList.add(new Row("Número de serie",v, null)); } catch (Exception ignored) {}
+        rowList.add(new Row("Stock actual",    String.valueOf(p.getStockActual()), stockClass));
+        rowList.add(new Row("Stock mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null));
+        rowList.add(new Row("Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null));
+        rowList.add(new Row("Precio compra",   FormatUtils.formatCurrency(p.getPrecioCompra()), null));
+        rowList.add(new Row("Precio venta",    FormatUtils.formatCurrency(p.getPrecioVenta()), null));
+        rowList.add(new Row("Valor total",     FormatUtils.formatCurrency(p.getValorTotal()), "dlg-detail-total"));
+        rowList.add(new Row("Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null));
+        rowList.add(new Row("Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null));
+        rowList.add(new Row("Vencimiento",     p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "—", null));
+        for (int i = 0; i < rowList.size(); i++) {
+            Row row = rowList.get(i);
+            Label key = DialogUtil.fieldLabel(row.key());
+            Label val = new Label(row.val());
+            val.setWrapText(true); val.setMaxWidth(310);
+            if (row.styleClass() != null) val.getStyleClass().add(row.styleClass());
             g.add(key, 0, i); g.add(val, 1, i);
+        }
+
+        // ── Foto de factura (si existe) ────────────────────────────────
+        String facturaUrl = null;
+        try { facturaUrl = p.getFacturaUrl(); } catch (Exception ignored) {}
+        if (facturaUrl != null && !facturaUrl.isBlank()) {
+            try {
+                Image factImg = new Image(Path.of(facturaUrl).toUri().toString(), 100, 75, true, true, true);
+                ImageView factIv = new ImageView(factImg);
+                factIv.setFitWidth(100); factIv.setFitHeight(75); factIv.setPreserveRatio(true);
+                final String fUrl = facturaUrl;
+                javafx.scene.layout.StackPane factPane = new javafx.scene.layout.StackPane(factIv);
+                factPane.getStyleClass().addAll("dlg-img-box", "foto-cell-box-clickable");
+                factPane.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(fUrl, "Factura — " + p.getNombre()));
+                VBox factBox = new VBox(4, DialogUtil.fieldLabel("Foto de factura"), factPane);
+                int nextRow = rowList.size();
+                g.add(factBox, 0, nextRow, 2, 1);
+            } catch (Exception ex) { log.warn("No se pudo cargar foto de factura: {}", facturaUrl, ex); }
         }
 
         // ── Depreciación ──────────────────────────────────────────────
@@ -202,6 +231,61 @@ public final class ProductoDetailDialog {
         } else {
             root.getChildren().addAll(headerCard, g);
         }
+        // ── Movimientos recientes ──────────────────────────────────────
+        if (!movs.isEmpty()) {
+            Separator sepMovs = new Separator();
+            sepMovs.getStyleClass().add("form-separator");
+            root.getChildren().add(sepMovs);
+
+            Label movsTitle = new Label("Movimientos recientes");
+            movsTitle.getStyleClass().add("dialog-field-label");
+
+            VBox movsList = new VBox(4);
+            movs.stream().limit(6).forEach(m -> {
+                String tipoLabel = m.getTipo() != null ? m.getTipo().getEtiqueta() : "—";
+                String signo = switch (m.getTipo()) {
+                    case ENTRADA -> "+";
+                    case SALIDA  -> "−";
+                    default      -> "~";
+                };
+                FontIcon icon = new FontIcon(switch (m.getTipo()) {
+                    case ENTRADA       -> "mdi2a-arrow-down-circle-outline";
+                    case SALIDA        -> "mdi2a-arrow-up-circle-outline";
+                    case TRANSFERENCIA -> "mdi2s-swap-horizontal-circle-outline";
+                    default            -> "mdi2a-adjust";
+                });
+                icon.setIconSize(14);
+                icon.getStyleClass().add(switch (m.getTipo()) {
+                    case ENTRADA -> "icon-entrada";
+                    case SALIDA  -> "icon-salida";
+                    default      -> "icon-ajuste";
+                });
+                Label lTipo = new Label(tipoLabel);
+                lTipo.getStyleClass().add("muted-sm");
+                Label lQty = new Label(signo + m.getCantidad());
+                lQty.getStyleClass().add(switch (m.getTipo()) {
+                    case ENTRADA -> "dlg-detail-stock-ok";
+                    case SALIDA  -> "dlg-detail-stock-low";
+                    default      -> "dlg-detail-code";
+                });
+                Label lFecha = new Label(m.getCreadoEn() != null ? FormatUtils.formatDateTime(m.getCreadoEn()) : "");
+                lFecha.getStyleClass().add("muted-sm");
+                Label lUser = new Label(m.getUsuarioNombre() != null ? m.getUsuarioNombre() : "");
+                lUser.getStyleClass().add("muted-sm");
+                HBox row = new HBox(8, icon, lTipo, lQty, new javafx.scene.layout.Region(), lFecha, lUser);
+                HBox.setHgrow(row.getChildren().get(3), Priority.ALWAYS);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.getStyleClass().add("mov-history-row");
+                movsList.getChildren().add(row);
+            });
+            if (movs.size() > 6) {
+                Label mas = new Label("… y " + (movs.size() - 6) + " más (ver ficha técnica)");
+                mas.getStyleClass().add("muted-sm");
+                movsList.getChildren().add(mas);
+            }
+            root.getChildren().addAll(movsTitle, movsList);
+        }
+
         AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
 
         // Same overflow risk as the create/edit "Nuevo Bien" dialog: the header
