@@ -619,6 +619,8 @@ public class MainController {
         javafx.scene.layout.VBox navVBox =
             (navScroll != null && navScroll.getContent() instanceof javafx.scene.layout.VBox v) ? v : null;
 
+        sidebar.getStyleClass().toggle("sidebar-collapsed");
+
         if (sidebarCollapsed) {
             // Logo: hide badge + text, shrink HBox padding so only toggle button shows
             if (logoBadge != null) { logoBadge.setVisible(false); logoBadge.setManaged(false); }

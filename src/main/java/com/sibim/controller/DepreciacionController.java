@@ -117,6 +117,17 @@ public class DepreciacionController {
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        FontIcon emptyIcon = new FontIcon("mdi2c-chart-line");
+        emptyIcon.setIconSize(44);
+        emptyIcon.getStyleClass().add("empty-icon-lg");
+        Label emptyMsg  = new Label("No hay bienes depreciables registrados");
+        emptyMsg.getStyleClass().add("empty-state-msg");
+        Label emptyHint = new Label("Registra bienes con valor y vida útil en la sección Bienes");
+        emptyHint.getStyleClass().add("empty-state-hint");
+        javafx.scene.layout.VBox emptyState = new javafx.scene.layout.VBox(12, emptyIcon, emptyMsg, emptyHint);
+        emptyState.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state-pane");
+        table.setPlaceholder(emptyState);
 
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colCategoria.setCellValueFactory(c ->

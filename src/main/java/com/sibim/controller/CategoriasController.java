@@ -129,6 +129,17 @@ public class CategoriasController {
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        FontIcon emptyIcon = new FontIcon("mdi2t-tag-multiple-outline");
+        emptyIcon.setIconSize(44);
+        emptyIcon.getStyleClass().add("empty-icon-lg");
+        Label emptyMsg  = new Label("No hay categorías registradas");
+        emptyMsg.getStyleClass().add("empty-state-msg");
+        Label emptyHint = new Label(SessionManager.isAdmin() ? "Presiona Ctrl+N para crear la primera" : "");
+        emptyHint.getStyleClass().add("empty-state-hint");
+        VBox emptyState = new VBox(12, emptyIcon, emptyMsg, emptyHint);
+        emptyState.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state-pane");
+        table.setPlaceholder(emptyState);
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colDescripcion.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getDescripcion() != null ? c.getValue().getDescripcion() : ""));

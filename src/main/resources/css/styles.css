@@ -1325,6 +1325,12 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   ALERTAS — empty state "todo en orden"
+   ═══════════════════════════════════════════════════════════════════ */
+.alert-ok-icon  { -fx-icon-color: #22C55E; }
+.alert-ok-label { -fx-text-fill: #64748B; -fx-font-size: 12.5px; -fx-font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════════════
    EMPTY STATE  — placeholder con icono grande
    ═══════════════════════════════════════════════════════════════════ */
 .empty-state-msg {
@@ -1992,6 +1998,17 @@
 /* ═══════════════════════════════════════════════════════════════════
    SIDEBAR — collapse toggle button
    ═══════════════════════════════════════════════════════════════════ */
+/* Icon-only (collapsed) mode — center icons inside the narrower sidebar */
+.sidebar-collapsed .nav-btn {
+    -fx-alignment: CENTER;
+    -fx-padding: 10 8;
+}
+.sidebar-collapsed .logout-btn,
+.sidebar-collapsed .about-btn {
+    -fx-alignment: CENTER;
+    -fx-padding: 10 8;
+}
+
 .sidebar-toggle-btn {
     -fx-background-color: transparent;
     -fx-padding: 4 6;

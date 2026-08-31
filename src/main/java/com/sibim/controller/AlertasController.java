@@ -84,6 +84,9 @@ public class AlertasController {
         tableAgotados.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableBajoStock.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableGarantias.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableAgotados.setPlaceholder(alertaOkNode("Sin bienes agotados"));
+        tableBajoStock.setPlaceholder(alertaOkNode("Sin bienes con bajo stock"));
+        tableGarantias.setPlaceholder(alertaOkNode("Sin garantías próximas a vencer"));
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(sectionAgotados, sectionBajoStock, sectionGarantias), 300, 65);
@@ -535,5 +538,17 @@ public class AlertasController {
     /** Stops the auto-refresh timer. Must be called before this controller's view is discarded. */
     public void stopAutoRefresh() {
         if (autoRefresh != null) autoRefresh.stop();
+    }
+
+    private static javafx.scene.Node alertaOkNode(String msg) {
+        FontIcon icon = new FontIcon("mdi2c-check-circle-outline");
+        icon.setIconSize(40);
+        icon.getStyleClass().add("alert-ok-icon");
+        Label lbl = new Label(msg);
+        lbl.getStyleClass().add("alert-ok-label");
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(10, icon, lbl);
+        box.setAlignment(javafx.geometry.Pos.CENTER);
+        box.setPadding(new javafx.geometry.Insets(24));
+        return box;
     }
 }
