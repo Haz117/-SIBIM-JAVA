@@ -138,7 +138,7 @@ public final class OfflineStore {
                     try {
                         OfflineEncryption.encryptFrom(fWork, fEnc, fKey);
                     } catch (IOException e) {
-                        System.err.println("[SIBIM] Error al cifrar offline.db al cerrar: " + e.getMessage());
+                        log.error("Error al cifrar offline.db al cerrar", e);
                     }
                 }, "offline-db-encrypt-on-shutdown"));
 

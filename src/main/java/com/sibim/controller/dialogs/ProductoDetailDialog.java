@@ -134,10 +134,12 @@ public final class ProductoDetailDialog {
         rowList.add(new Row("Categoría",       p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—", null));
         rowList.add(new Row("Área",            p.getArea() != null ? p.getArea() : "—", null));
         rowList.add(new Row("Resguardante",    p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "—", null));
-        // Marca / Modelo / Número de serie — shown only when the field exists on the model
-        try { String v = p.getMarca();       if (v != null && !v.isBlank()) rowList.add(new Row("Marca",          v, null)); } catch (Exception ignored) {}
-        try { String v = p.getModelo();      if (v != null && !v.isBlank()) rowList.add(new Row("Modelo",         v, null)); } catch (Exception ignored) {}
-        try { String v = p.getNumeroSerie(); if (v != null && !v.isBlank()) rowList.add(new Row("Número de serie",v, null)); } catch (Exception ignored) {}
+        String marca = p.getMarca();
+        if (marca != null && !marca.isBlank()) rowList.add(new Row("Marca", marca, null));
+        String modelo = p.getModelo();
+        if (modelo != null && !modelo.isBlank()) rowList.add(new Row("Modelo", modelo, null));
+        String serie = p.getNumeroSerie();
+        if (serie != null && !serie.isBlank()) rowList.add(new Row("Número de serie", serie, null));
         rowList.add(new Row("Stock actual",    String.valueOf(p.getStockActual()), stockClass));
         rowList.add(new Row("Stock mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null));
         rowList.add(new Row("Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null));

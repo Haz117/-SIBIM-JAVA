@@ -8,10 +8,12 @@ import javafx.scene.image.Image;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 public final class QrUtils {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(QrUtils.class);
     private QrUtils() {}
 
     public static Image generateQr(String content, int size) {
@@ -27,6 +29,7 @@ public final class QrUtils {
             }
             return image;
         } catch (Exception e) {
+            log.error("Error generando QR para content='{}', size={}", content, size, e);
             return null;
         }
     }
