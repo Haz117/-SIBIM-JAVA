@@ -49,6 +49,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class MainController {
@@ -80,6 +82,8 @@ public class MainController {
     private Button   activeButton;
     private Object   currentController;
     private Timeline badgeRefresh;
+    private Timeline badgePulse;
+    private final Map<Button, Timeline> navHoverAnims = new HashMap<>();
     private Timeline clock;
     private Timeline sessionGuard;
     private final ProductoService alertProductoService = new ProductoService();
@@ -138,6 +142,8 @@ public class MainController {
         }
         navigateTo("dashboard", btnDashboard);
         addNavTooltips();
+        setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
+                      btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion);
 
         // Single scene listener — consolidates what were three separate listeners.
         // Non-critical startup tasks (badge, vencidos, update check) are staggered
@@ -270,10 +276,42 @@ public class MainController {
      *  firing — and keeping this whole controller tree alive — after the
      *  user logs out. JavaFX's animation engine holds a running Timeline
      *  alive on its own, independent of Java reachability. */
+    private void startBadgePulse() {
+        stopBadgePulse();
+        if (alertBadge == null) return;
+        // Soft heartbeat: scale 1.0 → 1.18 → 1.0, every 2.4 s
+        badgePulse = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(alertBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                new KeyValue(alertBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(160),
+                new KeyValue(alertBadge.scaleXProperty(), 1.18, Interpolator.EASE_OUT),
+                new KeyValue(alertBadge.scaleYProperty(), 1.18, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(360),
+                new KeyValue(alertBadge.scaleXProperty(), 1.0, Interpolator.EASE_IN),
+                new KeyValue(alertBadge.scaleYProperty(), 1.0, Interpolator.EASE_IN)),
+            new KeyFrame(Duration.millis(600),
+                new KeyValue(alertBadge.scaleXProperty(), 1.08, Interpolator.EASE_OUT),
+                new KeyValue(alertBadge.scaleYProperty(), 1.08, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(820),
+                new KeyValue(alertBadge.scaleXProperty(), 1.0, Interpolator.EASE_IN),
+                new KeyValue(alertBadge.scaleYProperty(), 1.0, Interpolator.EASE_IN))
+        );
+        badgePulse.setCycleCount(Timeline.INDEFINITE);
+        badgePulse.setDelay(Duration.millis(600));
+        badgePulse.play();
+    }
+
+    private void stopBadgePulse() {
+        if (badgePulse != null) { badgePulse.stop(); badgePulse = null; }
+        if (alertBadge != null) { alertBadge.setScaleX(1.0); alertBadge.setScaleY(1.0); }
+    }
+
     private void stopTimers() {
         if (badgeRefresh != null) badgeRefresh.stop();
         if (clock != null) clock.stop();
         if (sessionGuard != null) sessionGuard.stop();
+        stopBadgePulse();
         if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
     }
 
@@ -325,8 +363,11 @@ public class MainController {
                 log.warn("Intento de navegación con botón nulo para vista: {}", view);
                 return;
             }
-            // Update nav state immediately for instant visual feedback
+            // Update nav state + reset hover transforms immediately
             if (activeButton != null) activeButton.getStyleClass().remove("nav-active");
+            Timeline pendingHover = navHoverAnims.remove(button);
+            if (pendingHover != null) pendingHover.stop();
+            button.setTranslateX(0);
             button.getStyleClass().add("nav-active");
             activeButton = button;
             updateTabProtrusion(button);
@@ -457,12 +498,13 @@ public class MainController {
                         pop.setFromX(0.3); pop.setFromY(0.3);
                         pop.setToX(1.0);   pop.setToY(1.0);
                         pop.setInterpolator(Interpolator.EASE_OUT);
-                        pop.setOnFinished(ev -> AnimationUtils.pulse(alertBadge, 3));
+                        pop.setOnFinished(ev -> startBadgePulse());
                         pop.play();
                     } else {
-                        AnimationUtils.pulse(alertBadge, 2);
+                        AnimationUtils.pulse(alertBadge, 3);
                     }
                 } else {
+                    stopBadgePulse();
                     alertBadge.setVisible(false);
                     alertBadge.setManaged(false);
                 }
@@ -659,6 +701,38 @@ public class MainController {
         addNavTooltip(btnReportes,      "Reportes  (Ctrl+7)");
         addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+8)");
         addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+9)");
+    }
+
+    private void setupNavHover(Button... buttons) {
+        for (Button btn : buttons) {
+            if (btn == null) continue;
+            btn.setOnMouseEntered(e -> {
+                if (btn == activeButton) return;
+                Timeline prev = navHoverAnims.get(btn);
+                if (prev != null) prev.stop();
+                Timeline t = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(btn.translateXProperty(), btn.getTranslateX())),
+                    new KeyFrame(Duration.millis(170),
+                        new KeyValue(btn.translateXProperty(), 6.0, Interpolator.EASE_OUT))
+                );
+                navHoverAnims.put(btn, t);
+                t.play();
+            });
+            btn.setOnMouseExited(e -> {
+                if (btn == activeButton) return;
+                Timeline prev = navHoverAnims.get(btn);
+                if (prev != null) prev.stop();
+                Timeline t = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(btn.translateXProperty(), btn.getTranslateX())),
+                    new KeyFrame(Duration.millis(210),
+                        new KeyValue(btn.translateXProperty(), 0.0, Interpolator.EASE_OUT))
+                );
+                navHoverAnims.put(btn, t);
+                t.play();
+            });
+        }
     }
 
     private void addNavTooltip(Button btn, String text) {

@@ -1,12 +1,16 @@
 package com.sibim.util;
 
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.LongFunction;
 
@@ -225,6 +229,36 @@ public final class AnimationUtils {
         node.getStyleClass().add(cssClass);
         new Timeline(new KeyFrame(Duration.millis(holdMs),
             e -> node.getStyleClass().remove(cssClass))).play();
+    }
+
+    /**
+     * Staggered fade-in + slide-up for visible table rows after data loads.
+     * Must be called on the FX thread; uses Platform.runLater to wait one
+     * pulse so JavaFX finishes laying out the new rows before we animate them.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> void staggerTableRows(TableView<T> table) {
+        Platform.runLater(() -> {
+            var rows = table.lookupAll(".table-row-cell").stream()
+                .filter(n -> n instanceof TableRow<?>)
+                .map(n -> (TableRow<?>) n)
+                .filter(r -> !r.isEmpty())
+                .sorted(Comparator.comparingDouble(Node::getLayoutY))
+                .limit(15)
+                .toList();
+            for (int i = 0; i < rows.size(); i++) {
+                Node row = rows.get(i);
+                row.setOpacity(0);
+                row.setTranslateY(10);
+                int delay = i * 22;
+                FadeTransition ft = new FadeTransition(Duration.millis(200), row);
+                ft.setFromValue(0); ft.setToValue(1); ft.setDelay(Duration.millis(delay));
+                TranslateTransition tt = new TranslateTransition(Duration.millis(200), row);
+                tt.setFromY(10); tt.setToY(0); tt.setDelay(Duration.millis(delay));
+                tt.setInterpolator(Interpolator.EASE_OUT);
+                new ParallelTransition(ft, tt).play();
+            }
+        });
     }
 
     // ── helpers ──────────────────────────────────────────────────

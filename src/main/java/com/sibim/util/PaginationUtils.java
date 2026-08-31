@@ -31,6 +31,7 @@ public final class PaginationUtils {
         int to = Math.min(from + pageSize, total);
 
         table.setItems(FXCollections.observableArrayList(filteredData.subList(from, to)));
+        AnimationUtils.staggerTableRows(table);
 
         if (lblTotal != null) lblTotal.setText(total + (total == 1 ? " " + singular : " " + plural));
         if (lblPage != null) lblPage.setText(total == 0 ? "—"
@@ -50,6 +51,7 @@ public final class PaginationUtils {
             Label lblTotal, Label lblPage, Button btnPrev, Button btnNext,
             String singular, String plural) {
         table.setItems(FXCollections.observableArrayList(pageData));
+        AnimationUtils.staggerTableRows(table);
         int totalPages = Math.max(1, (int) Math.ceil((double) totalFiltered / pageSize));
         int clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
         int from = clampedPage * pageSize;

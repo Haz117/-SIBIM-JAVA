@@ -2510,11 +2510,9 @@
     -fx-background-radius: 12;
     -fx-border-color: transparent transparent transparent rgba(99,102,241,0.55);
     -fx-border-width: 0 0 0 3;
-    -fx-translate-x: 3;
 }
 .nav-btn:pressed {
     -fx-background-color: #E2E8F0;
-    -fx-translate-x: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
