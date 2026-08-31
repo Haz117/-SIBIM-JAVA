@@ -218,6 +218,7 @@ public class CategoriasController {
                 || (c.getDescripcion() != null && c.getDescripcion().toLowerCase().contains(q)))
             .toList();
         table.getItems().setAll(filtered);
+        AnimationUtils.staggerTableRows(table);
         AnimationUtils.animateCount(lblTotal, filtered.size(), 350, v -> v + (v == 1 ? " categoría" : " categorías"));
     }
 

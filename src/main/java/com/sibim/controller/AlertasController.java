@@ -339,6 +339,9 @@ public class AlertasController {
         tableAgotados.getItems().setAll(filtAgotados);
         tableBajoStock.getItems().setAll(filtBajoStock);
         tableGarantias.getItems().setAll(filtGarantias);
+        AnimationUtils.staggerTableRows(tableAgotados);
+        AnimationUtils.staggerTableRows(tableBajoStock);
+        AnimationUtils.staggerTableRows(tableGarantias);
         long cntAg = filtAgotados.size(),  cntBs = filtBajoStock.size(), cntGa = filtGarantias.size();
         boolean noFilter = q.isBlank();
         long totAg = allAgotados.size(), totBs = allBajoStock.size(), totGa = allGarantias.size();

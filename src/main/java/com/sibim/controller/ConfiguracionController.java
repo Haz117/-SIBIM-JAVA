@@ -227,6 +227,7 @@ public class ConfiguracionController {
                           || (u.getArea()     != null && u.getArea().toLowerCase().contains(q)))
                 .toList());
         }
+        AnimationUtils.staggerTableRows(usersTable);
     }
 
     @FXML

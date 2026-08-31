@@ -254,6 +254,7 @@ public class DepreciacionController {
                 || (p.getArea() != null && p.getArea().toLowerCase().contains(q)))
             .toList();
         table.setItems(FXCollections.observableArrayList(mostrar));
+        AnimationUtils.staggerTableRows(table);
         if (lblTotalFiltrado != null)
             lblTotalFiltrado.setText(mostrar.size() + (mostrar.size() == 1 ? " bien" : " bienes"));
         // The table's placeholder is generic "no data at all" text — without

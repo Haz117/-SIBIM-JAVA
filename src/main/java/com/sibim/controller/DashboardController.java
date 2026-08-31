@@ -195,6 +195,7 @@ public class DashboardController {
                 .limit(8)
                 .toList();
             tablaReciente.getItems().setAll(ultimos);
+            AnimationUtils.staggerTableRows(tablaReciente);
 
             if (lblCountReciente != null) {
                 int n = ultimos.size();
