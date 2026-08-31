@@ -36,6 +36,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -936,27 +937,63 @@ public class ProductosController {
         Producto sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) return;
 
-        javafx.scene.image.Image qrImg = QrUtils.generateQr(sel.getCodigo(), 260);
+        Image qrImg = QrUtils.generateQr(sel.getCodigo(), 300);
         if (qrImg == null) { NotificacionUtil.error(table.getScene(), "No se pudo generar el QR"); return; }
 
+        ButtonType savePng = new ButtonType("Guardar PNG", ButtonBar.ButtonData.OK_DONE);
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.setTitle("Código QR — " + sel.getNombre());
         dlg.initOwner(table.getScene().getWindow());
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
+        dlg.getDialogPane().getButtonTypes().addAll(savePng, ButtonType.CLOSE);
         dlg.getDialogPane().getStylesheets().addAll(table.getScene().getStylesheets());
 
         javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(qrImg);
         iv.setFitWidth(260); iv.setFitHeight(260); iv.setPreserveRatio(true);
-        javafx.scene.control.Label lblCodigo = new javafx.scene.control.Label(sel.getCodigo());
+        Label lblCodigo = new Label(sel.getCodigo());
         lblCodigo.getStyleClass().add("dlg-detail-value");
-        javafx.scene.control.Label lblNombre = new javafx.scene.control.Label(sel.getNombre());
+        Label lblNombre = new Label(sel.getNombre());
         lblNombre.getStyleClass().add("muted-sm");
 
-        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(8, iv, lblCodigo, lblNombre);
-        content.setAlignment(javafx.geometry.Pos.CENTER);
-        content.setPadding(new javafx.geometry.Insets(16));
+        VBox content = new VBox(8, iv, lblCodigo, lblNombre);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(16));
         dlg.getDialogPane().setContent(content);
-        dlg.showAndWait();
+
+        Optional<ButtonType> result = dlg.showAndWait();
+        if (result.isPresent() && result.get() == savePng) {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Guardar código QR como imagen");
+            fc.setInitialFileName("QR_" + sel.getCodigo() + ".png");
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Imagen PNG (*.png)", "*.png"));
+            File dest = fc.showSaveDialog(table.getScene().getWindow());
+            if (dest != null) {
+                try {
+                    saveQrAsPng(qrImg, dest);
+                    NotificacionUtil.exito(table.getScene(), "QR guardado: " + dest.getName());
+                    if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(dest);
+                } catch (Exception e) {
+                    log.error("Error guardando QR para {}", sel.getCodigo(), e);
+                    NotificacionUtil.error(table.getScene(), "No se pudo guardar el QR");
+                }
+            }
+        }
+    }
+
+    private static void saveQrAsPng(Image img, File dest) throws java.io.IOException {
+        int w = (int) img.getWidth();
+        int h = (int) img.getHeight();
+        javafx.scene.image.PixelReader pr = img.getPixelReader();
+        java.awt.image.BufferedImage bi = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                javafx.scene.paint.Color c = pr.getColor(x, y);
+                int rgb = ((int)(c.getRed() * 255) << 16)
+                        | ((int)(c.getGreen() * 255) << 8)
+                        | (int)(c.getBlue() * 255);
+                bi.setRGB(x, y, rgb);
+            }
+        }
+        javax.imageio.ImageIO.write(bi, "PNG", dest);
     }
 
     @FXML
