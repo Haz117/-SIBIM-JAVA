@@ -60,7 +60,8 @@ public class ReporteService {
      *  whole filtered inventory. */
     public File exportInventarioExcel(List<Producto> productos) throws Exception {
         String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Stock", "Min", "Max",
-                            "Precio Venta", "Valor Total", "Estado", "Proveedor", "Ubicacion", "Fecha Registro"};
+                            "Precio Venta", "Valor Total", "Estado", "Proveedor", "Marca", "Modelo",
+                            "N° de Serie", "Ubicacion", "Fecha Registro"};
         File file = tempFile("inventario", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = createSheet(wb, "Inventario");
@@ -80,8 +81,11 @@ public class ReporteService {
                 r.createCell(9).setCellValue(p.getValorTotal().doubleValue());
                 r.createCell(10).setCellValue(p.getEstado().getEtiqueta());
                 r.createCell(11).setCellValue(p.getProveedor() != null ? p.getProveedor() : "");
-                r.createCell(12).setCellValue(p.getUbicacion() != null ? p.getUbicacion() : "");
-                r.createCell(13).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
+                r.createCell(12).setCellValue(p.getMarca() != null ? p.getMarca() : "");
+                r.createCell(13).setCellValue(p.getModelo() != null ? p.getModelo() : "");
+                r.createCell(14).setCellValue(p.getNumeroSerie() != null ? p.getNumeroSerie() : "");
+                r.createCell(15).setCellValue(p.getUbicacion() != null ? p.getUbicacion() : "");
+                r.createCell(16).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
             }
             autosizeColumns(sheet, headers.length);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
@@ -442,9 +446,9 @@ public class ReporteService {
     public File exportInventarioCsv(List<Producto> productos) throws Exception {
         File file = tempFile("inventario", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Nombre,Codigo,Categoria,Area,Resguardante,Stock,Stock Min,Stock Max,Precio Compra,Precio Venta,Valor Total,Estado,Proveedor,Ubicacion,Fecha Registro");
+            pw.println("Nombre,Codigo,Categoria,Area,Resguardante,Stock,Stock Min,Stock Max,Precio Compra,Precio Venta,Valor Total,Estado,Proveedor,Marca,Modelo,N° de Serie,Ubicacion,Fecha Registro");
             for (Producto p : productos) {
-                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%d,%d,%d,%.2f,%.2f,%.2f,\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%d,%d,%d,%.2f,%.2f,%.2f,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
                     esc(p.getNombre()), esc(p.getCodigo()),
                     esc(p.getCategoriaNombre()), esc(p.getArea()), esc(p.getResguardante()),
                     p.getStockActual(), p.getStockMinimo(), p.getStockMaximo(),
@@ -452,7 +456,9 @@ public class ReporteService {
                     p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO,
                     p.getValorTotal(),
                     p.getEstado().getEtiqueta(),
-                    esc(p.getProveedor()), esc(p.getUbicacion()),
+                    esc(p.getProveedor()),
+                    esc(p.getMarca()), esc(p.getModelo()), esc(p.getNumeroSerie()),
+                    esc(p.getUbicacion()),
                     p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
             }
         }
@@ -672,8 +678,14 @@ public class ReporteService {
             addRow(idTable, "Categoría",        p.getCategoriaNombre(), bold, regular, muted, bgAlt, true);
             addRow(idTable, "Área / Dirección", p.getArea(),           bold, regular, muted, bgAlt, false);
             addRow(idTable, "Resguardante",     p.getResguardante(),   bold, regular, muted, bgAlt, true);
+            if (p.getMarca() != null && !p.getMarca().isBlank())
+                addRow(idTable, "Marca", p.getMarca(), bold, regular, muted, bgAlt, false);
+            if (p.getModelo() != null && !p.getModelo().isBlank())
+                addRow(idTable, "Modelo", p.getModelo(), bold, regular, muted, bgAlt, true);
+            if (p.getNumeroSerie() != null && !p.getNumeroSerie().isBlank())
+                addRow(idTable, "N° de Serie", p.getNumeroSerie(), bold, regular, muted, bgAlt, false);
             if (p.getUbicacion() != null && !p.getUbicacion().isBlank())
-                addRow(idTable, "Ubicación", p.getUbicacion(), bold, regular, muted, bgAlt, false);
+                addRow(idTable, "Ubicación", p.getUbicacion(), bold, regular, muted, bgAlt, true);
             doc.add(idTable);
             doc.add(spacer(8));
 
