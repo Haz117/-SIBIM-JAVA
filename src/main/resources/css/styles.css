@@ -325,10 +325,8 @@
 .logout-btn .nav-icon { -fx-icon-color: #DC2626; }
 .logout-btn:hover .nav-icon { -fx-icon-color: #B91C1C; }
 
-/* Protrusion overlay — kept in DOM but invisible; no longer needed. */
+/* Protrusion overlay */
 .nav-tab-extension { -fx-background-color: transparent; }
-.nav-ear-top       { -fx-background-color: transparent; }
-.nav-ear-bottom    { -fx-background-color: transparent; }
 
 .sidebar-divider .line {
     -fx-border-color: #E2E8F0;

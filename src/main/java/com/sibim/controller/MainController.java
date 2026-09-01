@@ -104,15 +104,12 @@ public class MainController {
     private long    lastActivityMs    = System.currentTimeMillis();
     private boolean inactivityWarned  = false;
 
-    // Tab overlay — fills corners + extends tab past sidebar edge
+    // Tab overlay — extends the active sidebar pill into the content area
     private static final double SIDEBAR_WIDTH  = 220;
-    private static final double EAR_SIZE       = 8;    // quarter-circle corner fills
     private static final double TAB_OVERLAP    = 6;    // starts this many px before sidebar edge
     private static final double TAB_EXTENSION  = 40;   // extends this many px past sidebar edge
     private Pane   tabOverlay;
     private Region tabProtrusion;
-    private Region topEar;
-    private Region bottomEar;
     private boolean tabPositioned = false;
     private boolean startupTasksScheduled = false;
 
@@ -412,34 +409,14 @@ public class MainController {
     }
 
     // ── Tab overlay ──────────────────────────────────────────────────────────
-    // Three pieces painted outside the ScrollPane's clip, all in a single
-    // mouse-transparent Pane on outerStack:
-    //
-    //   topEar      — 8×8 quarter-circle that fills the dark corner directly
-    //                 ABOVE the active button's right side, color #EEF2F7.
-    //   tabProtrusion — flat rectangle that starts TAB_OVERLAP px before the
-    //                 sidebar edge and extends TAB_EXTENSION px into the content
-    //                 area. Same color. Covers any sub-pixel rendering seam.
-    //   bottomEar   — mirror of topEar, for the corner BELOW the button.
-
     private void setupTabProtrusion() {
         if (outerStack == null || tabOverlay != null) return;
-
-        topEar = new Region();
-        topEar.setPrefSize(EAR_SIZE, EAR_SIZE);
-        topEar.setMaxSize(EAR_SIZE, EAR_SIZE);
-        topEar.getStyleClass().add("nav-ear-top");
 
         tabProtrusion = new Region();
         tabProtrusion.setPrefWidth(TAB_OVERLAP + TAB_EXTENSION);
         tabProtrusion.getStyleClass().add("nav-tab-extension");
 
-        bottomEar = new Region();
-        bottomEar.setPrefSize(EAR_SIZE, EAR_SIZE);
-        bottomEar.setMaxSize(EAR_SIZE, EAR_SIZE);
-        bottomEar.getStyleClass().add("nav-ear-bottom");
-
-        tabOverlay = new Pane(topEar, tabProtrusion, bottomEar);
+        tabOverlay = new Pane(tabProtrusion);
         tabOverlay.setMouseTransparent(true);
         tabOverlay.setPickOnBounds(false);
         outerStack.getChildren().add(tabOverlay);
@@ -462,20 +439,13 @@ public class MainController {
             double  btnH   = btnBot - btnTop;
 
             double sw    = currentSidebarWidth();
-            double earX  = sw - EAR_SIZE;
             double extX  = sw - TAB_OVERLAP;
-            double topY  = btnTop - EAR_SIZE;
-            double botY  = btnBot;
 
             if (!tabPositioned) {
-                topEar.setLayoutX(earX);        topEar.setLayoutY(topY);
                 tabProtrusion.setLayoutX(extX); tabProtrusion.setLayoutY(btnTop);
-                bottomEar.setLayoutX(earX);     bottomEar.setLayoutY(botY);
                 tabPositioned = true;
             } else {
-                glideTab(topEar,       earX, topY);
                 glideTab(tabProtrusion, extX, btnTop);
-                glideTab(bottomEar,    earX, botY);
             }
             tabProtrusion.setPrefHeight(btnH);
         });
