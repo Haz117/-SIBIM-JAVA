@@ -782,6 +782,8 @@ public class ReporteService {
      *  Caller should limit the list to a reasonable size (≤ 100). */
     public File exportFichasTecnicasMasivas(List<Producto> bienes,
             MovimientoService movimientoService) throws Exception {
+        if (bienes == null || bienes.isEmpty())
+            throw new IllegalArgumentException("La lista de bienes está vacía — no hay fichas que generar");
         File output = tempFile("fichas_tecnicas_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
         List<File> temps = new java.util.ArrayList<>();
         try (PdfWriter writer = new PdfWriter(output.getAbsolutePath());

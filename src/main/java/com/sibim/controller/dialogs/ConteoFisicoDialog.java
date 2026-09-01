@@ -164,15 +164,17 @@ public final class ConteoFisicoDialog {
         HBox.setHgrow(summary, Priority.ALWAYS);
 
         btnFinalizar.setOnAction(e -> {
+            btnFinalizar.setDisable(true);
             List<Row> discrepancias = rows.stream()
                 .filter(r -> r.contado().getValue() != r.producto().getStockActual())
                 .toList();
             if (!discrepancias.isEmpty() && !ConfirmacionUtil.confirmar("Finalizar conteo",
                     "Se guardará el conteo y se registrarán " + discrepancias.size()
-                        + " movimiento(s) de ajuste para igualar el sistema a lo contado.\n¿Continuar?"))
+                        + " movimiento(s) de ajuste para igualar el sistema a lo contado.\n¿Continuar?")) {
+                btnFinalizar.setDisable(false);
                 return;
+            }
 
-            btnFinalizar.setDisable(true);
             btnFinalizar.setText("Guardando...");
             btnFinalizar.setGraphic(new FontIcon("mdi2l-loading"));
             // Freeze every row so the background save loop below never has
