@@ -34,6 +34,8 @@ public class ReportesController {
     public void initialize() {
         spinner.setVisible(false);
         spinner.setManaged(false);
+        desdeField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
+        hastaField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         onReportMes(); // default to current month

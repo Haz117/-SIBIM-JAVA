@@ -443,11 +443,13 @@ public final class ProductoDialogFactory {
             }
         });
         DatePicker fVenc = new DatePicker(existing != null ? existing.getFechaVencimiento() : null);
+        fVenc.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         fVenc.setMaxWidth(Double.MAX_VALUE);
         fVenc.getStyleClass().add("form-input");
 
         // ── Depreciación (línea recta) ──
         DatePicker fFechaAdq = new DatePicker(existing != null ? existing.getFechaAdquisicion() : null);
+        fFechaAdq.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         fFechaAdq.setPromptText("Fecha de adquisición");
         fFechaAdq.setMaxWidth(Double.MAX_VALUE);
         fFechaAdq.getStyleClass().add("form-input");

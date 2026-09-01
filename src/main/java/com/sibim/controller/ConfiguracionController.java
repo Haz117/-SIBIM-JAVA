@@ -101,8 +101,7 @@ public class ConfiguracionController {
             }
         }
         if (lblSistemaHora != null)
-            lblSistemaHora.setText(java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+            lblSistemaHora.setText(com.sibim.util.FormatUtils.formatDateTime(java.time.LocalDateTime.now()));
 
         boolean isAdmin = SessionManager.isAdmin();
         adminSection.setVisible(isAdmin);

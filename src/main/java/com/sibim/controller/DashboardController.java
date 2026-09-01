@@ -167,7 +167,7 @@ public class DashboardController {
 
         if (lblStatsActualizacion != null) {
             lblStatsActualizacion.setText("Actualizado " +
-                java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+                com.sibim.util.FormatUtils.formatTime(java.time.LocalTime.now()));
             AnimationUtils.pulse(lblStatsActualizacion, 2);
         }
 

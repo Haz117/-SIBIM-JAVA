@@ -14,8 +14,9 @@ public final class FormatUtils {
     private static final Locale LOCALE_MX = Locale.of("es", "MX");
     private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(LOCALE_MX);
     static { CURRENCY_FORMAT.setRoundingMode(RoundingMode.HALF_UP); }
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter TIME_FMT     = DateTimeFormatter.ofPattern("HH:mm");
 
     private FormatUtils() {}
 
@@ -32,6 +33,21 @@ public final class FormatUtils {
     public static String formatDateTime(LocalDateTime dt) {
         if (dt == null) return "";
         return dt.format(DATETIME_FMT);
+    }
+
+    public static String formatTime(java.time.LocalTime t) {
+        if (t == null) return "";
+        return t.format(TIME_FMT);
+    }
+
+    public static javafx.util.StringConverter<LocalDate> datePickerConverter() {
+        return new javafx.util.StringConverter<>() {
+            @Override public String toString(LocalDate d)   { return d == null ? "" : d.format(DATE_FMT); }
+            @Override public LocalDate fromString(String s) {
+                if (s == null || s.isBlank()) return null;
+                try { return LocalDate.parse(s.strip(), DATE_FMT); } catch (Exception e) { return null; }
+            }
+        };
     }
 
     public static String formatStock(int stock, String unidad) {

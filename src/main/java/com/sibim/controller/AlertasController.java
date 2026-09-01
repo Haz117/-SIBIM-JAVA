@@ -321,7 +321,7 @@ public class AlertasController {
                 applySearch(query);
                 if (lblActualizado != null)
                     lblActualizado.setText("Actualizado " +
-                        java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
+                        com.sibim.util.FormatUtils.formatTime(java.time.LocalTime.now()));
                 if (showToast && tableAgotados.getScene() != null)
                     NotificacionUtil.info(tableAgotados.getScene(), "Alertas actualizadas");
             },

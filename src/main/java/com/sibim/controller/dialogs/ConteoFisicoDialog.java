@@ -56,7 +56,7 @@ public final class ConteoFisicoDialog {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
-            "Captura lo contado y compáralo contra el sistema — " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+            "Captura lo contado y compáralo contra el sistema — " + com.sibim.util.FormatUtils.formatDate(LocalDate.now()),
             "#0891B2", "#0E7490");
 
         // Search + "solo diferencias" — once a conteo covers a real batch
@@ -184,7 +184,7 @@ public final class ConteoFisicoDialog {
                 r.contado().setDisable(true);
                 snapshot.add(new Captured(r.producto(), r.contado().getValue()));
             }
-            String motivo = "Conteo físico del " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String motivo = "Conteo físico del " + com.sibim.util.FormatUtils.formatDate(LocalDate.now());
             AppExecutor.submit(() -> {
                 int ok = 0;
                 List<String> fallidos = new ArrayList<>();

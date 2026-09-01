@@ -381,6 +381,8 @@ public class MovimientosController {
 
     private void setupFilters() {
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
+        desdeFilter.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
+        hastaFilter.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         if (categoriaFilter != null)

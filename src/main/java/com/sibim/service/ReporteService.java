@@ -826,7 +826,7 @@ public class ReporteService {
                 .setMarginBottom(4));
             doc.add(new Paragraph("Resguardante: " + (resguardante != null ? resguardante : "—")
                     + "    |    Área: " + (area != null ? area : "—")
-                    + "    |    Fecha: " + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+                    + "    |    Fecha: " + com.sibim.util.FormatUtils.formatDate(java.time.LocalDate.now()))
                 .setFont(regular).setFontSize(10)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                 .setMarginBottom(16));
@@ -877,7 +877,7 @@ public class ReporteService {
     /** Generates a structured organigrama PDF — one section per area with bienes table. */
     public File exportOrganigrama(Map<String, List<Producto>> porArea) throws Exception {
         File file = tempFile("organigrama_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
-        String generadoEn = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        String generadoEn = com.sibim.util.FormatUtils.formatDateTime(LocalDateTime.now());
 
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdf = new PdfDocument(writer);
