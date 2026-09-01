@@ -311,19 +311,24 @@ public class DashboardController {
         // robust than a single Platform.runLater, which assumes one frame
         // is always enough).
         for (XYChart.Data<String, Number> d : entradas.getData())
-            installTooltipWhenReady(d, "Entradas " + d.getXValue() + ": " + d.getYValue());
+            installTooltipWhenReady(d.nodeProperty(), "Entradas " + d.getXValue() + ": " + d.getYValue());
         for (XYChart.Data<String, Number> d : salidas.getData())
-            installTooltipWhenReady(d, "Salidas " + d.getXValue() + ": " + d.getYValue());
+            installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue());
     }
 
-    private void installTooltipWhenReady(XYChart.Data<String, Number> d, String text) {
-        if (d.getNode() != null) {
-            Tooltip.install(d.getNode(), new Tooltip(text));
-        } else {
-            d.nodeProperty().addListener((obs, old, node) -> {
-                if (node != null) Tooltip.install(node, new Tooltip(text));
-            });
-        }
+    private void installTooltipWhenReady(javafx.beans.property.ObjectProperty<javafx.scene.Node> nodeProp, String text) {
+        javafx.scene.Node node = nodeProp.get();
+        if (node != null) { Tooltip.install(node, new Tooltip(text)); return; }
+        nodeProp.addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
+            @Override
+            public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> obs,
+                                javafx.scene.Node old, javafx.scene.Node n) {
+                if (n != null) {
+                    Tooltip.install(n, new Tooltip(text));
+                    nodeProp.removeListener(this);
+                }
+            }
+        });
     }
 
     private void buildCategoriaChart(List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores) {
@@ -338,13 +343,7 @@ public class DashboardController {
 
         for (PieChart.Data d : chartValorCategoria.getData()) {
             String text = d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()));
-            if (d.getNode() != null) {
-                Tooltip.install(d.getNode(), new Tooltip(text));
-            } else {
-                d.nodeProperty().addListener((obs, old, node) -> {
-                    if (node != null) Tooltip.install(node, new Tooltip(text));
-                });
-            }
+            installTooltipWhenReady(d.nodeProperty(), text);
         }
 
         boolean hasData = !chartValorCategoria.getData().isEmpty();
