@@ -44,6 +44,14 @@ public class ReporteService {
 
     private static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final int MAX_EXPORT_ROWS = 50_000;
+
+    private static <T> List<T> guardExportSize(List<T> rows, String entidad) throws Exception {
+        if (rows.size() > MAX_EXPORT_ROWS)
+            throw new Exception("El reporte incluye " + rows.size() + " " + entidad
+                + ". Filtra el rango de fechas para reducirlo (máx. " + MAX_EXPORT_ROWS + " filas por exportación).");
+        return rows;
+    }
 
     // ───────────────────────────── EXCEL ─────────────────────────────
 
@@ -51,7 +59,7 @@ public class ReporteService {
         List<Producto> productos = (desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll();
-        return exportInventarioExcel(productos);
+        return exportInventarioExcel(guardExportSize(productos, "bienes"));
     }
 
     /** Same Excel report, given an explicit list instead of querying by date
@@ -120,7 +128,7 @@ public class ReporteService {
     }
 
     public File exportMovimientosExcel(LocalDate desde, LocalDate hasta) throws Exception {
-        List<Movimiento> movimientos = movimientoRepo.findByDateRange(desde, hasta);
+        List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
         String[] headers = {"Producto", "Tipo", "Cantidad", "Stock Anterior", "Stock Nuevo",
                             "Motivo", "Referencia", "Usuario", "Fecha"};
         File file = tempFile("movimientos", ".xlsx");
@@ -382,9 +390,9 @@ public class ReporteService {
     // ───────────────────────────── PDF ─────────────────────────────
 
     public File exportInventarioPdf(LocalDate desde, LocalDate hasta) throws Exception {
-        List<Producto> productos = (desde != null || hasta != null)
+        List<Producto> productos = guardExportSize((desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
-            : productoRepo.findAll();
+            : productoRepo.findAll(), "bienes");
         File file = tempFile("inventario", ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
@@ -409,7 +417,7 @@ public class ReporteService {
     }
 
     public File exportMovimientosPdf(LocalDate desde, LocalDate hasta) throws Exception {
-        List<Movimiento> movimientos = movimientoRepo.findByDateRange(desde, hasta);
+        List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
         File file = tempFile("movimientos", ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
@@ -436,9 +444,9 @@ public class ReporteService {
     // ───────────────────────────── CSV ─────────────────────────────
 
     public File exportInventarioCsv(LocalDate desde, LocalDate hasta) throws Exception {
-        List<Producto> productos = (desde != null || hasta != null)
+        List<Producto> productos = guardExportSize((desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
-            : productoRepo.findAll();
+            : productoRepo.findAll(), "bienes");
         return exportInventarioCsv(productos);
     }
 
@@ -481,7 +489,7 @@ public class ReporteService {
     }
 
     public File exportMovimientosCsv(LocalDate desde, LocalDate hasta) throws Exception {
-        List<Movimiento> movimientos = movimientoRepo.findByDateRange(desde, hasta);
+        List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
         File file = tempFile("movimientos", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
             pw.println("Producto,Tipo,Cantidad,Stock Anterior,Stock Nuevo,Motivo,Referencia,Usuario,Fecha");
