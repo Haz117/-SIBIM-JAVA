@@ -4,12 +4,10 @@ import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.offline.SyncService;
 import com.sibim.repository.AuditLogRepository;
-import com.sibim.service.CategoriaService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
-import com.sibim.util.CommandPalette;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -98,7 +96,6 @@ public class MainController {
     private Timeline clock;
     private Timeline sessionGuard;
     private final ProductoService alertProductoService = new ProductoService();
-    private final CategoriaService categoriaService    = new CategoriaService();
     private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     // Session inactivity timeout — 30 minutes
@@ -619,7 +616,8 @@ public class MainController {
         javafx.scene.layout.VBox navVBox =
             (navScroll != null && navScroll.getContent() instanceof javafx.scene.layout.VBox v) ? v : null;
 
-        sidebar.getStyleClass().toggle("sidebar-collapsed");
+        if (sidebarCollapsed) sidebar.getStyleClass().add("sidebar-collapsed");
+        else sidebar.getStyleClass().remove("sidebar-collapsed");
 
         if (sidebarCollapsed) {
             // Logo: hide badge + text, shrink HBox padding so only toggle button shows
@@ -771,7 +769,17 @@ public class MainController {
 
     private void onCommandPalette() {
         javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
-        // Load products on a background thread, then show the palette on the FX thread
+        java.util.List<SearchPaletteDialog.NavEntry> navEntries = java.util.List.of(
+            new SearchPaletteDialog.NavEntry("mdi2v-view-dashboard",      "Dashboard",           "Ctrl+1", this::onDashboard),
+            new SearchPaletteDialog.NavEntry("mdi2s-sitemap",             "Organigrama",         "Ctrl+2", this::onOrganigrama),
+            new SearchPaletteDialog.NavEntry("mdi2p-package-variant",     "Bienes / Inventario", "Ctrl+3", this::onProductos),
+            new SearchPaletteDialog.NavEntry("mdi2t-tag-multiple",        "Categorías",          "Ctrl+4", this::onCategorias),
+            new SearchPaletteDialog.NavEntry("mdi2s-swap-vertical",       "Movimientos",         "Ctrl+5", this::onMovimientos),
+            new SearchPaletteDialog.NavEntry("mdi2b-bell-alert",          "Alertas",             "Ctrl+6", this::onAlertas),
+            new SearchPaletteDialog.NavEntry("mdi2f-file-chart",          "Reportes",            "Ctrl+7", this::onReportes),
+            new SearchPaletteDialog.NavEntry("mdi2c-chart-line",          "Depreciación",        "Ctrl+8", this::onDepreciacion),
+            new SearchPaletteDialog.NavEntry("mdi2c-cog-outline",         "Configuración",       "Ctrl+9", this::onConfiguracion)
+        );
         com.sibim.util.AppExecutor.submit(() -> {
             java.util.List<com.sibim.model.Producto> productos;
             try {
@@ -785,7 +793,7 @@ public class MainController {
                 SearchPaletteDialog.show(stage, finalProductos, producto -> {
                     NavigationContext.setPendingProductId(producto.getId());
                     navigateTo("productos", btnProductos);
-                })
+                }, navEntries)
             );
         });
     }

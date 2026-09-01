@@ -3667,3 +3667,24 @@
     -fx-font-size: 11px;
     -fx-text-fill: -color-fg-muted;
 }
+/* Group header row inside the unified palette list */
+.palette-group-header-cell {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #94A3B8;
+    -fx-padding: 10 8 3 14;
+    -fx-background-color: transparent;
+}
+.palette-group-header-cell:focused,
+.palette-group-header-cell:selected {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94A3B8;
+}
+/* Navigation entry row inside the palette */
+.palette-nav-cell {
+    -fx-padding: 7 12 7 12;
+}
+.palette-nav-icon {
+    -fx-icon-size: 16;
+    -fx-icon-color: #6366F1;
+}
