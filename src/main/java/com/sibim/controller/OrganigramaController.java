@@ -134,15 +134,21 @@ public class OrganigramaController {
         }
 
         if (orgTree.getChildren().isEmpty()) {
-            VBox empty = new VBox(6);
-            empty.setAlignment(Pos.CENTER);
-            empty.setPadding(new Insets(40, 0, 40, 0));
             FontIcon icon = new FontIcon("mdi2o-office-building-outline");
-            icon.setIconSize(18);
+            icon.setIconSize(44);
             icon.getStyleClass().add("empty-icon-lg");
-            Label msg = new Label(q.isBlank() ? "No hay áreas para mostrar" : "No se encontraron áreas para \"" + filter + "\"");
+            Label msg = new Label(q.isBlank()
+                ? "No hay áreas con bienes registrados"
+                : "No se encontraron áreas para \"" + filter + "\"");
             msg.getStyleClass().add("empty-state-msg");
-            empty.getChildren().addAll(icon, msg);
+            Label hint = new Label(q.isBlank()
+                ? "Registra bienes con área asignada en la sección Bienes"
+                : "Intenta con otro término de búsqueda");
+            hint.getStyleClass().add("empty-state-hint");
+            VBox empty = new VBox(10, icon, msg, hint);
+            empty.setAlignment(Pos.CENTER);
+            empty.getStyleClass().add("empty-state-pane");
+            empty.setPadding(new Insets(48, 24, 48, 24));
             orgTree.getChildren().add(empty);
         }
         AnimationUtils.staggeredFadeInUp(orgTree.getChildren(), 270, 50);

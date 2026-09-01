@@ -173,6 +173,17 @@ public class ConfiguracionController {
 
     private void setupUsersTable() {
         usersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        FontIcon emptyIco = new FontIcon("mdi2a-account-multiple-outline");
+        emptyIco.setIconSize(44);
+        emptyIco.getStyleClass().add("empty-icon-lg");
+        javafx.scene.control.Label emptyMsg = new javafx.scene.control.Label("Sin usuarios registrados");
+        emptyMsg.getStyleClass().add("empty-state-msg");
+        javafx.scene.control.Label emptyHint = new javafx.scene.control.Label("Usa el botón \"Nuevo usuario\" para crear el primero");
+        emptyHint.getStyleClass().add("empty-state-hint");
+        javafx.scene.layout.VBox emptyBox = new javafx.scene.layout.VBox(10, emptyIco, emptyMsg, emptyHint);
+        emptyBox.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyBox.getStyleClass().add("empty-state-pane");
+        usersTable.setPlaceholder(emptyBox);
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colUsername.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsername()));
         colCargo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCargo()));
