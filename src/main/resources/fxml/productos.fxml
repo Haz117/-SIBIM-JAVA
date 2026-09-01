@@ -260,9 +260,13 @@
             <tooltip><Tooltip text="Dar de baja el bien seleccionado (baja patrimonial formal, con motivo)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
-        <Button fx:id="btnPrev" text="‹" onAction="#onPrev" styleClass="pagination-btn"/>
+        <Button fx:id="btnPrev" text="‹" onAction="#onPrev" styleClass="pagination-btn">
+            <tooltip><Tooltip text="Página anterior"/></tooltip>
+        </Button>
         <Label fx:id="lblPage" text="Página 1" styleClass="pagination-lbl"/>
-        <Button fx:id="btnNext" text="›" onAction="#onNext" styleClass="pagination-btn"/>
+        <Button fx:id="btnNext" text="›" onAction="#onNext" styleClass="pagination-btn">
+            <tooltip><Tooltip text="Página siguiente"/></tooltip>
+        </Button>
         <ComboBox fx:id="pageSizeBox" prefWidth="82">
             <tooltip><Tooltip text="Bienes por página"/></tooltip>
         </ComboBox>
