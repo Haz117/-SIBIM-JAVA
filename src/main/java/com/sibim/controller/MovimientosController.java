@@ -833,9 +833,9 @@ public class MovimientosController {
     }
 
     private void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo, MovimientoDialogFactory.Result retryFrom) {
-        try {
-            List<Producto> productos = productoService.getAll();
-            MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r ->
+        DialogUtil.runAsync(
+            () -> productoService.getAll(),
+            productos -> MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r ->
                 DialogUtil.runAsync(
                     () -> movimientoService.registrar(
                         r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia(), r.areaDestino()),
@@ -857,7 +857,6 @@ public class MovimientosController {
                                     NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
                             }
 
-                            // Animate the matching stat card + total
                             if (statCardTotal != null) AnimationUtils.statCardPop(statCardTotal);
                             VBox targetCard = switch (m.getTipo()) {
                                 case ENTRADA -> statCardEntrada;
@@ -874,12 +873,13 @@ public class MovimientosController {
                                     + " — revisa los datos e inténtalo de nuevo");
                         Platform.runLater(() -> showMovimientoDialog(preProductoId, preTipo, r));
                     }
-                ));
-        } catch (Exception e) {
-            log.error("Error al abrir el formulario de movimiento", e);
-            if (table != null && table.getScene() != null)
-                NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
-        }
+                )),
+            e -> {
+                log.error("Error al abrir el formulario de movimiento", e);
+                if (table != null && table.getScene() != null)
+                    NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
+            }
+        );
     }
 
     private void openFile(File file) {

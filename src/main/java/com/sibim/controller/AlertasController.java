@@ -382,6 +382,9 @@ public class AlertasController {
 
     @FXML
     private void onExportarPdf() {
+        if (allAgotados.isEmpty() && allBajoStock.isEmpty() && allGarantias.isEmpty()) {
+            NotificacionUtil.advertencia(tableAgotados.getScene(), "No hay alertas para exportar"); return;
+        }
         DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando reporte PDF…",
             () -> reporteService.exportAlertasPdf(),
             file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
@@ -391,6 +394,9 @@ public class AlertasController {
 
     @FXML
     private void onExportarExcel() {
+        if (allAgotados.isEmpty() && allBajoStock.isEmpty() && allGarantias.isEmpty()) {
+            NotificacionUtil.advertencia(tableAgotados.getScene(), "No hay alertas para exportar"); return;
+        }
         DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando reporte Excel…",
             () -> reporteService.exportAlertasExcel(),
             file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),

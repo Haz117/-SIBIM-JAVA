@@ -512,7 +512,7 @@ public final class SyncService {
                 c.setUsuarioNombre(r.usuarioNombre());
                 c.setTotalContados(r.totalContados());
                 c.setTotalDiscrepancias(r.totalDiscrepancias());
-                try { c.setCreadoEn(LocalDateTime.parse(r.createdAt())); } catch (Exception ignored) {}
+                try { c.setCreadoEn(LocalDateTime.parse(r.createdAt())); } catch (Exception ex) { log.warn("createdAt inválido en ConteoFisico {}: {}", r.id(), r.createdAt()); }
                 List<ConteoItem> items = new ArrayList<>();
                 for (ConteoItemRow ir : itemRows) {
                     ConteoItem it = new ConteoItem();
@@ -585,7 +585,7 @@ public final class SyncService {
                 a.setDetalle(r.detalle());
                 a.setUsuarioId(r.usuarioId());
                 a.setUsuarioNombre(r.usuarioNombre());
-                try { a.setCreadoEn(LocalDateTime.parse(r.createdAt())); } catch (Exception ignored) {}
+                try { a.setCreadoEn(LocalDateTime.parse(r.createdAt())); } catch (Exception ex) { log.warn("createdAt inválido en AuditLog {}: {}", r.id(), r.createdAt()); }
                 repo.logOnline(a);
                 markOutbox("audit_log_outbox", r.id(), STATUS_SYNCED, null);
                 synced.incrementAndGet();
