@@ -671,7 +671,7 @@ public class ProductosController {
     private void onVerBajas() {
         DialogUtil.runAsync(
             () -> productoService.getAllIncludingBaja().stream().filter(Producto::isDadoDeBaja).toList(),
-            bajas -> ProductoBajasDialog.show(bajas, productoService, () -> { refreshing = true; loadData(); }),
+            bajas -> ProductoBajasDialog.show(bajas, productoService, movimientoService, log, () -> { refreshing = true; loadData(); }),
             e -> NotificacionUtil.error(table.getScene(), "No se pudo cargar la lista de bienes dados de baja")
         );
     }

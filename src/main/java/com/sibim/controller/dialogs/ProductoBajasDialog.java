@@ -1,6 +1,7 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
+import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
@@ -13,84 +14,160 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
-/** Dialog listing all bienes dados de baja, with per-row reactivation.
- *  Extracted from ProductosController to keep it under 700 lines. */
+/** Dialog listing all bienes dados de baja, with search, detail on double-click,
+ *  context menu, and per-row reactivation. */
 public final class ProductoBajasDialog {
 
     private ProductoBajasDialog() {}
 
-    /**
-     * @param bajas           productos with {@code isDadoDeBaja() == true}
-     * @param productoService service used to call {@code reactivar}
-     * @param onReactivar     callback run after a successful reactivation (e.g. reload table)
-     */
-    public static void show(List<Producto> bajas, ProductoService productoService, Runnable onReactivar) {
+    public static void show(List<Producto> bajas, ProductoService productoService,
+                            MovimientoService movimientoService, Logger log,
+                            Runnable onReactivar) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(560);
+        dialog.getDialogPane().setPrefWidth(600);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2d-delete-circle-outline", "Bienes Dados de Baja",
             "Fuera del inventario activo — su historial se conserva",
             "#EF4444", "#B91C1C");
 
+        // ── search bar ──────────────────────────────────────────────────────
+        TextField searchField = new TextField();
+        searchField.setPromptText("Buscar por nombre, código o área…");
+        searchField.getStyleClass().add("search-field");
+        FontIcon searchIcon = new FontIcon("mdi2m-magnify");
+        searchIcon.getStyleClass().add("search-icon");
+        HBox searchBar = new HBox(8, searchIcon, searchField);
+        searchBar.setAlignment(Pos.CENTER_LEFT);
+        searchBar.setPadding(new Insets(10, 14, 6, 14));
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+
+        // ── list container ───────────────────────────────────────────────────
         VBox list = new VBox(8);
         list.setPadding(new Insets(4, 4, 4, 4));
-        if (bajas.isEmpty()) {
-            Label empty = new Label("No hay bienes dados de baja");
-            empty.getStyleClass().add("muted");
-            list.getChildren().add(empty);
-        }
+
+        Label emptyLabel = new Label("No hay bienes dados de baja");
+        emptyLabel.getStyleClass().add("muted");
+
+        Label noMatchLabel = new Label("Ningún bien coincide con la búsqueda");
+        noMatchLabel.getStyleClass().add("muted");
+        noMatchLabel.setVisible(false);
+        noMatchLabel.setManaged(false);
+
+        // Build row nodes once; filter by toggling managed/visible
+        List<HBox> rows = new ArrayList<>(bajas.size());
         for (Producto p : bajas) {
-            HBox row = new HBox(12);
-            row.getStyleClass().add("dlg-detail-header");
-            row.setPadding(new Insets(10, 14, 10, 14));
-            row.setAlignment(Pos.CENTER_LEFT);
-
-            VBox info = new VBox(2);
-            Label nombre = new Label(p.getNombre() + "  [" + p.getCodigo() + "]");
-            nombre.getStyleClass().add("dlg-detail-name");
-            Label detalle = new Label(p.getArea() + " · baja: " + FormatUtils.formatDate(p.getFechaBaja())
-                + (p.getMotivoBaja() != null && !p.getMotivoBaja().isBlank() ? " · " + p.getMotivoBaja() : ""));
-            detalle.getStyleClass().add("muted-sm");
-            detalle.setWrapText(true);
-            info.getChildren().addAll(nombre, detalle);
-            HBox.setHgrow(info, Priority.ALWAYS);
-
-            Button btnReactivar = new Button("Reactivar");
-            btnReactivar.setGraphic(new FontIcon("mdi2r-restore"));
-            btnReactivar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            btnReactivar.getStyleClass().add("btn-secondary");
-            btnReactivar.setOnAction(e -> {
-                DialogUtil.runAsync(
-                    () -> productoService.reactivar(p.getId()),
-                    () -> {
-                        list.getChildren().remove(row);
-                        onReactivar.run();
-                        NotificacionUtil.exito(dialog.getDialogPane().getScene(),
-                            "Bien \"" + p.getNombre() + "\" reactivado");
-                    },
-                    e2 -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo reactivar el bien")
-                );
-            });
-            row.getChildren().addAll(info, btnReactivar);
+            HBox row = buildRow(p, productoService, movimientoService, log, list, dialog, onReactivar);
+            rows.add(row);
             list.getChildren().add(row);
         }
 
+        if (bajas.isEmpty()) {
+            list.getChildren().add(emptyLabel);
+        } else {
+            list.getChildren().add(noMatchLabel);
+        }
+
+        // ── filter logic ─────────────────────────────────────────────────────
+        searchField.textProperty().addListener((obs, old, query) -> {
+            String q = query == null ? "" : query.strip().toLowerCase();
+            int visible = 0;
+            for (int i = 0; i < bajas.size(); i++) {
+                Producto p  = bajas.get(i);
+                HBox    row = rows.get(i);
+                boolean match = q.isEmpty()
+                    || p.getNombre().toLowerCase().contains(q)
+                    || p.getCodigo().toLowerCase().contains(q)
+                    || (p.getArea() != null && p.getArea().toLowerCase().contains(q));
+                row.setVisible(match);
+                row.setManaged(match);
+                if (match) visible++;
+            }
+            noMatchLabel.setVisible(!q.isEmpty() && visible == 0);
+            noMatchLabel.setManaged(!q.isEmpty() && visible == 0);
+        });
+
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
-        scroll.setPrefHeight(360);
-        // Was "page-scroll" (the app's full-page gray background) — inside a
-        // white dialog card that read as a mismatched gray panel bolted on.
+        scroll.setPrefHeight(380);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
-        if (!list.getChildren().isEmpty())
-            AnimationUtils.staggeredFadeInUp(new java.util.ArrayList<>(list.getChildren()), 240, 40);
-        dialog.getDialogPane().setContent(new VBox(0, header, scroll));
+        if (!rows.isEmpty())
+            AnimationUtils.staggeredFadeInUp(new ArrayList<>(rows), 240, 40);
+
+        dialog.getDialogPane().setContent(new VBox(0, header, searchBar, scroll));
+        javafx.application.Platform.runLater(searchField::requestFocus);
         dialog.showAndWait();
+    }
+
+    private static HBox buildRow(Producto p, ProductoService productoService,
+                                 MovimientoService movimientoService, Logger log,
+                                 VBox list, Dialog<?> dialog, Runnable onReactivar) {
+        HBox row = new HBox(12);
+        row.getStyleClass().add("dlg-detail-header");
+        row.setPadding(new Insets(10, 14, 10, 14));
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        VBox info = new VBox(2);
+        Label nombre = new Label(p.getNombre() + "  [" + p.getCodigo() + "]");
+        nombre.getStyleClass().add("dlg-detail-name");
+        Label detalle = new Label(p.getArea() + " · baja: " + FormatUtils.formatDate(p.getFechaBaja())
+            + (p.getMotivoBaja() != null && !p.getMotivoBaja().isBlank() ? " · " + p.getMotivoBaja() : ""));
+        detalle.getStyleClass().add("muted-sm");
+        detalle.setWrapText(true);
+        info.getChildren().addAll(nombre, detalle);
+        HBox.setHgrow(info, Priority.ALWAYS);
+
+        Button btnReactivar = new Button("Reactivar");
+        btnReactivar.setGraphic(new FontIcon("mdi2r-restore"));
+        btnReactivar.setContentDisplay(ContentDisplay.LEFT);
+        btnReactivar.getStyleClass().add("btn-secondary");
+        btnReactivar.setOnAction(e -> doReactivar(p, row, list, dialog, productoService, onReactivar));
+
+        row.getChildren().addAll(info, btnReactivar);
+
+        // double-click → detail
+        row.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                ProductoDetailDialog.show(p, dialog.getDialogPane().getScene(), movimientoService, log);
+                e.consume();
+            }
+        });
+
+        // context menu
+        MenuItem menuDetalle    = new MenuItem("Ver detalle");
+        menuDetalle.setGraphic(new FontIcon("mdi2i-information-outline"));
+        menuDetalle.setOnAction(e ->
+            ProductoDetailDialog.show(p, dialog.getDialogPane().getScene(), movimientoService, log));
+
+        MenuItem menuReactivar  = new MenuItem("Reactivar");
+        menuReactivar.setGraphic(new FontIcon("mdi2r-restore"));
+        menuReactivar.setOnAction(e -> doReactivar(p, row, list, dialog, productoService, onReactivar));
+
+        ContextMenu ctx = new ContextMenu(menuDetalle, new SeparatorMenuItem(), menuReactivar);
+        row.setOnContextMenuRequested(e -> ctx.show(row, e.getScreenX(), e.getScreenY()));
+
+        return row;
+    }
+
+    private static void doReactivar(Producto p, HBox row, VBox list, Dialog<?> dialog,
+                                    ProductoService productoService, Runnable onReactivar) {
+        DialogUtil.runAsync(
+            () -> productoService.reactivar(p.getId()),
+            () -> {
+                AnimationUtils.fadeOut(row, 200, () -> list.getChildren().remove(row));
+                onReactivar.run();
+                NotificacionUtil.exito(dialog.getDialogPane().getScene(),
+                    "Bien \"" + p.getNombre() + "\" reactivado");
+            },
+            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo reactivar el bien")
+        );
     }
 }
