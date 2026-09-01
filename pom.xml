@@ -323,7 +323,6 @@
                         <exclude>com/sibim/util/ConfirmacionUtil.class</exclude>
                         <exclude>com/sibim/util/CambiarPasswordDialog.class</exclude>
                         <exclude>com/sibim/util/TutorialOverlay.class</exclude>
-                        <exclude>com/sibim/util/CommandPalette.class</exclude>
                         <exclude>com/sibim/util/DialogUtil.class</exclude>
                         <exclude>com/sibim/util/ImageUtils.class</exclude>
                         <exclude>com/sibim/util/HashUtil.class</exclude>
