@@ -379,7 +379,7 @@ public class ReporteService {
                 table.addCell(cell(String.valueOf(p.getVidaUtilAnios())));
                 table.addCell(cell(FormatUtils.formatCurrency(p.getPrecioCompra())));
                 table.addCell(cell(FormatUtils.formatCurrency(p.getValorDepreciado())));
-                table.addCell(cell(p.getPorcentajeDepreciado() + "%"));
+                table.addCell(cell(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() + "%" : "—"));
             }
             doc.add(table);
             addPdfFooter(doc, productos.size());
