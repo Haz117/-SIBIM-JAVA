@@ -575,22 +575,24 @@ public final class OfflineStore {
         ensureLoaded();
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
+        String serverSnapshotAt = str(p.getActualizadoEn()); // capture before mutation
         p.setFechaBaja(LocalDate.now());
         p.setMotivoBaja(motivo);
         p.setActualizadoEn(LocalDateTime.now());
         persistProducto(p);
-        enqueueProduct("BAJA", p, null);
+        enqueueProduct("BAJA", p, serverSnapshotAt);
     }
 
     public static synchronized void reactivarProducto(String id) throws SQLException {
         ensureLoaded();
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
+        String serverSnapshotAt = str(p.getActualizadoEn()); // capture before mutation
         p.setFechaBaja(null);
         p.setMotivoBaja(null);
         p.setActualizadoEn(LocalDateTime.now());
         persistProducto(p);
-        enqueueProduct("REACTIVAR", p, null);
+        enqueueProduct("REACTIVAR", p, serverSnapshotAt);
     }
 
     public static synchronized void updateProductoStock(String id, int newStock) throws SQLException {

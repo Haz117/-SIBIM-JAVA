@@ -236,7 +236,7 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar categoría {} ({})", r.categoriaId(), r.operacion(), ex);
-                markOutbox("category_outbox", r.id(), STATUS_FAILED, ex.getMessage());
+                markOutbox("category_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -275,23 +275,24 @@ public final class SyncService {
         ProductoRepository repo = new ProductoRepository();
         for (ProductRow r : rows) {
             try {
-                // Conflict detection for SAVE operations: if the server's updated_at is
-                // newer than the snapshot this PC had when it made the offline change,
-                // another user modified the same product in the meantime — don't overwrite.
-                if ("SAVE".equals(r.operacion()) && r.serverSnapshotAt() != null) {
+                // Conflict detection: if the server's updated_at is newer than the snapshot
+                // this PC had when it made the offline change, another user modified the
+                // same product in the meantime — don't blindly overwrite. Applies to SAVE,
+                // BAJA, and REACTIVAR (all three now store a non-null serverSnapshotAt).
+                if (r.serverSnapshotAt() != null) {
                     LocalDateTime serverUpdatedAt = fetchServerUpdatedAt(r.productoId());
                     if (serverUpdatedAt != null) {
                         try {
                             LocalDateTime snapshotAt = LocalDateTime.parse(r.serverSnapshotAt());
                             if (serverUpdatedAt.isAfter(snapshotAt)) {
-                                log.warn("SyncService: CONFLICTO bien '{}' [{}] — servidor modificado en {}, snapshot local: {}",
-                                    r.nombre(), r.productoId(), serverUpdatedAt, snapshotAt);
+                                log.warn("SyncService: CONFLICTO bien '{}' [{}] op={} — servidor modificado en {}, snapshot local: {}",
+                                    r.nombre(), r.productoId(), r.operacion(), serverUpdatedAt, snapshotAt);
                                 Producto offlineVersion = productFromRow(r);
                                 Producto serverVersion  = fetchServerProduct(r.productoId());
                                 markOutbox("product_outbox", r.id(), STATUS_CONFLICT,
-                                    "Conflicto: el bien fue modificado en el servidor (" + serverUpdatedAt
-                                    + ") mientras el equipo estuvo sin conexión. Vuelve a editarlo y guardar.");
-                                conflicts.add(new ConflictoInfo(r.id(), offlineVersion, serverVersion));
+                                    "Conflicto en " + r.operacion() + ": el bien fue modificado en el servidor ("
+                                    + serverUpdatedAt + ") mientras el equipo estuvo sin conexión.");
+                                conflicts.add(new ConflictoInfo(r.id(), offlineVersion, serverVersion, r.operacion()));
                                 continue;
                             }
                         } catch (Exception parseEx) {
@@ -310,7 +311,7 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar producto {} ({})", r.productoId(), r.operacion(), ex);
-                markOutbox("product_outbox", r.id(), STATUS_FAILED, ex.getMessage());
+                markOutbox("product_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -397,16 +398,25 @@ public final class SyncService {
      *
      * @param versionOffline non-null → apply this version to Postgres; null → discard
      *                       (keep whatever is currently on the server)
+     * @param operacion      the outbox operation ("SAVE", "BAJA", "REACTIVAR") — determines
+     *                       which repository method to call when applying the offline version
      */
-    public static void resolveConflicto(int outboxId, Producto versionOffline) {
+    public static void resolveConflicto(int outboxId, Producto versionOffline, String operacion) {
         if (versionOffline != null) {
             try {
-                new ProductoRepository().saveOnline(versionOffline);
+                ProductoRepository repo = new ProductoRepository();
+                if ("BAJA".equals(operacion)) {
+                    repo.darDeBajaOnline(versionOffline.getId(), versionOffline.getMotivoBaja());
+                } else if ("REACTIVAR".equals(operacion)) {
+                    repo.reactivarOnline(versionOffline.getId());
+                } else {
+                    repo.saveOnline(versionOffline);
+                }
                 markOutbox("product_outbox", outboxId, STATUS_SYNCED, null);
-                log.info("SyncService: conflicto {} resuelto — versión offline aplicada", outboxId);
+                log.info("SyncService: conflicto {} ({}) resuelto — versión offline aplicada", outboxId, operacion);
             } catch (Exception e) {
                 markOutbox("product_outbox", outboxId, STATUS_FAILED, e.getMessage());
-                log.error("SyncService: fallo aplicando versión offline para conflicto {}", outboxId, e);
+                log.error("SyncService: fallo aplicando versión offline para conflicto {} ({})", outboxId, operacion, e);
             }
         } else {
             markOutbox("product_outbox", outboxId, STATUS_DISCARDED, "Conservado: versión del servidor");
@@ -477,7 +487,7 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar movimiento {} ({})", r.movimientoId(), r.operacion(), ex);
-                markOutbox("movement_outbox", r.id(), STATUS_FAILED, ex.getMessage());
+                markOutbox("movement_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -532,7 +542,7 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar conteo {}", r.conteoId(), ex);
-                markOutbox("conteo_outbox", r.id(), STATUS_FAILED, ex.getMessage());
+                markOutbox("conteo_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -591,13 +601,27 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar audit entry {}", r.auditId(), ex);
-                markOutbox("audit_log_outbox", r.id(), STATUS_FAILED, ex.getMessage());
+                markOutbox("audit_log_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
                 failed.incrementAndGet();
             }
         }
     }
 
     // ─────────────────────────────── Outbox bookkeeping ────────────────────
+
+    /** True for failures that will never succeed on retry (FK violations, duplicate keys,
+     *  "not found" responses).  Such rows are marked DISCARDED immediately so
+     *  requeueFailedChanges() doesn't loop on them forever. */
+    private static boolean isPermanentFailure(Exception ex) {
+        if (ex instanceof java.sql.SQLException sqle) {
+            String state = sqle.getSQLState();
+            // 23xxx = integrity constraint violation (FK, unique, not-null…)
+            if (state != null && state.startsWith("23")) return true;
+        }
+        String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+        return msg.contains("no encontrado") || msg.contains("not found")
+            || msg.contains("violates foreign key") || msg.contains("duplicate key");
+    }
 
     private static void writeAuditEntry(String entidad, String entidadId, String entidadNombre,
                                          String accion, String detalle) {

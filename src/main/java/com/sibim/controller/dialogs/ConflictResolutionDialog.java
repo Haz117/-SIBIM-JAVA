@@ -152,7 +152,7 @@ public final class ConflictResolutionDialog {
                 boolean usarMio = tg != null
                     && tg.getSelectedToggle() != null
                     && "MINE".equals(tg.getSelectedToggle().getUserData());
-                SyncService.resolveConflicto(c.outboxId(), usarMio ? c.versionOffline() : null);
+                SyncService.resolveConflicto(c.outboxId(), usarMio ? c.versionOffline() : null, c.operacion());
             }
         });
     }
