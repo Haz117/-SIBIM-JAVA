@@ -82,6 +82,8 @@ public class MovimientosController {
     @FXML private VBox  statCardSalida;
     @FXML private VBox  statCardAjuste;
     @FXML private Button btnDelete;
+    @FXML private javafx.scene.control.MenuButton btnExportarSeleccion;
+    @FXML private Label  lblSeleccionados;
     @FXML private Button btnClearSearch;
     @FXML private Button btnPendientes;
     @FXML private Label helpAjustes;
@@ -138,10 +140,22 @@ public class MovimientosController {
             });
         }
 
-        // Selection → enable/disable delete button
-        table.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
-            if (btnDelete != null) btnDelete.setDisable(sel == null);
-        });
+        // Enable multi-select on table
+        table.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
+
+        // Selection → enable/disable delete + export-seleccion buttons
+        table.getSelectionModel().getSelectedItems().addListener(
+            (javafx.collections.ListChangeListener<com.sibim.model.Movimiento>) change -> {
+                int n = table.getSelectionModel().getSelectedItems().size();
+                boolean hasSelection = n > 0;
+                if (btnDelete           != null) btnDelete.setDisable(!hasSelection);
+                if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(!hasSelection);
+                if (lblSeleccionados     != null) {
+                    lblSeleccionados.setText(hasSelection ? n + " seleccionado(s)" : "");
+                    lblSeleccionados.setVisible(hasSelection);
+                    lblSeleccionados.setManaged(hasSelection);
+                }
+            });
 
         // Delete key on table
         table.setOnKeyPressed(ev -> {
