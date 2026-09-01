@@ -300,6 +300,13 @@
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
+/* Keyboard focus on an inactive nav item — subtle indigo tint so the
+   focused button is visible without competing with the active pill. */
+.nav-btn:focused:not(.nav-active) {
+    -fx-background-color: #EEF2FF;
+    -fx-border-color: #C7D2FE;
+    -fx-border-width: 0 0 0 3;
+}
 /* Active item: pale indigo pill with strong indigo left-accent — the same
    "tinted fill + colored border" language as .cell-badge-* elsewhere,
    just rescaled for a nav row. */
@@ -2479,6 +2486,13 @@
    rich-stat-card users (Bienes, Organigrama, Categorías, Depreciación)
    don't, so this is opt-in rather than baked into .rich-stat-card itself. */
 .rich-stat-card-clickable { -fx-cursor: hand; }
+/* Extra indigo border on hover distinguishes clickable cards from the plain
+   ones that also lift on hover — makes the interactivity more obvious. */
+.rich-stat-card-clickable:hover {
+    -fx-border-color: #C7D2FE;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 18;
+}
 
 /* Toggled state for a rich-stat-card used as a click-to-filter control
    (Depreciación's "Totalmente depreciados" card) — a red border marks the

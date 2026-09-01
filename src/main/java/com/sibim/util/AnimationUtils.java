@@ -18,6 +18,15 @@ public final class AnimationUtils {
 
     private AnimationUtils() {}
 
+    // Slide distances — vertical and horizontal are intentionally different:
+    // horizontal travel feels faster at the same pixel count, so it uses a
+    // slightly larger value to match the perceived weight of the vertical ones.
+    private static final int SLIDE_V_OFFSET   = 24;
+    private static final int SLIDE_H_OFFSET   = 28;
+    // Stagger cap: animating more than this many rows at once creates visual
+    // noise and makes the UI feel slow rather than lively.
+    static final int MAX_STAGGER_ROWS = 15;
+
     /** Fade from transparent to opaque. */
     public static void fadeIn(Node node, int durationMs, int delayMs) {
         node.setOpacity(0);
@@ -31,11 +40,11 @@ public final class AnimationUtils {
     /** Slide up from below while fading in. */
     public static void fadeInUp(Node node, int durationMs, int delayMs) {
         node.setOpacity(0);
-        node.setTranslateY(26);
+        node.setTranslateY(SLIDE_V_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setFromValue(0); fade.setToValue(1);
         TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromY(26); slide.setToY(0);
+        slide.setFromY(SLIDE_V_OFFSET); slide.setToY(0);
         slide.setInterpolator(Interpolator.EASE_OUT);
         ParallelTransition pt = new ParallelTransition(fade, slide);
         pt.setDelay(Duration.millis(delayMs));
@@ -45,11 +54,11 @@ public final class AnimationUtils {
     /** Slide down from above while fading in. */
     public static void fadeInDown(Node node, int durationMs, int delayMs) {
         node.setOpacity(0);
-        node.setTranslateY(-22);
+        node.setTranslateY(-SLIDE_V_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setFromValue(0); fade.setToValue(1);
         TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromY(-22); slide.setToY(0);
+        slide.setFromY(-SLIDE_V_OFFSET); slide.setToY(0);
         slide.setInterpolator(Interpolator.EASE_OUT);
         ParallelTransition pt = new ParallelTransition(fade, slide);
         pt.setDelay(Duration.millis(delayMs));
@@ -59,11 +68,11 @@ public final class AnimationUtils {
     /** Slide in from the right while fading in. */
     public static void fadeInRight(Node node, int durationMs, int delayMs) {
         node.setOpacity(0);
-        node.setTranslateX(28);
+        node.setTranslateX(SLIDE_H_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setFromValue(0); fade.setToValue(1);
         TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromX(28); slide.setToX(0);
+        slide.setFromX(SLIDE_H_OFFSET); slide.setToX(0);
         slide.setInterpolator(Interpolator.EASE_OUT);
         ParallelTransition pt = new ParallelTransition(fade, slide);
         pt.setDelay(Duration.millis(delayMs));
@@ -73,11 +82,11 @@ public final class AnimationUtils {
     /** Slide in from the left while fading in. */
     public static void fadeInLeft(Node node, int durationMs, int delayMs) {
         node.setOpacity(0);
-        node.setTranslateX(-28);
+        node.setTranslateX(-SLIDE_H_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setFromValue(0); fade.setToValue(1);
         TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromX(-28); slide.setToX(0);
+        slide.setFromX(-SLIDE_H_OFFSET); slide.setToX(0);
         slide.setInterpolator(Interpolator.EASE_OUT);
         ParallelTransition pt = new ParallelTransition(fade, slide);
         pt.setDelay(Duration.millis(delayMs));
@@ -243,7 +252,7 @@ public final class AnimationUtils {
                 .map(n -> (TableRow<?>) n)
                 .filter(r -> !r.isEmpty())
                 .sorted(Comparator.comparingDouble(Node::getLayoutY))
-                .limit(15)
+                .limit(MAX_STAGGER_ROWS)
                 .toList();
             for (int i = 0; i < rows.size(); i++) {
                 Node row = rows.get(i);

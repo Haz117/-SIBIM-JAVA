@@ -119,6 +119,8 @@ public class NotificacionUtil {
 
         box.setOpacity(0);
         box.setTranslateY(-16);
+        iconBadge.setScaleX(0.55);
+        iconBadge.setScaleY(0.55);
 
         Popup popup = new Popup();
         popup.setAutoHide(false);
@@ -134,6 +136,10 @@ public class NotificacionUtil {
         TranslateTransition slideIn = new TranslateTransition(Duration.millis(200), box);
         slideIn.setFromY(-16); slideIn.setToY(0);
         slideIn.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition iconPop = new ScaleTransition(Duration.millis(240), iconBadge);
+        iconPop.setFromX(0.55); iconPop.setFromY(0.55);
+        iconPop.setToX(1.0);   iconPop.setToY(1.0);
+        iconPop.setInterpolator(Interpolator.EASE_OUT);
 
         long ms = (tipo == Tipo.ERROR || tipo == Tipo.ADVERTENCIA) ? 4500 : 2800;
         PauseTransition pause = new PauseTransition(Duration.millis(ms));
@@ -147,7 +153,7 @@ public class NotificacionUtil {
         dismissAnim.setOnFinished(e -> { popup.hide(); activeToasts--; });
 
         SequentialTransition seq = new SequentialTransition(
-            new ParallelTransition(fadeIn, slideIn), pause, dismissAnim);
+            new ParallelTransition(fadeIn, slideIn, iconPop), pause, dismissAnim);
         seq.play();
 
         // Guards against a fast double-click: without it, a second click
