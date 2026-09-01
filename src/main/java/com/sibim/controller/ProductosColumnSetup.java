@@ -107,25 +107,37 @@ class ProductosColumnSetup {
     }
 
     static void configureCategoria(TableColumn<Producto, String> col,
-                                   Map<String, String> catEmoji) {
+                                   Map<String, String> catIcon) {
         col.setCellValueFactory(c ->
             new javafx.beans.property.SimpleStringProperty(c.getValue().getCategoriaNombre() != null
                 ? c.getValue().getCategoriaNombre() : ""));
         col.setCellFactory(column -> new TableCell<>() {
-            private final Label badge = new Label();
             @Override
             protected void updateItem(String value, boolean empty) {
                 super.updateItem(value, empty);
                 setGraphic(null); setText(null);
                 if (empty || value == null || value.isBlank()) return;
                 Producto p = getTableRow() != null ? (Producto) getTableRow().getItem() : null;
-                String emoji = catEmoji.getOrDefault(value, "");
-                badge.setText(emoji.isBlank() ? value : emoji + "  " + value);
-                badge.getStyleClass().add("cat-badge");
-                badge.setStyle(p != null && p.getCategoriaColor() != null
-                    ? "-fx-background-color: " + p.getCategoriaColor() + "22; -fx-text-fill: " + p.getCategoriaColor() + ";"
-                    : "-fx-background-color: #EEF2FF; -fx-text-fill: #4338CA;");
-                setGraphic(badge);
+                String catColor = (p != null && p.getCategoriaColor() != null)
+                    ? p.getCategoriaColor() : "#4338CA";
+                String bgColor  = catColor + "22";
+                Label lbl = new Label(value);
+                String iconLiteral = catIcon.getOrDefault(value, null);
+                if (iconLiteral != null) {
+                    FontIcon ico = new FontIcon(iconLiteral);
+                    ico.setIconSize(12);
+                    ico.setStyle("-fx-icon-color: " + catColor + ";");
+                    javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(5, ico, lbl);
+                    box.setAlignment(Pos.CENTER_LEFT);
+                    box.getStyleClass().add("cat-badge");
+                    box.setStyle("-fx-background-color: " + bgColor + ";");
+                    lbl.setStyle("-fx-text-fill: " + catColor + ";");
+                    setGraphic(box);
+                } else {
+                    lbl.getStyleClass().add("cat-badge");
+                    lbl.setStyle("-fx-background-color: " + bgColor + "; -fx-text-fill: " + catColor + ";");
+                    setGraphic(lbl);
+                }
             }
         });
     }

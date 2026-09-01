@@ -66,13 +66,13 @@ public class ProductosController {
             }
         });
 
-    private static final Map<String, String> CAT_EMOJI = Map.of(
-        "Mobiliario",                "🪑",
-        "Vehículos",                 "🚗",
-        "Equipo de Cómputo",         "💻",
-        "Equipo de Oficina",         "🖨",
-        "Herramientas y Maquinaria", "🔧",
-        "Equipo Audiovisual",        "📷"
+    private static final Map<String, String> CAT_ICON = Map.of(
+        "Mobiliario",                "mdi2s-sofa-outline",
+        "Vehículos",                 "mdi2c-car-outline",
+        "Equipo de Cómputo",         "mdi2l-laptop",
+        "Equipo de Oficina",         "mdi2p-printer-outline",
+        "Herramientas y Maquinaria", "mdi2w-wrench-outline",
+        "Equipo Audiovisual",        "mdi2c-camera-outline"
     );
 
     @FXML private VBox rootPane;
@@ -213,7 +213,7 @@ public class ProductosController {
         ProductosColumnSetup.configureFoto(colFoto, table, THUMBNAIL_CACHE, log);
         ProductosColumnSetup.configureNombre(colNombre);
         ProductosColumnSetup.configureCodigo(colCodigo);
-        ProductosColumnSetup.configureCategoria(colCategoria, CAT_EMOJI);
+        ProductosColumnSetup.configureCategoria(colCategoria, CAT_ICON);
         ProductosColumnSetup.configureArea(colArea);
         ProductosColumnSetup.configureStockYValor(colStock, colValor);
         ProductosColumnSetup.configureEstado(colEstado);
