@@ -94,7 +94,7 @@ public final class MovimientoDialogFactory {
             public TipoMovimiento fromString(String s) { return null; }
         });
 
-        Spinner<Integer> fCantidad = new Spinner<>(0, Integer.MAX_VALUE, retryFrom != null ? retryFrom.cantidad() : 1);
+        Spinner<Integer> fCantidad = new Spinner<>(0, 999_999, retryFrom != null ? retryFrom.cantidad() : 1);
         fCantidad.setEditable(true);
         fCantidad.setMaxWidth(Double.MAX_VALUE);
         fCantidad.getStyleClass().add("form-input");

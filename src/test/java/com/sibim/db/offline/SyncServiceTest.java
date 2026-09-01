@@ -227,7 +227,7 @@ class SyncServiceTest extends IntegrationTestBase {
     }
 
     @Test
-    void syncCategorias_violacionUNIQUE_marcaFailed() throws Exception {
+    void syncCategorias_violacionUNIQUE_marcaDiscarded() throws Exception {
         // Categoria existente con nombre "Vehículos" → intentar SAVE con mismo nombre, distinto id
         insertPgCategory("Vehículos");
         int rowId = insertCategoryOutbox("SAVE", UUID.randomUUID().toString(), "Vehículos");
@@ -236,9 +236,11 @@ class SyncServiceTest extends IntegrationTestBase {
 
         SyncService.syncCategorias(synced, failed);
 
+        // UNIQUE violation is a permanent failure — marked DISCARDED, not FAILED,
+        // so requeueFailedChanges() doesn't loop on it forever.
         assertEquals(0, synced.get());
         assertEquals(1, failed.get());
-        assertEquals("FAILED", getOutboxStatus("category_outbox", rowId));
+        assertEquals("DISCARDED", getOutboxStatus("category_outbox", rowId));
     }
 
     // ════════════════════ syncProductos ══════════════════════════════════
@@ -494,9 +496,11 @@ class SyncServiceTest extends IntegrationTestBase {
 
         SyncService.syncConteos(synced, failed);
 
+        // Duplicate primary key is a permanent failure — marked DISCARDED so
+        // requeueFailedChanges() doesn't retry it on every subsequent poll.
         assertEquals(0, synced.get());
         assertEquals(1, failed.get());
-        assertEquals("FAILED", getOutboxStatus("conteo_outbox", rowId));
+        assertEquals("DISCARDED", getOutboxStatus("conteo_outbox", rowId));
     }
 
     // ════════════════════ syncAuditLog ═══════════════════════════════════
@@ -615,7 +619,7 @@ class SyncServiceTest extends IntegrationTestBase {
         offline.setUnidad(UnidadMedida.PIEZA);
         offline.setArea("Almacen");
 
-        SyncService.resolveConflicto(rowId, offline);
+        SyncService.resolveConflicto(rowId, offline, "SAVE");
 
         assertTrue(pgExists("products", prodId));
         assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId));
@@ -635,7 +639,7 @@ class SyncServiceTest extends IntegrationTestBase {
         int rowId = outboxId("product_outbox", "producto_id", prodId);
 
         // offlineMode=false → early return before Platform.runLater()
-        SyncService.resolveConflicto(rowId, null);
+        SyncService.resolveConflicto(rowId, null, "SAVE");
 
         assertEquals("DISCARDED", getOutboxStatus("product_outbox", rowId));
     }

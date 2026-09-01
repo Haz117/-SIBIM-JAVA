@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.model.Producto;
+import com.sibim.model.Usuario;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
@@ -187,6 +188,9 @@ public final class ConteoFisicoDialog {
                 snapshot.add(new Captured(r.producto(), r.contado().getValue()));
             }
             String motivo = "Conteo físico del " + com.sibim.util.FormatUtils.formatDate(LocalDate.now());
+            // Capture session on the FX thread — background thread must not call
+            // SessionManager.getCurrentUser() directly (session state is FX-thread-owned).
+            Usuario currentUser = SessionManager.getCurrentUser();
             AppExecutor.submit(() -> {
                 int ok = 0;
                 List<String> fallidos = new ArrayList<>();
@@ -221,9 +225,9 @@ public final class ConteoFisicoDialog {
                 }
 
                 ConteoFisico conteo = new ConteoFisico();
-                if (SessionManager.getCurrentUser() != null) {
-                    conteo.setUsuarioId(SessionManager.getCurrentUser().getId());
-                    conteo.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
+                if (currentUser != null) {
+                    conteo.setUsuarioId(currentUser.getId());
+                    conteo.setUsuarioNombre(currentUser.getNombre());
                 } else {
                     conteo.setUsuarioNombre("Sistema");
                 }
@@ -256,9 +260,12 @@ public final class ConteoFisicoDialog {
                             + " fallaron: " + nombres;
                     }
                     if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
-                    if (!fallidosFinal.isEmpty() || !savedFinal) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), base);
-                    else if (discrepancias.isEmpty()) NotificacionUtil.exitoConteo(dialog.getDialogPane().getScene(), items.size());
-                    else NotificacionUtil.exito(dialog.getDialogPane().getScene(), base);
+                    javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+                    if (scene != null) {
+                        if (!fallidosFinal.isEmpty() || !savedFinal) NotificacionUtil.advertencia(scene, base);
+                        else if (discrepancias.isEmpty()) NotificacionUtil.exitoConteo(scene, items.size());
+                        else NotificacionUtil.exito(scene, base);
+                    }
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();
                 });

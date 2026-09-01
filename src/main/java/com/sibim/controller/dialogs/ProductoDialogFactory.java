@@ -386,15 +386,15 @@ public final class ProductoDialogFactory {
         // ── Tab: Stock & Precios ──
         GridPane gridStock = DialogUtil.formGrid(140);
 
-        Spinner<Integer> fStock    = new Spinner<>(0, Integer.MAX_VALUE, existing != null ? existing.getStockActual() : 0);
+        Spinner<Integer> fStock    = new Spinner<>(0, 999_999, existing != null ? existing.getStockActual() : 0);
         fStock.setEditable(true); fStock.setMaxWidth(Double.MAX_VALUE);
         fStock.getStyleClass().add("form-input");
         DialogUtil.commitOnFocusLoss(fStock);
-        Spinner<Integer> fStockMin = new Spinner<>(0, Integer.MAX_VALUE, existing != null ? existing.getStockMinimo() : 0);
+        Spinner<Integer> fStockMin = new Spinner<>(0, 999_999, existing != null ? existing.getStockMinimo() : 0);
         fStockMin.setEditable(true); fStockMin.setMaxWidth(Double.MAX_VALUE);
         fStockMin.getStyleClass().add("form-input");
         DialogUtil.commitOnFocusLoss(fStockMin);
-        Spinner<Integer> fStockMax = new Spinner<>(0, Integer.MAX_VALUE, existing != null ? existing.getStockMaximo() : 100);
+        Spinner<Integer> fStockMax = new Spinner<>(0, 999_999, existing != null ? existing.getStockMaximo() : 100);
         fStockMax.setEditable(true); fStockMax.setMaxWidth(Double.MAX_VALUE);
         fStockMax.getStyleClass().add("form-input");
         DialogUtil.commitOnFocusLoss(fStockMax);
