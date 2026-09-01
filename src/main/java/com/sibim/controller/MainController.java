@@ -96,7 +96,7 @@ public class MainController {
     private Timeline clock;
     private Timeline sessionGuard;
     private final ProductoService alertProductoService = new ProductoService();
-    private final AuditLogRepository auditRepo = new AuditLogRepository();
+            private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     // Session inactivity timeout — 30 minutes
     private static final long INACTIVITY_TIMEOUT_MS = 30 * 60_000L;
@@ -531,11 +531,8 @@ public class MainController {
                 offlineBannerSyncBtn.setVisible(offline);
                 offlineBannerSyncBtn.setManaged(offline);
             }
-            if (offlineBanner.getStyleClass().contains("offline-banner-demo") == demo
-                    && offlineBanner.getStyleClass().contains("offline-banner-demo") != offline) {
-                offlineBanner.getStyleClass().removeAll("offline-banner-demo");
-                if (demo) offlineBanner.getStyleClass().add("offline-banner-demo");
-            }
+            offlineBanner.getStyleClass().removeAll("offline-banner-demo");
+            if (demo) offlineBanner.getStyleClass().add("offline-banner-demo");
         }
 
         updateStatusTime();
@@ -938,10 +935,5 @@ public class MainController {
     }
 
     /** Called from child controllers (e.g. Alertas → Movimientos). */
-    public void navigateTo(String view) {
-        Button btn = resolveNavigationButton(view, btnDashboard, btnOrganigrama, btnProductos,
-            btnCategorias, btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
-            btnDepreciacion, btnDashboard);
-        navigateTo(view, btn);
-    }
+    public void navigateTo(String view) { navigateToView(view); }
 }
