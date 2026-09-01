@@ -756,7 +756,8 @@ public class MovimientoRepository {
                     }
                 }
                 try (PreparedStatement ps = conn.prepareStatement(lockProd)) {
-                    ps.setString(1, productoId); ps.executeQuery();
+                    ps.setString(1, productoId);
+                    try (ResultSet ignored = ps.executeQuery()) { /* acquires row lock */ }
                 }
                 try (PreparedStatement ps = conn.prepareStatement(updProd)) {
                     ps.setString(1, areaDestino); ps.setString(2, productoId); ps.executeUpdate();

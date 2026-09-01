@@ -737,14 +737,14 @@ public final class OfflineStore {
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
         Producto p = PRODUCTOS_MAP.get(m.getProductoId());
         if (p == null) throw new SQLException("Producto no encontrado: " + m.getProductoId());
-        m.setEstado(Movimiento.ESTADO_PENDIENTE);
-        m.setAreaOrigen(p.getArea());
-        m.setStockAnterior(p.getStockActual());
-        m.setStockNuevo(p.getStockActual());
-        if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
         Connection c = conn();
         c.setAutoCommit(false);
         try {
+            m.setEstado(Movimiento.ESTADO_PENDIENTE);
+            m.setAreaOrigen(p.getArea());
+            m.setStockAnterior(p.getStockActual());
+            m.setStockNuevo(p.getStockActual());
+            if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
             persistMovimiento(m);
             enqueueMovement("ADD", m);
             c.commit();
