@@ -304,11 +304,7 @@ public class MovimientoRepository {
             + where;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < params.size(); i++) {
-                Object p = params.get(i);
-                if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
-                else ps.setObject(i + 1, p);
-            }
+            bindParams(ps, conn, params);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getInt(1) : 0;
             }
@@ -349,7 +345,8 @@ public class MovimientoRepository {
             return new MovimientoStats(total, entradas, salidas, ajustes);
         }
         List<Object> params = new ArrayList<>();
-        StringBuilder sb = new StringBuilder("""
+        String where = buildFiltroWhere(desde, hasta, null, null, null, params, accessible);
+        String sql = """
             SELECT
                 COUNT(*) AS total,
                 COUNT(*) FILTER (WHERE m.tipo = 'entrada') AS entradas,
@@ -358,28 +355,10 @@ public class MovimientoRepository {
             FROM movements m
             JOIN products p ON p.id = m.producto_id
             LEFT JOIN categories c ON c.id = p.categoria_id
-            """);
-        List<String> conditions = new ArrayList<>();
-        if (accessible != null) {
-            conditions.add("p.area = ANY(?)");
-            params.add(accessible.toArray(new String[0]));
-        }
-        if (desde != null) {
-            conditions.add("m.created_at >= ?");
-            params.add(Timestamp.valueOf(desde.atStartOfDay()));
-        }
-        if (hasta != null) {
-            conditions.add("m.created_at <= ?");
-            params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX)));
-        }
-        if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
+            """ + where;
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                Object p = params.get(i);
-                if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
-                else ps.setObject(i + 1, p);
-            }
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new MovimientoStats(
@@ -398,35 +377,17 @@ public class MovimientoRepository {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) return List.of(); // caller prepends null for "Todas"
         List<Object> params = new ArrayList<>();
-        StringBuilder sb = new StringBuilder("""
+        String where = buildFiltroWhere(desde, hasta, null, null, null, params, accessible);
+        String sql = """
             SELECT DISTINCT c.nombre
             FROM categories c
             JOIN products p ON c.id = p.categoria_id
             JOIN movements m ON m.producto_id = p.id
-            """);
-        List<String> conditions = new ArrayList<>();
-        if (desde != null) {
-            conditions.add("m.created_at >= ?");
-            params.add(Timestamp.valueOf(desde.atStartOfDay()));
-        }
-        if (hasta != null) {
-            conditions.add("m.created_at <= ?");
-            params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX)));
-        }
-        if (accessible != null) {
-            conditions.add("p.area = ANY(?)");
-            params.add(accessible.toArray(new String[0]));
-        }
-        if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
-        sb.append(" ORDER BY c.nombre");
+            """ + where + " ORDER BY c.nombre";
         List<String> result = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                Object p = params.get(i);
-                if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
-                else ps.setObject(i + 1, p);
-            }
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String nombre = rs.getString(1);
@@ -645,15 +606,17 @@ public class MovimientoRepository {
     private List<Movimiento> queryDynamic(String sql, List<Object> params) throws SQLException {
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < params.size(); i++) {
-                Object p = params.get(i);
-                if (p instanceof String[] arr) {
-                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
-                } else {
-                    ps.setObject(i + 1, p);
-                }
-            }
+            bindParams(ps, conn, params);
             return executeQuery(ps);
+        }
+    }
+
+    private static void bindParams(PreparedStatement ps, Connection conn,
+                                   List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            Object p = params.get(i);
+            if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
+            else ps.setObject(i + 1, p);
         }
     }
 
