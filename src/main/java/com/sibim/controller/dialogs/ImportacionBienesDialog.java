@@ -202,7 +202,7 @@ public class ImportacionBienesDialog {
             try {
                 writeTemplate(dest);
                 NotificacionUtil.exito(ownerScene, "Plantilla guardada en " + dest.getName());
-                try { java.awt.Desktop.getDesktop().open(dest); } catch (Exception ignored) {}
+                com.sibim.util.DialogUtil.showExportResultDialog(ownerScene, dest);
             } catch (Exception ex) {
                 NotificacionUtil.error(ownerScene, "No se pudo guardar la plantilla");
             }

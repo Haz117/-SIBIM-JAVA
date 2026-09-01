@@ -40,7 +40,6 @@ import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -791,7 +790,7 @@ public class ProductosController {
     private void onExportCsv() {
         DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
             () -> reporteService.exportInventarioCsv(null, null),
-            file -> { NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente"); openFile(file); },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportCsv)
         );
     }
@@ -800,7 +799,7 @@ public class ProductosController {
     private void onExportExcel() {
         DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
             () -> reporteService.exportInventarioExcel(null, null),
-            file -> { NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente"); openFile(file); },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportExcel)
         );
     }
@@ -811,7 +810,7 @@ public class ProductosController {
         if (seleccion.isEmpty()) return;
         DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
             () -> reporteService.exportInventarioCsv(seleccion),
-            file -> { NotificacionUtil.exito(table.getScene(), seleccion.size() + " bien(es) exportado(s) a CSV"); openFile(file); },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportSeleccionCsv)
         );
     }
@@ -822,7 +821,7 @@ public class ProductosController {
         if (seleccion.isEmpty()) return;
         DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
             () -> reporteService.exportInventarioExcel(seleccion),
-            file -> { NotificacionUtil.exito(table.getScene(), seleccion.size() + " bien(es) exportado(s) a Excel"); openFile(file); },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportSeleccionExcel)
         );
     }
@@ -966,8 +965,7 @@ public class ProductosController {
             if (dest != null) {
                 try {
                     saveQrAsPng(qrImg, dest);
-                    NotificacionUtil.exito(table.getScene(), "QR guardado: " + dest.getName());
-                    if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(dest);
+                    DialogUtil.showExportResultDialog(table.getScene(), dest);
                 } catch (Exception e) {
                     log.error("Error guardando QR para {}", sel.getCodigo(), e);
                     NotificacionUtil.error(table.getScene(), "No se pudo guardar el QR");
@@ -1073,15 +1071,6 @@ public class ProductosController {
         } else {
             lbl.setVisible(false);
             lbl.setManaged(false);
-        }
-    }
-
-    private void openFile(File file) {
-        try { Desktop.getDesktop().open(file); }
-        catch (Exception ex) {
-            log.warn("No se pudo abrir el archivo {}", file, ex);
-            if (table != null && table.getScene() != null)
-                NotificacionUtil.advertencia(table.getScene(), "Guardado en: " + file.getAbsolutePath());
         }
     }
 

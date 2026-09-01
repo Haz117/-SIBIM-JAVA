@@ -441,11 +441,10 @@ public class DashboardController {
         if (scene == null) return;
 
         Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.initOwner(scene.getWindow());
-        dlg.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        DialogUtil.applyOwner(dlg);
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
         dlg.getDialogPane().setPrefWidth(500);
-        com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         javafx.scene.layout.HBox header = com.sibim.util.DialogUtil.gradientHeader(
             icono, titulo, subtitulo, color1, color2);
@@ -641,11 +640,10 @@ public class DashboardController {
 
     private void showMovimientoDetalle(Movimiento m) {
         Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.initOwner(tablaReciente.getScene().getWindow());
-        dlg.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        DialogUtil.applyOwner(dlg);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dlg.getDialogPane().setPrefWidth(440);
-        com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         String icon  = switch (m.getTipo()) { case ENTRADA -> "mdi2a-arrow-up-bold-circle-outline"; case SALIDA -> "mdi2a-arrow-down-bold-circle-outline"; case AJUSTE -> "mdi2s-swap-horizontal"; default -> "mdi2a-arrow-right-bold-circle-outline"; };
         String color = switch (m.getTipo()) { case ENTRADA -> "#059669"; case SALIDA -> "#DC2626"; case AJUSTE -> "#D97706"; default -> "#2563EB"; };

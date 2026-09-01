@@ -37,7 +37,6 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
@@ -769,10 +768,7 @@ public class MovimientosController {
             () -> reporteService.exportMovimientosCsv(
                 desdeFilter != null ? desdeFilter.getValue() : null,
                 hastaFilter != null ? hastaFilter.getValue() : null),
-            file -> {
-                NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente");
-                openFile(file);
-            },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
         );
     }
@@ -783,10 +779,7 @@ public class MovimientosController {
             () -> reporteService.exportMovimientosExcel(
                 desdeFilter != null ? desdeFilter.getValue() : null,
                 hastaFilter != null ? hastaFilter.getValue() : null),
-            file -> {
-                NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente");
-                openFile(file);
-            },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
         );
     }
@@ -812,7 +805,7 @@ public class MovimientosController {
         if (sel.isEmpty()) { onExportCsv(); return; }
         DialogUtil.runAsync(
             () -> reporteService.exportMovimientosCsv(sel),
-            file -> { NotificacionUtil.exito(table.getScene(), "CSV exportado correctamente"); openFile(file); },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el CSV")
         );
     }
@@ -823,7 +816,7 @@ public class MovimientosController {
         if (sel.isEmpty()) { onExportExcel(); return; }
         DialogUtil.runAsync(
             () -> reporteService.exportMovimientosExcel(sel),
-            file -> { NotificacionUtil.exito(table.getScene(), "Excel exportado correctamente"); openFile(file); },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
         );
     }
@@ -880,15 +873,6 @@ public class MovimientosController {
                     NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
             }
         );
-    }
-
-    private void openFile(File file) {
-        try { Desktop.getDesktop().open(file); }
-        catch (Exception e) {
-            log.warn("No se pudo abrir el archivo {}", file, e);
-            if (table != null && table.getScene() != null)
-                NotificacionUtil.advertencia(table.getScene(), "Guardado en: " + file.getAbsolutePath());
-        }
     }
 
     private void showMovimientoDetail(Movimiento m) {
