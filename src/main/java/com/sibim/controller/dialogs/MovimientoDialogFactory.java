@@ -434,13 +434,13 @@ public final class MovimientoDialogFactory {
         AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, actionBar), 280, 70);
         VBox dialogContent = new VBox(0, header, grid, lblFormError, actionBar);
         // Enter in a Spinner or TextField (not inside a ComboBox editor) confirms
-        // the dialog — all ComboBoxes here are product/area pickers where Enter
-        // already commits the selection, so we only intercept it for fCantidad/fRef.
+        // the dialog — only block Enter when a ComboBox dropdown is open (isShowing);
+        // a closed ComboBox with Enter should still submit, saving the user a Tab.
         dialogContent.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() != javafx.scene.input.KeyCode.ENTER || e.isAltDown()) return;
             javafx.scene.Node t = (javafx.scene.Node) e.getTarget();
             for (javafx.scene.Node n = t; n != null; n = n.getParent()) {
-                if (n instanceof ComboBox) return;
+                if (n instanceof ComboBox<?> cb && cb.isShowing()) return;
             }
             if (okBtn instanceof Button b && !b.isDisabled()) { b.fire(); e.consume(); }
         });

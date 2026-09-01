@@ -2290,6 +2290,9 @@
 .dep-progress-bar { -fx-pref-height: 8px; -fx-background-radius: 4px; }
 .dep-progress-bar .track { -fx-background-color: #E2E8F0; -fx-background-radius: 4px; }
 .dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #6366F1, #A78BFA); -fx-background-radius: 4px; -fx-background-insets: 0; }
+.dep-progress-bar.dep-progress-ok .bar      { -fx-background-color: linear-gradient(to right, #16A34A, #4ADE80); }
+.dep-progress-bar.dep-progress-warn .bar    { -fx-background-color: linear-gradient(to right, #D97706, #FCD34D); }
+.dep-progress-bar.dep-progress-danger .bar  { -fx-background-color: linear-gradient(to right, #DC2626, #FCA5A5); }
 
 /* Image picker widget inside product form dialog */
 .dlg-img-placeholder { -fx-text-fill: #64748B; -fx-font-size: 12px; -fx-text-alignment: center; -fx-alignment: center; }

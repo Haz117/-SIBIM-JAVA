@@ -656,7 +656,8 @@ public final class ProductoDialogFactory {
             if (e.getCode() != javafx.scene.input.KeyCode.ENTER || e.isAltDown()) return;
             javafx.scene.Node t = (javafx.scene.Node) e.getTarget();
             for (javafx.scene.Node n = t; n != null; n = n.getParent()) {
-                if (n instanceof ComboBox || n instanceof TextArea) return;
+                if (n instanceof ComboBox<?> cb && cb.isShowing()) return;
+                if (n instanceof TextArea) return;
             }
             if (okBtn instanceof Button b && !b.isDisabled()) { b.fire(); e.consume(); }
         });

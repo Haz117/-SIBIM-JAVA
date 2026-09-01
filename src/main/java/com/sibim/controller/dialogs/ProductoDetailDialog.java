@@ -217,7 +217,8 @@ public final class ProductoDetailDialog {
             if (pct != null) {
                 ProgressBar pb = new ProgressBar(pct / 100.0);
                 pb.setMaxWidth(Double.MAX_VALUE);
-                pb.getStyleClass().add("dep-progress-bar");
+                String barVariant = pct >= 90 ? "dep-progress-danger" : pct >= 50 ? "dep-progress-warn" : "dep-progress-ok";
+                pb.getStyleClass().addAll("dep-progress-bar", barVariant);
                 String pctClass = pct >= 90 ? "dlg-detail-stock-low"
                     : pct >= 50 ? "dlg-detail-stock-warn"
                     : "dlg-detail-stock-ok";
