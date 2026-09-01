@@ -145,8 +145,10 @@ public class MovimientoService {
         if (tipo == TipoMovimiento.TRANSFERENCIA) m.setAreaDestino(areaDestino);
         m.setMotivo(motivo);
         m.setReferencia(referencia);
-        m.setUsuarioId(SessionManager.getCurrentUser().getId());
-        m.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
+        var session = SessionManager.getCurrentUser();
+        if (session == null) throw new IllegalStateException("No hay sesión activa");
+        m.setUsuarioId(session.getId());
+        m.setUsuarioNombre(session.getNombre());
 
         // Non-admin transfers go through an approval workflow: saved as PENDIENTE,
         // stock and area unchanged until an admin approves.

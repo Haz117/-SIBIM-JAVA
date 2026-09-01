@@ -31,7 +31,8 @@ public final class ProductoDetailDialog {
     public static void show(Producto p, Scene scene, MovimientoService movimientoService, Logger log) {
         // Load movements eagerly so we can show history inline and reuse them for ficha
         List<Movimiento> movimientos = List.of();
-        try { movimientos = movimientoService.getByProducto(p.getId()); } catch (Exception ignored) {}
+        try { movimientos = movimientoService.getByProducto(p.getId()); }
+        catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
         final List<Movimiento> movs = movimientos;
 
         Dialog<ButtonType> dialog = new Dialog<>();
@@ -159,8 +160,7 @@ public final class ProductoDetailDialog {
         }
 
         // ── Foto de factura (si existe) ────────────────────────────────
-        String facturaUrl = null;
-        try { facturaUrl = p.getFacturaUrl(); } catch (Exception ignored) {}
+        String facturaUrl = p.getFacturaUrl();
         if (facturaUrl != null && !facturaUrl.isBlank()) {
             try {
                 Image factImg = new Image(Path.of(facturaUrl).toUri().toString(), 100, 75, true, true, true);

@@ -924,10 +924,7 @@ public class ProductosController {
             .findFirst().orElse("");
         DialogUtil.runAsync(
             () -> reporteService.exportarResguardoPdf(resguardante, area, seleccionados),
-            file -> {
-                NotificacionUtil.exito(table.getScene(), "Resguardo PDF generado");
-                try { java.awt.Desktop.getDesktop().open(file); } catch (Exception ignored) {}
-            },
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.error(table.getScene(), "Error al generar el resguardo PDF")
         );
     }

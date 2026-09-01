@@ -132,7 +132,9 @@ public final class DemoDataStore {
             prod("p-43","Cámara fotográfica Canon EOS",     "AV-005","cat-av","Equipo Audiovisual","#EC4899", 22000,25000, 2,1, 5,UnidadMedida.EQUIPO,SGM),
 
             // DADO DE BAJA ────────────────────────────────────────────────────
-            prod("p-46","Fax Panasonic KX-FT988",           "EO-007","cat-ofi","Equipo de Oficina","#F59E0B",  1200, 1400, 0,1, 3,UnidadMedida.EQUIPO,SGM)
+            prod("p-46","Fax Panasonic KX-FT988",           "EO-007","cat-ofi","Equipo de Oficina","#F59E0B",  1200, 1400, 0,1, 3,UnidadMedida.EQUIPO,SGM),
+            prod("p-47","Monitor LG 19\" LCD VGA",           "EO-008","cat-ofi","Equipo de Oficina","#F59E0B",   950, 1100, 0,1, 5,UnidadMedida.PIEZA, FIN),
+            prod("p-48","Teléfono IP Cisco 7942",            "EO-009","cat-ofi","Equipo de Oficina","#F59E0B",  2100, 2400, 0,1, 4,UnidadMedida.EQUIPO,ADM)
         )));
 
         // ── Datos de depreciación (línea recta) ──────────────────────────────
@@ -213,12 +215,24 @@ public final class DemoDataStore {
         PRODUCTOS.stream().filter(p -> "p-45".equals(p.getId())).findFirst()
             .ifPresent(p -> p.setFechaVencimiento(LocalDate.now().minusMonths(8)));
 
-        // Dar de baja el fax obsoleto
+        // Dar de baja equipos obsoletos
         PRODUCTOS.stream().filter(p -> "p-46".equals(p.getId())).findFirst()
             .ifPresent(p -> {
                 p.setFechaBaja(LocalDate.now().minusDays(60));
                 p.setMotivoBaja("Equipo obsoleto — sustituido por sistema digital de trámites");
                 p.setActualizadoEn(LocalDateTime.now().minusDays(60));
+            });
+        PRODUCTOS.stream().filter(p -> "p-47".equals(p.getId())).findFirst()
+            .ifPresent(p -> {
+                p.setFechaBaja(LocalDate.now().minusDays(120));
+                p.setMotivoBaja("Monitor dañado — pantalla con falla irreparable");
+                p.setActualizadoEn(LocalDateTime.now().minusDays(120));
+            });
+        PRODUCTOS.stream().filter(p -> "p-48".equals(p.getId())).findFirst()
+            .ifPresent(p -> {
+                p.setFechaBaja(LocalDate.now().minusDays(15));
+                p.setMotivoBaja("Migración a sistema VoIP — equipo incompatible");
+                p.setActualizadoEn(LocalDateTime.now().minusDays(15));
             });
 
         // Recalcular conteos de categorías
@@ -460,6 +474,8 @@ public final class DemoDataStore {
         auditEntry("usuario", "u-dir-2",  "Roberto Sánchez Lima",     "crear",      "Usuario registrado",              "u-admin", "Administrador del Sistema", dh(60, 9, 0));
         auditEntry("usuario", "u-dir-3",  "Carlos Morales Vega",      "crear",      "Usuario registrado",              "u-admin", "Administrador del Sistema", dh(45, 8, 30));
         auditEntry("producto","p-46",     "Fax Panasonic KX-FT988",   "baja",       "Motivo: Equipo obsoleto",         "u-admin", "Administrador del Sistema", dh(60, 10, 0));
+        auditEntry("producto","p-47",     "Monitor LG 19\" LCD VGA",  "baja",       "Motivo: Pantalla con falla irreparable", "u-admin", "Administrador del Sistema", dh(120, 11, 0));
+        auditEntry("producto","p-48",     "Teléfono IP Cisco 7942",   "baja",       "Motivo: Migración a sistema VoIP",      "u-admin", "Administrador del Sistema", dh(15, 9, 30));
         auditEntry("usuario", "u-dir-1",  "María González Hernández", "actualizar", "Datos del usuario actualizados",  "u-admin", "Administrador del Sistema", dh(30, 9, 0));
         auditEntry("categoria","cat-mob", "Mobiliario",                "actualizar", "Descripción actualizada",         "u-admin", "Administrador del Sistema", dh(15, 11, 0));
     }
