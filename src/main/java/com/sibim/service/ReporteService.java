@@ -784,13 +784,18 @@ public class ReporteService {
             MovimientoService movimientoService) throws Exception {
         if (bienes == null || bienes.isEmpty())
             throw new IllegalArgumentException("La lista de bienes está vacía — no hay fichas que generar");
+        // Batch-load all movements in one query instead of N individual calls.
+        List<String> ids = bienes.stream().map(Producto::getId).toList();
+        java.util.Map<String, List<com.sibim.model.Movimiento>> movsByProducto =
+            movimientoService.getByProductoIds(ids);
+
         File output = tempFile("fichas_tecnicas_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
         List<File> temps = new java.util.ArrayList<>();
         try (PdfWriter writer = new PdfWriter(output.getAbsolutePath());
              PdfDocument merged = new PdfDocument(writer)) {
             PdfMerger merger = new PdfMerger(merged);
             for (Producto p : bienes) {
-                List<com.sibim.model.Movimiento> movs = movimientoService.getByProducto(p.getId());
+                List<com.sibim.model.Movimiento> movs = movsByProducto.getOrDefault(p.getId(), java.util.List.of());
                 File ficha = exportFichaTecnica(p, movs);
                 temps.add(ficha);
                 try (PdfDocument src = new PdfDocument(new PdfReader(ficha.getAbsolutePath()))) {

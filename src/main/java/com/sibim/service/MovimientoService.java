@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class MovimientoService {
@@ -53,6 +54,10 @@ public class MovimientoService {
 
     public List<Movimiento> getByProducto(String productoId) throws SQLException {
         return movimientoRepo.findByProducto(productoId);
+    }
+
+    public Map<String, List<Movimiento>> getByProductoIds(List<String> ids) throws SQLException {
+        return movimientoRepo.findByProductoIds(ids);
     }
 
     // ── Server-side pagination ────────────────────────────────────────────────

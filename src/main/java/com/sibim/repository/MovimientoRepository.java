@@ -12,9 +12,11 @@ import com.sibim.util.ProductoUtils;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -171,6 +173,32 @@ public class MovimientoRepository {
         return queryDynamic(sql, params);
     }
 
+    /** Fetches movements for multiple products in a single query and groups them by productoId.
+     *  Falls back to per-product calls in local/offline mode where ANY(array) isn't available. */
+    public Map<String, List<Movimiento>> findByProductoIds(List<String> ids) throws SQLException {
+        Map<String, List<Movimiento>> result = new LinkedHashMap<>();
+        if (ids == null || ids.isEmpty()) return result;
+        for (String id : ids) result.put(id, new ArrayList<>());
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            for (String id : ids)
+                result.put(id, local.findMovimientosByProducto(id, accessible));
+            return result;
+        }
+        List<Object> params = new ArrayList<>();
+        params.add(ids.toArray(new String[0]));
+        String where = " WHERE m.producto_id = ANY(?)";
+        if (accessible != null) {
+            where += " AND p.area = ANY(?)";
+            params.add(accessible.toArray(new String[0]));
+        }
+        String sql = BASE_SELECT + where + " ORDER BY m.created_at DESC";
+        for (Movimiento m : queryDynamic(sql, params))
+            result.computeIfAbsent(m.getProductoId(), k -> new ArrayList<>()).add(m);
+        return result;
+    }
+
     public List<Movimiento> findByDateRange(LocalDate desde, LocalDate hasta) throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
@@ -182,7 +210,7 @@ public class MovimientoRepository {
             params.add(accessible.toArray(new String[0]));
         }
         if (desde != null) { conditions.add("m.created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
-        if (hasta != null) { conditions.add("m.created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
+        if (hasta != null) { conditions.add("m.created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX))); }
         StringBuilder sb = new StringBuilder(BASE_SELECT);
         if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
         sb.append(" ORDER BY m.created_at DESC");
@@ -212,7 +240,7 @@ public class MovimientoRepository {
         }
         if (hasta != null) {
             conditions.add("m.created_at <= ?");
-            params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59)));
+            params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX)));
         }
         if (tipo != null && !"Todos".equals(tipo)) {
             for (TipoMovimiento tm : TipoMovimiento.values()) {
@@ -342,7 +370,7 @@ public class MovimientoRepository {
         }
         if (hasta != null) {
             conditions.add("m.created_at <= ?");
-            params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59)));
+            params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX)));
         }
         if (!conditions.isEmpty()) sb.append(" WHERE ").append(String.join(" AND ", conditions));
         try (Connection conn = DatabaseConfig.getConnection();
@@ -383,7 +411,7 @@ public class MovimientoRepository {
         }
         if (hasta != null) {
             conditions.add("m.created_at <= ?");
-            params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59)));
+            params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX)));
         }
         if (accessible != null) {
             conditions.add("p.area = ANY(?)");

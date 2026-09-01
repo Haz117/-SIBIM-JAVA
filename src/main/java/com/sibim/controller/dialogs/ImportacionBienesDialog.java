@@ -307,6 +307,11 @@ public class ImportacionBienesDialog {
         Map<String, String> areaByNorm = new LinkedHashMap<>();
         for (String a : areaNames) areaByNorm.put(normalize(a), a);
 
+        long MAX_CSV_BYTES = 50L * 1024 * 1024; // 50 MB
+        if (file.length() > MAX_CSV_BYTES)
+            throw new IOException("El archivo supera el límite de 50 MB ("
+                + (file.length() / (1024 * 1024)) + " MB). Divídalo en partes más pequeñas.");
+
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), java.nio.charset.StandardCharsets.UTF_8))) {
 
@@ -443,8 +448,10 @@ public class ImportacionBienesDialog {
                     int cant  = parseIntSafe(cantStr, 0);
                     int stMin = parseIntSafe(stMinStr, 0);
                     int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
-                    if (stMax < stMin) stMax = stMin;
-                    if (stMax < cant)  stMax = cant;
+                    if (stMin > stMax) {
+                        error = "Stock mínimo (" + stMin + ") no puede superar al máximo (" + stMax + ")";
+                    }
+                    if (error == null && stMax < cant) stMax = cant;
                     p.setStockActual(Math.max(0, cant));
                     p.setStockMinimo(Math.max(0, stMin));
                     p.setStockMaximo(Math.max(0, stMax));

@@ -569,6 +569,11 @@ public class ConfiguracionController {
             return;
         }
 
+        if (!ConfirmacionUtil.confirmar("Información sensible en el respaldo",
+                "El archivo generado contendrá todos los datos del sistema: bienes, movimientos, "
+                + "usuarios y auditoría.\n\nGuárdalo en un lugar seguro y no lo compartas. ¿Continuar?"))
+            return;
+
         javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
         chooser.setTitle("Guardar respaldo de la base de datos");
         chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JSON", "*.json"));
