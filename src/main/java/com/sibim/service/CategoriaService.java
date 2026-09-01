@@ -30,7 +30,13 @@ public class CategoriaService {
     }
 
     public void delete(String id) throws SQLException {
-        categoriaRepo.delete(id);
+        try {
+            categoriaRepo.delete(id);
+        } catch (java.sql.SQLException e) {
+            if ("23503".equals(e.getSQLState()))
+                throw new IllegalStateException("No se puede eliminar: hay bienes asignados a esta categoría");
+            throw e;
+        }
     }
 
     public boolean tieneProductos(String id) throws SQLException {
