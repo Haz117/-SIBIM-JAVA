@@ -292,6 +292,15 @@ public class ConfiguracionController {
                 me == null ? "No hay una sesión activa para continuar" : "No puedes eliminar tu propia cuenta");
             return;
         }
+        if (sel.getRol() == com.sibim.model.enums.Rol.ADMIN) {
+            long admins = usersTable.getItems().stream()
+                .filter(u -> u.getRol() == com.sibim.model.enums.Rol.ADMIN).count();
+            if (admins <= 1) {
+                NotificacionUtil.error(usersTable.getScene(),
+                    "No se puede eliminar el único administrador del sistema");
+                return;
+            }
+        }
         if (!ConfirmacionUtil.confirmarEliminar(sel.getNombre())) return;
         DialogUtil.runAsync(
             () -> usuarioRepo.delete(sel.getId()),

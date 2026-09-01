@@ -198,10 +198,15 @@ public final class UsuarioDialogFactory {
                         u.setCargo(fCargo.getText().trim());
                         u.setRol(fRol.getValue());
                         u.setArea(fRol.getValue() == Rol.ADMIN ? null : fArea.getValue());
+                        if (existing != null && existing.getRol() == Rol.ADMIN && u.getRol() != Rol.ADMIN) {
+                            long admins = repo.findAll().stream()
+                                .filter(a -> a.getRol() == Rol.ADMIN).count();
+                            if (admins <= 1)
+                                throw new IllegalStateException(
+                                    "No se puede cambiar el rol del único administrador del sistema");
+                        }
                         if (!fPassword.getText().isBlank()) {
                             u.setPasswordHash(BCrypt.withDefaults().hashToString(12, fPassword.getText().toCharArray()));
-                            // The admin just typed this password themself — force the
-                            // new user to pick their own on first login.
                             u.setDebeCambiarPassword(true);
                         }
                         repo.save(u);
