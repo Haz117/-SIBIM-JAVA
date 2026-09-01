@@ -451,11 +451,12 @@ public final class OfflineStore {
 
     public static void saveCategoria(Categoria c) throws SQLException {
         ensureLoaded();
-        CATEGORIAS.removeIf(x -> x.getId().equals(c.getId()));
-        CATEGORIAS.add(c);
+        Categoria anterior = CATEGORIAS.stream().filter(x -> x.getId().equals(c.getId())).findFirst().orElse(null);
         Connection db = conn();
         db.setAutoCommit(false);
         try {
+        CATEGORIAS.removeIf(x -> x.getId().equals(c.getId()));
+        CATEGORIAS.add(c);
         String sql = """
             INSERT INTO categories (id, nombre, descripcion, color, icono, created_at)
             VALUES (?,?,?,?,?,?)
@@ -475,7 +476,8 @@ public final class OfflineStore {
         db.commit();
         } catch (SQLException e) {
             db.rollback();
-            CATEGORIAS.remove(c);
+            CATEGORIAS.removeIf(x -> x.getId().equals(c.getId()));
+            if (anterior != null) CATEGORIAS.add(anterior);
             throw e;
         } finally {
             db.setAutoCommit(true);

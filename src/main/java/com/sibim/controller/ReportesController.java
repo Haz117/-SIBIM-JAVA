@@ -6,6 +6,7 @@ import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -136,10 +137,12 @@ public class ReportesController {
     }
 
     private void exportar(ActionEvent event, ExportTask task) {
-        DialogUtil.runAsyncWithProgress(spinner.getScene(), "Generando reporte…",
+        Scene scene = spinner.getScene();
+        if (scene == null) return;
+        DialogUtil.runAsyncWithProgress(scene, "Generando reporte…",
             task::run,
-            file -> DialogUtil.showExportResultDialog(spinner.getScene(), file),
-            e -> NotificacionUtil.errorConAccion(spinner.getScene(),
+            file -> DialogUtil.showExportResultDialog(scene, file),
+            e -> NotificacionUtil.errorConAccion(scene,
                 "Error al generar el reporte", "Reintentar", () -> exportar(null, task))
         );
     }
