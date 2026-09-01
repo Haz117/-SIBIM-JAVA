@@ -45,8 +45,9 @@ public class DepreciacionController {
     private final ReporteService reporteService = new ReporteService();
     private final MovimientoService movimientoService = new MovimientoService();
 
-    /** Lo que la tabla está mostrando ahora mismo — exportar reusa esta misma
-     *  lista en vez de re-consultar, así el archivo coincide con la pantalla. */
+    /** Bienes con datos de depreciación completos (sin filtro de búsqueda/área).
+     *  Se usa para el chart y los stat cards. Los exports usan table.getItems()
+     *  para respetar el filtro activo. */
     private List<Producto> conDepreciacion = List.of();
 
     @FXML private ProgressIndicator spinner;
@@ -94,6 +95,7 @@ public class DepreciacionController {
         loadData();
         AnimationUtils.staggeredFadeInUp(
             List.of(statCardCompra, statCardActual, statCardPct, statCardTotalmente), 300, 55);
+        javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
         if (helpConcepto     != null) DialogUtil.enableClickToShowTooltip(helpConcepto);
         if (helpValorCompra  != null) DialogUtil.enableClickToShowTooltip(helpValorCompra);
         if (helpValorActual  != null) DialogUtil.enableClickToShowTooltip(helpValorActual);
@@ -177,6 +179,9 @@ public class DepreciacionController {
         table.setOnKeyPressed(ev -> {
             if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 table.getSelectionModel().clearSelection(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                Producto sel = table.getSelectionModel().getSelectedItem();
+                if (sel != null) { showDetalle(sel); ev.consume(); }
             } else if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
                 if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
                 ev.consume();
@@ -287,12 +292,16 @@ public class DepreciacionController {
 
     @FXML
     private void onExportarPdf() {
-        exportar(() -> reporteService.exportDepreciacionPdf(conDepreciacion));
+        List<Producto> vista = new java.util.ArrayList<>(table.getItems());
+        if (vista.isEmpty()) { NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para exportar"); return; }
+        exportar(() -> reporteService.exportDepreciacionPdf(vista));
     }
 
     @FXML
     private void onExportarExcel() {
-        exportar(() -> reporteService.exportDepreciacionExcel(conDepreciacion));
+        List<Producto> vista = new java.util.ArrayList<>(table.getItems());
+        if (vista.isEmpty()) { NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para exportar"); return; }
+        exportar(() -> reporteService.exportDepreciacionExcel(vista));
     }
 
     @FXML

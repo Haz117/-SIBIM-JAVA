@@ -147,6 +147,13 @@ public class ConfiguracionController {
                     onEditUsuario();
             });
             usersTable.setOnKeyPressed(ev -> {
+                if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                    usersTable.getSelectionModel().clearSelection(); ev.consume(); return;
+                }
+                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                    if (userSearchField != null) { userSearchField.requestFocus(); userSearchField.selectAll(); }
+                    ev.consume(); return;
+                }
                 if (usersTable.getSelectionModel().getSelectedItem() == null) return;
                 if (ev.getCode() == javafx.scene.input.KeyCode.DELETE) {
                     onDeleteUsuario(); ev.consume();

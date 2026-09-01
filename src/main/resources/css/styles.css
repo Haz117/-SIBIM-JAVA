@@ -2101,7 +2101,6 @@
 .alert-section-icon       { -fx-icon-size: 18; -fx-icon-color: white; }
 .alert-section-icon-white { -fx-icon-size: 18; -fx-icon-color: white; }
 .alert-section-subtitle   { -fx-text-fill: rgba(255,255,255,0.70); -fx-font-size: 10.5px; }
-.alert-ok-icon            { -fx-icon-size: 22; -fx-icon-color: #16a34a; }
 .btn-icon                 { -fx-icon-size: 14; }
 
 /* Recent activity table rounded corners + a bit more breathing room per
@@ -3590,4 +3589,9 @@
 .palette-nav-icon {
     -fx-icon-size: 16;
     -fx-icon-color: #6366F1;
+}
+.batch-reponer-row {
+    -fx-padding: 8 4 8 4;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
 }

@@ -401,7 +401,99 @@ public class AlertasController {
     @FXML
     private void onReponerTodosAgotados() {
         if (allAgotados.isEmpty()) return;
-        openMovimientoForm(allAgotados.get(0).getId(), TipoMovimiento.ENTRADA);
+
+        java.util.Map<String, Spinner<Integer>> spinners = new java.util.LinkedHashMap<>();
+
+        VBox rows = new VBox(6);
+        rows.setPadding(new javafx.geometry.Insets(4, 8, 4, 8));
+        for (Producto p : allAgotados) {
+            Spinner<Integer> sp = new Spinner<>(1, 9_999, 1, 1);
+            sp.setEditable(true);
+            sp.setPrefWidth(90);
+
+            Label nameLbl = new Label(p.getNombre());
+            nameLbl.setMaxWidth(Double.MAX_VALUE);
+            javafx.scene.layout.HBox.setHgrow(nameLbl, javafx.scene.layout.Priority.ALWAYS);
+
+            Label codLbl = new Label(p.getCodigo());
+            codLbl.getStyleClass().add("codigo-cell");
+
+            Label stockLbl = new Label("Stock: 0");
+            stockLbl.getStyleClass().add("stock-low");
+
+            HBox row = new HBox(10, nameLbl, codLbl, stockLbl, sp);
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            row.getStyleClass().add("batch-reponer-row");
+            rows.getChildren().add(row);
+            spinners.put(p.getId(), sp);
+        }
+
+        ScrollPane scroll = new ScrollPane(rows);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(Math.min(allAgotados.size() * 52 + 16, 320));
+        scroll.getStyleClass().add("edge-to-edge");
+
+        HBox header = DialogUtil.gradientHeader(
+            "mdi2p-package-variant-plus",
+            "Reponer todos los bienes agotados",
+            allAgotados.size() + " bienes · ingresa la cantidad de entrada para cada uno",
+            "#4338CA", "#6366F1");
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.setTitle("Reposición masiva");
+        dlg.getDialogPane().setPrefWidth(530);
+        dlg.getDialogPane().setContent(new VBox(0, header, scroll));
+
+        ButtonType btnConfirmar = new ButtonType("Registrar entradas", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(btnConfirmar, ButtonType.CANCEL);
+        Button okBtn = (Button) dlg.getDialogPane().lookupButton(btnConfirmar);
+        okBtn.getStyleClass().add("btn-primary");
+
+        dlg.showAndWait().ifPresent(result -> {
+            if (result != btnConfirmar) return;
+
+            java.util.List<Object[]> entradas = new java.util.ArrayList<>();
+            for (Producto p : allAgotados) {
+                Spinner<Integer> sp = spinners.get(p.getId());
+                int qty = 1;
+                try { qty = Math.max(1, Integer.parseInt(sp.getEditor().getText().trim())); }
+                catch (NumberFormatException ignored) { qty = sp.getValue(); }
+                entradas.add(new Object[]{p.getId(), p.getNombre(), qty});
+            }
+
+            com.sibim.util.AppExecutor.submit(() -> {
+                int ok = 0, fail = 0;
+                java.util.List<String> errores = new java.util.ArrayList<>();
+                for (Object[] entry : entradas) {
+                    try {
+                        movimientoService.registrar((String) entry[0], TipoMovimiento.ENTRADA,
+                            (int) entry[2], "Reposición masiva desde Alertas", null);
+                        ok++;
+                    } catch (Exception ex) {
+                        fail++;
+                        errores.add((String) entry[1]);
+                        log.error("Error al reponer {}: {}", entry[1], ex.getMessage(), ex);
+                    }
+                }
+                final int finalOk = ok, finalFail = fail;
+                javafx.application.Platform.runLater(() -> {
+                    if (tableAgotados.getScene() == null) return;
+                    if (finalFail == 0) {
+                        NotificacionUtil.info(tableAgotados.getScene(),
+                            finalOk + (finalOk == 1 ? " entrada registrada" : " entradas registradas") + " correctamente");
+                    } else if (finalOk > 0) {
+                        NotificacionUtil.advertencia(tableAgotados.getScene(),
+                            finalOk + " registradas, " + finalFail + " con error");
+                    } else {
+                        NotificacionUtil.error(tableAgotados.getScene(),
+                            "No se pudo registrar ninguna entrada");
+                    }
+                    loadData();
+                });
+            });
+        });
     }
 
     @FXML

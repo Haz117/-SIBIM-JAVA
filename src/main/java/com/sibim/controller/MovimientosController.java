@@ -157,10 +157,13 @@ public class MovimientosController {
                 }
             });
 
-        // Delete key on table
         table.setOnKeyPressed(ev -> {
-            if (ev.getCode() == javafx.scene.input.KeyCode.DELETE
-                    && table.getSelectionModel().getSelectedItem() != null) {
+            Movimiento sel = table.getSelectionModel().getSelectedItem();
+            if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
+                showMovimientoDetail(sel); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.DELETE && sel != null) {
                 onDelete(); ev.consume();
             }
         });
