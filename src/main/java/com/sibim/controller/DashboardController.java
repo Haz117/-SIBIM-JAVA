@@ -316,8 +316,8 @@ public class DashboardController {
             installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue());
     }
 
-    private void installTooltipWhenReady(javafx.beans.property.ObjectProperty<javafx.scene.Node> nodeProp, String text) {
-        javafx.scene.Node node = nodeProp.get();
+    private void installTooltipWhenReady(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> nodeProp, String text) {
+        javafx.scene.Node node = nodeProp.getValue();
         if (node != null) { Tooltip.install(node, new Tooltip(text)); return; }
         nodeProp.addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
             @Override
@@ -386,9 +386,9 @@ public class DashboardController {
         chartTendencia.getData().addAll(java.util.List.of(entradas, salidas));
 
         for (XYChart.Data<String, Number> d : entradas.getData())
-            installTooltipWhenReady(d, "Entradas " + d.getXValue() + ": " + d.getYValue() + " uds.");
+            installTooltipWhenReady(d.nodeProperty(), "Entradas " + d.getXValue() + ": " + d.getYValue() + " uds.");
         for (XYChart.Data<String, Number> d : salidas.getData())
-            installTooltipWhenReady(d, "Salidas " + d.getXValue() + ": " + d.getYValue() + " uds.");
+            installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue() + " uds.");
 
         AnimationUtils.fadeInUp(trendCard, 300, 0);
     }

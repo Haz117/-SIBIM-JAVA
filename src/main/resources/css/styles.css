@@ -3616,3 +3616,61 @@
     -fx-border-color: transparent transparent #E2E8F0 transparent;
     -fx-border-width: 0 0 1 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   AUDITORÍA — pagination bar + icon-only buttons
+   ═══════════════════════════════════════════════════════════════════ */
+.pagination-bar {
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+.pagination-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #475569;
+    -fx-padding: 0 12;
+}
+.btn-page {
+    -fx-background-color: white;
+    -fx-border-color: #D1D9E6;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+    -fx-padding: 5 9;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
+}
+.btn-page .btn-icon { -fx-icon-size: 15; -fx-icon-color: #475569; }
+.btn-page:hover {
+    -fx-background-color: #F5F7FF;
+    -fx-border-color: #A5B4FC;
+}
+.btn-page:hover .btn-icon { -fx-icon-color: #4338CA; }
+.btn-page:pressed { -fx-background-color: #EEF2FF; }
+.btn-page:disabled {
+    -fx-background-color: #F8FAFC;
+    -fx-cursor: default;
+    -fx-effect: none;
+}
+.btn-page:disabled .btn-icon { -fx-icon-color: #CBD5E1; }
+.btn-icon-only {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 5 8;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+.btn-icon-only .btn-icon { -fx-icon-size: 17; -fx-icon-color: #64748B; }
+.btn-icon-only:hover {
+    -fx-background-color: rgba(99,102,241,0.08);
+}
+.btn-icon-only:hover .btn-icon { -fx-icon-color: #4338CA; }
+.btn-icon-only:pressed { -fx-background-color: rgba(99,102,241,0.15); }
+
+/* Audit action pills */
+.audit-pill-green  { -fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-red    { -fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-blue   { -fx-background-color: #DBEAFE; -fx-text-fill: #1E40AF; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-orange { -fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-slate  { -fx-background-color: #F1F5F9; -fx-text-fill: #475569; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-purple { -fx-background-color: #EDE9FE; -fx-text-fill: #5B21B6; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }

@@ -32,74 +32,89 @@ public final class TutorialOverlay {
         String title, String shortcut, String navigateId, String[] bullets
     ) {}
 
-    private static final Step[] STEPS = {
-        new Step("mdi2b-book-open-outline", "#6366F1", "#3730A3",
-            "Bienvenido a SIBIM", null, null, new String[]{
-            "Sistema integral de gestión del patrimonio municipal",
-            "Inventario, movimientos, reportes y depreciación en un solo lugar",
-            "Funciona en línea, sin conexión y en modo demo"
-        }),
-        new Step("mdi2v-view-dashboard-outline", "#0EA5E9", "#0369A1",
-            "Dashboard", "Ctrl + 1", "dashboard", new String[]{
-            "Métricas en tiempo real: total de bienes y valor del inventario",
-            "Gráfica de salud del inventario y tendencia mensual de movimientos",
-            "Accesos rápidos a los flujos más frecuentes"
-        }),
-        new Step("mdi2p-package-variant", "#6366F1", "#3730A3",
-            "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
-            "Alta, edición y baja de bienes patrimoniales con foto y código",
-            "Búsqueda en tiempo real por nombre, código, categoría o área",
-            "Doble clic en cualquier bien para ver su ficha completa e historial"
-        }),
-        new Step("mdi2t-tag-multiple-outline", "#0891B2", "#0E7490",
-            "Categorías", "Ctrl + 4", "categorias", new String[]{
-            "Organiza los bienes en grupos: vehículos, mobiliario, equipo de cómputo…",
-            "Cada categoría tiene ícono y color personalizables",
-            "Los filtros de Bienes, Movimientos y Alertas usan estas categorías"
-        }),
-        new Step("mdi2s-swap-vertical-bold", "#7C3AED", "#5B21B6",
-            "Movimientos", "Ctrl + 5", "movimientos", new String[]{
-            "Registra entradas, salidas, ajustes y transferencias entre áreas",
-            "Las transferencias requieren aprobación del administrador",
-            "Exporta el historial a CSV o Excel con los filtros activos"
-        }),
-        new Step("mdi2b-bell-ring-outline", "#DC2626", "#991B1B",
-            "Alertas", "Ctrl + 6", "alertas", new String[]{
-            "Notificación automática cuando el stock baja del mínimo definido",
-            "Aviso de bienes cuya fecha de vencimiento se aproxima",
-            "Badge rojo en el menú cuando hay alertas activas sin resolver"
-        }),
-        new Step("mdi2f-file-chart-outline", "#059669", "#065F46",
-            "Reportes", "Ctrl + 7", "reportes", new String[]{
-            "Genera inventario general, movimientos y bienes por área",
-            "Exporta a Excel (.xlsx) y PDF con un solo clic",
-            "Los reportes respetan los filtros de fecha y categoría activos"
-        }),
-        new Step("mdi2c-chart-line", "#4338CA", "#3730A3",
-            "Depreciación", "Ctrl + 8", "depreciacion", new String[]{
-            "Calcula el valor en libros por método de línea recta (SAT México)",
-            "Identifica bienes totalmente depreciados — candidatos a baja o reemplazo",
-            "Exporta fichas técnicas individuales o en lote a PDF"
-        }),
-        new Step("mdi2o-office-building-outline", "#2563EB", "#1D4ED8",
-            "Organigrama", "Ctrl + 2", "organigrama", new String[]{
-            "Visualiza la distribución de bienes por secretaría y dirección",
-            "Expande cada área para ver sus bienes asignados",
-            "Exporta el organigrama completo a PDF"
-        }),
-        new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
-            "Atajos de Teclado", "F1", null, new String[]{
-            "Ctrl+1 a Ctrl+9 navega entre módulos sin el mouse",
-            "Ctrl+F busca · F5 actualiza · Ctrl+K abre la paleta de comandos",
-            "En tablas: Ctrl+N nuevo · Ctrl+E editar · Supr eliminar"
-        }),
-        new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
-            "¡Todo listo!", null, "dashboard", new String[]{
-            "Explora cada módulo desde la barra lateral izquierda",
-            "Presiona F1 en cualquier momento para ver todos los atajos",
-            "El sistema guarda tus cambios aunque pierdas la conexión"
-        })
-    };
+    private static Step[] buildSteps() {
+        java.util.List<Step> list = new java.util.ArrayList<>(java.util.List.of(
+            new Step("mdi2b-book-open-outline", "#6366F1", "#3730A3",
+                "Bienvenido a SIBIM", null, null, new String[]{
+                "Sistema integral de gestión del patrimonio municipal",
+                "Inventario, movimientos, reportes y depreciación en un solo lugar",
+                "Funciona en línea, sin conexión y en modo demo"
+            }),
+            new Step("mdi2v-view-dashboard-outline", "#0EA5E9", "#0369A1",
+                "Dashboard", "Ctrl + 1", "dashboard", new String[]{
+                "Métricas en tiempo real: total de bienes y valor del inventario",
+                "Gráfica de salud del inventario y tendencia mensual de movimientos",
+                "Accesos rápidos a los flujos más frecuentes"
+            }),
+            new Step("mdi2p-package-variant", "#6366F1", "#3730A3",
+                "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
+                "Alta, edición y baja de bienes patrimoniales con foto y código",
+                "Búsqueda en tiempo real por nombre, código, categoría o área",
+                "Doble clic en cualquier bien para ver su ficha completa e historial"
+            }),
+            new Step("mdi2t-tag-multiple-outline", "#0891B2", "#0E7490",
+                "Categorías", "Ctrl + 4", "categorias", new String[]{
+                "Organiza los bienes en grupos: vehículos, mobiliario, equipo de cómputo…",
+                "Cada categoría tiene ícono y color personalizables",
+                "Los filtros de Bienes, Movimientos y Alertas usan estas categorías"
+            }),
+            new Step("mdi2s-swap-vertical-bold", "#7C3AED", "#5B21B6",
+                "Movimientos", "Ctrl + 5", "movimientos", new String[]{
+                "Registra entradas, salidas, ajustes y transferencias entre áreas",
+                "Las transferencias requieren aprobación del administrador",
+                "Exporta el historial a CSV o Excel con los filtros activos"
+            }),
+            new Step("mdi2b-bell-ring-outline", "#DC2626", "#991B1B",
+                "Alertas", "Ctrl + 6", "alertas", new String[]{
+                "Notificación automática cuando el stock baja del mínimo definido",
+                "Aviso de bienes cuya fecha de vencimiento se aproxima",
+                "Badge rojo en el menú cuando hay alertas activas sin resolver"
+            }),
+            new Step("mdi2f-file-chart-outline", "#059669", "#065F46",
+                "Reportes", "Ctrl + 7", "reportes", new String[]{
+                "Genera inventario general, movimientos y bienes por área",
+                "Exporta a Excel (.xlsx) y PDF con un solo clic",
+                "Los reportes respetan los filtros de fecha y categoría activos"
+            }),
+            new Step("mdi2c-chart-line", "#4338CA", "#3730A3",
+                "Depreciación", "Ctrl + 8", "depreciacion", new String[]{
+                "Calcula el valor en libros por método de línea recta (SAT México)",
+                "Identifica bienes totalmente depreciados — candidatos a baja o reemplazo",
+                "Exporta fichas técnicas individuales o en lote a PDF"
+            }),
+            new Step("mdi2o-office-building-outline", "#2563EB", "#1D4ED8",
+                "Organigrama", "Ctrl + 2", "organigrama", new String[]{
+                "Visualiza la distribución de bienes por secretaría y dirección",
+                "Expande cada área para ver sus bienes asignados",
+                "Exporta el organigrama completo a PDF"
+            }),
+            new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
+                "Atajos de Teclado", "F1", null, new String[]{
+                "Ctrl+1 a Ctrl+9 navega entre módulos sin el mouse",
+                "Ctrl+F busca · F5 actualiza · Ctrl+K abre la paleta de comandos",
+                "En tablas: Ctrl+N nuevo · Ctrl+E editar · Supr eliminar"
+            }),
+            new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
+                "¡Todo listo!", null, "dashboard", new String[]{
+                "Explora cada módulo desde la barra lateral izquierda",
+                "Presiona F1 en cualquier momento para ver todos los atajos",
+                "El sistema guarda tus cambios aunque pierdas la conexión"
+            })
+        ));
+
+        if (com.sibim.session.SessionManager.isAdmin()) {
+            // Insert before the last two steps (Atajos + ¡Todo listo!)
+            list.add(list.size() - 2,
+                new Step("mdi2s-shield-lock-outline", "#475569", "#1E293B",
+                    "Auditoría del Sistema", "Ctrl + 0", "auditoria", new String[]{
+                    "Registro de todas las acciones: altas, bajas, ediciones y sesiones",
+                    "Filtra por entidad, usuario y rango de fechas para trazabilidad exacta",
+                    "Solo visible para administradores — validado a nivel servidor"
+                })
+            );
+        }
+        return list.toArray(new Step[0]);
+    }
 
     private TutorialOverlay() {}
 
@@ -117,6 +132,7 @@ public final class TutorialOverlay {
     }
 
     private static void buildAndShow(StackPane outerStack) {
+        final Step[] STEPS = buildSteps();
         int[]      step      = {0};
         Timeline[] pulseAnim = {null};
         Timeline[] posAnim   = {null};

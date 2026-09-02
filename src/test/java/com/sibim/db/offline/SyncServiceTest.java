@@ -643,4 +643,229 @@ class SyncServiceTest extends IntegrationTestBase {
 
         assertEquals("DISCARDED", getOutboxStatus("product_outbox", rowId));
     }
+
+    // ════════════════════ nuevos tests ═══════════════════════════════════
+
+    @Test
+    void syncMovimientos_SALIDA_decrementaStock() throws Exception {
+        String catId = insertPgCategory("Logística");
+        String prodId = insertPgProduct("Caja de herramientas", "CAJ-001", catId);
+        String movId = UUID.randomUUID().toString();
+        int rowId = insertMovementOutbox(movId, prodId, "salida", 5);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        SyncService.syncMovimientos(synced, failed);
+
+        assertEquals(1, synced.get());
+        assertEquals(0, failed.get());
+        assertTrue(pgExists("movements", movId));
+        assertEquals("SYNCED", getOutboxStatus("movement_outbox", rowId));
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                "SELECT stock_actual FROM products WHERE id = ?")) {
+            ps.setString(1, prodId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(5, rs.getInt(1), "El stock debe decrementar en 5 tras la salida (10 - 5 = 5)");
+            }
+        }
+    }
+
+    @Test
+    void syncMovimientos_productoInexistente_marcaDiscarded() throws Exception {
+        String movId = UUID.randomUUID().toString();
+        String prodIdInexistente = UUID.randomUUID().toString();
+        int rowId = insertMovementOutbox(movId, prodIdInexistente, "entrada", 3);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        SyncService.syncMovimientos(synced, failed);
+
+        assertEquals(0, synced.get());
+        assertEquals(1, failed.get());
+        assertEquals("DISCARDED", getOutboxStatus("movement_outbox", rowId));
+    }
+
+    @Test
+    void syncMovimientos_multiplesPendientes_todosSynced() throws Exception {
+        String catId = insertPgCategory("Almacén General");
+        String prodId1 = insertPgProduct("Escritorio Ejecutivo", "ESC-E01", catId);
+        String prodId2 = insertPgProduct("Silla Ergonómica", "SIL-E02", catId);
+        String prodId3 = insertPgProduct("Archivero Metálico", "ARC-E03", catId);
+        String movId1 = UUID.randomUUID().toString();
+        String movId2 = UUID.randomUUID().toString();
+        String movId3 = UUID.randomUUID().toString();
+        int rowId1 = insertMovementOutbox(movId1, prodId1, "entrada", 1);
+        int rowId2 = insertMovementOutbox(movId2, prodId2, "entrada", 2);
+        int rowId3 = insertMovementOutbox(movId3, prodId3, "entrada", 3);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        SyncService.syncMovimientos(synced, failed);
+
+        assertEquals(3, synced.get());
+        assertEquals(0, failed.get());
+        assertTrue(pgExists("movements", movId1));
+        assertTrue(pgExists("movements", movId2));
+        assertTrue(pgExists("movements", movId3));
+        assertEquals("SYNCED", getOutboxStatus("movement_outbox", rowId1));
+        assertEquals("SYNCED", getOutboxStatus("movement_outbox", rowId2));
+        assertEquals("SYNCED", getOutboxStatus("movement_outbox", rowId3));
+    }
+
+    @Test
+    void resolveConflicto_operacionBAJA_aplicaDarDeBaja() throws Exception {
+        String catId = insertPgCategory("Patrimonio");
+        String prodId = insertPgProduct("Proyector Epson", "PRO-B01", catId);
+        int rowId = insertProductOutbox("BAJA", prodId, "Proyector Epson", "PRO-B01", catId, null, "Prueba");
+        // Actualizar el status a CONFLICT directamente
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                "UPDATE product_outbox SET status = 'CONFLICT' WHERE id = ?")) {
+            ps.setInt(1, rowId);
+            ps.executeUpdate();
+        }
+
+        Producto versionOffline = new Producto();
+        versionOffline.setId(prodId);
+        versionOffline.setNombre("Proyector Epson");
+        versionOffline.setCodigo("PRO-B01");
+        versionOffline.setCategoriaId(catId);
+        versionOffline.setMotivoBaja("Prueba");
+        versionOffline.setPrecioCompra(java.math.BigDecimal.ZERO);
+        versionOffline.setPrecioVenta(java.math.BigDecimal.ZERO);
+        versionOffline.setStockActual(0);
+        versionOffline.setStockMinimo(0);
+        versionOffline.setStockMaximo(100);
+        versionOffline.setUnidad(com.sibim.model.enums.UnidadMedida.PIEZA);
+        versionOffline.setArea("Almacen");
+
+        SyncService.resolveConflicto(rowId, versionOffline, "BAJA");
+
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId));
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                "SELECT fecha_baja FROM products WHERE id = ?")) {
+            ps.setString(1, prodId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertNotNull(rs.getDate("fecha_baja"), "fecha_baja debe ser no nula tras aplicar BAJA");
+            }
+        }
+    }
+
+    @Test
+    void resolveConflicto_operacionREACTIVAR_limpiaBaja() throws Exception {
+        String catId = insertPgCategory("Equipo Médico");
+        String prodId = insertPgProduct("Tensiómetro Digital", "TEN-R01", catId);
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                "UPDATE products SET fecha_baja = CURRENT_DATE, motivo_baja = 'Prueba' WHERE id = ?")) {
+            ps.setString(1, prodId);
+            ps.executeUpdate();
+        }
+        int rowId = insertProductOutbox("REACTIVAR", prodId, "Tensiómetro Digital", "TEN-R01", catId, null, null);
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                "UPDATE product_outbox SET status = 'CONFLICT' WHERE id = ?")) {
+            ps.setInt(1, rowId);
+            ps.executeUpdate();
+        }
+
+        Producto versionOffline = new Producto();
+        versionOffline.setId(prodId);
+        versionOffline.setNombre("Tensiómetro Digital");
+        versionOffline.setCodigo("TEN-R01");
+        versionOffline.setCategoriaId(catId);
+        versionOffline.setPrecioCompra(java.math.BigDecimal.ZERO);
+        versionOffline.setPrecioVenta(java.math.BigDecimal.ZERO);
+        versionOffline.setStockActual(0);
+        versionOffline.setStockMinimo(0);
+        versionOffline.setStockMaximo(100);
+        versionOffline.setUnidad(com.sibim.model.enums.UnidadMedida.PIEZA);
+        versionOffline.setArea("Almacen");
+
+        SyncService.resolveConflicto(rowId, versionOffline, "REACTIVAR");
+
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId));
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                "SELECT fecha_baja FROM products WHERE id = ?")) {
+            ps.setString(1, prodId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertNull(rs.getDate("fecha_baja"), "fecha_baja debe ser null tras reactivar");
+            }
+        }
+    }
+
+    @Test
+    void countPending_outboxVacio_retornaCero() throws Exception {
+        // @BeforeEach ya truncó todas las tablas de outbox
+        int count = SyncService.countPending();
+
+        assertEquals(0, count, "Sin filas pendientes, countPending debe retornar 0");
+    }
+
+    @Test
+    void requeueFailedChanges_noReencola_DISCARDED() throws Exception {
+        String prodIdDiscarded = UUID.randomUUID().toString();
+        String prodIdFailed    = UUID.randomUUID().toString();
+        Connection c = OfflineStore.sharedConnection();
+        try (Statement st = c.createStatement()) {
+            st.executeUpdate(
+                "INSERT INTO product_outbox (operacion, producto_id, nombre, codigo, categoria_id, " +
+                "stock_actual, stock_minimo, stock_maximo, area, created_at, status) VALUES " +
+                "('SAVE','" + prodIdDiscarded + "','Prod Discarded','COD-DISC','cat-x'," +
+                "0,0,100,'A',datetime('now'),'DISCARDED')");
+            st.executeUpdate(
+                "INSERT INTO product_outbox (operacion, producto_id, nombre, codigo, categoria_id, " +
+                "stock_actual, stock_minimo, stock_maximo, area, created_at, status) VALUES " +
+                "('SAVE','" + prodIdFailed + "','Prod Failed','COD-FAIL','cat-x'," +
+                "0,0,100,'A',datetime('now'),'FAILED')");
+        }
+
+        SyncService.requeueFailedChanges();
+
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT status FROM product_outbox WHERE producto_id = ?")) {
+            ps.setString(1, prodIdDiscarded);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("DISCARDED", rs.getString(1), "Las filas DISCARDED no deben reencolar");
+            }
+        }
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT status FROM product_outbox WHERE producto_id = ?")) {
+            ps.setString(1, prodIdFailed);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("PENDING", rs.getString(1), "Las filas FAILED deben pasar a PENDING");
+            }
+        }
+    }
+
+    @Test
+    void syncProductos_multiplesSAVE_todosSynced() throws Exception {
+        String catId = insertPgCategory("Nuevos Bienes");
+        String prodId1 = UUID.randomUUID().toString();
+        String prodId2 = UUID.randomUUID().toString();
+        String prodId3 = UUID.randomUUID().toString();
+        int rowId1 = insertProductOutbox("SAVE", prodId1, "Bien Nuevo 1", "BN-001", catId, null, null);
+        int rowId2 = insertProductOutbox("SAVE", prodId2, "Bien Nuevo 2", "BN-002", catId, null, null);
+        int rowId3 = insertProductOutbox("SAVE", prodId3, "Bien Nuevo 3", "BN-003", catId, null, null);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        List<ConflictoInfo> conflicts = SyncService.syncProductos(synced, failed);
+
+        assertEquals(3, synced.get());
+        assertEquals(0, failed.get());
+        assertTrue(conflicts.isEmpty());
+        assertTrue(pgExists("products", prodId1));
+        assertTrue(pgExists("products", prodId2));
+        assertTrue(pgExists("products", prodId3));
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId1));
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId2));
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId3));
+    }
 }

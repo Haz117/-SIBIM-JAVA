@@ -72,6 +72,7 @@ public class MainController {
     @FXML private Button btnReportes;
     @FXML private Button btnDepreciacion;
     @FXML private Button btnConfiguracion;
+    @FXML private Button btnAuditoria;
     @FXML private Label alertBadge;
     @FXML private javafx.scene.layout.HBox offlineBanner;
     @FXML private Label offlineBannerLabel;
@@ -148,7 +149,13 @@ public class MainController {
         navigateTo("dashboard", btnDashboard);
         addNavTooltips();
         setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-                      btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion);
+                      btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion,
+                      btnAuditoria);
+
+        if (btnAuditoria != null) {
+            btnAuditoria.setVisible(SessionManager.isAdmin());
+            btnAuditoria.setManaged(SessionManager.isAdmin());
+        }
 
         // Single scene listener — consolidates what were three separate listeners.
         // Non-critical startup tasks (badge, vencidos, update check) are staggered
@@ -217,6 +224,7 @@ public class MainController {
     @FXML private void onReportes()      { navigateTo("reportes",      btnReportes); }
     @FXML private void onDepreciacion()  { navigateTo("depreciacion",  btnDepreciacion); }
     @FXML private void onConfiguracion() { navigateTo("configuracion", btnConfiguracion); }
+    @FXML private void onAuditoria()     { navigateTo("auditoria",     btnAuditoria); }
 
     @FXML
     private void onAcercaDe() {
@@ -348,6 +356,7 @@ public class MainController {
 
     /** Navigate programmatically by view name — used by TutorialOverlay. */
     public void navigateToView(String view) {
+        if ("auditoria".equals(view)) { navigateTo(view, btnAuditoria); return; }
         navigateTo(view, resolveNavigationButton(view,
             btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
             btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
@@ -356,6 +365,7 @@ public class MainController {
 
     /** Return the sidebar Button for a given view — used by TutorialOverlay for ring positioning. */
     public Button getNavButton(String view) {
+        if ("auditoria".equals(view)) return btnAuditoria;
         return resolveNavigationButton(view,
             btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
             btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
@@ -566,7 +576,7 @@ public class MainController {
         java.util.Set<javafx.scene.Node> sectionLabels = sidebar.lookupAll(".nav-section-label");
         java.util.List<Button> navBtns = java.util.stream.Stream.of(
                 btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion)
+                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion, btnAuditoria)
             .filter(b -> b != null).collect(java.util.stream.Collectors.toList());
         java.util.List<Button> footerBtns = new java.util.ArrayList<>();
         sidebar.lookupAll(".logout-btn").forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });
@@ -717,6 +727,7 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.DIGIT7, KeyCombination.CONTROL_DOWN), () -> onReportes());
         a.put(new KeyCodeCombination(KeyCode.DIGIT8, KeyCombination.CONTROL_DOWN), () -> onDepreciacion());
         a.put(new KeyCodeCombination(KeyCode.DIGIT9, KeyCombination.CONTROL_DOWN), () -> onConfiguracion());
+        a.put(new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.CONTROL_DOWN), () -> { if (SessionManager.isAdmin()) onAuditoria(); });
         a.put(new KeyCodeCombination(KeyCode.F5),                                   () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
@@ -775,6 +786,7 @@ public class MainController {
         addNavTooltip(btnReportes,      "Reportes  (Ctrl+7)");
         addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+8)");
         addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+9)");
+        addNavTooltip(btnAuditoria,     "Auditoría  (Ctrl+0)");
     }
 
     private void setupNavHover(Button... buttons) {
@@ -894,6 +906,7 @@ public class MainController {
             {"F2",          "Tutorial interactivo del sistema"},
             {"F5 / Ctrl+R", "Actualizar vista actual"},
             {"Ctrl+F",      "Enfocar campo de búsqueda"},
+            {"Ctrl+0",      "Auditoría del sistema  (solo administrador)"},
         });
 
         VBox content = new VBox(0, header, navGrid, new Separator(),

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.AuditoriaController"
+      spacing="0" styleClass="page-root">
+
+    <!-- PAGE HEADER -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-slate">
+        <padding><Insets top="18" right="22" bottom="18" left="34"/></padding>
+        <StackPane styleClass="page-header-icon page-header-icon-slate">
+            <FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Auditoría del Sistema" styleClass="page-title"/>
+            <Label text="Registro completo de acciones realizadas por los usuarios" styleClass="page-subtitle"/>
+        </VBox>
+        <Button fx:id="btnRefresh" onAction="#onRefresh" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Actualizar  (F5)"/></tooltip>
+        </Button>
+    </HBox>
+
+    <!-- FILTER BAR -->
+    <HBox fx:id="filterBar" spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+        <padding><Insets top="12" right="22" bottom="12" left="34"/></padding>
+        <FontIcon iconLiteral="mdi2m-magnify" styleClass="search-icon"/>
+        <TextField fx:id="searchField" promptText="Buscar por nombre, detalle o acción…"
+                   styleClass="search-field" prefWidth="240"
+                   onKeyReleased="#onSearch"/>
+        <Label text="Entidad:" styleClass="form-label"/>
+        <ComboBox fx:id="entidadFilter" prefWidth="140" onAction="#onFilter"/>
+        <Label text="Usuario:" styleClass="form-label"/>
+        <TextField fx:id="usuarioFilter" promptText="Nombre de usuario…"
+                   prefWidth="160" styleClass="search-field" onKeyReleased="#onFilter"/>
+        <Label text="Desde:" styleClass="form-label"/>
+        <DatePicker fx:id="desdeField" prefWidth="130" onAction="#onFilter"/>
+        <Label text="Hasta:" styleClass="form-label"/>
+        <DatePicker fx:id="hastaField" prefWidth="130" onAction="#onFilter"/>
+        <Button text="Limpiar" onAction="#onLimpiar" styleClass="btn-secondary">
+            <graphic><FontIcon iconLiteral="mdi2c-close-circle-outline" styleClass="btn-icon"/></graphic>
+        </Button>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblTotal" styleClass="muted-sm"/>
+    </HBox>
+
+    <!-- TABLE -->
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="false">
+        <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/></columnResizePolicy>
+        <placeholder>
+            <VBox alignment="CENTER" spacing="8">
+                <FontIcon iconLiteral="mdi2s-shield-lock-outline" iconSize="40" styleClass="empty-icon"/>
+                <Label text="No hay registros de auditoría" styleClass="empty-label"/>
+                <Label text="Las acciones de los usuarios aparecerán aquí" styleClass="muted-sm"/>
+            </VBox>
+        </placeholder>
+        <columns>
+            <TableColumn fx:id="colFecha"   text="Fecha y hora"   prefWidth="155" minWidth="130"/>
+            <TableColumn fx:id="colEntidad" text="Entidad"         prefWidth="110" minWidth="90"/>
+            <TableColumn fx:id="colNombre"  text="Nombre"          prefWidth="200" minWidth="130"/>
+            <TableColumn fx:id="colAccion"  text="Acción"          prefWidth="140" minWidth="100"/>
+            <TableColumn fx:id="colUsuario" text="Usuario"         prefWidth="150" minWidth="110"/>
+            <TableColumn fx:id="colDetalle" text="Detalle"         prefWidth="300" minWidth="160"/>
+        </columns>
+    </TableView>
+
+    <!-- PAGINATION BAR -->
+    <HBox fx:id="paginationBar" alignment="CENTER" spacing="8" styleClass="pagination-bar">
+        <padding><Insets top="10" right="22" bottom="10" left="22"/></padding>
+        <Button fx:id="btnPrimera"  onAction="#onPrimera"  styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2p-page-first" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Primera página"/></tooltip>
+        </Button>
+        <Button fx:id="btnAnterior" onAction="#onAnterior" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Página anterior"/></tooltip>
+        </Button>
+        <Label fx:id="lblPagina" styleClass="pagination-label"/>
+        <Button fx:id="btnSiguiente" onAction="#onSiguiente" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-right" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Página siguiente"/></tooltip>
+        </Button>
+        <Button fx:id="btnUltima"   onAction="#onUltima"   styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2p-page-last" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Última página"/></tooltip>
+        </Button>
+        <Region HBox.hgrow="ALWAYS"/>
+        <ComboBox fx:id="pageSizeBox" prefWidth="90"/>
+    </HBox>
+</VBox>

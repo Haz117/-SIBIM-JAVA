@@ -144,6 +144,10 @@
                         <graphic><FontIcon iconLiteral="mdi2c-cog-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Configuración  (Ctrl+9)"/></tooltip>
                     </Button>
+                    <Button fx:id="btnAuditoria" text="Auditoría" onAction="#onAuditoria" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="nav-icon"/></graphic>
+                        <tooltip><Tooltip text="Auditoría del sistema  (Ctrl+0)"/></tooltip>
+                    </Button>
                 </VBox>
             </ScrollPane>
 

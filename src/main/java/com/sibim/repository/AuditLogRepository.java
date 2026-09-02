@@ -102,6 +102,62 @@ public class AuditLogRepository {
         return list;
     }
 
+    public List<AuditLog> findPaginated(int limit, int offset,
+            String busqueda, String entidad, String usuarioNombre,
+            java.time.LocalDate desde, java.time.LocalDate hasta) throws SQLException {
+        requireAdmin();
+        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
+            return findAll(500).stream().skip(offset).limit(limit).toList();
+        List<Object> params = new ArrayList<>();
+        String where = buildAuditWhere(busqueda, entidad, usuarioNombre, desde, hasta, params);
+        String sql = "SELECT * FROM audit_log" + where + " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        params.add(limit);
+        params.add(offset);
+        List<AuditLog> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) ps.setObject(i + 1, params.get(i));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
+
+    public int countFiltrado(String busqueda, String entidad, String usuarioNombre,
+            java.time.LocalDate desde, java.time.LocalDate hasta) throws SQLException {
+        requireAdmin();
+        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
+            return findAll(500).size();
+        List<Object> params = new ArrayList<>();
+        String where = buildAuditWhere(busqueda, entidad, usuarioNombre, desde, hasta, params);
+        String sql = "SELECT COUNT(*) FROM audit_log" + where;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) ps.setObject(i + 1, params.get(i));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    private static String buildAuditWhere(String busqueda, String entidad, String usuarioNombre,
+            java.time.LocalDate desde, java.time.LocalDate hasta, List<Object> params) {
+        List<String> conds = new ArrayList<>();
+        if (busqueda != null && !busqueda.isBlank()) {
+            String like = "%" + busqueda + "%";
+            conds.add("(entidad_nombre ILIKE ? OR detalle ILIKE ? OR accion ILIKE ?)");
+            params.add(like); params.add(like); params.add(like);
+        }
+        if (entidad != null && !entidad.isBlank()) { conds.add("entidad = ?"); params.add(entidad); }
+        if (usuarioNombre != null && !usuarioNombre.isBlank()) {
+            conds.add("usuario_nombre ILIKE ?"); params.add("%" + usuarioNombre + "%");
+        }
+        if (desde != null) { conds.add("created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { conds.add("created_at <= ?"); params.add(java.sql.Timestamp.valueOf(hasta.atTime(java.time.LocalTime.MAX))); }
+        return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
+    }
+
     private AuditLog mapRow(ResultSet rs) throws SQLException {
         AuditLog a = new AuditLog();
         a.setId(rs.getString("id"));
