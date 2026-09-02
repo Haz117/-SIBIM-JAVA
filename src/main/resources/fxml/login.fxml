@@ -121,6 +121,9 @@
             </StackPane>
         </VBox>
 
+        <Label fx:id="lblCapsLock" text="⚠ Bloq Mayús activado"
+               styleClass="caps-lock-hint" visible="false" managed="false"/>
+
         <Region prefHeight="6"/>
 
         <!-- Error label -->

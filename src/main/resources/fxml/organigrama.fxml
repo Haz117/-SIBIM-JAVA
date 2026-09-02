@@ -25,6 +25,11 @@
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el organigrama completo con bienes por área a PDF" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
+        <Button text="Exportar CSV" onAction="#onExportarCsv" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar listado de bienes por área a CSV (Excel compatible)" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>

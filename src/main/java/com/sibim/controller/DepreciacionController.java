@@ -18,6 +18,7 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
@@ -71,6 +72,7 @@ public class DepreciacionController {
     @FXML private Button btnClearSearch;
     @FXML private ComboBox<String> areaFilter;
     @FXML private Button btnClearFilters;
+    @FXML private HBox chipRow;
     @FXML private Label lblPlaceholderMsg;
     @FXML private Label lblPlaceholderHint;
     @FXML private TableView<Producto> table;
@@ -288,6 +290,42 @@ public class DepreciacionController {
                 lblPlaceholderHint.setText("Captura fecha de adquisición y vida útil al editar un bien");
             }
         }
+        updateChips(q, area);
+    }
+
+    private void updateChips(String q, String area) {
+        if (chipRow == null) return;
+        chipRow.getChildren().clear();
+        boolean any = false;
+
+        if (!q.isBlank()) {
+            chipRow.getChildren().add(makeChip("Búsqueda: \"" + q + "\"", () -> {
+                searchField.clear(); searchField.requestFocus();
+            }));
+            any = true;
+        }
+        if (area != null) {
+            chipRow.getChildren().add(makeChip("Área: " + area, () -> areaFilter.setValue(null)));
+            any = true;
+        }
+        if (filtroSoloTotalmente) {
+            chipRow.getChildren().add(makeChip("Solo totalmente depreciados", this::onFiltrarTotalmenteDepreciados));
+            any = true;
+        }
+        chipRow.setVisible(any);
+        chipRow.setManaged(any);
+    }
+
+    private javafx.scene.layout.HBox makeChip(String texto, Runnable onClose) {
+        Label lbl = new Label(texto);
+        lbl.getStyleClass().add("filter-chip-label");
+        Button btn = new Button("×");
+        btn.getStyleClass().add("filter-chip-close");
+        btn.setOnAction(e -> onClose.run());
+        javafx.scene.layout.HBox chip = new javafx.scene.layout.HBox(5, lbl, btn);
+        chip.getStyleClass().add("filter-chip-active");
+        chip.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        return chip;
     }
 
     @FXML

@@ -66,6 +66,17 @@ public class OrganigramaController {
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardAreas, statCardBienes, statCardTop), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+
+        searchField.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene == null) return;
+            scene.getAccelerators().put(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F,
+                    javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                () -> { searchField.requestFocus(); searchField.selectAll(); });
+            scene.getAccelerators().put(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F5),
+                () -> loadData(true));
+        });
     }
 
     private void loadData(boolean showSuccessToast) {
@@ -164,6 +175,19 @@ public class OrganigramaController {
             () -> reporteService.exportOrganigrama(productosPorArea),
             file -> DialogUtil.showExportResultDialog(searchField.getScene(), file),
             ex -> NotificacionUtil.error(searchField.getScene(), "No se pudo exportar el organigrama")
+        );
+    }
+
+    @FXML
+    private void onExportarCsv() {
+        if (productosPorArea.isEmpty()) {
+            NotificacionUtil.advertencia(searchField.getScene(), "No hay datos de organigrama para exportar");
+            return;
+        }
+        DialogUtil.runAsyncWithProgress(searchField.getScene(), "Generando CSV de organigrama…",
+            () -> reporteService.exportOrganigramaCsv(productosPorArea),
+            file -> DialogUtil.showExportResultDialog(searchField.getScene(), file),
+            ex -> NotificacionUtil.error(searchField.getScene(), "No se pudo exportar el CSV")
         );
     }
 

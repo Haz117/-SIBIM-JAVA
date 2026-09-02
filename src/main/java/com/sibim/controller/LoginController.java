@@ -39,6 +39,7 @@ public class LoginController {
     @FXML private VBox usernameBox;
     @FXML private VBox passwordBox;
     @FXML private Label secureBadge;
+    @FXML private Label lblCapsLock;
 
     private final AuthService authService = new AuthService();
 
@@ -89,6 +90,27 @@ public class LoginController {
         });
         passwordField.textProperty().addListener((obs, o, n) -> {
             if (!n.isBlank()) passwordField.getStyleClass().remove("field-error");
+        });
+
+        // Caps Lock warning — checked on focus and on every key stroke in both password fields
+        java.util.function.Supplier<Boolean> isCapsOn = () -> {
+            try { return java.awt.Toolkit.getDefaultToolkit()
+                    .getLockingKeyState(java.awt.event.KeyEvent.VK_CAPS_LOCK); }
+            catch (Exception ignored) { return false; }
+        };
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> capsCheck = e -> {
+            boolean on = isCapsOn.get();
+            if (lblCapsLock != null) {
+                lblCapsLock.setVisible(on);
+                lblCapsLock.setManaged(on);
+            }
+        };
+        passwordField.setOnKeyPressed(capsCheck);
+        passwordRevealField.setOnKeyPressed(capsCheck);
+        passwordField.focusedProperty().addListener((obs, o, focused) -> {
+            if (lblCapsLock == null) return;
+            if (focused) { boolean on = isCapsOn.get(); lblCapsLock.setVisible(on); lblCapsLock.setManaged(on); }
+            else          { lblCapsLock.setVisible(false); lblCapsLock.setManaged(false); }
         });
 
         playEntrance();

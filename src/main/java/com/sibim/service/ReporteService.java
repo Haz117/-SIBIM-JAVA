@@ -1034,6 +1034,29 @@ public class ReporteService {
         return new Paragraph("").setFontSize(size).setMarginBottom(0).setMarginTop(0);
     }
 
+    /** Flat CSV — one row per bien — from the already-filtered map that
+     *  OrganigramaController holds in memory (no extra DB call). */
+    public File exportOrganigramaCsv(Map<String, List<Producto>> porArea) throws Exception {
+        File file = tempFile("organigrama_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".csv");
+        try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(file, java.nio.charset.StandardCharsets.UTF_8))) {
+            pw.println("﻿" + "Área,Nombre,Código,Categoría,Stock actual,Estado,Valor compra");
+            for (Map.Entry<String, List<Producto>> e : porArea.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey()).toList()) {
+                for (Producto p : e.getValue()) {
+                    pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\",%.2f%n",
+                        esc(e.getKey()),
+                        esc(p.getNombre()),
+                        esc(p.getCodigo()),
+                        esc(p.getCategoriaNombre()),
+                        p.getStockActual(),
+                        p.getEstado() != null ? p.getEstado().name() : "",
+                        p.getPrecioCompra() != null ? p.getPrecioCompra() : java.math.BigDecimal.ZERO);
+                }
+            }
+        }
+        return file;
+    }
+
     private String esc(String s) {
         if (s == null) return "";
         return s.replace("\"", "\"\"");

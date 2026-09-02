@@ -3667,6 +3667,38 @@
 .btn-icon-only:hover .btn-icon { -fx-icon-color: #4338CA; }
 .btn-icon-only:pressed { -fx-background-color: rgba(99,102,241,0.15); }
 
+/* Active filter chips (Depreciación) */
+.filter-chip-active {
+    -fx-background-color: #EEF2FF;
+    -fx-border-color: #A5B4FC;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-padding: 3 8 3 12;
+}
+.filter-chip-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #3730A3;
+}
+.filter-chip-close {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #6366F1;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 0 2;
+    -fx-min-width: 16;
+}
+.filter-chip-close:hover { -fx-text-fill: #DC2626; }
+
+/* Caps Lock warning in Login */
+.caps-lock-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: #92400E;
+    -fx-background-color: #FEF3C7;
+    -fx-background-radius: 6;
+    -fx-padding: 3 8;
+}
+
 /* Audit action pills */
 .audit-pill-green  { -fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-red    { -fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }

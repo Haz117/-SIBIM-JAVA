@@ -156,6 +156,11 @@
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFiltros" styleClass="btn-secondary"/>
     </HBox>
 
+    <!-- ══ ACTIVE FILTER CHIPS ════════════════════════════════════════ -->
+    <HBox fx:id="chipRow" spacing="6" alignment="CENTER_LEFT" visible="false" managed="false">
+        <padding><Insets top="0" right="0" bottom="2" left="0"/></padding>
+    </HBox>
+
     <!-- ══ DATA TABLE ═══════════════════════════════════════════════ -->
     <TableView fx:id="table" prefHeight="360" styleClass="data-table">
         <columns>
