@@ -197,7 +197,6 @@ public class ConfiguracionController {
             cm.setOnShowing(e -> {
                 Usuario sel = usersTable.getSelectionModel().getSelectedItem();
                 cmReactivar.setVisible(sel != null && !sel.isActivo());
-                cmReactivar.setManaged(sel != null && !sel.isActivo());
             });
             cm.getItems().addAll(cmEditar, cmPassword, cmReactivar, new SeparatorMenuItem(), cmEliminar);
             usersTable.setContextMenu(cm);
