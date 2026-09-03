@@ -67,6 +67,7 @@ public class DashboardController {
     @FXML private Label                      lblTrendEmpty;
 
     // ── Layout ───────────────────────────────────────────────────────
+    @FXML private javafx.scene.control.ScrollPane rootScrollPane;
     @FXML private GridPane statsGrid;
     @FXML private TableView<Movimiento> tablaReciente;
     @FXML private Label lblCountReciente;
@@ -136,6 +137,11 @@ public class DashboardController {
                                 javafx.scene.Scene old, javafx.scene.Scene newScene) {
                 if (newScene != null) {
                     statsGrid.sceneProperty().removeListener(this);
+                    // Reset scroll to top before animations so nodes rendered
+                    // during stagger don't pull the viewport down.
+                    javafx.application.Platform.runLater(() -> {
+                        if (rootScrollPane != null) rootScrollPane.setVvalue(0);
+                    });
                     if (dashBanner != null && !dashBanner.getChildren().isEmpty())
                         AnimationUtils.staggeredFadeInUp(dashBanner.getChildren(), 300, 70);
                     AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(),          280,  45);
@@ -505,21 +511,20 @@ public class DashboardController {
         if (scene == null) return;
         String btnId = "#btn" + vista.substring(0, 1).toUpperCase() + vista.substring(1);
         javafx.scene.Node btn = scene.lookup(btnId);
-        if (btn instanceof Button b) b.fire();
+        if (btn instanceof Button b) {
+            // Short delay lets the :pressed CSS feedback render before the screen switches.
+            javafx.animation.PauseTransition delay =
+                new javafx.animation.PauseTransition(javafx.util.Duration.millis(80));
+            delay.setOnFinished(ev -> b.fire());
+            delay.play();
+        }
     }
 
     @FXML private void onVerProductos()    { navigarA("Productos"); }
     @FXML private void onVerMovimientos()  { navigarA("Movimientos"); }
     @FXML private void onVerReportes()     { navigarA("Reportes"); }
     @FXML private void onVerCategorias()   { navigarA("Categorias"); }
-
-    @FXML
-    private void onVerAlertas() {
-        if (alertBanner != null && alertBanner.getScene() != null) {
-            Button btnAlertas = (Button) alertBanner.getScene().lookup("#btnAlertas");
-            if (btnAlertas != null) btnAlertas.fire();
-        }
-    }
+    @FXML private void onVerAlertas()      { navigarA("Alertas"); }
 
     @FXML
     private void onVerAgotados() {

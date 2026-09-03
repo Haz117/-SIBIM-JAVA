@@ -6,6 +6,7 @@
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="rootScrollPane"
             fx:controller="com.sibim.controller.DashboardController"
             fitToWidth="true" styleClass="page-scroll">
 <VBox spacing="18">

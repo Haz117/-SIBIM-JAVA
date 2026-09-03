@@ -138,8 +138,8 @@ class ProductosColumnSetup {
                     .findFirst()
                     .orElse("mdi2t-tag-outline");
                 FontIcon ico = new FontIcon(iconLiteral);
-                ico.setIconSize(14);
-                ico.setStyle("-fx-icon-color: " + catColor + ";");
+                ico.setIconSize(16);
+                ico.setIconColor(javafx.scene.paint.Color.web(catColor));
                 javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(5, ico, lbl);
                 box.setAlignment(Pos.CENTER_LEFT);
                 box.getStyleClass().add("cat-badge");
