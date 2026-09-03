@@ -2884,111 +2884,97 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 .splash-root {
-    -fx-background-color: radial-gradient(center 35% 30%, radius 58%, #1e1b4b 0%, #09071a 100%);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #0d0b1e 0%, #1e1b4b 50%, #0d0b1e 100%);
 }
 
-/* Decorative background rings */
+/* Decorative background blobs */
 .splash-deco-ring-tr {
-    -fx-background-color: rgba(99,102,241,0.09);
-    -fx-background-radius: 99;
-    -fx-min-width: 320; -fx-min-height: 320;
-    -fx-max-width: 320; -fx-max-height: 320;
-    -fx-translate-x: 130;
-    -fx-translate-y: -130;
+    -fx-background-color: rgba(99,102,241,0.08);
+    -fx-background-radius: 999;
+    -fx-min-width: 340; -fx-min-height: 340;
+    -fx-max-width: 340; -fx-max-height: 340;
+    -fx-translate-x: 150;
+    -fx-translate-y: -150;
 }
 .splash-deco-ring-bl {
-    -fx-background-color: rgba(124,58,237,0.07);
-    -fx-background-radius: 99;
-    -fx-min-width: 260; -fx-min-height: 260;
-    -fx-max-width: 260; -fx-max-height: 260;
-    -fx-translate-x: -100;
-    -fx-translate-y: 100;
-}
-
-/* Sonar ping rings — start at 110×110, scale outward + fade */
-.splash-ping-ring {
-    -fx-border-color: rgba(129,140,248,0.65);
-    -fx-border-width: 2;
-    -fx-border-radius: 999;
-    -fx-background-color: transparent;
+    -fx-background-color: rgba(124,58,237,0.06);
     -fx-background-radius: 999;
-    -fx-min-width: 110; -fx-min-height: 110;
-    -fx-max-width: 110; -fx-max-height: 110;
+    -fx-min-width: 280; -fx-min-height: 280;
+    -fx-max-width: 280; -fx-max-height: 280;
+    -fx-translate-x: -110;
+    -fx-translate-y: 110;
 }
 
-/* Logo badge — indigo profundo a violeta */
+/* Logo badge — circular, indigo→violet gradient */
 .splash-logo-badge {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2d1b69, #4338ca 52%, #7c3aed);
-    -fx-background-radius: 28;
-    -fx-min-width: 110; -fx-min-height: 110;
-    -fx-max-width: 110; -fx-max-height: 110;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.75), 42, 0.12, 0, 12);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #312e81, #4f46e5 48%, #7c3aed);
+    -fx-background-radius: 999;
+    -fx-min-width: 100; -fx-min-height: 100;
+    -fx-max-width: 100; -fx-max-height: 100;
+    -fx-border-color: rgba(165,180,252,0.22);
+    -fx-border-radius: 999;
+    -fx-border-width: 1.5;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.70), 44, 0.10, 0, 14);
 }
 
-/* Inner frosted circle */
-.splash-logo-inner {
-    -fx-background-color: rgba(255,255,255,0.13);
-    -fx-background-radius: 99;
-    -fx-min-width: 72; -fx-min-height: 72;
-    -fx-max-width: 72; -fx-max-height: 72;
-    -fx-border-color: rgba(255,255,255,0.18);
-    -fx-border-radius: 99;
-    -fx-border-width: 1;
+/* Icon inside the badge */
+.splash-logo-icon {
+    -fx-icon-color: white;
+    -fx-icon-size: 42px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 4, 0, 0, 1);
 }
 
-/* The "S" letter */
-.splash-logo-letter {
-    -fx-font-size: 44px;
-    -fx-font-weight: 900;
-    -fx-text-fill: white;
-    -fx-font-family: 'Segoe UI';
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 4, 0, 0, 2);
+/* Thin accent divider between subtitle and org */
+.splash-divider {
+    -fx-background-color: linear-gradient(to right, transparent, #818cf8, transparent);
+    -fx-background-radius: 999;
 }
 
 /* "SIBIM" headline */
 .splash-title {
-    -fx-font-size: 38px;
+    -fx-font-size: 40px;
     -fx-font-weight: 900;
     -fx-text-fill: white;
     -fx-font-family: 'Segoe UI';
-    -fx-letter-spacing: 3;
-    -fx-effect: dropshadow(gaussian, rgba(129,140,248,0.50), 14, 0.2, 0, 2);
+    -fx-letter-spacing: 6;
+    -fx-effect: dropshadow(gaussian, rgba(129,140,248,0.45), 16, 0.15, 0, 2);
 }
 
 /* Subtitle line */
 .splash-subtitle {
-    -fx-font-size: 13px;
-    -fx-text-fill: rgba(255,255,255,0.60);
+    -fx-font-size: 12.5px;
+    -fx-text-fill: rgba(255,255,255,0.58);
     -fx-font-family: 'Segoe UI';
+    -fx-letter-spacing: 0.3;
 }
 
 /* Org line */
 .splash-org {
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(255,255,255,0.55);
+    -fx-text-fill: rgba(165,180,252,0.70);
     -fx-font-family: 'Segoe UI';
-    -fx-padding: 2 0 0 0;
+    -fx-padding: 4 0 0 0;
 }
 
-/* Progress bar track */
+/* Progress bar */
 .splash-progress {
     -fx-background-color: transparent;
 }
 .splash-progress .track {
-    -fx-background-color: rgba(255,255,255,0.10);
-    -fx-background-radius: 99;
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-background-radius: 999;
     -fx-background-insets: 0;
 }
 .splash-progress .bar {
-    -fx-background-color: linear-gradient(to right, #4338CA, #818cf8);
-    -fx-background-radius: 99;
+    -fx-background-color: linear-gradient(to right, #4f46e5, #818cf8, #a78bfa);
+    -fx-background-radius: 999;
     -fx-background-insets: 0;
 }
 
-/* Status text below progress */
+/* Status text */
 .splash-status {
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(255,255,255,0.55);
+    -fx-text-fill: rgba(255,255,255,0.42);
     -fx-font-family: 'Segoe UI';
 }
 

@@ -2,50 +2,41 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <StackPane fx:id="splashRoot" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.sibim.controller.SplashController"
            styleClass="splash-root" opacity="0">
 
-    <!-- Decorative accent ring top-right -->
-    <StackPane fx:id="ringTr" styleClass="splash-deco-ring-tr"
-               StackPane.alignment="TOP_RIGHT"/>
-
-    <!-- Decorative accent ring bottom-left -->
-    <StackPane fx:id="ringBl" styleClass="splash-deco-ring-bl"
-               StackPane.alignment="BOTTOM_LEFT"/>
+    <!-- Background accent blobs — static, animated only with subtle breathe -->
+    <StackPane fx:id="ringTr" styleClass="splash-deco-ring-tr" StackPane.alignment="TOP_RIGHT"/>
+    <StackPane fx:id="ringBl" styleClass="splash-deco-ring-bl" StackPane.alignment="BOTTOM_LEFT"/>
 
     <!-- ── Centro ─────────────────────────────────────────────── -->
-    <VBox alignment="CENTER" spacing="24" maxWidth="380">
+    <VBox alignment="CENTER" spacing="30" maxWidth="420">
 
-        <!-- Logo badge + sonar ping rings in one StackPane so rings expand
-             from the exact same center as the badge. The wrapper is sized
-             to the badge (110×110); rings render outside those bounds
-             because JavaFX does not clip children of StackPane by default. -->
+        <!-- Logo: icon badge + circular progress arc built in code -->
         <StackPane fx:id="logoWrapper" alignment="CENTER"
-                   minWidth="110" minHeight="110"
-                   maxWidth="110" maxHeight="110">
-            <StackPane fx:id="pingRing1" styleClass="splash-ping-ring" opacity="0"/>
-            <StackPane fx:id="pingRing2" styleClass="splash-ping-ring" opacity="0"/>
+                   minWidth="116" minHeight="116"
+                   maxWidth="116" maxHeight="116">
             <StackPane fx:id="logoBadge" styleClass="splash-logo-badge" alignment="CENTER">
-                <StackPane styleClass="splash-logo-inner" alignment="CENTER">
-                    <Label text="S" styleClass="splash-logo-letter"/>
-                </StackPane>
+                <FontIcon iconLiteral="mdi2p-package-variant" styleClass="splash-logo-icon"/>
             </StackPane>
         </StackPane>
 
-        <!-- Brand text — labels get individual fx:ids so the controller can
-             stagger their entrance animations separately. -->
-        <VBox fx:id="brandBox" alignment="CENTER" spacing="7">
+        <!-- Brand text -->
+        <VBox fx:id="brandBox" alignment="CENTER" spacing="8">
             <Label fx:id="lblTitle"    text="SIBIM"                                    styleClass="splash-title"/>
             <Label fx:id="lblSubtitle" text="Sistema Integral de Bienes Municipales"   styleClass="splash-subtitle"/>
+            <Region fx:id="splashDivider" styleClass="splash-divider"
+                    prefWidth="48" prefHeight="2" maxWidth="48"/>
             <Label fx:id="lblOrg"      text="H. Ayuntamiento de Ixmiquilpan · Hidalgo" styleClass="splash-org"/>
         </VBox>
 
         <!-- Progress section -->
-        <VBox fx:id="progressBox" alignment="CENTER" spacing="9">
-            <padding><Insets top="6"/></padding>
-            <ProgressBar fx:id="progressBar" prefWidth="230" prefHeight="5"
+        <VBox fx:id="progressBox" alignment="CENTER" spacing="10">
+            <padding><Insets top="4"/></padding>
+            <ProgressBar fx:id="progressBar" prefWidth="260" prefHeight="4"
                          styleClass="splash-progress"/>
             <Label fx:id="lblStatus" text="Iniciando..." styleClass="splash-status"/>
         </VBox>
