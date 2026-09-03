@@ -227,6 +227,13 @@ public class SplashController {
                     .load()
                     .migrate();
                 firstRunAdmin = seedAdminIfEmpty();
+                // Update org label from DB config (best-effort; fallback is the FXML default)
+                try {
+                    com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
+                    String org = cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan");
+                    String mun = cr.get("municipio", "Ixmiquilpan, Hidalgo");
+                    Platform.runLater(() -> lblOrg.setText(org + "  ·  " + mun));
+                } catch (Exception ignored) {}
             }
         } catch (Exception e) {
             log.warn("No se pudo conectar a la base de datos o el esquema no existe: {}", e.getMessage());

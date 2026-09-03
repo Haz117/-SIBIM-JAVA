@@ -14,13 +14,14 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría o usuario, consultable desde Configuración (solo Admin)
 - **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo JSON, o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). Solo disponible conectado a la base de datos real, no en modo offline/demo
-- **Depreciación de activos** — página dedicada con el valor total de compra, valor actual en libros y % promedio depreciado de los bienes con datos completos, una gráfica de proyección del valor a 10 años, y el detalle por bien; exportable a PDF/Excel
+- **Depreciación de activos** — 4 tarjetas (valor compra, valor actual, % promedio, totalmente depreciados); distribución del inventario en 4 rangos de depreciación (0–24 % / 25–49 % / 50–99 % / 100 %+) como barras animadas; columna de visualización con `ProgressBar` codificada por color en la tabla; gráfica de proyección del valor a 10 años; exportable a PDF / Excel / fichas técnicas en lote
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
-- **Alertas** — bienes agotados, existencias bajo mínimo y garantías por vencer; exportables a PDF y Excel directamente desde la pantalla de alertas (Ctrl+F para filtrar, atajos de teclado en todos los módulos)
-- **Dashboard** — resumen con gráficas de movimientos y distribución por categoría
-- **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área)
-- **Organigrama** — bienes distribuidos por secretaría y dirección municipal, con valor patrimonial y alertas de stock por área, y salto directo al Inventario filtrado por esa área
-- **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real por nombre, usuario, cargo y área
+- **Alertas** — resumen rápido con 3 tarjetas animadas (Agotados / Bajo Stock / Garantías) con barras de proporción; detalle de garantías vencidas vs. próximas; exportable a PDF, Excel y CSV directamente desde la pantalla de alertas (Ctrl+F para filtrar, atajos de teclado en todos los módulos)
+- **Dashboard** — 4 mini-tarjetas de estado (Activos / Bajo Stock / Agotados / Vencidos) con `ProgressBar` codificada por color, gráfica de movimientos semanal, gráfica por categoría y barras de distribución de las 5 áreas con más bienes
+- **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área); el encabezado de todos los documentos PDF y Excel usa el nombre del ayuntamiento configurado en Configuración
+- **Organigrama** — 4 tarjetas de resumen (áreas, bienes distribuidos, área con más bienes, valor patrimonial total); barras horizontales animadas con las top-5 áreas; valor patrimonial y alertas de stock por área; salto directo al Inventario filtrado por esa área
+- **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real; activar/desactivar cuentas (desactivar bloquea el acceso tanto online como en modo offline); la eliminación de un usuario con bienes/movimientos relacionados ofrece desactivar la cuenta como alternativa a borrar
+- **Configuración institucional** — nombre del ayuntamiento, municipio, área responsable y correo de contacto editables desde Configuración (solo Admin); todos los reportes PDF/Excel usan automáticamente estos datos
 - **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo; contadores animados de 0 al valor real; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press; animación de transferencia con flecha que se estira al disparar y chip de destino que entra desde la derecha con rebote; efecto shake en errores de validación
 - **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
 - **Notificaciones toast** en tiempo real
@@ -56,7 +57,7 @@ El sistema implementa múltiples capas de defensa:
 | Contraseñas | BCrypt (factor 12) — nunca se almacena texto plano |
 | Intentos de login | Bloqueo tras 5 fallos en 15 min; mensaje con minutos restantes |
 | Sesión activa | Timeout de inactividad a los 30 min con countdown UI; cierre automático o manual |
-| Credenciales offline | Caché local expira a los **30 días** — requiere conexión periódica al servidor para renovar |
+| Credenciales offline | Caché local expira a los **30 días** — requiere conexión periódica al servidor para renovar; el estado `activo` se sincroniza en cada login online — una cuenta desactivada no puede entrar ni en modo offline |
 | Autorización | Guards en capa de servicio/repositorio: `SecurityException` si el rol no tiene permiso (no solo en UI) |
 | Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área |
 | Cifrado en tránsito | Configurable via `DB_SSL_MODE` en `.env`; la app emite advertencia en log si la BD es remota y SSL no está en modo `require` |
@@ -78,7 +79,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales son `V1` (esquema inicial), `V2`–`V4` (mejoras incrementales) y `V5` (columna `activo` en usuarios + tabla `configuracion` con datos institucionales). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -228,15 +229,15 @@ SIBIM-Java/
 
 | Módulo | Descripción |
 |---|---|
-| Dashboard | Tarjetas resumen, gráfica de movimientos semanal, gráfica por categoría, barra de salud del inventario, animaciones de entrada y contadores animados |
-| Inventario | CRUD completo de bienes con búsqueda, filtros por estado/área/categoría/resguardante, presets de filtro guardables, importación CSV masiva, paginación, baja patrimonial con motivo, conteo físico, vista de bajas y panel de depreciación en el detalle |
-| Movimientos | Registro de entradas/salidas/ajustes/transferencias; flujo de aprobación para transferencias de usuarios no-Admin (quedan como PENDIENTE hasta que un Admin las autorice o rechace desde el panel "⏳ Pendientes") |
-| Alertas | Tres secciones: agotados, bajo stock y garantías próximas a vencer; búsqueda en tiempo real (Ctrl+F), export a PDF y Excel desde la cabecera, botones de reposición de stock guardados por rol |
-| Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches, no hex/RGBA a mano) |
-| Organigrama | Vista de bienes distribuidos por estructura organizacional del Ayuntamiento, con resumen de áreas/bienes, valor patrimonial y alertas de stock por área, y acceso directo al Inventario filtrado |
-| Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV) |
-| Depreciación | Valor de compra vs. valor actual en libros, % promedio depreciado, gráfica de proyección a 10 años y detalle por bien; exportable a PDF/Excel |
-| Configuración | Perfil de usuario, gestión de cuentas con buscador en tiempo real, historial de auditoría, historial de conteos físicos y respaldo/restauración de la base de datos (solo Admin) |
+| Dashboard | 4 mini-tarjetas de estado con `ProgressBar` animada; gráfica de movimientos semanal; gráfica por categoría; barras de distribución top-5 áreas; contadores animados |
+| Inventario | CRUD completo con búsqueda, filtros combinables, presets guardables, importación CSV masiva, paginación, baja patrimonial con motivo, conteo físico, vista de bajas y panel de depreciación en el detalle |
+| Movimientos | Entradas / salidas / ajustes / transferencias; flujo de aprobación para transferencias de usuarios no-Admin (PENDIENTE hasta que un Admin las autorice o rechace desde el panel "⏳ Pendientes") |
+| Alertas | 3 tarjetas resumen animadas (Agotados / Bajo Stock / Garantías) con proporciones relativas y desglose vencidas/próximas; búsqueda en tiempo real (Ctrl+F); export a PDF, Excel y CSV; reposición de stock con guardia por rol |
+| Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches) |
+| Organigrama | 4 tarjetas (áreas, bienes, top área, valor patrimonial); barras animadas top-5 áreas; alertas de stock por área; acceso directo al Inventario filtrado por área |
+| Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV); encabezado institucional configurable |
+| Depreciación | Tarjetas de valor compra/actual/% promedio/totalmente depreciados; distribución en 4 rangos como barras animadas; columna visual `ProgressBar` en la tabla; gráfica de proyección a 10 años; export PDF/Excel/fichas en lote |
+| Configuración | Datos institucionales editables (nombre, municipio, responsable, correo); gestión de cuentas con activar/desactivar; historial de auditoría; conteos físicos; respaldo/restauración (solo Admin) |
 
 ---
 

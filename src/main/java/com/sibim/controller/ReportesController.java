@@ -134,6 +134,11 @@ public class ReportesController {
     @FXML private void onDistribucionExcel(ActionEvent event) { exportar(event, () -> reporteService.exportDistribucionExcel()); }
     @FXML private void onDistribucionCsv(ActionEvent event)   { exportar(event, () -> reporteService.exportDistribucionCsv()); }
 
+    // ─── Bajas ───
+    @FXML private void onBajasPdf(ActionEvent event)   { exportar(event, reporteService::exportBajasPdf); }
+    @FXML private void onBajasExcel(ActionEvent event) { exportar(event, reporteService::exportBajasExcel); }
+    @FXML private void onBajasCsv(ActionEvent event)   { exportar(event, reporteService::exportBajasCsv); }
+
     private void loadAreaChart() {
         if (areaChart == null) return;
         if (chartSpinner != null) { chartSpinner.setVisible(true); chartSpinner.setManaged(true); }

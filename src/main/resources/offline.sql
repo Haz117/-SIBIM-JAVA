@@ -79,8 +79,21 @@ CREATE TABLE IF NOT EXISTS users_cache (
     rol                    TEXT NOT NULL,
     area                   TEXT,
     debe_cambiar_password  INTEGER NOT NULL DEFAULT 0,
+    activo                 INTEGER NOT NULL DEFAULT 1,
     cached_at              TEXT
 );
+
+CREATE TABLE IF NOT EXISTS configuracion (
+    clave       TEXT PRIMARY KEY,
+    valor       TEXT,
+    descripcion TEXT
+);
+
+INSERT OR IGNORE INTO configuracion (clave, valor, descripcion) VALUES
+    ('nombre_ayuntamiento', 'H. Ayuntamiento de Ixmiquilpan', 'Nombre del H. Ayuntamiento'),
+    ('municipio',           'Ixmiquilpan, Hidalgo',           'Municipio y estado'),
+    ('responsable',         'Dirección de Bienes Patrimoniales', 'Área responsable del sistema'),
+    ('correo_contacto',     '',                               'Correo de contacto institucional');
 
 -- ───────────────────────────── Outbox ─────────────────────────────
 -- Una fila por cada escritura hecha mientras la app estuvo offline.

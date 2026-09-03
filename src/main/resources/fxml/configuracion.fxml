@@ -3,6 +3,8 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sibim.controller.ConfiguracionController"
@@ -39,11 +41,11 @@
                 </HBox>
             </VBox>
 
-            <!-- Decorative badge -->
+            <!-- Decorative badge (updated dynamically from configuracion table) -->
             <VBox alignment="CENTER_RIGHT" spacing="4" styleClass="profile-deco-badge">
                 <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="profile-deco-icon"/>
-                <Label text="H. Ayuntamiento" styleClass="profile-deco-name"/>
-                <Label text="de Ixmiquilpan" styleClass="profile-deco-sub"/>
+                <Label fx:id="lblDecoNombre" text="H. Ayuntamiento" styleClass="profile-deco-name"/>
+                <Label fx:id="lblDecoSub"    text="de Ixmiquilpan"  styleClass="profile-deco-sub"/>
             </VBox>
         </HBox>
 
@@ -95,6 +97,52 @@
         </HBox>
     </VBox>
 
+    <!-- ══ CONFIGURACIÓN DEL SISTEMA ════════════════════════════════ -->
+    <VBox fx:id="configCard" styleClass="card" spacing="12">
+        <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="12">
+            <StackPane styleClass="section-icon-badge">
+                <FontIcon iconLiteral="mdi2c-cog-outline" styleClass="page-icon-emoji"/>
+            </StackPane>
+            <VBox spacing="2" HBox.hgrow="ALWAYS">
+                <Label text="Configuración del Sistema" styleClass="card-title"/>
+                <Label text="Datos institucionales que aparecen en reportes y documentos generados"
+                       styleClass="page-subtitle"/>
+            </VBox>
+        </HBox>
+        <Separator/>
+        <GridPane hgap="16" vgap="12">
+            <columnConstraints>
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="50"/>
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="50"/>
+            </columnConstraints>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                <Label text="NOMBRE DEL AYUNTAMIENTO" styleClass="profile-field-key"/>
+                <TextField fx:id="tfNombreAyuntamiento" promptText="Ej. H. Ayuntamiento de Ixmiquilpan" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                <Label text="MUNICIPIO Y ESTADO" styleClass="profile-field-key"/>
+                <TextField fx:id="tfMunicipio" promptText="Ej. Ixmiquilpan, Hidalgo" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                <Label text="ÁREA RESPONSABLE" styleClass="profile-field-key"/>
+                <TextField fx:id="tfResponsable" promptText="Ej. Dirección de Bienes Patrimoniales" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                <Label text="CORREO DE CONTACTO" styleClass="profile-field-key"/>
+                <TextField fx:id="tfCorreoContacto" promptText="correo@municipio.gob.mx" maxWidth="Infinity"/>
+            </VBox>
+        </GridPane>
+        <HBox spacing="8" alignment="CENTER_RIGHT">
+            <Label fx:id="lblConfigHint" text="Solo el administrador puede guardar cambios" styleClass="muted" HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnGuardarConfig" text="Guardar configuración" onAction="#onGuardarConfig" styleClass="btn-primary"
+                    contentDisplay="LEFT" graphicTextGap="8" disable="true">
+                <graphic><FontIcon iconLiteral="mdi2c-content-save-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Guardar los datos institucionales del sistema"/></tooltip>
+            </Button>
+        </HBox>
+    </VBox>
+
     <!-- ══ GESTIÓN DE USUARIOS (solo ADMIN) ══════════════════════════ -->
     <VBox fx:id="adminSection" styleClass="card" spacing="12">
         <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>
@@ -137,11 +185,12 @@
 
         <TableView fx:id="usersTable" prefHeight="265" styleClass="data-table">
             <columns>
-                <TableColumn fx:id="colNombre"   text="Nombre completo" prefWidth="195" sortable="true"/>
-                <TableColumn fx:id="colUsername" text="Usuario"         prefWidth="130" sortable="true"/>
-                <TableColumn fx:id="colCargo"    text="Cargo"           prefWidth="160" sortable="true"/>
-                <TableColumn fx:id="colRol"      text="Rol"             prefWidth="110" sortable="true"/>
-                <TableColumn fx:id="colArea"     text="Área"            prefWidth="210" sortable="true"/>
+                <TableColumn fx:id="colNombre"   text="Nombre completo" prefWidth="175" sortable="true"/>
+                <TableColumn fx:id="colUsername" text="Usuario"         prefWidth="120" sortable="true"/>
+                <TableColumn fx:id="colCargo"    text="Cargo"           prefWidth="140" sortable="true"/>
+                <TableColumn fx:id="colRol"      text="Rol"             prefWidth="105" sortable="true"/>
+                <TableColumn fx:id="colArea"     text="Área"            prefWidth="170" sortable="true"/>
+                <TableColumn fx:id="colActivo"   text="Estado"          prefWidth="90"  sortable="true"/>
             </columns>
             <placeholder>
                 <VBox alignment="CENTER" spacing="10">

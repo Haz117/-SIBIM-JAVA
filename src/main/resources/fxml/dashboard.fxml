@@ -24,7 +24,7 @@
                 <Label fx:id="lblUsuario"    styleClass="banner-name"/>
                 <HBox spacing="8" alignment="CENTER_LEFT">
                     <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="banner-brand-icon"/>
-                    <Label text="H. Ayuntamiento de Ixmiquilpan  ·  Bienes Municipales"
+                    <Label fx:id="lblOrgBanner" text="H. Ayuntamiento de Ixmiquilpan  ·  Bienes Municipales"
                            styleClass="banner-org"/>
                 </HBox>
             </VBox>
@@ -46,6 +46,71 @@
         <Label fx:id="lblAlertBannerText" text="Hay bienes que requieren atención."
                wrapText="true" HBox.hgrow="ALWAYS"/>
         <Label text="Ver alertas →" styleClass="alert-banner-cta"/>
+    </HBox>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: ACCIONES RÁPIDAS
+         ══════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ACCIONES RÁPIDAS" styleClass="dash-section-label"/>
+    </HBox>
+    <HBox fx:id="quickActionsRow" spacing="12">
+        <VBox fx:id="cardNuevoBien" styleClass="quick-action-card" onMouseClicked="#onAccionNuevoBien"
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2p-plus-circle-outline" styleClass="qa-card-icon-indigo"/>
+                <VBox spacing="2">
+                    <Label text="Nuevo Bien" styleClass="qa-card-title"/>
+                    <Label text="Registrar un activo al inventario" styleClass="qa-card-hint"/>
+                </VBox>
+            </HBox>
+        </VBox>
+        <VBox fx:id="cardNuevaEntrada" styleClass="quick-action-card" onMouseClicked="#onAccionNuevaEntrada"
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2a-arrow-up-bold-circle-outline" styleClass="qa-card-icon-green"/>
+                <VBox spacing="2">
+                    <Label text="Registrar Entrada" styleClass="qa-card-title"/>
+                    <Label text="Nueva entrada de stock" styleClass="qa-card-hint"/>
+                </VBox>
+            </HBox>
+        </VBox>
+        <VBox styleClass="quick-action-card" onMouseClicked="#onVerAlertas"
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="qa-card-icon-amber"/>
+                <VBox spacing="2">
+                    <Label text="Ver Alertas" styleClass="qa-card-title"/>
+                    <Label text="Bienes agotados y bajo stock" styleClass="qa-card-hint"/>
+                </VBox>
+            </HBox>
+        </VBox>
+        <VBox styleClass="quick-action-card" onMouseClicked="#onVerReportes"
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="qa-card-icon-blue"/>
+                <VBox spacing="2">
+                    <Label text="Generar Reporte" styleClass="qa-card-title"/>
+                    <Label text="Exportar inventario y más" styleClass="qa-card-hint"/>
+                </VBox>
+            </HBox>
+        </VBox>
+        <VBox styleClass="quick-action-card" onMouseClicked="#onBusquedaGlobal"
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2m-magnify" styleClass="qa-card-icon-violet"/>
+                <VBox spacing="2">
+                    <Label text="Buscar Bien" styleClass="qa-card-title"/>
+                    <Label text="Búsqueda global  (Ctrl+K)" styleClass="qa-card-hint"/>
+                </VBox>
+            </HBox>
+        </VBox>
     </HBox>
 
     <!-- ══════════════════════════════════════════════════════════
@@ -158,44 +223,16 @@
     </GridPane>
 
     <!-- ══════════════════════════════════════════════════════════
-         ESTADO DEL INVENTARIO (health bar) — única fuente para las
-         cifras de bajo stock / agotados / vencidos: haz clic en una
-         leyenda para ver el detalle de esos bienes.
+         ESTADO DEL INVENTARIO (4 mini-cards con barra de progreso)
          ══════════════════════════════════════════════════════════ -->
-    <VBox fx:id="healthSection" styleClass="dash-health-card" spacing="10"
-          visible="false" managed="false">
-        <padding><Insets top="14" right="18" bottom="14" left="18"/></padding>
-        <HBox alignment="CENTER_LEFT" spacing="8">
-            <Label text="Estado del Inventario" styleClass="dash-health-title"/>
-            <Label fx:id="helpHealth" text="?" styleClass="help-badge">
-                <tooltip><Tooltip text="Distribución de todos los bienes activos por estado de stock. Haz clic en Bajo Stock o Agotados para ver cuáles son." wrapText="true" maxWidth="260"/></tooltip>
-            </Label>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Label fx:id="lblHealthDetail" text="" styleClass="muted"/>
-        </HBox>
-        <!-- Segmented bar -->
-        <HBox fx:id="healthBar" prefHeight="10" spacing="2" styleClass="dash-health-bar"/>
-        <HBox spacing="20">
-            <HBox spacing="5" alignment="CENTER_LEFT">
-                <Label text="●" styleClass="dot-green"/>
-                <Label fx:id="lblHealthActivos" text="Activos — 0" styleClass="dash-health-legend"/>
-            </HBox>
-            <HBox spacing="5" alignment="CENTER_LEFT" styleClass="dash-health-legend-clickable"
-                  onMouseClicked="#onVerBajoStock">
-                <Label text="●" styleClass="dot-amber"/>
-                <Label fx:id="lblHealthBajo" text="Bajo Stock — 0" styleClass="dash-health-legend"/>
-            </HBox>
-            <HBox spacing="5" alignment="CENTER_LEFT" styleClass="dash-health-legend-clickable"
-                  onMouseClicked="#onVerAgotados">
-                <Label text="●" styleClass="dot-red"/>
-                <Label fx:id="lblHealthAgotado" text="Agotados — 0" styleClass="dash-health-legend"/>
-            </HBox>
-            <HBox spacing="5" alignment="CENTER_LEFT">
-                <Label text="●" styleClass="dot-violet"/>
-                <Label fx:id="lblHealthVencido" text="Vencidos — 0" styleClass="dash-health-legend"/>
-            </HBox>
-        </HBox>
-    </VBox>
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ESTADO DEL INVENTARIO" styleClass="dash-section-label"/>
+        <Label fx:id="helpHealth" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Distribución de todos los bienes activos por estado de stock. Haz clic en Bajo Stock o Agotados para ver cuáles son." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
+    </HBox>
+    <HBox fx:id="statusCardsRow" spacing="14" visible="false" managed="false"/>
 
     <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: ANÁLISIS DE INVENTARIO
@@ -240,6 +277,19 @@
             </StackPane>
         </VBox>
     </HBox>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: DISTRIBUCIÓN POR ÁREA
+         ══════════════════════════════════════════════════════════ -->
+    <HBox fx:id="areasSectionHdr" alignment="CENTER_LEFT" spacing="10" visible="false" managed="false">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="DISTRIBUCIÓN POR ÁREA" styleClass="dash-section-label"/>
+        <Label text="Top 5 áreas · bienes activos" styleClass="dash-section-badge"/>
+    </HBox>
+    <VBox fx:id="areasCard" styleClass="card" spacing="14" visible="false" managed="false">
+        <padding><Insets top="18" right="20" bottom="18" left="20"/></padding>
+        <VBox fx:id="areasBarBox" spacing="12"/>
+    </VBox>
 
     <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: TENDENCIA MENSUAL

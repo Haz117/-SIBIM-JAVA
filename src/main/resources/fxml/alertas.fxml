@@ -31,11 +31,57 @@
             <graphic><FontIcon iconLiteral="mdi2m-microsoft-excel" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar reporte de alertas en Excel"/></tooltip>
         </Button>
+        <Button text="Exportar CSV" onAction="#onExportarCsv" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar alertas en formato CSV (compatible con Excel)"/></tooltip>
+        </Button>
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recalcular alertas (auto-refresca cada 5 min)"/></tooltip>
         </Button>
+    </HBox>
+
+    <!-- ══ RESUMEN RÁPIDO ═══════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <VBox fx:id="statCardAgotados" styleClass="status-mini-card status-mini-card-red"
+              HBox.hgrow="ALWAYS" spacing="5">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="status-icon-red"/>
+                <Label text="AGOTADOS" styleClass="status-mini-label"/>
+            </HBox>
+            <Label fx:id="lblSumAgotados" text="0" styleClass="status-mini-count"/>
+            <Label text="bienes sin stock" styleClass="rich-stat-hint"/>
+            <ProgressBar fx:id="pbAgotados" progress="0" maxWidth="Infinity"
+                         styleClass="status-pb status-pb-red"/>
+        </VBox>
+        <VBox fx:id="statCardBajoStockSum" styleClass="status-mini-card status-mini-card-amber"
+              HBox.hgrow="ALWAYS" spacing="5">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="status-icon-amber"/>
+                <Label text="BAJO STOCK" styleClass="status-mini-label"/>
+            </HBox>
+            <Label fx:id="lblSumBajoStock" text="0" styleClass="status-mini-count"/>
+            <Label text="por debajo del mínimo" styleClass="rich-stat-hint"/>
+            <ProgressBar fx:id="pbBajoStock" progress="0" maxWidth="Infinity"
+                         styleClass="status-pb status-pb-amber"/>
+        </VBox>
+        <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card status-mini-card-violet"
+              HBox.hgrow="ALWAYS" spacing="5">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2c-calendar-alert" styleClass="status-icon-violet"/>
+                <Label text="GARANTÍAS" styleClass="status-mini-label"/>
+            </HBox>
+            <Label fx:id="lblSumGarantias" text="0" styleClass="status-mini-count"/>
+            <Label fx:id="lblSumGarantiasDetalle" text="— vencidas · — próximas"
+                   styleClass="rich-stat-hint"/>
+            <ProgressBar fx:id="pbGarantias" progress="0" maxWidth="Infinity"
+                         styleClass="status-pb status-pb-violet"/>
+        </VBox>
     </HBox>
 
     <!-- ══ BARRA DE BÚSQUEDA ════════════════════════════════════════ -->
@@ -158,11 +204,11 @@
             <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Garantías por Vencer" styleClass="alert-section-title-inv"/>
-                <Label text="Ya vencidas o que vencen en los próximos 7 días · Revisa y documenta"
+                <Label text="Ya vencidas o que vencen en los próximos 30 días · Revisa y documenta"
                        styleClass="alert-section-subtitle"/>
             </VBox>
             <Label fx:id="helpGarantias" text="?" styleClass="help-badge-inv">
-                <tooltip><Tooltip text="Bienes cuya garantía ya venció, o vence dentro de los próximos 7 días. La columna &quot;Días Restantes&quot; indica cuál es cuál. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
+                <tooltip><Tooltip text="Bienes cuya garantía ya venció, o vence dentro de los próximos 30 días. La columna &quot;Días Restantes&quot; indica cuál es cuál. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
             </Label>
             <Label fx:id="lblGarantiasCount" styleClass="badge-count-inv"/>
         </HBox>

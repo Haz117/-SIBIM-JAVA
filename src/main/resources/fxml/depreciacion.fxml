@@ -118,6 +118,18 @@
         </VBox>
     </HBox>
 
+    <!-- ══ DISTRIBUCIÓN POR RANGO DE DEPRECIACIÓN ═══════════════════ -->
+    <VBox styleClass="card" spacing="12">
+        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-indigo"/>
+            <Label text="Distribución por Rango de Depreciación" styleClass="card-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblRangoTotal" text="" styleClass="muted"/>
+        </HBox>
+        <VBox fx:id="rangoBox" spacing="10"/>
+    </VBox>
+
     <!-- ══ GRÁFICA DE TENDENCIA ═════════════════════════════════════ -->
     <VBox styleClass="card" spacing="10">
         <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
@@ -172,6 +184,7 @@
             <TableColumn fx:id="colRestante"    text="Vida útil restante" prefWidth="130" sortable="true"/>
             <TableColumn fx:id="colValorCompra" text="Valor compra"       prefWidth="140" sortable="true"/>
             <TableColumn fx:id="colValorActual" text="Valor actual"       prefWidth="140" sortable="true"/>
+            <TableColumn fx:id="colDepBar"      text="Dep. visual"        prefWidth="130" sortable="false"/>
             <TableColumn fx:id="colPct"         text="Depreciado (%)"     prefWidth="120" sortable="true"/>
             <TableColumn fx:id="colFechaTotal"  text="Depreciado el"      prefWidth="120" sortable="true"/>
         </columns>

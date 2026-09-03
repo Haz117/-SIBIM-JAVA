@@ -24,24 +24,35 @@ public class ConfiguracionController {
 
     @FXML private VBox  profileCard;
     @FXML private VBox  sysInfoCard;
+    @FXML private VBox  configCard;
     @FXML private Label lblNombreUsuario;
     @FXML private Label lblUsernameUsuario;
     @FXML private Label lblRolUsuario;
     @FXML private Label lblAreaUsuario;
     @FXML private Label lblAvatarPerfil;
+    @FXML private Label lblDecoNombre;
+    @FXML private Label lblDecoSub;
     @FXML private Label dotSistemaModo;
     @FXML private Label lblSistemaModo;
     @FXML private Label helpUsuarios;
     @FXML private Label helpAuditoria;
     @FXML private Label helpRespaldo;
     @FXML private Label lblSistemaHora;
+    @FXML private Label lblConfigHint;
+
+    @FXML private TextField tfNombreAyuntamiento;
+    @FXML private TextField tfMunicipio;
+    @FXML private TextField tfResponsable;
+    @FXML private TextField tfCorreoContacto;
+    @FXML private Button    btnGuardarConfig;
 
     @FXML private TableView<Usuario> usersTable;
-    @FXML private TableColumn<Usuario, String> colNombre;
-    @FXML private TableColumn<Usuario, String> colUsername;
-    @FXML private TableColumn<Usuario, String> colCargo;
-    @FXML private TableColumn<Usuario, String> colRol;
-    @FXML private TableColumn<Usuario, String> colArea;
+    @FXML private TableColumn<Usuario, String>  colNombre;
+    @FXML private TableColumn<Usuario, String>  colUsername;
+    @FXML private TableColumn<Usuario, String>  colCargo;
+    @FXML private TableColumn<Usuario, String>  colRol;
+    @FXML private TableColumn<Usuario, String>  colArea;
+    @FXML private TableColumn<Usuario, Boolean> colActivo;
     @FXML private VBox adminSection;
     @FXML private VBox auditSection;
     @FXML private VBox backupSection;
@@ -58,6 +69,7 @@ public class ConfiguracionController {
     private final com.sibim.repository.AuditLogRepository auditRepo = new com.sibim.repository.AuditLogRepository();
     private final com.sibim.repository.ConteoRepository conteoRepo = new com.sibim.repository.ConteoRepository();
     private final com.sibim.service.BackupService backupService = new com.sibim.service.BackupService();
+    private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
 
     @FXML
     public void initialize() {
@@ -118,13 +130,17 @@ public class ConfiguracionController {
             backupSection.setManaged(isAdmin);
         }
 
+        // Config card — visible to all, editable only by admin
+        loadConfigCard(isAdmin);
+        if (configCard != null) AnimationUtils.fadeInUp(configCard, 320, 105);
+
         // Entrance animations — cards cascade in from below
         if (profileCard  != null) AnimationUtils.fadeInUp(profileCard,  320,   0);
         if (sysInfoCard  != null) AnimationUtils.fadeInUp(sysInfoCard,  320,  70);
         if (isAdmin) {
-            if (adminSection  != null) AnimationUtils.fadeInUp(adminSection,  320, 140);
-            if (auditSection  != null) AnimationUtils.fadeInUp(auditSection,  320, 210);
-            if (backupSection != null) AnimationUtils.fadeInUp(backupSection, 320, 280);
+            if (adminSection  != null) AnimationUtils.fadeInUp(adminSection,  320, 175);
+            if (auditSection  != null) AnimationUtils.fadeInUp(auditSection,  320, 245);
+            if (backupSection != null) AnimationUtils.fadeInUp(backupSection, 320, 315);
         }
 
         if (isAdmin) {
@@ -166,18 +182,82 @@ public class ConfiguracionController {
 
             // Context menu
             ContextMenu cm = new ContextMenu();
-            MenuItem cmEditar    = new MenuItem("Editar");
+            MenuItem cmEditar     = new MenuItem("Editar");
             cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
-            MenuItem cmPassword  = new MenuItem("Cambiar contraseña");
+            MenuItem cmPassword   = new MenuItem("Cambiar contraseña");
             cmPassword.setGraphic(new FontIcon("mdi2k-key-outline"));
-            MenuItem cmEliminar  = new MenuItem("Eliminar");
+            MenuItem cmReactivar  = new MenuItem("Reactivar cuenta");
+            cmReactivar.setGraphic(new FontIcon("mdi2a-account-check-outline"));
+            MenuItem cmEliminar   = new MenuItem("Eliminar / Desactivar");
             cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
             cmEditar.setOnAction(e -> onEditUsuario());
             cmPassword.setOnAction(e -> onCambiarPassword());
+            cmReactivar.setOnAction(e -> onReactivarUsuario());
             cmEliminar.setOnAction(e -> onDeleteUsuario());
-            cm.getItems().addAll(cmEditar, cmPassword, new SeparatorMenuItem(), cmEliminar);
+            cm.setOnShowing(e -> {
+                Usuario sel = usersTable.getSelectionModel().getSelectedItem();
+                cmReactivar.setVisible(sel != null && !sel.isActivo());
+                cmReactivar.setManaged(sel != null && !sel.isActivo());
+            });
+            cm.getItems().addAll(cmEditar, cmPassword, cmReactivar, new SeparatorMenuItem(), cmEliminar);
             usersTable.setContextMenu(cm);
         }
+    }
+
+    private void loadConfigCard(boolean isAdmin) {
+        DialogUtil.runAsync(
+            () -> configRepo.findAll(),
+            cfg -> {
+                String nombre = cfg.getOrDefault("nombre_ayuntamiento", "H. Ayuntamiento");
+                String municipio = cfg.getOrDefault("municipio", "");
+                if (tfNombreAyuntamiento != null) tfNombreAyuntamiento.setText(nombre);
+                if (tfMunicipio         != null) tfMunicipio.setText(municipio);
+                if (tfResponsable       != null) tfResponsable.setText(cfg.getOrDefault("responsable", ""));
+                if (tfCorreoContacto    != null) tfCorreoContacto.setText(cfg.getOrDefault("correo_contacto", ""));
+                // update decorative badge in profile card
+                if (lblDecoNombre != null) {
+                    String[] parts = nombre.split("\\s+de\\s+", 2);
+                    lblDecoNombre.setText(parts.length > 1 ? parts[0] + " de" : nombre);
+                    if (lblDecoSub != null) lblDecoSub.setText(parts.length > 1 ? parts[1] : municipio);
+                }
+                if (btnGuardarConfig != null) btnGuardarConfig.setDisable(!isAdmin);
+                if (tfNombreAyuntamiento != null) tfNombreAyuntamiento.setEditable(isAdmin);
+                if (tfMunicipio         != null) tfMunicipio.setEditable(isAdmin);
+                if (tfResponsable       != null) tfResponsable.setEditable(isAdmin);
+                if (tfCorreoContacto    != null) tfCorreoContacto.setEditable(isAdmin);
+                if (lblConfigHint != null)
+                    lblConfigHint.setText(isAdmin ? "Los cambios afectan reportes y documentos" : "Solo el administrador puede guardar cambios");
+            },
+            e -> {}
+        );
+    }
+
+    @FXML
+    private void onGuardarConfig() {
+        String nombre    = tfNombreAyuntamiento != null ? tfNombreAyuntamiento.getText().strip() : "";
+        String municipio = tfMunicipio != null ? tfMunicipio.getText().strip() : "";
+        String resp      = tfResponsable != null ? tfResponsable.getText().strip() : "";
+        String correo    = tfCorreoContacto != null ? tfCorreoContacto.getText().strip() : "";
+        DialogUtil.runAsync(
+            () -> {
+                configRepo.set("nombre_ayuntamiento", nombre);
+                configRepo.set("municipio",           municipio);
+                configRepo.set("responsable",         resp);
+                configRepo.set("correo_contacto",     correo);
+                return null;
+            },
+            v -> {
+                NotificacionUtil.exito(configCard != null ? configCard.getScene() : null, "Configuración guardada");
+                // refresh decorative badge
+                if (lblDecoNombre != null) {
+                    String[] parts = nombre.split("\\s+de\\s+", 2);
+                    lblDecoNombre.setText(parts.length > 1 ? parts[0] + " de" : nombre);
+                    if (lblDecoSub != null) lblDecoSub.setText(parts.length > 1 ? parts[1] : municipio);
+                }
+                if (configCard != null) AnimationUtils.statCardPop(configCard);
+            },
+            e -> NotificacionUtil.error(configCard != null ? configCard.getScene() : null, "No se pudo guardar la configuración")
+        );
     }
 
     private void setupUsersTable() {
@@ -275,6 +355,31 @@ public class ConfiguracionController {
                 setTooltip(tip);
             }
         });
+
+        if (colActivo != null) {
+            colActivo.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleBooleanProperty(c.getValue().isActivo()).asObject());
+            colActivo.setCellFactory(col -> new TableCell<>() {
+                private final Label badge = new Label();
+                @Override protected void updateItem(Boolean value, boolean empty) {
+                    super.updateItem(value, empty);
+                    setText(null);
+                    if (empty || value == null) { setGraphic(null); return; }
+                    badge.setText(value ? "Activo" : "Inactivo");
+                    badge.getStyleClass().removeAll("cell-badge-success", "cell-badge-danger");
+                    badge.getStyleClass().addAll("cell-badge", value ? "cell-badge-success" : "cell-badge-danger");
+                    setGraphic(badge);
+                }
+            });
+        }
+
+        usersTable.setRowFactory(tv -> new javafx.scene.control.TableRow<>() {
+            @Override protected void updateItem(Usuario u, boolean empty) {
+                super.updateItem(u, empty);
+                getStyleClass().remove("row-inactive");
+                if (!empty && u != null && !u.isActivo()) getStyleClass().add("row-inactive");
+            }
+        });
     }
 
     private void refreshProfileCard(Usuario u) {
@@ -357,8 +462,8 @@ public class ConfiguracionController {
             return;
         }
         if (sel.getRol() == com.sibim.model.enums.Rol.ADMIN) {
-            long admins = usersTable.getItems().stream()
-                .filter(u -> u.getRol() == com.sibim.model.enums.Rol.ADMIN).count();
+            long admins = allUsers.stream()
+                .filter(u -> u.getRol() == com.sibim.model.enums.Rol.ADMIN && u.isActivo()).count();
             if (admins <= 1) {
                 NotificacionUtil.error(usersTable.getScene(),
                     "No se puede eliminar el único administrador del sistema");
@@ -367,13 +472,35 @@ public class ConfiguracionController {
         }
         if (!ConfirmacionUtil.confirmarEliminar(sel.getNombre())) return;
         DialogUtil.runAsync(
-            () -> usuarioRepo.delete(sel.getId()),
-            () -> {
-                loadUsers();
-                NotificacionUtil.exito(usersTable.getScene(), "Usuario \"" + sel.getNombre() + "\" eliminado");
-            },
-            e -> NotificacionUtil.error(usersTable.getScene(),
-                e instanceof IllegalStateException ? e.getMessage() : "No se pudo eliminar el usuario")
+            () -> { usuarioRepo.delete(sel.getId()); return null; },
+            v -> { loadUsers(); NotificacionUtil.exito(usersTable.getScene(), "Usuario \"" + sel.getNombre() + "\" eliminado"); },
+            e -> {
+                if (e instanceof IllegalStateException) {
+                    // FK violation — user has associated records; offer soft-delete instead
+                    if (ConfirmacionUtil.confirmar("No se puede eliminar",
+                            sel.getNombre() + " tiene movimientos u operaciones registradas a su nombre.\n"
+                            + "¿Desactivar la cuenta para que no pueda iniciar sesión?")) {
+                        DialogUtil.runAsync(
+                            () -> { usuarioRepo.setActivo(sel.getId(), false); return null; },
+                            v2 -> { loadUsers(); NotificacionUtil.info(usersTable.getScene(), "Cuenta de \"" + sel.getNombre() + "\" desactivada"); },
+                            ex -> NotificacionUtil.error(usersTable.getScene(), "No se pudo desactivar el usuario")
+                        );
+                    }
+                } else {
+                    NotificacionUtil.error(usersTable.getScene(), "No se pudo eliminar el usuario");
+                }
+            }
+        );
+    }
+
+    @FXML
+    private void onReactivarUsuario() {
+        Usuario sel = usersTable.getSelectionModel().getSelectedItem();
+        if (sel == null || sel.isActivo()) return;
+        DialogUtil.runAsync(
+            () -> { usuarioRepo.setActivo(sel.getId(), true); return null; },
+            v -> { loadUsers(); NotificacionUtil.exito(usersTable.getScene(), "Cuenta de \"" + sel.getNombre() + "\" reactivada"); },
+            e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo reactivar el usuario")
         );
     }
 

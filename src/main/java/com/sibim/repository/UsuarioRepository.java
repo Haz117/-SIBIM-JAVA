@@ -72,8 +72,8 @@ public class UsuarioRepository {
             return u;
         }
         String sql = """
-            INSERT INTO users (id, username, password, nombre, cargo, role, area, debe_cambiar_password, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO users (id, username, password, nombre, cargo, role, area, debe_cambiar_password, activo, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (id) DO UPDATE SET
                 username = EXCLUDED.username,
                 password = EXCLUDED.password,
@@ -81,7 +81,8 @@ public class UsuarioRepository {
                 cargo = EXCLUDED.cargo,
                 role = EXCLUDED.role,
                 area = EXCLUDED.area,
-                debe_cambiar_password = EXCLUDED.debe_cambiar_password
+                debe_cambiar_password = EXCLUDED.debe_cambiar_password,
+                activo = EXCLUDED.activo
             """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -93,7 +94,8 @@ public class UsuarioRepository {
             ps.setString(6, u.getRol().getCodigo());
             ps.setString(7, u.getArea());
             ps.setBoolean(8, u.isDebeCambiarPassword());
-            ps.setTimestamp(9, u.getCreadoEn() != null
+            ps.setBoolean(9, u.isActivo());
+            ps.setTimestamp(10, u.getCreadoEn() != null
                 ? Timestamp.valueOf(u.getCreadoEn())
                 : Timestamp.valueOf(LocalDateTime.now()));
             ps.executeUpdate();
@@ -197,6 +199,25 @@ public class UsuarioRepository {
         }
     }
 
+    public void setActivo(String userId, boolean activo) throws SQLException {
+        requireAdmin();
+        String nombre = findById(userId).map(Usuario::getNombre).orElse(userId);
+        if (DatabaseConfig.isDemoMode()) {
+            new AuditLogRepository().log("usuario", userId, nombre, activo ? "reactivar" : "baja",
+                activo ? "Usuario reactivado" : "Usuario desactivado");
+            return;
+        }
+        String sql = "UPDATE users SET activo = ? WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBoolean(1, activo);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        }
+        new AuditLogRepository().log("usuario", userId, nombre, activo ? "reactivar" : "baja",
+            activo ? "Usuario reactivado" : "Usuario desactivado");
+    }
+
     private Usuario mapRow(ResultSet rs) throws SQLException {
         Usuario u = new Usuario();
         u.setId(rs.getString("id"));
@@ -207,6 +228,7 @@ public class UsuarioRepository {
         u.setRol(Rol.fromCodigo(rs.getString("role")));
         u.setArea(rs.getString("area"));
         u.setDebeCambiarPassword(rs.getBoolean("debe_cambiar_password"));
+        try { u.setActivo(rs.getBoolean("activo")); } catch (SQLException ignored) { u.setActivo(true); }
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) u.setCreadoEn(ts.toLocalDateTime());
         return u;

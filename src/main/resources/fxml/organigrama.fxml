@@ -89,7 +89,36 @@
             <Label fx:id="lblStatTopArea" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
             <Label text="mayor concentración de inventario" styleClass="rich-stat-hint"/>
         </VBox>
+
+        <VBox fx:id="statCardValor" styleClass="rich-stat-card, rich-stat-green"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
+                    <FontIcon iconLiteral="mdi2c-cash-multiple" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="VALOR PATRIMONIAL" styleClass="rich-stat-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpValor" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Suma del valor patrimonial (precio de venta × stock) de todos los bienes con área asignada." wrapText="true" maxWidth="250"/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatValor" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
+            <Label text="valor total del inventario" styleClass="rich-stat-hint"/>
+        </VBox>
     </HBox>
+
+    <!-- ══ DISTRIBUCIÓN POR ÁREA (Top 5) ═══════════════════════════ -->
+    <VBox fx:id="areaDistribCard" styleClass="card" spacing="12" visible="false" managed="false">
+        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <FontIcon iconLiteral="mdi2c-chart-bar-stacked" styleClass="card-icon-indigo"/>
+            <Label text="Distribución por Área" styleClass="card-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Top 5 áreas por cantidad de bienes" styleClass="muted"/>
+        </HBox>
+        <VBox fx:id="areaDistribBox" spacing="10"/>
+    </VBox>
 
     <!-- ══ SEARCH BAR ════════════════════════════════════════════════ -->
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-blue">

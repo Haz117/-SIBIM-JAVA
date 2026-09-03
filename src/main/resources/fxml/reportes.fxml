@@ -224,6 +224,39 @@
                 </items>
             </MenuButton>
         </VBox>
+
+        <!-- ── Bienes Dados de Baja — slate ── -->
+        <VBox styleClass="report-card report-card-slate" spacing="10"
+              GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <StackPane styleClass="report-icon-badge, report-icon-badge-slate">
+                    <FontIcon iconLiteral="mdi2d-delete-circle-outline" styleClass="report-icon"/>
+                </StackPane>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Bienes Dados de Baja" styleClass="report-title"/>
+                    <Label text="Historial patrimonial · bienes fuera del inventario activo"
+                           styleClass="report-card-tag report-card-tag-slate"/>
+                </VBox>
+            </HBox>
+            <Label text="Bienes patrimoniales que han sido dados de baja del inventario activo — su historial se conserva para fines de auditoría y control patrimonial."
+                   styleClass="report-desc" wrapText="true"/>
+            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-slate"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+                <items>
+                    <MenuItem text="PDF" onAction="#onBajasPdf">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="Excel" onAction="#onBajasExcel">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="CSV" onAction="#onBajasCsv">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                    </MenuItem>
+                </items>
+            </MenuButton>
+        </VBox>
     </GridPane>
 
 </VBox>

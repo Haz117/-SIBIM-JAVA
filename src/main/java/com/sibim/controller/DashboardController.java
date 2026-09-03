@@ -42,6 +42,7 @@ public class DashboardController {
     // ── Banner ───────────────────────────────────────────────────────
     @FXML private Label lblBienvenida;
     @FXML private Label lblUsuario;
+    @FXML private Label lblOrgBanner;
     @FXML private Label lblFechaDia;
     @FXML private Label lblFechaMes;
     @FXML private HBox  alertBanner;
@@ -56,15 +57,6 @@ public class DashboardController {
     @FXML private Label helpCategorias;
     @FXML private Label helpHealth;
     @FXML private Label helpAnalisis;
-
-    // ── Health bar ───────────────────────────────────────────────────
-    @FXML private VBox  healthSection;
-    @FXML private HBox  healthBar;
-    @FXML private Label lblHealthActivos;
-    @FXML private Label lblHealthBajo;
-    @FXML private Label lblHealthAgotado;
-    @FXML private Label lblHealthVencido;
-    @FXML private Label lblHealthDetail;
 
     // ── Charts ───────────────────────────────────────────────────────
     @FXML private LineChart<String, Number>  chartMovimientos;
@@ -81,6 +73,13 @@ public class DashboardController {
     @FXML private VBox  dashBanner;
     @FXML private HBox  chartsRow;
     @FXML private VBox  activityCard;
+    @FXML private HBox  quickActionsRow;
+    @FXML private VBox  cardNuevoBien;
+    @FXML private VBox  cardNuevaEntrada;
+    @FXML private HBox  statusCardsRow;
+    @FXML private VBox  areasCard;
+    @FXML private VBox  areasBarBox;
+    @FXML private HBox  areasSectionHdr;
 
     private final DashboardService dashboardService = new DashboardService();
 
@@ -92,6 +91,19 @@ public class DashboardController {
         var user = SessionManager.getCurrentUser();
         if (user != null) lblUsuario.setText(user.getNombre());
         lblBienvenida.setText(getBienvenida());
+
+        // Load org name from configuracion (best-effort — fallback is the FXML default)
+        if (lblOrgBanner != null) {
+            com.sibim.util.DialogUtil.runAsync(
+                () -> {
+                    com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
+                    return cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan")
+                         + "  ·  Bienes Municipales";
+                },
+                txt -> { if (lblOrgBanner != null) lblOrgBanner.setText(txt); },
+                e -> {}
+            );
+        }
 
         LocalDate hoy = LocalDate.now();
         String[] meses = {"Enero","Febrero","Marzo","Abril","Mayo","Junio",
@@ -105,8 +117,15 @@ public class DashboardController {
         // reads as "broken" on a small icon — same click-to-show behavior
         // used for the "?" badges everywhere else in the app (DialogUtil).
         for (Label badge : new Label[]{ helpStats, helpTotalBienes, helpValorTotal,
-                helpMovimientosHoy, helpCategorias, helpHealth, helpAnalisis }) {
+                helpMovimientosHoy, helpCategorias, helpAnalisis }) {
             if (badge != null) com.sibim.util.DialogUtil.enableClickToShowTooltip(badge);
+        }
+
+        // Hide create-only cards for users without edit permissions
+        boolean canEdit = SessionManager.isAdmin() || SessionManager.isSecretario();
+        if (!canEdit) {
+            if (cardNuevoBien   != null) { cardNuevoBien.setVisible(false);   cardNuevoBien.setManaged(false); }
+            if (cardNuevaEntrada != null) { cardNuevaEntrada.setVisible(false); cardNuevaEntrada.setManaged(false); }
         }
 
         // Defer data loading until the node is in a scene so that charts render
@@ -122,6 +141,8 @@ public class DashboardController {
                     AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(),          280,  45);
                     if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,       300, 120);
                     if (activityCard != null) AnimationUtils.fadeInUp(activityCard,    300, 180);
+                    if (quickActionsRow != null) AnimationUtils.staggeredFadeInUp(quickActionsRow.getChildren(), 260, 40);
+                    if (statusCardsRow != null) AnimationUtils.fadeInUp(statusCardsRow, 300, 90);
                     loadDataAsync();
                 }
             }
@@ -186,8 +207,9 @@ public class DashboardController {
 
         buildMovimientosChart(data.movSemana());
         buildCategoriaChart(data.catValores());
-        buildHealthBar(stats);
+        buildStatusCards(stats);
         buildTrendChart(data.movMensual());
+        buildAreasSection(data.byArea(), stats.total());
 
         if (tablaReciente != null) {
             List<Movimiento> ultimos = data.movSemana().stream()
@@ -207,70 +229,130 @@ public class DashboardController {
         }
     }
 
-    // ── Health bar ───────────────────────────────────────────────────
+    // ── Status mini-cards ────────────────────────────────────────────
 
-    private void buildHealthBar(com.sibim.repository.ProductoRepository.ProductoStats stats) {
-        if (healthSection == null || healthBar == null || stats.total() == 0) return;
+    private void buildStatusCards(com.sibim.repository.ProductoRepository.ProductoStats stats) {
+        if (statusCardsRow == null) return;
+        statusCardsRow.getChildren().clear();
+        long total = stats.total();
+        if (total == 0) { statusCardsRow.setVisible(false); statusCardsRow.setManaged(false); return; }
 
-        long activos = stats.activos();
-        long bajo    = stats.bajoStock();
-        long agotado = stats.agotados();
-        long vencido = stats.vencidos();
-        long total   = stats.total();
+        record CardDef(String icon, String label, String colorKey, long count, Runnable onClick) {}
+        List<CardDef> defs = List.of(
+            new CardDef("mdi2c-check-circle-outline",  "Activos",    "green",  stats.activos(),   () -> navigarA("Productos")),
+            new CardDef("mdi2a-alert-circle-outline",  "Bajo Stock", "amber",  stats.bajoStock(), this::onVerBajoStock),
+            new CardDef("mdi2a-alert-octagon-outline", "Agotados",   "red",    stats.agotados(),  this::onVerAgotados),
+            new CardDef("mdi2c-clock-alert-outline",   "Vencidos",   "violet", stats.vencidos(),  () -> navigarA("Alertas"))
+        );
 
-        if (lblHealthActivos != null) lblHealthActivos.setText("Activos — " + activos);
-        if (lblHealthBajo    != null) lblHealthBajo.setText("Bajo Stock — " + bajo);
-        if (lblHealthAgotado != null) lblHealthAgotado.setText("Agotados — " + agotado);
-        if (lblHealthVencido != null) lblHealthVencido.setText("Vencidos — " + vencido);
-        if (lblHealthDetail  != null) {
-            int pct = total > 0 ? (int) Math.round(activos * 100.0 / total) : 0;
-            lblHealthDetail.setText(pct + "% en buen estado");
+        for (int i = 0; i < defs.size(); i++) {
+            CardDef def = defs.get(i);
+            int pct = (int) Math.round(def.count() * 100.0 / total);
+
+            org.kordamp.ikonli.javafx.FontIcon ico = new org.kordamp.ikonli.javafx.FontIcon(def.icon());
+            ico.getStyleClass().add("status-icon-" + def.colorKey());
+
+            Label lbl = new Label(def.label());
+            lbl.getStyleClass().add("status-mini-label");
+            HBox.setHgrow(lbl, Priority.ALWAYS);
+
+            Label pctLbl = new Label(pct + "%");
+            pctLbl.getStyleClass().addAll("status-mini-pct", "status-pct-" + def.colorKey());
+
+            HBox topRow = new HBox(7, ico, lbl, pctLbl);
+            topRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+            Label cntLbl = new Label(def.count() + " bienes");
+            cntLbl.getStyleClass().add("status-mini-count");
+
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            pb.setMaxWidth(Double.MAX_VALUE);
+            pb.getStyleClass().addAll("status-pb", "status-pb-" + def.colorKey());
+
+            VBox card = new VBox(9, topRow, cntLbl, pb);
+            card.getStyleClass().addAll("status-mini-card", "status-mini-card-" + def.colorKey());
+            card.setPadding(new javafx.geometry.Insets(14, 16, 14, 16));
+            HBox.setHgrow(card, Priority.ALWAYS);
+
+            Runnable action = def.onClick();
+            card.setOnMouseClicked(e -> action.run());
+            card.getStyleClass().add("stat-card-clickable");
+
+            statusCardsRow.getChildren().add(card);
+
+            double targetPct = (double) def.count() / total;
+            int delay = i * 100;
+            javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay + 300));
+            wait.setOnFinished(ev -> {
+                javafx.animation.Timeline anim = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(850),
+                        new javafx.animation.KeyValue(pb.progressProperty(), targetPct,
+                            javafx.animation.Interpolator.EASE_OUT))
+                );
+                anim.play();
+            });
+            wait.play();
         }
 
-        healthBar.getChildren().clear();
-        record Seg(long count, String cssClass) {}
-        List<Seg> segs = List.of(
-            new Seg(activos, "dash-health-seg-green"),
-            new Seg(bajo,    "dash-health-seg-amber"),
-            new Seg(agotado, "dash-health-seg-red"),
-            new Seg(vencido, "dash-health-seg-violet")
-        );
-        record SegLabel(String cssClass, String tipPrefix) {}
-        List<SegLabel> labels = List.of(
-            new SegLabel("dash-health-seg-green",  "Activos"),
-            new SegLabel("dash-health-seg-amber",  "Bajo stock"),
-            new SegLabel("dash-health-seg-red",    "Agotados"),
-            new SegLabel("dash-health-seg-violet", "Vencidos")
-        );
-        List<Seg> visible = segs.stream().filter(s -> s.count() > 0).toList();
-        for (int i = 0; i < visible.size(); i++) {
-            Seg seg = visible.get(i);
-            Region r = new Region();
-            r.setPrefHeight(10);
-            boolean isFirst = i == 0, isLast = i == visible.size() - 1;
-            String posClass = isFirst && isLast ? "dash-health-seg-only"
-                            : isFirst ? "dash-health-seg-first"
-                            : isLast  ? "dash-health-seg-last"
-                            : "dash-health-seg-mid";
-            r.getStyleClass().addAll(seg.cssClass(), posClass);
-            HBox.setHgrow(r, Priority.SOMETIMES);
-            r.setPrefWidth(160.0 * seg.count() / total);
-            int segPct = total > 0 ? (int) Math.round(seg.count() * 100.0 / total) : 0;
-            String tipText = labels.stream()
-                .filter(l -> l.cssClass().equals(seg.cssClass()))
-                .findFirst()
-                .map(l -> l.tipPrefix() + ": " + seg.count() + " (" + segPct + "%)")
-                .orElse("");
-            if (!tipText.isEmpty()) javafx.scene.control.Tooltip.install(r, new javafx.scene.control.Tooltip(tipText));
-            healthBar.getChildren().add(r);
+        statusCardsRow.setVisible(true);
+        statusCardsRow.setManaged(true);
+        AnimationUtils.staggeredFadeInUp(statusCardsRow.getChildren(), 280, 50);
+    }
+
+    private static final String[] AREA_COLORS = {
+        "#4338CA","#0891B2","#059669","#D97706","#DC2626"
+    };
+
+    private void buildAreasSection(java.util.LinkedHashMap<String,Long> byArea, long total) {
+        if (areasCard == null || areasBarBox == null || byArea == null || byArea.isEmpty()) return;
+        areasBarBox.getChildren().clear();
+
+        int i = 0;
+        for (java.util.Map.Entry<String,Long> entry : byArea.entrySet()) {
+            String color = AREA_COLORS[i % AREA_COLORS.length];
+            double pct = total > 0 ? (double) entry.getValue() / total : 0;
+
+            Label nameLbl = new Label(entry.getKey());
+            nameLbl.getStyleClass().add("area-bar-name");
+            HBox.setHgrow(nameLbl, Priority.ALWAYS);
+
+            Label cntLbl = new Label(entry.getValue() + " bienes");
+            cntLbl.getStyleClass().add("area-bar-count");
+
+            HBox nameRow = new HBox(nameLbl, cntLbl);
+            nameRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            pb.setMaxWidth(Double.MAX_VALUE);
+            pb.setStyle("-fx-accent: " + color + ";");
+            pb.getStyleClass().add("area-bar-pb");
+
+            VBox item = new VBox(5, nameRow, pb);
+            areasBarBox.getChildren().add(item);
+
+            double target = pct;
+            int delay = i * 90;
+            javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay + 400));
+            wait.setOnFinished(ev -> {
+                javafx.animation.Timeline anim = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(900),
+                        new javafx.animation.KeyValue(pb.progressProperty(), target,
+                            javafx.animation.Interpolator.EASE_OUT))
+                );
+                anim.play();
+            });
+            wait.play();
+            i++;
         }
 
-        healthSection.setVisible(true);
-        healthSection.setManaged(true);
-        AnimationUtils.fadeInUp(healthSection, 320, 0);
-
-        // Defer one FX pulse so layout computes segment widths before animating.
-        javafx.application.Platform.runLater(() -> AnimationUtils.revealBarLTR(healthBar, 900));
+        areasCard.setVisible(true);
+        areasCard.setManaged(true);
+        if (areasSectionHdr != null) { areasSectionHdr.setVisible(true); areasSectionHdr.setManaged(true); }
+        AnimationUtils.fadeInUp(areasCard, 300, 0);
     }
 
     // ── Charts ───────────────────────────────────────────────────────
@@ -394,6 +476,27 @@ public class DashboardController {
     }
 
     // ── Navigation ───────────────────────────────────────────────────
+
+    @FXML
+    private void onAccionNuevoBien() {
+        com.sibim.session.NavigationContext.setPendingNuevoBien();
+        navigarA("Productos");
+    }
+
+    @FXML
+    private void onAccionNuevaEntrada() {
+        com.sibim.session.NavigationContext.setPendingNuevoMovimiento();
+        navigarA("Movimientos");
+    }
+
+    @FXML
+    private void onBusquedaGlobal() {
+        javafx.scene.Scene scene = statsGrid != null ? statsGrid.getScene() : null;
+        if (scene == null) return;
+        scene.getRoot().fireEvent(new javafx.scene.input.KeyEvent(
+            javafx.scene.input.KeyEvent.KEY_PRESSED, "k", "k",
+            javafx.scene.input.KeyCode.K, false, true, false, false));
+    }
 
     private void navigarA(String vista) {
         javafx.scene.Scene scene = null;

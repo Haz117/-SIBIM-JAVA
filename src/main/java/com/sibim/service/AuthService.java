@@ -56,6 +56,8 @@ public class AuthService {
                         + "en esta PC con conexión activa en los últimos 30 días.");
                 }
                 Usuario user = cached.get();
+                if (!user.isActivo())
+                    throw new AuthException("Tu cuenta está desactivada. Contacta al administrador.");
                 BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash());
                 if (!result.verified) throw new AuthException("Usuario o contraseña incorrectos");
                 SessionManager.setCurrentUser(user);
@@ -98,6 +100,9 @@ public class AuthService {
                 registrarFallo(key);
                 throw new AuthException("Usuario o contraseña incorrectos");
             }
+            if (!DatabaseConfig.isDemoMode() && !user.isActivo()) {
+                throw new AuthException("Esta cuenta ha sido desactivada. Contacta al administrador.");
+            }
             AuthAttemptStore.clear(key); // login exitoso — limpiar contadores
             SessionManager.setCurrentUser(user);
             auditRepo.log("sesion", user.getId(), user.getNombre(), "login",
@@ -113,6 +118,12 @@ public class AuthService {
     }
 
     public void logout() {
+        Usuario me = SessionManager.getCurrentUser();
+        if (me != null) {
+            try {
+                auditRepo.log("sesion", me.getId(), me.getNombre(), "logout", "Cierre de sesión");
+            } catch (Exception ignored) {}
+        }
         SessionManager.logout();
     }
 

@@ -142,6 +142,9 @@
         <Separator orientation="VERTICAL"/>
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
+        <Label fx:id="helpChips" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Filtra por estado de stock:&#10;• Activo — stock por encima del mínimo configurado&#10;• Bajo Stock — existencias por debajo del mínimo&#10;• Agotado — sin existencias (stock = 0)&#10;• Vencido — fecha de vencimiento superada&#10;&#10;Se combina con el resto de filtros activos." wrapText="true" maxWidth="280"/></tooltip>
+        </Label>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
                 styleClass="btn-secondary" visible="false" managed="false"
                 contentDisplay="LEFT" graphicTextGap="8">
@@ -174,9 +177,21 @@
           visible="false" managed="false">
         <Region styleClass="dash-section-bar"/>
         <Label text="ACCESOS RÁPIDOS" styleClass="dash-section-label"/>
+        <Label fx:id="helpPresets" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Guarda la combinación actual de filtros (búsqueda, categoría, área, estado...) con un nombre para abrirla con un clic. Ideal para búsquedas frecuentes como 'Vehículos Agotados' o 'Área Obras'. El botón 'Guardar filtro' aparece cuando hay filtros activos." wrapText="true" maxWidth="290"/></tooltip>
+        </Label>
     </HBox>
     <FlowPane fx:id="presetsBar" hgap="6" vgap="6" alignment="CENTER_LEFT"
               styleClass="preset-bar" visible="false" managed="false"/>
+
+    <!-- ══ SECCIÓN TABLA ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="TABLA DE BIENES" styleClass="dash-section-label"/>
+        <Label fx:id="helpColumnas" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="▸ Columnas: usa el botón ⋮ (arriba a la derecha de la tabla) o clic derecho en el encabezado para mostrar u ocultar columnas. Elige 'Restaurar columnas predeterminadas' para verlas todas de nuevo.&#10;&#10;▸ Stock Mín./Máx.: doble clic en la celda para editar el umbral directamente — se guarda solo al salir o presionar Enter." wrapText="true" maxWidth="310"/></tooltip>
+        </Label>
+    </HBox>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">

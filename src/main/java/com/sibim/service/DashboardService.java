@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -41,11 +42,12 @@ public class DashboardService {
             var fMovHoy     = async(() -> movimientoRepo.findToday(),           exec);
             var fMovSemana  = async(() -> movimientoRepo.findLastNDays(7),      exec);
             var fMovMensual = async(() -> movimientoRepo.findMonthlyStats(6),   exec);
+            var fByArea     = async(() -> productoRepo.countByArea(5),          exec);
 
             try {
                 CompletableFuture.allOf(
                     fStats, fCatValores, fAgotados, fBajoStock,
-                    fMovHoy, fMovSemana, fMovMensual).join();
+                    fMovHoy, fMovSemana, fMovMensual, fByArea).join();
             } catch (CompletionException ce) {
                 Throwable cause = ce.getCause();
                 if (cause instanceof SQLException sql) throw sql;
@@ -57,7 +59,8 @@ public class DashboardService {
             log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
                 stats.total(), stats.categorias(), movHoy.size());
             return new Resumen(stats, fCatValores.join(), fAgotados.join(),
-                               fBajoStock.join(), movHoy, fMovSemana.join(), fMovMensual.join());
+                               fBajoStock.join(), movHoy, fMovSemana.join(), fMovMensual.join(),
+                               fByArea.join());
         }
     }
 
@@ -79,5 +82,6 @@ public class DashboardService {
             List<Producto> bajoStock,
             List<Movimiento> movHoy,
             List<Movimiento> movSemana,
-            List<MovimientoRepository.MonthlyStats> movMensual) {}
+            List<MovimientoRepository.MonthlyStats> movMensual,
+            LinkedHashMap<String, Long> byArea) {}
 }

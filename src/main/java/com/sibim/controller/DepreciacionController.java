@@ -87,8 +87,12 @@ public class DepreciacionController {
     @FXML private TableColumn<Producto, String> colRestante;
     @FXML private TableColumn<Producto, String> colValorCompra;
     @FXML private TableColumn<Producto, String> colValorActual;
+    @FXML private TableColumn<Producto, Integer> colDepBar;
     @FXML private TableColumn<Producto, String> colPct;
     @FXML private TableColumn<Producto, String> colFechaTotal;
+
+    @FXML private VBox  rangoBox;
+    @FXML private Label lblRangoTotal;
 
     /** true mientras la tarjeta "Totalmente depreciados" está activa como filtro. */
     private boolean filtroSoloTotalmente = false;
@@ -174,6 +178,26 @@ public class DepreciacionController {
             new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getPrecioCompra())));
         colValorActual.setCellValueFactory(c ->
             new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorDepreciado())));
+
+        colDepBar.setCellValueFactory(c ->
+            new javafx.beans.property.SimpleIntegerProperty(
+                c.getValue().getPorcentajeDepreciado() != null
+                    ? c.getValue().getPorcentajeDepreciado() : 0).asObject());
+        colDepBar.setCellFactory(col -> new TableCell<>() {
+            private final javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            { pb.setMaxWidth(Double.MAX_VALUE); pb.getStyleClass().add("depr-bar-cell"); }
+            @Override protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setGraphic(null); return; }
+                int pct = item;
+                pb.setProgress(Math.min(pct / 100.0, 1.0));
+                pb.getStyleClass().removeAll("depr-bar-low", "depr-bar-mid", "depr-bar-high", "depr-bar-full");
+                pb.getStyleClass().add(
+                    pct >= 100 ? "depr-bar-full" : pct >= 75 ? "depr-bar-high"
+                               : pct >= 50 ? "depr-bar-mid" : "depr-bar-low");
+                setGraphic(pb);
+            }
+        });
 
         colPct.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getPorcentajeDepreciado() + "% depreciado"));
@@ -489,6 +513,7 @@ public class DepreciacionController {
             ? "todos los bienes con datos completos"
             : sinDatos + " bien(es) sin datos de depreciación");
         if (lblStatTotalmente != null) AnimationUtils.animateCount(lblStatTotalmente, totalmenteDepreciados, 700);
+        updateRangos(bienes);
 
         javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
         pop.setOnFinished(e -> {
@@ -498,6 +523,65 @@ public class DepreciacionController {
             if (statCardTotalmente != null) AnimationUtils.statCardPop(statCardTotalmente);
         });
         pop.play();
+    }
+
+    private void updateRangos(List<Producto> bienes) {
+        if (rangoBox == null) return;
+        rangoBox.getChildren().clear();
+        int total = bienes.size();
+        if (lblRangoTotal != null)
+            lblRangoTotal.setText(total + (total == 1 ? " bien con datos" : " bienes con datos"));
+        if (total == 0) return;
+
+        int r1 = 0, r2 = 0, r3 = 0, r4 = 0;
+        for (Producto p : bienes) {
+            int pct = p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0;
+            if      (pct <  25) r1++;
+            else if (pct <  50) r2++;
+            else if (pct < 100) r3++;
+            else                r4++;
+        }
+
+        record Rango(String label, String pbClass, int count) {}
+        List<Rango> rangos = List.of(
+            new Rango("0 – 24%",    "status-pb-green", r1),
+            new Rango("25 – 49%",   "status-pb-amber",  r2),
+            new Rango("50 – 99%",   "status-pb-amber",  r3),
+            new Rango("100%+",      "status-pb-red",   r4));
+
+        int idx = 0;
+        for (Rango r : rangos) {
+            Label nameLbl = new Label(r.label());
+            nameLbl.getStyleClass().add("depr-range-label");
+
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            pb.getStyleClass().addAll("status-pb", r.pbClass());
+            pb.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(pb, javafx.scene.layout.Priority.ALWAYS);
+
+            Label countLbl = new Label(r.count() + " bienes");
+            countLbl.getStyleClass().add("depr-range-count");
+
+            HBox row = new HBox(10, nameLbl, pb, countLbl);
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            rangoBox.getChildren().add(row);
+
+            double target = (double) r.count() / total;
+            int delay = 150 + idx * 80;
+            javafx.animation.PauseTransition wait =
+                new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay));
+            wait.setOnFinished(ev -> {
+                javafx.animation.Timeline tl = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
+                        new javafx.animation.KeyValue(pb.progressProperty(), target,
+                            javafx.animation.Interpolator.EASE_BOTH)));
+                tl.play();
+            });
+            wait.play();
+            idx++;
+        }
     }
 
     private void updateChart(List<Producto> bienes) {

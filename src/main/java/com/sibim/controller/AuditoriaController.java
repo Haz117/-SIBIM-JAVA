@@ -134,7 +134,8 @@ public class AuditoriaController {
                 javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
                 cc.putString(sel.getDetalle());
                 javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
-                NotificacionUtil.exito(table.getScene(), "Detalle copiado al portapapeles");
+                javafx.scene.Scene s = table.getScene();
+                if (s != null) NotificacionUtil.exito(s, "Detalle copiado al portapapeles");
             });
             cm.getItems().addAll(cmDetalle, new javafx.scene.control.SeparatorMenuItem(), cmCopiar);
             table.setContextMenu(cm);

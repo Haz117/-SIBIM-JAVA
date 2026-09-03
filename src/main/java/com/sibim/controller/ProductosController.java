@@ -134,6 +134,9 @@ public class ProductosController {
     @FXML private Label helpResguardante;
     @FXML private Label helpTotal;
     @FXML private Label helpValor;
+    @FXML private Label helpChips;
+    @FXML private Label helpPresets;
+    @FXML private Label helpColumnas;
     @FXML private javafx.scene.control.DatePicker desdeRegFilter;
     @FXML private javafx.scene.control.DatePicker hastaRegFilter;
 
@@ -222,6 +225,9 @@ public class ProductosController {
         if (helpResguardante != null) DialogUtil.enableClickToShowTooltip(helpResguardante);
         if (helpTotal        != null) DialogUtil.enableClickToShowTooltip(helpTotal);
         if (helpValor        != null) DialogUtil.enableClickToShowTooltip(helpValor);
+        if (helpChips    != null) DialogUtil.enableClickToShowTooltip(helpChips);
+        if (helpPresets  != null) DialogUtil.enableClickToShowTooltip(helpPresets);
+        if (helpColumnas != null) DialogUtil.enableClickToShowTooltip(helpColumnas);
     }
 
     // ── Table setup ──────────────────────────────────────────────────────────

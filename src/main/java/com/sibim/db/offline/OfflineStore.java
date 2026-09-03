@@ -872,11 +872,12 @@ public final class OfflineStore {
 
     public static void cacheUser(Usuario u) throws SQLException {
         String sql = """
-            INSERT INTO users_cache (id, username, password_hash, nombre, rol, area, debe_cambiar_password, cached_at)
-            VALUES (?,?,?,?,?,?,?,?)
+            INSERT INTO users_cache (id, username, password_hash, nombre, rol, area, debe_cambiar_password, activo, cached_at)
+            VALUES (?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET username=excluded.username, password_hash=excluded.password_hash,
                 nombre=excluded.nombre, rol=excluded.rol, area=excluded.area,
-                debe_cambiar_password=excluded.debe_cambiar_password, cached_at=excluded.cached_at
+                debe_cambiar_password=excluded.debe_cambiar_password,
+                activo=excluded.activo, cached_at=excluded.cached_at
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setString(1, u.getId());
@@ -886,7 +887,8 @@ public final class OfflineStore {
             ps.setString(5, u.getRol().getCodigo());
             ps.setString(6, u.getArea());
             ps.setInt(7, u.isDebeCambiarPassword() ? 1 : 0);
-            ps.setString(8, str(LocalDateTime.now()));
+            ps.setInt(8, u.isActivo() ? 1 : 0);
+            ps.setString(9, str(LocalDateTime.now()));
             ps.executeUpdate();
         }
     }
@@ -921,6 +923,7 @@ public final class OfflineStore {
                 u.setRol(Rol.fromCodigo(rs.getString("rol")));
                 u.setArea(rs.getString("area"));
                 u.setDebeCambiarPassword(rs.getInt("debe_cambiar_password") != 0);
+                try { u.setActivo(rs.getInt("activo") != 0); } catch (Exception ignored) { u.setActivo(true); }
                 return Optional.of(u);
             }
         }

@@ -284,6 +284,7 @@ public final class DialogUtil {
                 CustomMenuItem hintItem = new CustomMenuItem(hint, false);
                 menu.getItems().addAll(hintItem, new SeparatorMenuItem());
 
+                java.util.List<TableColumn<?, ?>> toggleable = new java.util.ArrayList<>();
                 for (TableColumn<?, ?> col : table.getColumns()) {
                     if (alwaysVisible.contains(col) || col.getText() == null || col.getText().isBlank())
                         continue;
@@ -297,7 +298,20 @@ public final class DialogUtil {
                         UI_PREFS.putBoolean(prefKey, nv);
                     });
                     menu.getItems().add(item);
+                    toggleable.add(col);
                 }
+
+                menu.getItems().add(new SeparatorMenuItem());
+                MenuItem resetItem = new MenuItem("Restaurar columnas predeterminadas");
+                resetItem.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2r-refresh"));
+                resetItem.setOnAction(e -> {
+                    for (TableColumn<?, ?> col : toggleable) {
+                        String prefKey = prefKeyPrefix + "." + col.getText();
+                        col.setVisible(true);
+                        UI_PREFS.remove(prefKey);
+                    }
+                });
+                menu.getItems().add(resetItem);
 
                 headerBg.setOnContextMenuRequested(e -> {
                     menu.show(headerBg, e.getScreenX(), e.getScreenY());

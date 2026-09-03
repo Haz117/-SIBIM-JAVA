@@ -69,6 +69,18 @@ public class AlertasController {
     @FXML private Label helpBajoStock;
     @FXML private Label helpGarantias;
 
+    // ── Resumen rápido (stat cards al tope) ──────────────────────────
+    @FXML private VBox    statCardAgotados;
+    @FXML private VBox    statCardBajoStockSum;
+    @FXML private VBox    statCardGarantiasSum;
+    @FXML private Label   lblSumAgotados;
+    @FXML private Label   lblSumBajoStock;
+    @FXML private Label   lblSumGarantias;
+    @FXML private Label   lblSumGarantiasDetalle;
+    @FXML private javafx.scene.control.ProgressBar pbAgotados;
+    @FXML private javafx.scene.control.ProgressBar pbBajoStock;
+    @FXML private javafx.scene.control.ProgressBar pbGarantias;
+
     private final ProductoService productoService = new ProductoService();
     private final MovimientoService movimientoService = new MovimientoService();
     private final ReporteService reporteService = new ReporteService();
@@ -89,7 +101,8 @@ public class AlertasController {
         tableGarantias.setPlaceholder(alertaOkNode("Sin garantías próximas a vencer"));
         loadData();
         AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(sectionAgotados, sectionBajoStock, sectionGarantias), 300, 65);
+            java.util.List.of(statCardAgotados, statCardBajoStockSum, statCardGarantiasSum,
+                               sectionAgotados, sectionBajoStock, sectionGarantias), 250, 60);
         javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
         if (rootPane != null) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
@@ -124,7 +137,7 @@ public class AlertasController {
             if (btnClearSearch != null) {
                 searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             }
-            SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField, this::applySearch);
+            SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField, () -> applySearch(searchField.getText()));
             SearchUtils.debounce(searchField, 260, this::applySearch);
         }
         tableAgotados.setOnMouseClicked(e -> {
@@ -311,12 +324,13 @@ public class AlertasController {
             () -> new AlertasData(
                 productoService.getAgotados(),
                 productoService.getBajoStock(),
-                productoService.getVencidosProximos(7)),
+                productoService.getVencidosProximos(30)),
             data -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 allAgotados  = data.agotados();
                 allBajoStock = data.bajoStock();
                 allGarantias = data.garantias();
+                updateSumCards();
                 if (btnReponerTodos != null) btnReponerTodos.setDisable(data.agotados().isEmpty());
                 String query = searchField != null ? searchField.getText() : "";
                 applySearch(query);
@@ -636,6 +650,62 @@ public class AlertasController {
             file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
             ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo generar la ficha técnica")
         );
+    }
+
+    @FXML
+    private void onExportarCsv() {
+        if (sinAlertas()) return;
+        DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando CSV…",
+            () -> reporteService.exportAlertasCsv(),
+            file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
+            ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo exportar el CSV")
+        );
+    }
+
+    private void updateSumCards() {
+        int nAg = allAgotados.size(), nBs = allBajoStock.size(), nGa = allGarantias.size();
+        int total = nAg + nBs + nGa;
+        double denom = total > 0 ? total : 1.0;
+
+        AnimationUtils.animateCount(lblSumAgotados,  nAg, 600);
+        AnimationUtils.animateCount(lblSumBajoStock, nBs, 600);
+        AnimationUtils.animateCount(lblSumGarantias, nGa, 600);
+
+        animateProgressBar(pbAgotados,  nAg / denom);
+        animateProgressBar(pbBajoStock, nBs / denom);
+        animateProgressBar(pbGarantias, nGa / denom);
+
+        if (lblSumGarantiasDetalle != null) {
+            long vencidas = allGarantias.stream()
+                .filter(p -> p.getFechaVencimiento() != null
+                    && p.getFechaVencimiento().isBefore(LocalDate.now()))
+                .count();
+            long proximas = nGa - vencidas;
+            lblSumGarantiasDetalle.setText(
+                vencidas + (vencidas == 1 ? " vencida" : " vencidas")
+                + " · " + proximas + " próximas");
+        }
+
+        javafx.animation.PauseTransition pop =
+            new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
+        pop.setOnFinished(e -> {
+            if (statCardAgotados     != null && nAg > 0) AnimationUtils.statCardPop(statCardAgotados);
+            if (statCardBajoStockSum != null && nBs > 0) AnimationUtils.statCardPop(statCardBajoStockSum);
+            if (statCardGarantiasSum != null && nGa > 0) AnimationUtils.statCardPop(statCardGarantiasSum);
+        });
+        pop.play();
+    }
+
+    private static void animateProgressBar(
+            javafx.scene.control.ProgressBar pb, double target) {
+        if (pb == null) return;
+        javafx.animation.Timeline tl = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                new javafx.animation.KeyValue(pb.progressProperty(), pb.getProgress())),
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(700),
+                new javafx.animation.KeyValue(pb.progressProperty(), target,
+                    javafx.animation.Interpolator.EASE_BOTH)));
+        tl.play();
     }
 
     /** Stops the auto-refresh timer. Must be called before this controller's view is discarded. */

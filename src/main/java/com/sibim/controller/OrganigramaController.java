@@ -45,6 +45,14 @@ public class OrganigramaController {
     @FXML private Label helpAreas;
     @FXML private Label helpBienes;
     @FXML private Label helpTopArea;
+    @FXML private VBox  statCardValor;
+    @FXML private Label lblStatValor;
+    @FXML private Label helpValor;
+    @FXML private VBox  areaDistribCard;
+    @FXML private VBox  areaDistribBox;
+
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/organigrama");
 
     private final ProductoService productoService = new ProductoService();
     private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
@@ -56,22 +64,30 @@ public class OrganigramaController {
 
     @FXML private void onToggleSoloAlertas() {
         soloAlertas = btnSoloAlertas != null && btnSoloAlertas.isSelected();
+        STICKY.putBoolean("soloAlertas", soloAlertas);
         buildTree(searchField.getText() != null ? searchField.getText() : "");
     }
 
     @FXML
     public void initialize() {
-        for (Label badge : new Label[]{ helpAreas, helpBienes, helpTopArea }) {
+        for (Label badge : new Label[]{ helpAreas, helpBienes, helpTopArea, helpValor }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
-        SearchUtils.debounce(searchField, 280, this::buildTree);
+
+        // Restore sticky state
+        String stickySearch = STICKY.get("search", "");
+        if (!stickySearch.isBlank() && searchField != null) searchField.setText(stickySearch);
+        soloAlertas = STICKY.getBoolean("soloAlertas", false);
+        if (btnSoloAlertas != null) btnSoloAlertas.setSelected(soloAlertas);
+
+        SearchUtils.debounce(searchField, 280, q -> { STICKY.put("search", q == null ? "" : q); buildTree(q); });
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
-            btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
+            btnClearSearch.setOnAction(e -> { searchField.clear(); STICKY.put("search", ""); searchField.requestFocus(); });
         }
         loadData(false);
         AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(statCardAreas, statCardBienes, statCardTop), 300, 55);
+            java.util.List.of(statCardAreas, statCardBienes, statCardTop, statCardValor), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
 
         searchField.sceneProperty().addListener((obs, old, scene) -> {
@@ -89,7 +105,9 @@ public class OrganigramaController {
     private void loadData(boolean showSuccessToast) {
         spinner.setVisible(true); spinner.setManaged(true);
         DialogUtil.runAsync(
-            () -> productoService.getAll().stream().collect(Collectors.groupingBy(Producto::getArea)),
+            () -> productoService.getAll().stream()
+                .filter(p -> p.getArea() != null && !p.getArea().isBlank())
+                .collect(Collectors.groupingBy(Producto::getArea)),
             porArea -> {
                 productosPorArea = porArea;
                 spinner.setVisible(false); spinner.setManaged(false);
@@ -110,23 +128,95 @@ public class OrganigramaController {
         int totalBienes = productosPorArea.values().stream().mapToInt(List::size).sum();
         AnimationUtils.animateCount(lblStatAreas,  productosPorArea.size(), 650);
         AnimationUtils.animateCount(lblStatBienes, totalBienes,             800);
+
+        java.math.BigDecimal totalValor = productosPorArea.values().stream()
+            .flatMap(List::stream)
+            .map(p -> {
+                java.math.BigDecimal precio = p.getPrecioVenta() != null
+                    ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
+                return precio.multiply(java.math.BigDecimal.valueOf(p.getStockActual()));
+            })
+            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
         javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
         pop.setOnFinished(e -> {
             if (statCardAreas  != null) AnimationUtils.statCardPop(statCardAreas);
             if (statCardBienes != null) AnimationUtils.statCardPop(statCardBienes);
             if (statCardTop    != null) AnimationUtils.statCardPop(statCardTop);
+            if (statCardValor  != null) AnimationUtils.statCardPop(statCardValor);
+            if (lblStatValor   != null) lblStatValor.setText(FormatUtils.formatCurrency(totalValor));
         });
         pop.play();
+
         productosPorArea.entrySet().stream()
             .max(Comparator.comparingInt(e -> e.getValue().size()))
             .ifPresentOrElse(
                 e -> {
                     String topArea = e.getKey();
-                    javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+                    javafx.animation.PauseTransition delay =
+                        new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
                     delay.setOnFinished(ev -> lblStatTopArea.setText(topArea));
                     delay.play();
                 },
                 () -> lblStatTopArea.setText("—"));
+
+        buildAreaDistrib();
+    }
+
+    private static final String[] DISTRIB_COLORS = {
+        "area-bar-pb-1", "area-bar-pb-2", "area-bar-pb-3", "area-bar-pb-4", "area-bar-pb-5"
+    };
+
+    private void buildAreaDistrib() {
+        if (areaDistribBox == null || areaDistribCard == null) return;
+        areaDistribBox.getChildren().clear();
+
+        var sorted = productosPorArea.entrySet().stream()
+            .sorted((a, b) -> b.getValue().size() - a.getValue().size())
+            .toList();
+        int top = Math.min(5, sorted.size());
+        if (top == 0) { areaDistribCard.setVisible(false); areaDistribCard.setManaged(false); return; }
+
+        areaDistribCard.setVisible(true); areaDistribCard.setManaged(true);
+        int maxCount = sorted.get(0).getValue().size();
+
+        for (int i = 0; i < top; i++) {
+            var entry = sorted.get(i);
+            int count = entry.getValue().size();
+
+            Label nameLbl = new Label(entry.getKey());
+            nameLbl.getStyleClass().add("area-bar-name");
+            nameLbl.setMinWidth(120);
+            nameLbl.setMaxWidth(180);
+
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            pb.getStyleClass().addAll("area-bar-pb", DISTRIB_COLORS[i]);
+            pb.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(pb, Priority.ALWAYS);
+
+            Label countLbl = new Label(count + " bienes");
+            countLbl.getStyleClass().add("area-bar-count");
+            countLbl.setMinWidth(70);
+
+            HBox row = new HBox(10, nameLbl, pb, countLbl);
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            areaDistribBox.getChildren().add(row);
+
+            double target = maxCount > 0 ? (double) count / maxCount : 0;
+            int delay = 300 + i * 90;
+            javafx.animation.PauseTransition wait =
+                new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay));
+            wait.setOnFinished(ev -> {
+                javafx.animation.Timeline anim = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
+                        new javafx.animation.KeyValue(pb.progressProperty(), target,
+                            javafx.animation.Interpolator.EASE_OUT)));
+                anim.play();
+            });
+            wait.play();
+        }
     }
 
     private void buildTree(String filter) {

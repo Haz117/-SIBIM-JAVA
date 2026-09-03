@@ -15,6 +15,7 @@ public final class NavigationContext {
     private static String  pendingAreaFilter;
     private static String  pendingProductId;
     private static boolean pendingNuevoBien;
+    private static boolean pendingNuevoMovimiento;
 
     public static void setPendingAreaFilter(String area) {
         pendingAreaFilter = area;
@@ -46,6 +47,14 @@ public final class NavigationContext {
     public static boolean consumePendingNuevoBien() {
         boolean v = pendingNuevoBien;
         pendingNuevoBien = false;
+        return v;
+    }
+
+    public static void setPendingNuevoMovimiento() { pendingNuevoMovimiento = true; }
+
+    public static boolean consumePendingNuevoMovimiento() {
+        boolean v = pendingNuevoMovimiento;
+        pendingNuevoMovimiento = false;
         return v;
     }
 }

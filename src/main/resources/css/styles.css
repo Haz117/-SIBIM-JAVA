@@ -608,6 +608,8 @@
 .report-export-amber:hover  { -fx-background-color: #B45309; }
 .report-export-green  { -fx-background-color: #059669; }
 .report-export-green:hover  { -fx-background-color: #047857; }
+.report-export-slate  { -fx-background-color: #475569; }
+.report-export-slate:hover  { -fx-background-color: #334155; }
 /* Format icons inside the dropdown menu keep their usual color coding
    (red/green/dark) so PDF vs. Excel vs. CSV is still a glance, not a read. */
 .report-export-icon-pdf   { -fx-icon-size: 15; -fx-icon-color: #EF4444; }
@@ -643,6 +645,18 @@
 .data-table .column-header:hover {
     -fx-background-color: rgba(255,255,255,0.08);
     -fx-cursor: hand;
+}
+.data-table .show-hide-columns-button {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-background-radius: 4;
+    -fx-padding: 4 7;
+    -fx-cursor: hand;
+}
+.data-table .show-hide-columns-button:hover {
+    -fx-background-color: rgba(255,255,255,0.28);
+}
+.data-table .show-hide-column-image {
+    -fx-background-color: white;
 }
 .data-table .table-row-cell {
     -fx-cell-size: 44px;
@@ -898,6 +912,7 @@
 .report-icon-badge-teal   { -fx-background-color: #0891B2; }
 .report-icon-badge-amber  { -fx-background-color: #D97706; }
 .report-icon-badge-green  { -fx-background-color: #059669; }
+.report-icon-badge-slate  { -fx-background-color: #475569; }
 .report-title {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
@@ -1008,6 +1023,9 @@
 .data-table .table-row-cell.row-warning:selected    { -fx-background-color: #FDE68A; }
 .data-table .table-row-cell.row-vencido             { -fx-background-color: #FAF5FF; }
 .data-table .table-row-cell.row-vencido:hover       { -fx-background-color: #EDE9FE; }
+.data-table .table-row-cell.row-inactive            { -fx-opacity: 0.55; }
+.data-table .table-row-cell.row-inactive:hover      { -fx-opacity: 0.72; }
+.data-table .table-row-cell.row-inactive:selected   { -fx-opacity: 1.0; }
 
 /* ─── Stock number coloring ─── */
 .stock-ok   { -fx-text-fill: #059669; }
@@ -1034,7 +1052,7 @@
 .foto-cell-box    { -fx-background-color: #F1F5F9; -fx-background-radius: 7; }
 .foto-cell-box-clickable { -fx-cursor: hand; }
 .foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 6, 0.3, 0, 0); }
-.foto-placeholder { -fx-font-size: 16px; -fx-text-fill: #C4CDD6; }
+.foto-placeholder { -fx-font-size: 16px; -fx-icon-color: #94A3B8; }
 
 /* Stock movement arrow cell (Mov. → Nuevo) */
 .stock-before        { -fx-font-size: 11.5px; -fx-text-fill: #64748B; }
@@ -1920,6 +1938,34 @@
     -fx-font-weight: 600;
 }
 
+/* Standalone quick-action cards (Dashboard section) */
+.quick-action-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.07), 8, 0, 0, 2);
+}
+.quick-action-card:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-border-color: #C7D2FE;
+    -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.18), 14, 0, 0, 4);
+    -fx-translate-y: -2;
+}
+.quick-action-card:pressed {
+    -fx-translate-y: 0;
+    -fx-background-color: #EEF2FF;
+}
+.qa-card-title { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1E1B4B; }
+.qa-card-hint  { -fx-font-size: 11px; -fx-text-fill: #64748B; }
+.qa-card-icon-indigo { -fx-icon-color: #4338CA; -fx-icon-size: 22; }
+.qa-card-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 22; }
+.qa-card-icon-amber  { -fx-icon-color: #D97706; -fx-icon-size: 22; }
+.qa-card-icon-blue   { -fx-icon-color: #2563EB; -fx-icon-size: 22; }
+.qa-card-icon-violet { -fx-icon-color: #7C3AED; -fx-icon-size: 22; }
+
 /* Section divider labels ("RESUMEN DEL INVENTARIO", etc.) */
 .dash-section-label {
     -fx-text-fill: #475569;
@@ -2199,6 +2245,7 @@
 .report-card-tag-teal   { -fx-text-fill: #0891B2; }
 .report-card-tag-amber  { -fx-text-fill: #D97706; }
 .report-card-tag-green  { -fx-text-fill: #059669; }
+.report-card-tag-slate  { -fx-text-fill: #475569; }
 
 /* ═══════════════════════════════════════════════════════════════════
    CONFIGURACIÓN — profile section utilities
@@ -2636,7 +2683,7 @@
    the accented cards were rendering without their card shell at rest,
    only the teal/amber/green *hover* glow was ever being applied.
    ═══════════════════════════════════════════════════════════════════ */
-.report-card-teal, .report-card-amber, .report-card-green {
+.report-card-teal, .report-card-amber, .report-card-green, .report-card-slate {
     -fx-background-color: white;
     -fx-background-radius: 20;
     -fx-border-width: 0;
@@ -2646,7 +2693,8 @@
 .report-card-teal:hover  { -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
 .report-card-amber:hover { -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
 .report-card-green:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
-.report-card-teal:pressed, .report-card-amber:pressed, .report-card-green:pressed {
+.report-card-slate:hover { -fx-effect: dropshadow(gaussian, rgba(71,85,105,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-teal:pressed, .report-card-amber:pressed, .report-card-green:pressed, .report-card-slate:pressed {
     -fx-translate-y: 0;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
 }
@@ -3763,3 +3811,78 @@
     -fx-padding: 2 6;
     -fx-pref-width: 70;
 }
+
+/* ─── Status mini-cards (dashboard health replacement) ─── */
+.status-mini-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.06), 8, 0, 0, 2);
+}
+.status-mini-card:hover {
+    -fx-translate-y: -2;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 14, 0, 0, 4);
+}
+.status-mini-card:pressed { -fx-translate-y: 0; }
+
+.status-mini-card-green  { -fx-border-color: #A7F3D0; }
+.status-mini-card-amber  { -fx-border-color: #FDE68A; }
+.status-mini-card-red    { -fx-border-color: #FECACA; }
+.status-mini-card-violet { -fx-border-color: #DDD6FE; }
+
+.status-mini-label { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #64748B; }
+.status-mini-count { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1E293B; }
+
+.status-mini-pct         { -fx-font-size: 12px; -fx-font-weight: bold; }
+.status-pct-green        { -fx-text-fill: #059669; }
+.status-pct-amber        { -fx-text-fill: #D97706; }
+.status-pct-red          { -fx-text-fill: #DC2626; }
+.status-pct-violet       { -fx-text-fill: #7C3AED; }
+
+.status-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 16; }
+.status-icon-amber  { -fx-icon-color: #D97706; -fx-icon-size: 16; }
+.status-icon-red    { -fx-icon-color: #DC2626; -fx-icon-size: 16; }
+.status-icon-violet { -fx-icon-color: #7C3AED; -fx-icon-size: 16; }
+
+/* ProgressBar styling for status cards */
+.status-pb { -fx-pref-height: 7; -fx-background-radius: 4; }
+.status-pb .track { -fx-background-radius: 4; -fx-background-insets: 0; }
+.status-pb .bar   { -fx-background-radius: 4; -fx-background-insets: 0; }
+.status-pb-green  .track { -fx-background-color: rgba(16,185,129,0.12); }
+.status-pb-green  .bar   { -fx-background-color: #10B981; }
+.status-pb-amber  .track { -fx-background-color: rgba(217,119,6,0.12); }
+.status-pb-amber  .bar   { -fx-background-color: #F59E0B; }
+.status-pb-red    .track { -fx-background-color: rgba(220,38,38,0.12); }
+.status-pb-red    .bar   { -fx-background-color: #EF4444; }
+.status-pb-violet .track { -fx-background-color: rgba(124,58,237,0.12); }
+.status-pb-violet .bar   { -fx-background-color: #8B5CF6; }
+
+/* ─── Area distribution bars ─── */
+.area-bar-name  { -fx-font-size: 12.5px; -fx-text-fill: #334155; }
+.area-bar-count { -fx-font-size: 12px; -fx-text-fill: #64748B; }
+.area-bar-pb { -fx-pref-height: 10; -fx-background-radius: 5; }
+.area-bar-pb .track { -fx-background-color: #F1F5F9; -fx-background-radius: 5; -fx-background-insets: 0; }
+.area-bar-pb .bar   { -fx-background-radius: 5; -fx-background-insets: 0; }
+
+/* Colores posicionales para barras de área (evita inline setStyle) */
+.area-bar-pb-1 .bar { -fx-background-color: #4338CA; }
+.area-bar-pb-2 .bar { -fx-background-color: #0891B2; }
+.area-bar-pb-3 .bar { -fx-background-color: #059669; }
+.area-bar-pb-4 .bar { -fx-background-color: #D97706; }
+.area-bar-pb-5 .bar { -fx-background-color: #DC2626; }
+
+/* ─── Depreciación: barra visual en celda de tabla ─── */
+.depr-bar-cell { -fx-pref-height: 10; -fx-background-radius: 4; }
+.depr-bar-cell .track { -fx-background-color: #F1F5F9; -fx-background-radius: 4; -fx-background-insets: 0; }
+.depr-bar-cell .bar   { -fx-background-radius: 4; -fx-background-insets: 0; }
+.depr-bar-low  .bar   { -fx-background-color: #10B981; }
+.depr-bar-mid  .bar   { -fx-background-color: #F59E0B; }
+.depr-bar-high .bar   { -fx-background-color: #EF4444; }
+.depr-bar-full .bar   { -fx-background-color: #7C3AED; }
+
+/* ─── Depreciación: etiquetas de rangos ─── */
+.depr-range-label { -fx-font-size: 12px; -fx-text-fill: #475569; -fx-min-width: 75px; }
+.depr-range-count { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;
+                    -fx-min-width: 65px; -fx-alignment: CENTER_RIGHT; }

@@ -132,22 +132,20 @@ class ProductosColumnSetup {
                     ? p.getCategoriaColor() : "#4338CA";
                 String bgColor  = catColor + "22";
                 Label lbl = new Label(value);
-                String iconLiteral = catIcon.getOrDefault(value, null);
-                if (iconLiteral != null) {
-                    FontIcon ico = new FontIcon(iconLiteral);
-                    ico.setIconSize(12);
-                    ico.setStyle("-fx-icon-color: " + catColor + ";");
-                    javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(5, ico, lbl);
-                    box.setAlignment(Pos.CENTER_LEFT);
-                    box.getStyleClass().add("cat-badge");
-                    box.setStyle("-fx-background-color: " + bgColor + ";");
-                    lbl.setStyle("-fx-text-fill: " + catColor + ";");
-                    setGraphic(box);
-                } else {
-                    lbl.getStyleClass().add("cat-badge");
-                    lbl.setStyle("-fx-background-color: " + bgColor + "; -fx-text-fill: " + catColor + ";");
-                    setGraphic(lbl);
-                }
+                String iconLiteral = catIcon.entrySet().stream()
+                    .filter(e -> e.getKey().equalsIgnoreCase(value))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElse("mdi2t-tag-outline");
+                FontIcon ico = new FontIcon(iconLiteral);
+                ico.setIconSize(14);
+                ico.setStyle("-fx-icon-color: " + catColor + ";");
+                javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(5, ico, lbl);
+                box.setAlignment(Pos.CENTER_LEFT);
+                box.getStyleClass().add("cat-badge");
+                box.setStyle("-fx-background-color: " + bgColor + ";");
+                lbl.setStyle("-fx-text-fill: " + catColor + ";");
+                setGraphic(box);
             }
         });
     }

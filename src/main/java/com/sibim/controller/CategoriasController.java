@@ -53,6 +53,7 @@ public class CategoriasController {
 
     private final CategoriaService categoriaService = new CategoriaService();
     private ObservableList<Categoria> allData = FXCollections.observableArrayList();
+    private javafx.animation.Timeline skeletonPulse;
 
     @FXML
     public void initialize() {
@@ -129,17 +130,7 @@ public class CategoriasController {
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        FontIcon emptyIcon = new FontIcon("mdi2t-tag-multiple-outline");
-        emptyIcon.setIconSize(44);
-        emptyIcon.getStyleClass().add("empty-icon-lg");
-        Label emptyMsg  = new Label("No hay categorías registradas");
-        emptyMsg.getStyleClass().add("empty-state-msg");
-        Label emptyHint = new Label(SessionManager.isAdmin() ? "Presiona Ctrl+N para crear la primera" : "");
-        emptyHint.getStyleClass().add("empty-state-hint");
-        VBox emptyState = new VBox(12, emptyIcon, emptyMsg, emptyHint);
-        emptyState.setAlignment(javafx.geometry.Pos.CENTER);
-        emptyState.getStyleClass().add("empty-state-pane");
-        table.setPlaceholder(emptyState);
+        table.setPlaceholder(buildSkeletonPlaceholder());
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colDescripcion.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getDescripcion() != null ? c.getValue().getDescripcion() : ""));
@@ -181,18 +172,58 @@ public class CategoriasController {
         });
     }
 
+    private VBox buildSkeletonPlaceholder() {
+        VBox box = new VBox(4);
+        box.setPadding(new javafx.geometry.Insets(8));
+        for (int i = 0; i < 7; i++) {
+            Label bar = new Label();
+            bar.getStyleClass().add("skeleton");
+            bar.setPrefHeight(44);
+            bar.setMaxWidth(Double.MAX_VALUE);
+            box.getChildren().add(bar);
+        }
+        skeletonPulse = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(0),
+                new javafx.animation.KeyValue(box.opacityProperty(), 0.7)),
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
+                new javafx.animation.KeyValue(box.opacityProperty(), 0.4)),
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(1600),
+                new javafx.animation.KeyValue(box.opacityProperty(), 0.7))
+        );
+        skeletonPulse.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        skeletonPulse.play();
+        return box;
+    }
+
+    private void stopSkeleton() {
+        if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
+        FontIcon emptyIcon = new FontIcon("mdi2t-tag-multiple-outline");
+        emptyIcon.setIconSize(44);
+        emptyIcon.getStyleClass().add("empty-icon-lg");
+        Label emptyMsg  = new Label("No hay categorías registradas");
+        emptyMsg.getStyleClass().add("empty-state-msg");
+        Label emptyHint = new Label(SessionManager.isAdmin() ? "Presiona Ctrl+N para crear la primera" : "");
+        emptyHint.getStyleClass().add("empty-state-hint");
+        VBox emptyState = new VBox(12, emptyIcon, emptyMsg, emptyHint);
+        emptyState.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state-pane");
+        table.setPlaceholder(emptyState);
+    }
+
     private void loadData() {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         DialogUtil.runAsync(
             () -> categoriaService.findAll(),
             cats -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                stopSkeleton();
                 allData.setAll(cats);
                 applyFilter(searchField.getText());
                 updateStats();
             },
             e -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                stopSkeleton();
                 NotificacionUtil.errorConAccion(table.getScene(), "No se pudo cargar las categorías", "Reintentar", this::loadData);
             }
         );

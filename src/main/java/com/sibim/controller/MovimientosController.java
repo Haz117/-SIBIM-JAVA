@@ -207,11 +207,27 @@ public class MovimientosController {
         // Restore sticky filters from previous session
         String savedSearch = STICKY.get("search", "");
         if (!savedSearch.isBlank() && searchField != null) searchField.setText(savedSearch);
+        String savedDesde = STICKY.get("desde", "");
+        String savedHasta = STICKY.get("hasta", "");
+        if (!savedDesde.isBlank() && desdeFilter != null)
+            try { desdeFilter.setValue(java.time.LocalDate.parse(savedDesde)); } catch (Exception ignored) {}
+        if (!savedHasta.isBlank() && hastaFilter != null)
+            try { hastaFilter.setValue(java.time.LocalDate.parse(savedHasta)); } catch (Exception ignored) {}
+        String savedCategoria = STICKY.get("categoria", "");
+        if (!savedCategoria.isBlank() && categoriaFilter != null) categoriaFilter.setValue(savedCategoria);
+        String savedTipo = STICKY.get("tipo", "Todos");
+        if (!savedTipo.equals("Todos") && tipoChipGroup != null)
+            tipoChipGroup.getToggles().stream()
+                .filter(t -> savedTipo.equals(((ToggleButton) t).getText()))
+                .findFirst().ifPresent(t -> t.setSelected(true));
         if (SessionManager.isAdmin()) {
             if (btnPendientes != null) { btnPendientes.setVisible(true); btnPendientes.setManaged(true); }
             loadPendientesCount();
         } else {
             if (btnPendientes != null) { btnPendientes.setVisible(false); btnPendientes.setManaged(false); }
+        }
+        if (com.sibim.session.NavigationContext.consumePendingNuevoMovimiento()) {
+            Platform.runLater(this::onNuevoMovimiento);
         }
         loadData();
         AnimationUtils.staggeredFadeInUp(
@@ -352,6 +368,8 @@ public class MovimientosController {
                 tipoChipGroup.getToggles().stream()
                     .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
                     .findFirst().ifPresent(t -> t.setSelected(true));
+            STICKY.put("search", ""); STICKY.put("desde", ""); STICKY.put("hasta", "");
+            STICKY.put("categoria", ""); STICKY.put("tipo", "Todos");
             currentPage = 0;
             applyFilters();
         });
@@ -524,7 +542,11 @@ public class MovimientosController {
         int    limit     = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
         int    offset    = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
         // Persist sticky filters
-        STICKY.put("search", searchField != null && searchField.getText() != null ? searchField.getText() : "");
+        STICKY.put("search",    searchField    != null && searchField.getText() != null ? searchField.getText() : "");
+        STICKY.put("desde",     desde          != null ? desde.toString()   : "");
+        STICKY.put("hasta",     hasta          != null ? hasta.toString()   : "");
+        STICKY.put("categoria", categoria      != null ? categoria          : "");
+        STICKY.put("tipo",      tipo           != null ? tipo               : "Todos");
 
         record PageResult(List<Movimiento> page, int count) {}
 
@@ -837,6 +859,8 @@ public class MovimientosController {
             tipoChipGroup.getToggles().stream()
                 .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
                 .findFirst().ifPresent(t -> t.setSelected(true));
+        STICKY.put("search", ""); STICKY.put("desde", ""); STICKY.put("hasta", "");
+        STICKY.put("categoria", ""); STICKY.put("tipo", "Todos");
         currentPage = 0;
         loadData();
     }

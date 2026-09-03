@@ -40,11 +40,18 @@ public class ReporteService {
 
     private final ProductoRepository   productoRepo;
     private final MovimientoRepository movimientoRepo;
+    private final com.sibim.repository.ConfiguracionRepository configRepo;
 
-    public ReporteService() { this(new ProductoRepository(), new MovimientoRepository()); }
-    ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo) {
+    public ReporteService() { this(new ProductoRepository(), new MovimientoRepository(), new com.sibim.repository.ConfiguracionRepository()); }
+    ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo,
+                   com.sibim.repository.ConfiguracionRepository configRepo) {
         this.productoRepo   = productoRepo;
         this.movimientoRepo = movimientoRepo;
+        this.configRepo     = configRepo;
+    }
+
+    private String orgName() {
+        return configRepo.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan") + ", Hgo.";
     }
 
     private static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
@@ -567,6 +574,7 @@ public class ReporteService {
         String ts   = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
         String[][] rows = {
             {"Reporte",             "SIBIM — " + titulo},
+            {"Institución",         orgName()},
             {"Generado por",        user},
             {"Fecha de generación", ts},
             {"Período",             desde != null || hasta != null
@@ -650,7 +658,7 @@ public class ReporteService {
         String ts   = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
         doc.add(new Paragraph(
                 "Total: " + count + " registros   |   Generado por: " + user + "   |   " + ts
-                + "   |   SIBIM — Sistema Integral de Bienes Municipales")
+                + "   |   " + orgName())
             .setFont(font).setFontSize(8).setFontColor(ColorConstants.GRAY));
     }
 
@@ -785,7 +793,7 @@ public class ReporteService {
             Table headerBand = new Table(new float[]{3f, 1f}).useAllAvailableWidth();
 
             com.itextpdf.layout.element.Cell orgCell = new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph("H. Ayuntamiento de Ixmiquilpan, Hgo.")
+                .add(new Paragraph(orgName())
                     .setFont(bold).setFontSize(10.5f).setFontColor(ColorConstants.WHITE).setMarginBottom(3))
                 .add(new Paragraph("FICHA TÉCNICA DE BIEN PATRIMONIAL")
                     .setFont(bold).setFontSize(15f).setFontColor(ColorConstants.WHITE).setMarginBottom(2))
@@ -927,7 +935,7 @@ public class ReporteService {
             // ── 8. Footer ────────────────────────────────────────────────
             doc.add(spacer(6));
             doc.add(new Paragraph(
-                "SIBIM — Sistema Integral de Bienes Municipales  |  H. Ayuntamiento de Ixmiquilpan, Hgo.  |  " + generadoEn)
+                "SIBIM — Sistema Integral de Bienes Municipales  |  " + orgName() + "  |  " + generadoEn)
                 .setFont(regular).setFontSize(7.5f).setFontColor(muted)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
         }
@@ -984,7 +992,7 @@ public class ReporteService {
             doc.add(new Paragraph("RESGUARDO DE BIENES MUNICIPALES")
                 .setFont(bold).setFontSize(16)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            doc.add(new Paragraph("H. Municipio")
+            doc.add(new Paragraph(orgName())
                 .setFont(regular).setFontSize(11)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                 .setMarginBottom(4));
@@ -1156,7 +1164,7 @@ public class ReporteService {
             // ── Footer ──────────────────────────────────────────────────
             doc.add(spacer(8));
             doc.add(new Paragraph(
-                "SIBIM — Sistema Integral de Bienes Municipales  |  H. Ayuntamiento de Ixmiquilpan, Hgo.  |  " + generadoEn)
+                "SIBIM — Sistema Integral de Bienes Municipales  |  " + orgName() + "  |  " + generadoEn)
                 .setFont(regular).setFontSize(7.5f).setFontColor(muted)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
         }
@@ -1215,6 +1223,14 @@ public class ReporteService {
     }
 
     // ─────────────────────────── BIENES DADOS DE BAJA ──────────────────────────
+
+    private List<Producto> fetchBajas() throws Exception {
+        return productoRepo.findAll(true).stream().filter(Producto::isDadoDeBaja).toList();
+    }
+
+    public File exportBajasPdf() throws Exception  { return exportBajasPdf(fetchBajas()); }
+    public File exportBajasExcel() throws Exception { return exportBajasExcel(fetchBajas()); }
+    public File exportBajasCsv() throws Exception   { return exportBajasCsv(fetchBajas()); }
 
     public File exportBajasPdf(List<com.sibim.model.Producto> bajas) throws Exception {
         if (bajas.isEmpty()) return null;
