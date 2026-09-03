@@ -647,6 +647,43 @@ public class ProductoRepository {
         }
     }
 
+    /** Active bienes grouped by area — used for the Reportes area distribution chart.
+     *  Returns a LinkedHashMap ordered descending by count (up to {@code limit} entries). */
+    public LinkedHashMap<String, Long> countByArea(int limit) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            var all = local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> !p.isDadoDeBaja()).toList();
+            LinkedHashMap<String, Long> result = new LinkedHashMap<>();
+            all.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    p -> p.getArea() != null && !p.getArea().isBlank() ? p.getArea() : "Sin área",
+                    java.util.stream.Collectors.counting()))
+                .entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(limit)
+                .forEach(e -> result.put(e.getKey(), e.getValue()));
+            return result;
+        }
+        StringBuilder sb = new StringBuilder(
+            "SELECT COALESCE(NULLIF(area,''), 'Sin área') AS area_label, COUNT(*) AS cnt " +
+            "FROM products p WHERE p.fecha_baja IS NULL");
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        sb.append(" GROUP BY area_label ORDER BY cnt DESC LIMIT ").append(limit);
+        LinkedHashMap<String, Long> result = new LinkedHashMap<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = buildStatement(conn, sb.toString(), params);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) result.put(rs.getString("area_label"), rs.getLong("cnt"));
+        }
+        return result;
+    }
+
     /** Bienes with stock_actual = 0 (agotados) — filtered in SQL. */
     public List<Producto> findAgotados() throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();

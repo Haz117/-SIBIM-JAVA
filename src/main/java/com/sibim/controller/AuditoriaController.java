@@ -54,6 +54,9 @@ public class AuditoriaController {
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private HBox paginationBar;
 
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/auditoria");
+
     private final AuditLogRepository auditRepo    = new AuditLogRepository();
     private final ReporteService      reporteService = new ReporteService();
 
@@ -75,6 +78,19 @@ public class AuditoriaController {
             loadData();
         });
 
+        // Restore sticky filters from previous navigation
+        if (searchField   != null) searchField.setText(STICKY.get("search", ""));
+        if (usuarioFilter != null) usuarioFilter.setText(STICKY.get("usuario", ""));
+        String stickyEntidad = STICKY.get("entidad", "Todas");
+        if (entidadFilter != null && entidadFilter.getItems().contains(stickyEntidad))
+            entidadFilter.getSelectionModel().select(stickyEntidad);
+        String desdeStr = STICKY.get("desde", "");
+        String hastaStr = STICKY.get("hasta", "");
+        if (!desdeStr.isBlank() && desdeField != null)
+            try { desdeField.setValue(java.time.LocalDate.parse(desdeStr)); } catch (Exception ignored) {}
+        if (!hastaStr.isBlank() && hastaField != null)
+            try { hastaField.setValue(java.time.LocalDate.parse(hastaStr)); } catch (Exception ignored) {}
+
         AnimationUtils.fadeInDown(filterBar, 220, 0);
         loadData();
 
@@ -87,10 +103,89 @@ public class AuditoriaController {
         }
 
         if (table != null) {
-            table.setOnKeyPressed(e -> {
-                if (e.getCode() == javafx.scene.input.KeyCode.F5) loadData();
+            table.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2) {
+                    com.sibim.model.AuditLog sel = table.getSelectionModel().getSelectedItem();
+                    if (sel != null) showDetalle(sel);
+                }
             });
+            table.setOnKeyPressed(e -> {
+                if (e.getCode() == javafx.scene.input.KeyCode.F5) { loadData(); e.consume(); }
+                else if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                    com.sibim.model.AuditLog sel = table.getSelectionModel().getSelectedItem();
+                    if (sel != null) { showDetalle(sel); e.consume(); }
+                } else if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                    table.getSelectionModel().clearSelection(); e.consume();
+                }
+            });
+
+            javafx.scene.control.ContextMenu cm = new javafx.scene.control.ContextMenu();
+            javafx.scene.control.MenuItem cmDetalle = new javafx.scene.control.MenuItem("Ver detalle completo");
+            cmDetalle.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2e-eye-outline"));
+            cmDetalle.setOnAction(e -> {
+                com.sibim.model.AuditLog sel = table.getSelectionModel().getSelectedItem();
+                if (sel != null) showDetalle(sel);
+            });
+            javafx.scene.control.MenuItem cmCopiar = new javafx.scene.control.MenuItem("Copiar detalle");
+            cmCopiar.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2c-content-copy"));
+            cmCopiar.setOnAction(e -> {
+                com.sibim.model.AuditLog sel = table.getSelectionModel().getSelectedItem();
+                if (sel == null || sel.getDetalle() == null) return;
+                javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
+                cc.putString(sel.getDetalle());
+                javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
+                NotificacionUtil.exito(table.getScene(), "Detalle copiado al portapapeles");
+            });
+            cm.getItems().addAll(cmDetalle, new javafx.scene.control.SeparatorMenuItem(), cmCopiar);
+            table.setContextMenu(cm);
         }
+    }
+
+    private void showDetalle(com.sibim.model.AuditLog entry) {
+        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dlg = new javafx.scene.control.Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        dlg.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+        dlg.getDialogPane().setPrefWidth(480);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        javafx.scene.layout.HBox header = DialogUtil.gradientHeader(
+            "mdi2m-magnify-scan", "Detalle del registro",
+            entry.getEntidad() != null ? entry.getEntidad().toUpperCase() : "AUDITORÍA",
+            "#4338CA", "#3730A3");
+
+        javafx.scene.layout.GridPane g = new javafx.scene.layout.GridPane();
+        g.setHgap(16); g.setVgap(8);
+        g.setPadding(new javafx.geometry.Insets(16, 22, 16, 22));
+
+        String[][] rows = {
+            { "Fecha",    entry.getCreadoEn() != null ? entry.getCreadoEn().format(FECHA_FMT) : "—" },
+            { "Entidad",  entry.getEntidad()       != null ? entry.getEntidad()       : "—" },
+            { "Elemento", entry.getEntidadNombre() != null ? entry.getEntidadNombre() : "—" },
+            { "Acción",   entry.getAccion()        != null ? entry.getAccion()        : "—" },
+            { "Usuario",  entry.getUsuarioNombre() != null ? entry.getUsuarioNombre() : "—" },
+        };
+        for (int i = 0; i < rows.length; i++) {
+            javafx.scene.control.Label k = new javafx.scene.control.Label(rows[i][0]);
+            k.getStyleClass().add("dlg-detail-label"); k.setMinWidth(90);
+            javafx.scene.control.Label v = new javafx.scene.control.Label(rows[i][1]);
+            v.getStyleClass().add("dlg-detail-value");
+            g.add(k, 0, i); g.add(v, 1, i);
+        }
+        // Detalle field — may be long, use a TextArea
+        if (entry.getDetalle() != null && !entry.getDetalle().isBlank()) {
+            javafx.scene.control.Label kDet = new javafx.scene.control.Label("Detalle");
+            kDet.getStyleClass().add("dlg-detail-label"); kDet.setMinWidth(90);
+            javafx.scene.control.TextArea ta = new javafx.scene.control.TextArea(entry.getDetalle());
+            ta.setEditable(false); ta.setWrapText(true); ta.setPrefRowCount(4);
+            ta.getStyleClass().add("audit-detail-area");
+            g.add(kDet, 0, rows.length); g.add(ta, 1, rows.length);
+            javafx.scene.layout.GridPane.setHgrow(ta, javafx.scene.layout.Priority.ALWAYS);
+        }
+
+        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(0, header, g);
+        dlg.getDialogPane().setContent(content);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, g), 260, 70);
+        dlg.showAndWait();
     }
 
     private void setupColumns() {
@@ -185,6 +280,13 @@ public class AuditoriaController {
         LocalDate hasta = hastaField != null ? hastaField.getValue() : null;
         int offset = currentPage * pageSize;
 
+        // Persist current filters
+        STICKY.put("search",  busqueda != null ? busqueda : "");
+        STICKY.put("usuario", usuario  != null ? usuario  : "");
+        STICKY.put("entidad", entidad  != null ? entidad  : "Todas");
+        STICKY.put("desde",   desde    != null ? desde.toString() : "");
+        STICKY.put("hasta",   hasta    != null ? hasta.toString() : "");
+
         AppExecutor.submit(() -> {
             try {
                 int total = auditRepo.countFiltrado(busqueda, entidad, usuario, desde, hasta);
@@ -264,6 +366,8 @@ public class AuditoriaController {
         if (desdeField    != null) desdeField.setValue(null);
         if (hastaField    != null) hastaField.setValue(null);
         if (entidadFilter != null) entidadFilter.getSelectionModel().selectFirst();
+        STICKY.put("search", ""); STICKY.put("usuario", "");
+        STICKY.put("entidad", "Todas"); STICKY.put("desde", ""); STICKY.put("hasta", "");
         currentPage = 0;
         loadData();
     }

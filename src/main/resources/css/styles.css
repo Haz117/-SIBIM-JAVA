@@ -3725,6 +3725,18 @@
 .audit-pill-slate  { -fx-background-color: #F1F5F9; -fx-text-fill: #475569; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-purple { -fx-background-color: #EDE9FE; -fx-text-fill: #5B21B6; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 
+/* Audit detail dialog — read-only TextArea for the "detalle" field */
+.audit-detail-area {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-font-size: 12px;
+    -fx-text-fill: #334155;
+    -fx-control-inner-background: #F8FAFC;
+}
+.audit-detail-area .content { -fx-background-color: #F8FAFC; }
+
 /* Area BarChart — Reportes */
 .area-bar-chart { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
 .area-bar-chart .chart-plot-background { -fx-background-color: #F8FAFC; }

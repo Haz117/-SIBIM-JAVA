@@ -50,6 +50,7 @@ public class DepreciacionController {
      *  Se usa para el chart y los stat cards. Los exports usan table.getItems()
      *  para respetar el filtro activo. */
     private List<Producto> conDepreciacion = List.of();
+    private javafx.animation.Timeline skeletonPulse;
 
     @FXML private ProgressIndicator spinner;
     @FXML private VBox statCardCompra;
@@ -174,6 +175,8 @@ public class DepreciacionController {
         colPct.setSortType(TableColumn.SortType.DESCENDING);
         table.getSortOrder().setAll(List.<TableColumn<Producto, ?>>of(colPct));
 
+        table.setPlaceholder(buildSkeletonPlaceholder());
+
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
                 showDetalle(table.getSelectionModel().getSelectedItem());
@@ -213,6 +216,29 @@ public class DepreciacionController {
         });
         cm.getItems().addAll(cmDetalle, new SeparatorMenuItem(), cmFicha);
         table.setContextMenu(cm);
+    }
+
+    private javafx.scene.layout.VBox buildSkeletonPlaceholder() {
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(4);
+        box.setPadding(new javafx.geometry.Insets(8));
+        for (int i = 0; i < 7; i++) {
+            Label bar = new Label();
+            bar.getStyleClass().add("skeleton");
+            bar.setPrefHeight(44);
+            bar.setMaxWidth(Double.MAX_VALUE);
+            box.getChildren().add(bar);
+        }
+        skeletonPulse = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(0),
+                new javafx.animation.KeyValue(box.opacityProperty(), 0.7)),
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
+                new javafx.animation.KeyValue(box.opacityProperty(), 0.4)),
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(1600),
+                new javafx.animation.KeyValue(box.opacityProperty(), 0.7))
+        );
+        skeletonPulse.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        skeletonPulse.play();
+        return box;
     }
 
     private void showDetalle(Producto p) {
@@ -376,6 +402,18 @@ public class DepreciacionController {
             });
     }
 
+    private void stopSkeleton() {
+        if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
+        FontIcon icon = new FontIcon("mdi2c-chart-line");
+        icon.setIconSize(44);
+        icon.getStyleClass().add("empty-icon-lg");
+        javafx.scene.layout.VBox emptyState = new javafx.scene.layout.VBox(12,
+            icon, lblPlaceholderMsg, lblPlaceholderHint);
+        emptyState.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state-pane");
+        table.setPlaceholder(emptyState);
+    }
+
     private void loadData() {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         Task<List<Producto>> task = new Task<>() {
@@ -383,6 +421,7 @@ public class DepreciacionController {
                 return productoService.getAll();
             }
             @Override protected void succeeded() {
+                stopSkeleton();
                 conDepreciacion = getValue().stream()
                     .filter(p -> p.getValorDepreciado() != null)
                     .toList();
@@ -399,6 +438,7 @@ public class DepreciacionController {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
             }
             @Override protected void failed() {
+                stopSkeleton();
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 log.error("No se pudo cargar la depreciación", getException());
                 if (table.getScene() != null)

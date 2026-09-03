@@ -20,9 +20,6 @@ import javafx.scene.layout.VBox;
 
 import java.io.File;
 import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ReportesController {
 
@@ -142,15 +139,9 @@ public class ReportesController {
         if (chartSpinner != null) { chartSpinner.setVisible(true); chartSpinner.setManaged(true); }
         AppExecutor.submit(() -> {
             try {
-                Map<String, Long> counts = productoRepo.findAll().stream()
-                    .collect(Collectors.groupingBy(
-                        p -> p.getArea() != null && !p.getArea().isBlank() ? p.getArea() : "Sin área",
-                        Collectors.counting()));
+                var counts = productoRepo.countByArea(12);
                 XYChart.Series<String, Number> series = new XYChart.Series<>();
-                counts.entrySet().stream()
-                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                    .limit(12)
-                    .forEach(e -> series.getData().add(new XYChart.Data<>(e.getKey(), e.getValue())));
+                counts.forEach((area, cnt) -> series.getData().add(new XYChart.Data<>(area, cnt)));
                 Platform.runLater(() -> {
                     areaChart.getData().setAll(series);
                     if (chartSpinner != null) { chartSpinner.setVisible(false); chartSpinner.setManaged(false); }
