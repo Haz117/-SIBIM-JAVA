@@ -124,6 +124,7 @@ public class AlertasController {
             if (btnClearSearch != null) {
                 searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             }
+            SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField, this::applySearch);
             SearchUtils.debounce(searchField, 260, this::applySearch);
         }
         tableAgotados.setOnMouseClicked(e -> {

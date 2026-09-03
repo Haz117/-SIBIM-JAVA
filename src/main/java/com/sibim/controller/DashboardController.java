@@ -611,6 +611,9 @@ public class DashboardController {
             if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 tablaReciente.getSelectionModel().clearSelection();
                 e.consume();
+            } else if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
+                if (sel != null) { showMovimientoDetalle(sel); e.consume(); }
             }
         });
 

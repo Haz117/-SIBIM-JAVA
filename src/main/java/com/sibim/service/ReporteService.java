@@ -1214,6 +1214,77 @@ public class ReporteService {
         return file;
     }
 
+    // ─────────────────────────── BIENES DADOS DE BAJA ──────────────────────────
+
+    public File exportBajasPdf(List<com.sibim.model.Producto> bajas) throws Exception {
+        if (bajas.isEmpty()) return null;
+        File file = tempFile("bienes_baja", ".pdf");
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
+            addPdfHeader(doc, "Bienes Dados de Baja", null, null);
+            String[] headers = {"Nombre", "Código", "Área", "Categoría", "Fecha baja", "Motivo"};
+            float[] widths  = {3f, 1.5f, 2f, 1.5f, 1.5f, 3f};
+            Table table = createPdfTable(headers, widths);
+            for (com.sibim.model.Producto p : bajas) {
+                table.addCell(cell(p.getNombre()));
+                table.addCell(cell(p.getCodigo()));
+                table.addCell(cell(p.getArea() != null ? p.getArea() : ""));
+                table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
+                table.addCell(cell(p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : ""));
+                table.addCell(cell(p.getMotivoBaja() != null ? p.getMotivoBaja() : ""));
+            }
+            doc.add(table);
+            addPdfFooter(doc, bajas.size());
+        }
+        return file;
+    }
+
+    public File exportBajasExcel(List<com.sibim.model.Producto> bajas) throws Exception {
+        if (bajas.isEmpty()) return null;
+        String[] headers = {"Nombre", "Código", "Área", "Categoría", "Resguardante",
+                            "Precio compra", "Fecha baja", "Motivo"};
+        File file = tempFile("bienes_baja", ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = createSheet(wb, "Dados de Baja");
+            writeHeader(sheet, headers, wb);
+            int row = 1;
+            for (com.sibim.model.Producto p : bajas) {
+                Row r = sheet.createRow(row++);
+                r.createCell(0).setCellValue(p.getNombre());
+                r.createCell(1).setCellValue(p.getCodigo());
+                r.createCell(2).setCellValue(p.getArea() != null ? p.getArea() : "");
+                r.createCell(3).setCellValue(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "");
+                r.createCell(4).setCellValue(p.getResguardante() != null ? p.getResguardante() : "");
+                r.createCell(5).setCellValue(p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0);
+                r.createCell(6).setCellValue(p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : "");
+                r.createCell(7).setCellValue(p.getMotivoBaja() != null ? p.getMotivoBaja() : "");
+            }
+            autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Bienes Dados de Baja", null, null);
+            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
+        }
+        return file;
+    }
+
+    public File exportBajasCsv(List<com.sibim.model.Producto> bajas) throws Exception {
+        if (bajas.isEmpty()) return null;
+        File file = tempFile("bienes_baja", ".csv");
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println("Nombre,Código,Área,Categoría,Resguardante,Precio compra,Fecha baja,Motivo");
+            for (com.sibim.model.Producto p : bajas) {
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%.2f,\"%s\",\"%s\"%n",
+                    esc(p.getNombre()), esc(p.getCodigo()),
+                    esc(p.getArea()), esc(p.getCategoriaNombre()),
+                    esc(p.getResguardante()),
+                    p.getPrecioCompra() != null ? p.getPrecioCompra() : java.math.BigDecimal.ZERO,
+                    p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : "",
+                    esc(p.getMotivoBaja()));
+            }
+        }
+        return file;
+    }
+
     private String esc(String s) {
         if (s == null) return "";
         return s.replace("\"", "\"\"");

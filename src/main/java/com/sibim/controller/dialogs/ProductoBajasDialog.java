@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.Producto;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
+import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -12,6 +13,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
@@ -25,13 +27,15 @@ public final class ProductoBajasDialog {
 
     private ProductoBajasDialog() {}
 
+    private static final ReporteService reporteService = new ReporteService();
+
     public static void show(List<Producto> bajas, ProductoService productoService,
                             MovimientoService movimientoService, Logger log,
                             Runnable onReactivar) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(600);
+        dialog.getDialogPane().setPrefWidth(640);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2d-delete-circle-outline", "Bienes Dados de Baja",
@@ -96,15 +100,54 @@ public final class ProductoBajasDialog {
 
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
-        scroll.setPrefHeight(380);
+        scroll.setPrefHeight(360);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
         if (!rows.isEmpty())
             AnimationUtils.staggeredFadeInUp(new ArrayList<>(rows), 240, 40);
 
-        dialog.getDialogPane().setContent(new VBox(0, header, searchBar, scroll));
+        // ── export bar ───────────────────────────────────────────────────────
+        Label lblCount = new Label(bajas.size() + (bajas.size() == 1 ? " bien" : " bienes"));
+        lblCount.getStyleClass().add("muted-sm");
+        Button btnPdf = new Button("PDF");
+        btnPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
+        btnPdf.setContentDisplay(ContentDisplay.LEFT);
+        btnPdf.getStyleClass().add("btn-secondary");
+        Button btnExcel = new Button("Excel");
+        btnExcel.setGraphic(new FontIcon("mdi2f-file-excel-outline"));
+        btnExcel.setContentDisplay(ContentDisplay.LEFT);
+        btnExcel.getStyleClass().add("btn-secondary");
+        Button btnCsv = new Button("CSV");
+        btnCsv.setGraphic(new FontIcon("mdi2f-file-delimited-outline"));
+        btnCsv.setContentDisplay(ContentDisplay.LEFT);
+        btnCsv.getStyleClass().add("btn-secondary");
+        btnPdf.setDisable(bajas.isEmpty()); btnExcel.setDisable(bajas.isEmpty()); btnCsv.setDisable(bajas.isEmpty());
+        btnPdf.setOnAction(e -> exportar(dialog, bajas, () -> reporteService.exportBajasPdf(bajas)));
+        btnExcel.setOnAction(e -> exportar(dialog, bajas, () -> reporteService.exportBajasExcel(bajas)));
+        btnCsv.setOnAction(e -> exportar(dialog, bajas, () -> reporteService.exportBajasCsv(bajas)));
+        Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox exportBar = new HBox(8, lblCount, spacer, btnPdf, btnExcel, btnCsv);
+        exportBar.setAlignment(Pos.CENTER_LEFT);
+        exportBar.setPadding(new Insets(6, 14, 6, 14));
+
+        dialog.getDialogPane().setContent(new VBox(0, header, searchBar, exportBar, scroll));
         javafx.application.Platform.runLater(searchField::requestFocus);
         dialog.showAndWait();
+    }
+
+    private static void exportar(Dialog<?> dialog, List<Producto> bajas,
+                                  java.util.concurrent.Callable<java.io.File> task) {
+        DialogUtil.runAsyncWithProgress(dialog.getDialogPane().getScene(), "Generando reporte…",
+            task,
+            file -> {
+                if (file == null) {
+                    NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), "No hay bienes dados de baja para exportar");
+                    return;
+                }
+                DialogUtil.showExportResultDialog(dialog.getDialogPane().getScene(), file);
+            },
+            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "Error al generar el reporte")
+        );
     }
 
     private static HBox buildRow(Producto p, ProductoService productoService,

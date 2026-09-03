@@ -38,6 +38,8 @@ import java.util.TreeSet;
 public class DepreciacionController {
 
     private static final Logger log = LoggerFactory.getLogger(DepreciacionController.class);
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/depreciacion");
 
     /** Horizon (years) for the projected value trend chart. */
     private static final int HORIZONTE_ANIOS = 10;
@@ -107,17 +109,30 @@ public class DepreciacionController {
     }
 
     private void setupFiltros() {
+        // Restore sticky search
+        if (searchField != null) {
+            String saved = STICKY.get("search", "");
+            if (!saved.isBlank()) searchField.setText(saved);
+        }
+
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
-        SearchUtils.debounce(searchField, 250, q -> aplicarFiltro());
+        SearchUtils.setupSearchHistory("sibim/search-history/depreciacion", searchField, () -> aplicarFiltro());
+        SearchUtils.debounce(searchField, 250, q -> {
+            STICKY.put("search", q != null ? q : "");
+            aplicarFiltro();
+        });
 
         areaFilter.setConverter(new javafx.util.StringConverter<>() {
             @Override public String toString(String a) { return a == null ? "Todas las áreas" : a; }
             @Override public String fromString(String s) { return null; }
         });
-        areaFilter.valueProperty().addListener((obs, o, n) -> aplicarFiltro());
+        areaFilter.valueProperty().addListener((obs, o, n) -> {
+            STICKY.put("area", n != null ? n : "");
+            aplicarFiltro();
+        });
     }
 
     private void setupTable() {
@@ -281,6 +296,7 @@ public class DepreciacionController {
     private void onClearFiltros() {
         searchField.clear();
         areaFilter.setValue(null);
+        STICKY.put("search", ""); STICKY.put("area", "");
         if (filtroSoloTotalmente) onFiltrarTotalmenteDepreciados();
         else aplicarFiltro();
     }
@@ -428,12 +444,14 @@ public class DepreciacionController {
                 int sinDatos = getValue().size() - conDepreciacion.size();
                 updateStats(conDepreciacion, sinDatos);
                 updateChart(conDepreciacion);
-                String areaPrevia = areaFilter.getValue();
+                String areaPrevia = areaFilter.getValue() != null
+                    ? areaFilter.getValue()
+                    : STICKY.get("area", "");
                 var areas = new TreeSet<String>();
                 for (Producto p : conDepreciacion) if (p.getArea() != null) areas.add(p.getArea());
                 areaFilter.getItems().setAll(areas);
                 areaFilter.getItems().add(0, null);
-                areaFilter.setValue(areaPrevia != null && areas.contains(areaPrevia) ? areaPrevia : null);
+                areaFilter.setValue(!areaPrevia.isBlank() && areas.contains(areaPrevia) ? areaPrevia : null);
                 aplicarFiltro();
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
             }

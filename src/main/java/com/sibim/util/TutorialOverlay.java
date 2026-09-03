@@ -88,6 +88,12 @@ public final class TutorialOverlay {
                 "Expande cada área para ver sus bienes asignados",
                 "Exporta el organigrama completo a PDF"
             }),
+            new Step("mdi2c-cog-outline", "#64748B", "#334155",
+                "Configuración", "Ctrl + 9", "configuracion", new String[]{
+                "Cambia tu contraseña y revisa tu perfil de usuario",
+                "Administradores: gestiona usuarios, roles y accesos por área",
+                "Genera respaldos de la base de datos y revisa el estado del sistema"
+            }),
             new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
                 "Atajos de Teclado", "F1", null, new String[]{
                 "Ctrl+1 a Ctrl+9 navega entre módulos sin el mouse",
