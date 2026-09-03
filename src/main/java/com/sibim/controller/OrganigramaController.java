@@ -33,6 +33,7 @@ public class OrganigramaController {
 
     @FXML private TextField searchField;
     @FXML private Button btnClearSearch;
+    @FXML private ToggleButton btnSoloAlertas;
     @FXML private VBox orgTree;
     @FXML private ProgressIndicator spinner;
     @FXML private Label lblStatAreas;
@@ -49,8 +50,14 @@ public class OrganigramaController {
     private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
     private final MovimientoService movimientoService = new MovimientoService();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
+    private boolean soloAlertas = false;
 
     @FXML private void onRefresh() { loadData(true); }
+
+    @FXML private void onToggleSoloAlertas() {
+        soloAlertas = btnSoloAlertas != null && btnSoloAlertas.isSelected();
+        buildTree(searchField.getText() != null ? searchField.getText() : "");
+    }
 
     @FXML
     public void initialize() {
@@ -215,13 +222,20 @@ public class OrganigramaController {
     }
 
     private void addAreaSection(String parentName, List<String> children, String filter, boolean expanded, Set<String> accessible) {
+        List<Producto> allAreaProdsCheck = new java.util.ArrayList<>(
+            productosPorArea.getOrDefault(parentName, List.of()));
+        children.forEach(c -> allAreaProdsCheck.addAll(productosPorArea.getOrDefault(c, List.of())));
+
+        if (soloAlertas) {
+            boolean hasAlert = allAreaProdsCheck.stream().anyMatch(
+                p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK);
+            if (!hasAlert) return;
+        }
+
         if (!filter.isBlank()) {
-            List<Producto> allAreaProdsForFilter = new java.util.ArrayList<>(
-                productosPorArea.getOrDefault(parentName, List.of()));
-            children.forEach(c -> allAreaProdsForFilter.addAll(productosPorArea.getOrDefault(c, List.of())));
             boolean nameMatch = parentName.toLowerCase().contains(filter)
                 || children.stream().anyMatch(c -> c.toLowerCase().contains(filter));
-            if (!nameMatch && !matchesFilter(allAreaProdsForFilter, filter)) return;
+            if (!nameMatch && !matchesFilter(allAreaProdsCheck, filter)) return;
         }
 
         TitledPane section = new TitledPane();
@@ -245,8 +259,7 @@ public class OrganigramaController {
         HBox.setHgrow(nameLabel, Priority.ALWAYS);
 
         List<Producto> prods = productosPorArea.getOrDefault(parentName, List.of());
-        List<Producto> allAreaProds = new java.util.ArrayList<>(prods);
-        children.forEach(c -> allAreaProds.addAll(productosPorArea.getOrDefault(c, List.of())));
+        List<Producto> allAreaProds = allAreaProdsCheck;
         int totalBienes = allAreaProds.size();
 
         Label countLabel = new Label(totalBienes + " bienes");
@@ -578,8 +591,25 @@ public class OrganigramaController {
         });
         tbl.setContextMenu(cm);
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
-        dialog.getDialogPane().setContent(new VBox(0, header, tbl));
+        TextField dlgSearch = new TextField();
+        dlgSearch.setPromptText("Buscar por nombre o código…");
+        dlgSearch.getStyleClass().add("search-field");
+        dlgSearch.setPadding(new javafx.geometry.Insets(0, 12, 0, 12));
+        dlgSearch.textProperty().addListener((obs, o, q) -> {
+            String lower = q.toLowerCase();
+            List<Producto> filtrado = prods.stream()
+                .filter(p -> lower.isBlank()
+                    || p.getNombre().toLowerCase().contains(lower)
+                    || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(lower)))
+                .toList();
+            tbl.getItems().setAll(filtrado);
+        });
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, dlgSearch, tbl), 270, 70);
+        VBox content = new VBox(8, header, dlgSearch, tbl);
+        content.setPadding(new javafx.geometry.Insets(0, 0, 0, 0));
+        dialog.getDialogPane().setContent(content);
+        Platform.runLater(() -> dlgSearch.requestFocus());
         dialog.showAndWait();
     }
 }

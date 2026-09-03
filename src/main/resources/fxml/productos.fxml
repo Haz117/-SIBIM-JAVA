@@ -131,6 +131,15 @@
             <tooltip><Tooltip text="Resguardante: persona responsable de la custodia del bien. Filtrar por encargado."/></tooltip>
         </Label>
         <Separator orientation="VERTICAL"/>
+        <Label text="Registrado desde:" styleClass="form-label"/>
+        <DatePicker fx:id="desdeRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
+        <Label text="hasta:" styleClass="form-label"/>
+        <DatePicker fx:id="hastaRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
+        <Button text="✕" onAction="#onLimpiarFechaReg" styleClass="btn-secondary"
+                prefWidth="28" prefHeight="28">
+            <tooltip><Tooltip text="Limpiar filtro de fechas de registro"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
@@ -170,7 +179,7 @@
               styleClass="preset-bar" visible="false" managed="false"/>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
-    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
             <TableColumn fx:id="colFoto"      text=""                prefWidth="54"  minWidth="54" maxWidth="54"  sortable="false" resizable="false"/>
             <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="215" sortable="true"/>
@@ -210,6 +219,11 @@
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Genera un PDF de resguardo con los bienes seleccionados"/></tooltip>
+        </Button>
+        <Button text="Etiquetas QR" onAction="#onBulkEtiquetasQr"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2q-qrcode" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Generar PDF con etiquetas QR de todos los bienes seleccionados"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
         <Button text="Deseleccionar" onAction="#onDeseleccionar" styleClass="btn-secondary"

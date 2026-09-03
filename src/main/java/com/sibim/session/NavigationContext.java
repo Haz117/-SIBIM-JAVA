@@ -12,8 +12,9 @@ public final class NavigationContext {
 
     private NavigationContext() {}
 
-    private static String pendingAreaFilter;
-    private static String pendingProductId;
+    private static String  pendingAreaFilter;
+    private static String  pendingProductId;
+    private static boolean pendingNuevoBien;
 
     public static void setPendingAreaFilter(String area) {
         pendingAreaFilter = area;
@@ -37,5 +38,14 @@ public final class NavigationContext {
         String value = pendingProductId;
         pendingProductId = null;
         return value;
+    }
+
+    public static void setPendingNuevoBien() { pendingNuevoBien = true; }
+
+    /** Reads and clears the flag. Returns true if Ctrl+N triggered a new-bien request. */
+    public static boolean consumePendingNuevoBien() {
+        boolean v = pendingNuevoBien;
+        pendingNuevoBien = false;
+        return v;
     }
 }

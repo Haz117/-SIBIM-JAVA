@@ -1014,6 +1014,15 @@
 .stock-warn { -fx-text-fill: #D97706; -fx-font-weight: 600; }
 .stock-low  { -fx-text-fill: #DC2626; -fx-font-weight: bold; }
 
+/* ─── Stock mini progress bar ─── */
+.stock-num { -fx-font-size: 11px; -fx-font-weight: 600; }
+.stock-progress { -fx-pref-height: 5px; -fx-max-height: 5px; -fx-background-radius: 3px; -fx-accent: #6366F1; }
+.stock-progress .bar { -fx-background-radius: 3px; -fx-background-insets: 0; }
+.stock-progress .track { -fx-background-radius: 3px; -fx-background-color: #E2E8F0; -fx-background-insets: 0; }
+.stock-progress-ok   .bar { -fx-background-color: #059669; }
+.stock-progress-warn .bar { -fx-background-color: #D97706; }
+.stock-progress-low  .bar { -fx-background-color: #DC2626; }
+
 /* Muted table cell text */
 .cell-muted { -fx-text-fill: #64748B; }
 
@@ -3170,6 +3179,7 @@
 }
 .field-hint-ok    { -fx-text-fill: #059669; }
 .field-hint-error { -fx-text-fill: #DC2626; }
+.field-hint-warn  { -fx-text-fill: #D97706; }
 .row-highlight-amber { -fx-background-color: #FFFBEB; }
 .col-header { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: #64748B; -fx-padding: 0 4 0 0; }
 
@@ -3699,6 +3709,14 @@
     -fx-padding: 3 8;
 }
 
+/* Timeline movimientos */
+.timeline-root { -fx-background-color: white; -fx-background-radius: 12; }
+.timeline-list { -fx-background-color: transparent; }
+.timeline-row { -fx-border-color: transparent transparent #E2E8F0 transparent; -fx-border-width: 0 0 1 0; }
+.timeline-row:hover { -fx-background-color: #F8FAFC; }
+.timeline-icon { -fx-fill: #94A3B8; }
+.timeline-detail { -fx-font-size: 11.5px; -fx-text-fill: #475569; }
+
 /* Audit action pills */
 .audit-pill-green  { -fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-red    { -fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
@@ -3706,3 +3724,18 @@
 .audit-pill-orange { -fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-slate  { -fx-background-color: #F1F5F9; -fx-text-fill: #475569; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-purple { -fx-background-color: #EDE9FE; -fx-text-fill: #5B21B6; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+
+/* Area BarChart — Reportes */
+.area-bar-chart { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
+.area-bar-chart .chart-plot-background { -fx-background-color: #F8FAFC; }
+.area-bar-chart .chart-vertical-grid-lines { -fx-stroke: transparent; }
+.area-bar-chart .chart-horizontal-grid-lines { -fx-stroke: #E2E8F0; -fx-stroke-dash-array: 4 4; }
+.area-bar-chart .default-color0.chart-bar { -fx-bar-fill: #6D28D9; -fx-background-radius: 4 4 0 0; }
+.area-bar-chart .axis-label { -fx-font-size: 11px; -fx-text-fill: #64748B; }
+.area-bar-chart .tick-label { -fx-font-size: 10px; -fx-text-fill: #64748B; }
+
+/* Search history context menu */
+.search-history-menu { -fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 12, 0, 0, 4); }
+.search-history-menu .menu-item:hover { -fx-background-color: #F1F5F9; }
+.history-menu-header { -fx-font-size: 10.5px; -fx-text-fill: #94A3B8; -fx-font-weight: bold; }
+.history-icon { -fx-fill: #94A3B8; -fx-icon-size: 14; }

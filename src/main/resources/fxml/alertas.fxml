@@ -79,7 +79,7 @@
 
         <VBox spacing="10">
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
-            <TableView fx:id="tableAgotados" prefHeight="185" styleClass="data-table">
+            <TableView fx:id="tableAgotados" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
                     <TableColumn fx:id="colAgNombre" text="Nombre"   prefWidth="240" sortable="true"/>
                     <TableColumn fx:id="colAgCodigo" text="Código"   prefWidth="120" sortable="true"/>
@@ -126,7 +126,7 @@
 
         <VBox spacing="10">
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
-            <TableView fx:id="tableBajoStock" prefHeight="185" styleClass="data-table">
+            <TableView fx:id="tableBajoStock" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
                     <TableColumn fx:id="colBsNombre" text="Nombre"       prefWidth="210" sortable="true"/>
                     <TableColumn fx:id="colBsCodigo" text="Código"       prefWidth="120" sortable="true"/>
@@ -169,7 +169,7 @@
 
         <VBox spacing="10">
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
-            <TableView fx:id="tableGarantias" prefHeight="185" styleClass="data-table">
+            <TableView fx:id="tableGarantias" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
                     <TableColumn fx:id="colGaNombre" text="Nombre"          prefWidth="210" sortable="true"/>
                     <TableColumn fx:id="colGaCodigo" text="Código"          prefWidth="120" sortable="true"/>

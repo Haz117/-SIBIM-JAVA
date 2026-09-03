@@ -1,18 +1,28 @@
 package com.sibim.controller;
 
+import com.sibim.repository.ProductoRepository;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
 import java.io.File;
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ReportesController {
 
@@ -27,8 +37,13 @@ public class ReportesController {
     @FXML private Button btnPresetAnio;
     @FXML private Button btnPresetTodo;
     @FXML private Label helpTiposReporte;
+    @FXML private BarChart<String, Number> areaChart;
+    @FXML private CategoryAxis  chartXAxis;
+    @FXML private NumberAxis    chartYAxis;
+    @FXML private ProgressIndicator chartSpinner;
 
-    private final ReporteService reporteService = new ReporteService();
+    private final ReporteService    reporteService  = new ReporteService();
+    private final ProductoRepository productoRepo   = new ProductoRepository();
     private boolean updatingFromPreset = false;
 
     @FXML
@@ -44,6 +59,7 @@ public class ReportesController {
 
         if (periodCard != null) AnimationUtils.fadeInUp(periodCard, 300,  0);
         if (reportGrid != null) AnimationUtils.staggeredFadeInUp(reportGrid.getChildren(), 300, 70);
+        loadAreaChart();
     }
 
     private void setPresetActive(Button active) {
@@ -121,6 +137,32 @@ public class ReportesController {
     @FXML private void onDistribucionExcel(ActionEvent event) { exportar(event, () -> reporteService.exportDistribucionExcel()); }
     @FXML private void onDistribucionCsv(ActionEvent event)   { exportar(event, () -> reporteService.exportDistribucionCsv()); }
 
+    private void loadAreaChart() {
+        if (areaChart == null) return;
+        if (chartSpinner != null) { chartSpinner.setVisible(true); chartSpinner.setManaged(true); }
+        AppExecutor.submit(() -> {
+            try {
+                Map<String, Long> counts = productoRepo.findAll().stream()
+                    .collect(Collectors.groupingBy(
+                        p -> p.getArea() != null && !p.getArea().isBlank() ? p.getArea() : "Sin área",
+                        Collectors.counting()));
+                XYChart.Series<String, Number> series = new XYChart.Series<>();
+                counts.entrySet().stream()
+                    .sorted(Comparator.<Map.Entry<String, Long>>comparingByValue().reversed())
+                    .limit(12)
+                    .forEach(e -> series.getData().add(new XYChart.Data<>(e.getKey(), e.getValue())));
+                Platform.runLater(() -> {
+                    areaChart.getData().setAll(series);
+                    if (chartSpinner != null) { chartSpinner.setVisible(false); chartSpinner.setManaged(false); }
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    if (chartSpinner != null) { chartSpinner.setVisible(false); chartSpinner.setManaged(false); }
+                });
+            }
+        });
+    }
+
     private LocalDate getDesde() { return desdeField.getValue(); }
     private LocalDate getHasta() { return hastaField.getValue(); }
 
@@ -141,7 +183,14 @@ public class ReportesController {
         if (scene == null) return;
         DialogUtil.runAsyncWithProgress(scene, "Generando reporte…",
             task::run,
-            file -> DialogUtil.showExportResultDialog(scene, file),
+            file -> {
+                if (file == null) {
+                    NotificacionUtil.advertencia(scene,
+                        "Sin datos para el período seleccionado. Prueba con un rango diferente o elige «Todo el tiempo».");
+                    return;
+                }
+                DialogUtil.showExportResultDialog(scene, file);
+            },
             e -> NotificacionUtil.errorConAccion(scene,
                 "Error al generar el reporte", "Reintentar", () -> exportar(null, task))
         );

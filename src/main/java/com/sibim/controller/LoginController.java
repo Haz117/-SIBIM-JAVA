@@ -42,6 +42,8 @@ public class LoginController {
     @FXML private Label lblCapsLock;
 
     private final AuthService authService = new AuthService();
+    private int failedAttempts = 0;
+    private javafx.animation.Timeline lockoutTimer = null;
 
     @FXML
     public void initialize() {
@@ -217,6 +219,10 @@ public class LoginController {
                 showError(ex.getMessage() != null ? ex.getMessage() : "Error desconocido");
                 passwordField.clear();
                 passwordField.requestFocus();
+                failedAttempts++;
+                if (failedAttempts >= 5) {
+                    startLockout();
+                }
             }
         };
         com.sibim.util.AppExecutor.submit(task);
@@ -246,6 +252,34 @@ public class LoginController {
             errorLabel.setManaged(false);
         });
         dismiss.play();
+    }
+
+    private void startLockout() {
+        loginButton.setDisable(true);
+        usernameField.setDisable(true);
+        passwordField.setDisable(true);
+        if (passwordRevealField != null) passwordRevealField.setDisable(true);
+        int[] seconds = {30};
+        lockoutTimer = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
+                seconds[0]--;
+                showError("Demasiados intentos fallidos. Espera " + seconds[0] + " segundos…");
+                if (seconds[0] <= 0) {
+                    lockoutTimer.stop();
+                    loginButton.setDisable(false);
+                    usernameField.setDisable(false);
+                    passwordField.setDisable(false);
+                    if (passwordRevealField != null) passwordRevealField.setDisable(false);
+                    failedAttempts = 0;
+                    errorLabel.setVisible(false);
+                    errorLabel.setManaged(false);
+                    usernameField.requestFocus();
+                }
+            })
+        );
+        lockoutTimer.setCycleCount(30);
+        lockoutTimer.play();
+        showError("Demasiados intentos fallidos. Espera 30 segundos…");
     }
 
     private void setLoading(boolean loading) {

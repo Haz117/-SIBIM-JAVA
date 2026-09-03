@@ -52,6 +52,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ProductosController {
 
     private static final Logger log = LoggerFactory.getLogger(ProductosController.class);
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/productos");
 
     /** Bounded LRU (max 200 thumbnails) so long-running sessions browsing many
      *  different photos don't grow this cache unbounded — evicts the least
@@ -69,7 +71,7 @@ public class ProductosController {
         "Mobiliario",                "mdi2s-sofa-outline",
         "Vehículos",                 "mdi2c-car-outline",
         "Equipo de Cómputo",         "mdi2l-laptop",
-        "Equipo de Oficina",         "mdi2p-printer-outline",
+        "Equipo de Oficina",         "mdi2p-printer",
         "Herramientas y Maquinaria", "mdi2w-wrench-outline",
         "Equipo Audiovisual",        "mdi2c-camera-outline"
     );
@@ -125,6 +127,8 @@ public class ProductosController {
     @FXML private Label helpResguardante;
     @FXML private Label helpTotal;
     @FXML private Label helpValor;
+    @FXML private javafx.scene.control.DatePicker desdeRegFilter;
+    @FXML private javafx.scene.control.DatePicker hastaRegFilter;
 
     private final ProductoService productoService = new ProductoService();
     private final CategoriaService categoriaService = new CategoriaService();
@@ -195,6 +199,14 @@ public class ProductosController {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
+        if (searchField != null) SearchUtils.setupSearchHistory("sibim/search-history/productos", searchField, this::applyFilters);
+        // Restore sticky filters from previous session (skip area if a pending navigation filter was applied)
+        String savedSearch = STICKY.get("search", "");
+        if (!savedSearch.isBlank() && searchField != null) searchField.setText(savedSearch);
+        String savedArea = STICKY.get("area", "");
+        if (!savedArea.isBlank() && areaFilter != null && areaFilter.getValue() == null
+                && areaFilter.getItems().contains(savedArea))
+            areaFilter.setValue(savedArea);
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardTotal, statCardValor, cardAlertas), 300, 55);
@@ -296,8 +308,20 @@ public class ProductosController {
                     ex -> { log.error("Error ficha técnica", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la ficha técnica"); });
             }
         });
+        MenuItem cmHistorial = new MenuItem("Ver historial de movimientos");
+        cmHistorial.setGraphic(new FontIcon("mdi2h-history"));
+        cmHistorial.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) showMovimientoTimeline(sel);
+        });
+        MenuItem cmEtiquetaQr = new MenuItem("Imprimir etiqueta QR");
+        cmEtiquetaQr.setGraphic(new FontIcon("mdi2q-qrcode"));
+        cmEtiquetaQr.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) exportarEtiquetasQr(java.util.List.of(sel));
+        });
         cm.getItems().add(new SeparatorMenuItem());
-        cm.getItems().add(cmFicha);
+        cm.getItems().addAll(cmFicha, cmHistorial, cmEtiquetaQr);
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());
             MenuItem cmEditar   = new MenuItem("Editar");
@@ -414,6 +438,9 @@ public class ProductosController {
         if (pendingArea != null && areaFilter.getItems().contains(pendingArea)) {
             areaFilter.setValue(pendingArea);
         }
+        if (NavigationContext.consumePendingNuevoBien()) {
+            Platform.runLater(this::onNuevoBien);
+        }
     }
 
     // ── Data loading ─────────────────────────────────────────────────────────
@@ -434,6 +461,8 @@ public class ProductosController {
         String area = areaFilter != null && areaFilter.getValue() != null ? areaFilter.getValue() : null;
         String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
         EstadoProducto estado = parseEstado(getSelectedEstado());
+        java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
+        java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
 
         Task<Void> task = new Task<>() {
             private List<Producto> pageData;
@@ -443,9 +472,9 @@ public class ProductosController {
 
             @Override protected Void call() throws Exception {
                 resguardantes = productoService.getResguardantes();
-                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado);
+                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
                 pageData = productoService.getPaginated(busqueda, catId, area, resguardante, estado,
-                    pageSize, currentPage * pageSize);
+                    pageSize, currentPage * pageSize, desdeReg, hastaReg);
                 stats = productoService.getStats();
                 return null;
             }
@@ -456,7 +485,7 @@ public class ProductosController {
                 totalFiltered = count;
                 filteredData.setAll(pageData);
                 updateTablePage();
-                updateHasFiltersUi(busqueda, catId, area, resguardante, estado);
+                updateHasFiltersUi(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
                 updateStats(stats);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
@@ -499,15 +528,20 @@ public class ProductosController {
         String area = areaFilter != null && areaFilter.getValue() != null ? areaFilter.getValue() : null;
         String resguardante = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
         EstadoProducto estado = parseEstado(getSelectedEstado());
+        java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
+        java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
         int offset = currentPage * pageSize;
+        // Persist sticky filters
+        STICKY.put("search", searchField != null && searchField.getText() != null ? searchField.getText() : "");
+        STICKY.put("area", area != null ? area : "");
 
         Task<Void> task = new Task<>() {
             List<Producto> page;
             int count;
 
             @Override protected Void call() throws Exception {
-                page = productoService.getPaginated(busqueda, catId, area, resguardante, estado, pageSize, offset);
-                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado);
+                page = productoService.getPaginated(busqueda, catId, area, resguardante, estado, pageSize, offset, desdeReg, hastaReg);
+                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
                 return null;
             }
 
@@ -516,7 +550,7 @@ public class ProductosController {
                 totalFiltered = count;
                 filteredData.setAll(page);
                 updateTablePage();
-                updateHasFiltersUi(busqueda, catId, area, resguardante, estado);
+                updateHasFiltersUi(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             }
@@ -570,9 +604,11 @@ public class ProductosController {
     /** Updates the "has filters" UI elements (clear button, preset button, total label, empty state).
      *  Called after page loads complete so the UI reflects the current filter state. */
     private void updateHasFiltersUi(String busqueda, String catId, String area,
-            String resguardante, EstadoProducto estado) {
+            String resguardante, EstadoProducto estado,
+            java.time.LocalDate desdeReg, java.time.LocalDate hastaReg) {
         boolean hasFilters = !busqueda.isBlank() || catId != null || area != null
-            || resguardante != null || estado != null;
+            || resguardante != null || estado != null
+            || desdeReg != null || hastaReg != null;
         if (btnClearFilters != null) {
             btnClearFilters.setVisible(hasFilters);
             btnClearFilters.setManaged(hasFilters);
@@ -591,10 +627,23 @@ public class ProductosController {
                 lblTotalAll.setManaged(false);
             }
         }
-        if (emptyStateMsg != null)
-            emptyStateMsg.setText(hasFilters
-                ? "No se encontraron bienes con esos filtros"
-                : "No hay bienes registrados en el sistema");
+        if (emptyStateMsg != null) {
+            if (hasFilters) {
+                java.util.List<String> activeFilters = new java.util.ArrayList<>();
+                if (!busqueda.isBlank()) activeFilters.add("búsqueda «" + busqueda + "»");
+                if (catId != null && categoriaFilter != null && categoriaFilter.getValue() != null)
+                    activeFilters.add("categoría «" + categoriaFilter.getValue().getNombre() + "»");
+                if (area != null) activeFilters.add("área «" + area + "»");
+                if (resguardante != null) activeFilters.add("resguardante «" + resguardante + "»");
+                if (estado != null) activeFilters.add("estado «" + estado.getEtiqueta() + "»");
+                if (desdeReg != null) activeFilters.add("desde " + desdeReg.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")));
+                if (hastaReg != null) activeFilters.add("hasta " + hastaReg.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")));
+                String filterDesc = activeFilters.isEmpty() ? "" : " (" + String.join(", ", activeFilters) + ")";
+                emptyStateMsg.setText("No se encontraron bienes" + filterDesc);
+            } else {
+                emptyStateMsg.setText("No hay bienes registrados en el sistema");
+            }
+        }
         if (btnEmptyLimpiar != null) {
             btnEmptyLimpiar.setVisible(hasFilters);
             btnEmptyLimpiar.setManaged(hasFilters);
@@ -681,12 +730,24 @@ public class ProductosController {
         categoriaFilter.setValue(null);
         areaFilter.setValue(null);
         if (resguardanteFilter != null) resguardanteFilter.setValue(null);
+        if (desdeRegFilter != null) desdeRegFilter.setValue(null);
+        if (hastaRegFilter != null) hastaRegFilter.setValue(null);
         if (estadoChipGroup != null)
             estadoChipGroup.getToggles().stream()
                 .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
                 .findFirst().ifPresent(t -> t.setSelected(true));
         currentPage = 0;
         applyFilters();
+    }
+
+    @FXML
+    private void onFiltroFechaReg() { currentPage = 0; loadPage(); }
+
+    @FXML
+    private void onLimpiarFechaReg() {
+        if (desdeRegFilter != null) desdeRegFilter.setValue(null);
+        if (hastaRegFilter != null) hastaRegFilter.setValue(null);
+        currentPage = 0; loadPage();
     }
 
     @FXML
@@ -996,6 +1057,23 @@ public class ProductosController {
         table.getSelectionModel().clearSelection();
     }
 
+    @FXML
+    private void onBulkEtiquetasQr() {
+        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.isEmpty()) return;
+        exportarEtiquetasQr(sel);
+    }
+
+    private void exportarEtiquetasQr(List<Producto> productos) {
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando etiquetas QR…",
+            () -> reporteService.exportEtiquetasQrPdf(productos),
+            file -> {
+                if (file == null) { NotificacionUtil.advertencia(table.getScene(), "No se generaron etiquetas"); return; }
+                DialogUtil.showExportResultDialog(table.getScene(), file);
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo generar las etiquetas QR"));
+    }
+
     // ── Filter presets ───────────────────────────────────────────────────────
 
     @FXML
@@ -1014,6 +1092,95 @@ public class ProductosController {
 
     private void showProductDetail(Producto p) {
         ProductoDetailDialog.show(p, table.getScene(), movimientoService, log);
+    }
+
+    private void showMovimientoTimeline(Producto p) {
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Cargando historial…",
+            () -> movimientoService.getByProducto(p.getId()),
+            movs -> {
+                Dialog<ButtonType> dlg = new Dialog<>();
+                DialogUtil.applyOwner(dlg);
+                dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+                dlg.getDialogPane().setPrefWidth(560);
+                dlg.getDialogPane().setPrefHeight(520);
+                DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+                javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(0);
+                content.getStyleClass().add("timeline-root");
+                javafx.scene.layout.HBox header = DialogUtil.gradientHeader(
+                    "mdi2h-history", "Historial de movimientos",
+                    p.getNombre() + "  ·  " + movs.size() + " registro(s)",
+                    "#475569", "#334155");
+                content.getChildren().add(header);
+
+                javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane();
+                scroll.setFitToWidth(true);
+                scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+                javafx.scene.layout.VBox list = new javafx.scene.layout.VBox(0);
+                list.getStyleClass().add("timeline-list");
+                list.setPadding(new javafx.geometry.Insets(8, 16, 16, 16));
+
+                java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                if (movs.isEmpty()) {
+                    javafx.scene.control.Label empty = new javafx.scene.control.Label("Sin movimientos registrados");
+                    empty.getStyleClass().add("muted-sm");
+                    empty.setPadding(new javafx.geometry.Insets(24, 0, 0, 0));
+                    list.getChildren().add(empty);
+                } else {
+                    for (com.sibim.model.Movimiento m : movs.stream()
+                            .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn())).toList()) {
+                        String iconLit = switch (m.getTipo()) {
+                            case ENTRADA    -> "mdi2a-arrow-down-circle-outline";
+                            case SALIDA     -> "mdi2a-arrow-up-circle-outline";
+                            case AJUSTE     -> "mdi2a-adjust";
+                            case TRANSFERENCIA -> "mdi2s-swap-horizontal";
+                            default         -> "mdi2c-circle-outline";
+                        };
+                        String badgeClass = switch (m.getTipo()) {
+                            case ENTRADA    -> "audit-pill-green";
+                            case SALIDA     -> "audit-pill-red";
+                            case AJUSTE     -> "audit-pill-blue";
+                            case TRANSFERENCIA -> "audit-pill-purple";
+                            default         -> "audit-pill-orange";
+                        };
+                        javafx.scene.layout.HBox row = new javafx.scene.layout.HBox(10);
+                        row.getStyleClass().add("timeline-row");
+                        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                        row.setPadding(new javafx.geometry.Insets(8, 4, 8, 4));
+
+                        org.kordamp.ikonli.javafx.FontIcon ico = new org.kordamp.ikonli.javafx.FontIcon(iconLit);
+                        ico.setIconSize(16);
+                        ico.getStyleClass().add("timeline-icon");
+
+                        javafx.scene.control.Label tipo = new javafx.scene.control.Label(m.getTipo().getEtiqueta());
+                        tipo.getStyleClass().addAll("audit-pill", badgeClass);
+                        tipo.setMinWidth(90);
+
+                        javafx.scene.layout.VBox details = new javafx.scene.layout.VBox(1);
+                        javafx.scene.control.Label fechaLbl = new javafx.scene.control.Label(
+                            m.getCreadoEn() != null ? m.getCreadoEn().format(fmt) : "—");
+                        fechaLbl.getStyleClass().add("muted-sm");
+                        javafx.scene.control.Label detLbl = new javafx.scene.control.Label(
+                            (m.getCantidad() > 0 ? "+" : "") + m.getCantidad()
+                            + "  →  stock: " + m.getStockAnterior() + " → " + m.getStockNuevo()
+                            + (m.getMotivo() != null && !m.getMotivo().isBlank() ? "  ·  " + m.getMotivo() : "")
+                            + "  ·  " + (m.getUsuarioNombre() != null ? m.getUsuarioNombre() : "—"));
+                        detLbl.getStyleClass().add("timeline-detail");
+                        detLbl.setWrapText(true);
+                        details.getChildren().addAll(fechaLbl, detLbl);
+                        javafx.scene.layout.HBox.setHgrow(details, javafx.scene.layout.Priority.ALWAYS);
+                        row.getChildren().addAll(ico, tipo, details);
+                        list.getChildren().add(row);
+                    }
+                }
+                scroll.setContent(list);
+                scroll.setPrefHeight(430);
+                content.getChildren().add(scroll);
+                javafx.scene.layout.VBox.setVgrow(scroll, javafx.scene.layout.Priority.ALWAYS);
+                dlg.getDialogPane().setContent(content);
+                dlg.showAndWait();
+            },
+            ex -> NotificacionUtil.error(table.getScene(), "No se pudo cargar el historial"));
     }
 
     private void showProductDialog(Producto existing) {

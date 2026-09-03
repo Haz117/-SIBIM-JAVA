@@ -220,6 +220,32 @@ public final class AnimationUtils {
         new ParallelTransition(fade, spring).play();
     }
 
+    /** Slide out to the right while fading; calls {@code after} when done. */
+    public static void slideOutRight(Node node, int durationMs, Runnable after) {
+        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
+        fade.setToValue(0);
+        fade.setInterpolator(Interpolator.EASE_IN);
+        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
+        slide.setToX(SLIDE_H_OFFSET);
+        slide.setInterpolator(Interpolator.EASE_IN);
+        ParallelTransition pt = new ParallelTransition(fade, slide);
+        if (after != null) pt.setOnFinished(e -> after.run());
+        pt.play();
+    }
+
+    /** Slide out to the left while fading; calls {@code after} when done. */
+    public static void slideOutLeft(Node node, int durationMs, Runnable after) {
+        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
+        fade.setToValue(0);
+        fade.setInterpolator(Interpolator.EASE_IN);
+        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
+        slide.setToX(-SLIDE_H_OFFSET);
+        slide.setInterpolator(Interpolator.EASE_IN);
+        ParallelTransition pt = new ParallelTransition(fade, slide);
+        if (after != null) pt.setOnFinished(e -> after.run());
+        pt.play();
+    }
+
     /** Fade a node out; calls {@code after} on the FX thread when done. */
     public static void fadeOut(Node node, int durationMs, Runnable after) {
         FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);

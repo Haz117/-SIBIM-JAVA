@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
@@ -73,11 +74,19 @@ class ProductosColumnSetup {
         col.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("nombre"));
         col.setCellFactory(column -> new TableCell<>() {
             private final Tooltip tip = new Tooltip();
+            { tip.setWrapText(true); tip.setMaxWidth(300); }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) { setText(null); setTooltip(null); return; }
                 setText(item);
-                tip.setText(item);
+                Producto p = getTableRow() != null ? getTableRow().getItem() : null;
+                if (p != null && p.getCreadoEn() != null) {
+                    String fecha = p.getCreadoEn().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    tip.setText(item + "\n\nRegistrado el " + fecha
+                        + (p.getArea() != null ? "\nÁrea: " + p.getArea() : ""));
+                } else {
+                    tip.setText(item);
+                }
                 setTooltip(tip);
             }
         });
@@ -164,20 +173,37 @@ class ProductosColumnSetup {
             new javafx.beans.property.SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getPrecioVenta())));
 
         colStock.setCellFactory(column -> new TableCell<>() {
+            private final Label numLabel = new Label();
+            private final ProgressBar bar = new ProgressBar(0);
+            private final HBox box = new HBox(5, bar, numLabel);
+            {
+                bar.setPrefHeight(6); bar.setMaxHeight(6); bar.setPrefWidth(44); bar.setMinWidth(44);
+                bar.getStyleClass().add("stock-progress");
+                numLabel.getStyleClass().add("stock-num");
+                box.setAlignment(Pos.CENTER_LEFT);
+            }
             @Override
             protected void updateItem(Integer value, boolean empty) {
                 super.updateItem(value, empty);
                 setText(null);
                 getStyleClass().removeAll("stock-ok","stock-warn","stock-low");
-                if (empty || value == null) return;
-                setText(String.valueOf(value));
-                if (getTableRow() != null && getTableRow().getItem() != null) {
-                    getStyleClass().add(switch (getTableRow().getItem().getEstado()) {
-                        case AGOTADO    -> "stock-low";
-                        case BAJO_STOCK -> "stock-warn";
-                        default         -> "stock-ok";
-                    });
-                }
+                if (empty || value == null) { setGraphic(null); return; }
+                Producto p = getTableRow() != null ? getTableRow().getItem() : null;
+                int max = p != null && p.getStockMaximo() > 0 ? p.getStockMaximo() : Math.max(value, 1);
+                double pct = Math.min(1.0, (double) value / max);
+                bar.setProgress(pct);
+                numLabel.setText(String.valueOf(value));
+                String statusClass = p == null ? "stock-ok" : switch (p.getEstado()) {
+                    case AGOTADO    -> "stock-low";
+                    case BAJO_STOCK -> "stock-warn";
+                    default         -> "stock-ok";
+                };
+                getStyleClass().add(statusClass);
+                bar.getStyleClass().removeAll("stock-progress-ok","stock-progress-warn","stock-progress-low");
+                bar.getStyleClass().add(statusClass.replace("stock-ok","stock-progress-ok")
+                    .replace("stock-warn","stock-progress-warn").replace("stock-low","stock-progress-low"));
+                Tooltip.install(box, new Tooltip(value + " / " + max + " (máx)"));
+                setGraphic(box);
             }
         });
     }

@@ -118,7 +118,7 @@
     </HBox>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
-    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
             <TableColumn fx:id="colColor"       text="Color"       prefWidth="80"  sortable="false"/>
             <TableColumn fx:id="colIcono"       text="Ícono"       prefWidth="70"  sortable="false"/>

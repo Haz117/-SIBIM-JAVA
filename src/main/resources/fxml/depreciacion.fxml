@@ -162,7 +162,7 @@
     </HBox>
 
     <!-- ══ DATA TABLE ═══════════════════════════════════════════════ -->
-    <TableView fx:id="table" prefHeight="360" styleClass="data-table">
+    <TableView fx:id="table" prefHeight="360" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
             <TableColumn fx:id="colNombre"      text="Nombre"             prefWidth="200" sortable="true"/>
             <TableColumn fx:id="colCategoria"   text="Categoría"          prefWidth="140" sortable="true"/>

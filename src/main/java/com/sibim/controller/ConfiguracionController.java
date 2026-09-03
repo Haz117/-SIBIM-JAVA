@@ -2,18 +2,21 @@ package com.sibim.controller;
 
 import com.sibim.controller.dialogs.UsuarioDialogFactory;
 import com.sibim.model.Usuario;
+import com.sibim.model.enums.Rol;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
+import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
-import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
-import com.sibim.util.DialogUtil;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
 
@@ -194,11 +197,72 @@ public class ConfiguracionController {
         colUsername.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsername()));
         colCargo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCargo()));
         colRol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRol().getEtiqueta()));
-        colRol.setCellFactory(com.sibim.util.DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Administrador" -> "cell-badge-purple";
-            case "Secretario"    -> "cell-badge-blue";
-            default              -> "cell-badge-teal";
-        }));
+        colRol.setCellFactory(col -> new TableCell<>() {
+            private final Label   badge  = new Label();
+            private final ComboBox<Rol> combo  = new ComboBox<>();
+            private final StackPane pane  = new StackPane(badge);
+            { combo.getItems().addAll(Rol.values());
+              combo.setConverter(new javafx.util.StringConverter<>() {
+                  public String toString(Rol r) { return r == null ? "" : r.getEtiqueta(); }
+                  public Rol fromString(String s) { return null; }
+              });
+              combo.setOnAction(e -> commitRolEdit(combo.getValue()));
+              combo.focusedProperty().addListener((ob, o, n) -> { if (!n) cancelRolEdit(); });
+              setOnMouseClicked(ev -> { if (ev.getButton() == MouseButton.PRIMARY && ev.getClickCount() == 2
+                  && !isEmpty() && canEditRol()) startRolEdit(); }); }
+
+            private boolean canEditRol() {
+                Usuario u = getTableView().getItems().get(getIndex());
+                Usuario me = SessionManager.getCurrentUser();
+                return SessionManager.isAdmin() && (me == null || !me.getId().equals(u.getId()));
+            }
+            private void startRolEdit() {
+                Usuario u = getTableView().getItems().get(getIndex());
+                combo.setValue(u.getRol());
+                pane.getChildren().setAll(combo);
+                combo.requestFocus();
+                combo.show();
+            }
+            private void cancelRolEdit() {
+                pane.getChildren().setAll(badge);
+                updateBadge(getItem());
+            }
+            private void commitRolEdit(Rol newRol) {
+                if (newRol == null) { cancelRolEdit(); return; }
+                Usuario u = getTableView().getItems().get(getIndex());
+                if (u.getRol() == newRol) { cancelRolEdit(); return; }
+                u.setRol(newRol);
+                DialogUtil.runAsync(() -> usuarioRepo.save(u),
+                    () -> {
+                        loadUsers();
+                        NotificacionUtil.exito(getTableView().getScene(),
+                            "Rol de \"" + u.getNombre() + "\" actualizado a " + newRol.getEtiqueta());
+                    },
+                    ex -> {
+                        u.setRol(u.getRol()); // revert (already set above — moot, reload fixes it)
+                        NotificacionUtil.error(getTableView().getScene(), "No se pudo actualizar el rol");
+                        loadUsers();
+                    });
+                pane.getChildren().setAll(badge);
+            }
+            private void updateBadge(String item) {
+                if (item == null) { setText(null); setGraphic(null); return; }
+                badge.setText(item);
+                badge.getStyleClass().removeAll("cell-badge-purple", "cell-badge-blue", "cell-badge-teal");
+                badge.getStyleClass().addAll("cell-badge", switch (item) {
+                    case "Administrador" -> "cell-badge-purple";
+                    case "Secretario"    -> "cell-badge-blue";
+                    default              -> "cell-badge-teal";
+                });
+            }
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                pane.getChildren().setAll(badge);
+                if (empty || item == null) { setText(null); setGraphic(null); return; }
+                updateBadge(item);
+                setText(null); setGraphic(pane);
+            }
+        });
         colArea.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
         colArea.setCellFactory(col -> new TableCell<>() {

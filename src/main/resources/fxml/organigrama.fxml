@@ -103,6 +103,10 @@
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
+        <ToggleButton fx:id="btnSoloAlertas" text="⚠ Solo alertas" styleClass="btn-secondary btn-sm"
+                      onAction="#onToggleSoloAlertas">
+            <tooltip><Tooltip text="Mostrar solo las áreas que tienen bienes agotados o bajo stock" wrapText="true" maxWidth="220"/></tooltip>
+        </ToggleButton>
         <Label text="Expande cada sección para ver los bienes asignados"
                styleClass="muted-sm"/>
         <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary btn-sm">

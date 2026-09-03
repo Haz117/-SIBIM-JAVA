@@ -45,6 +45,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MovimientosController {
 
     private static final Logger log = LoggerFactory.getLogger(MovimientosController.class);
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/movimientos");
 
     @FXML private VBox rootPane;
     @FXML private javafx.scene.layout.FlowPane filterBar;
@@ -135,6 +137,9 @@ public class MovimientosController {
                 if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
                     if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
                     ev.consume();
+                } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
+                        && table.getSelectionModel().getSelectedItem() != null) {
+                    showMovimientoDetail(table.getSelectionModel().getSelectedItem()); ev.consume();
                 }
             });
         }
@@ -195,6 +200,11 @@ public class MovimientosController {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
+        if (searchField != null) com.sibim.util.SearchUtils.setupSearchHistory(
+            "sibim/search-history/movimientos", searchField, () -> { currentPage = 0; loadData(); });
+        // Restore sticky filters from previous session
+        String savedSearch = STICKY.get("search", "");
+        if (!savedSearch.isBlank() && searchField != null) searchField.setText(savedSearch);
         if (SessionManager.isAdmin()) {
             if (btnPendientes != null) { btnPendientes.setVisible(true); btnPendientes.setManaged(true); }
             loadPendientesCount();
@@ -485,6 +495,8 @@ public class MovimientosController {
         String categoria = categoriaFilter != null ? categoriaFilter.getValue() : null;
         int    limit     = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
         int    offset    = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
+        // Persist sticky filters
+        STICKY.put("search", searchField != null && searchField.getText() != null ? searchField.getText() : "");
 
         record PageResult(List<Movimiento> page, int count) {}
 

@@ -73,7 +73,8 @@ public class ProductoRepository {
      *  for all server-side filter queries. */
     private static String buildFiltroWhere(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, List<Object> params) {
+            boolean incluirBaja, List<Object> params,
+            LocalDate desdeReg, LocalDate hastaReg) {
         List<String> conds = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
         if (accessible != null) {
@@ -94,21 +95,24 @@ public class ProductoRepository {
             conds.add("(" + ESTADO_SQL + ") = ?");
             params.add(estado.getCodigo());
         }
+        if (desdeReg != null) { conds.add("p.creado_en >= ?"); params.add(java.sql.Timestamp.valueOf(desdeReg.atStartOfDay())); }
+        if (hastaReg != null) { conds.add("p.creado_en < ?"); params.add(java.sql.Timestamp.valueOf(hastaReg.plusDays(1).atStartOfDay())); }
         return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
     }
 
     /** Returns one page of products matching the given filters (LIMIT/OFFSET). */
     public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, int limit, int offset) throws SQLException {
+            boolean incluirBaja, int limit, int offset,
+            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             List<Producto> all = findAll(incluirBaja);
-            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado)
+            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado, desdeReg, hastaReg)
                 .stream().skip(offset).limit(limit).toList();
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, params);
+        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, params, desdeReg, hastaReg);
         String sql = BASE_SELECT + where + " ORDER BY p.nombre LIMIT ? OFFSET ?";
         params.add(limit); params.add(offset);
         return queryDynamic(sql, params);
@@ -117,14 +121,14 @@ public class ProductoRepository {
     /** Returns the COUNT(*) of products matching the given filters — for pagination. */
     public int countFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja) throws SQLException {
+            boolean incluirBaja, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             List<Producto> all = findAll(incluirBaja);
-            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado).size();
+            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado, desdeReg, hastaReg).size();
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, params);
+        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, params, desdeReg, hastaReg);
         String sql = "SELECT COUNT(*) FROM products p" + where;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = buildStatement(conn, sql, params);
@@ -136,14 +140,15 @@ public class ProductoRepository {
     /** Returns ALL products matching the given filters — for export and conteo físico
      *  (no LIMIT/OFFSET, always excludes bienes dados de baja). */
     public List<Producto> findAllFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             return applyClientFilters(local.findAllProductos(SessionManager.getAccessibleAreas()),
-                busqueda, categoriaId, area, resguardante, estado);
+                busqueda, categoriaId, area, resguardante, estado, desdeReg, hastaReg);
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, false, params);
+        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, false, params, desdeReg, hastaReg);
         return queryDynamic(BASE_SELECT + where + " ORDER BY p.nombre", params);
     }
 
@@ -211,8 +216,9 @@ public class ProductoRepository {
     /** In-memory filter for offline/demo mode — mirrors {@link #buildFiltroWhere}. */
     private static List<Producto> applyClientFilters(List<Producto> all, String busqueda,
             String categoriaId, String area, String resguardante,
-            com.sibim.model.enums.EstadoProducto estado) {
-        return all.stream()
+            com.sibim.model.enums.EstadoProducto estado,
+            LocalDate desdeReg, LocalDate hastaReg) {
+        java.util.stream.Stream<Producto> stream = all.stream()
             .filter(p -> busqueda == null || busqueda.isBlank()
                 || p.getNombre().toLowerCase().contains(busqueda.toLowerCase())
                 || p.getCodigo().toLowerCase().contains(busqueda.toLowerCase())
@@ -222,7 +228,10 @@ public class ProductoRepository {
             .filter(p -> categoriaId == null || categoriaId.equals(p.getCategoriaId()))
             .filter(p -> area == null || area.equals(p.getArea()))
             .filter(p -> resguardante == null || resguardante.equals(p.getResguardante()))
-            .filter(p -> estado == null || p.getEstado() == estado)
+            .filter(p -> estado == null || p.getEstado() == estado);
+        if (desdeReg != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isBefore(desdeReg));
+        if (hastaReg != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isAfter(hastaReg));
+        return stream
             .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
             .toList();
     }

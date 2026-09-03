@@ -2,9 +2,11 @@ package com.sibim.controller;
 
 import com.sibim.model.AuditLog;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
+import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -52,7 +54,8 @@ public class AuditoriaController {
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private HBox paginationBar;
 
-    private final AuditLogRepository auditRepo = new AuditLogRepository();
+    private final AuditLogRepository auditRepo    = new AuditLogRepository();
+    private final ReporteService      reporteService = new ReporteService();
 
     private int currentPage = 0;
     private int pageSize    = DEFAULT_PAGE_SIZE;
@@ -75,8 +78,13 @@ public class AuditoriaController {
         AnimationUtils.fadeInDown(filterBar, 220, 0);
         loadData();
 
-        if (searchField != null)
+        if (searchField != null) {
+            com.sibim.util.SearchUtils.setupSearchHistory("sibim/search-history/auditoria", searchField, () -> {
+                currentPage = 0;
+                loadData();
+            });
             javafx.application.Platform.runLater(() -> searchField.requestFocus());
+        }
 
         if (table != null) {
             table.setOnKeyPressed(e -> {
@@ -261,6 +269,34 @@ public class AuditoriaController {
     }
 
     @FXML private void onRefresh() { loadData(); }
+
+    @FXML private void onExportarPdf() { exportar(() -> reporteService.exportAuditoriaPdf(
+        getAllFilteredLogs(), getEntidadValue(), searchField != null ? searchField.getText() : null,
+        desdeField != null ? desdeField.getValue() : null,
+        hastaField != null ? hastaField.getValue() : null)); }
+
+    @FXML private void onExportarCsv() { exportar(() -> reporteService.exportAuditoriaCsv(getAllFilteredLogs())); }
+
+    private List<AuditLog> getAllFilteredLogs() throws Exception {
+        String busqueda = searchField  != null ? searchField.getText()  : null;
+        String entidad  = getEntidadValue();
+        String usuario  = usuarioFilter != null ? usuarioFilter.getText() : null;
+        LocalDate desde = desdeField   != null ? desdeField.getValue()  : null;
+        LocalDate hasta = hastaField   != null ? hastaField.getValue()  : null;
+        return auditRepo.findPaginated(50_000, 0, busqueda, entidad, usuario, desde, hasta);
+    }
+
+    private void exportar(java.util.concurrent.Callable<java.io.File> task) {
+        javafx.scene.Scene scene = table.getScene();
+        if (scene == null) return;
+        DialogUtil.runAsyncWithProgress(scene, "Generando reporte…",
+            task::call,
+            file -> {
+                if (file == null) { NotificacionUtil.advertencia(scene, "No hay registros para exportar con los filtros actuales."); return; }
+                DialogUtil.showExportResultDialog(scene, file);
+            },
+            e -> NotificacionUtil.error(scene, "Error al generar el reporte de auditoría"));
+    }
 
     @FXML private void onPrimera() {
         if (currentPage == 0) return;

@@ -158,6 +158,10 @@ public final class ProductoDialogFactory {
         lblNombreHint.getStyleClass().addAll("field-hint", "field-hint-error");
         lblNombreHint.setVisible(false); lblNombreHint.setManaged(false);
 
+        Label lblNombreWarn = new Label();
+        lblNombreWarn.getStyleClass().addAll("field-hint", "field-hint-warn");
+        lblNombreWarn.setVisible(false); lblNombreWarn.setManaged(false);
+
         Label lblCatHint = new Label("Selecciona una categoría");
         lblCatHint.getStyleClass().addAll("field-hint", "field-hint-error");
         lblCatHint.setVisible(false); lblCatHint.setManaged(false);
@@ -168,11 +172,39 @@ public final class ProductoDialogFactory {
 
         fNombre.focusedProperty().addListener((obs, was, now) -> {
             if (!now) {
-                boolean empty = fNombre.getText().isBlank();
+                String typed = fNombre.getText().trim();
+                boolean empty = typed.isBlank();
                 lblNombreHint.setVisible(empty); lblNombreHint.setManaged(empty);
-                if (empty) fNombre.getStyleClass().add("field-error");
+                if (empty) { fNombre.getStyleClass().add("field-error"); return; }
+                lblNombreWarn.setVisible(false); lblNombreWarn.setManaged(false);
+                if (typed.length() < 4) return;
+                String typedLow = typed.toLowerCase();
+                AppExecutor.submit(() -> {
+                    try {
+                        List<Producto> all = codigoRepo.findAll();
+                        List<String> hits = all.stream()
+                            .filter(p -> existingId == null || !existingId.equals(p.getId()))
+                            .map(p -> p.getNombre())
+                            .filter(n -> {
+                                String nl = n.toLowerCase();
+                                return !nl.equals(typedLow)
+                                    && (nl.contains(typedLow) || typedLow.contains(nl)
+                                        || diceSimilarity(nl, typedLow) >= 0.65);
+                            })
+                            .limit(2)
+                            .toList();
+                        Platform.runLater(() -> {
+                            if (!hits.isEmpty() && !fNombre.getText().trim().isBlank()) {
+                                lblNombreWarn.setText("⚠  Nombre similar a: " + hits.get(0)
+                                    + (hits.size() > 1 ? " y otros" : ""));
+                                lblNombreWarn.setVisible(true); lblNombreWarn.setManaged(true);
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                });
             }
         });
+        fNombre.textProperty().addListener((o, a, b) -> { lblNombreWarn.setVisible(false); lblNombreWarn.setManaged(false); });
         fCodigo.focusedProperty().addListener((obs, was, now) -> {
             if (!now && fCodigo.getText().isBlank()) {
                 lblCodigoHint.setText("Campo requerido");
@@ -369,7 +401,7 @@ public final class ProductoDialogFactory {
         // Required fields first, optional image below a visual divider
         Label lblInfoReq = new Label("* Campos obligatorios");
         lblInfoReq.getStyleClass().addAll("muted-sm");
-        gridInfo.add(DialogUtil.fieldLabel("Nombre *"),    0, r); gridInfo.add(new VBox(2, fNombre, lblNombreHint), 1, r++);
+        gridInfo.add(DialogUtil.fieldLabel("Nombre *"),    0, r); gridInfo.add(new VBox(2, fNombre, lblNombreHint, lblNombreWarn), 1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Código *"),    0, r); gridInfo.add(codigoBox,  1, r++);
         gridInfo.add(DialogUtil.fieldLabel("Categoría *"), 0, r); gridInfo.add(new VBox(2, fCat, lblCatHint), 1, r++);
         gridInfo.add(DialogUtil.fieldLabelWithHelp("Área *",
@@ -798,5 +830,15 @@ public final class ProductoDialogFactory {
 
     private static Path imgDir() {
         return ImageUtils.storageDir();
+    }
+
+    private static double diceSimilarity(String a, String b) {
+        if (a.equals(b)) return 1.0;
+        if (a.length() < 2 || b.length() < 2) return 0.0;
+        java.util.Set<String> bigrams = new java.util.HashSet<>();
+        for (int i = 0; i < a.length() - 1; i++) bigrams.add(a.substring(i, i + 2));
+        int shared = 0;
+        for (int i = 0; i < b.length() - 1; i++) { if (bigrams.contains(b.substring(i, i + 2))) shared++; }
+        return (2.0 * shared) / ((a.length() - 1) + (b.length() - 1));
     }
 }

@@ -1,6 +1,11 @@
 package com.sibim.service;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.common.BitMatrix;
 import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -59,14 +64,16 @@ public class ReporteService {
         List<Producto> productos = (desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll();
-        return exportInventarioExcel(guardExportSize(productos, "bienes"));
+        if (productos.isEmpty()) return null;
+        return exportInventarioExcel(guardExportSize(productos, "bienes"), desde, hasta);
     }
 
-    /** Same Excel report, given an explicit list instead of querying by date
-     *  range — used by the "Exportar seleccionados" bulk action so a user
-     *  can export just the rows they picked in the table instead of the
-     *  whole filtered inventory. */
+    /** Same Excel report, given an explicit list — bulk action / selection export. */
     public File exportInventarioExcel(List<Producto> productos) throws Exception {
+        return exportInventarioExcel(productos, null, null);
+    }
+
+    private File exportInventarioExcel(List<Producto> productos, LocalDate desde, LocalDate hasta) throws Exception {
         String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Stock", "Min", "Max",
                             "Precio Venta", "Valor Total", "Estado", "Proveedor", "Marca", "Modelo",
                             "N° de Serie", "Ubicacion", "Fecha Registro"};
@@ -96,39 +103,23 @@ public class ReporteService {
                 r.createCell(16).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
             }
             autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Inventario General", desde, hasta);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
     }
 
     public File exportMovimientosExcel(List<Movimiento> movimientos) throws Exception {
-        String[] headers = {"Producto", "Tipo", "Cantidad", "Stock Anterior", "Stock Nuevo",
-                            "Motivo", "Referencia", "Usuario", "Fecha"};
-        File file = tempFile("movimientos", ".xlsx");
-        try (Workbook wb = new XSSFWorkbook()) {
-            Sheet sheet = createSheet(wb, "Movimientos");
-            writeHeader(sheet, headers, wb);
-            int row = 1;
-            for (Movimiento m : movimientos) {
-                Row r = sheet.createRow(row++);
-                r.createCell(0).setCellValue(m.getProductoNombre());
-                r.createCell(1).setCellValue(m.getTipo().getEtiqueta());
-                r.createCell(2).setCellValue(m.getCantidad());
-                r.createCell(3).setCellValue(m.getStockAnterior());
-                r.createCell(4).setCellValue(m.getStockNuevo());
-                r.createCell(5).setCellValue(m.getMotivo() != null ? m.getMotivo() : "");
-                r.createCell(6).setCellValue(m.getReferencia() != null ? m.getReferencia() : "");
-                r.createCell(7).setCellValue(m.getUsuarioNombre());
-                r.createCell(8).setCellValue(FormatUtils.formatDateTime(m.getCreadoEn()));
-            }
-            autosizeColumns(sheet, headers.length);
-            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
-        }
-        return file;
+        return exportMovimientosExcelImpl(movimientos, null, null);
     }
 
     public File exportMovimientosExcel(LocalDate desde, LocalDate hasta) throws Exception {
         List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
+        if (movimientos.isEmpty()) return null;
+        return exportMovimientosExcelImpl(movimientos, desde, hasta);
+    }
+
+    private File exportMovimientosExcelImpl(List<Movimiento> movimientos, LocalDate desde, LocalDate hasta) throws Exception {
         String[] headers = {"Producto", "Tipo", "Cantidad", "Stock Anterior", "Stock Nuevo",
                             "Motivo", "Referencia", "Usuario", "Fecha"};
         File file = tempFile("movimientos", ".xlsx");
@@ -149,6 +140,7 @@ public class ReporteService {
                 r.createCell(8).setCellValue(FormatUtils.formatDateTime(m.getCreadoEn()));
             }
             autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Registro de Movimientos", desde, hasta);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
@@ -200,6 +192,7 @@ public class ReporteService {
                 }
             }
             autosizeColumns(detail, detHeaders.length);
+            addExcelInfoSheet(wb, "Distribución por Área", null, null);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
@@ -329,6 +322,7 @@ public class ReporteService {
                 fillAlertRow(r, p);
             }
             autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Alertas de Stock", null, null);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
@@ -359,6 +353,7 @@ public class ReporteService {
                 r.createCell(6).setCellValue(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0);
             }
             autosizeColumns(sheet, DEP_HEADERS.length);
+            addExcelInfoSheet(wb, "Depreciación de Activos", null, null);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
@@ -393,6 +388,7 @@ public class ReporteService {
         List<Producto> productos = guardExportSize((desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll(), "bienes");
+        if (productos.isEmpty()) return null;
         File file = tempFile("inventario", ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
@@ -418,6 +414,7 @@ public class ReporteService {
 
     public File exportMovimientosPdf(LocalDate desde, LocalDate hasta) throws Exception {
         List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
+        if (movimientos.isEmpty()) return null;
         File file = tempFile("movimientos", ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
@@ -441,12 +438,55 @@ public class ReporteService {
         return file;
     }
 
+    public File exportAuditoriaPdf(List<com.sibim.model.AuditLog> logs,
+                               String busqueda, String entidad,
+                               LocalDate desde, LocalDate hasta) throws Exception {
+        if (logs.isEmpty()) return null;
+        File file = tempFile("auditoria", ".pdf");
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
+            addPdfHeader(doc, "Registro de Auditoría", desde, hasta);
+            String[] headers = {"Entidad", "Nombre", "Acción", "Usuario", "Detalle", "Fecha"};
+            float[] widths = {1.5f, 1.5f, 1.2f, 1.5f, 3f, 2f};
+            Table table = createPdfTable(headers, widths);
+            for (com.sibim.model.AuditLog l : logs) {
+                table.addCell(cell(l.getEntidad() != null ? l.getEntidad() : ""));
+                table.addCell(cell(l.getEntidadNombre() != null ? l.getEntidadNombre() : ""));
+                table.addCell(cell(l.getAccion() != null ? l.getAccion() : ""));
+                table.addCell(cell(l.getUsuarioNombre() != null ? l.getUsuarioNombre() : ""));
+                table.addCell(cell(l.getDetalle() != null ? l.getDetalle() : ""));
+                table.addCell(cell(l.getCreadoEn() != null ? FormatUtils.formatDateTime(l.getCreadoEn()) : ""));
+            }
+            doc.add(table);
+            addPdfFooter(doc, logs.size());
+        }
+        return file;
+    }
+
+    public File exportAuditoriaCsv(List<com.sibim.model.AuditLog> logs) throws Exception {
+        if (logs.isEmpty()) return null;
+        File file = tempFile("auditoria", ".csv");
+        try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(file))) {
+            pw.println("Entidad,Nombre,Accion,Usuario,Detalle,Fecha");
+            for (com.sibim.model.AuditLog l : logs) {
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                    esc(l.getEntidad()), esc(l.getEntidadNombre()),
+                    esc(l.getAccion()), esc(l.getUsuarioNombre()),
+                    esc(l.getDetalle()), l.getCreadoEn() != null
+                        ? FormatUtils.formatDateTime(l.getCreadoEn()) : "");
+            }
+        }
+        return file;
+    }
+
     // ───────────────────────────── CSV ─────────────────────────────
 
     public File exportInventarioCsv(LocalDate desde, LocalDate hasta) throws Exception {
         List<Producto> productos = guardExportSize((desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll(), "bienes");
+        if (productos.isEmpty()) return null;
         return exportInventarioCsv(productos);
     }
 
@@ -490,6 +530,7 @@ public class ReporteService {
 
     public File exportMovimientosCsv(LocalDate desde, LocalDate hasta) throws Exception {
         List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
+        if (movimientos.isEmpty()) return null;
         File file = tempFile("movimientos", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
             pw.println("Producto,Tipo,Cantidad,Stock Anterior,Stock Nuevo,Motivo,Referencia,Usuario,Fecha");
@@ -517,6 +558,29 @@ public class ReporteService {
 
     private Sheet createSheet(Workbook wb, String name) {
         return wb.createSheet(name);
+    }
+
+    private void addExcelInfoSheet(Workbook wb, String titulo, LocalDate desde, LocalDate hasta) {
+        Sheet info = wb.createSheet("_Info");
+        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        String user = u != null ? u.getNombre() : "—";
+        String ts   = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        String[][] rows = {
+            {"Reporte",             "SIBIM — " + titulo},
+            {"Generado por",        user},
+            {"Fecha de generación", ts},
+            {"Período",             desde != null || hasta != null
+                ? (desde != null ? desde.format(FMT) : "inicio") + " — "
+                  + (hasta != null ? hasta.format(FMT) : "hoy")
+                : "Sin restricción de fechas"},
+        };
+        for (int i = 0; i < rows.length; i++) {
+            Row r = info.createRow(i);
+            r.createCell(0).setCellValue(rows[i][0]);
+            r.createCell(1).setCellValue(rows[i][1]);
+        }
+        info.autoSizeColumn(0);
+        info.autoSizeColumn(1);
     }
 
     private void writeHeader(Sheet sheet, String[] headers, Workbook wb) {
@@ -581,8 +645,101 @@ public class ReporteService {
 
     private void addPdfFooter(Document doc, int count) throws IOException {
         PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        doc.add(new Paragraph("Total de registros: " + count + "   |   SIBIM — Sistema Integral de Bienes Municipales")
+        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        String user = u != null ? u.getNombre() : "—";
+        String ts   = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        doc.add(new Paragraph(
+                "Total: " + count + " registros   |   Generado por: " + user + "   |   " + ts
+                + "   |   SIBIM — Sistema Integral de Bienes Municipales")
             .setFont(font).setFontSize(8).setFontColor(ColorConstants.GRAY));
+    }
+
+    // ───────────────────────────── ETIQUETAS QR ─────────────────────
+
+    /** Generates a printable A4 PDF sheet of QR label cards (3 columns × N rows).
+     *  Each card has the QR (encoding the product código), nombre, código and área.
+     *  Max 200 products per sheet to keep file size reasonable. */
+    public File exportEtiquetasQrPdf(List<Producto> productos) throws Exception {
+        if (productos.isEmpty()) return null;
+        List<Producto> items = productos.size() > 200 ? productos.subList(0, 200) : productos;
+        File file = tempFile("etiquetas_qr", ".pdf");
+        PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+        DeviceRgb headerBg = new DeviceRgb(76, 29, 149);
+
+        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
+             PdfDocument pdfDoc = new PdfDocument(writer);
+             Document doc = new Document(pdfDoc, PageSize.A4)) {
+            doc.setMargins(18, 14, 18, 14);
+            Table grid = new Table(3).useAllAvailableWidth();
+            grid.setMarginBottom(0);
+
+            for (Producto p : items) {
+                // Build QR as PNG bytes via BitMatrix → BufferedImage → PNG stream
+                byte[] qrBytes = qrToPngBytes(p.getCodigo() != null ? p.getCodigo() : p.getNombre(), 160);
+
+                com.itextpdf.layout.element.Cell card = new com.itextpdf.layout.element.Cell();
+                card.setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(203, 213, 225), 0.5f));
+                card.setPadding(8).setMargin(3);
+                card.setKeepTogether(true);
+
+                // QR image
+                if (qrBytes != null) {
+                    com.itextpdf.layout.element.Image qrImg = new com.itextpdf.layout.element.Image(
+                        ImageDataFactory.create(qrBytes));
+                    qrImg.setAutoScale(false).setWidth(80).setHeight(80)
+                         .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
+                    card.add(qrImg);
+                }
+
+                // Código badge
+                Paragraph codigoPar = new Paragraph(p.getCodigo() != null ? p.getCodigo() : "—")
+                    .setFont(bold).setFontSize(8).setFontColor(ColorConstants.WHITE);
+                com.itextpdf.layout.element.Cell codBadge = new com.itextpdf.layout.element.Cell()
+                    .add(codigoPar).setBackgroundColor(headerBg).setPadding(2)
+                    .setBorder(null)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
+                Table codTable = new Table(1).useAllAvailableWidth().addCell(codBadge);
+                card.add(codTable);
+
+                // Nombre
+                card.add(new Paragraph(p.getNombre() != null ? p.getNombre() : "—")
+                    .setFont(bold).setFontSize(7.5f).setFontColor(new DeviceRgb(15, 23, 42))
+                    .setMarginTop(4).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+
+                // Área
+                if (p.getArea() != null && !p.getArea().isBlank()) {
+                    card.add(new Paragraph(p.getArea())
+                        .setFont(regular).setFontSize(6.5f).setFontColor(new DeviceRgb(100, 116, 139))
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+                }
+
+                grid.addCell(card);
+            }
+            // Pad last row to complete 3-col grid
+            int rem = items.size() % 3;
+            if (rem != 0) for (int i = rem; i < 3; i++)
+                grid.addCell(new com.itextpdf.layout.element.Cell().setBorder(null));
+
+            doc.add(grid);
+            addPdfFooter(doc, items.size());
+        }
+        return file;
+    }
+
+    private static byte[] qrToPngBytes(String content, int size) {
+        try {
+            BitMatrix matrix = new MultiFormatWriter().encode(
+                content, BarcodeFormat.QR_CODE, size, size, java.util.Map.of(EncodeHintType.MARGIN, 1));
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(size, size,
+                java.awt.image.BufferedImage.TYPE_INT_RGB);
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++)
+                    img.setRGB(x, y, matrix.get(x, y) ? 0x000000 : 0xFFFFFF);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(img, "PNG", baos);
+            return baos.toByteArray();
+        } catch (Exception e) { return null; }
     }
 
     /** Wraps plain text in a Cell+Paragraph for Table.addCell — itext7's Table

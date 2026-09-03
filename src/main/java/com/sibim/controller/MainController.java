@@ -732,6 +732,10 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
         a.put(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN),      this::onCommandPalette);
+        a.put(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN), () -> {
+            com.sibim.session.NavigationContext.setPendingNuevoBien();
+            onProductos();
+        });
         a.put(new KeyCodeCombination(KeyCode.F1), () -> showShortcutHelp());
         a.put(new KeyCodeCombination(KeyCode.F2), () -> onShowTutorial());
     }
