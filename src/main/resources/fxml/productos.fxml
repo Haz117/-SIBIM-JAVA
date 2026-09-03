@@ -187,6 +187,8 @@
             <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="135" sortable="true"/>
             <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="195" sortable="true"/>
             <TableColumn fx:id="colStock"     text="Stock"           prefWidth="72"  sortable="true"/>
+            <TableColumn fx:id="colStockMin"  text="Stock Mín."      prefWidth="90"  sortable="true" visible="false"/>
+            <TableColumn fx:id="colStockMax"  text="Stock Máx."      prefWidth="90"  sortable="true" visible="false"/>
             <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="155" minWidth="120" sortable="true"/>
             <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="110" sortable="true"/>
         </columns>

@@ -3739,3 +3739,15 @@
 .search-history-menu .menu-item:hover { -fx-background-color: #F1F5F9; }
 .history-menu-header { -fx-font-size: 10.5px; -fx-text-fill: #94A3B8; -fx-font-weight: bold; }
 .history-icon { -fx-fill: #94A3B8; -fx-icon-size: 14; }
+
+/* Inline table cell editor — stockMín / stockMáx double-click edit */
+.inline-edit-field {
+    -fx-background-color: white;
+    -fx-border-color: #6D28D9;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-border-width: 1.5;
+    -fx-font-size: 12px;
+    -fx-padding: 2 6;
+    -fx-pref-width: 70;
+}

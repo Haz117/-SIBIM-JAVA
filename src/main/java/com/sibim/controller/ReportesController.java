@@ -148,7 +148,7 @@ public class ReportesController {
                         Collectors.counting()));
                 XYChart.Series<String, Number> series = new XYChart.Series<>();
                 counts.entrySet().stream()
-                    .sorted(Comparator.<Map.Entry<String, Long>>comparingByValue().reversed())
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                     .limit(12)
                     .forEach(e -> series.getData().add(new XYChart.Data<>(e.getKey(), e.getValue())));
                 Platform.runLater(() -> {

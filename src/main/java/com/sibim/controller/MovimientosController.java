@@ -108,6 +108,8 @@ public class MovimientosController {
     private Button btnEmptyLimpiar;
     private boolean refreshing = false;
     private final AtomicBoolean loading = new AtomicBoolean(false);
+    private VBox emptyStatePlaceholder;
+    private Timeline skeletonPulse;
 
     @FXML
     public void initialize() {
@@ -366,7 +368,28 @@ public class MovimientosController {
             if (isVisible && !wasVisible) com.sibim.util.AnimationUtils.springIn(emptyState);
             else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
         });
+        emptyStatePlaceholder = emptyState;
         table.setPlaceholder(emptyState);
+    }
+
+    private VBox buildSkeletonPlaceholder() {
+        VBox box = new VBox(4);
+        box.setPadding(new javafx.geometry.Insets(8));
+        for (int i = 0; i < 7; i++) {
+            Label bar = new Label();
+            bar.getStyleClass().add("skeleton");
+            bar.setPrefHeight(44);
+            bar.setMaxWidth(Double.MAX_VALUE);
+            box.getChildren().add(bar);
+        }
+        skeletonPulse = new Timeline(
+            new KeyFrame(Duration.millis(0),    new javafx.animation.KeyValue(box.opacityProperty(), 0.7)),
+            new KeyFrame(Duration.millis(800),  new javafx.animation.KeyValue(box.opacityProperty(), 0.4)),
+            new KeyFrame(Duration.millis(1600), new javafx.animation.KeyValue(box.opacityProperty(), 0.7))
+        );
+        skeletonPulse.setCycleCount(Timeline.INDEFINITE);
+        skeletonPulse.play();
+        return box;
     }
 
     private void setupTipoChips() {
@@ -423,6 +446,7 @@ public class MovimientosController {
             refreshing = true;
             return;
         }
+        table.setPlaceholder(buildSkeletonPlaceholder());
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
 
         LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
@@ -450,6 +474,8 @@ public class MovimientosController {
             }
             @Override protected void succeeded() {
                 loading.set(false);
+                if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
+                table.setPlaceholder(emptyStatePlaceholder);
                 LoadResult r = getValue();
 
                 // Populate categoria filter — preserve selection if still valid
@@ -478,6 +504,8 @@ public class MovimientosController {
             }
             @Override protected void failed() {
                 loading.set(false);
+                if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
+                table.setPlaceholder(emptyStatePlaceholder);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los movimientos");
             }
