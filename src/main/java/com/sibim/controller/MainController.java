@@ -752,7 +752,7 @@ public class MainController {
 
     private void onCommandPalette() {
         javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
-        java.util.List<SearchPaletteDialog.NavEntry> navEntries = java.util.List.of(
+        java.util.List<SearchPaletteDialog.NavEntry> baseEntries = new java.util.ArrayList<>(java.util.List.of(
             new SearchPaletteDialog.NavEntry("mdi2v-view-dashboard",      "Dashboard",           "Ctrl+1", this::onDashboard),
             new SearchPaletteDialog.NavEntry("mdi2s-sitemap",             "Organigrama",         "Ctrl+2", this::onOrganigrama),
             new SearchPaletteDialog.NavEntry("mdi2p-package-variant",     "Bienes / Inventario", "Ctrl+3", this::onProductos),
@@ -762,7 +762,10 @@ public class MainController {
             new SearchPaletteDialog.NavEntry("mdi2f-file-chart",          "Reportes",            "Ctrl+7", this::onReportes),
             new SearchPaletteDialog.NavEntry("mdi2c-chart-line",          "Depreciación",        "Ctrl+8", this::onDepreciacion),
             new SearchPaletteDialog.NavEntry("mdi2c-cog-outline",         "Configuración",       "Ctrl+9", this::onConfiguracion)
-        );
+        ));
+        if (com.sibim.session.SessionManager.isAdmin())
+            baseEntries.add(new SearchPaletteDialog.NavEntry("mdi2h-history", "Auditoría", "Ctrl+0", this::onAuditoria));
+        java.util.List<SearchPaletteDialog.NavEntry> navEntries = java.util.List.copyOf(baseEntries);
         com.sibim.util.AppExecutor.submit(() -> {
             java.util.List<com.sibim.model.Producto> productos;
             try {

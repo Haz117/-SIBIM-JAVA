@@ -653,20 +653,31 @@ public class ReporteService {
     }
 
     private void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta) throws IOException {
-        PdfFont titleFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        PdfFont titleFont   = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         Table header = new Table(1).useAllAvailableWidth();
-        com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell().add(new Paragraph("SIBIM — " + titulo)
-            .setFont(titleFont).setFontSize(16).setFontColor(ColorConstants.WHITE));
+        com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
+            .add(new Paragraph(titulo).setFont(titleFont).setFontSize(15).setFontColor(ColorConstants.WHITE))
+            .add(new Paragraph(orgName()).setFont(regularFont).setFontSize(9)
+                .setFontColor(new DeviceRgb(200, 210, 240)));
         headerCell.setBackgroundColor(COLOR_HEADER);
-        headerCell.setPadding(10);
+        headerCell.setPadding(12);
         header.addCell(headerCell);
         doc.add(header);
         if (desde != null || hasta != null) {
             String periodo = (desde != null ? desde.format(FMT) : "inicio") + " — "
                            + (hasta != null ? hasta.format(FMT) : "hoy");
-            PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-            doc.add(new Paragraph("Periodo: " + periodo)
-                .setFont(regularFont).setFontSize(10).setFontColor(ColorConstants.DARK_GRAY));
+            com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+            String gen = "Generado " + LocalDate.now().format(FMT) + (u != null ? " por " + u.getNombre() : "");
+            doc.add(new Paragraph("Período: " + periodo + "    ·    " + gen)
+                .setFont(regularFont).setFontSize(9).setFontColor(ColorConstants.DARK_GRAY)
+                .setMarginTop(4));
+        } else {
+            com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+            String gen = "Generado " + LocalDate.now().format(FMT) + (u != null ? " por " + u.getNombre() : "");
+            doc.add(new Paragraph(gen)
+                .setFont(regularFont).setFontSize(9).setFontColor(ColorConstants.DARK_GRAY)
+                .setMarginTop(4));
         }
     }
 
@@ -1102,7 +1113,7 @@ public class ReporteService {
             // ── Header band ────────────────────────────────────────────
             Table header = new Table(new float[]{1f}).useAllAvailableWidth();
             header.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph("H. AYUNTAMIENTO DE IXMIQUILPAN, HGO.")
+                .add(new Paragraph(orgName().toUpperCase())
                     .setFont(bold).setFontSize(9f).setFontColor(white).setMargin(0))
                 .add(new Paragraph("ORGANIGRAMA DE BIENES MUNICIPALES")
                     .setFont(bold).setFontSize(15f).setFontColor(white).setMarginTop(2).setMarginBottom(2))
