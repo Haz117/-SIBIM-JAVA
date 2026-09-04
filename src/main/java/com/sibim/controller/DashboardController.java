@@ -268,7 +268,7 @@ public class DashboardController {
             HBox topRow = new HBox(7, ico, lbl, pctLbl);
             topRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-            Label cntLbl = new Label(def.count() + " bienes");
+            Label cntLbl = new Label("0 bienes");
             cntLbl.getStyleClass().add("status-mini-count");
 
             javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
@@ -287,6 +287,7 @@ public class DashboardController {
             statusCardsRow.getChildren().add(card);
 
             double targetPct = (double) def.count() / total;
+            long cardCount = def.count();
             int delay = i * 100;
             javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay + 300));
             wait.setOnFinished(ev -> {
@@ -298,6 +299,7 @@ public class DashboardController {
                             javafx.animation.Interpolator.EASE_OUT))
                 );
                 anim.play();
+                AnimationUtils.animateCount(cntLbl, cardCount, 750, v -> v + " bienes");
             });
             wait.play();
         }
@@ -307,8 +309,8 @@ public class DashboardController {
         AnimationUtils.staggeredFadeInUp(statusCardsRow.getChildren(), 280, 50);
     }
 
-    private static final String[] AREA_COLORS = {
-        "#4338CA","#0891B2","#059669","#D97706","#DC2626"
+    private static final String[] AREA_BAR_CLASSES = {
+        "area-bar-pb-1", "area-bar-pb-2", "area-bar-pb-3", "area-bar-pb-4", "area-bar-pb-5"
     };
 
     private void buildAreasSection(java.util.LinkedHashMap<String,Long> byArea, long total) {
@@ -317,14 +319,13 @@ public class DashboardController {
 
         int i = 0;
         for (java.util.Map.Entry<String,Long> entry : byArea.entrySet()) {
-            String color = AREA_COLORS[i % AREA_COLORS.length];
             double pct = total > 0 ? (double) entry.getValue() / total : 0;
 
             Label nameLbl = new Label(entry.getKey());
             nameLbl.getStyleClass().add("area-bar-name");
             HBox.setHgrow(nameLbl, Priority.ALWAYS);
 
-            Label cntLbl = new Label(entry.getValue() + " bienes");
+            Label cntLbl = new Label("0 bienes");
             cntLbl.getStyleClass().add("area-bar-count");
 
             HBox nameRow = new HBox(nameLbl, cntLbl);
@@ -332,13 +333,13 @@ public class DashboardController {
 
             javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
             pb.setMaxWidth(Double.MAX_VALUE);
-            pb.setStyle("-fx-accent: " + color + ";");
-            pb.getStyleClass().add("area-bar-pb");
+            pb.getStyleClass().addAll("area-bar-pb", AREA_BAR_CLASSES[i % AREA_BAR_CLASSES.length]);
 
             VBox item = new VBox(5, nameRow, pb);
             areasBarBox.getChildren().add(item);
 
             double target = pct;
+            long count = entry.getValue();
             int delay = i * 90;
             javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay + 400));
             wait.setOnFinished(ev -> {
@@ -350,6 +351,7 @@ public class DashboardController {
                             javafx.animation.Interpolator.EASE_OUT))
                 );
                 anim.play();
+                AnimationUtils.animateCount(cntLbl, count, 800, v -> v + " bienes");
             });
             wait.play();
             i++;

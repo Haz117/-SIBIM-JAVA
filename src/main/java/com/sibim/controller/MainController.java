@@ -81,6 +81,7 @@ public class MainController {
     @FXML private Label statusUserLabel;
     @FXML private Label statusTimeLabel;
     @FXML private StackPane outerStack;
+    
     @FXML private VBox     sidebar;
     @FXML private Region   sidebarBackdrop;
     @FXML private VBox     logoTextBox;

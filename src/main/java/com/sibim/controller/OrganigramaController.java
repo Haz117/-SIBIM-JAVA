@@ -194,7 +194,7 @@ public class OrganigramaController {
             pb.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(pb, Priority.ALWAYS);
 
-            Label countLbl = new Label(count + " bienes");
+            Label countLbl = new Label("0 bienes");
             countLbl.getStyleClass().add("area-bar-count");
             countLbl.setMinWidth(70);
 
@@ -203,6 +203,7 @@ public class OrganigramaController {
             areaDistribBox.getChildren().add(row);
 
             double target = maxCount > 0 ? (double) count / maxCount : 0;
+            long countL = count;
             int delay = 300 + i * 90;
             javafx.animation.PauseTransition wait =
                 new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay));
@@ -214,6 +215,7 @@ public class OrganigramaController {
                         new javafx.animation.KeyValue(pb.progressProperty(), target,
                             javafx.animation.Interpolator.EASE_OUT)));
                 anim.play();
+                com.sibim.util.AnimationUtils.animateCount(countLbl, countL, 750, v -> v + " bienes");
             });
             wait.play();
         }

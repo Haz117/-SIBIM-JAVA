@@ -39,6 +39,11 @@
             <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar la tabla actual a Excel"/></tooltip>
         </Button>
+        <Button text="Exportar CSV" onAction="#onExportarCsv" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar la tabla actual a CSV"/></tooltip>
+        </Button>
         <Button text="Fichas (lote)" onAction="#onExportarFichas" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline" styleClass="btn-icon"/></graphic>

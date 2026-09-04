@@ -409,6 +409,13 @@ public class DepreciacionController {
     }
 
     @FXML
+    private void onExportarCsv() {
+        List<Producto> vista = new java.util.ArrayList<>(table.getItems());
+        if (vista.isEmpty()) { NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para exportar"); return; }
+        exportar(() -> reporteService.exportDepreciacionCsv(vista));
+    }
+
+    @FXML
     private void onExportarFichas() {
         List<Producto> lista = new java.util.ArrayList<>(table.getItems());
         if (lista.isEmpty()) {
@@ -559,7 +566,7 @@ public class DepreciacionController {
             pb.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(pb, javafx.scene.layout.Priority.ALWAYS);
 
-            Label countLbl = new Label(r.count() + " bienes");
+            Label countLbl = new Label("0 bienes");
             countLbl.getStyleClass().add("depr-range-count");
 
             HBox row = new HBox(10, nameLbl, pb, countLbl);
@@ -567,6 +574,7 @@ public class DepreciacionController {
             rangoBox.getChildren().add(row);
 
             double target = (double) r.count() / total;
+            long rCount = r.count();
             int delay = 150 + idx * 80;
             javafx.animation.PauseTransition wait =
                 new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay));
@@ -578,6 +586,7 @@ public class DepreciacionController {
                         new javafx.animation.KeyValue(pb.progressProperty(), target,
                             javafx.animation.Interpolator.EASE_BOTH)));
                 tl.play();
+                AnimationUtils.animateCount(countLbl, rCount, 750, v -> v + " bienes");
             });
             wait.play();
             idx++;

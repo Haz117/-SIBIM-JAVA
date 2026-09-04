@@ -389,6 +389,38 @@ public class ReporteService {
         return file;
     }
 
+    public File exportDepreciacionCsv(List<Producto> productos) throws Exception {
+        File file = tempFile("depreciacion", ".csv");
+        java.time.LocalDate hoy = java.time.LocalDate.now();
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println("Nombre,Categoria,Area,Fecha Adquisicion,Vida Util (años),Vida Util Restante,Valor Compra,Valor Actual,% Depreciado,Depreciado el");
+            for (Producto p : productos) {
+                java.time.LocalDate fechaTotal = (p.getFechaAdquisicion() != null && p.getVidaUtilAnios() != null && p.getVidaUtilAnios() > 0)
+                    ? p.getFechaAdquisicion().plusYears(p.getVidaUtilAnios()) : null;
+                String restante = "—";
+                if (fechaTotal != null) {
+                    if (!fechaTotal.isAfter(hoy)) restante = "Cumplida";
+                    else {
+                        long meses = java.time.temporal.ChronoUnit.MONTHS.between(hoy, fechaTotal);
+                        restante = meses < 12 ? meses + " meses" : (meses / 12) + " años";
+                    }
+                }
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\",%.2f,%.2f,%s,\"%s\"%n",
+                    esc(p.getNombre()),
+                    esc(p.getCategoriaNombre()),
+                    esc(p.getArea()),
+                    FormatUtils.formatDate(p.getFechaAdquisicion()),
+                    p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() : 0,
+                    restante,
+                    p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0.0,
+                    p.getValorDepreciado() != null ? p.getValorDepreciado().doubleValue() : 0.0,
+                    p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0,
+                    fechaTotal != null ? fechaTotal.format(FMT) : "");
+            }
+        }
+        return file;
+    }
+
     // ───────────────────────────── PDF ─────────────────────────────
 
     public File exportInventarioPdf(LocalDate desde, LocalDate hasta) throws Exception {
