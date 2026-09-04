@@ -43,6 +43,9 @@ public class ReporteService {
     private final com.sibim.repository.ConfiguracionRepository configRepo;
 
     public ReporteService() { this(new ProductoRepository(), new MovimientoRepository(), new com.sibim.repository.ConfiguracionRepository()); }
+    ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo) {
+        this(productoRepo, movimientoRepo, new com.sibim.repository.ConfiguracionRepository());
+    }
     ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo,
                    com.sibim.repository.ConfiguracionRepository configRepo) {
         this.productoRepo   = productoRepo;

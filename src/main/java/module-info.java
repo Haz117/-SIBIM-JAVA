@@ -29,6 +29,7 @@ module com.sibim {
     requires atlantafx.base;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.materialdesign2;
+    requires com.google.zxing;
 
     opens com.sibim to javafx.fxml;
     opens com.sibim.controller to javafx.fxml;

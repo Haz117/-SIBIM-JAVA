@@ -218,6 +218,10 @@ public final class OfflineStore {
         try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN numero_serie TEXT"); } catch (SQLException ignored) {}
         try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN marca TEXT"); } catch (SQLException ignored) {}
         try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN modelo TEXT"); } catch (SQLException ignored) {}
+        // M7 (2026): activo para bloqueo de cuentas en modo offline
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE users_cache ADD COLUMN activo INTEGER NOT NULL DEFAULT 1");
+        } catch (SQLException ignored) {}
     }
 
     private static void runSchema(Connection c) throws SQLException {
