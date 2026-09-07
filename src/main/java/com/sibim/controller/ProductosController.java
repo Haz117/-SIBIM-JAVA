@@ -516,9 +516,9 @@ public class ProductosController {
 
             @Override protected Void call() throws Exception {
                 resguardantes = productoService.getResguardantes();
-                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
+                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, filterSinEtiquetar, desdeReg, hastaReg);
                 pageData = productoService.getPaginated(busqueda, catId, area, resguardante, estado,
-                    pageSize, currentPage * pageSize, desdeReg, hastaReg);
+                    filterSinEtiquetar, pageSize, currentPage * pageSize, desdeReg, hastaReg);
                 stats = productoService.getStats();
                 return null;
             }
@@ -656,7 +656,7 @@ public class ProductosController {
             java.time.LocalDate desdeReg, java.time.LocalDate hastaReg) {
         boolean hasFilters = !busqueda.isBlank() || catId != null || area != null
             || resguardante != null || estado != null
-            || desdeReg != null || hastaReg != null;
+            || desdeReg != null || hastaReg != null || filterSinEtiquetar;
         btnClearFilters.setVisible(hasFilters);
         btnClearFilters.setManaged(hasFilters);
         if (btnGuardarPreset != null) {
@@ -682,6 +682,7 @@ public class ProductosController {
                 if (estado != null) activeFilters.add("estado «" + estado.getEtiqueta() + "»");
                 if (desdeReg != null) activeFilters.add("desde " + desdeReg.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")));
                 if (hastaReg != null) activeFilters.add("hasta " + hastaReg.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")));
+                if (filterSinEtiquetar) activeFilters.add("sin etiquetar");
                 String filterDesc = activeFilters.isEmpty() ? "" : " (" + String.join(", ", activeFilters) + ")";
                 emptyStateMsg.setText("No se encontraron bienes" + filterDesc);
             } else {
@@ -786,6 +787,11 @@ public class ProductosController {
             estadoChipGroup.getToggles().stream()
                 .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
                 .findFirst().ifPresent(t -> t.setSelected(true));
+        if (filterSinEtiquetar) {
+            filterSinEtiquetar = false;
+            if (cardSinEtiquetar != null)
+                cardSinEtiquetar.getStyleClass().remove("rich-stat-card-alert-active");
+        }
         currentPage = 0;
         applyFilters();
     }

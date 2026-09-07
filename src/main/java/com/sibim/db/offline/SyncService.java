@@ -250,7 +250,8 @@ public final class SyncService {
                                String fechaVencimiento, String fotoUrl, String facturaUrl,
                                String numeroSerie, String marca, String modelo,
                                String ubicacion, String area,
-                               String resguardante, String motivoBaja, String serverSnapshotAt) {}
+                               String resguardante, String motivoBaja, String serverSnapshotAt,
+                               boolean etiquetado, String fotosUrls) {}
 
     static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
             throws SQLException {
@@ -269,7 +270,8 @@ public final class SyncService {
                     rs.getString("numero_serie"), rs.getString("marca"), rs.getString("modelo"),
                     rs.getString("ubicacion"), rs.getString("area"),
                     rs.getString("resguardante"), rs.getString("motivo_baja"),
-                    rs.getString("server_snapshot_at")));
+                    rs.getString("server_snapshot_at"),
+                    rs.getInt("etiquetado") != 0, rs.getString("fotos_urls")));
             }
         }
         ProductoRepository repo = new ProductoRepository();
@@ -341,6 +343,9 @@ public final class SyncService {
         p.setUbicacion(r.ubicacion());
         p.setArea(r.area());
         p.setResguardante(r.resguardante());
+        p.setEtiquetado(r.etiquetado());
+        if (r.fotosUrls() != null && !r.fotosUrls().isBlank())
+            p.setFotosUrls(new java.util.ArrayList<>(java.util.Arrays.asList(r.fotosUrls().split("\\|\\|"))));
         return p;
     }
 
@@ -384,6 +389,7 @@ public final class SyncService {
                     p.setUbicacion(rs.getString("ubicacion"));
                     p.setArea(rs.getString("area"));
                     p.setResguardante(rs.getString("resguardante"));
+                    p.setEtiquetado(rs.getBoolean("etiquetado"));
                     return p;
                 }
             }
