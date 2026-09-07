@@ -261,6 +261,11 @@
             <graphic><FontIcon iconLiteral="mdi2q-qrcode" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Generar PDF con etiquetas QR de todos los bienes seleccionados"/></tooltip>
         </Button>
+        <Button fx:id="btnBulkMarcarEtiquetado" text="Marcar etiquetado" onAction="#onBulkMarcarEtiquetado"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2t-tag-check-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Marcar los bienes seleccionados como etiquetados físicamente"/></tooltip>
+        </Button>
         <Separator orientation="VERTICAL"/>
         <Button text="Deseleccionar" onAction="#onDeseleccionar" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="6">

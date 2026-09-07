@@ -116,6 +116,7 @@ public class ProductosController {
     @FXML private Label lblBulkCount;
     @FXML private Button btnBulkArea;
     @FXML private Button btnBulkResguardante;
+    @FXML private Button btnBulkMarcarEtiquetado;
     @FXML private Button btnMovimiento;
     @FXML private Button btnQr;
     @FXML private Button btnEditar;
@@ -153,6 +154,7 @@ public class ProductosController {
     private int currentPage = 0;
     private int pageSize = 25;
     private boolean refreshing = false;
+    private boolean filterSinEtiquetar = false;
     private final AtomicBoolean loading = new AtomicBoolean(false);
     private boolean canEdit = false;
     private FilterPresetPanel presetPanel;
@@ -223,6 +225,11 @@ public class ProductosController {
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardTotal, statCardValor, cardAlertas, cardSinEtiquetar), 300, 55);
+        if (cardSinEtiquetar != null) {
+            cardSinEtiquetar.getStyleClass().add("stat-card-clickable");
+            cardSinEtiquetar.setOnMouseClicked(e -> onCardSinEtiquetar());
+            Tooltip.install(cardSinEtiquetar, new Tooltip("Clic para filtrar bienes sin etiqueta física"));
+        }
         Platform.runLater(() -> searchField.requestFocus());
         if (helpAlertas      != null) DialogUtil.enableClickToShowTooltip(helpAlertas);
         if (helpResguardante != null) DialogUtil.enableClickToShowTooltip(helpResguardante);
@@ -581,8 +588,8 @@ public class ProductosController {
             int count;
 
             @Override protected Void call() throws Exception {
-                page = productoService.getPaginated(busqueda, catId, area, resguardante, estado, pageSize, offset, desdeReg, hastaReg);
-                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
+                page = productoService.getPaginated(busqueda, catId, area, resguardante, estado, filterSinEtiquetar, pageSize, offset, desdeReg, hastaReg);
+                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, filterSinEtiquetar, desdeReg, hastaReg);
                 return null;
             }
 
@@ -939,8 +946,9 @@ public class ProductosController {
         boolean show = n >= 2;
         if (lblBulkCount != null && show)
             lblBulkCount.setText(n + " bienes seleccionados");
-        if (btnBulkArea        != null) { btnBulkArea.setVisible(canEdit);        btnBulkArea.setManaged(canEdit); }
-        if (btnBulkResguardante != null) { btnBulkResguardante.setVisible(canEdit); btnBulkResguardante.setManaged(canEdit); }
+        if (btnBulkArea           != null) { btnBulkArea.setVisible(canEdit);           btnBulkArea.setManaged(canEdit); }
+        if (btnBulkResguardante   != null) { btnBulkResguardante.setVisible(canEdit);   btnBulkResguardante.setManaged(canEdit); }
+        if (btnBulkMarcarEtiquetado != null) { btnBulkMarcarEtiquetado.setVisible(canEdit); btnBulkMarcarEtiquetado.setManaged(canEdit); }
         if (show == bulkBarVisible) return;
         bulkBarVisible = show;
         if (show) {
@@ -1010,6 +1018,37 @@ public class ProductosController {
                 e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el resguardante")
             )
         );
+    }
+
+    @FXML
+    private void onBulkMarcarEtiquetado() {
+        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.size() < 2 || !canEdit) return;
+        long yaEtiquetados = sel.stream().filter(Producto::isEtiquetado).count();
+        long sinEtiq = sel.size() - yaEtiquetados;
+        String msg = sinEtiq == sel.size()
+            ? "¿Marcar " + sel.size() + " bienes como etiquetados?"
+            : "De los " + sel.size() + " seleccionados, " + sinEtiq + " aún no están etiquetados. ¿Marcar todos como etiquetados?";
+        if (!ConfirmacionUtil.confirmar("Marcar como etiquetado", msg)) return;
+        List<String> ids = sel.stream().map(Producto::getId).toList();
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando etiquetado…",
+            () -> { productoService.marcarEtiquetado(ids, true); return ids.size(); },
+            count -> {
+                refreshing = true; loadData();
+                NotificacionUtil.exito(table.getScene(), count + " bien(es) marcados como etiquetados");
+            },
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo actualizar el etiquetado")
+        );
+    }
+
+    private void onCardSinEtiquetar() {
+        filterSinEtiquetar = !filterSinEtiquetar;
+        if (cardSinEtiquetar != null) {
+            if (filterSinEtiquetar) cardSinEtiquetar.getStyleClass().add("rich-stat-card-alert-active");
+            else                    cardSinEtiquetar.getStyleClass().remove("rich-stat-card-alert-active");
+        }
+        currentPage = 0;
+        applyFilters();
     }
 
     @FXML

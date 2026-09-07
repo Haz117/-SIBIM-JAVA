@@ -37,18 +37,35 @@ public class ProductoService {
     public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado, int limit, int offset,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return productoRepo.findPaginated(busqueda, categoriaId, area, resguardante, estado, false, limit, offset, desdeReg, hastaReg);
+        return productoRepo.findPaginated(busqueda, categoriaId, area, resguardante, estado, false, false, limit, offset, desdeReg, hastaReg);
+    }
+
+    public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean soloSinEtiquetar, int limit, int offset,
+            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+        return productoRepo.findPaginated(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, limit, offset, desdeReg, hastaReg);
     }
 
     public int countFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
-        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, null, null);
+        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, false, null, null);
     }
 
     public int countFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, desdeReg, hastaReg);
+        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg);
+    }
+
+    public int countFiltrado(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean soloSinEtiquetar, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg);
+    }
+
+    public void marcarEtiquetado(List<String> ids, boolean valor) throws SQLException {
+        productoRepo.marcarEtiquetado(ids, valor);
     }
 
     public List<Producto> getAllFiltrado(String busqueda, String categoriaId, String area,
