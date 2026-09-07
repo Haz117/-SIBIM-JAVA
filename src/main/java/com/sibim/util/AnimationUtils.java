@@ -271,6 +271,30 @@ public final class AnimationUtils {
      * Must be called on the FX thread; uses Platform.runLater to wait one
      * pulse so JavaFX finishes laying out the new rows before we animate them.
      */
+    /** Builds a pulsing skeleton placeholder, sets it on the table, and returns
+     *  the Timeline so the caller can stop it when real data arrives. */
+    public static javafx.animation.Timeline buildSkeletonPlaceholder(
+            TableView<?> table, int rowCount) {
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(4);
+        box.setPadding(new javafx.geometry.Insets(8));
+        for (int i = 0; i < rowCount; i++) {
+            Label bar = new Label();
+            bar.getStyleClass().add("skeleton");
+            bar.setPrefHeight(44);
+            bar.setMaxWidth(Double.MAX_VALUE);
+            box.getChildren().add(bar);
+        }
+        Timeline pulse = new Timeline(
+            new KeyFrame(Duration.millis(0),    new KeyValue(box.opacityProperty(), 0.7)),
+            new KeyFrame(Duration.millis(800),  new KeyValue(box.opacityProperty(), 0.4)),
+            new KeyFrame(Duration.millis(1600), new KeyValue(box.opacityProperty(), 0.7))
+        );
+        pulse.setCycleCount(Animation.INDEFINITE);
+        pulse.play();
+        table.setPlaceholder(box);
+        return pulse;
+    }
+
     public static <T> void staggerTableRows(TableView<T> table) {
         Platform.runLater(() -> {
             var rows = table.lookupAll(".table-row-cell").stream()

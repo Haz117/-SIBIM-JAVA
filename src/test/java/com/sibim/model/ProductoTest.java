@@ -4,8 +4,11 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -112,5 +115,54 @@ class ProductoTest {
     void getPorcentajeDepreciado_totalmenteDepreciado_es100() {
         Producto p = bienDepreciable(BigDecimal.valueOf(10000), LocalDate.now().minusYears(20), 5, BigDecimal.ZERO);
         assertEquals(100, p.getPorcentajeDepreciado());
+    }
+
+    // ── etiquetado ──────────────────────────────────────────────────────────────
+
+    @Test
+    void etiquetado_defaultEsFalse() {
+        assertFalse(new Producto().isEtiquetado());
+    }
+
+    @Test
+    void etiquetado_setTrue_getTrue() {
+        Producto p = new Producto();
+        p.setEtiquetado(true);
+        assertTrue(p.isEtiquetado());
+    }
+
+    @Test
+    void etiquetado_setFalseDesdeTrue_getFalse() {
+        Producto p = new Producto();
+        p.setEtiquetado(true);
+        p.setEtiquetado(false);
+        assertFalse(p.isEtiquetado());
+    }
+
+    // ── fotosUrls ───────────────────────────────────────────────────────────────
+
+    @Test
+    void fotosUrls_defaultEsListaVaciaNoNull() {
+        List<String> fotos = new Producto().getFotosUrls();
+        assertNotNull(fotos);
+        assertTrue(fotos.isEmpty());
+    }
+
+    @Test
+    void fotosUrls_setNull_convierteAListaVacia() {
+        Producto p = new Producto();
+        p.setFotosUrls(null);
+        assertNotNull(p.getFotosUrls());
+        assertTrue(p.getFotosUrls().isEmpty());
+    }
+
+    @Test
+    void fotosUrls_setLista_getRetornaLaMisma() {
+        Producto p = new Producto();
+        List<String> fotos = List.of("https://example.com/a.jpg", "https://example.com/b.jpg");
+        p.setFotosUrls(fotos);
+        assertEquals(2, p.getFotosUrls().size());
+        assertEquals("https://example.com/a.jpg", p.getFotosUrls().get(0));
+        assertEquals("https://example.com/b.jpg", p.getFotosUrls().get(1));
     }
 }

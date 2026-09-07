@@ -51,6 +51,9 @@ public class CategoriasController {
     @FXML private Label helpStatClasificados;
     @FXML private Label helpStatTop;
 
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/categorias");
+
     private final CategoriaService categoriaService = new CategoriaService();
     private ObservableList<Categoria> allData = FXCollections.observableArrayList();
     private javafx.animation.Timeline skeletonPulse;
@@ -84,12 +87,20 @@ public class CategoriasController {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
-        searchField.textProperty().addListener((obs, o, n) -> applyFilter(n));
+        searchField.textProperty().addListener((obs, o, n) -> { applyFilter(n); STICKY.put("search", n); });
         table.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
             boolean s = sel != null;
             if (btnEditCat   != null && isAdmin) btnEditCat.setDisable(!s);
             if (btnDeleteCat != null && isAdmin) btnDeleteCat.setDisable(!s);
         });
+        if (btnEditCat   != null && isAdmin) {
+            btnEditCat.setDisable(true);
+            javafx.scene.control.Tooltip.install(btnEditCat, new javafx.scene.control.Tooltip("Selecciona una categoría para editarla"));
+        }
+        if (btnDeleteCat != null && isAdmin) {
+            btnDeleteCat.setDisable(true);
+            javafx.scene.control.Tooltip.install(btnDeleteCat, new javafx.scene.control.Tooltip("Selecciona una categoría para eliminarla"));
+        }
         table.setOnKeyPressed(ev -> {
             if (ev.getCode() == javafx.scene.input.KeyCode.DELETE && isAdmin
                     && table.getSelectionModel().getSelectedItem() != null) {
@@ -125,13 +136,17 @@ public class CategoriasController {
                         new java.util.ArrayList<>(children.subList(1, children.size())), 300, 55);
             }
         }
+        String savedSearch = STICKY.get("search", "");
+        if (!savedSearch.isBlank()) searchField.setText(savedSearch);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.setPlaceholder(buildSkeletonPlaceholder());
+        skeletonPulse = AnimationUtils.buildSkeletonPlaceholder(table, 7);
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
+        colNombre.setCellFactory(DialogUtil.highlightCellFactory(
+            () -> searchField != null ? searchField.getText() : ""));
         colDescripcion.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getDescripcion() != null ? c.getValue().getDescripcion() : ""));
         colColor.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getColor()));
@@ -170,29 +185,8 @@ public class CategoriasController {
                 getStyleClass().add(item > 0 ? "cat-count-active" : "cell-muted");
             }
         });
-    }
-
-    private VBox buildSkeletonPlaceholder() {
-        VBox box = new VBox(4);
-        box.setPadding(new javafx.geometry.Insets(8));
-        for (int i = 0; i < 7; i++) {
-            Label bar = new Label();
-            bar.getStyleClass().add("skeleton");
-            bar.setPrefHeight(44);
-            bar.setMaxWidth(Double.MAX_VALUE);
-            box.getChildren().add(bar);
-        }
-        skeletonPulse = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(0),
-                new javafx.animation.KeyValue(box.opacityProperty(), 0.7)),
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
-                new javafx.animation.KeyValue(box.opacityProperty(), 0.4)),
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(1600),
-                new javafx.animation.KeyValue(box.opacityProperty(), 0.7))
-        );
-        skeletonPulse.setCycleCount(javafx.animation.Animation.INDEFINITE);
-        skeletonPulse.play();
-        return box;
+        DialogUtil.persistTableSort(table, STICKY, "sort");
+        DialogUtil.persistColumnWidths(table, STICKY, "colW");
     }
 
     private void stopSkeleton() {

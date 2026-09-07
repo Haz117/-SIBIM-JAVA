@@ -86,6 +86,8 @@ public class DashboardController {
 
     private List<Producto> lastAgotados  = List.of();
     private List<Producto> lastBajoStock = List.of();
+    private javafx.animation.Timeline autoRefresh;
+    private boolean chartsFirstLoad = true;
 
     @FXML
     public void initialize() {
@@ -118,7 +120,7 @@ public class DashboardController {
         // reads as "broken" on a small icon — same click-to-show behavior
         // used for the "?" badges everywhere else in the app (DialogUtil).
         for (Label badge : new Label[]{ helpStats, helpTotalBienes, helpValorTotal,
-                helpMovimientosHoy, helpCategorias, helpAnalisis }) {
+                helpMovimientosHoy, helpCategorias, helpHealth, helpAnalisis }) {
             if (badge != null) com.sibim.util.DialogUtil.enableClickToShowTooltip(badge);
         }
 
@@ -145,11 +147,18 @@ public class DashboardController {
                     if (dashBanner != null && !dashBanner.getChildren().isEmpty())
                         AnimationUtils.staggeredFadeInUp(dashBanner.getChildren(), 300, 70);
                     AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(),          280,  45);
-                    if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,       300, 120);
-                    if (activityCard != null) AnimationUtils.fadeInUp(activityCard,    300, 180);
                     if (quickActionsRow != null) AnimationUtils.staggeredFadeInUp(quickActionsRow.getChildren(), 260, 40);
-                    if (statusCardsRow != null) AnimationUtils.fadeInUp(statusCardsRow, 300, 90);
+                    // chartsRow, activityCard, statusCardsRow stay invisible until data
+                    // arrives — they fade in from updateUI() on first load (skeleton effect).
+                    if (chartsRow      != null) chartsRow.setOpacity(0);
+                    if (activityCard   != null) activityCard.setOpacity(0);
+                    if (statusCardsRow != null) statusCardsRow.setOpacity(0);
                     loadDataAsync();
+                    autoRefresh = new javafx.animation.Timeline(
+                        new javafx.animation.KeyFrame(javafx.util.Duration.minutes(10),
+                            e -> loadDataAsync()));
+                    autoRefresh.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+                    autoRefresh.play();
                 }
             }
         });
@@ -217,6 +226,35 @@ public class DashboardController {
         buildTrendChart(data.movMensual());
         buildAreasSection(data.byArea(), stats.total());
 
+        // Trend indicator: today vs yesterday from movSemana data
+        if (lblMovimientosHoy != null && lblMovimientosHoy.getParent() instanceof VBox inner) {
+            inner.getChildren().removeIf(n -> n instanceof Label l && l.getStyleClass().contains("trend-lbl"));
+            long todayCount = data.movHoy().size();
+            java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
+            long yesterdayCount = data.movSemana().stream()
+                .filter(m -> m.getCreadoEn().toLocalDate().equals(yesterday))
+                .count();
+            String arrow; String cls;
+            if      (todayCount > yesterdayCount) { arrow = "▲"; cls = "trend-up"; }
+            else if (todayCount < yesterdayCount) { arrow = "▼"; cls = "trend-down"; }
+            else                                  { arrow = "—"; cls = "trend-eq"; }
+            long diff = Math.abs(todayCount - yesterdayCount);
+            String diffStr = diff == 0 ? "igual que ayer"
+                : (todayCount > yesterdayCount ? "+" : "-") + diff + " vs ayer";
+            Label trendLbl = new Label(arrow + " " + diffStr);
+            trendLbl.getStyleClass().addAll("trend-lbl", cls);
+            int afterValue = inner.getChildren().indexOf(lblMovimientosHoy) + 1;
+            inner.getChildren().add(Math.min(afterValue, inner.getChildren().size()), trendLbl);
+        }
+
+        // First-load skeleton fade-in — charts were kept at opacity 0 until data arrives
+        if (chartsFirstLoad) {
+            chartsFirstLoad = false;
+            if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,    350, 0);
+            if (activityCard != null) AnimationUtils.fadeInUp(activityCard, 350, 80);
+            if (statusCardsRow != null) AnimationUtils.fadeInUp(statusCardsRow, 350, 40);
+        }
+
         if (tablaReciente != null) {
             List<Movimiento> ultimos = data.movSemana().stream()
                 .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
@@ -243,12 +281,12 @@ public class DashboardController {
         long total = stats.total();
         if (total == 0) { statusCardsRow.setVisible(false); statusCardsRow.setManaged(false); return; }
 
-        record CardDef(String icon, String label, String colorKey, long count, Runnable onClick) {}
+        record CardDef(String icon, String label, String colorKey, long count, Runnable onClick, String tooltip) {}
         List<CardDef> defs = List.of(
-            new CardDef("mdi2c-check-circle-outline",  "Activos",    "green",  stats.activos(),   () -> navigarA("Productos")),
-            new CardDef("mdi2a-alert-circle-outline",  "Bajo Stock", "amber",  stats.bajoStock(), this::onVerBajoStock),
-            new CardDef("mdi2a-alert-octagon-outline", "Agotados",   "red",    stats.agotados(),  this::onVerAgotados),
-            new CardDef("mdi2c-clock-alert-outline",   "Vencidos",   "violet", stats.vencidos(),  () -> navigarA("Alertas"))
+            new CardDef("mdi2c-check-circle-outline",  "Activos",    "green",  stats.activos(),   () -> navigarA("Productos"), "Ver todos los bienes activos del inventario"),
+            new CardDef("mdi2a-alert-circle-outline",  "Bajo Stock", "amber",  stats.bajoStock(), this::onVerBajoStock,        "Ver bienes por debajo de su stock mínimo"),
+            new CardDef("mdi2a-alert-octagon-outline", "Agotados",   "red",    stats.agotados(),  this::onVerAgotados,         "Ver bienes con stock en cero — requieren reposición"),
+            new CardDef("mdi2c-clock-alert-outline",   "Vencidos",   "violet", stats.vencidos(),  () -> navigarA("Alertas"),   "Ver garantías próximas a vencer o ya vencidas")
         );
 
         for (int i = 0; i < defs.size(); i++) {
@@ -283,6 +321,8 @@ public class DashboardController {
             Runnable action = def.onClick();
             card.setOnMouseClicked(e -> action.run());
             card.getStyleClass().add("stat-card-clickable");
+            Tooltip tip = new Tooltip(def.tooltip());
+            Tooltip.install(card, tip);
 
             statusCardsRow.getChildren().add(card);
 
@@ -406,6 +446,25 @@ public class DashboardController {
             installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue());
     }
 
+    private void installClickWhenReady(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> nodeProp, String categoryName) {
+        javafx.scene.Node node = nodeProp.getValue();
+        if (node != null) { setupPieSliceClick(node, categoryName); return; }
+        nodeProp.addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
+            @Override public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> obs,
+                                          javafx.scene.Node old, javafx.scene.Node n) {
+                if (n != null) { setupPieSliceClick(n, categoryName); nodeProp.removeListener(this); }
+            }
+        });
+    }
+
+    private void setupPieSliceClick(javafx.scene.Node node, String categoryName) {
+        node.getStyleClass().add("stat-card-clickable");
+        node.setOnMouseClicked(e -> {
+            com.sibim.session.NavigationContext.setPendingCategoryFilter(categoryName);
+            navigarA("Productos");
+        });
+    }
+
     private void installTooltipWhenReady(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> nodeProp, String text) {
         javafx.scene.Node node = nodeProp.getValue();
         if (node != null) { Tooltip.install(node, new Tooltip(text)); return; }
@@ -434,6 +493,7 @@ public class DashboardController {
         for (PieChart.Data d : chartValorCategoria.getData()) {
             String text = d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()));
             installTooltipWhenReady(d.nodeProperty(), text);
+            installClickWhenReady(d.nodeProperty(), d.getName());
         }
 
         boolean hasData = !chartValorCategoria.getData().isEmpty();
@@ -811,6 +871,10 @@ public class DashboardController {
         if (hour < 12) return "Buenos días,";
         if (hour < 19) return "Buenas tardes,";
         return "Buenas noches,";
+    }
+
+    public void stopAutoRefresh() {
+        if (autoRefresh != null) autoRefresh.stop();
     }
 
 }

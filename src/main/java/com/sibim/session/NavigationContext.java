@@ -13,6 +13,7 @@ public final class NavigationContext {
     private NavigationContext() {}
 
     private static String  pendingAreaFilter;
+    private static String  pendingCategoryFilter;
     private static String  pendingProductId;
     private static boolean pendingNuevoBien;
     private static boolean pendingNuevoMovimiento;
@@ -25,6 +26,19 @@ public final class NavigationContext {
     public static String consumePendingAreaFilter() {
         String value = pendingAreaFilter;
         pendingAreaFilter = null;
+        return value;
+    }
+
+    /** Set before navigating to Productos — the controller will apply this
+     *  category name as the initial filter (used by Dashboard PieChart). */
+    public static void setPendingCategoryFilter(String categoryName) {
+        pendingCategoryFilter = categoryName;
+    }
+
+    /** Reads and clears the pending category filter — null if none was set. */
+    public static String consumePendingCategoryFilter() {
+        String value = pendingCategoryFilter;
+        pendingCategoryFilter = null;
         return value;
     }
 

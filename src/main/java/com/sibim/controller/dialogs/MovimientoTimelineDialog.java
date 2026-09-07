@@ -44,7 +44,7 @@ public final class MovimientoTimelineDialog {
 
                 ScrollPane scroll = new ScrollPane();
                 scroll.setFitToWidth(true);
-                scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+                scroll.getStyleClass().add("edge-to-edge");
                 VBox list = new VBox(0);
                 list.getStyleClass().add("timeline-list");
                 list.setPadding(new Insets(8, 16, 16, 16));

@@ -148,6 +148,8 @@ public class MainController {
                 userAvatarLabel.setText(String.valueOf(nombre.charAt(0)).toUpperCase());
         }
         navigateTo("dashboard", btnDashboard);
+        densityIndex = DENSITY_PREFS.getInt("index", 1);
+        applyDensityClass();
         addNavTooltips();
         setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
                       btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion,
@@ -327,6 +329,7 @@ public class MainController {
         if (sessionGuard != null) sessionGuard.stop();
         stopBadgePulse();
         if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
+        if (currentController instanceof DashboardController dc) dc.stopAutoRefresh();
     }
 
     public static Button resolveNavigationButton(String view,
@@ -393,6 +396,7 @@ public class MainController {
             Node node = loader.load();
 
             if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
+            if (currentController instanceof DashboardController dc) dc.stopAutoRefresh();
             currentController = loader.getController();
 
             if (!contentArea.getChildren().isEmpty()) {
@@ -562,6 +566,33 @@ public class MainController {
     }
 
     private static final double SIDEBAR_COLLAPSED_WIDTH = 76;
+
+    // ── Table density ─────────────────────────────────────────────────────────
+    private static final java.util.prefs.Preferences DENSITY_PREFS =
+        java.util.prefs.Preferences.userRoot().node("sibim/ui/density");
+    private static final String[] DENSITY_CLASSES = { "density-compact", "", "density-comfortable" };
+    private static final String[] DENSITY_LABELS  = { "Comp.", "Normal", "Cómod." };
+    private static final String[] DENSITY_ICONS   = { "mdi2v-view-headline", "mdi2v-view-list", "mdi2v-view-module" };
+    @FXML private Button btnDensity;
+    private int densityIndex = 1;
+
+    @FXML
+    private void onToggleDensity() {
+        densityIndex = (densityIndex + 1) % 3;
+        DENSITY_PREFS.putInt("index", densityIndex);
+        applyDensityClass();
+    }
+
+    private void applyDensityClass() {
+        contentArea.getStyleClass().removeAll("density-compact", "density-comfortable");
+        if (!DENSITY_CLASSES[densityIndex].isEmpty())
+            contentArea.getStyleClass().add(DENSITY_CLASSES[densityIndex]);
+        if (btnDensity != null) {
+            btnDensity.setText(DENSITY_LABELS[densityIndex]);
+            if (btnDensity.getGraphic() instanceof FontIcon fi)
+                fi.setIconLiteral(DENSITY_ICONS[densityIndex]);
+        }
+    }
 
     @FXML
     private void onToggleSidebar() {

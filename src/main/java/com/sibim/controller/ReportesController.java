@@ -39,6 +39,9 @@ public class ReportesController {
     @FXML private NumberAxis    chartYAxis;
     @FXML private ProgressIndicator chartSpinner;
 
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/reportes");
+
     private final ReporteService    reporteService  = new ReporteService();
     private final ProductoRepository productoRepo   = new ProductoRepository();
     private boolean updatingFromPreset = false;
@@ -51,7 +54,13 @@ public class ReportesController {
         hastaField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
         hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
-        onReportMes(); // default to current month
+        switch (STICKY.get("preset", "mes")) {
+            case "hoy"    -> onReportHoy();
+            case "semana" -> onReportSemana();
+            case "anio"   -> onReportAnio();
+            case "todo"   -> onReportTodo();
+            default       -> onReportMes();
+        }
         if (helpTiposReporte != null) DialogUtil.enableClickToShowTooltip(helpTiposReporte);
 
         if (periodCard != null) AnimationUtils.fadeInUp(periodCard, 300,  0);
@@ -74,6 +83,12 @@ public class ReportesController {
         hastaField.setValue(hasta);
         updatingFromPreset = false;
         setPresetActive(source);
+        String key = source == btnPresetHoy    ? "hoy"
+                   : source == btnPresetSemana ? "semana"
+                   : source == btnPresetAnio   ? "anio"
+                   : source == btnPresetTodo   ? "todo"
+                   : "mes";
+        STICKY.put("preset", key);
     }
 
     @FXML private void onReportHoy() {

@@ -636,4 +636,74 @@ public final class DialogUtil {
         dialog.getDialogPane().setContent(new VBox(0, header, fileCard, actions));
         dialog.showAndWait();
     }
+
+    // ── Table UX utilities ───────────────────────────────────────────────
+
+    /** Cell factory that bolds + colors the substring matching the live search
+     *  query.  {@code queryGetter} is called on every cell render, so it should
+     *  just return the current field value (e.g. {@code () -> searchField.getText()}).
+     *  Falls back to plain text when the query is blank or yields no match. */
+    public static <T> Callback<TableColumn<T, String>, TableCell<T, String>> highlightCellFactory(
+            java.util.function.Supplier<String> queryGetter) {
+        return col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setText(null); setGraphic(null); return; }
+                String q = queryGetter.get();
+                if (q == null || q.isBlank()) { setText(item); setGraphic(null); return; }
+                int idx = item.toLowerCase().indexOf(q.toLowerCase());
+                if (idx < 0) { setText(item); setGraphic(null); return; }
+                javafx.scene.text.Text pre = new javafx.scene.text.Text(item.substring(0, idx));
+                javafx.scene.text.Text hl  = new javafx.scene.text.Text(item.substring(idx, idx + q.length()));
+                hl.getStyleClass().add("search-highlight");
+                javafx.scene.text.Text suf = new javafx.scene.text.Text(item.substring(idx + q.length()));
+                setGraphic(new javafx.scene.text.TextFlow(pre, hl, suf));
+                setText(null);
+            }
+        };
+    }
+
+    /** Saves and restores the sort column + direction for {@code table} using
+     *  {@code prefs} with keys {@code keyPrefix + ".sortIdx"} and
+     *  {@code keyPrefix + ".sortDir"}.  Call once after all columns are added. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void persistTableSort(TableView<?> table, java.util.prefs.Preferences prefs, String keyPrefix) {
+        // Restore
+        int savedIdx = prefs.getInt(keyPrefix + ".sortIdx", -1);
+        if (savedIdx >= 0 && savedIdx < table.getColumns().size()) {
+            TableColumn col = table.getColumns().get(savedIdx);
+            col.setSortType("DESC".equals(prefs.get(keyPrefix + ".sortDir", "ASC"))
+                ? TableColumn.SortType.DESCENDING : TableColumn.SortType.ASCENDING);
+            ((TableView) table).getSortOrder().setAll(col);
+        }
+        // Persist on change
+        table.getSortOrder().addListener((javafx.collections.ListChangeListener) c -> {
+            if (table.getSortOrder().isEmpty()) {
+                prefs.remove(keyPrefix + ".sortIdx");
+                prefs.remove(keyPrefix + ".sortDir");
+            } else {
+                TableColumn col = (TableColumn) table.getSortOrder().get(0);
+                prefs.putInt(keyPrefix + ".sortIdx", table.getColumns().indexOf(col));
+                prefs.put(keyPrefix + ".sortDir",
+                    col.getSortType() == TableColumn.SortType.DESCENDING ? "DESC" : "ASC");
+            }
+        });
+    }
+
+    /** Saves and restores column widths for {@code table} so the user's manual
+     *  resizes survive navigation.  Call once after all columns are added. */
+    public static void persistColumnWidths(TableView<?> table, java.util.prefs.Preferences prefs, String keyPrefix) {
+        // Restore (deferred so layout has run at least once)
+        Platform.runLater(() -> {
+            for (int i = 0; i < table.getColumns().size(); i++) {
+                double w = prefs.getDouble(keyPrefix + ".colW." + i, -1);
+                if (w > 20) table.getColumns().get(i).setPrefWidth(w);
+            }
+        });
+        // Save on change
+        for (int i = 0; i < table.getColumns().size(); i++) {
+            final String k = keyPrefix + ".colW." + i;
+            table.getColumns().get(i).widthProperty().addListener((obs, o, n) -> prefs.putDouble(k, n.doubleValue()));
+        }
+    }
 }

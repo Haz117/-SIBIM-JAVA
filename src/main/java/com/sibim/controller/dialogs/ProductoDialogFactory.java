@@ -19,6 +19,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -47,7 +48,8 @@ public final class ProductoDialogFactory {
     private ProductoDialogFactory() {}
 
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
-                                           Map<String, Image> thumbnailCache, Logger log) {
+                                           Map<String, Image> thumbnailCache, Logger log,
+                                           List<String> existingFotos) {
         boolean isNewProduct = existing == null;
         Dialog<Producto> dialog = DialogUtil.create(520);
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? "#4F46E5" : "#059669");
@@ -248,78 +250,86 @@ public final class ProductoDialogFactory {
         fResguardante.setPromptText("Persona responsable del resguardo (nombre completo)");
         fResguardante.getStyleClass().add("form-input");
 
-        // ── Image picker ──
-        String[] fotoHolder = { existing != null ? existing.getFotoUrl() : null };
+        // ── Multi-foto gallery ──
+        List<String> fotosHolder = new java.util.ArrayList<>(existingFotos != null ? existingFotos : new java.util.ArrayList<>());
+        // Si existingFotos viene vacío pero existing tiene foto_url, añadirla como primera foto
+        if (fotosHolder.isEmpty() && existing != null && existing.getFotoUrl() != null && !existing.getFotoUrl().isBlank()) {
+            fotosHolder.add(existing.getFotoUrl());
+        }
 
-        ImageView imgPreview = new ImageView();
-        imgPreview.setFitWidth(150); imgPreview.setFitHeight(112);
-        imgPreview.setPreserveRatio(true);
+        FlowPane galleryPane = new FlowPane(8, 8);
+        galleryPane.setAlignment(Pos.CENTER_LEFT);
 
-        FontIcon camIcon = new FontIcon("mdi2c-camera-outline");
-        camIcon.setIconSize(28);
-        Label imgPlaceholder = new Label("Sin imagen", camIcon);
-        imgPlaceholder.setContentDisplay(javafx.scene.control.ContentDisplay.TOP);
-        imgPlaceholder.getStyleClass().add("dlg-img-placeholder");
-        imgPlaceholder.setAlignment(Pos.CENTER);
+        // markDirty is defined later but gallery needs it — use a holder (reuse markDirtyRef defined below)
+        Runnable[] markDirtyRef = {null};
 
-        StackPane imgBox = new StackPane(imgPlaceholder, imgPreview);
-        imgBox.setPrefSize(150, 112);
-        imgBox.getStyleClass().add("dlg-img-box");
-
-        Runnable loadImg = () -> {
-            if (fotoHolder[0] != null && !fotoHolder[0].isBlank()) {
+        Runnable[] rebuildGallery = {null};
+        rebuildGallery[0] = () -> {
+            galleryPane.getChildren().clear();
+            for (int idx = 0; idx < fotosHolder.size(); idx++) {
+                final int i = idx;
+                final String url = fotosHolder.get(i);
+                ImageView iv = new ImageView();
+                iv.setFitWidth(110); iv.setFitHeight(80);
+                iv.setPreserveRatio(true);
                 try {
-                    Image img = new Image(Path.of(fotoHolder[0]).toUri().toString(), 150, 112, true, true, true);
-                    imgPreview.setImage(img);
-                    imgPlaceholder.setVisible(false);
+                    String imgUrl = com.sibim.util.SupabaseStorage.isRemoteUrl(url)
+                        ? url
+                        : java.nio.file.Path.of(url).toUri().toString();
+                    Image img = new Image(imgUrl, 110, 80, true, true, true);
+                    iv.setImage(img);
                 } catch (Exception ex) {
-                    log.warn("No se pudo cargar la miniatura de la foto en '{}' (¿ruta local de otra PC, o archivo movido/corrupto?)",
-                        fotoHolder[0], ex);
-                    imgPlaceholder.setVisible(true);
+                    iv.setImage(null);
                 }
-            } else {
-                imgPreview.setImage(null);
-                imgPlaceholder.setVisible(true);
+                Button btnDel = new Button("×");
+                btnDel.getStyleClass().add("btn-secondary");
+                btnDel.setMinSize(20, 20); btnDel.setMaxSize(20, 20);
+                btnDel.setOnAction(ev -> { fotosHolder.remove(i); rebuildGallery[0].run(); if (markDirtyRef[0] != null) markDirtyRef[0].run(); });
+                StackPane cell = new StackPane(iv, btnDel);
+                StackPane.setAlignment(btnDel, Pos.TOP_RIGHT);
+                cell.getStyleClass().add("dlg-img-box");
+                cell.setPrefSize(110, 80);
+                if (i == 0) {
+                    Label badge = new Label("Principal");
+                    badge.getStyleClass().addAll("muted-sm");
+                    StackPane.setAlignment(badge, Pos.BOTTOM_LEFT);
+                    cell.getChildren().add(badge);
+                }
+                galleryPane.getChildren().add(cell);
             }
         };
-        loadImg.run();
+        rebuildGallery[0].run();
 
-        Button btnSelImg    = new Button("Seleccionar");
-        btnSelImg.setGraphic(new FontIcon("mdi2c-camera-outline"));
-        Button btnQuitarImg = new Button("Quitar");
-        btnQuitarImg.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
-        btnSelImg.getStyleClass().add("btn-secondary");
-        btnQuitarImg.getStyleClass().add("btn-secondary");
-        btnQuitarImg.setDisable(fotoHolder[0] == null || fotoHolder[0].isBlank());
-
-        btnSelImg.setOnAction(ev -> {
+        Button btnAgregarFoto = new Button("Agregar foto");
+        btnAgregarFoto.setGraphic(new FontIcon("mdi2c-camera-plus-outline"));
+        btnAgregarFoto.getStyleClass().add("btn-secondary");
+        btnAgregarFoto.setOnAction(ev -> {
             FileChooser chooser = new FileChooser();
             chooser.setTitle("Seleccionar imagen del bien");
             chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("Imágenes", "*.png","*.jpg","*.jpeg","*.gif","*.bmp","*.webp"));
-            File file = chooser.showOpenDialog(dialog.getOwner());
-            if (file != null) {
-                if (ImageUtils.exceedsMaxSize(file)) {
-                    Alert tooBig = new Alert(Alert.AlertType.WARNING,
-                        "La imagen pesa " + (file.length() / (1024 * 1024)) + " MB — el máximo permitido es "
-                        + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB. Elige un archivo más pequeño.");
-                    tooBig.setHeaderText("Imagen demasiado pesada");
-                    tooBig.initOwner(dialog.getOwner());
-                    tooBig.showAndWait();
-                    return;
+            java.util.List<File> files = chooser.showOpenMultipleDialog(dialog.getOwner());
+            if (files != null) {
+                for (File file : files) {
+                    if (ImageUtils.exceedsMaxSize(file)) {
+                        Alert tooBig = new Alert(Alert.AlertType.WARNING,
+                            "La imagen '" + file.getName() + "' pesa " + (file.length() / (1024 * 1024)) + " MB — máximo " + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.");
+                        tooBig.setHeaderText("Imagen demasiado pesada");
+                        tooBig.initOwner(dialog.getOwner());
+                        tooBig.showAndWait();
+                        continue;
+                    }
+                    fotosHolder.add(file.getAbsolutePath());
                 }
-                fotoHolder[0] = file.getAbsolutePath();
-                loadImg.run();
-                btnQuitarImg.setDisable(false);
+                rebuildGallery[0].run();
+                if (markDirtyRef[0] != null) markDirtyRef[0].run();
             }
         });
-        btnQuitarImg.setOnAction(ev -> {
-            fotoHolder[0] = null;
-            loadImg.run();
-            btnQuitarImg.setDisable(true);
-        });
 
-        VBox imgSection = new VBox(6, imgBox, new HBox(6, btnSelImg, btnQuitarImg));
+        Label lblGalleryHint = new Label("La primera foto es la imagen principal del bien en la tabla.");
+        lblGalleryHint.getStyleClass().add("muted-sm");
+
+        VBox imgSection = new VBox(6, galleryPane, btnAgregarFoto, lblGalleryHint);
 
         // ── Factura picker ──
         String[] facturaHolder = { existing != null ? existing.getFacturaUrl() : null };
@@ -342,7 +352,9 @@ public final class ProductoDialogFactory {
         Runnable loadFact = () -> {
             if (facturaHolder[0] != null && !facturaHolder[0].isBlank()) {
                 try {
-                    Image img = new Image(Path.of(facturaHolder[0]).toUri().toString(), 150, 112, true, true, true);
+                    String fu = facturaHolder[0];
+                    String factImgUrl = com.sibim.util.SupabaseStorage.isRemoteUrl(fu) ? fu : Path.of(fu).toUri().toString();
+                    Image img = new Image(factImgUrl, 150, 112, true, true, true);
                     factPreview.setImage(img);
                     factPlaceholder.setVisible(false);
                 } catch (Exception ex) {
@@ -363,8 +375,7 @@ public final class ProductoDialogFactory {
         btnQuitarFact.getStyleClass().add("btn-secondary");
         btnQuitarFact.setDisable(facturaHolder[0] == null || facturaHolder[0].isBlank());
 
-        // markDirty is defined later but btnSelFact/btnQuitarFact need it — use a holder
-        Runnable[] markDirtyRef = {null};
+        // markDirtyRef declared above in multi-foto gallery section — shared reference
         btnSelFact.setOnAction(ev -> {
             FileChooser chooser = new FileChooser();
             chooser.setTitle("Seleccionar foto de factura");
@@ -525,6 +536,13 @@ public final class ProductoDialogFactory {
         gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Resguardante",
             "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
                                                                   0, rp); gridPatrimonio.add(fResguardante, 1, rp++);
+        Separator sepEtiq = new Separator();
+        gridPatrimonio.add(sepEtiq, 0, rp, 2, 1); rp++;
+        CheckBox fEtiquetado = new CheckBox("Bien etiquetado (tiene etiqueta física/QR)");
+        fEtiquetado.setSelected(existing != null && existing.isEtiquetado());
+        fEtiquetado.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabel("Etiquetado"), 0, rp);
+        gridPatrimonio.add(fEtiquetado, 1, rp++);
         gridPatrimonio.add(new Separator(), 0, rp, 2, 1); rp++;
         Label lblDepSection = new Label("Depreciación (línea recta)");
         lblDepSection.getStyleClass().add("dialog-field-label");
@@ -668,6 +686,7 @@ public final class ProductoDialogFactory {
         fFechaAdq.valueProperty().addListener((o, a, b) -> markDirty.run());
         fVidaUtil.valueProperty().addListener((o, a, b) -> markDirty.run());
         fValorResidual.textProperty().addListener((o, a, b) -> markDirty.run());
+        fEtiquetado.selectedProperty().addListener((o, a, b) -> markDirty.run());
 
         javafx.scene.Node cancelBtn = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         if (cancelBtn != null) {
@@ -785,40 +804,82 @@ public final class ProductoDialogFactory {
                 p.setValorResidual(BigDecimal.ZERO);
             }
             p.setArea(fArea.getValue());
+            p.setEtiquetado(fEtiquetado.isSelected());
             dirty[0] = false; // clear so setOnCloseRequest doesn't prompt after a successful save
-            if (fotoHolder[0] != null && !fotoHolder[0].isBlank()) {
-                try {
-                    Path imgDir = imgDir();
-                    Files.createDirectories(imgDir);
-                    Path dest = imgDir.resolve(p.getId() + ".jpg");
-                    Path src = Path.of(fotoHolder[0]);
-                    if (!src.equals(dest)) {
-                        ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
-                        thumbnailCache.remove(dest.toString());
+            // Procesar y guardar fotos
+            List<String> savedFotos = new java.util.ArrayList<>();
+            Path imgDir = imgDir();
+            boolean useStorage = com.sibim.util.SupabaseStorage.isAvailable();
+            try {
+                if (!useStorage) Files.createDirectories(imgDir);
+                for (String rawUrl : fotosHolder) {
+                    try {
+                        // Ya es URL remota — conservar sin resubir
+                        if (com.sibim.util.SupabaseStorage.isRemoteUrl(rawUrl)) {
+                            savedFotos.add(rawUrl);
+                            continue;
+                        }
+                        Path src = java.nio.file.Path.of(rawUrl);
+                        String remoteName = p.getId() + "_" + savedFotos.size() + ".jpg";
+                        if (useStorage) {
+                            java.io.File tmp = Files.createTempFile("sibim-", ".jpg").toFile();
+                            try {
+                                ImageUtils.resizeAndSave(src.toFile(), tmp);
+                                String uploadedUrl = com.sibim.util.SupabaseStorage.upload(tmp, remoteName);
+                                savedFotos.add(uploadedUrl);
+                            } catch (Exception uploadEx) {
+                                // Fallback: save locally so the photo is never lost
+                                log.warn("Upload a Storage falló para '{}', guardando local: {}", p.getNombre(), uploadEx.getMessage());
+                                Files.createDirectories(imgDir);
+                                Path dest = imgDir.resolve(remoteName);
+                                ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                                savedFotos.add(dest.toString());
+                            } finally { tmp.delete(); }
+                        } else {
+                            Path dest = imgDir.resolve(remoteName);
+                            if (!src.equals(dest)) {
+                                ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                                thumbnailCache.remove(dest.toString());
+                            }
+                            savedFotos.add(dest.toString());
+                        }
+                    } catch (Exception ex) {
+                        log.error("No se pudo procesar imagen del bien '{}': {}", p.getNombre(), rawUrl, ex);
                     }
-                    p.setFotoUrl(dest.toString());
-                } catch (Exception ex) {
-                    log.error("No se pudo procesar la imagen del bien '{}', se conserva la foto anterior", p.getNombre(), ex);
-                    p.setFotoUrl(existing != null ? existing.getFotoUrl() : null);
                 }
-            } else {
-                p.setFotoUrl(null);
+            } catch (Exception ex) {
+                log.error("No se pudo crear el directorio de imágenes para '{}'", p.getNombre(), ex);
             }
-            if (facturaHolder[0] != null && !facturaHolder[0].isBlank()) {
-                try {
-                    Path factDir = ImageUtils.storageDir().resolve("facturas");
-                    Files.createDirectories(factDir);
-                    Path dest = factDir.resolve(p.getId() + ".jpg");
-                    Path src = Path.of(facturaHolder[0]);
-                    if (!src.equals(dest)) {
-                        ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
-                        thumbnailCache.remove(dest.toString());
+            p.setFotosUrls(savedFotos);
+            p.setFotoUrl(savedFotos.isEmpty() ? null : savedFotos.get(0));
+            // Factura
+            String factUrlFinal = facturaHolder[0];
+            if (factUrlFinal != null && !factUrlFinal.isBlank()) {
+                if (!com.sibim.util.SupabaseStorage.isRemoteUrl(factUrlFinal)) {
+                    try {
+                        if (useStorage) {
+                            java.io.File tmp = Files.createTempFile("sibim-fact-", ".jpg").toFile();
+                            try {
+                                ImageUtils.resizeAndSave(Path.of(factUrlFinal).toFile(), tmp);
+                                factUrlFinal = com.sibim.util.SupabaseStorage.upload(tmp, p.getId() + "_factura.jpg");
+                            } finally { tmp.delete(); }
+                        } else {
+                            Path factDir = ImageUtils.storageDir().resolve("facturas");
+                            Files.createDirectories(factDir);
+                            Path dest = factDir.resolve(p.getId() + ".jpg");
+                            Path src = Path.of(factUrlFinal);
+                            if (!src.equals(dest)) {
+                                ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                                thumbnailCache.remove(dest.toString());
+                            }
+                            factUrlFinal = dest.toString();
+                        }
+                    } catch (Exception ex) {
+                        log.error("No se pudo procesar factura del bien '{}', se conserva la anterior", p.getNombre(), ex);
+                        factUrlFinal = existing != null ? existing.getFacturaUrl() : null;
                     }
-                    p.setFacturaUrl(dest.toString());
-                } catch (Exception ex) {
-                    log.error("No se pudo procesar la foto de factura del bien '{}', se conserva la anterior", p.getNombre(), ex);
-                    p.setFacturaUrl(existing != null ? existing.getFacturaUrl() : null);
                 }
+                p.setFacturaUrl(factUrlFinal);
             } else {
                 p.setFacturaUrl(null);
             }

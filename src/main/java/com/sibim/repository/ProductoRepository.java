@@ -60,7 +60,7 @@ public class ProductoRepository {
     // ── Server-side filtering & pagination ───────────────────────────────────
 
     /** Aggregate stats for the Bienes screen stat cards — one round-trip. */
-    public record InventarioStats(long total, java.math.BigDecimal valorTotal, long alertas) {}
+    public record InventarioStats(long total, java.math.BigDecimal valorTotal, long alertas, long sinEtiquetar) {}
 
     /** SQL expression that mirrors ProductoUtils.computeEstado logic. */
     private static final String ESTADO_SQL =
@@ -187,12 +187,14 @@ public class ProductoRepository {
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
             long alertas = all.stream()
                 .filter(p -> p.getEstado() != com.sibim.model.enums.EstadoProducto.ACTIVO).count();
-            return new InventarioStats(total, valor, alertas);
+            long sinEtiq = all.stream().filter(p -> !p.isEtiquetado()).count();
+            return new InventarioStats(total, valor, alertas, sinEtiq);
         }
         String sql = """
             SELECT COUNT(*) AS total,
                    COALESCE(SUM(precio_venta * stock_actual), 0) AS valor_total,
-                   COUNT(*) FILTER (WHERE %s IN ('agotado','bajo_stock','vencido')) AS alertas
+                   COUNT(*) FILTER (WHERE %s IN ('agotado','bajo_stock','vencido')) AS alertas,
+                   COUNT(*) FILTER (WHERE etiquetado = FALSE) AS sin_etiquetar
             FROM products p
             WHERE fecha_baja IS NULL
             """.formatted(ESTADO_SQL);
@@ -207,10 +209,11 @@ public class ProductoRepository {
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) {
                 return new InventarioStats(rs.getLong("total"),
-                    rs.getBigDecimal("valor_total"), rs.getLong("alertas"));
+                    rs.getBigDecimal("valor_total"), rs.getLong("alertas"),
+                    rs.getLong("sin_etiquetar"));
             }
         }
-        return new InventarioStats(0, java.math.BigDecimal.ZERO, 0);
+        return new InventarioStats(0, java.math.BigDecimal.ZERO, 0, 0);
     }
 
     /** In-memory filter for offline/demo mode — mirrors {@link #buildFiltroWhere}. */
@@ -338,9 +341,9 @@ public class ProductoRepository {
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
-                fecha_adquisicion, vida_util_anios, valor_residual,
+                fecha_adquisicion, vida_util_anios, valor_residual, etiquetado,
                 created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -365,6 +368,7 @@ public class ProductoRepository {
                 fecha_adquisicion = EXCLUDED.fecha_adquisicion,
                 vida_util_anios = EXCLUDED.vida_util_anios,
                 valor_residual = EXCLUDED.valor_residual,
+                etiquetado = EXCLUDED.etiquetado,
                 updated_at = NOW()
             """;
         try (Connection conn = DatabaseConfig.getConnection();
@@ -394,8 +398,9 @@ public class ProductoRepository {
             ps.setObject(22, p.getFechaAdquisicion());
             ps.setObject(23, p.getVidaUtilAnios());
             ps.setBigDecimal(24, p.getValorResidual() != null ? p.getValorResidual() : BigDecimal.ZERO);
-            ps.setTimestamp(25, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(26, Timestamp.valueOf(now));
+            ps.setBoolean(25, p.isEtiquetado());
+            ps.setTimestamp(26, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
+            ps.setTimestamp(27, Timestamp.valueOf(now));
             ps.executeUpdate();
         }
         return p;
@@ -843,6 +848,62 @@ public class ProductoRepository {
         java.sql.Date fb = rs.getDate("fecha_baja");
         if (fb != null) p.setFechaBaja(fb.toLocalDate());
         p.setMotivoBaja(rs.getString("motivo_baja"));
+        p.setEtiquetado(rs.getBoolean("etiquetado"));
         return p;
+    }
+
+    /** Returns the ordered list of photo URLs for a given product. */
+    public List<String> findFotos(String productoId) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) {
+            // offline: fotos stored in Producto.fotosUrls (already loaded)
+            return new java.util.ArrayList<>();
+        }
+        if (DatabaseConfig.isDemoMode()) return new java.util.ArrayList<>();
+        List<String> fotos = new java.util.ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "SELECT foto_url FROM product_fotos WHERE producto_id = ? ORDER BY orden")) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) fotos.add(rs.getString(1));
+            }
+        }
+        return fotos;
+    }
+
+    /** Replaces all photos for a product (deletes then re-inserts in order). */
+    public void saveFotos(String productoId, List<String> fotos) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null || DatabaseConfig.isDemoMode()) return;
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                saveFotosInTx(conn, productoId, fotos);
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    private static void saveFotosInTx(Connection conn, String productoId, List<String> fotos) throws SQLException {
+        try (PreparedStatement del = conn.prepareStatement("DELETE FROM product_fotos WHERE producto_id = ?")) {
+            del.setString(1, productoId);
+            del.executeUpdate();
+        }
+        if (fotos == null || fotos.isEmpty()) return;
+        try (PreparedStatement ins = conn.prepareStatement(
+                "INSERT INTO product_fotos (id, producto_id, foto_url, orden) VALUES (?,?,?,?)")) {
+            for (int i = 0; i < fotos.size(); i++) {
+                ins.setString(1, java.util.UUID.randomUUID().toString());
+                ins.setString(2, productoId);
+                ins.setString(3, fotos.get(i));
+                ins.setInt(4, i);
+                ins.addBatch();
+            }
+            ins.executeBatch();
+        }
     }
 }

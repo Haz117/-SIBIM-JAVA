@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.config.Areas;
+import com.sibim.controller.dialogs.AreaResguardosDialog;
 import com.sibim.controller.dialogs.ConteoFisicoDialog;
 import com.sibim.controller.dialogs.ImportacionBienesDialog;
 import com.sibim.controller.dialogs.MovimientoTimelineDialog;
@@ -127,9 +128,11 @@ public class ProductosController {
     @FXML private Label lblStatTotal;
     @FXML private Label lblStatValor;
     @FXML private Label lblStatAlertas;
+    @FXML private Label lblStatSinEtiquetar;
     @FXML private VBox statCardTotal;
     @FXML private VBox statCardValor;
     @FXML private VBox cardAlertas;
+    @FXML private VBox cardSinEtiquetar;
     @FXML private Label helpAlertas;
     @FXML private Label helpResguardante;
     @FXML private Label helpTotal;
@@ -219,7 +222,7 @@ public class ProductosController {
             areaFilter.setValue(savedArea);
         loadData();
         AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(statCardTotal, statCardValor, cardAlertas), 300, 55);
+            java.util.List.of(statCardTotal, statCardValor, cardAlertas, cardSinEtiquetar), 300, 55);
         Platform.runLater(() -> searchField.requestFocus());
         if (helpAlertas      != null) DialogUtil.enableClickToShowTooltip(helpAlertas);
         if (helpResguardante != null) DialogUtil.enableClickToShowTooltip(helpResguardante);
@@ -617,6 +620,7 @@ public class ProductosController {
         if (lblStatValor   != null) AnimationUtils.animateCount(lblStatValor,   stats.valorTotal().longValue(), 880,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
         if (lblStatAlertas != null) AnimationUtils.animateCount(lblStatAlertas, stats.alertas(), 580);
+        if (lblStatSinEtiquetar != null) AnimationUtils.animateCount(lblStatSinEtiquetar, stats.sinEtiquetar(), 600);
 
         // Pop the stat cards once their numbers finish counting
         javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
@@ -746,6 +750,12 @@ public class ProductosController {
             }
         };
         com.sibim.util.AppExecutor.submit(task);
+    }
+
+    @FXML
+    private void onResguardoArea() {
+        String area = areaFilter.getValue();
+        AreaResguardosDialog.show(area, table.getScene());
     }
 
     @FXML
@@ -1143,10 +1153,21 @@ public class ProductosController {
     private void showProductDialog(Producto existing) {
         try {
             List<Categoria> cats = categoriaService.findAll();
-            Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log);
+            List<String> existingFotos;
+            if (existing != null) {
+                try { existingFotos = productoService.getFotosByProductoId(existing.getId()); }
+                catch (Exception e) { existingFotos = new java.util.ArrayList<>(); }
+            } else {
+                existingFotos = new java.util.ArrayList<>();
+            }
+            Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos);
             boolean isNew = existing == null;
             result.ifPresent(p -> DialogUtil.runAsync(
-                () -> productoService.save(p),
+                () -> {
+                    Producto saved = productoService.save(p);
+                    productoService.saveFotos(saved.getId(), p.getFotosUrls());
+                    return saved;
+                },
                 saved -> {
                     if (isNew) {
                         NotificacionUtil.exito(table.getScene(), "Bien registrado exitosamente");

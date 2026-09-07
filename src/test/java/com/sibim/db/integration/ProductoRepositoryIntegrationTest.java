@@ -178,4 +178,161 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
         assertTrue(result.isEmpty(),
             "findById con un id inexistente debe retornar Optional.empty()");
     }
+
+    // ── etiquetado / findStats ───────────────────────────────────────────────
+
+    /**
+     * findStats().sinEtiquetar must count only products where etiquetado = FALSE.
+     * Saves two products: one etiquetado, one not — expects sinEtiquetar = 1.
+     */
+    @Test
+    void findStats_sinEtiquetarCount_correcta() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoria Stats");
+        }
+
+        Producto noEtiquetado = buildProducto(UUID.randomUUID().toString(), "Mesa Sin Etiqueta", "MSE-001");
+        noEtiquetado.setEtiquetado(false);
+        repo.saveOnline(noEtiquetado);
+
+        Producto etiquetado = buildProducto(UUID.randomUUID().toString(), "Silla Etiquetada", "SET-001");
+        etiquetado.setEtiquetado(true);
+        repo.saveOnline(etiquetado);
+
+        ProductoRepository.InventarioStats stats = repo.findStats();
+
+        assertEquals(2, stats.total(), "total debe ser 2");
+        assertEquals(1, stats.sinEtiquetar(),
+            "sinEtiquetar debe ser 1 — solo el bien con etiquetado=false");
+    }
+
+    /**
+     * findStats() must count a product as sinEtiquetar = 0 when all products
+     * are etiquetado = true.
+     */
+    @Test
+    void findStats_todosEtiquetados_sinEtiquetarEsCero() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoria Stats");
+        }
+
+        Producto p = buildProducto(UUID.randomUUID().toString(), "Computadora", "COM-001");
+        p.setEtiquetado(true);
+        repo.saveOnline(p);
+
+        ProductoRepository.InventarioStats stats = repo.findStats();
+
+        assertEquals(0, stats.sinEtiquetar(), "sinEtiquetar debe ser 0 cuando todos están etiquetados");
+    }
+
+    /**
+     * etiquetado field must round-trip through saveOnline → findById correctly.
+     */
+    @Test
+    void saveOnline_etiquetadoTrue_persisteYRegresa() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoria Etiquetado");
+        }
+
+        String id = UUID.randomUUID().toString();
+        Producto p = buildProducto(id, "Impresora", "IMP-001");
+        p.setEtiquetado(true);
+        repo.saveOnline(p);
+
+        Optional<Producto> found = repo.findById(id);
+
+        assertTrue(found.isPresent());
+        assertTrue(found.get().isEtiquetado(), "etiquetado=true debe persistir en la BD");
+    }
+
+    // ── findFotos / saveFotos ────────────────────────────────────────────────
+
+    /**
+     * saveFotos() must persist URLs in the given order; findFotos() must return
+     * them back in the same order.
+     */
+    @Test
+    void saveFotos_persistsInOrder() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoria Fotos");
+        }
+
+        String id = UUID.randomUUID().toString();
+        repo.saveOnline(buildProducto(id, "Laptop", "LAP-001"));
+
+        List<String> fotos = List.of(
+            "https://supabase.co/storage/foto_0.jpg",
+            "https://supabase.co/storage/foto_1.jpg",
+            "https://supabase.co/storage/foto_2.jpg"
+        );
+        repo.saveFotos(id, fotos);
+
+        List<String> result = repo.findFotos(id);
+
+        assertEquals(3, result.size(), "debe haber 3 fotos");
+        assertEquals("https://supabase.co/storage/foto_0.jpg", result.get(0));
+        assertEquals("https://supabase.co/storage/foto_1.jpg", result.get(1));
+        assertEquals("https://supabase.co/storage/foto_2.jpg", result.get(2));
+    }
+
+    /**
+     * saveFotos() called a second time must replace the previous set of photos,
+     * not append to it.
+     */
+    @Test
+    void saveFotos_replacesPreviousFotos() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoria Fotos Replace");
+        }
+
+        String id = UUID.randomUUID().toString();
+        repo.saveOnline(buildProducto(id, "Monitor", "MON-001"));
+
+        repo.saveFotos(id, List.of("https://example.com/vieja_0.jpg", "https://example.com/vieja_1.jpg"));
+        repo.saveFotos(id, List.of("https://example.com/nueva_0.jpg"));
+
+        List<String> result = repo.findFotos(id);
+
+        assertEquals(1, result.size(), "las fotos anteriores deben haber sido reemplazadas");
+        assertEquals("https://example.com/nueva_0.jpg", result.get(0));
+    }
+
+    /**
+     * saveFotos() with an empty list must remove all existing photos.
+     */
+    @Test
+    void saveFotos_listaVacia_eliminaFotosExistentes() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoria Fotos Delete");
+        }
+
+        String id = UUID.randomUUID().toString();
+        repo.saveOnline(buildProducto(id, "Teclado", "TEC-001"));
+
+        repo.saveFotos(id, List.of("https://example.com/foto.jpg"));
+        repo.saveFotos(id, List.of());
+
+        List<String> result = repo.findFotos(id);
+
+        assertTrue(result.isEmpty(), "no deben quedar fotos tras guardar lista vacía");
+    }
+
+    /**
+     * findFotos() on a product with no photos must return an empty list,
+     * never null or throw.
+     */
+    @Test
+    void findFotos_sinFotos_retornaListaVacia() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoria Sin Fotos");
+        }
+
+        String id = UUID.randomUUID().toString();
+        repo.saveOnline(buildProducto(id, "Escritorio", "ESC-002"));
+
+        List<String> result = repo.findFotos(id);
+
+        assertNotNull(result, "findFotos nunca debe retornar null");
+        assertTrue(result.isEmpty(), "producto sin fotos debe retornar lista vacía");
+    }
 }

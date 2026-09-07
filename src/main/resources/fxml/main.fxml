@@ -185,6 +185,12 @@
             <tooltip><Tooltip text="Ver todos los atajos de teclado  ·  F2 = Tutorial"/></tooltip>
         </Label>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
+        <Button fx:id="btnDensity" onAction="#onToggleDensity" styleClass="density-btn"
+                text="Normal" graphicTextGap="5" contentDisplay="LEFT">
+            <graphic><FontIcon iconLiteral="mdi2v-view-list" styleClass="status-icon"/></graphic>
+            <tooltip><Tooltip text="Densidad de filas: Compacto → Normal → Cómodo"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusTimeLabel" text="00:00" styleClass="status-time"/>
     </HBox>
 </VBox>

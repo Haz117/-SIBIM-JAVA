@@ -24,7 +24,7 @@ public final class QrUtils {
             PixelWriter pw = image.getPixelWriter();
             for (int x = 0; x < size; x++) {
                 for (int y = 0; y < size; y++) {
-                    pw.setColor(x, y, matrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                    pw.setColor(x, y, matrix.get(x, y) ? Color.BLACK : Color.TRANSPARENT);
                 }
             }
             return image;

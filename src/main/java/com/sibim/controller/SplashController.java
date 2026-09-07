@@ -51,6 +51,7 @@ public class SplashController {
     private final List<Animation> loops = new ArrayList<>();
     private Arc arcRing;
     private RotateTransition arcSpin;
+    private Timeline dotAnim;
     private boolean animReady     = false;
     private boolean dbReady       = false;
     private boolean firstRunAdmin = false;
@@ -148,8 +149,8 @@ public class SplashController {
             stopLoops();
             animReady = true;
             if (!dbReady) {
-                lblStatus.setText("Conectando a la base de datos...");
-                progressBar.setProgress(-1);
+                progressBar.setVisible(false);
+                startDotAnimation();
                 startArcSpin();
             }
             maybeTransition();
@@ -195,6 +196,19 @@ public class SplashController {
         arcSpin.play();
     }
 
+    private void startDotAnimation() {
+        String base = "Conectando";
+        String[] frames = { base, base + ".", base + "..", base + "..." };
+        int[] idx = {0};
+        dotAnim = new Timeline(new KeyFrame(Duration.millis(520), e -> {
+            idx[0] = (idx[0] + 1) % frames.length;
+            lblStatus.setText(frames[idx[0]]);
+        }));
+        dotAnim.setCycleCount(Animation.INDEFINITE);
+        lblStatus.setText(frames[0]);
+        dotAnim.play();
+    }
+
     /** Single ambient effect: a subtle glow pulse on the logo badge. */
     private void startGlowPulse() {
         DropShadow glow = new DropShadow(36, Color.rgb(99, 102, 241, 0.65));
@@ -228,6 +242,7 @@ public class SplashController {
         for (Animation a : loops) if (a != null) a.stop();
         loops.clear();
         if (arcSpin != null) { arcSpin.stop(); arcSpin = null; }
+        if (dotAnim  != null) { dotAnim.stop();  dotAnim  = null; }
     }
 
     private void maybeTransition() {

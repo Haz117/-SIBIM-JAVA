@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 public class Producto {
@@ -41,6 +42,8 @@ public class Producto {
     private LocalDate fechaAdquisicion;
     private Integer vidaUtilAnios;      // nullable — not all assets need depreciation
     private BigDecimal valorResidual;   // defaults to ZERO
+    private boolean etiquetado;
+    private List<String> fotosUrls = new java.util.ArrayList<>();
 
     public Producto() {}
 
@@ -185,6 +188,12 @@ public class Producto {
 
     public BigDecimal getValorResidual() { return valorResidual; }
     public void setValorResidual(BigDecimal valorResidual) { this.valorResidual = valorResidual; }
+
+    public boolean isEtiquetado() { return etiquetado; }
+    public void setEtiquetado(boolean etiquetado) { this.etiquetado = etiquetado; }
+
+    public List<String> getFotosUrls() { return fotosUrls; }
+    public void setFotosUrls(List<String> fotosUrls) { this.fotosUrls = fotosUrls != null ? fotosUrls : new java.util.ArrayList<>(); }
 
     @Override
     public boolean equals(Object o) {

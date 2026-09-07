@@ -214,7 +214,7 @@ public class DepreciacionController {
         colPct.setSortType(TableColumn.SortType.DESCENDING);
         table.getSortOrder().setAll(List.<TableColumn<Producto, ?>>of(colPct));
 
-        table.setPlaceholder(buildSkeletonPlaceholder());
+        skeletonPulse = AnimationUtils.buildSkeletonPlaceholder(table, 7);
 
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
@@ -255,29 +255,6 @@ public class DepreciacionController {
         });
         cm.getItems().addAll(cmDetalle, new SeparatorMenuItem(), cmFicha);
         table.setContextMenu(cm);
-    }
-
-    private javafx.scene.layout.VBox buildSkeletonPlaceholder() {
-        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(4);
-        box.setPadding(new javafx.geometry.Insets(8));
-        for (int i = 0; i < 7; i++) {
-            Label bar = new Label();
-            bar.getStyleClass().add("skeleton");
-            bar.setPrefHeight(44);
-            bar.setMaxWidth(Double.MAX_VALUE);
-            box.getChildren().add(bar);
-        }
-        skeletonPulse = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(0),
-                new javafx.animation.KeyValue(box.opacityProperty(), 0.7)),
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
-                new javafx.animation.KeyValue(box.opacityProperty(), 0.4)),
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(1600),
-                new javafx.animation.KeyValue(box.opacityProperty(), 0.7))
-        );
-        skeletonPulse.setCycleCount(javafx.animation.Animation.INDEFINITE);
-        skeletonPulse.play();
-        return box;
     }
 
     private void showDetalle(Producto p) {

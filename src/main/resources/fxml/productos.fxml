@@ -30,6 +30,11 @@
             <graphic><FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Cuenta SOLO los bienes que estén filtrados en la tabla ahora mismo (búsqueda, categoría, área, estado). Filtra primero por área/categoría para hacer el conteo por lotes; sin filtros, cuenta todo el inventario." wrapText="true" maxWidth="280"/></tooltip>
         </Button>
+        <Button text="Resguardos" onAction="#onResguardoArea" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Gestionar documentos PDF de resguardo patrimonial por área"/></tooltip>
+        </Button>
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
@@ -99,6 +104,20 @@
             </HBox>
             <Label fx:id="lblStatAlertas" text="—" styleClass="rich-stat-value"/>
             <Label text="agotados · bajo stock" styleClass="rich-stat-hint"/>
+        </VBox>
+
+        <!-- Sin Etiquetar — rose -->
+        <VBox fx:id="cardSinEtiquetar" styleClass="rich-stat-card, rich-stat-rose"
+              HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
+            <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-rose">
+                    <FontIcon iconLiteral="mdi2t-tag-off-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="SIN ETIQUETAR" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatSinEtiquetar" text="—" styleClass="rich-stat-value"/>
+            <Label text="bienes sin etiqueta física" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
 

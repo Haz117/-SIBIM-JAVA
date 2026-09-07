@@ -81,6 +81,9 @@ public class AlertasController {
     @FXML private javafx.scene.control.ProgressBar pbBajoStock;
     @FXML private javafx.scene.control.ProgressBar pbGarantias;
 
+    private static final java.util.prefs.Preferences STICKY =
+        java.util.prefs.Preferences.userRoot().node("sibim/filters/alertas");
+
     private final ProductoService productoService = new ProductoService();
     private final MovimientoService movimientoService = new MovimientoService();
     private final ReporteService reporteService = new ReporteService();
@@ -138,7 +141,9 @@ public class AlertasController {
                 searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             }
             SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField, () -> applySearch(searchField.getText()));
-            SearchUtils.debounce(searchField, 260, this::applySearch);
+            SearchUtils.debounce(searchField, 260, q -> { STICKY.put("search", q != null ? q : ""); applySearch(q); });
+            String savedSearch = STICKY.get("search", "");
+            if (!savedSearch.isBlank()) searchField.setText(savedSearch);
         }
         tableAgotados.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
@@ -403,25 +408,17 @@ public class AlertasController {
         return false;
     }
 
-    @FXML
-    private void onExportarPdf() {
+    private void exportar(String label, java.util.concurrent.Callable<java.io.File> task) {
         if (sinAlertas()) return;
-        DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando reporte PDF…",
-            () -> reporteService.exportAlertasPdf(),
-            file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
-            ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo generar el reporte PDF")
-        );
+        javafx.scene.Scene scene = tableAgotados.getScene();
+        DialogUtil.runAsyncWithProgress(scene, label,
+            task,
+            file -> DialogUtil.showExportResultDialog(scene, file),
+            ex -> NotificacionUtil.error(scene, "No se pudo exportar"));
     }
 
-    @FXML
-    private void onExportarExcel() {
-        if (sinAlertas()) return;
-        DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando reporte Excel…",
-            () -> reporteService.exportAlertasExcel(),
-            file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
-            ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo generar el reporte Excel")
-        );
-    }
+    @FXML private void onExportarPdf()   { exportar("Generando PDF…",   reporteService::exportAlertasPdf); }
+    @FXML private void onExportarExcel() { exportar("Generando Excel…", reporteService::exportAlertasExcel); }
 
     @FXML
     private void onReponerTodosAgotados() {
@@ -652,15 +649,7 @@ public class AlertasController {
         );
     }
 
-    @FXML
-    private void onExportarCsv() {
-        if (sinAlertas()) return;
-        DialogUtil.runAsyncWithProgress(tableAgotados.getScene(), "Generando CSV…",
-            () -> reporteService.exportAlertasCsv(),
-            file -> DialogUtil.showExportResultDialog(tableAgotados.getScene(), file),
-            ex -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo exportar el CSV")
-        );
-    }
+    @FXML private void onExportarCsv() { exportar("Generando CSV…", reporteService::exportAlertasCsv); }
 
     private void updateSumCards() {
         int nAg = allAgotados.size(), nBs = allBajoStock.size(), nGa = allGarantias.size();

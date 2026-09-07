@@ -100,6 +100,13 @@ public class AuditoriaController {
                 loadData();
             });
             javafx.application.Platform.runLater(() -> searchField.requestFocus());
+            searchField.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene == null) return;
+                scene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F,
+                        javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                    () -> { searchField.requestFocus(); searchField.selectAll(); });
+            });
         }
 
         if (table != null) {
@@ -252,6 +259,8 @@ public class AuditoriaController {
                 setTooltip(tip);
             }
         });
+        com.sibim.util.DialogUtil.persistTableSort(table, STICKY, "sort");
+        com.sibim.util.DialogUtil.persistColumnWidths(table, STICKY, "colW");
     }
 
     private void setupEntidadFilter() {

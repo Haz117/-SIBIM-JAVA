@@ -39,14 +39,28 @@ public final class ImageUtils {
      */
     public static synchronized Path storageDir() {
         if (storageDir == null) {
-            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-            String configured = dotenv.get("IMG_DIR");
-            if (configured == null || configured.isBlank()) configured = System.getenv("IMG_DIR");
+            String configured = resolveImgDir();
             storageDir = (configured != null && !configured.isBlank())
                 ? Path.of(configured)
                 : Path.of(System.getProperty("user.home"), ".sibim", "imagenes");
         }
         return storageDir;
+    }
+
+    private static String resolveImgDir() {
+        // 1. %APPDATA%\SIBIM\.env (production location, same as DatabaseConfig)
+        String appData = System.getenv("APPDATA");
+        String prodDir = (appData != null && !appData.isBlank())
+            ? appData + File.separator + "SIBIM"
+            : System.getProperty("user.home") + File.separator + ".sibim";
+        Dotenv prod = Dotenv.configure().directory(prodDir).ignoreIfMissing().load();
+        String val = prod.get("IMG_DIR");
+        if (val != null && !val.isBlank()) return val;
+        // 2. Working directory / project root
+        val = Dotenv.configure().ignoreIfMissing().load().get("IMG_DIR");
+        if (val != null && !val.isBlank()) return val;
+        // 3. System environment variable
+        return System.getenv("IMG_DIR");
     }
 
     /** Lets callers reject an oversized file at selection time, before

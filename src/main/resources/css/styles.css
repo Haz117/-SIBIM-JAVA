@@ -3872,3 +3872,43 @@
 .depr-range-label { -fx-font-size: 12px; -fx-text-fill: #475569; -fx-min-width: 75px; }
 .depr-range-count { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;
                     -fx-min-width: 65px; -fx-alignment: CENTER_RIGHT; }
+
+/* ─── Feature: etiquetado — rose stat card ─── */
+.rich-stat-rose { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fff1f2, #ffe4e6); -fx-border-color: #fda4af; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
+.rich-stat-icon-badge-rose { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fb7185, #f43f5e); -fx-background-radius: 10px; }
+.filter-chip-rose { -fx-background-color: #fff1f2; -fx-border-color: #fda4af; -fx-text-fill: #e11d48; }
+.filter-chip-rose:selected { -fx-background-color: #f43f5e; -fx-text-fill: white; -fx-border-color: #e11d48; }
+
+/* ─── Table density toggle ─── */
+.density-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 11px;
+    -fx-padding: 2 6 2 6;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: rgba(255,255,255,0.08);
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 4;
+}
+.density-btn:hover { -fx-background-color: rgba(255,255,255,0.07); -fx-text-fill: #C7D2FE; }
+.density-btn:pressed { -fx-background-color: rgba(255,255,255,0.12); }
+.density-btn .status-icon { -fx-icon-size: 13; -fx-icon-color: #94A3B8; }
+.density-btn:hover .status-icon { -fx-icon-color: #C7D2FE; }
+
+/* Compact: 32px rows / Comfortable: 58px rows (Normal default is 44px) */
+.density-compact .data-table .table-row-cell  { -fx-cell-size: 32px; }
+.density-comfortable .data-table .table-row-cell { -fx-cell-size: 58px; }
+
+/* ─── Dashboard trend indicator ─── */
+.trend-lbl {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 5 1 5;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
+.trend-up   { -fx-text-fill: #059669; -fx-background-color: #D1FAE5; }
+.trend-down { -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; }
+.trend-eq   { -fx-text-fill: #64748B; -fx-background-color: #F1F5F9; }

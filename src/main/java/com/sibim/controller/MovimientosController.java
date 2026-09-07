@@ -163,6 +163,16 @@ public class MovimientosController {
                 }
             });
 
+        // Initial disabled state + tooltips on selection-dependent buttons
+        if (btnDelete            != null) {
+            btnDelete.setDisable(true);
+            javafx.scene.control.Tooltip.install(btnDelete, new javafx.scene.control.Tooltip("Selecciona un movimiento para eliminarlo"));
+        }
+        if (btnExportarSeleccion != null) {
+            btnExportarSeleccion.setDisable(true);
+            javafx.scene.control.Tooltip.install(btnExportarSeleccion, new javafx.scene.control.Tooltip("Selecciona uno o más movimientos para exportarlos"));
+        }
+
         table.setOnKeyPressed(ev -> {
             Movimiento sel = table.getSelectionModel().getSelectedItem();
             if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
@@ -232,6 +242,10 @@ public class MovimientosController {
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
+        if (lblPage != null) {
+            lblPage.getStyleClass().add("page-label-jump");
+            lblPage.setOnMouseClicked(e -> { if (e.getClickCount() == 2) promptJumpToPage(); });
+        }
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
@@ -239,16 +253,8 @@ public class MovimientosController {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         colProducto.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getProductoNombre() != null ? c.getValue().getProductoNombre() : ""));
-        colProducto.setCellFactory(col -> new TableCell<>() {
-            private final Tooltip tip = new Tooltip();
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) { setText(null); setTooltip(null); return; }
-                setText(item);
-                tip.setText(item);
-                setTooltip(tip);
-            }
-        });
+        colProducto.setCellFactory(DialogUtil.highlightCellFactory(
+            () -> searchField != null ? searchField.getText() : ""));
         colTipo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTipo().getEtiqueta()));
         colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         colStock.setCellValueFactory(c -> new SimpleStringProperty(
@@ -388,26 +394,10 @@ public class MovimientosController {
         });
         emptyStatePlaceholder = emptyState;
         table.setPlaceholder(emptyState);
-    }
-
-    private VBox buildSkeletonPlaceholder() {
-        VBox box = new VBox(4);
-        box.setPadding(new javafx.geometry.Insets(8));
-        for (int i = 0; i < 7; i++) {
-            Label bar = new Label();
-            bar.getStyleClass().add("skeleton");
-            bar.setPrefHeight(44);
-            bar.setMaxWidth(Double.MAX_VALUE);
-            box.getChildren().add(bar);
-        }
-        skeletonPulse = new Timeline(
-            new KeyFrame(Duration.millis(0),    new javafx.animation.KeyValue(box.opacityProperty(), 0.7)),
-            new KeyFrame(Duration.millis(800),  new javafx.animation.KeyValue(box.opacityProperty(), 0.4)),
-            new KeyFrame(Duration.millis(1600), new javafx.animation.KeyValue(box.opacityProperty(), 0.7))
-        );
-        skeletonPulse.setCycleCount(Timeline.INDEFINITE);
-        skeletonPulse.play();
-        return box;
+        DialogUtil.setupColumnVisibilityMenu("movimientos.cols", table,
+            java.util.List.of(colProducto, colTipo, colFecha));
+        DialogUtil.persistTableSort(table, STICKY, "sort");
+        DialogUtil.persistColumnWidths(table, STICKY, "colW");
     }
 
     private void setupTipoChips() {
@@ -464,7 +454,7 @@ public class MovimientosController {
             refreshing = true;
             return;
         }
-        table.setPlaceholder(buildSkeletonPlaceholder());
+        skeletonPulse = AnimationUtils.buildSkeletonPlaceholder(table, 7);
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
 
         LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
@@ -508,6 +498,7 @@ public class MovimientosController {
 
                 totalFiltered = r.count();
                 filteredData.setAll(r.page());
+                AnimationUtils.staggerTableRows(table);
                 updateTablePage();
                 updateMovStats(r.stats());
 
@@ -561,6 +552,7 @@ public class MovimientosController {
                 PageResult r = getValue();
                 totalFiltered = r.count();
                 filteredData.setAll(r.page());
+                AnimationUtils.staggerTableRows(table);
                 updateTablePage();
 
                 boolean hasFilters = hasActiveFilters();
@@ -644,6 +636,23 @@ public class MovimientosController {
     @FXML private void onPrev() { if (currentPage > 0) { currentPage--; loadPage(); } }
     @FXML private void onNext() { currentPage++; loadPage(); }
     @FXML private void onRefresh() { loadData(); if (SessionManager.isAdmin()) loadPendientesCount(); }
+
+    private void promptJumpToPage() {
+        int totalPages = (int) Math.ceil((double) totalFiltered / Math.max(1, pageSize));
+        if (totalPages <= 1) return;
+        javafx.scene.control.TextInputDialog dlg = new javafx.scene.control.TextInputDialog(String.valueOf(currentPage + 1));
+        dlg.setTitle("Ir a página");
+        dlg.setHeaderText(null);
+        dlg.setContentText("Página (1 – " + totalPages + "):");
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.showAndWait().ifPresent(txt -> {
+            try {
+                int page = Integer.parseInt(txt.trim()) - 1;
+                if (page >= 0 && page < totalPages) { currentPage = page; loadPage(); }
+            } catch (NumberFormatException ignored) {}
+        });
+    }
 
     @FXML
     private void onVerPendientes() {

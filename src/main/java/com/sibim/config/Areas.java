@@ -6,7 +6,7 @@ public final class Areas {
 
     private Areas() {}
 
-    public record SecretariaInfo(String nombre, String titular, List<String> direcciones) {}
+    public record SecretariaInfo(String nombre, List<String> direcciones) {}
 
     public static final String PRESIDENCIA = "Despacho de la Presidencia";
 
@@ -24,7 +24,6 @@ public final class Areas {
     public static final List<SecretariaInfo> SECRETARIAS = List.of(
         new SecretariaInfo(
             "Secretaria General Municipal",
-            "Jose Manuel Zuniga Guerrero",
             List.of(
                 "Direccion de Recursos Humanos",
                 "Direccion de Administracion",
@@ -40,7 +39,6 @@ public final class Areas {
         ),
         new SecretariaInfo(
             "Secretaria de Tesoreria Municipal",
-            "Ruben Martinez Sanchez",
             List.of(
                 "Direccion de Ingresos",
                 "Direccion de Egresos y Presupuesto",
@@ -52,7 +50,6 @@ public final class Areas {
         ),
         new SecretariaInfo(
             "Secretaria de Obras Publicas y Desarrollo Urbano",
-            "Ivan Arturo Lugo Martin",
             List.of(
                 "Direccion de Obras Publicas",
                 "Direccion de Desarrollo Urbano",
@@ -62,14 +59,12 @@ public final class Areas {
         ),
         new SecretariaInfo(
             "Secretaria de Planeacion y Evaluacion",
-            "Rigoberto Barrera Roldan",
             List.of(
                 "Direccion de Tecnologias de la Informacion"
             )
         ),
         new SecretariaInfo(
             "Secretaria de Desarrollo Economico y Turismo",
-            "Lucila Ocampo Valle",
             List.of(
                 "Direccion de Desarrollo Economico",
                 "Direccion de Turismo",
@@ -78,7 +73,6 @@ public final class Areas {
         ),
         new SecretariaInfo(
             "Secretaria de Bienestar Social",
-            "Socorro Vargas Chavez",
             List.of(
                 "Direccion de Asistencia Social",
                 "Direccion de Programas Sociales",
@@ -90,14 +84,12 @@ public final class Areas {
         ),
         new SecretariaInfo(
             "Secretaria de Seguridad Publica Municipal",
-            "Diadymir Morelos Esquivel",
             List.of(
                 "Direccion de Seguridad Publica"
             )
         ),
         new SecretariaInfo(
             "Secretaria de Desarrollo para Pueblos Indigenas",
-            "Lupita Anneth Patricio Reyes",
             List.of()
         )
     );

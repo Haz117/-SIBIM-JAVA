@@ -31,6 +31,7 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -218,9 +219,18 @@ public final class OfflineStore {
         try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN numero_serie TEXT"); } catch (SQLException ignored) {}
         try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN marca TEXT"); } catch (SQLException ignored) {}
         try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN modelo TEXT"); } catch (SQLException ignored) {}
-        // M7 (2026): activo para bloqueo de cuentas en modo offline
+        // M8 (2026): etiquetado y fotos_urls
         try (Statement st = c.createStatement()) {
-            st.execute("ALTER TABLE users_cache ADD COLUMN activo INTEGER NOT NULL DEFAULT 1");
+            st.execute("ALTER TABLE products ADD COLUMN etiquetado INTEGER NOT NULL DEFAULT 0");
+        } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE products ADD COLUMN fotos_urls TEXT");
+        } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE product_outbox ADD COLUMN etiquetado INTEGER DEFAULT 0");
+        } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE product_outbox ADD COLUMN fotos_urls TEXT");
         } catch (SQLException ignored) {}
     }
 
@@ -335,8 +345,8 @@ public final class OfflineStore {
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante, fecha_baja, motivo_baja,
-                created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                etiquetado, fotos_urls, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
                 nombre=excluded.nombre, codigo=excluded.codigo, descripcion=excluded.descripcion,
                 categoria_id=excluded.categoria_id, precio_compra=excluded.precio_compra,
@@ -348,6 +358,7 @@ public final class OfflineStore {
                 numero_serie=excluded.numero_serie, marca=excluded.marca, modelo=excluded.modelo,
                 ubicacion=excluded.ubicacion, area=excluded.area, resguardante=excluded.resguardante,
                 fecha_baja=excluded.fecha_baja, motivo_baja=excluded.motivo_baja,
+                etiquetado=excluded.etiquetado, fotos_urls=excluded.fotos_urls,
                 updated_at=excluded.updated_at
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
@@ -374,8 +385,11 @@ public final class OfflineStore {
             ps.setString(21, p.getResguardante());
             ps.setString(22, p.getFechaBaja() != null ? p.getFechaBaja().toString() : null);
             ps.setString(23, p.getMotivoBaja());
-            ps.setString(24, str(p.getCreadoEn()));
-            ps.setString(25, str(p.getActualizadoEn()));
+            ps.setInt(24, p.isEtiquetado() ? 1 : 0);
+            List<String> fotos = p.getFotosUrls();
+            ps.setString(25, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
+            ps.setString(26, str(p.getCreadoEn()));
+            ps.setString(27, str(p.getActualizadoEn()));
             ps.executeUpdate();
         }
     }
@@ -636,8 +650,8 @@ public final class OfflineStore {
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante, fecha_baja, motivo_baja,
-                created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                etiquetado, fotos_urls, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
                 nombre=excluded.nombre, codigo=excluded.codigo, descripcion=excluded.descripcion,
                 categoria_id=excluded.categoria_id, precio_compra=excluded.precio_compra,
@@ -649,6 +663,7 @@ public final class OfflineStore {
                 numero_serie=excluded.numero_serie, marca=excluded.marca, modelo=excluded.modelo,
                 ubicacion=excluded.ubicacion, area=excluded.area, resguardante=excluded.resguardante,
                 fecha_baja=excluded.fecha_baja, motivo_baja=excluded.motivo_baja,
+                etiquetado=excluded.etiquetado, fotos_urls=excluded.fotos_urls,
                 updated_at=excluded.updated_at
             """;
         LocalDateTime now = LocalDateTime.now();
@@ -678,8 +693,11 @@ public final class OfflineStore {
             ps.setString(21, p.getResguardante());
             ps.setString(22, p.getFechaBaja() != null ? p.getFechaBaja().toString() : null);
             ps.setString(23, p.getMotivoBaja());
-            ps.setString(24, str(p.getCreadoEn()));
-            ps.setString(25, str(now));
+            ps.setInt(24, p.isEtiquetado() ? 1 : 0);
+            List<String> fotos = p.getFotosUrls();
+            ps.setString(25, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
+            ps.setString(26, str(p.getCreadoEn()));
+            ps.setString(27, str(now));
             ps.executeUpdate();
         }
     }
@@ -940,8 +958,8 @@ public final class OfflineStore {
             INSERT INTO product_outbox (operacion, producto_id, nombre, codigo, descripcion,
                 categoria_id, precio_compra, precio_venta, stock_actual, stock_minimo, stock_maximo,
                 unidad, proveedor, fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
-                motivo_baja, created_at, server_snapshot_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                motivo_baja, created_at, server_snapshot_at, etiquetado, fotos_urls)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             int i = 1;
@@ -969,7 +987,10 @@ public final class OfflineStore {
             ps.setString(i++, p.getResguardante());
             ps.setString(i++, p.getMotivoBaja());
             ps.setString(i++, str(LocalDateTime.now()));
-            ps.setString(i, serverSnapshotAt);
+            ps.setString(i++, serverSnapshotAt);
+            ps.setInt(i++, p.isEtiquetado() ? 1 : 0);
+            List<String> fotos = p.getFotosUrls();
+            ps.setString(i, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
             ps.executeUpdate();
         }
     }
@@ -1160,6 +1181,11 @@ public final class OfflineStore {
         String fb = rs.getString("fecha_baja");
         if (fb != null) p.setFechaBaja(LocalDate.parse(fb));
         p.setMotivoBaja(rs.getString("motivo_baja"));
+        p.setEtiquetado(rs.getInt("etiquetado") != 0);
+        String fotosRaw = rs.getString("fotos_urls");
+        if (fotosRaw != null && !fotosRaw.isBlank()) {
+            p.setFotosUrls(new ArrayList<>(Arrays.asList(fotosRaw.split("\\|\\|"))));
+        }
         p.setCreadoEn(dt(rs.getString("created_at")));
         p.setActualizadoEn(dt(rs.getString("updated_at")));
         return p;

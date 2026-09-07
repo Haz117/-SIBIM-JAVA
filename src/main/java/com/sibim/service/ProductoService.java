@@ -152,6 +152,14 @@ public class ProductoService {
         return productoRepo.countAll();
     }
 
+    public List<String> getFotosByProductoId(String id) throws SQLException {
+        return productoRepo.findFotos(id);
+    }
+
+    public void saveFotos(String productoId, List<String> fotos) throws SQLException {
+        productoRepo.saveFotos(productoId, fotos);
+    }
+
     private void validate(Producto p) throws ValidationException, SQLException {
         if (p.getNombre() == null || p.getNombre().isBlank())
             throw new ValidationException("El nombre es obligatorio");

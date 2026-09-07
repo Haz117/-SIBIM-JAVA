@@ -32,6 +32,18 @@ data/
 # ── Instalador generado por jpackage ──────────────────────────────
 packaging/dist/
 
+# ── Archivos de datos locales del usuario (fotos, resguardos) ──────
+# Estos se almacenan en %USERPROFILE%\.sibim\ fuera del repo;
+# si alguien los coloca dentro del proyecto, que no se suban.
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.webp
+*.pdf
+
 # ── Archivos temporales del editor ────────────────────────────────
 *.tmp
 *.tmp.*
+CTempsibim-stdout.txt
