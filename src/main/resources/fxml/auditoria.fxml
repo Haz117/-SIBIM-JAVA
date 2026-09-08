@@ -18,16 +18,17 @@
             <Label text="Auditoría del Sistema" styleClass="page-title"/>
             <Label text="Registro completo de acciones realizadas por los usuarios" styleClass="page-subtitle"/>
         </VBox>
-        <Button text="PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
+        <Button fx:id="btnExportPdf" text="PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el registro de auditoría visible a PDF" wrapText="true" maxWidth="220"/></tooltip>
         </Button>
-        <Button text="CSV" onAction="#onExportarCsv" styleClass="btn-secondary"
+        <Button fx:id="btnExportCsv" text="CSV" onAction="#onExportarCsv" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el registro de auditoría visible a CSV" wrapText="true" maxWidth="220"/></tooltip>
         </Button>
+        <ProgressIndicator fx:id="loadSpinner" prefWidth="20" prefHeight="20" visible="false" managed="false"/>
         <Button fx:id="btnRefresh" onAction="#onRefresh" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar  (F5)"/></tooltip>
@@ -61,10 +62,10 @@
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/></columnResizePolicy>
         <placeholder>
-            <VBox alignment="CENTER" spacing="8">
-                <FontIcon iconLiteral="mdi2s-shield-lock-outline" iconSize="40" styleClass="empty-icon"/>
-                <Label text="No hay registros de auditoría" styleClass="empty-label"/>
-                <Label text="Las acciones de los usuarios aparecerán aquí" styleClass="muted-sm"/>
+            <VBox alignment="CENTER" spacing="10" styleClass="empty-state-pane">
+                <FontIcon iconLiteral="mdi2s-shield-lock-outline" iconSize="52" styleClass="empty-icon-lg"/>
+                <Label text="Sin registros de auditoría" styleClass="empty-state-msg"/>
+                <Label text="Las acciones de los usuarios aparecen aquí automáticamente" styleClass="empty-state-hint"/>
             </VBox>
         </placeholder>
         <columns>
@@ -82,20 +83,20 @@
         <padding><Insets top="10" right="22" bottom="10" left="22"/></padding>
         <Button fx:id="btnPrimera"  onAction="#onPrimera"  styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
             <graphic><FontIcon iconLiteral="mdi2p-page-first" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Primera página"/></tooltip>
+            <tooltip><Tooltip text="Primera página  (Ctrl+Inicio)"/></tooltip>
         </Button>
         <Button fx:id="btnAnterior" onAction="#onAnterior" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Página anterior"/></tooltip>
+            <tooltip><Tooltip text="Página anterior  (Ctrl+←)"/></tooltip>
         </Button>
         <Label fx:id="lblPagina" styleClass="pagination-label"/>
         <Button fx:id="btnSiguiente" onAction="#onSiguiente" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-right" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Página siguiente"/></tooltip>
+            <tooltip><Tooltip text="Página siguiente  (Ctrl+→)"/></tooltip>
         </Button>
         <Button fx:id="btnUltima"   onAction="#onUltima"   styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
             <graphic><FontIcon iconLiteral="mdi2p-page-last" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Última página"/></tooltip>
+            <tooltip><Tooltip text="Última página  (Ctrl+Fin)"/></tooltip>
         </Button>
         <Region HBox.hgrow="ALWAYS"/>
         <ComboBox fx:id="pageSizeBox" prefWidth="90"/>

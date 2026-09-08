@@ -73,6 +73,12 @@
             <xAxis><CategoryAxis fx:id="chartXAxis" tickLabelRotation="-35"/></xAxis>
             <yAxis><NumberAxis fx:id="chartYAxis" label="Bienes" minorTickVisible="false"/></yAxis>
         </BarChart>
+        <VBox fx:id="chartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
+              visible="false" managed="false" styleClass="empty-state-pane">
+            <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
+            <Label text="Sin bienes asignados a áreas" styleClass="empty-state-msg"/>
+            <Label text="Los bienes con área asignada aparecerán aquí" styleClass="empty-state-hint"/>
+        </VBox>
     </VBox>
 
     <!-- ══ CARDS DE REPORTES ═══════════════════════════════════════════

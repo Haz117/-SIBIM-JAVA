@@ -15,6 +15,9 @@ import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
@@ -38,6 +41,7 @@ public class ReportesController {
     @FXML private CategoryAxis  chartXAxis;
     @FXML private NumberAxis    chartYAxis;
     @FXML private ProgressIndicator chartSpinner;
+    @FXML private VBox chartEmptyState;
 
     private static final java.util.prefs.Preferences STICKY =
         java.util.prefs.Preferences.userRoot().node("sibim/filters/reportes");
@@ -63,7 +67,17 @@ public class ReportesController {
         }
         if (helpTiposReporte != null) DialogUtil.enableClickToShowTooltip(helpTiposReporte);
 
-        if (periodCard != null) AnimationUtils.fadeInUp(periodCard, 300,  0);
+        if (periodCard != null) {
+            AnimationUtils.fadeInUp(periodCard, 300, 0);
+            periodCard.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene == null) return;
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.CONTROL_DOWN), this::onReportHoy);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.CONTROL_DOWN), this::onReportSemana);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT3, KeyCombination.CONTROL_DOWN), this::onReportMes);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT4, KeyCombination.CONTROL_DOWN), this::onReportAnio);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT5, KeyCombination.CONTROL_DOWN), this::onReportTodo);
+            });
+        }
         if (reportGrid != null) AnimationUtils.staggeredFadeInUp(reportGrid.getChildren(), 300, 70);
         loadAreaChart();
     }
@@ -165,10 +179,17 @@ public class ReportesController {
                 Platform.runLater(() -> {
                     areaChart.getData().setAll(series);
                     if (chartSpinner != null) { chartSpinner.setVisible(false); chartSpinner.setManaged(false); }
+                    boolean empty = series.getData().isEmpty();
+                    if (chartEmptyState != null) { chartEmptyState.setVisible(empty); chartEmptyState.setManaged(empty); }
+                    areaChart.setVisible(!empty);
+                    areaChart.setManaged(!empty);
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> {
                     if (chartSpinner != null) { chartSpinner.setVisible(false); chartSpinner.setManaged(false); }
+                    if (chartEmptyState != null) { chartEmptyState.setVisible(true); chartEmptyState.setManaged(true); }
+                    areaChart.setVisible(false);
+                    areaChart.setManaged(false);
                 });
             }
         });

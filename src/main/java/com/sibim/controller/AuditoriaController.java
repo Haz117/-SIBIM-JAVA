@@ -50,6 +50,9 @@ public class AuditoriaController {
     @FXML private Button btnAnterior;
     @FXML private Button btnSiguiente;
     @FXML private Button btnUltima;
+    @FXML private Button btnExportPdf;
+    @FXML private Button btnExportCsv;
+    @FXML private ProgressIndicator loadSpinner;
     @FXML private Button btnRefresh;
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private HBox paginationBar;
@@ -91,6 +94,9 @@ public class AuditoriaController {
         if (!hastaStr.isBlank() && hastaField != null)
             try { hastaField.setValue(java.time.LocalDate.parse(hastaStr)); } catch (Exception ignored) {}
 
+        if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
+        updateExportButtons();
+
         AnimationUtils.fadeInDown(filterBar, 220, 0);
         loadData();
 
@@ -106,6 +112,22 @@ public class AuditoriaController {
                     new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F,
                         javafx.scene.input.KeyCombination.CONTROL_DOWN),
                     () -> { searchField.requestFocus(); searchField.selectAll(); });
+                scene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.LEFT,
+                        javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                    this::onAnterior);
+                scene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.RIGHT,
+                        javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                    this::onSiguiente);
+                scene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.HOME,
+                        javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                    this::onPrimera);
+                scene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.END,
+                        javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                    this::onUltima);
             });
         }
 
@@ -283,6 +305,7 @@ public class AuditoriaController {
     }
 
     private void loadData() {
+        if (loadSpinner != null) { loadSpinner.setVisible(true); loadSpinner.setManaged(true); }
         String busqueda = searchField != null ? searchField.getText() : null;
         String entidad  = getEntidadValue();
         String usuario  = usuarioFilter != null ? usuarioFilter.getText() : null;
@@ -303,26 +326,37 @@ public class AuditoriaController {
                 List<AuditLog> rows = auditRepo.findPaginated(pageSize, offset,
                     busqueda, entidad, usuario, desde, hasta);
                 Platform.runLater(() -> {
+                    if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
                     totalCount = total;
                     table.getItems().setAll(rows);
                     AnimationUtils.staggerTableRows(table);
                     updatePaginationUI();
+                    updateExportButtons();
                 });
             } catch (SecurityException se) {
                 Platform.runLater(() -> {
+                    if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
                     table.getItems().clear();
                     if (lblTotal != null) lblTotal.setText("Acceso denegado — se requiere rol Administrador");
                     updatePaginationDisabled();
+                    updateExportButtons();
                 });
             } catch (Exception ex) {
                 log.error("Error al cargar registros de auditoría", ex);
                 Platform.runLater(() -> {
+                    if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
                     javafx.scene.Scene scene = table.getScene();
                     if (scene != null)
                         NotificacionUtil.error(scene, "No se pudo cargar el registro de auditoría");
                 });
             }
         });
+    }
+
+    private void updateExportButtons() {
+        boolean empty = table.getItems().isEmpty();
+        if (btnExportPdf != null) btnExportPdf.setDisable(empty);
+        if (btnExportCsv != null) btnExportCsv.setDisable(empty);
     }
 
     private String getEntidadValue() {

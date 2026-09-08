@@ -161,6 +161,7 @@
                 <Label text="Crea, edita y administra cuentas de acceso al sistema"
                        styleClass="page-subtitle"/>
             </VBox>
+            <ProgressIndicator fx:id="usersSpinner" prefWidth="18" prefHeight="18" visible="false" managed="false"/>
             <Button text="Nuevo Usuario" onAction="#onNuevoUsuario" styleClass="btn-primary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>

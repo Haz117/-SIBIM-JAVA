@@ -63,6 +63,9 @@ public class ConfiguracionController {
     @FXML private Button btnDeleteUser;
     @FXML private TextField userSearchField;
     @FXML private Button btnClearUserSearch;
+    @FXML private ProgressIndicator usersSpinner;
+
+    private boolean configDirty = false;
 
     private final UsuarioRepository usuarioRepo = new UsuarioRepository();
     private List<Usuario> allUsers = new java.util.ArrayList<>();
@@ -132,7 +135,17 @@ public class ConfiguracionController {
 
         // Config card — visible to all, editable only by admin
         loadConfigCard(isAdmin);
-        if (configCard != null) AnimationUtils.fadeInUp(configCard, 320, 105);
+        if (configCard != null) {
+            AnimationUtils.fadeInUp(configCard, 320, 105);
+            configCard.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene == null) return;
+                scene.getAccelerators().put(
+                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.S,
+                        javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                    () -> { if (btnGuardarConfig != null && !btnGuardarConfig.isDisable()) onGuardarConfig(); }
+                );
+            });
+        }
 
         // Entrance animations — cards cascade in from below
         if (profileCard  != null) AnimationUtils.fadeInUp(profileCard,  320,   0);
@@ -226,9 +239,31 @@ public class ConfiguracionController {
                 if (tfCorreoContacto    != null) tfCorreoContacto.setEditable(isAdmin);
                 if (lblConfigHint != null)
                     lblConfigHint.setText(isAdmin ? "Los cambios afectan reportes y documentos" : "Solo el administrador puede guardar cambios");
+                // Dirty tracking — deferred so setText() above doesn't trigger it
+                if (isAdmin) javafx.application.Platform.runLater(() -> {
+                    configDirty = false;
+                    for (javafx.scene.control.TextField tf : new javafx.scene.control.TextField[]{
+                            tfNombreAyuntamiento, tfMunicipio, tfResponsable, tfCorreoContacto}) {
+                        if (tf != null) tf.textProperty().addListener((o, a, b) -> markConfigDirty());
+                    }
+                });
             },
             e -> {}
         );
+    }
+
+    private void markConfigDirty() {
+        if (configDirty) return;
+        configDirty = true;
+        if (lblConfigHint != null) lblConfigHint.setText("• Cambios sin guardar  (Ctrl+S)");
+    }
+
+    private void clearConfigDirty() {
+        configDirty = false;
+        if (lblConfigHint != null)
+            lblConfigHint.setText(SessionManager.isAdmin()
+                ? "Los cambios afectan reportes y documentos"
+                : "Solo el administrador puede guardar cambios");
     }
 
     @FXML
@@ -246,6 +281,7 @@ public class ConfiguracionController {
                 return null;
             },
             v -> {
+                clearConfigDirty();
                 NotificacionUtil.exito(configCard != null ? configCard.getScene() : null, "Configuración guardada");
                 // refresh decorative badge
                 if (lblDecoNombre != null) {
@@ -333,6 +369,7 @@ public class ConfiguracionController {
                     case "Secretario"    -> "cell-badge-blue";
                     default              -> "cell-badge-teal";
                 });
+                if (canEditRol()) badge.setTooltip(new Tooltip("Doble clic para cambiar el rol"));
             }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -393,10 +430,18 @@ public class ConfiguracionController {
     }
 
     private void loadUsers() {
+        if (usersSpinner != null) { usersSpinner.setVisible(true); usersSpinner.setManaged(true); }
         DialogUtil.runAsync(
             () -> usuarioRepo.findAll(),
-            users -> { allUsers = new java.util.ArrayList<>(users); applyUserFilter(); },
-            e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar la lista de usuarios")
+            users -> {
+                if (usersSpinner != null) { usersSpinner.setVisible(false); usersSpinner.setManaged(false); }
+                allUsers = new java.util.ArrayList<>(users);
+                applyUserFilter();
+            },
+            e -> {
+                if (usersSpinner != null) { usersSpinner.setVisible(false); usersSpinner.setManaged(false); }
+                NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar la lista de usuarios");
+            }
         );
     }
 
