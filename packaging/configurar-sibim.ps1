@@ -2,22 +2,21 @@
 <#
 .SYNOPSIS
     Configura SIBIM Desktop en una PC nueva.
-    Crea %APPDATA%\SIBIM\.env con las credenciales de conexión.
+    Crea %APPDATA%\SIBIM\.env con las credenciales de conexion.
 
 .EXAMPLE
-    .\configurar-sibim.ps1              # modo interactivo (pide contraseña)
-    .\configurar-sibim.ps1 -Silent      # usa los valores hardcodeados abajo
+    .\configurar-sibim.ps1              # modo interactivo (pide contrasena y clave)
+    .\configurar-sibim.ps1 -Silent      # usa variables de entorno SIBIM_DB_PASS y SIBIM_SUPABASE_KEY
 #>
 param([switch]$Silent)
 
 $ErrorActionPreference = "Stop"
 
-# ── Valores fijos de la instalación municipal ─────────────────────────────────
-$DB_URL         = "jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:5432/postgres?user=postgres.zjrzrcfpvkkefsscvzyh&password={PASSWORD}"
-$DB_USER        = "postgres.zjrzrcfpvkkefsscvzyh"
-$DB_SSL_MODE    = "require"
-$SUPABASE_URL   = "https://zjrzrcfpvkkefsscvzyh.supabase.co"
-$SUPABASE_KEY   = $env:SIBIM_SUPABASE_KEY   # Pasar como variable de entorno — NO hardcodear aquí
+# ── Valores fijos de la instalacion municipal ─────────────────────────────────
+$DB_URL      = "jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:5432/postgres?user=postgres.zjrzrcfpvkkefsscvzyh&password={PASSWORD}"
+$DB_USER     = "postgres.zjrzrcfpvkkefsscvzyh"
+$DB_SSL_MODE = "require"
+$SUPABASE_URL = "https://zjrzrcfpvkkefsscvzyh.supabase.co"
 
 # ── Destino ───────────────────────────────────────────────────────────────────
 $SibimDir = "$env:APPDATA\SIBIM"
@@ -34,18 +33,31 @@ if (Test-Path $EnvFile) {
     if ($resp -notin @("s","S")) { Write-Host "  Cancelado."; exit 0 }
 }
 
-# ── Pedir contraseña ──────────────────────────────────────────────────────────
+# ── Pedir contrasena de BD ────────────────────────────────────────────────────
 if ($Silent) {
-    # En modo silencioso la contraseña debe pasarse como variable de entorno SIBIM_DB_PASS
     $Password = $env:SIBIM_DB_PASS
     if (-not $Password) { throw "Modo -Silent requiere variable de entorno SIBIM_DB_PASS" }
 } else {
-    Write-Host "  Ingresa la contrasena de la base de datos Supabase"
+    Write-Host "  [1/2] Contrasena de la base de datos"
     Write-Host "  (Supabase Dashboard -> Settings -> Database -> Database password)" -ForegroundColor DarkGray
     Write-Host ""
-    $SecurePass = Read-Host "  Contrasena" -AsSecureString
+    $SecurePass = Read-Host "  Contrasena BD" -AsSecureString
     $Password   = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
                     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePass))
+}
+
+# ── Pedir Supabase Service Key ────────────────────────────────────────────────
+if ($Silent) {
+    $SupabaseKey = $env:SIBIM_SUPABASE_KEY
+    if (-not $SupabaseKey) { throw "Modo -Silent requiere variable de entorno SIBIM_SUPABASE_KEY" }
+} else {
+    Write-Host ""
+    Write-Host "  [2/2] Supabase Service Key (para fotos de bienes)"
+    Write-Host "  (Supabase Dashboard -> Settings -> API -> service_role -> Reveal)" -ForegroundColor DarkGray
+    Write-Host ""
+    $SecureKey  = Read-Host "  Service Key" -AsSecureString
+    $SupabaseKey = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+                    [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureKey))
 }
 
 # ── Escribir .env ─────────────────────────────────────────────────────────────
@@ -64,7 +76,7 @@ DB_SSL_MODE=$DB_SSL_MODE
 
 # Supabase Storage (fotos de bienes)
 SUPABASE_URL=$SUPABASE_URL
-SUPABASE_SERVICE_KEY=$SUPABASE_KEY
+SUPABASE_SERVICE_KEY=$SupabaseKey
 "@
 
 [System.IO.File]::WriteAllText($EnvFile, $content, [System.Text.Encoding]::UTF8)
