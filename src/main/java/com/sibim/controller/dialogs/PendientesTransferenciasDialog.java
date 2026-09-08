@@ -77,12 +77,12 @@ public final class PendientesTransferenciasDialog {
                 btnAprobar.setDisable(true); btnRechazar.setDisable(true);
                 DialogUtil.runAsync(
                     () -> movimientoService.aprobarTransferencia(m.getId()),
-                    () -> {
+                    () -> AnimationUtils.fadeOut(row, 220, () -> {
                         list.getChildren().remove(row);
                         onRefresh.run(); onLoadPendientesCount.run();
                         NotificacionUtil.exitoTransferencia(dialog.getDialogPane().getScene(),
                             m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
-                    },
+                    }),
                     ex -> {
                         btnAprobar.setDisable(false); btnRechazar.setDisable(false);
                         NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aprobar la transferencia");
@@ -96,12 +96,12 @@ public final class PendientesTransferenciasDialog {
                 btnAprobar.setDisable(true); btnRechazar.setDisable(true);
                 DialogUtil.runAsync(
                     () -> movimientoService.rechazarTransferencia(m.getId()),
-                    () -> {
+                    () -> AnimationUtils.fadeOut(row, 220, () -> {
                         list.getChildren().remove(row);
                         onRefresh.run(); onLoadPendientesCount.run();
                         NotificacionUtil.info(dialog.getDialogPane().getScene(),
                             "Transferencia de \"" + m.getProductoNombre() + "\" rechazada");
-                    },
+                    }),
                     ex -> {
                         btnAprobar.setDisable(false); btnRechazar.setDisable(false);
                         NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo rechazar la transferencia");

@@ -149,7 +149,7 @@
                 <Button fx:id="btnReponerAgotado" text="Reponer seleccionado" onAction="#onReponerAgotado" styleClass="btn-primary" disable="true"
                         contentDisplay="LEFT" graphicTextGap="8">
                     <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado"/></tooltip>
+                    <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado  (Enter)"/></tooltip>
                 </Button>
             </HBox>
         </VBox>
@@ -192,7 +192,7 @@
                 <Button fx:id="btnReponerBajoStock" text="Reponer seleccionado" onAction="#onSolicitarBajoStock" styleClass="btn-warning" disable="true"
                         contentDisplay="LEFT" graphicTextGap="8">
                     <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado"/></tooltip>
+                    <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado  (Enter)"/></tooltip>
                 </Button>
             </HBox>
         </VBox>

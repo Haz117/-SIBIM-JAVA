@@ -544,6 +544,7 @@ public class OrganigramaController {
 
             more.setOnAction(e -> {
                 extras.forEach(n -> { n.setVisible(true); n.setManaged(true); });
+                AnimationUtils.staggeredFadeInUp(extras, 200, 40);
                 more.setVisible(false); more.setManaged(false);
                 less.setVisible(true); less.setManaged(true);
             });

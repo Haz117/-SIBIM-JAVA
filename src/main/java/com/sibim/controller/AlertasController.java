@@ -359,6 +359,15 @@ public class AlertasController {
         List<Producto> filtAgotados  = filter(allAgotados,  q);
         List<Producto> filtBajoStock = filter(allBajoStock, q);
         List<Producto> filtGarantias = filter(allGarantias, q);
+        if (!q.isBlank()) {
+            tableAgotados.setPlaceholder(searchEmptyNode(q));
+            tableBajoStock.setPlaceholder(searchEmptyNode(q));
+            tableGarantias.setPlaceholder(searchEmptyNode(q));
+        } else {
+            tableAgotados.setPlaceholder(alertaOkNode("Sin bienes agotados"));
+            tableBajoStock.setPlaceholder(alertaOkNode("Sin bienes con bajo stock"));
+            tableGarantias.setPlaceholder(alertaOkNode("Sin garantías próximas a vencer"));
+        }
         tableAgotados.getItems().setAll(filtAgotados);
         tableBajoStock.getItems().setAll(filtBajoStock);
         tableGarantias.getItems().setAll(filtGarantias);
@@ -700,6 +709,20 @@ public class AlertasController {
     /** Stops the auto-refresh timer. Must be called before this controller's view is discarded. */
     public void stopAutoRefresh() {
         if (autoRefresh != null) autoRefresh.stop();
+    }
+
+    private static javafx.scene.Node searchEmptyNode(String q) {
+        FontIcon icon = new FontIcon("mdi2m-magnify-close");
+        icon.setIconSize(40);
+        icon.getStyleClass().add("empty-icon-lg");
+        Label lbl = new Label("Sin resultados para «" + q + "»");
+        lbl.getStyleClass().add("empty-state-msg");
+        Label hint = new Label("Prueba con otro término de búsqueda");
+        hint.getStyleClass().add("empty-state-hint");
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(8, icon, lbl, hint);
+        box.setAlignment(javafx.geometry.Pos.CENTER);
+        box.getStyleClass().add("empty-state-pane");
+        return box;
     }
 
     private static javafx.scene.Node alertaOkNode(String msg) {

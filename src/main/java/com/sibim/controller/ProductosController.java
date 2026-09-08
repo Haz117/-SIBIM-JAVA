@@ -986,7 +986,9 @@ public class ProductosController {
         dlg.setContentText("Área:");
         DialogUtil.applyOwner(dlg);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.showAndWait().ifPresent(area ->
+        dlg.showAndWait().ifPresent(area -> {
+            table.lookupAll(".table-row-cell:selected")
+                 .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
             DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando área…",
                 () -> {
                     for (Producto p : sel) { p.setArea(area); productoService.save(p); }
@@ -997,8 +999,8 @@ public class ProductosController {
                     NotificacionUtil.exito(table.getScene(), count + " bien(es) movidos a \"" + area + "\"");
                 },
                 e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el área")
-            )
-        );
+            );
+        });
     }
 
     @FXML
@@ -1011,7 +1013,9 @@ public class ProductosController {
         dlg.setContentText("Nombre:");
         DialogUtil.applyOwner(dlg);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.showAndWait().map(String::trim).filter(s -> !s.isBlank()).ifPresent(nombre ->
+        dlg.showAndWait().map(String::trim).filter(s -> !s.isBlank()).ifPresent(nombre -> {
+            table.lookupAll(".table-row-cell:selected")
+                 .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
             DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando resguardante…",
                 () -> {
                     for (Producto p : sel) { p.setResguardante(nombre); productoService.save(p); }
@@ -1022,8 +1026,8 @@ public class ProductosController {
                     NotificacionUtil.exito(table.getScene(), count + " bien(es) asignados a \"" + nombre + "\"");
                 },
                 e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el resguardante")
-            )
-        );
+            );
+        });
     }
 
     @FXML
@@ -1036,6 +1040,8 @@ public class ProductosController {
             ? "¿Marcar " + sel.size() + " bienes como etiquetados?"
             : "De los " + sel.size() + " seleccionados, " + sinEtiq + " aún no están etiquetados. ¿Marcar todos como etiquetados?";
         if (!ConfirmacionUtil.confirmar("Marcar como etiquetado", msg)) return;
+        table.lookupAll(".table-row-cell:selected")
+             .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
         List<String> ids = sel.stream().map(Producto::getId).toList();
         DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando etiquetado…",
             () -> { productoService.marcarEtiquetado(ids, true); return ids.size(); },
