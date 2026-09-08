@@ -7,6 +7,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import com.sibim.util.SearchUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -57,6 +58,7 @@ public class CategoriasController {
     private final CategoriaService categoriaService = new CategoriaService();
     private ObservableList<Categoria> allData = FXCollections.observableArrayList();
     private javafx.animation.Timeline skeletonPulse;
+    private javafx.scene.Node defaultPlaceholder;
 
     @FXML
     public void initialize() {
@@ -87,7 +89,8 @@ public class CategoriasController {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
-        searchField.textProperty().addListener((obs, o, n) -> { applyFilter(n); STICKY.put("search", n); });
+        SearchUtils.setupSearchHistory("sibim/search-history/categorias", searchField, () -> applyFilter(searchField.getText()));
+        SearchUtils.debounce(searchField, 250, q -> { STICKY.put("search", q != null ? q : ""); applyFilter(q); });
         table.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
             boolean s = sel != null;
             if (btnEditCat   != null && isAdmin) btnEditCat.setDisable(!s);
@@ -201,7 +204,22 @@ public class CategoriasController {
         VBox emptyState = new VBox(12, emptyIcon, emptyMsg, emptyHint);
         emptyState.setAlignment(javafx.geometry.Pos.CENTER);
         emptyState.getStyleClass().add("empty-state-pane");
+        defaultPlaceholder = emptyState;
         table.setPlaceholder(emptyState);
+    }
+
+    private static javafx.scene.Node searchEmptyNode(String q) {
+        FontIcon icon = new FontIcon("mdi2m-magnify-close");
+        icon.setIconSize(40);
+        icon.getStyleClass().add("empty-icon-lg");
+        Label lbl = new Label("Sin resultados para «" + q + "»");
+        lbl.getStyleClass().add("empty-state-msg");
+        Label hint = new Label("Prueba con otro término de búsqueda");
+        hint.getStyleClass().add("empty-state-hint");
+        VBox box = new VBox(8, icon, lbl, hint);
+        box.setAlignment(javafx.geometry.Pos.CENTER);
+        box.getStyleClass().add("empty-state-pane");
+        return box;
     }
 
     private void loadData() {
@@ -253,6 +271,11 @@ public class CategoriasController {
                 || c.getNombre().toLowerCase().contains(q)
                 || (c.getDescripcion() != null && c.getDescripcion().toLowerCase().contains(q)))
             .toList();
+        if (!q.isBlank() && filtered.isEmpty() && !allData.isEmpty()) {
+            table.setPlaceholder(searchEmptyNode(q));
+        } else if (defaultPlaceholder != null) {
+            table.setPlaceholder(defaultPlaceholder);
+        }
         table.getItems().setAll(filtered);
         AnimationUtils.staggerTableRows(table);
         AnimationUtils.animateCount(lblTotal, filtered.size(), 350, v -> v + (v == 1 ? " categoría" : " categorías"));
