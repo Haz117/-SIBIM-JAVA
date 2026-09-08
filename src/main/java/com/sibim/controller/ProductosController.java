@@ -998,7 +998,8 @@ public class ProductosController {
                     refreshing = true; loadData();
                     NotificacionUtil.exito(table.getScene(), count + " bien(es) movidos a \"" + area + "\"");
                 },
-                e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el área")
+                e -> NotificacionUtil.errorConAccion(table.getScene(),
+                        "No se pudo cambiar el área", "Reintentar", () -> onBulkCambiarArea())
             );
         });
     }
@@ -1025,7 +1026,8 @@ public class ProductosController {
                     refreshing = true; loadData();
                     NotificacionUtil.exito(table.getScene(), count + " bien(es) asignados a \"" + nombre + "\"");
                 },
-                e -> NotificacionUtil.error(table.getScene(), "No se pudo cambiar el resguardante")
+                e -> NotificacionUtil.errorConAccion(table.getScene(),
+                        "No se pudo cambiar el resguardante", "Reintentar", () -> onBulkCambiarResguardante())
             );
         });
     }
@@ -1049,7 +1051,8 @@ public class ProductosController {
                 refreshing = true; loadData();
                 NotificacionUtil.exito(table.getScene(), count + " bien(es) marcados como etiquetados");
             },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo actualizar el etiquetado")
+            e -> NotificacionUtil.errorConAccion(table.getScene(),
+                    "No se pudo actualizar el etiquetado", "Reintentar", () -> onBulkMarcarEtiquetado())
         );
     }
 

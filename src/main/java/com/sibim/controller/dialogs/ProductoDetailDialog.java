@@ -31,8 +31,10 @@ public final class ProductoDetailDialog {
     public static void show(Producto p, Scene scene, MovimientoService movimientoService, Logger log) {
         // Load movements eagerly so we can show history inline and reuse them for ficha
         List<Movimiento> movimientos = List.of();
-        try { movimientos = movimientoService.getByProducto(p.getId()); }
-        catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
+        try {
+            List<Movimiento> result = movimientoService.getByProducto(p.getId());
+            if (result != null) movimientos = result;
+        } catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
         final List<Movimiento> movs = movimientos;
 
         Dialog<ButtonType> dialog = new Dialog<>();
