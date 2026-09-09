@@ -1,9 +1,12 @@
 package com.sibim.controller;
 
 import com.sibim.MainApp;
+import com.sibim.controller.dialogs.ConteoFisicoDialog;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.offline.SyncService;
+import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
@@ -71,6 +74,7 @@ public class MainController {
     @FXML private Button btnAlertas;
     @FXML private Button btnReportes;
     @FXML private Button btnDepreciacion;
+    @FXML private Button btnConteoFisico;
     @FXML private Button btnConfiguracion;
     @FXML private Button btnAuditoria;
     @FXML private Label alertBadge;
@@ -152,8 +156,8 @@ public class MainController {
         applyDensityClass();
         addNavTooltips();
         setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-                      btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion,
-                      btnAuditoria);
+                      btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
+                      btnConfiguracion, btnAuditoria);
 
         if (btnAuditoria != null) {
             btnAuditoria.setVisible(SessionManager.isAdmin());
@@ -227,6 +231,27 @@ public class MainController {
     @FXML private void onReportes()      { navigateTo("reportes",      btnReportes); }
     @FXML private void onDepreciacion()  { navigateTo("depreciacion",  btnDepreciacion); }
     @FXML private void onConfiguracion() { navigateTo("configuracion", btnConfiguracion); }
+
+    @FXML
+    private void onConteoFisico() {
+        javafx.scene.Scene scene = contentArea.getScene();
+        if (scene == null) return;
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes para el conteo…",
+            () -> new ProductoService().getAllFiltrado(null, null, null, null, EstadoProducto.ACTIVO),
+            productos -> {
+                if (productos.isEmpty()) {
+                    NotificacionUtil.advertencia(scene, "No hay bienes activos registrados en el inventario");
+                    return;
+                }
+                if (productos.size() > 150 && !ConfirmacionUtil.confirmar("Conteo grande",
+                        "Vas a iniciar un conteo físico de " + productos.size() + " bienes.\n"
+                        + "Para conteos más manejables, inicia desde Bienes filtrado por área o categoría.\n\n"
+                        + "¿Continuar con los " + productos.size() + " bienes?")) return;
+                ConteoFisicoDialog.show(productos, new MovimientoService(), () -> refreshCurrentView());
+            },
+            e -> NotificacionUtil.error(scene, "No se pudo cargar los bienes para el conteo")
+        );
+    }
     @FXML private void onAuditoria()     { navigateTo("auditoria",     btnAuditoria); }
 
     @FXML
@@ -832,6 +857,7 @@ public class MainController {
         addNavTooltip(btnAlertas,       "Alertas  (Ctrl+6)");
         addNavTooltip(btnReportes,      "Reportes  (Ctrl+7)");
         addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+8)");
+        addNavTooltip(btnConteoFisico,  "Conteo físico del inventario");
         addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+9)");
         addNavTooltip(btnAuditoria,     "Auditoría  (Ctrl+0)");
     }

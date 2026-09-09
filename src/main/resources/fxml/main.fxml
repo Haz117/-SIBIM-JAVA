@@ -134,6 +134,10 @@
                         <graphic><FontIcon iconLiteral="mdi2c-chart-line" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Depreciación de activos  (Ctrl+8)"/></tooltip>
                     </Button>
+                    <Button fx:id="btnConteoFisico" text="Conteo Físico" onAction="#onConteoFisico" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="nav-icon"/></graphic>
+                        <tooltip><Tooltip text="Tomar conteo físico del inventario"/></tooltip>
+                    </Button>
 
                     <Region prefHeight="4"/>
                     <Separator styleClass="sidebar-divider"/>
