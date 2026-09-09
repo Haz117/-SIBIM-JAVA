@@ -121,7 +121,20 @@ public final class ConteoFisicoDialog {
         searchField.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         CheckBox soloDiferencias = new CheckBox("Solo diferencias");
-        HBox toolbar = new HBox(10, searchField, soloDiferencias);
+        Button btnHistorial = new Button("Historial");
+        btnHistorial.setGraphic(new FontIcon("mdi2c-clipboard-text-clock-outline"));
+        btnHistorial.setContentDisplay(ContentDisplay.LEFT);
+        btnHistorial.getStyleClass().add("btn-secondary");
+        btnHistorial.setOnAction(e -> {
+            javafx.scene.Scene s = dialog.getDialogPane().getScene();
+            if (com.sibim.session.SessionManager.isAdmin()) {
+                HistorialConteosDialog.show(s);
+            } else {
+                NotificacionUtil.info(s, "Solo el administrador puede ver el historial de conteos");
+            }
+        });
+
+        HBox toolbar = new HBox(10, searchField, soloDiferencias, btnHistorial);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(14, 14, 8, 14));
 

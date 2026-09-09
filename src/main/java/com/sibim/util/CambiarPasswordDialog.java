@@ -159,4 +159,121 @@ public final class CambiarPasswordDialog {
             onCompletado.run();
         }
     }
+
+    /** Voluntary password change — called from the sidebar user-card menu.
+     *  Requires the current password for verification before allowing the change. */
+    public static void mostrar(javafx.scene.Scene scene) {
+        com.sibim.model.Usuario user = com.sibim.session.SessionManager.getCurrentUser();
+        if (user == null) return;
+
+        ButtonType btnGuardar  = new ButtonType("Guardar",   ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCancelar = new ButtonType("Cancelar",  ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Cambiar contraseña");
+        dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, btnCancelar);
+        dialog.getDialogPane().setPrefWidth(420);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+        if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+        HBox header = DialogUtil.gradientHeader("mdi2l-lock-outline", "Cambiar contraseña",
+            "Verifica tu contraseña actual antes de definir una nueva",
+            "#6366F1", "#4F46E5");
+
+        PasswordField fActual    = new PasswordField();
+        fActual.setPromptText("Contraseña actual");
+        fActual.getStyleClass().add("form-input");
+
+        PasswordField fNueva     = new PasswordField();
+        fNueva.setPromptText("Nueva contraseña (mínimo 8 caracteres)");
+        fNueva.getStyleClass().add("form-input");
+
+        Label lblStrength = new Label();
+        lblStrength.getStyleClass().add("pwd-strength-lbl");
+        lblStrength.setVisible(false); lblStrength.setManaged(false);
+        fNueva.textProperty().addListener((o, a, b) -> {
+            boolean show = !b.isBlank();
+            lblStrength.setVisible(show); lblStrength.setManaged(show);
+            if (!show) return;
+            int score = 0;
+            if (b.length() >= 8) score++;
+            if (b.matches(".*[0-9].*")) score++;
+            if (b.matches(".*[!@#$%^&*_\\-+=].*")) score++;
+            lblStrength.getStyleClass().removeAll("pwd-strength-weak", "pwd-strength-fair", "pwd-strength-strong");
+            lblStrength.getStyleClass().add(score == 0 ? "pwd-strength-weak" : score == 1 ? "pwd-strength-fair" : "pwd-strength-strong");
+            lblStrength.setText(score == 0 ? "Débil" : score == 1 ? "Regular" : "Fuerte");
+        });
+
+        PasswordField fConfirmar = new PasswordField();
+        fConfirmar.setPromptText("Confirmar nueva contraseña");
+        fConfirmar.getStyleClass().add("form-input");
+
+        Label errorLbl = new Label();
+        errorLbl.getStyleClass().add("field-error-label");
+        errorLbl.setVisible(false); errorLbl.setManaged(false);
+        errorLbl.setWrapText(true);
+
+        VBox form = new VBox(10,
+            DialogUtil.fieldLabel("Contraseña actual *"), fActual,
+            DialogUtil.fieldLabel("Nueva contraseña *"),  fNueva, lblStrength,
+            DialogUtil.fieldLabel("Confirmar *"),          fConfirmar,
+            errorLbl);
+        form.setPadding(new Insets(18, 22, 20, 22));
+
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, form), 260, 70);
+        dialog.getDialogPane().setContent(new VBox(header, form));
+
+        Node guardarBtn = dialog.getDialogPane().lookupButton(btnGuardar);
+        guardarBtn.getStyleClass().add("dialog-ok-btn");
+
+        Runnable hideError = () -> { errorLbl.setVisible(false); errorLbl.setManaged(false); };
+        fActual.textProperty().addListener((o, a, b)    -> hideError.run());
+        fNueva.textProperty().addListener((o, a, b)     -> hideError.run());
+        fConfirmar.textProperty().addListener((o, a, b) -> hideError.run());
+
+        guardarBtn.addEventFilter(ActionEvent.ACTION, event -> {
+            String actual    = fActual.getText();
+            String nueva     = fNueva.getText();
+            String confirmar = fConfirmar.getText();
+            Runnable showError = () -> { errorLbl.setVisible(true); errorLbl.setManaged(true); };
+
+            if (actual.isBlank()) {
+                event.consume();
+                errorLbl.setText("Ingresa tu contraseña actual");
+                showError.run(); AnimationUtils.shake(fActual); return;
+            }
+            if (nueva.length() < 8) {
+                event.consume();
+                errorLbl.setText("La nueva contraseña debe tener al menos 8 caracteres");
+                showError.run(); AnimationUtils.shake(fNueva); return;
+            }
+            if (!nueva.equals(confirmar)) {
+                event.consume();
+                errorLbl.setText("Las contraseñas no coinciden");
+                showError.run(); AnimationUtils.shake(fConfirmar); return;
+            }
+            try {
+                boolean ok = at.favre.lib.crypto.bcrypt.BCrypt.verifyer()
+                    .verify(actual.toCharArray(), user.getPasswordHash()).verified;
+                if (!ok) {
+                    event.consume();
+                    errorLbl.setText("La contraseña actual no es correcta");
+                    showError.run(); AnimationUtils.shake(fActual); return;
+                }
+                String hash = new AuthService().hashPassword(nueva);
+                new UsuarioRepository().completarCambioPassword(user.getId(), hash);
+                user.setPasswordHash(hash);
+                if (scene != null) NotificacionUtil.exito(scene, "Contraseña actualizada correctamente");
+            } catch (Exception ex) {
+                event.consume();
+                log.error("No se pudo cambiar la contraseña para '{}'", user.getUsername(), ex);
+                errorLbl.setText("No se pudo guardar la contraseña. Intenta de nuevo.");
+                showError.run();
+            }
+        });
+
+        javafx.application.Platform.runLater(fActual::requestFocus);
+        dialog.showAndWait();
+    }
 }

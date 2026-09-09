@@ -33,89 +33,132 @@ public final class TutorialOverlay {
     ) {}
 
     private static Step[] buildSteps() {
+        com.sibim.model.Usuario user = SessionManager.getCurrentUser();
+        String primerNombre = (user != null && user.getNombre() != null && !user.getNombre().isBlank())
+            ? user.getNombre().split("\\s+")[0] : null;
+        String welcomeTitle = primerNombre != null ? "¡Hola, " + primerNombre + "!" : "Bienvenido a SIBIM";
+        String rolDesc = SessionManager.isAdmin()
+            ? "Tienes acceso completo como Administrador — incluye gestión de usuarios y auditoría"
+            : SessionManager.isSecretario()
+                ? "Tu rol de Secretario te da acceso a todos los módulos de inventario y reportes"
+                : "Tu rol te da acceso a inventario, movimientos, reportes y depreciación";
+
         java.util.List<Step> list = new java.util.ArrayList<>(java.util.List.of(
+            // ── Bienvenida personalizada ──────────────────────────────────────────
             new Step("mdi2b-book-open-outline", "#6366F1", "#3730A3",
-                "Bienvenido a SIBIM", null, null, new String[]{
-                "Sistema integral de gestión del patrimonio municipal",
-                "Inventario, movimientos, reportes y depreciación en un solo lugar",
-                "Funciona en línea, sin conexión y en modo demo"
+                welcomeTitle, null, null, new String[]{
+                rolDesc,
+                "Cada paso navega al módulo que describe — explóralo en vivo mientras lees",
+                "Retoma este tutorial en cualquier momento presionando F2"
             }),
+
+            // ── Dashboard ────────────────────────────────────────────────────────
             new Step("mdi2v-view-dashboard-outline", "#0EA5E9", "#0369A1",
                 "Dashboard", "Ctrl + 1", "dashboard", new String[]{
-                "Métricas en tiempo real: total de bienes y valor del inventario",
-                "Gráfica de salud del inventario y tendencia mensual de movimientos",
-                "Accesos rápidos a los flujos más frecuentes"
+                "Los recuadros de estadísticas son clicables — llevan directo al módulo",
+                "Haz clic en un segmento de la gráfica para filtrar Bienes por esa categoría",
+                "El botón ↺ actualiza métricas en tiempo real tras registrar cambios"
             }),
-            new Step("mdi2p-package-variant", "#6366F1", "#3730A3",
-                "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
-                "Alta, edición y baja de bienes patrimoniales con foto y código",
-                "Búsqueda en tiempo real por nombre, código, categoría o área",
-                "Doble clic en cualquier bien para ver su ficha completa e historial"
-            }),
+
+            // ── Categorías ANTES que Bienes: flujo correcto de onboarding ────────
             new Step("mdi2t-tag-multiple-outline", "#0891B2", "#0E7490",
                 "Categorías", "Ctrl + 4", "categorias", new String[]{
-                "Organiza los bienes en grupos: vehículos, mobiliario, equipo de cómputo…",
-                "Cada categoría tiene ícono y color personalizables",
-                "Los filtros de Bienes, Movimientos y Alertas usan estas categorías"
+                "Crea las categorías PRIMERO: Mobiliario, Cómputo, Vehículos, Equipo…",
+                "Cada categoría tiene ícono y color — los bienes los heredan en todos los filtros",
+                "El contador junto a cada categoría es clicable: filtra Bienes al instante"
             }),
+
+            // ── Bienes ───────────────────────────────────────────────────────────
+            new Step("mdi2p-package-variant", "#6366F1", "#3730A3",
+                "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
+                "Ctrl+N abre el formulario: llena nombre, código, área, categoría y valor",
+                "Doble clic en cualquier fila: foto, código QR e historial de movimientos",
+                "Busca en tiempo real y combina filtros de categoría, área y estado"
+            }),
+
+            // ── Movimientos ──────────────────────────────────────────────────────
             new Step("mdi2s-swap-vertical-bold", "#7C3AED", "#5B21B6",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
-                "Registra entradas, salidas, ajustes y transferencias entre áreas",
-                "Las transferencias requieren aprobación del administrador",
-                "Exporta el historial a CSV o Excel con los filtros activos"
+                "Registra Entrada para equipo nuevo y Salida para bajas oficiales",
+                "Las transferencias entre áreas quedan pendientes hasta que el admin las aprueba",
+                "Desde el detalle de un movimiento puedes ver el historial completo del bien"
             }),
+
+            // ── Conteo Físico (diálogo, se centra en lugar de apuntar al sidebar) ─
+            new Step("mdi2c-clipboard-check-outline", "#0F766E", "#134E4A",
+                "Conteo Físico", null, null, new String[]{
+                "Ábrelo desde el sidebar o desde Bienes ya filtrado por área o categoría",
+                "Marca cada bien: Encontrado ✓, Faltante ✗ o con Discrepancia — sin salir",
+                "Al terminar genera un reporte de diferencias para ajustes de inventario"
+            }),
+
+            // ── Alertas ──────────────────────────────────────────────────────────
             new Step("mdi2b-bell-ring-outline", "#DC2626", "#991B1B",
                 "Alertas", "Ctrl + 6", "alertas", new String[]{
-                "Notificación automática cuando el stock baja del mínimo definido",
-                "Aviso de bienes cuya fecha de vencimiento se aproxima",
-                "Badge rojo en el menú cuando hay alertas activas sin resolver"
+                "Se generan automáticamente — solo necesitas revisarlas y resolverlas",
+                "El badge rojo en el sidebar muestra cuántas hay activas sin atender",
+                "Selecciona una o varias y usa 'Resolver seleccionadas' para cerrarlas"
             }),
+
+            // ── Reportes ─────────────────────────────────────────────────────────
             new Step("mdi2f-file-chart-outline", "#059669", "#065F46",
                 "Reportes", "Ctrl + 7", "reportes", new String[]{
-                "Genera inventario general, movimientos y bienes por área",
-                "Exporta a Excel (.xlsx) y PDF con un solo clic",
-                "Los reportes respetan los filtros de fecha y categoría activos"
+                "Tres reportes listos: Inventario general, Movimientos del período y por área",
+                "Aplica filtros antes de exportar — el reporte incluye solo lo que ves en pantalla",
+                "Excel genera datos para análisis; PDF produce un documento listo para entrega"
             }),
+
+            // ── Depreciación ─────────────────────────────────────────────────────
             new Step("mdi2c-chart-line", "#4338CA", "#3730A3",
                 "Depreciación", "Ctrl + 8", "depreciacion", new String[]{
-                "Calcula el valor en libros por método de línea recta (SAT México)",
-                "Identifica bienes totalmente depreciados — candidatos a baja o reemplazo",
-                "Exporta fichas técnicas individuales o en lote a PDF"
+                "Cálculo automático: valor de compra ÷ vida útil = depreciación anual (SAT)",
+                "Bienes en rojo = 100% depreciados — candidatos prioritarios a baja o reemplazo",
+                "Exporta fichas individuales o en lote para auditorías y levantamientos INEGI"
             }),
+
+            // ── Organigrama ──────────────────────────────────────────────────────
             new Step("mdi2o-office-building-outline", "#2563EB", "#1D4ED8",
                 "Organigrama", "Ctrl + 2", "organigrama", new String[]{
-                "Visualiza la distribución de bienes por secretaría y dirección",
-                "Expande cada área para ver sus bienes asignados",
-                "Exporta el organigrama completo a PDF"
+                "Vista jerárquica de áreas y bienes — ideal para auditorías y actas de entrega",
+                "Clic en el número de bienes de un área → directo a esos bienes en Inventario",
+                "Exporta el árbol completo a PDF desde la barra de herramientas"
             }),
+
+            // ── Configuración (contenido distinto para admin) ─────────────────────
             new Step("mdi2c-cog-outline", "#64748B", "#334155",
                 "Configuración", "Ctrl + 9", "configuracion", new String[]{
-                "Cambia tu contraseña y revisa tu perfil de usuario",
-                "Administradores: gestiona usuarios, roles y accesos por área",
-                "Genera respaldos de la base de datos y revisa el estado del sistema"
+                SessionManager.isAdmin()
+                    ? "Gestiona usuarios y roles en 'Administrar Usuarios' — asigna áreas por cuenta"
+                    : "Cambia tu contraseña aquí — el administrador gestiona roles y accesos por área",
+                "Sube el logo del ayuntamiento — se muestra en la pantalla de inicio del sistema",
+                "Genera respaldos de la base de datos y revisa el estado de la conexión"
             }),
+
+            // ── Atajos de teclado ────────────────────────────────────────────────
             new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
                 "Atajos de Teclado", "F1", null, new String[]{
-                "Ctrl+1 a Ctrl+9 navega entre módulos sin el mouse",
-                "Ctrl+F busca · F5 actualiza · Ctrl+K abre la paleta de comandos",
-                "En tablas: Ctrl+N nuevo · Ctrl+E editar · Supr eliminar"
+                "Ctrl+1…9 navega entre módulos; Ctrl+0 abre Auditoría (solo admin)",
+                "Ctrl+F busca en la tabla activa · F5 actualiza · Ctrl+N crea nuevo registro",
+                "En tablas: Ctrl+E edita la fila seleccionada · Supr elimina · F1 abre esta lista"
             }),
+
+            // ── Primeros pasos: cierre accionable ────────────────────────────────
             new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
-                "¡Todo listo!", null, "dashboard", new String[]{
-                "Explora cada módulo desde la barra lateral izquierda",
-                "Presiona F1 en cualquier momento para ver todos los atajos",
-                "El sistema guarda tus cambios aunque pierdas la conexión"
+                "¡Listo para empezar!", null, "dashboard", new String[]{
+                "① Crea tus categorías (Ctrl+4) — la base de todo el inventario",
+                "② Da de alta tu primer bien con código y área asignada (Ctrl+3 → Ctrl+N)",
+                "③ Registra el primer movimiento de entrada para tener trazabilidad desde hoy"
             })
         ));
 
-        if (com.sibim.session.SessionManager.isAdmin()) {
-            // Insert before the last two steps (Atajos + ¡Todo listo!)
+        if (SessionManager.isAdmin()) {
+            // Insert Auditoría before the last two steps (Atajos + ¡Listo!)
             list.add(list.size() - 2,
                 new Step("mdi2s-shield-lock-outline", "#475569", "#1E293B",
                     "Auditoría del Sistema", "Ctrl + 0", "auditoria", new String[]{
-                    "Registro de todas las acciones: altas, bajas, ediciones y sesiones",
+                    "Registra automáticamente todas las acciones: altas, bajas, ediciones, sesiones",
                     "Filtra por entidad, usuario y rango de fechas para trazabilidad exacta",
-                    "Solo visible para administradores — validado a nivel servidor"
+                    "Exporta el log completo a Excel para revisiones de cumplimiento y control"
                 })
             );
         }
@@ -127,7 +170,7 @@ public final class TutorialOverlay {
     public static void showIfFirstTime(StackPane outerStack) {
         String username = SessionManager.getCurrentUser() != null
             ? SessionManager.getCurrentUser().getUsername() : "unknown";
-        String key = "tutorial.v4." + username;
+        String key = "tutorial.v5." + username;
         if (PREFS.getBoolean(key, false)) return;
         PREFS.putBoolean(key, true);
         javafx.application.Platform.runLater(() -> buildAndShow(outerStack));

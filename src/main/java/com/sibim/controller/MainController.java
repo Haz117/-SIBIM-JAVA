@@ -151,6 +151,7 @@ public class MainController {
             if (userAvatarLabel != null && nombre != null && !nombre.isBlank())
                 userAvatarLabel.setText(String.valueOf(nombre.charAt(0)).toUpperCase());
         }
+        setupUserCardMenu();
         navigateTo("dashboard", btnDashboard);
         densityIndex = DENSITY_PREFS.getInt("index", 1);
         applyDensityClass();
@@ -298,6 +299,34 @@ public class MainController {
     @FXML
     private void onShowTutorial() {
         TutorialOverlay.show(outerStack);
+    }
+
+    private void setupUserCardMenu() {
+        if (userInfoVBox == null) return;
+        javafx.scene.Node card = userInfoVBox.getParent();
+        if (card == null) return;
+        card.setCursor(javafx.scene.Cursor.HAND);
+        javafx.scene.control.Tooltip.install(card,
+            new javafx.scene.control.Tooltip("Clic para opciones de cuenta"));
+
+        javafx.scene.control.ContextMenu menu = new javafx.scene.control.ContextMenu();
+
+        javafx.scene.control.MenuItem miPassword = new javafx.scene.control.MenuItem("Cambiar contraseña");
+        miPassword.setGraphic(new FontIcon("mdi2l-lock-outline"));
+        miPassword.setOnAction(e ->
+            com.sibim.util.CambiarPasswordDialog.mostrar(contentArea.getScene()));
+
+        javafx.scene.control.SeparatorMenuItem sep = new javafx.scene.control.SeparatorMenuItem();
+
+        javafx.scene.control.MenuItem miLogout = new javafx.scene.control.MenuItem("Cerrar sesión");
+        miLogout.setGraphic(new FontIcon("mdi2l-logout"));
+        miLogout.setOnAction(e -> onLogout());
+
+        menu.getItems().addAll(miPassword, sep, miLogout);
+        card.setOnMouseClicked(e -> {
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY)
+                menu.show(card, e.getScreenX(), e.getScreenY());
+        });
     }
 
     @FXML

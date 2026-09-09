@@ -1095,6 +1095,94 @@ public class ReporteService {
         return out;
     }
 
+    /** Exports a physical inventory count session to a formatted PDF report. */
+    public File exportarConteoPdf(com.sibim.model.ConteoFisico c,
+                                   List<com.sibim.model.ConteoItem> items) throws Exception {
+        File out = tempFile("conteo_fisico_", ".pdf");
+        try (PdfWriter writer = new PdfWriter(out);
+             PdfDocument pdf = new PdfDocument(writer);
+             Document doc = new Document(pdf, PageSize.LETTER)) {
+
+            doc.setMargins(50, 50, 60, 50);
+            PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+            PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+            DeviceRgb accent = new DeviceRgb(8, 145, 178);
+
+            // Header
+            doc.add(new Paragraph("REPORTE DE CONTEO FÍSICO DE INVENTARIO")
+                .setFont(bold).setFontSize(15)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            doc.add(new Paragraph(orgName())
+                .setFont(regular).setFontSize(11)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginBottom(3));
+
+            String fechaStr = c.getCreadoEn() != null
+                ? com.sibim.util.FormatUtils.formatDateTime(c.getCreadoEn()) : "—";
+            doc.add(new Paragraph(
+                    "Fecha: " + fechaStr
+                    + "    |    Realizado por: " + (c.getUsuarioNombre() != null ? c.getUsuarioNombre() : "—")
+                    + "    |    Bienes: " + c.getTotalContados()
+                    + "    |    Discrepancias: " + c.getTotalDiscrepancias())
+                .setFont(regular).setFontSize(10)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginBottom(16));
+
+            // Summary badge
+            boolean sinDiff = c.getTotalDiscrepancias() == 0;
+            String statusText = sinDiff
+                ? "INVENTARIO CONFORME — Sin diferencias detectadas"
+                : c.getTotalDiscrepancias() + " diferencia(s) detectada(s) y registrada(s) como ajustes";
+            doc.add(new Paragraph(statusText)
+                .setFont(bold).setFontSize(10)
+                .setFontColor(sinDiff ? new DeviceRgb(5, 150, 105) : new DeviceRgb(217, 119, 6))
+                .setMarginBottom(14));
+
+            // Items table
+            float[] widths = {3.5f, 1.5f, 1f, 1f, 1f, 1.2f};
+            Table table = new Table(widths).useAllAvailableWidth();
+            String[] headers = {"Bien / Área", "Código", "Sistema", "Contado", "Diff.", "Estado"};
+            for (String h : headers) {
+                table.addHeaderCell(new com.itextpdf.layout.element.Cell()
+                    .add(new Paragraph(h).setFont(bold).setFontSize(9).setFontColor(ColorConstants.WHITE))
+                    .setBackgroundColor(accent).setPadding(5));
+            }
+            boolean alt = false;
+            for (com.sibim.model.ConteoItem it : items) {
+                DeviceRgb rowBg = alt ? new DeviceRgb(243, 244, 246) : new DeviceRgb(255, 255, 255);
+                int diff = it.getStockContado() - it.getStockSistema();
+                String diffStr = diff == 0 ? "—" : (diff > 0 ? "+" + diff : String.valueOf(diff));
+                String status  = diff == 0 ? "OK" : (it.isAjustado() ? "Ajustado" : "Pendiente");
+                String[] cells = {
+                    it.getProductoNombre() + (it.getArea() != null ? "\n" + it.getArea() : ""),
+                    "",
+                    String.valueOf(it.getStockSistema()),
+                    String.valueOf(it.getStockContado()),
+                    diffStr,
+                    status
+                };
+                for (String cellVal : cells) {
+                    table.addCell(new com.itextpdf.layout.element.Cell()
+                        .add(new Paragraph(cellVal != null ? cellVal : "").setFont(regular).setFontSize(8))
+                        .setBackgroundColor(rowBg).setPadding(4));
+                }
+                alt = !alt;
+            }
+            doc.add(table);
+
+            doc.add(new Paragraph("\nTotal de bienes contados: " + c.getTotalContados()
+                    + "    |    Discrepancias: " + c.getTotalDiscrepancias())
+                .setFont(bold).setFontSize(10).setMarginTop(12));
+            doc.add(new Paragraph("\n\n\n_______________________________          _______________________________")
+                .setFont(regular).setFontSize(10)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            doc.add(new Paragraph("Firma del responsable de conteo                   Vo.Bo. Administrador")
+                .setFont(regular).setFontSize(9)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+        }
+        return out;
+    }
+
     /** Generates a structured organigrama PDF — one section per area with bienes table. */
     public File exportOrganigrama(Map<String, List<Producto>> porArea) throws Exception {
         File file = tempFile("organigrama_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
