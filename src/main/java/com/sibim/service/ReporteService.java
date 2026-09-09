@@ -54,7 +54,10 @@ public class ReporteService {
     }
 
     private String orgName() {
-        return configRepo.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan") + ", Hgo.";
+        String org = configRepo.get("nombre_ayuntamiento", "");
+        String mun = configRepo.get("municipio", "");
+        if (org.isBlank()) return "SIBIM — Sistema Integral de Bienes Municipales";
+        return mun.isBlank() ? org : org + "  ·  " + mun;
     }
 
     private static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900

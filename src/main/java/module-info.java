@@ -35,6 +35,9 @@ module com.sibim {
     opens com.sibim.controller to javafx.fxml;
     opens com.sibim.model to javafx.base;
     opens com.sibim.model.enums to javafx.base;
+    // Flyway (named module) needs to read SQL files in db/migration at runtime.
+    // Without this, the module system blocks getResourceAsStream on the package.
+    opens db.migration to org.flywaydb.core;
 
     exports com.sibim;
     exports com.sibim.controller;

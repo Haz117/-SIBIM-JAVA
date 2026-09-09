@@ -8,12 +8,14 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.util.Duration;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
@@ -28,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 
 public class AlertasController {
 
@@ -190,13 +193,20 @@ public class AlertasController {
         MenuItem miAgReponer = new MenuItem("Registrar Entrada");
         miAgReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
         miAgReponer.setOnAction(e -> onReponerAgotado());
+        MenuItem miAgBaja = new MenuItem("Dar de baja");
+        miAgBaja.setGraphic(new FontIcon("mdi2a-archive-remove-outline"));
+        miAgBaja.setOnAction(e -> {
+            Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
+            if (sel != null) darDeBajaDesdeAlertas(sel);
+        });
+        if (!canWrite) miAgBaja.setVisible(false);
         MenuItem miAgFicha = new MenuItem("Imprimir ficha técnica");
         miAgFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
         miAgFicha.setOnAction(e -> {
             Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
             if (sel != null) imprimirFicha(sel);
         });
-        cmAg.getItems().addAll(miAgDetalle, new SeparatorMenuItem(), miAgReponer, new SeparatorMenuItem(), miAgFicha);
+        cmAg.getItems().addAll(miAgDetalle, new SeparatorMenuItem(), miAgReponer, miAgBaja, new SeparatorMenuItem(), miAgFicha);
         tableAgotados.setContextMenu(cmAg);
 
         // Context menu for tableBajoStock
@@ -465,7 +475,7 @@ public class AlertasController {
         scroll.getStyleClass().add("edge-to-edge");
 
         HBox header = DialogUtil.gradientHeader(
-            "mdi2p-package-variant-plus",
+            "mdi2p-package-up",
             "Reponer todos los bienes agotados",
             allAgotados.size() + " bienes · ingresa la cantidad de entrada para cada uno",
             "#4338CA", "#6366F1");
@@ -529,22 +539,54 @@ public class AlertasController {
 
     @FXML
     private void onReponerAgotado() {
-        Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
+        openReponerForm(tableAgotados.getSelectionModel().getSelectedItem(), tableAgotados);
+    }
+
+    @FXML
+    private void onSolicitarBajoStock() {
+        openReponerForm(tableBajoStock.getSelectionModel().getSelectedItem(), tableBajoStock);
+    }
+
+    private void openReponerForm(Producto sel, TableView<Producto> source) {
         if (sel == null) {
-            NotificacionUtil.advertencia(tableAgotados.getScene(), "Selecciona un bien de la lista primero");
+            NotificacionUtil.advertencia(source.getScene(), "Selecciona un bien de la lista primero");
             return;
         }
         openMovimientoForm(sel.getId(), TipoMovimiento.ENTRADA);
     }
 
-    @FXML
-    private void onSolicitarBajoStock() {
-        Producto sel = tableBajoStock.getSelectionModel().getSelectedItem();
-        if (sel == null) {
-            NotificacionUtil.advertencia(tableBajoStock.getScene(), "Selecciona un bien de la lista primero");
-            return;
-        }
-        openMovimientoForm(sel.getId(), TipoMovimiento.ENTRADA);
+    private void darDeBajaDesdeAlertas(Producto p) {
+        if (!(SessionManager.isAdmin() || SessionManager.isSecretario())) return;
+
+        TextInputDialog dlg = new TextInputDialog();
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.setTitle("Dar de baja");
+        dlg.setHeaderText("Dar de baja: " + p.getNombre());
+        dlg.setContentText("Motivo:");
+        dlg.getEditor().setPromptText("Ej. Pérdida total, robo, deterioro irreparable…");
+
+        Optional<String> result = dlg.showAndWait();
+        if (result.isEmpty() || result.get().isBlank()) return;
+        String motivo = result.get().trim();
+
+        AppExecutor.submit(() -> {
+            try {
+                productoService.darDeBaja(p.getId(), motivo);
+                Platform.runLater(() -> {
+                    if (tableAgotados.getScene() != null)
+                        NotificacionUtil.exito(tableAgotados.getScene(), "Bien dado de baja correctamente");
+                    loadData();
+                });
+            } catch (Exception ex) {
+                log.error("Error al dar de baja desde Alertas: {}", ex.getMessage(), ex);
+                Platform.runLater(() -> {
+                    if (tableAgotados.getScene() != null)
+                        NotificacionUtil.error(tableAgotados.getScene(),
+                            ex.getMessage() != null ? ex.getMessage() : "No se pudo dar de baja el bien");
+                });
+            }
+        });
     }
 
     /** Navigates to Movimientos and opens the form there (pre-filled with

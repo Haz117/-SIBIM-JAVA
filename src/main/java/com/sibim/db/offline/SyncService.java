@@ -47,7 +47,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class SyncService {
 
     private static final Logger log = LoggerFactory.getLogger(SyncService.class);
-    private static final long POLL_SECONDS = 60;
+    private static final long MIN_POLL_SECONDS = 60;
+    private static final long MAX_POLL_SECONDS = 300;
+    private static volatile long currentPollDelay = MIN_POLL_SECONDS;
 
     static final String STATUS_PENDING   = "PENDING";
     static final String STATUS_SYNCED    = "SYNCED";
@@ -66,8 +68,31 @@ public final class SyncService {
             t.setDaemon(true);
             return t;
         });
-        executor.scheduleWithFixedDelay(SyncService::tick, POLL_SECONDS, POLL_SECONDS, TimeUnit.SECONDS);
-        log.info("SyncService: vigilando reconexión cada {}s", POLL_SECONDS);
+        scheduleNextTick();
+        log.info("SyncService: vigilando reconexión con backoff adaptativo ({}s–{}s)",
+            MIN_POLL_SECONDS, MAX_POLL_SECONDS);
+    }
+
+    private static synchronized void scheduleNextTick() {
+        if (executor == null || executor.isShutdown()) return;
+        executor.schedule(SyncService::tickAndReschedule, currentPollDelay, TimeUnit.SECONDS);
+    }
+
+    private static void tickAndReschedule() {
+        try {
+            boolean wasOffline = DatabaseConfig.isOfflineMode();
+            tick();
+            boolean stillOffline = DatabaseConfig.isOfflineMode();
+            // Back off when we're offline and couldn't reconnect; reset on success
+            if (stillOffline && wasOffline) {
+                currentPollDelay = Math.min(currentPollDelay * 2, MAX_POLL_SECONDS);
+                log.debug("SyncService: sin conexión — próximo intento en {}s", currentPollDelay);
+            } else {
+                currentPollDelay = MIN_POLL_SECONDS;
+            }
+        } finally {
+            scheduleNextTick();
+        }
     }
 
     public static synchronized void stopWatching() {
@@ -77,9 +102,10 @@ public final class SyncService {
         }
     }
 
-    /** Manual trigger (e.g. a "Sincronizar ahora" button) — same logic the
-     *  scheduled poll runs, just on demand. */
+    /** Manual trigger (e.g. a "Sincronizar ahora" button) — resets backoff
+     *  so the next scheduled tick returns to the baseline interval. */
     public static void syncNow() {
+        currentPollDelay = MIN_POLL_SECONDS;
         tick();
     }
 

@@ -555,12 +555,20 @@ public class MainController {
 
     @FXML
     private void onSyncNow() {
-        if (offlineBannerSyncBtn != null) offlineBannerSyncBtn.setDisable(true);
+        if (offlineBannerSyncBtn != null) {
+            offlineBannerSyncBtn.setDisable(true);
+            offlineBannerSyncBtn.setText("Sincronizando…");
+        }
+        if (offlineBannerLabel != null)
+            offlineBannerLabel.setText("Conectando con el servidor…");
         com.sibim.util.AppExecutor.submit(() -> {
             com.sibim.db.offline.SyncService.syncNow();
             javafx.application.Platform.runLater(() -> {
                 updateStatusBar();
-                if (offlineBannerSyncBtn != null) offlineBannerSyncBtn.setDisable(false);
+                if (offlineBannerSyncBtn != null) {
+                    offlineBannerSyncBtn.setDisable(false);
+                    offlineBannerSyncBtn.setText("Sincronizar ahora");
+                }
             });
         });
     }

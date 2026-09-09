@@ -125,6 +125,11 @@
         </Label>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblStatsActualizacion" text="" styleClass="muted"/>
+        <Button fx:id="btnRefreshDash" onAction="#onRefreshDash" styleClass="btn-icon-only"
+                contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Actualizar datos ahora"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- Stats grid — 1×4: solo cifras que no se repiten en ningún otro

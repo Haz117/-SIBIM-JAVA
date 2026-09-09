@@ -26,6 +26,8 @@ import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -50,7 +52,7 @@ public class SplashController {
 
     private final List<Animation> loops = new ArrayList<>();
     private Arc arcRing;
-    private RotateTransition arcSpin;
+    private Animation arcSpin;
     private Timeline dotAnim;
     private boolean animReady     = false;
     private boolean dbReady       = false;
@@ -131,8 +133,9 @@ public class SplashController {
                 new KeyValue(progressBar.progressProperty(), 0.82,   Interpolator.EASE_BOTH),
                 new KeyValue(arcRing.lengthProperty(),      -295.2,  Interpolator.EASE_BOTH)),
             new KeyFrame(Duration.millis(2100),
-                new KeyValue(progressBar.progressProperty(), 1.0,   Interpolator.EASE_OUT),
-                new KeyValue(arcRing.lengthProperty(),      -360.0, Interpolator.EASE_OUT))
+                // Stop at 88% so the bar never falsely reaches 100% before the DB is ready
+                new KeyValue(progressBar.progressProperty(), 0.88,   Interpolator.EASE_OUT),
+                new KeyValue(arcRing.lengthProperty(),      -316.8,  Interpolator.EASE_OUT))
         );
         progressAnim.setDelay(Duration.millis(680));
 
@@ -140,7 +143,8 @@ public class SplashController {
             new KeyFrame(Duration.millis(0),    e -> lblStatus.setText("Iniciando sistema...")),
             new KeyFrame(Duration.millis(650),  e -> lblStatus.setText("Conectando base de datos...")),
             new KeyFrame(Duration.millis(1300), e -> lblStatus.setText("Cargando módulos...")),
-            new KeyFrame(Duration.millis(1950), e -> lblStatus.setText("Sistema listo  ✓"))
+            // Don't say "listo" here — the real "Sistema listo ✓" is set when dbReady fires
+            new KeyFrame(Duration.millis(1950), e -> lblStatus.setText("Preparando interfaz..."))
         );
         statusAnim.setDelay(Duration.millis(680));
 
@@ -188,12 +192,24 @@ public class SplashController {
 
     private void startArcSpin() {
         if (arcRing == null) return;
-        arcRing.setLength(-90);
-        arcSpin = new RotateTransition(Duration.millis(1100), arcRing);
-        arcSpin.setByAngle(-360);
-        arcSpin.setCycleCount(Animation.INDEFINITE);
-        arcSpin.setInterpolator(Interpolator.LINEAR);
-        arcSpin.play();
+        // First shrink arc from fill-up length to 90°, then spin by animating startAngle.
+        // We animate startAngle (not rotate the node) because a partial Arc's bounding-box
+        // center doesn't coincide with the circle's center, making RotateTransition wobble.
+        Timeline shrink = new Timeline(new KeyFrame(Duration.millis(280),
+            new KeyValue(arcRing.lengthProperty(), -90.0, Interpolator.EASE_BOTH)));
+        shrink.setOnFinished(ev -> {
+            double start = arcRing.getStartAngle();
+            Timeline spin = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                    new KeyValue(arcRing.startAngleProperty(), start)),
+                new KeyFrame(Duration.millis(1100),
+                    new KeyValue(arcRing.startAngleProperty(), start - 360.0, Interpolator.LINEAR))
+            );
+            spin.setCycleCount(Animation.INDEFINITE);
+            spin.play();
+            arcSpin = spin;
+        });
+        shrink.play();
     }
 
     private void startDotAnimation() {
@@ -261,6 +277,7 @@ public class SplashController {
                 DatabaseConfig.init();
                 Flyway.configure()
                     .dataSource(DatabaseConfig.getDataSource())
+                    .locations(resolveMigrationsLocation())
                     .baselineOnMigrate(true)
                     .baselineVersion("0")
                     .load()
@@ -268,9 +285,13 @@ public class SplashController {
                 firstRunAdmin = seedAdminIfEmpty();
                 try {
                     com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
-                    String org = cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan");
-                    String mun = cr.get("municipio", "Ixmiquilpan, Hidalgo");
-                    Platform.runLater(() -> lblOrg.setText(org + "  ·  " + mun));
+                    String org      = cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan");
+                    String mun      = cr.get("municipio",           "Ixmiquilpan, Hidalgo");
+                    String logoPath = cr.get("logo_path",           "");
+                    Platform.runLater(() -> {
+                        lblOrg.setText(org + "  ·  " + mun);
+                        if (!logoPath.isBlank()) applyLogoIfExists(logoPath);
+                    });
                 } catch (Exception ignored) {}
             }
         } catch (Exception e) {
@@ -289,7 +310,7 @@ public class SplashController {
                 dbReady = true;
                 if (animReady) {
                     if (arcSpin != null) { arcSpin.stop(); arcSpin = null; }
-                    if (arcRing != null) { arcRing.setRotate(0); arcRing.setLength(-360); }
+                    if (arcRing != null) { arcRing.setLength(-360); }
                     progressBar.setProgress(1.0);
                     lblStatus.setText("Sistema listo  ✓");
                 }
@@ -370,6 +391,40 @@ public class SplashController {
         if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
         Optional<ButtonType> result = alert.showAndWait();
         return result.isPresent() && result.get() == btnContinuar;
+    }
+
+    // Resolves the Flyway migrations location in a way that bypasses the Java
+    // module system's cross-module resource encapsulation.  Calling getResource()
+    // from within com.sibim itself always succeeds (a module can read its own
+    // resources).  When running exploded (mvn javafx:run / IDE), the URL is a
+    // plain file:// path, so we hand Flyway a "filesystem:" location and it reads
+    // the SQL files directly without going through ClassLoader — no module barrier.
+    // If for some reason the URL isn't a plain file (e.g. inside a JAR), we fall
+    // back to the standard classpath location and rely on module opens.
+    private static String resolveMigrationsLocation() {
+        try {
+            URL url = SplashController.class.getResource("/db/migration");
+            if (url != null && "file".equals(url.getProtocol())) {
+                return "filesystem:" + Paths.get(url.toURI()).toString();
+            }
+        } catch (Exception ignored) {}
+        return "classpath:db/migration";
+    }
+
+    private void applyLogoIfExists(String path) {
+        try {
+            java.io.File f = new java.io.File(path);
+            if (!f.exists() || !f.isFile()) return;
+            javafx.scene.image.Image img =
+                new javafx.scene.image.Image(f.toURI().toString(), 92, 92, true, true, true);
+            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+            iv.setFitWidth(92); iv.setFitHeight(92); iv.setPreserveRatio(true);
+            javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(46, 46, 46);
+            iv.setClip(clip);
+            logoBadge.getChildren().setAll(iv);
+        } catch (Exception e) {
+            log.debug("No se pudo cargar logo del ayuntamiento: {}", e.getMessage());
+        }
     }
 
     private void notifyOfflineMode() {

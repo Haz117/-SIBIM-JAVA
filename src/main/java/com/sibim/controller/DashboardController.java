@@ -47,7 +47,8 @@ public class DashboardController {
     @FXML private Label lblFechaMes;
     @FXML private HBox  alertBanner;
     @FXML private Label lblAlertBannerText;
-    @FXML private Label lblStatsActualizacion;
+    @FXML private Label  lblStatsActualizacion;
+    @FXML private javafx.scene.control.Button btnRefreshDash;
 
     // ── Help badges ("?") ────────────────────────────────────────────
     @FXML private Label helpStats;
@@ -581,6 +582,8 @@ public class DashboardController {
             delay.play();
         }
     }
+
+    @FXML private void onRefreshDash() { loadDataAsync(); }
 
     @FXML private void onVerProductos()    { navigarA("Productos"); }
     @FXML private void onVerMovimientos()  { navigarA("Movimientos"); }

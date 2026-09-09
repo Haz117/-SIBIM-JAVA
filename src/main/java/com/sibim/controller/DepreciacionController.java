@@ -593,5 +593,20 @@ public class DepreciacionController {
             serie.getData().add(new XYChart.Data<>(y == 0 ? "Hoy" : "+" + y + "a", total));
         }
         chartTendencia.getData().add(serie);
+        // Install tooltips on each data point after the chart renders them
+        javafx.application.Platform.runLater(() -> installChartTooltips(serie));
+    }
+
+    private void installChartTooltips(XYChart.Series<String, Number> serie) {
+        for (XYChart.Data<String, Number> d : serie.getData()) {
+            javafx.scene.Node node = d.getNode();
+            if (node == null) continue;
+            String label = FormatUtils.formatCurrency(
+                new BigDecimal(d.getYValue().doubleValue()).setScale(2, RoundingMode.HALF_UP));
+            Tooltip tip = new Tooltip(d.getXValue() + "  →  " + label);
+            Tooltip.install(node, tip);
+            node.setOnMouseEntered(e -> node.getStyleClass().add("chart-point-hover"));
+            node.setOnMouseExited(e -> node.getStyleClass().remove("chart-point-hover"));
+        }
     }
 }

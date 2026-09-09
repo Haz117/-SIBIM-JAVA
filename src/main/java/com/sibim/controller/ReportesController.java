@@ -71,11 +71,13 @@ public class ReportesController {
             AnimationUtils.fadeInUp(periodCard, 300, 0);
             periodCard.sceneProperty().addListener((obs, old, scene) -> {
                 if (scene == null) return;
-                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.CONTROL_DOWN), this::onReportHoy);
-                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.CONTROL_DOWN), this::onReportSemana);
-                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT3, KeyCombination.CONTROL_DOWN), this::onReportMes);
-                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT4, KeyCombination.CONTROL_DOWN), this::onReportAnio);
-                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT5, KeyCombination.CONTROL_DOWN), this::onReportTodo);
+                // Alt+1-5 for date presets — Ctrl+1-5 is already claimed by
+                // MainController for sidebar navigation (Ctrl+7 = Reportes).
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.ALT_DOWN), this::onReportHoy);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.ALT_DOWN), this::onReportSemana);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT3, KeyCombination.ALT_DOWN), this::onReportMes);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT4, KeyCombination.ALT_DOWN), this::onReportAnio);
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.DIGIT5, KeyCombination.ALT_DOWN), this::onReportTodo);
             });
         }
         if (reportGrid != null) AnimationUtils.staggeredFadeInUp(reportGrid.getChildren(), 300, 70);
@@ -183,6 +185,11 @@ public class ReportesController {
                     if (chartEmptyState != null) { chartEmptyState.setVisible(empty); chartEmptyState.setManaged(empty); }
                     areaChart.setVisible(!empty);
                     areaChart.setManaged(!empty);
+                    if (!empty) {
+                        AnimationUtils.fadeInUp(areaChart, 350, 0);
+                        // One extra pulse so the chart scene graph creates the bar nodes
+                        Platform.runLater(() -> installBarClickHandlers(series));
+                    }
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> {
@@ -226,6 +233,21 @@ public class ReportesController {
             e -> NotificacionUtil.errorConAccion(scene,
                 "Error al generar el reporte", "Reintentar", () -> exportar(null, task))
         );
+    }
+
+    private void installBarClickHandlers(XYChart.Series<String, Number> series) {
+        for (XYChart.Data<String, Number> data : series.getData()) {
+            javafx.scene.Node node = data.getNode();
+            if (node == null) continue;
+            String area = data.getXValue();
+            Tooltip.install(node, new Tooltip(area + "\nClic para ver en Bienes"));
+            node.setCursor(javafx.scene.Cursor.HAND);
+            node.setOnMouseClicked(e -> {
+                com.sibim.session.NavigationContext.setPendingAreaFilter(area);
+                MainController mc = MainController.getInstance();
+                if (mc != null) mc.navigateTo("productos");
+            });
+        }
     }
 
     @FunctionalInterface

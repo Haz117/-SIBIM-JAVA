@@ -8,6 +8,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
+import com.sibim.util.QrUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -102,7 +103,7 @@ public final class ProductoDetailDialog {
 
         Label nameLbl = new Label(p.getNombre());
         nameLbl.getStyleClass().add("dlg-detail-name");
-        nameLbl.setWrapText(true); nameLbl.setMaxWidth(320);
+        nameLbl.setWrapText(true); nameLbl.setMaxWidth(280);
 
         Label statusBadge = new Label(p.getEstado().getEtiqueta());
         statusBadge.getStyleClass().add(switch (p.getEstado()) {
@@ -117,7 +118,24 @@ public final class ProductoDetailDialog {
         HBox meta = new HBox(8, codeLbl, statusBadge);
         meta.setAlignment(Pos.CENTER_LEFT);
         nameSection.getChildren().addAll(nameLbl, meta);
-        headerCard.getChildren().addAll(thumbPane, nameSection);
+
+        // QR thumbnail — small preview, click to expand
+        javafx.scene.image.Image qrSmall = QrUtils.generateQr(
+            p.getCodigo() != null ? p.getCodigo() : p.getNombre(), 104);
+        StackPane qrPane = new StackPane();
+        qrPane.setMinSize(52, 52); qrPane.setMaxSize(52, 52);
+        qrPane.getStyleClass().add("dlg-qr-thumb");
+        if (qrSmall != null) {
+            ImageView qrIv = new ImageView(qrSmall);
+            qrIv.setFitWidth(44); qrIv.setFitHeight(44); qrIv.setPreserveRatio(true);
+            qrPane.getChildren().add(qrIv);
+            Tooltip qrTip = new Tooltip("Código QR — clic para ampliar");
+            Tooltip.install(qrPane, qrTip);
+            qrPane.setOnMouseClicked(e -> showQrPopup(p, qrSmall, scene));
+            qrPane.getStyleClass().add("dlg-qr-thumb-clickable");
+        }
+
+        headerCard.getChildren().addAll(thumbPane, nameSection, qrPane);
 
         // ── Detail grid ────────────────────────────────────────────────
         GridPane g = new GridPane();
@@ -303,6 +321,49 @@ public final class ProductoDetailDialog {
         rootScroll.getStyleClass().add("dlg-tabs-scroll");
         dialog.getDialogPane().setContent(rootScroll);
         dialog.showAndWait();
+    }
+
+    private static void showQrPopup(Producto p, javafx.scene.image.Image qrSmall, Scene scene) {
+        javafx.scene.image.Image qrFull = QrUtils.generateQr(
+            p.getCodigo() != null ? p.getCodigo() : p.getNombre(), 300);
+        if (qrFull == null) return;
+
+        ButtonType savePng = new ButtonType("Guardar PNG", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        dlg.setTitle("Código QR — " + p.getNombre());
+        dlg.getDialogPane().getButtonTypes().addAll(savePng, ButtonType.CLOSE);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        ImageView iv = new ImageView(qrFull);
+        iv.setFitWidth(260); iv.setFitHeight(260); iv.setPreserveRatio(true);
+        Label lblCodigo = new Label(p.getCodigo());
+        lblCodigo.getStyleClass().add("dlg-detail-value");
+        Label lblNombre = new Label(p.getNombre());
+        lblNombre.getStyleClass().add("muted-sm");
+
+        VBox content = new VBox(8, iv, lblCodigo, lblNombre);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(16));
+        dlg.getDialogPane().setContent(content);
+
+        dlg.showAndWait().ifPresent(result -> {
+            if (result != savePng) return;
+            javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
+            fc.setTitle("Guardar código QR como imagen");
+            fc.setInitialFileName("QR_" + p.getCodigo() + ".png");
+            fc.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter("Imagen PNG (*.png)", "*.png"));
+            java.io.File dest = fc.showSaveDialog(scene != null ? scene.getWindow() : null);
+            if (dest != null) {
+                try {
+                    QrUtils.saveAsPng(qrFull, dest);
+                    DialogUtil.showExportResultDialog(scene, dest);
+                } catch (Exception ex) {
+                    NotificacionUtil.error(scene, "No se pudo guardar el QR");
+                }
+            }
+        });
     }
 
     private static ColumnConstraints colConstraint(double width, boolean grow) {

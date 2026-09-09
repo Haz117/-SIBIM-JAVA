@@ -132,6 +132,16 @@
                 <Label text="CORREO DE CONTACTO" styleClass="profile-field-key"/>
                 <TextField fx:id="tfCorreoContacto" promptText="correo@municipio.gob.mx" maxWidth="Infinity"/>
             </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2">
+                <Label text="LOGO DEL AYUNTAMIENTO" styleClass="profile-field-key"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <TextField fx:id="tfLogoPath" promptText="Ruta al archivo de imagen (PNG, JPG)" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Button fx:id="btnLogoPath" text="Examinar…" onAction="#onSeleccionarLogo" styleClass="btn-secondary">
+                        <graphic><FontIcon iconLiteral="mdi2f-folder-open-outline" styleClass="btn-icon"/></graphic>
+                    </Button>
+                </HBox>
+                <Label text="Se muestra en la pantalla de inicio al abrir la aplicación." styleClass="muted-sm"/>
+            </VBox>
         </GridPane>
         <HBox spacing="8" alignment="CENTER_RIGHT">
             <Label fx:id="lblConfigHint" text="Solo el administrador puede guardar cambios" styleClass="muted" HBox.hgrow="ALWAYS"/>

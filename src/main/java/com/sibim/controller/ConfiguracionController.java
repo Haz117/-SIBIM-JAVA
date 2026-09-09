@@ -44,6 +44,8 @@ public class ConfiguracionController {
     @FXML private TextField tfMunicipio;
     @FXML private TextField tfResponsable;
     @FXML private TextField tfCorreoContacto;
+    @FXML private TextField tfLogoPath;
+    @FXML private Button    btnLogoPath;
     @FXML private Button    btnGuardarConfig;
 
     @FXML private TableView<Usuario> usersTable;
@@ -226,6 +228,7 @@ public class ConfiguracionController {
                 if (tfMunicipio         != null) tfMunicipio.setText(municipio);
                 if (tfResponsable       != null) tfResponsable.setText(cfg.getOrDefault("responsable", ""));
                 if (tfCorreoContacto    != null) tfCorreoContacto.setText(cfg.getOrDefault("correo_contacto", ""));
+                if (tfLogoPath          != null) tfLogoPath.setText(cfg.getOrDefault("logo_path", ""));
                 // update decorative badge in profile card
                 if (lblDecoNombre != null) {
                     String[] parts = nombre.split("\\s+de\\s+", 2);
@@ -237,13 +240,15 @@ public class ConfiguracionController {
                 if (tfMunicipio         != null) tfMunicipio.setEditable(isAdmin);
                 if (tfResponsable       != null) tfResponsable.setEditable(isAdmin);
                 if (tfCorreoContacto    != null) tfCorreoContacto.setEditable(isAdmin);
+                if (tfLogoPath          != null) tfLogoPath.setEditable(isAdmin);
+                if (btnLogoPath         != null) btnLogoPath.setDisable(!isAdmin);
                 if (lblConfigHint != null)
                     lblConfigHint.setText(isAdmin ? "Los cambios afectan reportes y documentos" : "Solo el administrador puede guardar cambios");
                 // Dirty tracking — deferred so setText() above doesn't trigger it
                 if (isAdmin) javafx.application.Platform.runLater(() -> {
                     configDirty = false;
                     for (javafx.scene.control.TextField tf : new javafx.scene.control.TextField[]{
-                            tfNombreAyuntamiento, tfMunicipio, tfResponsable, tfCorreoContacto}) {
+                            tfNombreAyuntamiento, tfMunicipio, tfResponsable, tfCorreoContacto, tfLogoPath}) {
                         if (tf != null) tf.textProperty().addListener((o, a, b) -> markConfigDirty());
                     }
                 });
@@ -272,12 +277,14 @@ public class ConfiguracionController {
         String municipio = tfMunicipio != null ? tfMunicipio.getText().strip() : "";
         String resp      = tfResponsable != null ? tfResponsable.getText().strip() : "";
         String correo    = tfCorreoContacto != null ? tfCorreoContacto.getText().strip() : "";
+        String logoPath  = tfLogoPath != null ? tfLogoPath.getText().strip() : "";
         DialogUtil.runAsync(
             () -> {
                 configRepo.set("nombre_ayuntamiento", nombre);
                 configRepo.set("municipio",           municipio);
                 configRepo.set("responsable",         resp);
                 configRepo.set("correo_contacto",     correo);
+                configRepo.set("logo_path",           logoPath);
                 return null;
             },
             v -> {
@@ -293,6 +300,19 @@ public class ConfiguracionController {
             },
             e -> NotificacionUtil.error(configCard != null ? configCard.getScene() : null, "No se pudo guardar la configuración")
         );
+    }
+
+    @FXML
+    private void onSeleccionarLogo() {
+        if (!SessionManager.isAdmin()) return;
+        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Seleccionar logo del ayuntamiento");
+        chooser.getExtensionFilters().add(
+            new javafx.stage.FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+        java.io.File file = chooser.showOpenDialog(com.sibim.MainApp.getPrimaryStage());
+        if (file != null && tfLogoPath != null) {
+            tfLogoPath.setText(file.getAbsolutePath());
+        }
     }
 
     private void setupUsersTable() {

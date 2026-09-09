@@ -296,7 +296,7 @@ public class AuditoriaController {
 
     private void setupPageSizeBox() {
         if (pageSizeBox == null) return;
-        pageSizeBox.getItems().addAll(25, 50, 100);
+        pageSizeBox.getItems().addAll(25, 50, 100, 250);
         pageSizeBox.getSelectionModel().select(Integer.valueOf(DEFAULT_PAGE_SIZE));
         pageSizeBox.setOnAction(e -> {
             Integer sel = pageSizeBox.getSelectionModel().getSelectedItem();

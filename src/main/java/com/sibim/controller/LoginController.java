@@ -228,6 +228,21 @@ public class LoginController {
         com.sibim.util.AppExecutor.submit(task);
     }
 
+    @FXML
+    private void onForgotPassword() {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
+        alert.setTitle("Restablecer contraseña");
+        alert.setHeaderText(null);
+        alert.setContentText(
+            "Para restablecer tu contraseña, contacta al administrador del sistema.\n\n"
+            + "El administrador puede cambiarte la contraseña desde\n"
+            + "Configuración → Usuarios → Cambiar contraseña.");
+        alert.getButtonTypes().setAll(javafx.scene.control.ButtonType.OK);
+        alert.getDialogPane().setPrefWidth(380);
+        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
+        alert.showAndWait();
+    }
+
     @FXML private void fillAdmin()     { fill("superusuario",    "admin123456"); }
     @FXML private void fillSecretario(){ fill("secretario.demo", "sec123456"); }
     @FXML private void fillDireccion() { fill("direccion.demo",  "dir123456"); }

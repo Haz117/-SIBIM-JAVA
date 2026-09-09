@@ -142,7 +142,15 @@
         <ProgressIndicator fx:id="spinner" prefWidth="32" prefHeight="32"
                            visible="false" managed="false"/>
 
-        <Region prefHeight="18"/>
+        <Region prefHeight="10"/>
+
+        <!-- Forgot password -->
+        <HBox alignment="CENTER">
+            <Hyperlink text="¿Olvidaste tu contraseña?" onAction="#onForgotPassword"
+                       styleClass="login-forgot-link"/>
+        </HBox>
+
+        <Region prefHeight="10"/>
 
         <!-- Security badge -->
         <Label fx:id="secureBadge" text="🔒  Sesión encriptada y segura" styleClass="login-secure-badge"

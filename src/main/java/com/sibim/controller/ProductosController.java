@@ -454,6 +454,14 @@ public class ProductosController {
                 });
                 categoriaFilter.setCellFactory(lv -> categoriaListCell());
                 categoriaFilter.setButtonCell(categoriaListCell());
+                // Consume category pre-filter set by Dashboard pie chart click
+                String pendingCat = NavigationContext.consumePendingCategoryFilter();
+                if (pendingCat != null) {
+                    cats.stream()
+                        .filter(c -> pendingCat.equalsIgnoreCase(c.getNombre()))
+                        .findFirst()
+                        .ifPresent(categoriaFilter::setValue);
+                }
             },
             e -> log.error("No se pudieron cargar las categorías para el filtro", e)
         );
@@ -1133,20 +1141,7 @@ public class ProductosController {
     }
 
     private static void saveQrAsPng(Image img, File dest) throws java.io.IOException {
-        int w = (int) img.getWidth();
-        int h = (int) img.getHeight();
-        javafx.scene.image.PixelReader pr = img.getPixelReader();
-        java.awt.image.BufferedImage bi = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_RGB);
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                javafx.scene.paint.Color c = pr.getColor(x, y);
-                int rgb = ((int)(c.getRed() * 255) << 16)
-                        | ((int)(c.getGreen() * 255) << 8)
-                        | (int)(c.getBlue() * 255);
-                bi.setRGB(x, y, rgb);
-            }
-        }
-        javax.imageio.ImageIO.write(bi, "PNG", dest);
+        QrUtils.saveAsPng(img, dest);
     }
 
     @FXML

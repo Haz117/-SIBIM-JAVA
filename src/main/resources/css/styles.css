@@ -154,6 +154,15 @@
     -fx-border-width: 1;
     -fx-padding: 8 12;
 }
+.login-forgot-link {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-background-color: transparent;
+    -fx-padding: 2 4;
+}
+.login-forgot-link:hover { -fx-text-fill: #6366F1; -fx-underline: true; }
 .login-secure-badge {
     -fx-background-color: #F0FDF4;
     -fx-background-radius: 99;
@@ -2235,7 +2244,7 @@
     -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.40), 8, 0, 0, 2);
 }
 /* Icon label inside the badge */
-.page-icon-emoji  { -fx-font-size: 20px; -fx-icon-size: 22; -fx-icon-color: white; }
+.page-icon-emoji  { -fx-icon-size: 22; -fx-icon-color: white; }
 .page-icon-symbol { -fx-icon-size: 22; -fx-icon-color: white; }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2332,6 +2341,9 @@
 /* Product detail dialog header card */
 .dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: #6366F1 #E2E8F0 #E2E8F0 #6366F1; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
 .dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-border-width: 1; }
+.dlg-qr-thumb          { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 4; }
+.dlg-qr-thumb-clickable { -fx-cursor: hand; }
+.dlg-qr-thumb-clickable:hover { -fx-border-color: #6366F1; -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.25), 8, 0, 0, 0); }
 .dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
 .dlg-detail-code   { -fx-font-size: 12px; -fx-text-fill: #64748B; }
 
@@ -3872,6 +3884,9 @@
 .depr-range-label { -fx-font-size: 12px; -fx-text-fill: #475569; -fx-min-width: 75px; }
 .depr-range-count { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;
                     -fx-min-width: 65px; -fx-alignment: CENTER_RIGHT; }
+
+/* ─── Depreciación: hover sobre puntos del LineChart ─── */
+.chart-point-hover { -fx-scale-x: 1.5; -fx-scale-y: 1.5; }
 
 /* ─── Feature: etiquetado — rose stat card ─── */
 .rich-stat-rose { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fff1f2, #ffe4e6); -fx-border-color: #fda4af; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
