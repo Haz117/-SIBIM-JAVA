@@ -735,11 +735,23 @@ public class MovimientoRepository {
     }
 
     public void rechazarTransferencia(String movimientoId) throws SQLException {
+        rechazarTransferencia(movimientoId, null);
+    }
+
+    public void rechazarTransferencia(String movimientoId, String motivo) throws SQLException {
         if (DatabaseConfig.isDemoMode()) { DemoDataStore.rechazarTransferencia(movimientoId); return; }
-        String sql = "UPDATE movements SET estado = 'RECHAZADO' WHERE id = ? AND estado = 'PENDIENTE'";
+        String sql = motivo != null && !motivo.isBlank()
+            ? "UPDATE movements SET estado = 'RECHAZADO', motivo = ? WHERE id = ? AND estado = 'PENDIENTE'"
+            : "UPDATE movements SET estado = 'RECHAZADO' WHERE id = ? AND estado = 'PENDIENTE'";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, movimientoId); ps.executeUpdate();
+            if (motivo != null && !motivo.isBlank()) {
+                ps.setString(1, motivo);
+                ps.setString(2, movimientoId);
+            } else {
+                ps.setString(1, movimientoId);
+            }
+            ps.executeUpdate();
         }
     }
 

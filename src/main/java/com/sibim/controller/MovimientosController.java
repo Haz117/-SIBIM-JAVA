@@ -1040,9 +1040,56 @@ public class MovimientosController {
             stub.setNombre(m.getProductoNombre());
             MovimientoTimelineDialog.show(stub, table.getScene(), movimientoService);
         });
-        javafx.scene.layout.HBox footer = new javafx.scene.layout.HBox(btnHistorial);
+
+        javafx.scene.layout.Region footerSpacer = new javafx.scene.layout.Region();
+        javafx.scene.layout.HBox.setHgrow(footerSpacer, javafx.scene.layout.Priority.ALWAYS);
+        javafx.scene.layout.HBox footer = new javafx.scene.layout.HBox(8, btnHistorial, footerSpacer);
         footer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         footer.setPadding(new javafx.geometry.Insets(12, 16, 4, 16));
+
+        boolean canRevert = (SessionManager.isAdmin() || SessionManager.isSecretario())
+            && m.getTipo() != TipoMovimiento.TRANSFERENCIA
+            && !"RECHAZADO".equals(m.getEstado());
+        if (canRevert) {
+            String tipoInverso = m.getTipo() == TipoMovimiento.ENTRADA ? "salida compensatoria"
+                : m.getTipo() == TipoMovimiento.SALIDA ? "entrada compensatoria" : "ajuste de reversión";
+            Button btnRevertir = new Button("Revertir");
+            btnRevertir.getStyleClass().add("btn-danger");
+            btnRevertir.setGraphic(new FontIcon("mdi2u-undo-variant"));
+            btnRevertir.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+            btnRevertir.setGraphicTextGap(8);
+            btnRevertir.setOnAction(ev -> {
+                javafx.scene.control.TextInputDialog reasonDlg = new javafx.scene.control.TextInputDialog();
+                reasonDlg.setTitle("Revertir movimiento");
+                reasonDlg.setHeaderText("Motivo de la reversión (opcional):");
+                reasonDlg.setContentText("Razón:");
+                com.sibim.util.DialogUtil.applyOwner(reasonDlg);
+                com.sibim.util.DialogUtil.applyStylesheet(reasonDlg.getDialogPane());
+                reasonDlg.showAndWait().ifPresent(razon -> {
+                    if (!com.sibim.util.ConfirmacionUtil.confirmar("Confirmar reversión",
+                            "Se creará una " + tipoInverso + " de " + m.getCantidad()
+                            + " uds para \"" + m.getProductoNombre() + "\".\n"
+                            + "Este movimiento no se elimina — quedará como comprobante en el historial.\n\n"
+                            + "¿Continuar?")) return;
+                    dialog.close();
+                    AppExecutor.submit(() -> {
+                        try {
+                            movimientoService.revertirMovimiento(m, razon.trim());
+                            Platform.runLater(() -> {
+                                NotificacionUtil.exito(table.getScene(), "Movimiento revertido — se registró " + tipoInverso);
+                                loadData();
+                            });
+                        } catch (MovimientoService.ValidationException ex) {
+                            Platform.runLater(() -> NotificacionUtil.advertencia(table.getScene(), ex.getMessage()));
+                        } catch (Exception ex) {
+                            log.error("Error al revertir movimiento {}", m.getId(), ex);
+                            Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo revertir el movimiento"));
+                        }
+                    });
+                });
+            });
+            footer.getChildren().add(btnRevertir);
+        }
 
         VBox content = new VBox(0, header, grid, footer);
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid, footer), 260, 70);

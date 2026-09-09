@@ -91,22 +91,31 @@ public final class PendientesTransferenciasDialog {
             });
 
             btnRechazar.setOnAction(e -> {
-                if (!ConfirmacionUtil.confirmar("Rechazar transferencia",
-                        "¿Rechazar la transferencia de \"" + m.getProductoNombre() + "\"?")) return;
-                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
-                DialogUtil.runAsync(
-                    () -> movimientoService.rechazarTransferencia(m.getId()),
-                    () -> AnimationUtils.fadeOut(row, 220, () -> {
-                        list.getChildren().remove(row);
-                        onRefresh.run(); onLoadPendientesCount.run();
-                        NotificacionUtil.info(dialog.getDialogPane().getScene(),
-                            "Transferencia de \"" + m.getProductoNombre() + "\" rechazada");
-                    }),
-                    ex -> {
-                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
-                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo rechazar la transferencia");
-                    }
-                );
+                javafx.scene.control.TextInputDialog reasonDlg =
+                    new javafx.scene.control.TextInputDialog();
+                reasonDlg.setTitle("Rechazar transferencia");
+                reasonDlg.setHeaderText("Rechazar: \"" + m.getProductoNombre() + "\"");
+                reasonDlg.setContentText("Motivo del rechazo (opcional):");
+                DialogUtil.applyOwner(reasonDlg);
+                DialogUtil.applyStylesheet(reasonDlg.getDialogPane());
+                reasonDlg.showAndWait().ifPresent(motivo -> {
+                    btnAprobar.setDisable(true); btnRechazar.setDisable(true);
+                    String motivoTrim = motivo.trim();
+                    DialogUtil.runAsync(
+                        () -> movimientoService.rechazarTransferencia(m.getId(), motivoTrim.isEmpty() ? null : motivoTrim),
+                        () -> AnimationUtils.fadeOut(row, 220, () -> {
+                            list.getChildren().remove(row);
+                            onRefresh.run(); onLoadPendientesCount.run();
+                            NotificacionUtil.info(dialog.getDialogPane().getScene(),
+                                "Transferencia de \"" + m.getProductoNombre() + "\" rechazada"
+                                + (motivoTrim.isEmpty() ? "" : ": " + motivoTrim));
+                        }),
+                        ex -> {
+                            btnAprobar.setDisable(false); btnRechazar.setDisable(false);
+                            NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo rechazar la transferencia");
+                        }
+                    );
+                });
             });
 
             HBox actions = new HBox(8, btnAprobar, btnRechazar);

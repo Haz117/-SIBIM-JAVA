@@ -192,10 +192,40 @@ public class MovimientoService {
     }
 
     public void rechazarTransferencia(String movimientoId) throws SQLException {
+        rechazarTransferencia(movimientoId, null);
+    }
+
+    public void rechazarTransferencia(String movimientoId, String motivo) throws SQLException {
         requireAdminForTransferWorkflow();
-        movimientoRepo.rechazarTransferencia(movimientoId);
+        movimientoRepo.rechazarTransferencia(movimientoId, motivo);
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_rechazada",
-            "Transferencia rechazada por administrador");
+            "Transferencia rechazada por administrador"
+                + (motivo != null && !motivo.isBlank() ? ": " + motivo : ""));
+    }
+
+    /** Creates a compensating movement that undoes the effect of {@code original}.
+     *  TRANSFERENCIA cannot be reversed here — use the approve/reject workflow.
+     *  @param razon optional reason stored in the new movement's motivo */
+    public Movimiento revertirMovimiento(Movimiento original, String razon)
+            throws SQLException, ValidationException {
+        if (original.getTipo() == TipoMovimiento.TRANSFERENCIA)
+            throw new ValidationException(
+                "Las transferencias se gestionan con el flujo de aprobación — usa Rechazar en el panel de pendientes.");
+        String fechaStr = original.getCreadoEn() != null
+            ? com.sibim.util.FormatUtils.formatDate(original.getCreadoEn().toLocalDate()) : "?";
+        String motivoRev = "Reversión de " + original.getTipo().getEtiqueta().toLowerCase()
+            + " del " + fechaStr
+            + (razon != null && !razon.isBlank() ? ": " + razon : "");
+        String refRev = "REV-" + original.getId().substring(0, Math.min(8, original.getId().length()));
+        return switch (original.getTipo()) {
+            case ENTRADA -> registrar(original.getProductoId(), TipoMovimiento.SALIDA,
+                    original.getCantidad(), motivoRev, refRev);
+            case SALIDA  -> registrar(original.getProductoId(), TipoMovimiento.ENTRADA,
+                    original.getCantidad(), motivoRev, refRev);
+            case AJUSTE  -> registrarAjusteVerificado(original.getProductoId(),
+                    original.getStockAnterior(), motivoRev, refRev, original.getStockNuevo());
+            default -> throw new ValidationException("Tipo de movimiento no reversible");
+        };
     }
 
     private void requireAdminForTransferWorkflow() {

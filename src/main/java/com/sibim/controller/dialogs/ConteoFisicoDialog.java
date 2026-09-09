@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 /** A physical inventory count (toma de inventario): walks the user through
  *  every active bien in their scope, lets them enter what they actually
@@ -49,12 +50,63 @@ public final class ConteoFisicoDialog {
      *  while the loop runs unless disabled, which it now is — see below). */
     private record Captured(Producto producto, int contado) {}
 
+    private static final Preferences DRAFT_PREFS = Preferences.userRoot().node("sibim/conteo/draft");
+
+    private static String draftKey() {
+        com.sibim.model.Usuario u = SessionManager.getCurrentUser();
+        return u != null ? u.getId() : "anon";
+    }
+
+    private static void saveDraft(List<Row> rows) {
+        StringBuilder sb = new StringBuilder();
+        for (Row r : rows) {
+            if (!sb.isEmpty()) sb.append(',');
+            sb.append(r.producto().getId()).append('=').append(r.contado().getValue());
+        }
+        DRAFT_PREFS.put(draftKey(), sb.toString());
+        DRAFT_PREFS.put(draftKey() + ".fecha", LocalDate.now().toString());
+    }
+
+    private static void clearDraft() {
+        DRAFT_PREFS.remove(draftKey());
+        DRAFT_PREFS.remove(draftKey() + ".fecha");
+    }
+
+    private static java.util.Map<String, Integer> loadDraft() {
+        String raw = DRAFT_PREFS.get(draftKey(), "");
+        if (raw.isBlank()) return java.util.Collections.emptyMap();
+        java.util.Map<String, Integer> map = new java.util.HashMap<>();
+        for (String pair : raw.split(",")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                try { map.put(pair.substring(0, eq), Integer.parseInt(pair.substring(eq + 1))); }
+                catch (NumberFormatException ignored) {}
+            }
+        }
+        return map;
+    }
+
     public static void show(List<Producto> productos, MovimientoService movimientoService, Runnable onReconciled) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(640);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        // Offer to resume a saved draft before building the UI
+        java.util.Map<String, Integer> draftValues;
+        String draftFecha = DRAFT_PREFS.get(draftKey() + ".fecha", "");
+        java.util.Map<String, Integer> rawDraft = loadDraft();
+        boolean hasDraft = !rawDraft.isEmpty();
+        if (hasDraft) {
+            boolean resume = ConfirmacionUtil.confirmar("Reanudar borrador",
+                "Hay un borrador guardado el " + draftFecha + " con " + rawDraft.size() + " bien(es).\n"
+                + "¿Deseas retomarlo? (Cancelar = empezar desde cero)");
+            draftValues = resume ? rawDraft : java.util.Collections.emptyMap();
+            if (!resume) clearDraft();
+        } else {
+            draftValues = java.util.Collections.emptyMap();
+        }
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
             "Captura lo contado y compáralo contra el sistema — " + com.sibim.util.FormatUtils.formatDate(LocalDate.now()),
@@ -98,7 +150,8 @@ public final class ConteoFisicoDialog {
             sistema.getStyleClass().add("dlg-stock-val");
             sistema.setMinWidth(50);
 
-            Spinner<Integer> contado = new Spinner<>(0, Integer.MAX_VALUE, p.getStockActual());
+            int initialCount = draftValues.getOrDefault(p.getId(), p.getStockActual());
+            Spinner<Integer> contado = new Spinner<>(0, Integer.MAX_VALUE, initialCount);
             contado.setEditable(true);
             contado.setPrefWidth(90);
             DialogUtil.commitOnFocusLoss(contado);
@@ -155,11 +208,21 @@ public final class ConteoFisicoDialog {
         summary.getStyleClass().add("muted-sm");
         summary.setWrapText(true);
 
+        Button btnBorrador = new Button("Guardar borrador");
+        btnBorrador.setGraphic(new FontIcon("mdi2c-content-save-outline"));
+        btnBorrador.getStyleClass().add("btn-secondary");
+        btnBorrador.setDisable(productos.isEmpty());
+        btnBorrador.setOnAction(e -> {
+            saveDraft(rows);
+            NotificacionUtil.exito(dialog.getDialogPane().getScene(), "Borrador guardado — puedes retomarlo en el próximo conteo");
+            dialog.close();
+        });
+
         Button btnFinalizar = new Button("Finalizar conteo");
         btnFinalizar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
         btnFinalizar.getStyleClass().add("btn-primary");
         btnFinalizar.setDisable(productos.isEmpty());
-        HBox actions = new HBox(10, summary, btnFinalizar);
+        HBox actions = new HBox(10, summary, btnBorrador, btnFinalizar);
         actions.setAlignment(Pos.CENTER_LEFT);
         actions.setPadding(new Insets(10, 4, 4, 4));
         HBox.setHgrow(summary, Priority.ALWAYS);
@@ -266,6 +329,7 @@ public final class ConteoFisicoDialog {
                         else if (discrepancias.isEmpty()) NotificacionUtil.exitoConteo(scene, items.size());
                         else NotificacionUtil.exito(scene, base);
                     }
+                    clearDraft();
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();
                 });

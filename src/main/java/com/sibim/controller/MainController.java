@@ -584,8 +584,12 @@ public class MainController {
             offlineBannerSyncBtn.setDisable(true);
             offlineBannerSyncBtn.setText("Sincronizando…");
         }
-        if (offlineBannerLabel != null)
-            offlineBannerLabel.setText("Conectando con el servidor…");
+        if (offlineBannerLabel != null) {
+            int pending = com.sibim.db.offline.SyncService.pendingCount();
+            offlineBannerLabel.setText(pending > 0
+                ? "Sincronizando " + pending + " cambio(s) pendiente(s)…"
+                : "Conectando con el servidor…");
+        }
         com.sibim.util.AppExecutor.submit(() -> {
             com.sibim.db.offline.SyncService.syncNow();
             javafx.application.Platform.runLater(() -> {
