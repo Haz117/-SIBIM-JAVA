@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.model.Categoria;
 import com.sibim.service.CategoriaService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
@@ -113,19 +114,44 @@ public class CategoriasController {
             }
         });
         table.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2 && isAdmin && table.getSelectionModel().getSelectedItem() != null)
+            if (e.getClickCount() != 2) return;
+            Categoria sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            if (isAdmin) {
                 onEdit();
+            } else if (sel.getTotalProductos() > 0) {
+                NavigationContext.setPendingCategoryFilter(sel.getNombre());
+                MainController mc = MainController.getInstance();
+                if (mc != null) mc.navigateTo("productos");
+            }
         });
 
-        if (isAdmin) {
+        {
             ContextMenu cm = new ContextMenu();
-            MenuItem cmEditar    = new MenuItem("Editar");
-            cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
-            MenuItem cmEliminar  = new MenuItem("Eliminar");
-            cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
-            cmEditar.setOnAction(e -> onEdit());
-            cmEliminar.setOnAction(e -> onDelete());
-            cm.getItems().addAll(cmEditar, new SeparatorMenuItem(), cmEliminar);
+            MenuItem cmVerBienes = new MenuItem("Ver bienes de esta categoría");
+            cmVerBienes.setGraphic(new FontIcon("mdi2p-package-variant"));
+            cmVerBienes.setOnAction(e -> {
+                Categoria sel = table.getSelectionModel().getSelectedItem();
+                if (sel != null && sel.getTotalProductos() > 0) {
+                    NavigationContext.setPendingCategoryFilter(sel.getNombre());
+                    MainController mc = MainController.getInstance();
+                    if (mc != null) mc.navigateTo("productos");
+                }
+            });
+            cm.setOnShowing(e -> {
+                Categoria sel = table.getSelectionModel().getSelectedItem();
+                cmVerBienes.setDisable(sel == null || sel.getTotalProductos() == 0);
+            });
+            cm.getItems().add(cmVerBienes);
+            if (isAdmin) {
+                MenuItem cmEditar   = new MenuItem("Editar");
+                cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
+                MenuItem cmEliminar = new MenuItem("Eliminar");
+                cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
+                cmEditar.setOnAction(e -> onEdit());
+                cmEliminar.setOnAction(e -> onDelete());
+                cm.getItems().addAll(new SeparatorMenuItem(), cmEditar, new SeparatorMenuItem(), cmEliminar);
+            }
             table.setContextMenu(cm);
         }
 
@@ -182,10 +208,25 @@ public class CategoriasController {
         colProductos.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Integer item, boolean empty) {
                 super.updateItem(item, empty);
-                getStyleClass().removeAll("cat-count-active", "cell-muted");
+                getStyleClass().removeAll("cat-count-active", "cell-muted", "org-area-count-clickable");
+                Tooltip.uninstall(this, null);
+                setOnMouseClicked(null);
+                setCursor(null);
                 if (empty || item == null) { setText(null); return; }
                 setText(String.valueOf(item));
-                getStyleClass().add(item > 0 ? "cat-count-active" : "cell-muted");
+                if (item > 0) {
+                    getStyleClass().addAll("cat-count-active", "org-area-count-clickable");
+                    setCursor(javafx.scene.Cursor.HAND);
+                    Tooltip.install(this, new Tooltip("Ver los " + item + " bienes de esta categoría"));
+                    setOnMouseClicked(e -> {
+                        Categoria cat = getTableView().getItems().get(getIndex());
+                        NavigationContext.setPendingCategoryFilter(cat.getNombre());
+                        MainController mc = MainController.getInstance();
+                        if (mc != null) mc.navigateTo("productos");
+                    });
+                } else {
+                    getStyleClass().add("cell-muted");
+                }
             }
         });
         DialogUtil.persistTableSort(table, STICKY, "sort");

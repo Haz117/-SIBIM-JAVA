@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.controller.dialogs.MovimientoDialogFactory;
+import com.sibim.controller.dialogs.MovimientoTimelineDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
@@ -1027,8 +1028,24 @@ public class MovimientosController {
         grid.add(DialogUtil.fieldLabel("Registrado por"), 0, r); grid.add(fUsuario,  1, r++);
         grid.add(DialogUtil.fieldLabel("Fecha"),          0, r); grid.add(fFecha,    1, r);
 
-        VBox content = new VBox(0, header, grid);
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
+        Button btnHistorial = new Button("Ver historial del bien");
+        btnHistorial.getStyleClass().add("btn-secondary");
+        btnHistorial.setGraphic(new FontIcon("mdi2h-history"));
+        btnHistorial.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+        btnHistorial.setGraphicTextGap(8);
+        btnHistorial.setOnAction(e -> {
+            dialog.close();
+            Producto stub = new Producto();
+            stub.setId(m.getProductoId());
+            stub.setNombre(m.getProductoNombre());
+            MovimientoTimelineDialog.show(stub, table.getScene(), movimientoService);
+        });
+        javafx.scene.layout.HBox footer = new javafx.scene.layout.HBox(btnHistorial);
+        footer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        footer.setPadding(new javafx.geometry.Insets(12, 16, 4, 16));
+
+        VBox content = new VBox(0, header, grid, footer);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid, footer), 260, 70);
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
     }

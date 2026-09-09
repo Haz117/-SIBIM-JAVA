@@ -172,7 +172,12 @@ public class ProductoRepository {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             for (String id : ids) {
-                local.findProductoById(id).ifPresent(p -> { p.setEtiquetado(valor); local.saveProducto(p); });
+                var opt = local.findProductoById(id);
+                if (opt.isPresent()) {
+                    com.sibim.model.Producto p = opt.get();
+                    p.setEtiquetado(valor);
+                    local.saveProducto(p);
+                }
             }
             return;
         }
