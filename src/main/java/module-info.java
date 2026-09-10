@@ -17,6 +17,7 @@ module com.sibim {
     requires bcrypt;
 
     requires org.apache.poi.ooxml;
+    requires jakarta.mail;
     requires kernel;
     requires layout;
     requires io;

@@ -15,6 +15,9 @@ import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import java.io.*;
 import java.math.BigDecimal;
 import java.text.Normalizer;
@@ -58,8 +61,8 @@ public class ImportacionBienesDialog {
 
         // ── Header ───────────────────────────────────────────────────
         HBox header = DialogUtil.gradientHeader("mdi2u-upload-outline",
-            "Importar Bienes desde CSV",
-            "Carga un archivo CSV con tu inventario para registrar múltiples bienes de una sola vez.",
+            "Importar Bienes desde CSV o Excel",
+            "Carga un archivo CSV o Excel (.xlsx) con tu inventario para registrar múltiples bienes de una sola vez.",
             "#4338CA", "#6366F1");
 
         // ── Instructions card ─────────────────────────────────────────
@@ -70,7 +73,7 @@ public class ImportacionBienesDialog {
         btnPlantilla.setContentDisplay(ContentDisplay.LEFT);
         step1.getChildren().add(btnPlantilla);
 
-        HBox step2 = stepRow("2", "Abre la plantilla en Excel o LibreOffice Calc, llena los datos y guarda como CSV (UTF-8).");
+        HBox step2 = stepRow("2", "Abre la plantilla en Excel o LibreOffice Calc, llena los datos y guarda como CSV o .xlsx.");
         HBox step3 = stepRow("3", "Selecciona el archivo abajo — se validará cada fila antes de importar.");
 
         VBox instructions = new VBox(8, step1, step2, step3);
@@ -78,7 +81,7 @@ public class ImportacionBienesDialog {
         instructions.getStyleClass().add("import-instructions-card");
 
         // ── File picker row ───────────────────────────────────────────
-        Button btnSeleccionar = new Button("Seleccionar archivo CSV…");
+        Button btnSeleccionar = new Button("Seleccionar archivo CSV o Excel…");
         btnSeleccionar.getStyleClass().add("btn-primary");
         btnSeleccionar.setGraphic(new FontIcon("mdi2f-folder-open-outline"));
         btnSeleccionar.setContentDisplay(ContentDisplay.LEFT);
@@ -211,8 +214,10 @@ public class ImportacionBienesDialog {
         // ── File selection & parsing ──────────────────────────────────
         btnSeleccionar.setOnAction(e -> {
             FileChooser fc = new FileChooser();
-            fc.setTitle("Seleccionar archivo CSV");
+            fc.setTitle("Seleccionar archivo CSV o Excel");
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV / Excel (*.csv, *.xlsx)", "*.csv", "*.xlsx"));
             fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV (*.csv)", "*.csv"));
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel (*.xlsx)", "*.xlsx"));
             File file = fc.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
             if (file == null) return;
 
@@ -292,9 +297,207 @@ public class ImportacionBienesDialog {
         });
     }
 
-    // ── CSV parsing ───────────────────────────────────────────────────────
+    // ── Parsing dispatch ─────────────────────────────────────────────────
 
     private static List<ParsedRow> parseFile(File file, List<Categoria> categorias) throws Exception {
+        if (file.getName().toLowerCase().endsWith(".xlsx")) {
+            return parseXlsxFile(file, categorias);
+        }
+        return parseCsvFile(file, categorias);
+    }
+
+    // ── XLSX parsing ─────────────────────────────────────────────────────
+
+    private static String cellVal(org.apache.poi.ss.usermodel.Row row, int idx) {
+        if (idx < 0 || row == null) return "";
+        org.apache.poi.ss.usermodel.Cell cell = row.getCell(idx, org.apache.poi.ss.usermodel.Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+        if (cell == null) return "";
+        CellType type = cell.getCellType();
+        if (type == CellType.NUMERIC) return String.valueOf((long) cell.getNumericCellValue());
+        if (type == CellType.STRING)  return cell.getStringCellValue().trim();
+        if (type == CellType.FORMULA) {
+            try { return String.valueOf((long) cell.getNumericCellValue()); }
+            catch (Exception e) { return cell.getStringCellValue().trim(); }
+        }
+        return "";
+    }
+
+    private static List<ParsedRow> parseXlsxFile(File file, List<Categoria> categorias) throws Exception {
+        List<ParsedRow> result = new ArrayList<>();
+        Set<String> areaNames = Areas.getAllAreaNames();
+        Map<String, String> catByNorm   = new LinkedHashMap<>();
+        Map<String, String> catIdByNorm = new LinkedHashMap<>();
+        for (Categoria c : categorias) {
+            String norm = normalize(c.getNombre());
+            catByNorm.put(norm, c.getNombre());
+            catIdByNorm.put(norm, c.getId());
+        }
+        Map<String, String> areaByNorm = new LinkedHashMap<>();
+        for (String a : areaNames) areaByNorm.put(normalize(a), a);
+
+        try (XSSFWorkbook wb = new XSSFWorkbook(new FileInputStream(file))) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.getSheetAt(0);
+            if (sheet == null) throw new IOException("El archivo Excel no tiene hojas.");
+
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(0);
+            if (headerRow == null) throw new IOException("La primera fila (encabezados) está vacía.");
+            Map<String, Integer> colIdx = new LinkedHashMap<>();
+            for (int i = 0; i <= headerRow.getLastCellNum(); i++) {
+                org.apache.poi.ss.usermodel.Cell hCell = headerRow.getCell(i,
+                    org.apache.poi.ss.usermodel.Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                if (hCell != null) {
+                    String hVal = hCell.getCellType() == CellType.STRING
+                        ? hCell.getStringCellValue() : String.valueOf(hCell);
+                    colIdx.put(normalize(hVal), i);
+                }
+            }
+            if (!colIdx.containsKey("nombre"))
+                throw new IOException("Columna 'Nombre' no encontrada. Verifica que el archivo use la plantilla correcta.");
+            if (!colIdx.containsKey("categoria"))
+                throw new IOException("Columna 'Categoria' no encontrada. Verifica que el archivo use la plantilla correcta.");
+
+            Set<String> usedCodes = new HashSet<>();
+            int rowNum = 0;
+            for (int ri = 1; ri <= sheet.getLastRowNum(); ri++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.getRow(ri);
+                if (row == null) continue;
+                boolean allBlank = true;
+                for (int ci = 0; ci <= row.getLastCellNum(); ci++) {
+                    if (!cellVal(row, ci).isBlank()) { allBlank = false; break; }
+                }
+                if (allBlank) continue;
+                rowNum++;
+                if (rowNum > 2000) {
+                    result.add(new ParsedRow(rowNum, "error", "Límite de 2000 filas por importación", null));
+                    break;
+                }
+
+                String nombre    = cellVal(row, colIdx.getOrDefault("nombre", -1));
+                String codigo    = cellVal(row, colIdx.getOrDefault("codigo", -1));
+                String catNombre = cellVal(row, colIdx.getOrDefault("categoria", -1));
+                String area      = cellVal(row, colIdx.getOrDefault("area", -1));
+                String resguard  = cellVal(row, colIdx.getOrDefault("resguardante", -1));
+                String cantStr   = cellVal(row, colIdx.getOrDefault("cantidad", -1));
+                String stMinStr  = cellVal(row, colIdx.getOrDefault("stock min", -1));
+                String stMaxStr  = cellVal(row, colIdx.getOrDefault("stock max", -1));
+                String pcStr     = cellVal(row, colIdx.getOrDefault("precio compra", -1));
+                String pvStr     = cellVal(row, colIdx.getOrDefault("precio venta", -1));
+                String proveed   = cellVal(row, colIdx.getOrDefault("proveedor", -1));
+                String marca     = cellVal(row, colIdx.getOrDefault("marca", -1));
+                String modelo    = cellVal(row, colIdx.getOrDefault("modelo", -1));
+                String numSerie  = cellVal(row, colIdx.getOrDefault("numero serie", -1));
+                String ubicac    = cellVal(row, colIdx.getOrDefault("ubicacion", -1));
+                String desc      = cellVal(row, colIdx.getOrDefault("descripcion", -1));
+                String fechaStr  = cellVal(row, colIdx.getOrDefault("fecha adquisicion", -1));
+
+                String error = null;
+                Producto p = new Producto();
+
+                if (nombre.isBlank()) {
+                    error = "Nombre requerido";
+                } else {
+                    p.setNombre(nombre.length() > 200 ? nombre.substring(0, 200) : nombre);
+                }
+
+                if (error == null) {
+                    if (codigo.isBlank()) {
+                        String base = "IMP-" + String.format("%04d", rowNum);
+                        String generated = base;
+                        int suffix = 2;
+                        while (usedCodes.contains(generated)) generated = base + "-" + suffix++;
+                        codigo = generated;
+                    } else if (codigo.length() > 50) {
+                        codigo = codigo.substring(0, 50);
+                    }
+                    if (usedCodes.contains(codigo)) {
+                        error = "Código duplicado en el archivo: " + codigo;
+                    } else {
+                        usedCodes.add(codigo);
+                        p.setCodigo(codigo);
+                    }
+                }
+
+                if (error == null) {
+                    String catNorm = normalize(catNombre);
+                    String matchedName = catByNorm.get(catNorm);
+                    if (matchedName == null) {
+                        for (Map.Entry<String, String> e : catByNorm.entrySet()) {
+                            if (e.getKey().contains(catNorm) || catNorm.contains(e.getKey())) {
+                                matchedName = e.getValue(); break;
+                            }
+                        }
+                    }
+                    if (matchedName == null) {
+                        error = "Categoría no encontrada: \"" + catNombre + "\"";
+                    } else {
+                        p.setCategoriaNombre(matchedName);
+                        p.setCategoriaId(catIdByNorm.get(normalize(matchedName)));
+                    }
+                }
+
+                if (error == null) {
+                    if (area.isBlank()) {
+                        error = "Área requerida";
+                    } else {
+                        String areaNorm = normalize(area);
+                        String matchedArea = areaByNorm.get(areaNorm);
+                        if (matchedArea == null) {
+                            for (Map.Entry<String, String> e : areaByNorm.entrySet()) {
+                                if (e.getKey().contains(areaNorm) || areaNorm.contains(e.getKey())) {
+                                    matchedArea = e.getValue(); break;
+                                }
+                            }
+                        }
+                        if (matchedArea == null) {
+                            error = "Área no reconocida: \"" + area + "\". Usa un área válida del organigrama.";
+                        } else {
+                            p.setArea(matchedArea);
+                        }
+                    }
+                }
+
+                if (error == null) {
+                    if (!resguard.isBlank()) p.setResguardante(resguard);
+                    if (!proveed.isBlank())  p.setProveedor(proveed.length() > 200 ? proveed.substring(0, 200) : proveed);
+                    if (!marca.isBlank())    p.setMarca(marca.length() > 100 ? marca.substring(0, 100) : marca);
+                    if (!modelo.isBlank())   p.setModelo(modelo.length() > 100 ? modelo.substring(0, 100) : modelo);
+                    if (!numSerie.isBlank()) p.setNumeroSerie(numSerie.length() > 100 ? numSerie.substring(0, 100) : numSerie);
+                    if (!ubicac.isBlank())   p.setUbicacion(ubicac.length() > 200 ? ubicac.substring(0, 200) : ubicac);
+                    if (!desc.isBlank())     p.setDescripcion(desc.length() > 1000 ? desc.substring(0, 1000) : desc);
+
+                    int cant  = parseIntSafe(cantStr, 0);
+                    int stMin = parseIntSafe(stMinStr, 0);
+                    int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
+                    if (stMin > stMax) {
+                        error = "Stock mínimo (" + stMin + ") no puede superar al máximo (" + stMax + ")";
+                    }
+                    if (error == null && stMax < cant) stMax = cant;
+                    p.setStockActual(Math.max(0, cant));
+                    p.setStockMinimo(Math.max(0, stMin));
+                    p.setStockMaximo(Math.max(0, stMax));
+
+                    BigDecimal pc = parseBigDecimalSafe(pcStr, BigDecimal.ZERO);
+                    BigDecimal pv = parseBigDecimalSafe(pvStr, pc);
+                    p.setPrecioCompra(pc.signum() < 0 ? BigDecimal.ZERO : pc);
+                    p.setPrecioVenta(pv.signum() < 0  ? BigDecimal.ZERO : pv);
+
+                    if (!fechaStr.isBlank()) {
+                        LocalDate fecha = parseDateSafe(fechaStr);
+                        if (fecha != null && !fecha.isAfter(LocalDate.now()))
+                            p.setFechaAdquisicion(fecha);
+                    }
+                }
+
+                result.add(new ParsedRow(rowNum, error == null ? "ok" : "error", error,
+                    error == null ? p : null));
+            }
+        }
+        return result;
+    }
+
+    // ── CSV parsing ───────────────────────────────────────────────────────
+
+    private static List<ParsedRow> parseCsvFile(File file, List<Categoria> categorias) throws Exception {
         List<ParsedRow> result = new ArrayList<>();
         Set<String> areaNames  = Areas.getAllAreaNames();
         Map<String, String> catByNorm   = new LinkedHashMap<>();

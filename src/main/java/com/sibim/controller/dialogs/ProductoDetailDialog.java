@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
+import com.sibim.repository.PriceHistoryRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
@@ -37,6 +38,11 @@ public final class ProductoDetailDialog {
             if (result != null) movimientos = result;
         } catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
         final List<Movimiento> movs = movimientos;
+
+        List<String> fotosGaleria = java.util.List.of();
+        try { fotosGaleria = new com.sibim.repository.ProductoRepository().findFotos(p.getId()); }
+        catch (Exception ex) { log.warn("No se pudo cargar galería de fotos para '{}': {}", p.getCodigo(), ex.getMessage()); }
+        final List<String> _fotosGaleria = fotosGaleria;
 
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
@@ -196,12 +202,41 @@ public final class ProductoDetailDialog {
             } catch (Exception ex) { log.warn("No se pudo cargar foto de factura: {}", facturaUrl, ex); }
         }
 
+        // ── Galería de fotos (solo si hay más de una) ─────────────────
+        VBox gallerySection = null;
+        if (_fotosGaleria.size() >= 2) {
+            Label galleryTitle = DialogUtil.fieldLabel("Galería de fotos (" + _fotosGaleria.size() + ")");
+            HBox thumbnails = new HBox(8);
+            thumbnails.setPadding(new Insets(4, 0, 4, 0));
+            for (String fotoPath : _fotosGaleria) {
+                try {
+                    ImageView iv = new ImageView(
+                        new Image(Path.of(fotoPath).toUri().toString(), 90, 70, true, true, true));
+                    iv.setFitWidth(90); iv.setFitHeight(70); iv.setPreserveRatio(true);
+                    StackPane cell = new StackPane(iv);
+                    cell.getStyleClass().addAll("dlg-img-box", "foto-cell-box-clickable");
+                    final String fp = fotoPath;
+                    cell.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(fp, p.getNombre()));
+                    thumbnails.getChildren().add(cell);
+                } catch (Exception ex) { log.warn("No se pudo cargar foto de galería: {}", fotoPath, ex); }
+            }
+            ScrollPane galleryScroll = new ScrollPane(thumbnails);
+            galleryScroll.setFitToHeight(true);
+            galleryScroll.setPrefHeight(96);
+            galleryScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+            galleryScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+            galleryScroll.getStyleClass().add("dlg-tabs-scroll");
+            gallerySection = new VBox(4, galleryTitle, galleryScroll);
+        }
+
         // ── Depreciación ──────────────────────────────────────────────
         BigDecimal valorDep = p.getValorDepreciado();
         if (valorDep != null) {
             Separator sep = new Separator();
             sep.getStyleClass().add("form-separator");
-            root.getChildren().addAll(headerCard, g, sep);
+            root.getChildren().addAll(headerCard, g);
+            if (gallerySection != null) root.getChildren().add(gallerySection);
+            root.getChildren().add(sep);
 
             GridPane gDep = new GridPane();
             gDep.setHgap(16); gDep.setVgap(9);
@@ -253,6 +288,7 @@ public final class ProductoDetailDialog {
             root.getChildren().add(gDep);
         } else {
             root.getChildren().addAll(headerCard, g);
+            if (gallerySection != null) root.getChildren().add(gallerySection);
         }
         // ── Movimientos recientes ──────────────────────────────────────
         if (!movs.isEmpty()) {
@@ -307,6 +343,62 @@ public final class ProductoDetailDialog {
                 movsList.getChildren().add(mas);
             }
             root.getChildren().addAll(movsTitle, movsList);
+        }
+
+        // ── Historial de precios ──────────────────────────────────────
+        java.util.List<PriceHistoryRepository.PriceHistoryEntry> priceHistory = java.util.List.of();
+        if (p.getId() != null) {
+            try { priceHistory = new PriceHistoryRepository().findByProducto(p.getId()); }
+            catch (Exception ex) { log.warn("No se pudo cargar historial de precios: {}", ex.getMessage()); }
+        }
+        if (!priceHistory.isEmpty()) {
+            Separator sepPrices = new Separator();
+            sepPrices.getStyleClass().add("form-separator");
+            root.getChildren().add(sepPrices);
+
+            Label pricesTitle = new Label("Historial de precios");
+            pricesTitle.getStyleClass().add("dialog-field-label");
+
+            TableView<PriceHistoryRepository.PriceHistoryEntry> priceTable = new TableView<>();
+            priceTable.setPrefHeight(Math.min(priceHistory.size() * 32 + 32, 160));
+            priceTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+            priceTable.getStyleClass().add("data-table");
+
+            TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colCampo = new TableColumn<>("Campo");
+            colCampo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+                "precio_compra".equals(c.getValue().campo()) ? "Precio compra" : "Precio venta"));
+            colCampo.setPrefWidth(100);
+
+            TableColumn<PriceHistoryRepository.PriceHistoryEntry, java.math.BigDecimal> colAnt = new TableColumn<>("Anterior");
+            colAnt.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().valorAnterior()));
+            colAnt.setCellFactory(col -> new TableCell<>() {
+                @Override protected void updateItem(java.math.BigDecimal v, boolean empty) {
+                    super.updateItem(v, empty); setText(empty || v == null ? "—" : FormatUtils.formatCurrency(v));
+                }
+            });
+            colAnt.setPrefWidth(90);
+
+            TableColumn<PriceHistoryRepository.PriceHistoryEntry, java.math.BigDecimal> colNuevo = new TableColumn<>("Nuevo");
+            colNuevo.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().valorNuevo()));
+            colNuevo.setCellFactory(col -> new TableCell<>() {
+                @Override protected void updateItem(java.math.BigDecimal v, boolean empty) {
+                    super.updateItem(v, empty); setText(empty || v == null ? "—" : FormatUtils.formatCurrency(v));
+                }
+            });
+            colNuevo.setPrefWidth(90);
+
+            TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colUsuario = new TableColumn<>("Usuario");
+            colUsuario.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().usuarioNombre()));
+            colUsuario.setPrefWidth(110);
+
+            TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colFecha = new TableColumn<>("Fecha");
+            colFecha.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+                c.getValue().creadoEn() != null ? FormatUtils.formatDateTime(c.getValue().creadoEn()) : "—"));
+            colFecha.setPrefWidth(130);
+
+            priceTable.getColumns().addAll(colCampo, colAnt, colNuevo, colUsuario, colFecha);
+            priceTable.getItems().setAll(priceHistory);
+            root.getChildren().addAll(pricesTitle, priceTable);
         }
 
         AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);

@@ -26,6 +26,15 @@ import java.util.List;
  *  viewing the item-level detail or exporting each session to PDF. */
 public final class HistorialConteosDialog {
 
+    private static String estadoItemLabel(String code) {
+        return switch (code != null ? code : "ENCONTRADO") {
+            case "MAL_ESTADO"   -> "Mal estado";
+            case "EN_OTRA_AREA" -> "En otra área";
+            case "FALTANTE"     -> "Faltante";
+            default             -> "Encontrado";
+        };
+    }
+
     private static final Logger log = LoggerFactory.getLogger(HistorialConteosDialog.class);
 
     private HistorialConteosDialog() {}
@@ -134,7 +143,7 @@ public final class HistorialConteosDialog {
         Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dlg.getDialogPane().setPrefWidth(620);
+        dlg.getDialogPane().setPrefWidth(700);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         String fechaStr = c.getCreadoEn() != null ? FormatUtils.formatDateTime(c.getCreadoEn()) : "—";
@@ -173,15 +182,19 @@ public final class HistorialConteosDialog {
                 VBox list = new VBox(5);
                 list.setPadding(new Insets(4));
 
-                Label colHdr = new Label("BIEN                                       SISTEMA   CONTADO   DIFF   ESTADO");
+                Label colHdr = new Label("BIEN                               SIST.   CONT.   DIFF   ESTADO    INCIDENCIA");
                 colHdr.getStyleClass().add("nav-section-label");
                 list.getChildren().add(colHdr);
 
                 for (ConteoItem it : items) {
-                    HBox r = new HBox(10);
-                    r.getStyleClass().add("dlg-detail-header");
-                    r.setPadding(new Insets(6, 12, 6, 12));
-                    r.setAlignment(Pos.CENTER_LEFT);
+                    int diff = it.getStockContado() - it.getStockSistema();
+                    String estadoItemCode = it.getEstadoConteo();
+                    boolean tieneIncidencia = estadoItemCode != null && !estadoItemCode.equals("ENCONTRADO");
+
+                    HBox mainRow = new HBox(10);
+                    mainRow.getStyleClass().add("dlg-detail-header");
+                    mainRow.setPadding(new Insets(6, 12, 6, 12));
+                    mainRow.setAlignment(Pos.CENTER_LEFT);
 
                     VBox itInfo = new VBox(1);
                     Label nombre = new Label(it.getProductoNombre());
@@ -191,11 +204,10 @@ public final class HistorialConteosDialog {
                     itInfo.getChildren().addAll(nombre, area);
                     HBox.setHgrow(itInfo, Priority.ALWAYS);
 
-                    int diff = it.getStockContado() - it.getStockSistema();
                     Label lSist = new Label(String.valueOf(it.getStockSistema()));
-                    lSist.setMinWidth(50);
+                    lSist.setMinWidth(45);
                     Label lCont = new Label(String.valueOf(it.getStockContado()));
-                    lCont.setMinWidth(50);
+                    lCont.setMinWidth(45);
                     Label lDiff = new Label(diff == 0 ? "—" : (diff > 0 ? "+" + diff : String.valueOf(diff)));
                     lDiff.setMinWidth(40);
                     lDiff.getStyleClass().add(diff == 0 ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
@@ -204,8 +216,21 @@ public final class HistorialConteosDialog {
                     lStatus.getStyleClass().add(diff == 0 ? "cell-badge-success"
                         : it.isAjustado() ? "cell-badge-warning" : "cell-badge-danger");
 
-                    r.getChildren().addAll(itInfo, lSist, lCont, lDiff, lStatus);
-                    list.getChildren().add(r);
+                    Label lIncidencia = new Label(tieneIncidencia ? estadoItemLabel(estadoItemCode) : "—");
+                    lIncidencia.getStyleClass().add(tieneIncidencia ? "text-warn" : "muted");
+                    lIncidencia.setMinWidth(80);
+
+                    mainRow.getChildren().addAll(itInfo, lSist, lCont, lDiff, lStatus, lIncidencia);
+
+                    VBox rowWrapper = new VBox(0, mainRow);
+                    if (it.getNota() != null && !it.getNota().isBlank()) {
+                        Label lNota = new Label("📝 " + it.getNota());
+                        lNota.getStyleClass().add("muted-sm");
+                        lNota.setWrapText(true);
+                        VBox.setMargin(lNota, new Insets(0, 12, 4, 60));
+                        rowWrapper.getChildren().add(lNota);
+                    }
+                    list.getChildren().add(rowWrapper);
                 }
                 if (items.isEmpty()) {
                     Label empty = new Label("No hay items registrados para este conteo.");

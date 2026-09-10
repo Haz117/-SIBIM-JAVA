@@ -75,6 +75,13 @@
             <version>5.3.0</version>
         </dependency>
 
+        <!-- Jakarta Mail — SMTP email for alert notifications -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+
         <!-- iText 7 - PDF generation (migrated from itextpdf 5.5.13.4, EOL with
              known CVEs, per code audit) -->
         <dependency>

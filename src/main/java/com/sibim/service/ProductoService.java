@@ -18,11 +18,17 @@ public class ProductoService {
 
     private final ProductoRepository productoRepo;
     private final AuditLogRepository auditRepo;
+    private final com.sibim.repository.PriceHistoryRepository priceHistoryRepo;
 
-    public ProductoService() { this(new ProductoRepository(), new AuditLogRepository()); }
+    public ProductoService() { this(new ProductoRepository(), new AuditLogRepository(), new com.sibim.repository.PriceHistoryRepository()); }
     ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo) {
-        this.productoRepo = productoRepo;
-        this.auditRepo    = auditRepo;
+        this(productoRepo, auditRepo, new com.sibim.repository.PriceHistoryRepository());
+    }
+    ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo,
+                    com.sibim.repository.PriceHistoryRepository priceHistoryRepo) {
+        this.productoRepo     = productoRepo;
+        this.auditRepo        = auditRepo;
+        this.priceHistoryRepo = priceHistoryRepo;
     }
 
     public List<Producto> getAll() throws SQLException {
@@ -106,12 +112,41 @@ public class ProductoService {
     public Producto save(Producto p) throws SQLException, ValidationException {
         validate(p);
         boolean isNew = p.getId() == null;
+
+        java.math.BigDecimal prevCompra = null, prevVenta = null;
+        if (!isNew) {
+            try {
+                Optional<Producto> existing = productoRepo.findById(p.getId());
+                if (existing.isPresent()) {
+                    prevCompra = existing.get().getPrecioCompra();
+                    prevVenta  = existing.get().getPrecioVenta();
+                }
+            } catch (Exception ignored) {}
+        }
+
         Producto saved = productoRepo.save(p);
         log.info("Bien {} [{}] '{}'", isNew ? "registrado" : "actualizado", saved.getId(), saved.getNombre());
         auditRepo.log("producto", saved.getId(), saved.getNombre(),
             isNew ? "crear" : "actualizar",
             isNew ? "Bien registrado" : "Datos del bien actualizados");
+
+        if (!isNew) {
+            com.sibim.model.Usuario u = SessionManager.getCurrentUser();
+            String userId   = u != null ? u.getId()     : null;
+            String userName = u != null ? u.getNombre() : "Sistema";
+            if (priceChanged(prevCompra, p.getPrecioCompra()))
+                priceHistoryRepo.save(saved.getId(), "precio_compra", prevCompra, p.getPrecioCompra(), userId, userName);
+            if (priceChanged(prevVenta, p.getPrecioVenta()))
+                priceHistoryRepo.save(saved.getId(), "precio_venta", prevVenta, p.getPrecioVenta(), userId, userName);
+        }
+
         return saved;
+    }
+
+    private static boolean priceChanged(java.math.BigDecimal a, java.math.BigDecimal b) {
+        if (a == null && b == null) return false;
+        if (a == null || b == null) return true;
+        return a.compareTo(b) != 0;
     }
 
     public void delete(String id) throws SQLException, ValidationException {

@@ -1,6 +1,7 @@
 package com.sibim;
 
 import atlantafx.base.theme.PrimerLight;
+import com.sibim.service.SchedulerService;
 import com.sibim.util.AppExecutor;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
@@ -55,6 +56,7 @@ public class MainApp extends Application {
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
         primaryStage = stage;
         applyAppIcon(primaryStage);
+        com.sibim.service.TrayService.install(primaryStage);
         showSplash();
     }
 
@@ -92,6 +94,7 @@ public class MainApp extends Application {
             primaryStage.setMinHeight(680);
             restoreMainWindowState();
         });
+        SchedulerService.getInstance().start();
     }
 
     /** Applies the size/position/maximized state saved by
@@ -222,6 +225,8 @@ public class MainApp extends Application {
     @Override
     public void stop() {
         saveMainWindowState();
+        SchedulerService.getInstance().stop();
+        com.sibim.service.TrayService.remove();
         AppExecutor.shutdown();
         try { com.sibim.db.offline.SyncService.stopWatching(); } catch (Exception e) { /* ignore on exit */ }
         try { com.sibim.db.DatabaseConfig.close(); } catch (Exception e) { /* ignore on exit */ }

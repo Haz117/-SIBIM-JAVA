@@ -130,6 +130,10 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar datos ahora"/></tooltip>
         </Button>
+        <Button onAction="#onPersonalizarDashboard" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2t-tune-vertical" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Personalizar tarjetas visibles"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- Stats grid — 1×4: solo cifras que no se repiten en ningún otro

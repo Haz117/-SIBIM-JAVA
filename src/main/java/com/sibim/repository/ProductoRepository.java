@@ -96,8 +96,8 @@ public class ProductoRepository {
             conds.add("(" + ESTADO_SQL + ") = ?");
             params.add(estado.getCodigo());
         }
-        if (desdeReg != null) { conds.add("p.creado_en >= ?"); params.add(java.sql.Timestamp.valueOf(desdeReg.atStartOfDay())); }
-        if (hastaReg != null) { conds.add("p.creado_en < ?"); params.add(java.sql.Timestamp.valueOf(hastaReg.plusDays(1).atStartOfDay())); }
+        if (desdeReg != null) { conds.add("p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desdeReg.atStartOfDay())); }
+        if (hastaReg != null) { conds.add("p.created_at < ?"); params.add(java.sql.Timestamp.valueOf(hastaReg.plusDays(1).atStartOfDay())); }
         return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
     }
 
@@ -726,6 +726,36 @@ public class ProductoRepository {
             while (rs.next()) result.put(rs.getString("area_label"), rs.getLong("cnt"));
         }
         return result;
+    }
+
+    public long countNuevosEnAnio(int anio) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> !p.isDadoDeBaja() && p.getCreadoEn() != null
+                    && p.getCreadoEn().getYear() == anio)
+                .count();
+        }
+        if (DatabaseConfig.isDemoMode()) {
+            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> !p.isDadoDeBaja() && p.getCreadoEn() != null
+                    && p.getCreadoEn().getYear() == anio)
+                .count();
+        }
+        StringBuilder sql = new StringBuilder(
+            "SELECT COUNT(*) FROM products p WHERE EXTRACT(YEAR FROM p.created_at) = ?"
+            + " AND p.fecha_baja IS NULL");
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null) sql.append(" AND p.area = ANY(?)");
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setInt(1, anio);
+            if (accessible != null)
+                ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        }
     }
 
     /** Bienes with stock_actual = 0 (agotados) — filtered in SQL. */

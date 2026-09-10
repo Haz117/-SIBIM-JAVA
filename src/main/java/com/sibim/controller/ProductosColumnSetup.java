@@ -55,12 +55,25 @@ class ProductosColumnSetup {
                 if (empty) return;
                 if (url != null && !url.isBlank()) {
                     try {
-                        Image cached = thumbnailCache.computeIfAbsent(url,
-                            u -> new Image(Path.of(u).toUri().toString(), 38, 38, true, true, true));
-                        iv.setImage(cached);
-                        iv.setVisible(true); lbl.setVisible(false);
-                        box.getStyleClass().add("foto-cell-box-clickable");
-                    } catch (Exception ex) { log.warn("No se pudo cargar thumbnail: {}", url, ex); iv.setVisible(false); lbl.setVisible(true); }
+                        Image cached = thumbnailCache.get(url);
+                        if (cached == null || cached.isError()) {
+                            boolean remote = url.startsWith("http://") || url.startsWith("https://");
+                            String imageUri = remote ? url : Path.of(url).toUri().toString();
+                            // backgroundLoading only for remote — local files are instant
+                            cached = new Image(imageUri, 38, 38, true, true, remote);
+                            if (!cached.isError()) thumbnailCache.put(url, cached);
+                        }
+                        if (cached.isError()) {
+                            iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
+                        } else {
+                            iv.setImage(cached);
+                            iv.setVisible(true); lbl.setVisible(false);
+                            box.getStyleClass().add("foto-cell-box-clickable");
+                        }
+                    } catch (Exception ex) {
+                        log.warn("No se pudo cargar thumbnail: {}", url, ex);
+                        iv.setVisible(false); lbl.setVisible(true);
+                    }
                 } else {
                     iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
                 }

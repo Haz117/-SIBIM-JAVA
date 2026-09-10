@@ -59,3 +59,4 @@ public final class QrUtils {
         javax.imageio.ImageIO.write(bi, "PNG", dest);
     }
 }
+    

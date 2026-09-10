@@ -82,6 +82,7 @@ public class MainController {
     @FXML private Label offlineBannerLabel;
     @FXML private javafx.scene.control.Button offlineBannerSyncBtn;
     @FXML private Label statusDbLabel;
+    @FXML private Tooltip statusDbTooltip;
     @FXML private Label statusUserLabel;
     @FXML private Label statusTimeLabel;
     @FXML private StackPane outerStack;
@@ -576,12 +577,32 @@ public class MainController {
 
         if (statusDbLabel != null) {
             String text = offline
-                ? "Modo offline · " + pending + " pendiente(s)"
-                : demo ? "Modo demo" : "Base de datos conectada";
+                ? (pending > 0 ? "Sin conexión · " + pending + " pendiente(s)" : "Sin conexión")
+                : demo ? "Modo demo" : "Conectado";
             statusDbLabel.setText(text);
             if (statusDotIcon != null) {
-                statusDotIcon.getStyleClass().removeAll("status-dot-icon-ok", "status-dot-icon-demo");
-                statusDotIcon.getStyleClass().add((demo || offline) ? "status-dot-icon-demo" : "status-dot-icon-ok");
+                statusDotIcon.getStyleClass().removeAll(
+                    "status-dot-icon-ok", "status-dot-icon-demo", "status-dot-icon-offline");
+                if (offline) {
+                    statusDotIcon.setIconLiteral("mdi2d-database-off");
+                    statusDotIcon.getStyleClass().add("status-dot-icon-offline");
+                } else if (demo) {
+                    statusDotIcon.setIconLiteral("mdi2d-database-settings");
+                    statusDotIcon.getStyleClass().add("status-dot-icon-demo");
+                } else {
+                    statusDotIcon.setIconLiteral("mdi2d-database-check");
+                    statusDotIcon.getStyleClass().add("status-dot-icon-ok");
+                }
+            }
+            if (statusDbTooltip != null) {
+                String tip = offline
+                    ? (pending > 0
+                        ? "Sin conexión a la base de datos.\n" + pending + " operación(es) pendiente(s) de sincronizar\ncuando se recupere la conexión."
+                        : "Sin conexión a la base de datos.\nTus cambios se guardan localmente\ny se sincronizarán cuando vuelva la conexión.")
+                    : demo
+                    ? "Modo demostración activo.\nLos datos mostrados no son reales\ny no se almacenan en ninguna base de datos."
+                    : "Base de datos conectada (Supabase).\nTus cambios se guardan en tiempo real.\nÚltima verificación: al iniciar la aplicación.";
+                statusDbTooltip.setText(tip);
             }
         }
 

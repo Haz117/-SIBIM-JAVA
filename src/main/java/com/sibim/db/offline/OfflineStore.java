@@ -186,8 +186,10 @@ public final class OfflineStore {
                 CREATE TABLE IF NOT EXISTS conteo_items_outbox (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, conteo_id TEXT NOT NULL,
                     item_id TEXT NOT NULL, producto_id TEXT NOT NULL, producto_nombre TEXT NOT NULL,
+                    producto_codigo TEXT,
                     area TEXT, stock_sistema INTEGER NOT NULL, stock_contado INTEGER NOT NULL,
-                    ajustado INTEGER NOT NULL DEFAULT 0)""");
+                    ajustado INTEGER NOT NULL DEFAULT 0,
+                    estado_conteo TEXT DEFAULT 'ENCONTRADO', nota TEXT)""");
         } catch (SQLException ignored) {}
         // M3 (2025): audit log offline outbox
         try (Statement st = c.createStatement()) {
@@ -231,6 +233,16 @@ public final class OfflineStore {
         } catch (SQLException ignored) {}
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE product_outbox ADD COLUMN fotos_urls TEXT");
+        } catch (SQLException ignored) {}
+        // M9 (2026): producto_codigo, estado_conteo, nota en conteo_items_outbox
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE conteo_items_outbox ADD COLUMN producto_codigo TEXT");
+        } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE conteo_items_outbox ADD COLUMN estado_conteo TEXT DEFAULT 'ENCONTRADO'");
+        } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE conteo_items_outbox ADD COLUMN nota TEXT");
         } catch (SQLException ignored) {}
     }
 
@@ -1050,8 +1062,8 @@ public final class OfflineStore {
             """;
         String sqlItem = """
             INSERT INTO conteo_items_outbox (conteo_id, item_id, producto_id, producto_nombre,
-                area, stock_sistema, stock_contado, ajustado)
-            VALUES (?,?,?,?,?,?,?,?)
+                producto_codigo, area, stock_sistema, stock_contado, ajustado, estado_conteo, nota)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sqlHeader)) {
             ps.setString(1, c.getId());
@@ -1069,10 +1081,13 @@ public final class OfflineStore {
                     ps.setString(2, it.getId());
                     ps.setString(3, it.getProductoId());
                     ps.setString(4, it.getProductoNombre());
-                    ps.setString(5, it.getArea());
-                    ps.setInt(6, it.getStockSistema());
-                    ps.setInt(7, it.getStockContado());
-                    ps.setInt(8, it.isAjustado() ? 1 : 0);
+                    ps.setString(5, it.getProductoCodigo());
+                    ps.setString(6, it.getArea());
+                    ps.setInt(7, it.getStockSistema());
+                    ps.setInt(8, it.getStockContado());
+                    ps.setInt(9, it.isAjustado() ? 1 : 0);
+                    ps.setString(10, it.getEstadoConteo() != null ? it.getEstadoConteo() : "ENCONTRADO");
+                    ps.setString(11, it.getNota());
                     ps.addBatch();
                 }
                 ps.executeBatch();

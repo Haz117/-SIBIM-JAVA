@@ -8,10 +8,13 @@ public class ConteoItem {
     private String conteoId;
     private String productoId;
     private String productoNombre;
+    private String productoCodigo;
     private String area;
     private int stockSistema;
     private int stockContado;
     private boolean ajustado;
+    private String estadoConteo;
+    private String nota;
 
     public ConteoItem() {}
 
@@ -30,6 +33,9 @@ public class ConteoItem {
     public String getProductoNombre() { return productoNombre; }
     public void setProductoNombre(String productoNombre) { this.productoNombre = productoNombre; }
 
+    public String getProductoCodigo() { return productoCodigo; }
+    public void setProductoCodigo(String productoCodigo) { this.productoCodigo = productoCodigo; }
+
     public String getArea() { return area; }
     public void setArea(String area) { this.area = area; }
 
@@ -41,4 +47,10 @@ public class ConteoItem {
 
     public boolean isAjustado() { return ajustado; }
     public void setAjustado(boolean ajustado) { this.ajustado = ajustado; }
+
+    public String getEstadoConteo() { return estadoConteo; }
+    public void setEstadoConteo(String estadoConteo) { this.estadoConteo = estadoConteo; }
+
+    public String getNota() { return nota; }
+    public void setNota(String nota) { this.nota = nota; }
 }

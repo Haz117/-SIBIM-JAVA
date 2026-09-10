@@ -4,16 +4,21 @@ import com.sibim.controller.dialogs.UsuarioDialogFactory;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.repository.UsuarioRepository;
+import com.sibim.service.EmailService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -159,6 +164,11 @@ public class ConfiguracionController {
         }
 
         if (isAdmin) {
+            buildEmailSection();
+            buildSchedulerSection();
+        }
+
+        if (isAdmin) {
             setupUsersTable();
             loadUsers();
             if (userSearchField != null) {
@@ -216,6 +226,204 @@ public class ConfiguracionController {
             cm.getItems().addAll(cmEditar, cmPassword, cmReactivar, new SeparatorMenuItem(), cmEliminar);
             usersTable.setContextMenu(cm);
         }
+    }
+
+    // ── Email settings section ────────────────────────────────────────────
+
+    private void buildEmailSection() {
+        if (backupSection == null || !(backupSection.getParent() instanceof VBox rootVBox)) return;
+
+        VBox emailCard = new VBox(12);
+        emailCard.getStyleClass().add("card");
+        emailCard.setPadding(new Insets(18));
+
+        Label title = new Label("Notificaciones por Email");
+        title.getStyleClass().add("card-section-title");
+        FontIcon titleIcon = new FontIcon("mdi2e-email-outline");
+        titleIcon.setIconSize(18);
+        HBox titleRow = new HBox(8, titleIcon, title);
+        titleRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        CheckBox chkHabilitado = new CheckBox("Activar alertas por email");
+        chkHabilitado.setSelected("true".equals(configRepo.get("alertas_email_habilitado", "false")));
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(8);
+
+        Label lSmtpHost = new Label("Servidor SMTP");
+        TextField tfSmtpHost = new TextField(configRepo.get("smtp_host", ""));
+        tfSmtpHost.setPromptText("smtp.gmail.com");
+        GridPane.setHgrow(tfSmtpHost, Priority.ALWAYS);
+
+        Label lSmtpPort = new Label("Puerto");
+        TextField tfSmtpPort = new TextField(configRepo.get("smtp_port", "587"));
+        tfSmtpPort.setPrefWidth(80);
+
+        Label lSmtpUser = new Label("Usuario SMTP");
+        TextField tfSmtpUser = new TextField(configRepo.get("smtp_usuario", ""));
+        tfSmtpUser.setPromptText("tu@correo.com");
+        GridPane.setHgrow(tfSmtpUser, Priority.ALWAYS);
+
+        Label lSmtpPass = new Label("Contraseña SMTP");
+        PasswordField tfSmtpPass = new PasswordField();
+        tfSmtpPass.setText(configRepo.get("smtp_password", ""));
+        GridPane.setHgrow(tfSmtpPass, Priority.ALWAYS);
+
+        Label lDest = new Label("Correo destino");
+        TextField tfDest = new TextField(configRepo.get("alertas_correo_destino", ""));
+        tfDest.setPromptText("alertas@municipio.gob.mx");
+        GridPane.setHgrow(tfDest, Priority.ALWAYS);
+
+        grid.add(lSmtpHost, 0, 0); grid.add(tfSmtpHost, 1, 0);
+        grid.add(lSmtpPort, 2, 0); grid.add(tfSmtpPort, 3, 0);
+        grid.add(lSmtpUser, 0, 1); grid.add(tfSmtpUser, 1, 1);
+        grid.add(lSmtpPass, 0, 2); grid.add(tfSmtpPass, 1, 2);
+        grid.add(lDest,     0, 3); grid.add(tfDest,     1, 3);
+
+        Button btnGuardarEmail = new Button("Guardar");
+        btnGuardarEmail.getStyleClass().add("btn-primary");
+        btnGuardarEmail.setGraphic(new FontIcon("mdi2c-content-save-outline"));
+        btnGuardarEmail.setContentDisplay(ContentDisplay.LEFT);
+
+        Button btnProbarSMTP = new Button("Probar conexión");
+        btnProbarSMTP.getStyleClass().add("btn-secondary");
+        btnProbarSMTP.setGraphic(new FontIcon("mdi2e-email-send-outline"));
+        btnProbarSMTP.setContentDisplay(ContentDisplay.LEFT);
+
+        Label lblSmtpResult = new Label();
+        lblSmtpResult.getStyleClass().add("muted-sm");
+
+        HBox btnsRow = new HBox(10, btnGuardarEmail, btnProbarSMTP, lblSmtpResult);
+        btnsRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        btnGuardarEmail.setOnAction(ev -> {
+            javafx.scene.Scene scene = emailCard.getScene();
+            DialogUtil.runAsync(() -> {
+                configRepo.set("alertas_email_habilitado", chkHabilitado.isSelected() ? "true" : "false");
+                configRepo.set("smtp_host",              tfSmtpHost.getText().strip());
+                configRepo.set("smtp_port",              tfSmtpPort.getText().strip());
+                configRepo.set("smtp_usuario",           tfSmtpUser.getText().strip());
+                configRepo.set("smtp_password",          tfSmtpPass.getText());
+                configRepo.set("alertas_correo_destino", tfDest.getText().strip());
+                return null;
+            }, v -> NotificacionUtil.exito(scene, "Configuración de email guardada"),
+               e -> NotificacionUtil.error(scene, "No se pudo guardar la configuración de email"));
+        });
+
+        btnProbarSMTP.setOnAction(ev -> {
+            javafx.scene.Scene scene = emailCard.getScene();
+            btnProbarSMTP.setDisable(true);
+            lblSmtpResult.setText("Enviando…");
+            AppExecutor.submit(() -> {
+                String err = new EmailService(configRepo).probarConexion();
+                javafx.application.Platform.runLater(() -> {
+                    btnProbarSMTP.setDisable(false);
+                    if (err == null) {
+                        lblSmtpResult.setText("Correo enviado correctamente");
+                        lblSmtpResult.getStyleClass().removeAll("field-hint-error");
+                        lblSmtpResult.getStyleClass().add("field-hint-ok");
+                    } else {
+                        lblSmtpResult.setText("Error: " + err);
+                        lblSmtpResult.getStyleClass().removeAll("field-hint-ok");
+                        lblSmtpResult.getStyleClass().add("field-hint-error");
+                    }
+                });
+            });
+        });
+
+        emailCard.getChildren().addAll(titleRow, chkHabilitado, grid, btnsRow);
+        rootVBox.getChildren().add(emailCard);
+        AnimationUtils.fadeInUp(emailCard, 320, 385);
+    }
+
+    // ── Scheduled reports section ─────────────────────────────────────────
+
+    private void buildSchedulerSection() {
+        if (backupSection == null || !(backupSection.getParent() instanceof VBox rootVBox)) return;
+
+        VBox schedCard = new VBox(12);
+        schedCard.getStyleClass().add("card");
+        schedCard.setPadding(new Insets(18));
+
+        Label title = new Label("Reportes Programados");
+        title.getStyleClass().add("card-section-title");
+        FontIcon titleIcon = new FontIcon("mdi2c-clock-outline");
+        titleIcon.setIconSize(18);
+        HBox titleRow = new HBox(8, titleIcon, title);
+        titleRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        CheckBox chkHabilitado = new CheckBox("Activar reportes programados");
+        chkHabilitado.setSelected("true".equals(configRepo.get("reportes_habilitado", "false")));
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(8);
+
+        Label lFrec = new Label("Frecuencia");
+        ComboBox<String> cbFrecuencia = new ComboBox<>();
+        cbFrecuencia.getItems().addAll("DIARIO", "SEMANAL", "MENSUAL");
+        cbFrecuencia.setValue(configRepo.get("reportes_frecuencia", "MENSUAL"));
+
+        Label lCarpeta = new Label("Carpeta destino");
+        TextField tfCarpeta = new TextField(configRepo.get("reportes_carpeta", ""));
+        tfCarpeta.setPromptText("/ruta/a/carpeta");
+        GridPane.setHgrow(tfCarpeta, Priority.ALWAYS);
+        Button btnExaminar = new Button("Examinar…");
+        btnExaminar.getStyleClass().add("btn-secondary");
+        btnExaminar.setOnAction(ev -> {
+            javafx.stage.DirectoryChooser dc = new javafx.stage.DirectoryChooser();
+            dc.setTitle("Seleccionar carpeta para reportes");
+            java.io.File dir = dc.showDialog(schedCard.getScene() != null ? schedCard.getScene().getWindow() : null);
+            if (dir != null) tfCarpeta.setText(dir.getAbsolutePath());
+        });
+        HBox carpetaRow = new HBox(8, tfCarpeta, btnExaminar);
+        carpetaRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        HBox.setHgrow(tfCarpeta, Priority.ALWAYS);
+
+        Label lTipos = new Label("Tipos de reporte");
+        String tiposGuardados = configRepo.get("reportes_tipos", "INVENTARIO");
+        CheckBox chkInventario  = new CheckBox("Inventario");
+        CheckBox chkMovimientos = new CheckBox("Movimientos");
+        CheckBox chkAlertas     = new CheckBox("Alertas");
+        chkInventario.setSelected(tiposGuardados.contains("INVENTARIO"));
+        chkMovimientos.setSelected(tiposGuardados.contains("MOVIMIENTOS"));
+        chkAlertas.setSelected(tiposGuardados.contains("ALERTAS"));
+        HBox tiposRow = new HBox(14, chkInventario, chkMovimientos, chkAlertas);
+
+        String ultimaEjec = configRepo.get("reportes_ultima_ejecucion", "");
+        Label lblUltima = new Label("Último reporte generado: " + (ultimaEjec.isBlank() ? "Nunca" : ultimaEjec));
+        lblUltima.getStyleClass().add("muted-sm");
+
+        grid.add(lFrec,    0, 0); grid.add(cbFrecuencia, 1, 0);
+        grid.add(lCarpeta, 0, 1); grid.add(carpetaRow,   1, 1);
+        grid.add(lTipos,   0, 2); grid.add(tiposRow,     1, 2);
+
+        Button btnGuardarSched = new Button("Guardar configuración");
+        btnGuardarSched.getStyleClass().add("btn-primary");
+        btnGuardarSched.setGraphic(new FontIcon("mdi2c-content-save-outline"));
+        btnGuardarSched.setContentDisplay(ContentDisplay.LEFT);
+
+        btnGuardarSched.setOnAction(ev -> {
+            javafx.scene.Scene scene = schedCard.getScene();
+            java.util.List<String> tipos = new java.util.ArrayList<>();
+            if (chkInventario.isSelected())  tipos.add("INVENTARIO");
+            if (chkMovimientos.isSelected()) tipos.add("MOVIMIENTOS");
+            if (chkAlertas.isSelected())     tipos.add("ALERTAS");
+            String tiposStr = String.join(",", tipos);
+            DialogUtil.runAsync(() -> {
+                configRepo.set("reportes_habilitado", chkHabilitado.isSelected() ? "true" : "false");
+                configRepo.set("reportes_frecuencia", cbFrecuencia.getValue() != null ? cbFrecuencia.getValue() : "MENSUAL");
+                configRepo.set("reportes_carpeta",    tfCarpeta.getText().strip());
+                configRepo.set("reportes_tipos",      tiposStr.isBlank() ? "INVENTARIO" : tiposStr);
+                return null;
+            }, v -> NotificacionUtil.exito(scene, "Configuración de reportes guardada"),
+               e -> NotificacionUtil.error(scene, "No se pudo guardar la configuración de reportes"));
+        });
+
+        schedCard.getChildren().addAll(titleRow, chkHabilitado, grid, lblUltima, btnGuardarSched);
+        rootVBox.getChildren().add(schedCard);
+        AnimationUtils.fadeInUp(schedCard, 320, 455);
     }
 
     private void loadConfigCard(boolean isAdmin) {

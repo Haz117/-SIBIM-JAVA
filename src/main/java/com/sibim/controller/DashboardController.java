@@ -84,6 +84,11 @@ public class DashboardController {
     @FXML private HBox  areasSectionHdr;
 
     private final DashboardService dashboardService = new DashboardService();
+    private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
+
+    private static final String CARDS_CONFIG_KEY = "dashboard_cards_visibles";
+    private static final java.util.Set<String> ALL_CARDS = java.util.Set.of(
+        "Total Bienes", "Movimientos hoy", "Bienes agotados", "Bajo stock", "Por área", "Actividad reciente");
 
     private List<Producto> lastAgotados  = List.of();
     private List<Producto> lastBajoStock = List.of();
@@ -124,6 +129,8 @@ public class DashboardController {
                 helpMovimientosHoy, helpCategorias, helpHealth, helpAnalisis }) {
             if (badge != null) com.sibim.util.DialogUtil.enableClickToShowTooltip(badge);
         }
+
+        applyCardVisibility();
 
         // Hide create-only cards for users without edit permissions
         boolean canEdit = SessionManager.isAdmin() || SessionManager.isSecretario();
@@ -246,6 +253,37 @@ public class DashboardController {
             trendLbl.getStyleClass().addAll("trend-lbl", cls);
             int afterValue = inner.getChildren().indexOf(lblMovimientosHoy) + 1;
             inner.getChildren().add(Math.min(afterValue, inner.getChildren().size()), trendLbl);
+
+            // Year-over-year comparison hint
+            inner.getChildren().removeIf(n -> n instanceof Label l && l.getStyleClass().contains("muted-sm")
+                && l.getText() != null && l.getText().contains("año pasado"));
+            long movsActual   = data.movsAnioActual();
+            long movsAnterior = data.movsAnioAnterior();
+            if (movsAnterior > 0) {
+                long yoyDiff = movsActual - movsAnterior;
+                String yoyStr = (yoyDiff >= 0 ? "+" : "") + yoyDiff + " vs año pasado";
+                Label yoyLbl = new Label(yoyStr);
+                yoyLbl.getStyleClass().add("muted-sm");
+                inner.getChildren().add(yoyLbl);
+            }
+        }
+
+        // New bienes this year hint below total bienes card
+        if (lblTotalBienes != null && lblTotalBienes.getParent() instanceof VBox bienesInner) {
+            bienesInner.getChildren().removeIf(n -> n instanceof Label l
+                && l.getText() != null && l.getText().contains("este año"));
+            int anioActual = java.time.LocalDate.now().getYear();
+            com.sibim.util.DialogUtil.runAsync(
+                () -> new com.sibim.repository.ProductoRepository().countNuevosEnAnio(anioActual),
+                nuevos -> {
+                    if (nuevos > 0) {
+                        Label nuevosLbl = new Label("+" + nuevos + " registrados este año");
+                        nuevosLbl.getStyleClass().add("muted-sm");
+                        bienesInner.getChildren().add(nuevosLbl);
+                    }
+                },
+                ex -> {}
+            );
         }
 
         // First-load skeleton fade-in — charts were kept at opacity 0 until data arrives
@@ -874,6 +912,74 @@ public class DashboardController {
         if (hour < 12) return "Buenos días,";
         if (hour < 19) return "Buenas tardes,";
         return "Buenas noches,";
+    }
+
+    @FXML
+    public void onPersonalizarDashboard() {
+        java.util.Set<String> visible = loadVisibleCards();
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        com.sibim.util.DialogUtil.applyOwner(dlg);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dlg.getDialogPane().setPrefWidth(360);
+        com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        HBox header = com.sibim.util.DialogUtil.gradientHeader("mdi2t-tune-vertical",
+            "Personalizar dashboard", "Elige qué secciones mostrar", "#4F46E5", "#4338CA");
+
+        VBox checks = new VBox(10);
+        checks.setPadding(new javafx.geometry.Insets(14));
+        java.util.Map<String, CheckBox> checkMap = new java.util.LinkedHashMap<>();
+        for (String name : new String[]{"Total Bienes","Movimientos hoy","Bienes agotados","Bajo stock","Por área","Actividad reciente"}) {
+            CheckBox cb = new CheckBox(name);
+            cb.setSelected(visible.contains(name));
+            checkMap.put(name, cb);
+            checks.getChildren().add(cb);
+        }
+
+        dlg.getDialogPane().setContent(new VBox(0, header, checks));
+        Button okBtn = (Button) dlg.getDialogPane().lookupButton(ButtonType.OK);
+        okBtn.getStyleClass().add("btn-primary");
+
+        dlg.showAndWait().ifPresent(bt -> {
+            if (bt != ButtonType.OK) return;
+            java.util.Set<String> selected = new java.util.LinkedHashSet<>();
+            checkMap.forEach((name, cb) -> { if (cb.isSelected()) selected.add(name); });
+            String value = String.join(",", selected);
+            com.sibim.util.AppExecutor.submit(() -> {
+                try { configRepo.set(CARDS_CONFIG_KEY, value); } catch (Exception ignored) {}
+            });
+            applyCardVisibilitySet(selected);
+        });
+    }
+
+    private java.util.Set<String> loadVisibleCards() {
+        String raw = configRepo.get(CARDS_CONFIG_KEY, "");
+        if (raw.isBlank()) return new java.util.HashSet<>(ALL_CARDS);
+        java.util.Set<String> result = new java.util.LinkedHashSet<>();
+        for (String s : raw.split(",")) { String t = s.trim(); if (!t.isBlank()) result.add(t); }
+        return result;
+    }
+
+    private void applyCardVisibility() { applyCardVisibilitySet(loadVisibleCards()); }
+
+    private void applyCardVisibilitySet(java.util.Set<String> visible) {
+        boolean showStats = visible.contains("Total Bienes") || visible.contains("Movimientos hoy");
+        setCardVisible(statsGrid, showStats);
+        boolean showHealth = visible.contains("Bienes agotados") || visible.contains("Bajo stock");
+        setCardVisible(statusCardsRow, showHealth);
+        boolean showCharts = visible.contains("Por área");
+        setCardVisible(chartsRow, showCharts);
+        setCardVisible(areasCard, showCharts);
+        setCardVisible(areasSectionHdr, showCharts);
+        setCardVisible(trendCard, showCharts);
+        setCardVisible(activityCard, visible.contains("Actividad reciente"));
+    }
+
+    private static void setCardVisible(javafx.scene.Node node, boolean show) {
+        if (node == null) return;
+        node.setVisible(show);
+        node.setManaged(show);
     }
 
     public void stopAutoRefresh() {

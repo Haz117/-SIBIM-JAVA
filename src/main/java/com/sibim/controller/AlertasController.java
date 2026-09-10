@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.model.Producto;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.service.EmailService;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
@@ -194,7 +195,7 @@ public class AlertasController {
         miAgReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
         miAgReponer.setOnAction(e -> onReponerAgotado());
         MenuItem miAgBaja = new MenuItem("Dar de baja");
-        miAgBaja.setGraphic(new FontIcon("mdi2a-archive-remove-outline"));
+        miAgBaja.setGraphic(new FontIcon("mdi2d-delete-outline"));
         miAgBaja.setOnAction(e -> {
             Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
             if (sel != null) darDeBajaDesdeAlertas(sel);
@@ -345,6 +346,11 @@ public class AlertasController {
                 allAgotados  = data.agotados();
                 allBajoStock = data.bajoStock();
                 allGarantias = data.garantias();
+                final List<Producto> _ag = data.agotados(), _bs = data.bajoStock(), _ga = data.garantias();
+                AppExecutor.submit(() -> new EmailService().enviarAlertas(_ag, _bs, _ga));
+                if (!allAgotados.isEmpty())
+                    com.sibim.service.TrayService.notify("Alerta de inventario",
+                        allAgotados.size() + " bien(es) agotado(s)");
                 updateSumCards();
                 if (btnReponerTodos != null) btnReponerTodos.setDisable(data.agotados().isEmpty());
                 String query = searchField != null ? searchField.getText() : "";
@@ -357,8 +363,12 @@ public class AlertasController {
             },
             e -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                if (tableAgotados.getScene() != null)
-                    NotificacionUtil.errorConAccion(tableAgotados.getScene(),
+                log.error("Error al cargar alertas", e);
+                javafx.scene.Scene scene = tableAgotados.getScene();
+                if (scene == null && com.sibim.MainApp.getPrimaryStage() != null)
+                    scene = com.sibim.MainApp.getPrimaryStage().getScene();
+                if (scene != null)
+                    NotificacionUtil.errorConAccion(scene,
                         "No se pudo cargar las alertas de inventario", "Reintentar", () -> loadData(false));
             }
         );

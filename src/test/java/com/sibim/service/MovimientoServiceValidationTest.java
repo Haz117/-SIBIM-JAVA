@@ -85,9 +85,9 @@ class MovimientoServiceValidationTest {
     }
 
     @Test
-    void registrar_ajusteCantidadCero_throwsValidation() {
+    void registrar_ajusteNegativo_throwsValidation() {
         var ex = assertThrows(MovimientoService.ValidationException.class,
-            () -> service.registrar(PROD_ID, TipoMovimiento.AJUSTE, 0, "test", null));
-        assertTrue(ex.getMessage().contains("ajuste") || ex.getMessage().contains("cero"));
+            () -> service.registrar(PROD_ID, TipoMovimiento.AJUSTE, -1, "test", null));
+        assertTrue(ex.getMessage().contains("negativo") || ex.getMessage().contains("ajuste"));
     }
 }

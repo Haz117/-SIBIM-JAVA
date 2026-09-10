@@ -87,10 +87,10 @@ class MovimientoServiceTest {
         assertSame(esperado, service.registrar("p-01", TipoMovimiento.SALIDA, 18, "Retiro total", null));
     }
 
-    @Test void registrar_ajusteCantidadCero_lanzaValidation() {
+    @Test void registrar_ajusteNegativo_lanzaValidation() {
         SessionManager.setCurrentUser(admin);
         assertThrows(MovimientoService.ValidationException.class,
-            () -> service.registrar("p-01", TipoMovimiento.AJUSTE, 0, "Corrección", null));
+            () -> service.registrar("p-01", TipoMovimiento.AJUSTE, -1, "Corrección", null));
     }
 
     // ── Validaciones de transferencia ─────────────────────────────────────────

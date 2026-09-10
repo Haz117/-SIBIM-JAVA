@@ -398,6 +398,29 @@ public class MovimientoRepository {
         return result;
     }
 
+    public long countByAnio(int anio) throws SQLException {
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllMovimientos(accessible).stream()
+                .filter(m -> m.getCreadoEn() != null && m.getCreadoEn().getYear() == anio)
+                .count();
+        }
+        StringBuilder sql = new StringBuilder(
+            "SELECT COUNT(*) FROM movements m JOIN products p ON p.id = m.producto_id"
+            + " WHERE EXTRACT(YEAR FROM m.created_at) = ?");
+        if (accessible != null) sql.append(" AND p.area = ANY(?)");
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setInt(1, anio);
+            if (accessible != null)
+                ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        }
+    }
+
     public List<Movimiento> findToday() throws SQLException {
         return findByDateRange(LocalDate.now(), LocalDate.now());
     }

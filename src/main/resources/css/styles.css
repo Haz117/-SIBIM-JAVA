@@ -2099,9 +2099,37 @@
     -fx-icon-color: #6366F1;
 }
 
-/* Status bar connection dot — replaces the Unicode ⬤ character */
-.status-dot-icon-ok   { -fx-icon-color: #4ADE80; -fx-icon-size: 8; }
-.status-dot-icon-demo { -fx-icon-color: #FBBF24; -fx-icon-size: 8; }
+/* Status bar DB pill — container around icon + label + help badge */
+.status-db-pill {
+    -fx-background-color: rgba(255,255,255,0.09);
+    -fx-background-radius: 20;
+    -fx-padding: 4 10 4 8;
+}
+
+/* Status bar DB icon — changes icon literal + color per connection state */
+.status-dot-icon-ok      { -fx-icon-color: #4ADE80; -fx-icon-size: 16; }
+.status-dot-icon-demo    { -fx-icon-color: #FBBF24; -fx-icon-size: 16; }
+.status-dot-icon-offline { -fx-icon-color: #F87171; -fx-icon-size: 16; }
+.status-db-label         { -fx-font-size: 11px; -fx-font-weight: 600; }
+
+/* Help badge "?" next to the DB status text */
+.status-db-help-badge {
+    -fx-text-fill: rgba(255,255,255,0.40);
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-background-radius: 50%;
+    -fx-min-width: 14px;
+    -fx-min-height: 14px;
+    -fx-max-width: 14px;
+    -fx-max-height: 14px;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+}
+.status-db-help-badge:hover {
+    -fx-background-color: rgba(255,255,255,0.24);
+    -fx-text-fill: rgba(255,255,255,0.75);
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    SIDEBAR — version badge at bottom
@@ -2285,7 +2313,9 @@
    MISC UTILITIES
    ═══════════════════════════════════════════════════════════════════ */
 /* Subdued helper text (smaller than .muted) */
-.muted-sm { -fx-font-size: 11px; -fx-text-fill: #64748B; }
+.muted-sm  { -fx-font-size: 11px; -fx-text-fill: #64748B; }
+.text-ok   { -fx-text-fill: #059669; }
+.text-warn { -fx-text-fill: #D97706; }
 
 /* Period picker hint label inside report card */
 .report-hint { -fx-font-size: 11px; -fx-text-fill: #64748B; }
@@ -3745,6 +3775,15 @@
     -fx-min-width: 16;
 }
 .filter-chip-close:hover { -fx-text-fill: #DC2626; }
+
+/* QR scan — flash highlight on matched conteo row */
+.row-highlight-flash {
+    -fx-background-color: rgba(8,145,178,0.18);
+    -fx-border-color: #0891B2;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
 
 /* Caps Lock warning in Login */
 .caps-lock-hint {

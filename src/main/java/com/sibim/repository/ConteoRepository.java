@@ -12,8 +12,22 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConteoRepository {
+
+    private static final AtomicBoolean COLS_MIGRATED = new AtomicBoolean(false);
+
+    private static void migrateItemColumns(Connection conn) {
+        if (COLS_MIGRATED.getAndSet(true)) return;
+        try (Statement st = conn.createStatement()) {
+            st.execute("ALTER TABLE conteo_items ADD COLUMN IF NOT EXISTS estado_conteo TEXT DEFAULT 'ENCONTRADO'");
+            st.execute("ALTER TABLE conteo_items ADD COLUMN IF NOT EXISTS nota TEXT");
+            st.execute("ALTER TABLE conteo_items ADD COLUMN IF NOT EXISTS producto_codigo TEXT");
+        } catch (SQLException e) {
+            // columns may already exist — not fatal
+        }
+    }
 
     // Only the history views (findAll/findItems, reachable from
     // Configuración → solo Admin) need this — guardar() below stays open to
@@ -53,10 +67,11 @@ public class ConteoRepository {
             VALUES (?,?,?,?,?,?)
             """;
         String insertItem = """
-            INSERT INTO conteo_items (id, conteo_id, producto_id, producto_nombre, area, stock_sistema, stock_contado, ajustado)
-            VALUES (?,?,?,?,?,?,?,?)
+            INSERT INTO conteo_items (id, conteo_id, producto_id, producto_nombre, producto_codigo, area, stock_sistema, stock_contado, ajustado, estado_conteo, nota)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (Connection conn = DatabaseConfig.getConnection()) {
+            migrateItemColumns(conn);
             conn.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = conn.prepareStatement(insertConteo)) {
@@ -74,10 +89,13 @@ public class ConteoRepository {
                         ps.setString(2, it.getConteoId());
                         ps.setString(3, it.getProductoId());
                         ps.setString(4, it.getProductoNombre());
-                        ps.setString(5, it.getArea());
-                        ps.setInt(6, it.getStockSistema());
-                        ps.setInt(7, it.getStockContado());
-                        ps.setBoolean(8, it.isAjustado());
+                        ps.setString(5, it.getProductoCodigo());
+                        ps.setString(6, it.getArea());
+                        ps.setInt(7, it.getStockSistema());
+                        ps.setInt(8, it.getStockContado());
+                        ps.setBoolean(9, it.isAjustado());
+                        ps.setString(10, it.getEstadoConteo() != null ? it.getEstadoConteo() : "ENCONTRADO");
+                        ps.setString(11, it.getNota());
                         ps.addBatch();
                     }
                     ps.executeBatch();
@@ -119,10 +137,11 @@ public class ConteoRepository {
             VALUES (?,?,?,?,?,?)
             """;
         String insertItem = """
-            INSERT INTO conteo_items (id, conteo_id, producto_id, producto_nombre, area, stock_sistema, stock_contado, ajustado)
-            VALUES (?,?,?,?,?,?,?,?)
+            INSERT INTO conteo_items (id, conteo_id, producto_id, producto_nombre, producto_codigo, area, stock_sistema, stock_contado, ajustado, estado_conteo, nota)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (Connection conn = DatabaseConfig.getConnection()) {
+            migrateItemColumns(conn);
             conn.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = conn.prepareStatement(insertConteo)) {
@@ -140,10 +159,13 @@ public class ConteoRepository {
                         ps.setString(2, it.getConteoId());
                         ps.setString(3, it.getProductoId());
                         ps.setString(4, it.getProductoNombre());
-                        ps.setString(5, it.getArea());
-                        ps.setInt(6, it.getStockSistema());
-                        ps.setInt(7, it.getStockContado());
-                        ps.setBoolean(8, it.isAjustado());
+                        ps.setString(5, it.getProductoCodigo());
+                        ps.setString(6, it.getArea());
+                        ps.setInt(7, it.getStockSistema());
+                        ps.setInt(8, it.getStockContado());
+                        ps.setBoolean(9, it.isAjustado());
+                        ps.setString(10, it.getEstadoConteo() != null ? it.getEstadoConteo() : "ENCONTRADO");
+                        ps.setString(11, it.getNota());
                         ps.addBatch();
                     }
                     ps.executeBatch();
@@ -179,11 +201,13 @@ public class ConteoRepository {
         if (DatabaseConfig.isDemoMode()) return DemoDataStore.findConteoItems(conteoId);
         String sql = "SELECT * FROM conteo_items WHERE conteo_id = ? ORDER BY producto_nombre";
         List<ConteoItem> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, conteoId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(mapItem(rs));
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            migrateItemColumns(conn);
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, conteoId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) list.add(mapItem(rs));
+                }
             }
         }
         return list;
@@ -207,10 +231,13 @@ public class ConteoRepository {
         it.setConteoId(rs.getString("conteo_id"));
         it.setProductoId(rs.getString("producto_id"));
         it.setProductoNombre(rs.getString("producto_nombre"));
+        it.setProductoCodigo(rs.getString("producto_codigo"));
         it.setArea(rs.getString("area"));
         it.setStockSistema(rs.getInt("stock_sistema"));
         it.setStockContado(rs.getInt("stock_contado"));
         it.setAjustado(rs.getBoolean("ajustado"));
+        it.setEstadoConteo(rs.getString("estado_conteo"));
+        it.setNota(rs.getString("nota"));
         return it;
     }
 }

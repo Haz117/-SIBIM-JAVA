@@ -531,7 +531,8 @@ public final class SyncService {
                               int totalContados, int totalDiscrepancias, String createdAt) {}
 
     private record ConteoItemRow(String itemId, String productoId, String productoNombre,
-                                  String area, int stockSistema, int stockContado, boolean ajustado) {}
+                                  String productoCodigo, String area, int stockSistema, int stockContado,
+                                  boolean ajustado, String estadoConteo, String nota) {}
 
     static void syncConteos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<ConteoRow> rows = new ArrayList<>();
@@ -562,10 +563,13 @@ public final class SyncService {
                     it.setConteoId(r.conteoId());
                     it.setProductoId(ir.productoId());
                     it.setProductoNombre(ir.productoNombre());
+                    it.setProductoCodigo(ir.productoCodigo());
                     it.setArea(ir.area());
                     it.setStockSistema(ir.stockSistema());
                     it.setStockContado(ir.stockContado());
                     it.setAjustado(ir.ajustado());
+                    it.setEstadoConteo(ir.estadoConteo());
+                    it.setNota(ir.nota());
                     items.add(it);
                 }
                 c.setItems(items);
@@ -588,9 +592,11 @@ public final class SyncService {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(new ConteoItemRow(rs.getString("item_id"), rs.getString("producto_id"),
-                        rs.getString("producto_nombre"), rs.getString("area"),
+                        rs.getString("producto_nombre"), rs.getString("producto_codigo"),
+                        rs.getString("area"),
                         rs.getInt("stock_sistema"), rs.getInt("stock_contado"),
-                        rs.getInt("ajustado") != 0));
+                        rs.getInt("ajustado") != 0,
+                        rs.getString("estado_conteo"), rs.getString("nota")));
                 }
             }
         }
