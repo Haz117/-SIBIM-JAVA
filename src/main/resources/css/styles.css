@@ -2107,9 +2107,9 @@
 }
 
 /* Status bar DB icon — changes icon literal + color per connection state */
-.status-dot-icon-ok      { -fx-icon-color: #4ADE80; -fx-icon-size: 16; }
-.status-dot-icon-demo    { -fx-icon-color: #FBBF24; -fx-icon-size: 16; }
-.status-dot-icon-offline { -fx-icon-color: #F87171; -fx-icon-size: 16; }
+.status-dot-icon-ok      { -fx-icon-color: #4ADE80; -fx-icon-size: 14; }
+.status-dot-icon-demo    { -fx-icon-color: #FBBF24; -fx-icon-size: 14; }
+.status-dot-icon-offline { -fx-icon-color: #F87171; -fx-icon-size: 14; }
 .status-db-label         { -fx-font-size: 11px; -fx-font-weight: 600; }
 
 /* Help badge "?" next to the DB status text */

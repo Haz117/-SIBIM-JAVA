@@ -97,9 +97,15 @@ public final class OfflineStore {
                     log.info("offline.db: migración completada");
                 }
 
-                // Stale work file from a previous crash — discard it; enc is authoritative
+                // Stale work file from a previous crash — discard it; enc is authoritative.
+                // On Windows, deleteIfExists silently returns false if the file is held by
+                // another process (another running instance of the app).
                 if (Files.exists(encFile)) {
-                    Files.deleteIfExists(workFile);
+                    boolean deleted = Files.deleteIfExists(workFile);
+                    if (!deleted && Files.exists(workFile)) {
+                        throw new IOException(
+                            "OTRA_INSTANCIA: offline.db.work está en uso por otra instancia del sistema.");
+                    }
                 }
 
                 // Decrypt enc → work, with automatic one-time migration from the old

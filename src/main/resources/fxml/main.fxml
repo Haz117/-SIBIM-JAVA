@@ -177,7 +177,7 @@
     <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="16">
         <padding><Insets top="5" right="16" bottom="5" left="16"/></padding>
         <HBox fx:id="statusDbPill" alignment="CENTER_LEFT" spacing="7" styleClass="status-db-pill">
-            <FontIcon fx:id="statusDotIcon" iconLiteral="mdi2d-database-check" iconSize="16" styleClass="status-dot-icon-ok"/>
+            <FontIcon fx:id="statusDotIcon" iconLiteral="mdi2c-check-circle" iconSize="14" styleClass="status-dot-icon-ok"/>
             <Label fx:id="statusDbLabel" text="Conectado" styleClass="status-text status-db-label"/>
             <Label fx:id="statusDbHelpBadge" text="?" styleClass="status-db-help-badge">
                 <tooltip><Tooltip fx:id="statusDbTooltip" text="Base de datos conectada (Supabase). Los cambios se guardan en tiempo real." wrapText="true" maxWidth="230"/></tooltip>

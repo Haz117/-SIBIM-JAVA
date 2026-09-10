@@ -584,13 +584,13 @@ public class MainController {
                 statusDotIcon.getStyleClass().removeAll(
                     "status-dot-icon-ok", "status-dot-icon-demo", "status-dot-icon-offline");
                 if (offline) {
-                    statusDotIcon.setIconLiteral("mdi2d-database-off");
+                    statusDotIcon.setIconLiteral("mdi2c-close-circle");
                     statusDotIcon.getStyleClass().add("status-dot-icon-offline");
                 } else if (demo) {
-                    statusDotIcon.setIconLiteral("mdi2d-database-settings");
+                    statusDotIcon.setIconLiteral("mdi2c-clock-outline");
                     statusDotIcon.getStyleClass().add("status-dot-icon-demo");
                 } else {
-                    statusDotIcon.setIconLiteral("mdi2d-database-check");
+                    statusDotIcon.setIconLiteral("mdi2c-check-circle");
                     statusDotIcon.getStyleClass().add("status-dot-icon-ok");
                 }
             }

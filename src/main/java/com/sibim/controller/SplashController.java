@@ -275,13 +275,14 @@ public class SplashController {
                 DatabaseConfig.setDemoMode(true);
             } else {
                 DatabaseConfig.init();
-                Flyway.configure()
+                org.flywaydb.core.Flyway flyway = Flyway.configure()
                     .dataSource(DatabaseConfig.getDataSource())
                     .locations(resolveMigrationsLocation())
                     .baselineOnMigrate(true)
                     .baselineVersion("0")
-                    .load()
-                    .migrate();
+                    .load();
+                flyway.repair();
+                flyway.migrate();
                 firstRunAdmin = seedAdminIfEmpty();
                 try {
                     com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
@@ -321,7 +322,10 @@ public class SplashController {
 
     private void afterEntrance() {
         if (DatabaseConfig.isDemoMode() && !confirmDemoMode()) { Platform.exit(); return; }
-        if (DatabaseConfig.isOfflineMode()) notifyOfflineMode();
+        if (DatabaseConfig.isOfflineMode()) {
+            if (!tryInitOfflineStore()) return; // blocks if another instance holds the DB
+            notifyOfflineMode();
+        }
         if (firstRunAdmin) notifyFirstRun();
         try {
             MainApp.showLogin();
@@ -424,6 +428,37 @@ public class SplashController {
             logoBadge.getChildren().setAll(iv);
         } catch (Exception e) {
             log.debug("No se pudo cargar logo del ayuntamiento: {}", e.getMessage());
+        }
+    }
+
+    /** Probes the offline SQLite store. Returns true when accessible; if it is
+     *  locked by another running instance, shows a clear error and exits. */
+    private boolean tryInitOfflineStore() {
+        try {
+            com.sibim.db.offline.OfflineStore.findCachedUserByUsername("__probe__");
+            return true;
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            boolean otherInstance = msg.contains("OTRA_INSTANCIA");
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            if (otherInstance) {
+                alert.setTitle("Sistema ya está ejecutándose");
+                alert.setHeaderText("Ya hay una instancia abierta");
+                alert.setContentText(
+                    "El sistema SIBIM ya está abierto en esta computadora. "
+                    + "Cierra esa ventana primero y vuelve a intentarlo.");
+            } else {
+                alert.setTitle("Error al abrir datos locales");
+                alert.setHeaderText("No se pudo acceder al almacén offline");
+                alert.setContentText(
+                    "Ocurrió un error al abrir la base de datos local: " + msg
+                    + "\n\nCierra todas las ventanas del sistema y vuelve a intentarlo.");
+            }
+            alert.getButtonTypes().setAll(ButtonType.OK);
+            if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
+            alert.showAndWait();
+            Platform.exit();
+            return false;
         }
     }
 

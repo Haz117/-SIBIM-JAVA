@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS price_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    producto_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    producto_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     campo TEXT NOT NULL,
     valor_anterior NUMERIC(15,2),
     valor_nuevo NUMERIC(15,2) NOT NULL,
-    usuario_id UUID,
+    usuario_id TEXT,
     usuario_nombre TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
