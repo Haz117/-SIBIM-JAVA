@@ -85,6 +85,7 @@ public class DashboardController {
 
     private final DashboardService dashboardService = new DashboardService();
     private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
+    private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
 
     private static final String CARDS_CONFIG_KEY = "dashboard_cards_visibles";
     private static final java.util.Set<String> ALL_CARDS = java.util.Set.of(
@@ -92,6 +93,7 @@ public class DashboardController {
 
     private List<Producto> lastAgotados  = List.of();
     private List<Producto> lastBajoStock = List.of();
+    private DashboardService.Resumen lastResumen;
     private javafx.animation.Timeline autoRefresh;
     private boolean chartsFirstLoad = true;
 
@@ -196,6 +198,7 @@ public class DashboardController {
 
         lastAgotados  = data.agotados();
         lastBajoStock = data.bajoStock();
+        lastResumen   = data;
 
         AnimationUtils.animateCount(lblTotalBienes,    stats.total(),              750);
         AnimationUtils.animateCount(lblMovimientosHoy, data.movHoy().size(),       580);
@@ -980,6 +983,29 @@ public class DashboardController {
         if (node == null) return;
         node.setVisible(show);
         node.setManaged(show);
+    }
+
+    @FXML
+    private void onExportarDashboardPdf() {
+        if (lastResumen == null) {
+            com.sibim.util.NotificacionUtil.advertencia(statsGrid.getScene(),
+                "Los datos del dashboard aún se están cargando, intenta en un momento");
+            return;
+        }
+        final DashboardService.Resumen resumen = lastResumen;
+        DialogUtil.runAsyncWithProgress(
+            statsGrid.getScene(),
+            "Generando PDF del dashboard…",
+            () -> reporteService.exportDashboardPdf(resumen, null),
+            file -> {
+                if (file != null) DialogUtil.showExportResultDialog(statsGrid.getScene(), file);
+            },
+            ex -> {
+                log.error("Error al exportar dashboard PDF", ex);
+                com.sibim.util.NotificacionUtil.error(statsGrid.getScene(),
+                    "No se pudo generar el PDF del dashboard");
+            }
+        );
     }
 
     public void stopAutoRefresh() {

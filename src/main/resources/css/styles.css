@@ -3966,3 +3966,118 @@
 .trend-up   { -fx-text-fill: #059669; -fx-background-color: #D1FAE5; }
 .trend-down { -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; }
 .trend-eq   { -fx-text-fill: #64748B; -fx-background-color: #F1F5F9; }
+
+/* ─── FEATURE 1: Drag & drop zone ─── */
+.drop-zone {
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 2;
+    -fx-border-style: dashed;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-background-color: #F8FAFC;
+    -fx-padding: 28 20;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+.drop-zone:hover, .drop-zone-active {
+    -fx-border-color: #6366F1;
+    -fx-background-color: #EEF2FF;
+}
+
+/* ─── FEATURE 3: Empty states ─── */
+.empty-state-box {
+    -fx-padding: 48 24;
+    -fx-alignment: center;
+}
+.empty-state-icon {
+    -fx-icon-size: 52;
+    -fx-icon-color: #CBD5E1;
+}
+.empty-state-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #94A3B8;
+}
+.empty-state-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #CBD5E1;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+/* ─── FEATURE 4: Skeleton loading ─── */
+.skeleton-container { -fx-padding: 8 0; }
+.skeleton-row {
+    -fx-padding: 8 12;
+    -fx-alignment: center-left;
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #F1F5F9 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.skeleton-block {
+    -fx-background-color: linear-gradient(to right, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%);
+    -fx-background-radius: 4;
+    -fx-min-height: 16;
+}
+
+/* ─── FEATURE 5: Lightbox ─── */
+.foto-thumbnail-clickable { -fx-cursor: hand; }
+.foto-thumbnail-clickable:hover { -fx-opacity: 0.85; -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.4), 8, 0, 0, 0); }
+.lightbox-image { -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 12, 0, 0, 3); }
+.lightbox-counter { -fx-font-size: 13px; -fx-text-fill: #64748B; }
+.lightbox-nav-bar { -fx-padding: 4 0; }
+.lightbox-nav { -fx-min-width: 36; -fx-min-height: 36; }
+.lightbox-content { -fx-background-color: white; }
+
+/* ─── FEATURE 6: btn-link-small ─── */
+.btn-link-small {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #6366F1;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-padding: 2 4;
+}
+.btn-link-small:hover { -fx-text-fill: #4338CA; }
+
+/* ─── FEATURE 10: Comparación de bienes ─── */
+.compare-diff { -fx-background-color: #FEF3C7; }
+.compare-header { -fx-font-weight: 700; -fx-background-color: #F1F5F9; }
+
+/* ─── FEATURE 6: Active filter chips bar ─── */
+.active-chips-bar {
+    -fx-padding: 0 0 2 2;
+}
+.active-chip {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 20;
+    -fx-border-color: #A5B4FC;
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+    -fx-padding: 2 4 2 10;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.10), 3, 0, 0, 1);
+}
+.active-chip:hover {
+    -fx-border-color: #6366F1;
+    -fx-background-color: #E0E7FF;
+}
+.active-chip-label {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: #3730A3;
+    -fx-font-weight: 500;
+}
+.active-chip-close {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 1 4 1 0;
+    -fx-background-radius: 20;
+    -fx-cursor: hand;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+}
+.active-chip-close .ikonli-font-icon {
+    -fx-icon-color: #9CA3AF;
+    -fx-icon-size: 10;
+}
+.active-chip-close:hover { -fx-background-color: #FEE2E2; }
+.active-chip-close:hover .ikonli-font-icon { -fx-icon-color: #DC2626; }

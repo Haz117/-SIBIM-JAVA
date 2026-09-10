@@ -109,6 +109,10 @@ public class ProductoService {
         return productoRepo.findVencidosProximos(dias);
     }
 
+    public List<Producto> getProximasRevisiones(int dias) throws SQLException {
+        return productoRepo.findProximasRevisiones(dias);
+    }
+
     public Producto save(Producto p) throws SQLException, ValidationException {
         validate(p);
         boolean isNew = p.getId() == null;

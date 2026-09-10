@@ -7,6 +7,7 @@ import com.sibim.controller.dialogs.ImportacionBienesDialog;
 import com.sibim.controller.dialogs.MovimientoTimelineDialog;
 import com.sibim.controller.dialogs.ProductoBajasDialog;
 import com.sibim.controller.dialogs.ProductoDetailDialog;
+import com.sibim.controller.dialogs.ComparacionBienesDialog;
 import com.sibim.controller.dialogs.ProductoDialogFactory;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
@@ -108,6 +109,7 @@ public class ProductosController {
     @FXML private Button btnPrev;
     @FXML private Button btnNext;
     @FXML private FlowPane filterBar;
+    @FXML private FlowPane activeChipsBar;
     @FXML private FlowPane presetsBar;
     @FXML private HBox presetsHeader;
     @FXML private Button btnGuardarPreset;
@@ -117,6 +119,7 @@ public class ProductosController {
     @FXML private Button btnBulkArea;
     @FXML private Button btnBulkResguardante;
     @FXML private Button btnBulkMarcarEtiquetado;
+    @FXML private Button btnComparar;
     @FXML private Button btnMovimiento;
     @FXML private Button btnQr;
     @FXML private Button btnEditar;
@@ -705,6 +708,62 @@ public class ProductosController {
             emptyStateHint.setVisible(!hasFilters && canEdit);
             emptyStateHint.setManaged(!hasFilters && canEdit);
         }
+        refreshChips(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
+    }
+
+    /** Builds one closeable chip per active filter in the activeChipsBar FlowPane. */
+    private void refreshChips(String busqueda, String catId, String area,
+            String resguardante, EstadoProducto estado,
+            java.time.LocalDate desdeReg, java.time.LocalDate hastaReg) {
+        if (activeChipsBar == null) return;
+        activeChipsBar.getChildren().clear();
+        java.util.List<javafx.scene.Node> chips = new java.util.ArrayList<>();
+
+        if (!busqueda.isBlank())
+            chips.add(buildChip("Búsqueda: " + busqueda, () -> { searchField.clear(); applyFilters(); }));
+        if (catId != null && categoriaFilter.getValue() != null)
+            chips.add(buildChip("Categoría: " + categoriaFilter.getValue().getNombre(),
+                () -> { categoriaFilter.setValue(null); applyFilters(); }));
+        if (area != null)
+            chips.add(buildChip("Área: " + area, () -> { areaFilter.setValue(null); applyFilters(); }));
+        if (resguardante != null)
+            chips.add(buildChip("Resguardante: " + resguardante, () -> { resguardanteFilter.setValue(null); applyFilters(); }));
+        if (estado != null)
+            chips.add(buildChip("Estado: " + estado.getEtiqueta(), () -> {
+                if (estadoChipGroup != null)
+                    estadoChipGroup.getToggles().stream()
+                        .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
+                        .findFirst().ifPresent(t -> t.setSelected(true));
+                applyFilters();
+            }));
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy");
+        if (desdeReg != null)
+            chips.add(buildChip("Desde: " + desdeReg.format(fmt),
+                () -> { if (desdeRegFilter != null) desdeRegFilter.setValue(null); applyFilters(); }));
+        if (hastaReg != null)
+            chips.add(buildChip("Hasta: " + hastaReg.format(fmt),
+                () -> { if (hastaRegFilter != null) hastaRegFilter.setValue(null); applyFilters(); }));
+        if (filterSinEtiquetar)
+            chips.add(buildChip("Sin etiquetar", this::onCardSinEtiquetar));
+
+        activeChipsBar.getChildren().addAll(chips);
+        boolean show = !chips.isEmpty();
+        activeChipsBar.setVisible(show);
+        activeChipsBar.setManaged(show);
+    }
+
+    private javafx.scene.Node buildChip(String label, Runnable onRemove) {
+        Label lbl = new Label(label);
+        lbl.getStyleClass().add("active-chip-label");
+        Button close = new Button();
+        close.setGraphic(new FontIcon("mdi2c-close"));
+        close.getStyleClass().add("active-chip-close");
+        close.setOnAction(e -> onRemove.run());
+        close.setTooltip(new Tooltip("Quitar este filtro"));
+        HBox chip = new HBox(4, lbl, close);
+        chip.getStyleClass().add("active-chip");
+        chip.setAlignment(Pos.CENTER_LEFT);
+        return chip;
     }
 
     private static EstadoProducto parseEstado(String etiqueta) {
@@ -963,6 +1022,7 @@ public class ProductosController {
         if (btnBulkArea           != null) { btnBulkArea.setVisible(canEdit);           btnBulkArea.setManaged(canEdit); }
         if (btnBulkResguardante   != null) { btnBulkResguardante.setVisible(canEdit);   btnBulkResguardante.setManaged(canEdit); }
         if (btnBulkMarcarEtiquetado != null) { btnBulkMarcarEtiquetado.setVisible(canEdit); btnBulkMarcarEtiquetado.setManaged(canEdit); }
+        if (btnComparar != null) { btnComparar.setVisible(n == 2); btnComparar.setManaged(n == 2); }
         if (show == bulkBarVisible) return;
         bulkBarVisible = show;
         if (show) {
@@ -1072,6 +1132,16 @@ public class ProductosController {
         }
         currentPage = 0;
         applyFilters();
+    }
+
+    @FXML
+    private void onComparar() {
+        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.size() != 2) {
+            NotificacionUtil.advertencia(table.getScene(), "Selecciona exactamente 2 bienes para comparar");
+            return;
+        }
+        ComparacionBienesDialog.show(sel.get(0), sel.get(1), table.getScene());
     }
 
     @FXML

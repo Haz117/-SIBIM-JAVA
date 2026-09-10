@@ -69,6 +69,15 @@ public class AlertasController {
     @FXML private VBox  sectionAgotados;
     @FXML private VBox  sectionBajoStock;
     @FXML private VBox  sectionGarantias;
+    @FXML private VBox  sectionMantenimiento;
+
+    @FXML private TableView<Producto>           tableMantenimiento;
+    @FXML private TableColumn<Producto, String> colMantNombre;
+    @FXML private TableColumn<Producto, String> colMantCodigo;
+    @FXML private TableColumn<Producto, String> colMantArea;
+    @FXML private TableColumn<Producto, String> colMantFecha;
+    @FXML private TableColumn<Producto, String> colMantNotas;
+    @FXML private Label lblMantenimientoCount;
     @FXML private Label helpAgotados;
     @FXML private Label helpBajoStock;
     @FXML private Label helpGarantias;
@@ -92,9 +101,10 @@ public class AlertasController {
     private final MovimientoService movimientoService = new MovimientoService();
     private final ReporteService reporteService = new ReporteService();
 
-    private List<Producto> allAgotados  = List.of();
-    private List<Producto> allBajoStock = List.of();
-    private List<Producto> allGarantias = List.of();
+    private List<Producto> allAgotados      = List.of();
+    private List<Producto> allBajoStock     = List.of();
+    private List<Producto> allGarantias     = List.of();
+    private List<Producto> allMantenimiento = List.of();
     private Timeline autoRefresh;
 
     @FXML
@@ -106,10 +116,16 @@ public class AlertasController {
         tableAgotados.setPlaceholder(alertaOkNode("Sin bienes agotados"));
         tableBajoStock.setPlaceholder(alertaOkNode("Sin bienes con bajo stock"));
         tableGarantias.setPlaceholder(alertaOkNode("Sin garantías próximas a vencer"));
+        if (tableMantenimiento != null) {
+            tableMantenimiento.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+            tableMantenimiento.setPlaceholder(alertaOkNode("Sin revisiones en los próximos 30 días"));
+        }
         loadData();
-        AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(statCardAgotados, statCardBajoStockSum, statCardGarantiasSum,
-                               sectionAgotados, sectionBajoStock, sectionGarantias), 250, 60);
+        java.util.List<javafx.scene.Node> fadeNodes = new java.util.ArrayList<>(java.util.List.of(
+            statCardAgotados, statCardBajoStockSum, statCardGarantiasSum,
+            sectionAgotados, sectionBajoStock, sectionGarantias));
+        if (sectionMantenimiento != null) fadeNodes.add(sectionMantenimiento);
+        AnimationUtils.staggeredFadeInUp(fadeNodes, 250, 60);
         javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
         if (rootPane != null) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
@@ -299,6 +315,14 @@ public class AlertasController {
             }
         });
 
+        if (colMantNombre != null) colMantNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
+        if (colMantCodigo != null) colMantCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
+        if (colMantArea   != null) colMantArea.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getArea() != null ? c.getValue().getArea() : ""));
+        if (colMantFecha  != null) colMantFecha.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getProximaRevision() != null ? com.sibim.util.FormatUtils.formatDate(c.getValue().getProximaRevision()) : "—"));
+        if (colMantNotas  != null) colMantNotas.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getNotasMantenimiento() != null ? c.getValue().getNotasMantenimiento() : ""));
+
         colGaNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colGaCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
         colGaFecha.setCellValueFactory(c ->
@@ -330,7 +354,7 @@ public class AlertasController {
         });
     }
 
-    private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias) {}
+    private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias, List<Producto> mantenimiento) {}
 
     private void loadData() { loadData(false); }
 
@@ -340,12 +364,23 @@ public class AlertasController {
             () -> new AlertasData(
                 productoService.getAgotados(),
                 productoService.getBajoStock(),
-                productoService.getVencidosProximos(30)),
+                productoService.getVencidosProximos(30),
+                productoService.getProximasRevisiones(30)),
             data -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                allAgotados  = data.agotados();
-                allBajoStock = data.bajoStock();
-                allGarantias = data.garantias();
+                allAgotados       = data.agotados();
+                allBajoStock      = data.bajoStock();
+                allGarantias      = data.garantias();
+                allMantenimiento  = data.mantenimiento();
+                if (tableMantenimiento != null) {
+                    tableMantenimiento.getItems().setAll(allMantenimiento);
+                    if (lblMantenimientoCount != null)
+                        lblMantenimientoCount.setText(allMantenimiento.size() + " bienes");
+                    if (sectionMantenimiento != null) {
+                        sectionMantenimiento.setVisible(!allMantenimiento.isEmpty());
+                        sectionMantenimiento.setManaged(!allMantenimiento.isEmpty());
+                    }
+                }
                 final List<Producto> _ag = data.agotados(), _bs = data.bajoStock(), _ga = data.garantias();
                 AppExecutor.submit(() -> new EmailService().enviarAlertas(_ag, _bs, _ga));
                 if (!allAgotados.isEmpty())

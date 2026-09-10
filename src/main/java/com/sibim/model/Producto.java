@@ -195,6 +195,16 @@ public class Producto {
     public List<String> getFotosUrls() { return fotosUrls; }
     public void setFotosUrls(List<String> fotosUrls) { this.fotosUrls = fotosUrls != null ? fotosUrls : new java.util.ArrayList<>(); }
 
+    // ── Mantenimiento ─────────────────────────────────────────────────
+    private LocalDate proximaRevision;
+    private String notasMantenimiento;
+
+    public LocalDate getProximaRevision() { return proximaRevision; }
+    public void setProximaRevision(LocalDate proximaRevision) { this.proximaRevision = proximaRevision; }
+
+    public String getNotasMantenimiento() { return notasMantenimiento; }
+    public void setNotasMantenimiento(String notasMantenimiento) { this.notasMantenimiento = notasMantenimiento; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

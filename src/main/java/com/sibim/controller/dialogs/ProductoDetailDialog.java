@@ -176,6 +176,10 @@ public final class ProductoDetailDialog {
         rowList.add(new Row("Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null));
         rowList.add(new Row("Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null));
         rowList.add(new Row("Vencimiento",     p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "—", null));
+        if (p.getProximaRevision() != null)
+            rowList.add(new Row("Próxima revisión", FormatUtils.formatDate(p.getProximaRevision()), null));
+        if (p.getNotasMantenimiento() != null && !p.getNotasMantenimiento().isBlank())
+            rowList.add(new Row("Notas mantenimiento", p.getNotasMantenimiento(), null));
         for (int i = 0; i < rowList.size(); i++) {
             Row row = rowList.get(i);
             Label key = DialogUtil.fieldLabel(row.key());
@@ -205,18 +209,21 @@ public final class ProductoDetailDialog {
         // ── Galería de fotos (solo si hay más de una) ─────────────────
         VBox gallerySection = null;
         if (_fotosGaleria.size() >= 2) {
+            final List<String> galFotos = List.copyOf(_fotosGaleria);
             Label galleryTitle = DialogUtil.fieldLabel("Galería de fotos (" + _fotosGaleria.size() + ")");
             HBox thumbnails = new HBox(8);
             thumbnails.setPadding(new Insets(4, 0, 4, 0));
-            for (String fotoPath : _fotosGaleria) {
+            for (int fi = 0; fi < _fotosGaleria.size(); fi++) {
+                final int idx = fi;
+                String fotoPath = _fotosGaleria.get(fi);
                 try {
                     ImageView iv = new ImageView(
                         new Image(Path.of(fotoPath).toUri().toString(), 90, 70, true, true, true));
                     iv.setFitWidth(90); iv.setFitHeight(70); iv.setPreserveRatio(true);
+                    iv.getStyleClass().add("foto-thumbnail-clickable");
+                    iv.setOnMouseClicked(e -> openLightbox(galFotos, idx));
                     StackPane cell = new StackPane(iv);
-                    cell.getStyleClass().addAll("dlg-img-box", "foto-cell-box-clickable");
-                    final String fp = fotoPath;
-                    cell.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(fp, p.getNombre()));
+                    cell.getStyleClass().add("dlg-img-box");
                     thumbnails.getChildren().add(cell);
                 } catch (Exception ex) { log.warn("No se pudo cargar foto de galería: {}", fotoPath, ex); }
             }
@@ -463,5 +470,62 @@ public final class ProductoDetailDialog {
         cc.setPrefWidth(width);
         if (grow) cc.setHgrow(Priority.ALWAYS);
         return cc;
+    }
+
+    private static void openLightbox(List<String> fotos, int startIndex) {
+        int[] idx = { startIndex };
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dlg.getDialogPane().setPrefWidth(700);
+        dlg.getDialogPane().setPrefHeight(560);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        ImageView bigImg = new ImageView();
+        bigImg.setFitWidth(620);
+        bigImg.setFitHeight(440);
+        bigImg.setPreserveRatio(true);
+        bigImg.getStyleClass().add("lightbox-image");
+
+        Label counter = new Label();
+        counter.getStyleClass().add("lightbox-counter");
+
+        Runnable refresh = () -> {
+            String path = fotos.get(idx[0]);
+            try {
+                bigImg.setImage(new Image(new java.io.FileInputStream(path), 620, 440, true, true));
+            } catch (Exception ex) {
+                bigImg.setImage(null);
+            }
+            counter.setText((idx[0] + 1) + " / " + fotos.size());
+        };
+
+        Button btnPrev = new Button();
+        btnPrev.setGraphic(new FontIcon("mdi2c-chevron-left"));
+        btnPrev.getStyleClass().addAll("btn-secondary", "lightbox-nav");
+        btnPrev.setDisable(fotos.size() <= 1);
+        btnPrev.setOnAction(e -> { idx[0] = (idx[0] - 1 + fotos.size()) % fotos.size(); refresh.run(); });
+
+        Button btnNext = new Button();
+        btnNext.setGraphic(new FontIcon("mdi2c-chevron-right"));
+        btnNext.getStyleClass().addAll("btn-secondary", "lightbox-nav");
+        btnNext.setDisable(fotos.size() <= 1);
+        btnNext.setOnAction(e -> { idx[0] = (idx[0] + 1) % fotos.size(); refresh.run(); });
+
+        BorderPane navRow = new BorderPane();
+        navRow.setLeft(btnPrev);
+        navRow.setCenter(counter);
+        navRow.setRight(btnNext);
+        navRow.getStyleClass().add("lightbox-nav-bar");
+
+        VBox lightboxContent = new VBox(12, bigImg, navRow);
+        lightboxContent.getStyleClass().add("lightbox-content");
+        lightboxContent.setAlignment(Pos.CENTER);
+        lightboxContent.setPadding(new Insets(16));
+
+        dlg.getDialogPane().setContent(lightboxContent);
+        refresh.run();
+        dlg.showAndWait();
     }
 }

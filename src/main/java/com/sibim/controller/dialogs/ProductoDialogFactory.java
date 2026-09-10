@@ -555,7 +555,25 @@ public final class ProductoDialogFactory {
                                                                   0, rp); gridPatrimonio.add(fVidaUtil,      1, rp++);
         gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Valor residual",
             "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
-                                                                  0, rp); gridPatrimonio.add(fValorResidual, 1, rp);
+                                                                  0, rp); gridPatrimonio.add(fValorResidual, 1, rp++);
+        // ── Mantenimiento ──
+        gridPatrimonio.add(new Separator(), 0, rp, 2, 1); rp++;
+        Label lblMantSection = new Label("Mantenimiento");
+        lblMantSection.getStyleClass().add("dialog-field-label");
+        gridPatrimonio.add(lblMantSection, 0, rp, 2, 1); rp++;
+        javafx.scene.control.DatePicker fProximaRevision = new javafx.scene.control.DatePicker(
+            existing != null ? existing.getProximaRevision() : null);
+        fProximaRevision.setPromptText("dd/MM/yyyy");
+        fProximaRevision.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Próxima revisión",
+            "Fecha programada para la próxima revisión o mantenimiento preventivo del bien."),
+            0, rp); gridPatrimonio.add(fProximaRevision, 1, rp++);
+        TextArea fNotasMant = new TextArea(existing != null && existing.getNotasMantenimiento() != null ? existing.getNotasMantenimiento() : "");
+        fNotasMant.setPromptText("Notas sobre el mantenimiento, historial, etc.");
+        fNotasMant.setWrapText(true);
+        fNotasMant.setPrefRowCount(3);
+        fNotasMant.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabel("Notas de mantenimiento"), 0, rp); gridPatrimonio.add(fNotasMant, 1, rp);
 
         // ── TabPane ──
         TabPane tabs = new TabPane();
@@ -687,6 +705,8 @@ public final class ProductoDialogFactory {
         fVidaUtil.valueProperty().addListener((o, a, b) -> markDirty.run());
         fValorResidual.textProperty().addListener((o, a, b) -> markDirty.run());
         fEtiquetado.selectedProperty().addListener((o, a, b) -> markDirty.run());
+        fProximaRevision.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fNotasMant.textProperty().addListener((o, a, b) -> markDirty.run());
 
         javafx.scene.Node cancelBtn = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         if (cancelBtn != null) {
@@ -805,6 +825,9 @@ public final class ProductoDialogFactory {
             }
             p.setArea(fArea.getValue());
             p.setEtiquetado(fEtiquetado.isSelected());
+            p.setProximaRevision(fProximaRevision.getValue());
+            String notasMantTxt = fNotasMant.getText().trim();
+            p.setNotasMantenimiento(notasMantTxt.isEmpty() ? null : notasMantTxt);
             dirty[0] = false; // clear so setOnCloseRequest doesn't prompt after a successful save
             // Procesar y guardar fotos
             List<String> savedFotos = new java.util.ArrayList<>();

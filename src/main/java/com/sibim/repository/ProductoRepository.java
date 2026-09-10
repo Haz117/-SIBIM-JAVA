@@ -381,8 +381,9 @@ public class ProductoRepository {
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
                 fecha_adquisicion, vida_util_anios, valor_residual, etiquetado,
+                proxima_revision, notas_mantenimiento,
                 created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -408,6 +409,8 @@ public class ProductoRepository {
                 vida_util_anios = EXCLUDED.vida_util_anios,
                 valor_residual = EXCLUDED.valor_residual,
                 etiquetado = EXCLUDED.etiquetado,
+                proxima_revision = EXCLUDED.proxima_revision,
+                notas_mantenimiento = EXCLUDED.notas_mantenimiento,
                 updated_at = NOW()
             """;
         try (Connection conn = DatabaseConfig.getConnection();
@@ -438,8 +441,10 @@ public class ProductoRepository {
             ps.setObject(23, p.getVidaUtilAnios());
             ps.setBigDecimal(24, p.getValorResidual() != null ? p.getValorResidual() : BigDecimal.ZERO);
             ps.setBoolean(25, p.isEtiquetado());
-            ps.setTimestamp(26, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(27, Timestamp.valueOf(now));
+            ps.setObject(26, p.getProximaRevision());
+            ps.setString(27, p.getNotasMantenimiento());
+            ps.setTimestamp(28, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
+            ps.setTimestamp(29, Timestamp.valueOf(now));
             ps.executeUpdate();
         }
         return p;
@@ -918,6 +923,13 @@ public class ProductoRepository {
         if (fb != null) p.setFechaBaja(fb.toLocalDate());
         p.setMotivoBaja(rs.getString("motivo_baja"));
         p.setEtiquetado(rs.getBoolean("etiquetado"));
+        try {
+            java.sql.Date pr = rs.getDate("proxima_revision");
+            if (pr != null) p.setProximaRevision(pr.toLocalDate());
+            p.setNotasMantenimiento(rs.getString("notas_mantenimiento"));
+        } catch (SQLException ignored) {
+            // Column may not exist yet (migration not run) — ignore gracefully
+        }
         return p;
     }
 
@@ -974,5 +986,25 @@ public class ProductoRepository {
             }
             ins.executeBatch();
         }
+    }
+
+    /** Returns products whose proxima_revision falls within the next {@code diasAnticipacion} days. */
+    public List<Producto> findProximasRevisiones(int diasAnticipacion) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null || DatabaseConfig.isDemoMode())
+            return new java.util.ArrayList<>();
+        String sql = BASE_SELECT
+            + " WHERE p.fecha_baja IS NULL"
+            + "   AND p.proxima_revision IS NOT NULL"
+            + "   AND p.proxima_revision BETWEEN CURRENT_DATE AND CURRENT_DATE + ?::interval"
+            + " ORDER BY p.proxima_revision";
+        List<Producto> result = new java.util.ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, diasAnticipacion + " days");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(mapRow(rs));
+            }
+        }
+        return result;
     }
 }

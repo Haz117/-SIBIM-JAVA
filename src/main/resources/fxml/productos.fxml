@@ -191,6 +191,10 @@
         </Button>
     </FlowPane>
 
+    <!-- ══ ACTIVE FILTER CHIPS ══════════════════════════════════════ -->
+    <FlowPane fx:id="activeChipsBar" hgap="6" vgap="4" alignment="CENTER_LEFT"
+              styleClass="active-chips-bar" visible="false" managed="false"/>
+
     <!-- ══ PRESET BAR ══════════════════════════════════════════════ -->
     <HBox fx:id="presetsHeader" alignment="CENTER_LEFT" spacing="8"
           visible="false" managed="false">
@@ -265,6 +269,12 @@
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Marcar los bienes seleccionados como etiquetados físicamente"/></tooltip>
+        </Button>
+        <Button fx:id="btnComparar" text="Comparar" onAction="#onComparar"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6"
+                visible="false" managed="false">
+            <graphic><FontIcon iconLiteral="mdi2b-book-compare" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Comparar los dos bienes seleccionados campo a campo — selecciona exactamente 2"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
         <Button text="Deseleccionar" onAction="#onDeseleccionar" styleClass="btn-secondary"

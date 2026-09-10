@@ -11,6 +11,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -79,6 +82,17 @@ public class ImportacionBienesDialog {
         VBox instructions = new VBox(8, step1, step2, step3);
         instructions.setPadding(new Insets(14, 18, 14, 18));
         instructions.getStyleClass().add("import-instructions-card");
+
+        // ── Drop zone ─────────────────────────────────────────────────
+        FontIcon dropIcon = new FontIcon("mdi2f-file-upload-outline");
+        dropIcon.setIconSize(28);
+        dropIcon.getStyleClass().add("empty-state-icon");
+        Label dropLabel = new Label("Arrastra tu archivo aquí (.csv o .xlsx)");
+        dropLabel.getStyleClass().add("muted");
+        VBox dropZone = new VBox(8, dropIcon, dropLabel);
+        dropZone.getStyleClass().add("drop-zone");
+        dropZone.setAlignment(Pos.CENTER);
+        dropZone.setPadding(new Insets(0, 18, 0, 18));
 
         // ── File picker row ───────────────────────────────────────────
         Button btnSeleccionar = new Button("Seleccionar archivo CSV o Excel…");
@@ -187,12 +201,73 @@ public class ImportacionBienesDialog {
         preview.getColumns().addAll(colNum, colStatus, colNombre, colCat, colArea, colCant, colSerie, colError);
         preview.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
-        VBox content = new VBox(12, header, instructions, new Separator(), fileRow, lblResumen, preview);
+        VBox content = new VBox(12, header, instructions, new Separator(), dropZone, fileRow, lblResumen, preview);
         content.setPadding(new Insets(0, 0, 12, 0));
         dialog.getDialogPane().setContent(content);
 
         // Mutable state shared between closures
         AtomicReference<List<ParsedRow>> parsedRows = new AtomicReference<>(List.of());
+
+        // ── Drag & drop on drop zone ──────────────────────────────────
+        dropZone.setOnDragOver(e -> {
+            Dragboard db = e.getDragboard();
+            if (db.hasFiles() && !db.getFiles().isEmpty()) {
+                String name = db.getFiles().get(0).getName().toLowerCase();
+                if (name.endsWith(".csv") || name.endsWith(".xlsx")) {
+                    e.acceptTransferModes(TransferMode.COPY);
+                    dropZone.getStyleClass().add("drop-zone-active");
+                }
+            }
+            e.consume();
+        });
+        dropZone.setOnDragExited(e -> {
+            dropZone.getStyleClass().remove("drop-zone-active");
+            e.consume();
+        });
+        dropZone.setOnDragDropped(e -> {
+            Dragboard db = e.getDragboard();
+            boolean success = false;
+            if (db.hasFiles() && !db.getFiles().isEmpty()) {
+                java.io.File droppedFile = db.getFiles().get(0);
+                dropZone.getStyleClass().remove("drop-zone-active");
+                lblArchivo.setText("Procesando " + droppedFile.getName() + "…");
+                preview.setVisible(false); preview.setManaged(false);
+                lblResumen.setVisible(false); lblResumen.setManaged(false);
+                btnImportar.setDisable(true);
+                List<ParsedRow> rows;
+                try {
+                    rows = parseFile(droppedFile, categorias);
+                } catch (Exception ex) {
+                    lblArchivo.setText("Error al leer el archivo: " + ex.getMessage());
+                    lblArchivo.getStyleClass().add("field-hint-error");
+                    e.setDropCompleted(false); e.consume(); return;
+                }
+                parsedRows.set(rows);
+                long validas = rows.stream().filter(r -> "ok".equals(r.status())).count();
+                long errores = rows.size() - validas;
+                lblArchivo.getStyleClass().remove("field-hint-error");
+                lblArchivo.setText(droppedFile.getName() + "  ·  " + rows.size() + " fila(s) leídas");
+                if (validas > 0) {
+                    lblResumen.setText("✓  " + validas + " fila(s) listas para importar"
+                        + (errores > 0 ? "  ·  ⚠  " + errores + " con error(es) (se omitirán)" : ""));
+                    lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
+                    lblResumen.getStyleClass().add(errores > 0 ? "import-summary-warn" : "import-summary-ok");
+                } else {
+                    lblResumen.setText("⚠  Ninguna fila es válida. Corrige los errores e intenta de nuevo.");
+                    lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
+                    lblResumen.getStyleClass().add("import-summary-warn");
+                }
+                lblResumen.setVisible(true); lblResumen.setManaged(true);
+                preview.setItems(javafx.collections.FXCollections.observableArrayList(rows));
+                preview.setVisible(true); preview.setManaged(true);
+                AnimationUtils.fadeInUp(preview, 240, 0);
+                btnImportar.setDisable(validas == 0);
+                btnImportar.setText("Importar " + validas + " registro(s)");
+                success = true;
+            }
+            e.setDropCompleted(success);
+            e.consume();
+        });
 
         // ── Template download ─────────────────────────────────────────
         btnPlantilla.setOnAction(e -> {
