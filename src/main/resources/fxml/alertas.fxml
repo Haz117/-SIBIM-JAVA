@@ -236,7 +236,7 @@
     <VBox fx:id="sectionMantenimiento" styleClass="alert-section alert-info" spacing="0">
         <HBox alignment="CENTER_LEFT" spacing="10" styleClass="alert-section-header alert-header-blue">
             <padding><Insets top="12" right="16" bottom="12" left="16"/></padding>
-            <FontIcon iconLiteral="mdi2w-wrench-clock" iconSize="18" styleClass="alert-section-icon"/>
+            <FontIcon iconLiteral="mdi2w-wrench-outline" iconSize="18" styleClass="alert-section-icon"/>
             <Label text="Mantenimiento Próximo" styleClass="alert-section-title"/>
             <Label fx:id="lblMantenimientoCount" text="0 bienes" styleClass="alert-count-badge"/>
             <Region HBox.hgrow="ALWAYS"/>

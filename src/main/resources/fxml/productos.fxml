@@ -273,7 +273,7 @@
         <Button fx:id="btnComparar" text="Comparar" onAction="#onComparar"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6"
                 visible="false" managed="false">
-            <graphic><FontIcon iconLiteral="mdi2b-book-compare" styleClass="btn-icon"/></graphic>
+            <graphic><FontIcon iconLiteral="mdi2c-compare" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Comparar los dos bienes seleccionados campo a campo — selecciona exactamente 2"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
