@@ -31,7 +31,7 @@ public final class ComparacionBienesDialog {
         dlg.getDialogPane().setPrefHeight(620);
 
         HBox header = DialogUtil.gradientHeader(
-            "mdi2b-book-compare", "Comparación de Bienes",
+            "mdi2c-compare", "Comparación de Bienes",
             a.getNombre() + "  vs  " + b.getNombre(),
             "#6366F1", "#4338CA");
 

@@ -46,7 +46,7 @@ public final class HistorialConteosDialog {
         dialog.getDialogPane().setPrefWidth(680);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-text-clock-outline",
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
             "Historial de Conteos Físicos",
             "Registro de todos los levantamientos de inventario realizados",
             "#0891B2", "#0E7490");

@@ -520,7 +520,7 @@ public class AlertasController {
         scroll.getStyleClass().add("edge-to-edge");
 
         HBox header = DialogUtil.gradientHeader(
-            "mdi2p-package-up",
+            "mdi2p-package-variant",
             "Reponer todos los bienes agotados",
             allAgotados.size() + " bienes · ingresa la cantidad de entrada para cada uno",
             "#4338CA", "#6366F1");

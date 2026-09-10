@@ -77,7 +77,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Movimientos ──────────────────────────────────────────────────────
-            new Step("mdi2s-swap-vertical-bold", "#7C3AED", "#5B21B6",
+            new Step("mdi2s-swap-vertical", "#7C3AED", "#5B21B6",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
                 "Registra Entrada para equipo nuevo y Salida para bajas oficiales",
                 "Las transferencias entre áreas quedan pendientes hasta que el admin las aprueba",
@@ -93,7 +93,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Alertas ──────────────────────────────────────────────────────────
-            new Step("mdi2b-bell-ring-outline", "#DC2626", "#991B1B",
+            new Step("mdi2b-bell-outline", "#DC2626", "#991B1B",
                 "Alertas", "Ctrl + 6", "alertas", new String[]{
                 "Se generan automáticamente — solo necesitas revisarlas y resolverlas",
                 "El badge rojo en el sidebar muestra cuántas hay activas sin atender",

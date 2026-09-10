@@ -304,7 +304,7 @@ public final class ConteoFisicoDialog {
         HBox.setHgrow(searchField, Priority.ALWAYS);
         CheckBox soloDiferencias = new CheckBox("Solo incidencias");
         Button btnHistorial = new Button("Historial");
-        btnHistorial.setGraphic(new FontIcon("mdi2c-clipboard-text-clock-outline"));
+        btnHistorial.setGraphic(new FontIcon("mdi2c-clipboard-list-outline"));
         btnHistorial.setContentDisplay(ContentDisplay.LEFT);
         btnHistorial.getStyleClass().add("btn-secondary");
         btnHistorial.setOnAction(e -> {
