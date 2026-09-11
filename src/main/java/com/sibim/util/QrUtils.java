@@ -36,6 +36,25 @@ public final class QrUtils {
         }
     }
 
+    /** Returns QR code as PNG bytes suitable for embedding in iText PDFs. */
+    public static byte[] toPngBytes(String content, int size) {
+        try {
+            BitMatrix matrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size,
+                Map.of(EncodeHintType.MARGIN, 1));
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
+                size, size, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++)
+                    img.setRGB(x, y, matrix.get(x, y) ? 0x000000 : 0xFFFFFF);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(img, "PNG", baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Error generando QR PNG bytes para content='{}'", content, e);
+            return null;
+        }
+    }
+
     /** Saves a QR Image (transparent = white background) as a white-background PNG.
      *  TYPE_INT_RGB has no alpha channel, so transparent pixels must be mapped
      *  explicitly to white — otherwise they become black (RGB 0,0,0). */

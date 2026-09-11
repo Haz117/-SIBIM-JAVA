@@ -7,6 +7,7 @@ import com.sibim.db.offline.SyncService;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.service.MovimientoService;
+import com.sibim.service.PrestamoService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
@@ -81,6 +82,7 @@ public class MainController {
     @FXML private Button btnConfiguracion;
     @FXML private Button btnAuditoria;
     @FXML private Label alertBadge;
+    @FXML private Label loanBadge;
     @FXML private javafx.scene.layout.HBox offlineBanner;
     @FXML private Label offlineBannerLabel;
     @FXML private javafx.scene.control.Button offlineBannerSyncBtn;
@@ -106,7 +108,8 @@ public class MainController {
     private Timeline clock;
     private Timeline sessionGuard;
     private final ProductoService alertProductoService = new ProductoService();
-            private final AuditLogRepository auditRepo = new AuditLogRepository();
+    private final PrestamoService prestamoService = new PrestamoService();
+    private final AuditLogRepository auditRepo = new AuditLogRepository();
 
     // Session inactivity timeout — 30 minutes
     private static final long INACTIVITY_TIMEOUT_MS = 30 * 60_000L;
@@ -191,13 +194,18 @@ public class MainController {
                     // Delay badge 800 ms so dashboard queries finish first
                     javafx.animation.PauseTransition badgeDelay =
                         new javafx.animation.PauseTransition(Duration.millis(800));
-                    badgeDelay.setOnFinished(e -> loadAlertBadge());
+                    badgeDelay.setOnFinished(e -> { loadAlertBadge(); loadLoanBadge(); });
                     badgeDelay.play();
                     // Vencidos check: 1.5 s (informational toast, not blocking)
                     javafx.animation.PauseTransition vencidosDelay =
                         new javafx.animation.PauseTransition(Duration.millis(1500));
                     vencidosDelay.setOnFinished(e -> checkVencidosOnStart(scene));
                     vencidosDelay.play();
+                    // Préstamos check: 2 s (vencidos + próximos a vencer)
+                    javafx.animation.PauseTransition prestamosDelay =
+                        new javafx.animation.PauseTransition(Duration.millis(2000));
+                    prestamosDelay.setOnFinished(e -> checkPrestamosOnStart(scene));
+                    prestamosDelay.play();
                     // Update check: 3 s (network request, lowest priority)
                     javafx.animation.PauseTransition updateDelay =
                         new javafx.animation.PauseTransition(Duration.millis(3000));
@@ -214,7 +222,7 @@ public class MainController {
 
         // Refresh badge every 3 minutes; also nudges the status bar so the
         // offline-mode pending-sync count doesn't go stale between syncs.
-        badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> { loadAlertBadge(); updateStatusBar(); }));
+        badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> { loadAlertBadge(); loadLoanBadge(); updateStatusBar(); }));
         badgeRefresh.setCycleCount(Timeline.INDEFINITE);
         badgeRefresh.play();
 
@@ -1049,6 +1057,54 @@ public class MainController {
 
         dlg.getDialogPane().setContent(content);
         dlg.showAndWait();
+    }
+
+    private void loadLoanBadge() {
+        DialogUtil.runAsync(
+            () -> prestamoService.countVencidos(),
+            count -> {
+                if (loanBadge == null) return;
+                if (count > 0) {
+                    loanBadge.setText(count > 99 ? "99+" : String.valueOf(count));
+                    boolean wasHidden = !loanBadge.isVisible();
+                    loanBadge.setVisible(true);
+                    loanBadge.setManaged(true);
+                    if (wasHidden) {
+                        ScaleTransition pop = new ScaleTransition(Duration.millis(320), loanBadge);
+                        pop.setFromX(0.3); pop.setFromY(0.3);
+                        pop.setToX(1.0);   pop.setToY(1.0);
+                        pop.setInterpolator(Interpolator.EASE_OUT);
+                        pop.play();
+                    } else {
+                        AnimationUtils.pulse(loanBadge, 2);
+                    }
+                } else {
+                    loanBadge.setVisible(false);
+                    loanBadge.setManaged(false);
+                }
+            },
+            e -> { /* badge is decorative */ }
+        );
+    }
+
+    private void checkPrestamosOnStart(javafx.scene.Scene scene) {
+        DialogUtil.runAsync(
+            () -> {
+                int vencidos = prestamoService.getVencidos().size();
+                int proximos = prestamoService.getProximosAVencer(3).size();
+                return new int[]{vencidos, proximos};
+            },
+            counts -> {
+                int vencidos = counts[0], proximos = counts[1];
+                if (vencidos > 0)
+                    NotificacionUtil.advertencia(scene,
+                        vencidos + " préstamo(s) vencido(s) — revisa la sección Préstamos");
+                else if (proximos > 0)
+                    NotificacionUtil.advertencia(scene,
+                        proximos + " préstamo(s) vencen en los próximos 3 días");
+            },
+            e -> log.debug("Startup préstamos check failed", e)
+        );
     }
 
     private void checkVencidosOnStart(javafx.scene.Scene scene) {

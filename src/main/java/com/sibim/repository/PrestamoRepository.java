@@ -103,6 +103,48 @@ public class PrestamoRepository {
         }
     }
 
+    public List<Prestamo> findVencidos() throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        List<Prestamo> list = new ArrayList<>();
+        String sql = "SELECT * FROM prestamos WHERE estado = 'VENCIDO' ORDER BY fecha_devolucion_prevista ASC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        }
+        return list;
+    }
+
+    public List<Prestamo> findProximosAVencer(int days) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        List<Prestamo> list = new ArrayList<>();
+        String sql = """
+            SELECT * FROM prestamos
+            WHERE estado = 'ACTIVO'
+              AND fecha_devolucion_prevista BETWEEN CURRENT_DATE AND CURRENT_DATE + ?
+            ORDER BY fecha_devolucion_prevista ASC
+            """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, days);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
+
+    public int countVencidos() throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return 0;
+        String sql = "SELECT COUNT(*) FROM prestamos WHERE estado = 'VENCIDO'";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            return rs.getInt(1);
+        }
+    }
+
     public String nextNumero() throws SQLException {
         int year = LocalDate.now().getYear();
         String sql = "SELECT COUNT(*) FROM prestamos WHERE numero LIKE 'PRS-" + year + "-%'";

@@ -100,6 +100,25 @@ public class ResguardoRepository {
         }
     }
 
+    public List<Resguardo> findByProductoId(String productoId) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        List<Resguardo> list = new ArrayList<>();
+        String sql = """
+            SELECT DISTINCT r.* FROM resguardos r
+            JOIN resguardo_items i ON i.resguardo_id = r.id
+            WHERE i.producto_id = ?
+            ORDER BY r.created_at DESC
+            """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
+
     public String nextNumero() throws SQLException {
         int year = LocalDate.now().getYear();
         String sql = "SELECT COUNT(*) FROM resguardos WHERE numero LIKE 'RSG-" + year + "-%'";
@@ -113,7 +132,7 @@ public class ResguardoRepository {
 
     private List<ResguardoItem> findItems(String resguardoId, Connection conn) throws SQLException {
         List<ResguardoItem> items = new ArrayList<>();
-        String sql = "SELECT * FROM resguardo_items WHERE resguardo_id = ? ORDER BY rowid";
+        String sql = "SELECT * FROM resguardo_items WHERE resguardo_id = ? ORDER BY id";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, resguardoId);
             try (ResultSet rs = ps.executeQuery()) {

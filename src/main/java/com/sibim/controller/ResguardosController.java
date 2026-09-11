@@ -166,8 +166,8 @@ public class ResguardosController {
     private void updateStats() {
         long total   = allData.size();
         long activos = allData.stream().filter(Resguardo::isActivo).count();
-        AnimationUtils.animateCount(lblStatTotal,   (long) total,   v -> String.valueOf(v));
-        AnimationUtils.animateCount(lblStatActivos, (long) activos, v -> String.valueOf(v));
+        AnimationUtils.animateCount(lblStatTotal,   (long) total,   700);
+        AnimationUtils.animateCount(lblStatActivos, (long) activos, 700);
     }
 
     @FXML

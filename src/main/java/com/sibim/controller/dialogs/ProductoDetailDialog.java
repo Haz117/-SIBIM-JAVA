@@ -44,6 +44,11 @@ public final class ProductoDetailDialog {
         catch (Exception ex) { log.warn("No se pudo cargar galería de fotos para '{}': {}", p.getCodigo(), ex.getMessage()); }
         final List<String> _fotosGaleria = fotosGaleria;
 
+        java.util.List<com.sibim.model.Resguardo> resguardoHistory = java.util.List.of();
+        try { resguardoHistory = new com.sibim.service.ResguardoService().getByProductoId(p.getId()); }
+        catch (Exception ex) { log.warn("No se pudo cargar historial de resguardos para '{}': {}", p.getCodigo(), ex.getMessage()); }
+        final java.util.List<com.sibim.model.Resguardo> _resguardos = resguardoHistory;
+
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Detalle del Bien");
@@ -406,6 +411,37 @@ public final class ProductoDetailDialog {
             priceTable.getColumns().addAll(colCampo, colAnt, colNuevo, colUsuario, colFecha);
             priceTable.getItems().setAll(priceHistory);
             root.getChildren().addAll(pricesTitle, priceTable);
+        }
+
+        // ── Historial de resguardos ────────────────────────────────────
+        if (!_resguardos.isEmpty()) {
+            Separator sepRsg = new Separator();
+            sepRsg.getStyleClass().add("form-separator");
+            root.getChildren().add(sepRsg);
+
+            Label rsgTitle = new Label("Resguardos (" + _resguardos.size() + ")");
+            rsgTitle.getStyleClass().add("dialog-field-label");
+
+            VBox rsgList = new VBox(4);
+            for (com.sibim.model.Resguardo rsg : _resguardos) {
+                String fecha = rsg.getCreadoEn() != null
+                    ? rsg.getCreadoEn().toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "—";
+                String estadoBadgeClass = com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(rsg.getEstado())
+                    ? "cell-badge-ok" : "cell-badge-muted";
+                Label lblFolio = new Label(rsg.getNumero() != null ? rsg.getNumero() : "—");
+                lblFolio.getStyleClass().add("dlg-detail-code");
+                Label lblFecha = new Label(fecha);
+                lblFecha.getStyleClass().add("muted-sm");
+                Label lblEstado = new Label(rsg.getEstado() != null ? rsg.getEstado() : "—");
+                lblEstado.getStyleClass().add(estadoBadgeClass);
+                javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                HBox row = new HBox(8, lblFolio, lblFecha, spacer, lblEstado);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.getStyleClass().add("mov-history-row");
+                rsgList.getChildren().add(row);
+            }
+            root.getChildren().addAll(rsgTitle, rsgList);
         }
 
         AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);

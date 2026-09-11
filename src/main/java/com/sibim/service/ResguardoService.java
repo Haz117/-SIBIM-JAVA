@@ -14,11 +14,14 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.layout.element.Image;
 import com.sibim.model.Resguardo;
 import com.sibim.model.ResguardoItem;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.ResguardoRepository;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.QrUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -59,6 +62,10 @@ public class ResguardoService {
     }
 
     public void cancelar(String id) throws SQLException { repo.cancelar(id); }
+
+    public java.util.List<Resguardo> getByProductoId(String productoId) throws java.sql.SQLException {
+        return repo.findByProductoId(productoId);
+    }
 
     public File exportarPdf(Resguardo resguardo) throws Exception {
         if (resguardo.getItems() == null || resguardo.getItems().isEmpty()) {
@@ -101,15 +108,38 @@ public class ResguardoService {
             headerTable.addCell(hCell);
             doc.add(headerTable);
 
-            // ── Número + Fecha ──
-            doc.add(new Paragraph()
-                .add(new com.itextpdf.layout.element.Text("Folio: ").setFont(bold))
-                .add(new com.itextpdf.layout.element.Text(r.getNumero()).setFont(regular))
-                .add(new com.itextpdf.layout.element.Text("     Fecha: ").setFont(bold))
-                .add(new com.itextpdf.layout.element.Text(
-                    r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate().format(FMT)
-                    : LocalDate.now().format(FMT)).setFont(regular))
-                .setFontSize(9).setFontColor(muted).setMarginTop(8).setMarginBottom(4));
+            // ── Número + Fecha + QR ──
+            Table folioQrRow = new Table(UnitValue.createPercentArray(new float[]{3, 1}))
+                .useAllAvailableWidth().setMarginTop(8).setMarginBottom(4);
+            com.itextpdf.layout.element.Cell folioCell = new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph()
+                    .add(new com.itextpdf.layout.element.Text("Folio: ").setFont(bold))
+                    .add(new com.itextpdf.layout.element.Text(r.getNumero()).setFont(regular))
+                    .setFontSize(9).setFontColor(muted))
+                .add(new Paragraph()
+                    .add(new com.itextpdf.layout.element.Text("Fecha: ").setFont(bold))
+                    .add(new com.itextpdf.layout.element.Text(
+                        r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate().format(FMT)
+                        : LocalDate.now().format(FMT)).setFont(regular))
+                    .setFontSize(9).setFontColor(muted))
+                .add(new Paragraph()
+                    .add(new com.itextpdf.layout.element.Text("Estado: ").setFont(bold))
+                    .add(new com.itextpdf.layout.element.Text(r.getEstado()).setFont(regular))
+                    .setFontSize(9).setFontColor(muted))
+                .setBorder(null)
+                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+            com.itextpdf.layout.element.Cell qrCell = new com.itextpdf.layout.element.Cell()
+                .setBorder(null)
+                .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.RIGHT);
+            byte[] qrBytes = QrUtils.toPngBytes(r.getNumero(), 90);
+            if (qrBytes != null) {
+                Image qrImg = new Image(ImageDataFactory.create(qrBytes));
+                qrImg.setWidth(60).setHeight(60);
+                qrCell.add(qrImg);
+            }
+            folioQrRow.addCell(folioCell);
+            folioQrRow.addCell(qrCell);
+            doc.add(folioQrRow);
 
             // ── Datos del resguardante ──
             Table infoTable = new Table(UnitValue.createPercentArray(new float[]{1, 2}))

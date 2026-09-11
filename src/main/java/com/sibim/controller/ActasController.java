@@ -103,7 +103,7 @@ public class ActasController {
                 Platform.runLater(() -> {
                     data.setAll(list);
                     if (lblStatTotal != null)
-                        AnimationUtils.animateCount(lblStatTotal, (long) list.size(), v -> String.valueOf(v));
+                        AnimationUtils.animateCount(lblStatTotal, (long) list.size(), 700);
                     if (statCardTotal != null)
                         AnimationUtils.staggeredFadeInUp(List.of(statCardTotal), 280, 60);
                     if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }

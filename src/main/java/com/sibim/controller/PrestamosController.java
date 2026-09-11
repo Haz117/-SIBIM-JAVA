@@ -51,6 +51,7 @@ public class PrestamosController {
     @FXML private Button btnNuevo;
     @FXML private Button btnDevolver;
     @FXML private Button btnExportarPdf;
+    @FXML private Button btnExportarExcel;
     @FXML private ProgressIndicator spinner;
     @FXML private ComboBox<String> estadoFilter;
     @FXML private TextField searchField;
@@ -148,7 +149,7 @@ public class PrestamosController {
     }
 
     private void setupButtonState() {
-        javafx.beans.value.ObservableValue<Prestamo> sel =
+        javafx.beans.property.ReadOnlyObjectProperty<Prestamo> sel =
             table.getSelectionModel().selectedItemProperty();
         if (btnDevolver != null)
             btnDevolver.disableProperty().bind(
@@ -209,10 +210,10 @@ public class PrestamosController {
         long activos   = list.stream().filter(p -> Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
         long vencidos  = list.stream().filter(p -> Prestamo.ESTADO_VENCIDO.equals(p.getEstado()) || p.isVencidoCalc()).count();
         long devueltos = list.stream().filter(p -> Prestamo.ESTADO_DEVUELTO.equals(p.getEstado())).count();
-        AnimationUtils.animateCount(lblStatActivos,   activos,        v -> String.valueOf(v));
-        AnimationUtils.animateCount(lblStatVencidos,  vencidos,       v -> String.valueOf(v));
-        AnimationUtils.animateCount(lblStatDevueltos, devueltos,      v -> String.valueOf(v));
-        AnimationUtils.animateCount(lblStatTotal,     (long) list.size(), v -> String.valueOf(v));
+        AnimationUtils.animateCount(lblStatActivos,   activos,            700);
+        AnimationUtils.animateCount(lblStatVencidos,  vencidos,           700);
+        AnimationUtils.animateCount(lblStatDevueltos, devueltos,          700);
+        AnimationUtils.animateCount(lblStatTotal,     (long) list.size(), 700);
     }
 
     @FXML
@@ -416,6 +417,25 @@ public class PrestamosController {
                 catch (Exception e) { NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath()); }
             },
             e -> NotificacionUtil.error(scene, "No se pudo generar el PDF")
+        );
+    }
+
+    @FXML
+    private void onExportarExcel() {
+        javafx.scene.Scene scene = rootPane.getScene();
+        List<Prestamo> rows = data.isEmpty() ? allData : new java.util.ArrayList<>(data);
+        if (rows.isEmpty()) {
+            NotificacionUtil.advertencia(scene, "No hay préstamos para exportar");
+            return;
+        }
+        DialogUtil.runAsync(
+            () -> service.exportarExcel(rows),
+            file -> {
+                if (file == null) return;
+                try { Desktop.getDesktop().open(file); }
+                catch (Exception e) { NotificacionUtil.advertencia(scene, "Excel: " + file.getAbsolutePath()); }
+            },
+            e -> NotificacionUtil.error(scene, "No se pudo exportar a Excel")
         );
     }
 

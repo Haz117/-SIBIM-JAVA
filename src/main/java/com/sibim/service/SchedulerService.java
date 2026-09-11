@@ -1,7 +1,9 @@
 package com.sibim.service;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.model.Prestamo;
 import com.sibim.repository.ConfiguracionRepository;
+import com.sibim.repository.PrestamoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,6 +98,17 @@ public class SchedulerService {
             log.info("Reportes programados completados para {}", hoy);
             TrayService.notify("Reportes generados",
                 "Reportes del " + hoy + " guardados en " + (carpeta.isBlank() ? "carpeta temporal" : carpeta));
+
+            // Préstamos vencidos/próximos — daily email reminder
+            try {
+                PrestamoRepository prestamoRepo = new PrestamoRepository();
+                java.util.List<Prestamo> vencidos = prestamoRepo.findVencidos();
+                java.util.List<Prestamo> proximos = prestamoRepo.findProximosAVencer(3);
+                if (!vencidos.isEmpty() || !proximos.isEmpty())
+                    new EmailService().enviarAvisoPrestamos(vencidos, proximos);
+            } catch (Exception e) {
+                log.error("Error al revisar préstamos para email", e);
+            }
 
         } catch (Exception e) {
             log.error("Error en SchedulerService.tick()", e);

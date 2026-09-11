@@ -44,6 +44,12 @@ public class PrestamoService {
 
     public List<Prestamo> getActivos() throws SQLException { return repo.findActivos(); }
 
+    public List<Prestamo> getVencidos() throws SQLException { return repo.findVencidos(); }
+
+    public List<Prestamo> getProximosAVencer(int days) throws SQLException { return repo.findProximosAVencer(days); }
+
+    public int countVencidos() throws SQLException { return repo.countVencidos(); }
+
     public int actualizarVencidos() throws SQLException { return repo.updateVencidos(); }
 
     public Prestamo crear(String productoId, String areaDestino,
@@ -84,6 +90,54 @@ public class PrestamoService {
 
     public File exportarPdf(Prestamo prestamo) throws Exception {
         return generarPdf(prestamo);
+    }
+
+    public File exportarExcel(java.util.List<Prestamo> prestamos) throws Exception {
+        String[] headers = {"Folio", "Bien", "Código", "Área Origen", "Área Destino",
+                            "Responsable", "Cargo", "Motivo", "Fecha Préstamo",
+                            "Dev. Prevista", "Dev. Real", "Estado"};
+        File file = File.createTempFile("sibim_prestamos_", ".xlsx");
+        file.deleteOnExit();
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet("Préstamos");
+
+            org.apache.poi.ss.usermodel.CellStyle hStyle = wb.createCellStyle();
+            org.apache.poi.ss.usermodel.Font hFont = wb.createFont();
+            hFont.setBold(true);
+            hFont.setColor(org.apache.poi.ss.usermodel.IndexedColors.WHITE.getIndex());
+            hStyle.setFont(hFont);
+            hStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                new byte[]{(byte)22, (byte)101, (byte)52}, null));
+            hStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
+
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.ss.usermodel.Cell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(hStyle);
+            }
+
+            int rowNum = 1;
+            for (Prestamo p : prestamos) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(p.getNumero() != null ? p.getNumero() : "");
+                row.createCell(1).setCellValue(p.getProductoNombre() != null ? p.getProductoNombre() : "");
+                row.createCell(2).setCellValue(p.getProductoCodigo() != null ? p.getProductoCodigo() : "");
+                row.createCell(3).setCellValue(p.getAreaOrigen() != null ? p.getAreaOrigen() : "");
+                row.createCell(4).setCellValue(p.getAreaDestino() != null ? p.getAreaDestino() : "");
+                row.createCell(5).setCellValue(p.getResponsableNombre() != null ? p.getResponsableNombre() : "");
+                row.createCell(6).setCellValue(p.getResponsableCargo() != null ? p.getResponsableCargo() : "");
+                row.createCell(7).setCellValue(p.getMotivo() != null ? p.getMotivo() : "");
+                row.createCell(8).setCellValue(p.getFechaPrestamo() != null ? p.getFechaPrestamo().format(FMT) : "");
+                row.createCell(9).setCellValue(p.getFechaDevolucionPrevista() != null ? p.getFechaDevolucionPrevista().format(FMT) : "");
+                row.createCell(10).setCellValue(p.getFechaDevolucionReal() != null ? p.getFechaDevolucionReal().format(FMT) : "");
+                row.createCell(11).setCellValue(p.getEstado() != null ? p.getEstado() : "");
+            }
+
+            for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(file)) { wb.write(fos); }
+        }
+        return file;
     }
 
     private String orgName() {
