@@ -170,6 +170,9 @@ public class ReportesController {
     @FXML private void onBajasExcel(ActionEvent event) { exportar(event, reporteService::exportBajasExcel); }
     @FXML private void onBajasCsv(ActionEvent event)   { exportar(event, reporteService::exportBajasCsv); }
 
+    // ─── Auditoría consolidada ───
+    @FXML private void onAuditoriaPdf(ActionEvent event) { exportar(event, () -> reporteService.exportAuditoriaPdf()); }
+
     private void loadAreaChart() {
         if (areaChart == null) return;
         if (chartSpinner != null) { chartSpinner.setVisible(true); chartSpinner.setManaged(true); }

@@ -83,9 +83,20 @@ public class DashboardController {
     @FXML private VBox  areasBarBox;
     @FXML private HBox  areasSectionHdr;
 
+    // ── Operaciones cards ─────────────────────────────────────────────
+    @FXML private Label lblPrestamosVencidos;
+    @FXML private Label lblPrestamosActivos;
+    @FXML private Label lblResguardosActivos;
+    @FXML private VBox  cardPrestamosVencidos;
+    @FXML private VBox  cardPrestamosActivos;
+    @FXML private VBox  cardResguardosActivos;
+    @FXML private HBox  operacionesRow;
+
     private final DashboardService dashboardService = new DashboardService();
     private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
     private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
+    private final com.sibim.service.PrestamoService prestamoService = new com.sibim.service.PrestamoService();
+    private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
 
     private static final String CARDS_CONFIG_KEY = "dashboard_cards_visibles";
     private static final java.util.Set<String> ALL_CARDS = java.util.Set.of(
@@ -140,6 +151,9 @@ public class DashboardController {
             if (cardNuevoBien   != null) { cardNuevoBien.setVisible(false);   cardNuevoBien.setManaged(false); }
             if (cardNuevaEntrada != null) { cardNuevaEntrada.setVisible(false); cardNuevaEntrada.setManaged(false); }
         }
+
+        // Operaciones row starts invisible — fades in after async data loads
+        if (operacionesRow != null) operacionesRow.setOpacity(0);
 
         // Defer data loading until the node is in a scene so that charts render
         // correctly and don't get caught mid-animation during the page transition.
@@ -296,6 +310,8 @@ public class DashboardController {
             if (activityCard != null) AnimationUtils.fadeInUp(activityCard, 350, 80);
             if (statusCardsRow != null) AnimationUtils.fadeInUp(statusCardsRow, 350, 40);
         }
+
+        loadOperacionesAsync();
 
         if (tablaReciente != null) {
             List<Movimiento> ultimos = data.movSemana().stream()
@@ -631,6 +647,44 @@ public class DashboardController {
     @FXML private void onVerReportes()     { navigarA("Reportes"); }
     @FXML private void onVerCategorias()   { navigarA("Categorias"); }
     @FXML private void onVerAlertas()      { navigarA("Alertas"); }
+
+    // ── Operaciones ──────────────────────────────────────────────────
+
+    private void loadOperacionesAsync() {
+        com.sibim.util.AppExecutor.submit(() -> {
+            try {
+                long vencidos   = prestamoService.getVencidos().size();
+                long activos    = prestamoService.getActivos().stream()
+                    .filter(p -> com.sibim.model.Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
+                long resguardos = resguardoService.getAll().stream()
+                    .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado())).count();
+                javafx.application.Platform.runLater(() -> {
+                    if (lblPrestamosVencidos != null)
+                        AnimationUtils.animateCount(lblPrestamosVencidos, vencidos, 700);
+                    if (lblPrestamosActivos != null)
+                        AnimationUtils.animateCount(lblPrestamosActivos, activos, 700);
+                    if (lblResguardosActivos != null)
+                        AnimationUtils.animateCount(lblResguardosActivos, resguardos, 700);
+                    if (cardPrestamosVencidos != null) {
+                        if (vencidos > 0) {
+                            cardPrestamosVencidos.getStyleClass().removeAll("dash-stat-urgent");
+                            cardPrestamosVencidos.getStyleClass().add("dash-stat-urgent");
+                        } else {
+                            cardPrestamosVencidos.getStyleClass().remove("dash-stat-urgent");
+                        }
+                    }
+                    if (operacionesRow != null && operacionesRow.getOpacity() < 1)
+                        AnimationUtils.fadeInUp(operacionesRow, 350, 0);
+                });
+            } catch (Exception e) {
+                // non-critical; silently ignore
+            }
+        });
+    }
+
+    @FXML private void onVerPrestamos()         { navigarA("Prestamos"); }
+    @FXML private void onVerPrestamosVencidos() { navigarA("Prestamos"); }
+    @FXML private void onVerResguardos()        { navigarA("Resguardos"); }
 
     @FXML
     private void onVerAgotados() {

@@ -900,19 +900,29 @@ public class MainController {
             baseEntries.add(new SearchPaletteDialog.NavEntry("mdi2h-history", "Auditoría", "Ctrl+0", this::onAuditoria));
         java.util.List<SearchPaletteDialog.NavEntry> navEntries = java.util.List.copyOf(baseEntries);
         com.sibim.util.AppExecutor.submit(() -> {
-            java.util.List<com.sibim.model.Producto> productos;
-            try {
-                productos = alertProductoService.getAll();
-            } catch (Exception e) {
-                log.warn("No se pudieron cargar bienes para la paleta de búsqueda", e);
-                productos = java.util.List.of();
-            }
-            final java.util.List<com.sibim.model.Producto> finalProductos = productos;
+            java.util.List<com.sibim.model.Producto>  productos;
+            java.util.List<com.sibim.model.Resguardo> resguardos;
+            java.util.List<com.sibim.model.Prestamo>  prestamos;
+            try { productos  = alertProductoService.getAll(); }
+            catch (Exception e) { log.warn("Palette: no se pudieron cargar bienes", e);      productos  = java.util.List.of(); }
+            try { resguardos = new com.sibim.service.ResguardoService().getAll(); }
+            catch (Exception e) { log.warn("Palette: no se pudieron cargar resguardos", e);  resguardos = java.util.List.of(); }
+            try { prestamos  = prestamoService.getAll(); }
+            catch (Exception e) { log.warn("Palette: no se pudieron cargar préstamos", e);   prestamos  = java.util.List.of(); }
+            final var fProductos  = productos;
+            final var fResguardos = resguardos;
+            final var fPrestamos  = prestamos;
             javafx.application.Platform.runLater(() ->
-                SearchPaletteDialog.show(stage, finalProductos, producto -> {
-                    NavigationContext.setPendingProductId(producto.getId());
-                    navigateTo("productos", btnProductos);
-                }, navEntries)
+                SearchPaletteDialog.show(stage, fProductos,
+                    producto -> {
+                        NavigationContext.setPendingProductId(producto.getId());
+                        navigateTo("productos", btnProductos);
+                    },
+                    fResguardos,
+                    rsg -> navigateTo("resguardos", btnResguardos),
+                    fPrestamos,
+                    prs -> navigateTo("prestamos", btnPrestamos),
+                    navEntries)
             );
         });
     }

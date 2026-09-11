@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 /**
  * Command palette (Ctrl+K).
  * Default state: shows navigation entries. Typed text: filters nav entries
- * + searches bienes by name, code, area, or resguardante.
+ * + searches bienes, resguardos and préstamos.
  */
 public final class SearchPaletteDialog {
 
@@ -30,8 +30,13 @@ public final class SearchPaletteDialog {
 
     private SearchPaletteDialog() {}
 
-    public static void show(Stage owner, List<Producto> productos,
+    public static void show(Stage owner,
+                            List<Producto> productos,
                             Consumer<Producto> onSelectProducto,
+                            List<com.sibim.model.Resguardo> resguardos,
+                            Consumer<com.sibim.model.Resguardo> onSelectResguardo,
+                            List<com.sibim.model.Prestamo> prestamos,
+                            Consumer<com.sibim.model.Prestamo> onSelectPrestamo,
                             List<NavEntry> navEntries) {
         Dialog<Producto> dialog = new Dialog<>();
         dialog.initOwner(owner);
@@ -45,7 +50,7 @@ public final class SearchPaletteDialog {
 
         // ── Search field ──────────────────────────────────────────────
         TextField searchField = new TextField();
-        searchField.setPromptText("Navegar o buscar bienes…");
+        searchField.setPromptText("Navegar o buscar bienes, resguardos, préstamos…");
         searchField.getStyleClass().add("search-palette-field");
         FontIcon searchIcon = new FontIcon("mdi2m-magnify");
         searchIcon.getStyleClass().add("search-palette-icon");
@@ -54,7 +59,7 @@ public final class SearchPaletteDialog {
         searchRow.getStyleClass().add("search-palette-header");
         HBox.setHgrow(searchField, Priority.ALWAYS);
 
-        // ── Unified items list (String = group header, NavEntry, Producto) ──
+        // ── Unified items list (String = group header, NavEntry, Producto, Resguardo, Prestamo) ──
         ObservableList<Object> allItems = FXCollections.observableArrayList();
         ListView<Object> listView = new ListView<>(allItems);
         listView.getStyleClass().add("search-palette-list");
@@ -101,6 +106,30 @@ public final class SearchPaletteDialog {
                     VBox box = new VBox(2, nombre, meta);
                     box.getStyleClass().add("palette-item-box");
                     setGraphic(box);
+
+                } else if (item instanceof com.sibim.model.Resguardo rsg) {
+                    Label nombre = new Label(rsg.getResguardanteNombre() != null ? rsg.getResguardanteNombre() : "—");
+                    nombre.getStyleClass().add("palette-item-nombre");
+                    String metaText = (rsg.getNumero() != null ? rsg.getNumero() : "")
+                        + (rsg.getResguardanteArea() != null ? "  ·  " + rsg.getResguardanteArea() : "")
+                        + "  ·  " + (rsg.getEstado() != null ? rsg.getEstado() : "");
+                    Label meta = new Label(metaText.strip());
+                    meta.getStyleClass().add("palette-item-meta");
+                    VBox box = new VBox(2, nombre, meta);
+                    box.getStyleClass().add("palette-item-box");
+                    setGraphic(box);
+
+                } else if (item instanceof com.sibim.model.Prestamo prs) {
+                    Label nombre = new Label(prs.getProductoNombre() != null ? prs.getProductoNombre() : "—");
+                    nombre.getStyleClass().add("palette-item-nombre");
+                    String metaText = (prs.getNumero() != null ? prs.getNumero() : "")
+                        + (prs.getResponsableNombre() != null ? "  ·  " + prs.getResponsableNombre() : "")
+                        + "  ·  " + (prs.getEstado() != null ? prs.getEstado() : "");
+                    Label meta = new Label(metaText.strip());
+                    meta.getStyleClass().add("palette-item-meta");
+                    VBox box = new VBox(2, nombre, meta);
+                    box.getStyleClass().add("palette-item-box");
+                    setGraphic(box);
                 }
             }
         });
@@ -133,6 +162,12 @@ public final class SearchPaletteDialog {
                 dialog.setResult(p);
                 dialog.close();
                 onSelectProducto.accept(p);
+            } else if (sel instanceof com.sibim.model.Resguardo rsg) {
+                dialog.close();
+                onSelectResguardo.accept(rsg);
+            } else if (sel instanceof com.sibim.model.Prestamo prs) {
+                dialog.close();
+                onSelectPrestamo.accept(prs);
             }
         };
 
@@ -165,6 +200,25 @@ public final class SearchPaletteDialog {
                 if (!matchedProd.isEmpty()) {
                     allItems.add("BIENES");
                     allItems.addAll(matchedProd);
+                }
+                List<com.sibim.model.Resguardo> matchedRsg = resguardos.stream()
+                    .filter(r -> (r.getResguardanteNombre() != null && r.getResguardanteNombre().toLowerCase().contains(q))
+                        || (r.getNumero() != null && r.getNumero().toLowerCase().contains(q))
+                        || (r.getResguardanteArea() != null && r.getResguardanteArea().toLowerCase().contains(q)))
+                    .limit(5).toList();
+                if (!matchedRsg.isEmpty()) {
+                    allItems.add("RESGUARDOS");
+                    allItems.addAll(matchedRsg);
+                }
+                List<com.sibim.model.Prestamo> matchedPrs = prestamos.stream()
+                    .filter(p -> (p.getProductoNombre() != null && p.getProductoNombre().toLowerCase().contains(q))
+                        || (p.getNumero() != null && p.getNumero().toLowerCase().contains(q))
+                        || (p.getResponsableNombre() != null && p.getResponsableNombre().toLowerCase().contains(q))
+                        || (p.getAreaDestino() != null && p.getAreaDestino().toLowerCase().contains(q)))
+                    .limit(5).toList();
+                if (!matchedPrs.isEmpty()) {
+                    allItems.add("PRÉSTAMOS");
+                    allItems.addAll(matchedPrs);
                 }
                 boolean empty = allItems.isEmpty();
                 lblEmpty.setVisible(empty);

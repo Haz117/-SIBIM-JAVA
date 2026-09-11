@@ -238,6 +238,52 @@
     </GridPane>
 
     <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: OPERACIONES ACTIVAS
+         ══════════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="OPERACIONES ACTIVAS" styleClass="dash-section-label"/>
+    </HBox>
+    <HBox fx:id="operacionesRow" spacing="14">
+        <VBox fx:id="cardPrestamosVencidos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerPrestamosVencidos" HBox.hgrow="ALWAYS">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
+            </StackPane>
+            <VBox spacing="5">
+                <Label text="PRÉSTAMOS VENCIDOS" styleClass="rich-stat-label"/>
+                <Label fx:id="lblPrestamosVencidos" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver préstamos →" styleClass="rich-stat-hint"/>
+            </VBox>
+        </VBox>
+        <VBox fx:id="cardPrestamosActivos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerPrestamos" HBox.hgrow="ALWAYS">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="rich-stat-icon"/>
+            </StackPane>
+            <VBox spacing="5">
+                <Label text="PRÉSTAMOS ACTIVOS" styleClass="rich-stat-label"/>
+                <Label fx:id="lblPrestamosActivos" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver préstamos →" styleClass="rich-stat-hint"/>
+            </VBox>
+        </VBox>
+        <VBox fx:id="cardResguardosActivos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerResguardos" HBox.hgrow="ALWAYS">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="rich-stat-icon"/>
+            </StackPane>
+            <VBox spacing="5">
+                <Label text="RESGUARDOS ACTIVOS" styleClass="rich-stat-label"/>
+                <Label fx:id="lblResguardosActivos" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver resguardos →" styleClass="rich-stat-hint"/>
+            </VBox>
+        </VBox>
+    </HBox>
+
+    <!-- ══════════════════════════════════════════════════════════
          ESTADO DEL INVENTARIO (4 mini-cards con barra de progreso)
          ══════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">

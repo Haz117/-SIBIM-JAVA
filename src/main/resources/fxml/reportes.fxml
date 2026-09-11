@@ -263,6 +263,29 @@
                 </items>
             </MenuButton>
         </VBox>
+
+        <!-- ── Auditoría consolidada — purple ── -->
+        <VBox styleClass="report-card" spacing="10"
+              GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <StackPane styleClass="report-icon-badge, report-icon-badge-purple">
+                    <FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="report-icon"/>
+                </StackPane>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Auditoría Consolidada" styleClass="report-title"/>
+                    <Label text="Resguardos · Préstamos · Estado"
+                           styleClass="report-card-tag report-card-tag-purple"/>
+                </VBox>
+            </HBox>
+            <Label text="Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Ideal para auditorías y cambios de administración."
+                   styleClass="report-desc" wrapText="true"/>
+            <Button text="Exportar PDF" onAction="#onAuditoriaPdf"
+                    styleClass="report-export-btn, report-export-purple"
+                    contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            </Button>
+        </VBox>
     </GridPane>
 
 </VBox>

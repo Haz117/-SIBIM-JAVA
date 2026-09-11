@@ -619,6 +619,8 @@
 .report-export-green:hover  { -fx-background-color: #047857; }
 .report-export-slate  { -fx-background-color: #475569; }
 .report-export-slate:hover  { -fx-background-color: #334155; }
+.report-export-purple { -fx-background-color: #7C3AED; }
+.report-export-purple:hover { -fx-background-color: #6D28D9; }
 /* Format icons inside the dropdown menu keep their usual color coding
    (red/green/dark) so PDF vs. Excel vs. CSV is still a glance, not a read. */
 .report-export-icon-pdf   { -fx-icon-size: 15; -fx-icon-color: #EF4444; }
@@ -922,6 +924,7 @@
 .report-icon-badge-amber  { -fx-background-color: #D97706; }
 .report-icon-badge-green  { -fx-background-color: #059669; }
 .report-icon-badge-slate  { -fx-background-color: #475569; }
+.report-icon-badge-purple { -fx-background-color: #7C3AED; }
 .report-title {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
@@ -2283,6 +2286,7 @@
 .report-card-tag-amber  { -fx-text-fill: #D97706; }
 .report-card-tag-green  { -fx-text-fill: #059669; }
 .report-card-tag-slate  { -fx-text-fill: #475569; }
+.report-card-tag-purple { -fx-text-fill: #7C3AED; }
 
 /* ═══════════════════════════════════════════════════════════════════
    CONFIGURACIÓN — profile section utilities
@@ -2607,6 +2611,13 @@
     -fx-border-color: #F59E0B #E0E4ED #E0E4ED #F59E0B;
     -fx-border-width: 0 1 1 6;
     -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.40), 18, 0, 0, 4);
+}
+
+/* Urgency tint for the "Préstamos Vencidos" card when count > 0 */
+.dash-stat-urgent {
+    -fx-border-color: #EF4444 #E0E4ED #E0E4ED #EF4444;
+    -fx-border-width: 0 1 1 5;
+    -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.35), 16, 0, 0, 3);
 }
 
 /* Descendant selectors (0,0,2,0) — dark text now that the card is white */
