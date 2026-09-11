@@ -1464,6 +1464,17 @@
     -fx-font-weight: bold;
     -fx-padding: 2 8;
 }
+.org-resguardo-badge {
+    -fx-background-color: #EDE9FE;
+    -fx-text-fill: #6D28D9;
+    -fx-border-color: #C4B5FD;
+    -fx-border-width: 1;
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+}
 /* Help badge variant for a colored/dark header (Alertas section titles) —
    the default .help-badge's indigo-on-lavender look disappears/clashes
    against a red/orange/blue gradient background. */
@@ -4096,3 +4107,38 @@
 }
 .active-chip-close:hover { -fx-background-color: #FEE2E2; }
 .active-chip-close:hover .ikonli-font-icon { -fx-icon-color: #DC2626; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   KANBAN — Préstamos board
+   ═══════════════════════════════════════════════════════════════════ */
+.kanban-column {
+    -fx-background-color: #F1F5F9;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-min-width: 200;
+}
+.kanban-col-teal   { -fx-border-color: #0D9488; -fx-border-width: 0 0 0 4; }
+.kanban-col-amber  { -fx-border-color: #D97706; -fx-border-width: 0 0 0 4; }
+.kanban-col-indigo { -fx-border-color: #4F46E5; -fx-border-width: 0 0 0 4; }
+.kanban-col-title  { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #475569; }
+.kanban-col-count  { -fx-font-size: 11px; -fx-text-fill: #94A3B8; -fx-font-weight: bold; }
+.kanban-col-icon   { -fx-icon-size: 14; -fx-icon-color: #94A3B8; }
+.kanban-col-scroll { -fx-background-color: transparent; -fx-border-color: transparent; }
+.kanban-col-scroll > .viewport { -fx-background-color: transparent; }
+.kanban-empty { -fx-font-size: 11px; -fx-text-fill: #CBD5E1; -fx-padding: 8 0; }
+.kanban-card {
+    -fx-background-color: white;
+    -fx-background-radius: 7;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 6, 0, 0, 2);
+}
+.kanban-card:hover {
+    -fx-border-color: #94A3B8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 10, 0, 0, 3);
+}
+.kanban-card-title  { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #1E293B; }
+.kanban-card-folio  { -fx-font-size: 10px; -fx-text-fill: #6366F1; -fx-font-weight: bold; }
+.kanban-card-meta   { -fx-font-size: 10px; -fx-text-fill: #64748B; }
+.kanban-card-overdue { -fx-text-fill: #DC2626; -fx-font-weight: bold; }

@@ -57,7 +57,9 @@ public class OrganigramaController {
     private final ProductoService productoService = new ProductoService();
     private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
     private final MovimientoService movimientoService = new MovimientoService();
+    private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
+    private Map<String, List<com.sibim.model.Resguardo>> resguardosPorArea = new java.util.HashMap<>();
     private boolean soloAlertas = false;
 
     @FXML private void onRefresh() { loadData(true); }
@@ -105,11 +107,26 @@ public class OrganigramaController {
     private void loadData(boolean showSuccessToast) {
         spinner.setVisible(true); spinner.setManaged(true);
         DialogUtil.runAsync(
-            () -> productoService.getAll().stream()
-                .filter(p -> p.getArea() != null && !p.getArea().isBlank())
-                .collect(Collectors.groupingBy(Producto::getArea)),
-            porArea -> {
+            () -> {
+                Map<String, List<Producto>> porArea = productoService.getAll().stream()
+                    .filter(p -> p.getArea() != null && !p.getArea().isBlank())
+                    .collect(Collectors.groupingBy(Producto::getArea));
+                Map<String, List<com.sibim.model.Resguardo>> rsgPorArea = new java.util.HashMap<>();
+                try {
+                    resguardoService.getAll().stream()
+                        .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado())
+                            && r.getResguardanteArea() != null && !r.getResguardanteArea().isBlank())
+                        .forEach(r -> rsgPorArea.computeIfAbsent(r.getResguardanteArea(), k -> new java.util.ArrayList<>()).add(r));
+                } catch (Exception ignored) {}
+                return new Object[]{ porArea, rsgPorArea };
+            },
+            result -> {
+                @SuppressWarnings("unchecked")
+                Map<String, List<Producto>> porArea = (Map<String, List<Producto>>) ((Object[]) result)[0];
+                @SuppressWarnings("unchecked")
+                Map<String, List<com.sibim.model.Resguardo>> rsgPorArea = (Map<String, List<com.sibim.model.Resguardo>>) ((Object[]) result)[1];
                 productosPorArea = porArea;
+                resguardosPorArea = rsgPorArea;
                 spinner.setVisible(false); spinner.setManaged(false);
                 buildTree(searchField.getText() != null ? searchField.getText() : "");
                 updateStats();
@@ -380,6 +397,24 @@ public class OrganigramaController {
             alertDot.setOnMouseClicked(e -> { e.consume(); showAreaProductsDialog(parentName, allAreaProds, true); });
             Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) agotado(s) o bajo stock en esta área — clic para verlos"));
             header.getChildren().add(alertDot);
+        }
+
+        // Resguardos badge — count activos for this area (and children)
+        List<com.sibim.model.Resguardo> rsgArea = new java.util.ArrayList<>(
+            resguardosPorArea.getOrDefault(parentName, List.of()));
+        for (String child : children)
+            rsgArea.addAll(resguardosPorArea.getOrDefault(child, List.of()));
+        if (!rsgArea.isEmpty()) {
+            FontIcon rsgIcon = new FontIcon("mdi2c-clipboard-account-outline");
+            rsgIcon.setIconSize(12);
+            Label rsgDot = new Label(" " + rsgArea.size());
+            rsgDot.setGraphic(rsgIcon);
+            rsgDot.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+            rsgDot.getStyleClass().addAll("org-resguardo-badge", "org-alert-badge-clickable");
+            final List<com.sibim.model.Resguardo> rsgFinal = List.copyOf(rsgArea);
+            rsgDot.setOnMouseClicked(e -> { e.consume(); showResguardosAreaDialog(parentName, rsgFinal); });
+            Tooltip.install(rsgDot, new Tooltip(rsgArea.size() + " resguardo(s) activo(s) en esta área — clic para verlos"));
+            header.getChildren().add(rsgDot);
         }
 
         if (!SessionManager.isAdmin()
@@ -703,6 +738,56 @@ public class OrganigramaController {
         content.setPadding(new javafx.geometry.Insets(0, 0, 0, 0));
         dialog.getDialogPane().setContent(content);
         Platform.runLater(() -> dlgSearch.requestFocus());
+        dialog.showAndWait();
+    }
+
+    private void showResguardosAreaDialog(String areaName, List<com.sibim.model.Resguardo> resguardos) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
+        dialog.setTitle("Resguardos activos — " + areaName);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(620);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(0, 0, 8, 0));
+        FontIcon ico = new FontIcon("mdi2c-clipboard-account-outline");
+        ico.setIconSize(20); ico.getStyleClass().add("page-icon-emoji");
+        Label title = new Label(resguardos.size() + " resguardo(s) activo(s) en " + areaName);
+        title.getStyleClass().add("page-title");
+        header.getChildren().addAll(ico, title);
+
+        javafx.scene.control.TableView<com.sibim.model.Resguardo> tbl = new javafx.scene.control.TableView<>();
+        tbl.getStyleClass().add("data-table");
+        tbl.setPrefHeight(320);
+
+        javafx.scene.control.TableColumn<com.sibim.model.Resguardo, String> cFolio = new javafx.scene.control.TableColumn<>("Folio");
+        cFolio.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getNumero()));
+        cFolio.setPrefWidth(110);
+
+        javafx.scene.control.TableColumn<com.sibim.model.Resguardo, String> cResguardante = new javafx.scene.control.TableColumn<>("Resguardante");
+        cResguardante.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getResguardanteNombre()));
+        cResguardante.setPrefWidth(180);
+
+        javafx.scene.control.TableColumn<com.sibim.model.Resguardo, String> cFecha = new javafx.scene.control.TableColumn<>("Fecha");
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        cFecha.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+            c.getValue().getCreadoEn() != null ? c.getValue().getCreadoEn().toLocalDate().format(fmt) : "—"));
+        cFecha.setPrefWidth(100);
+
+        javafx.scene.control.TableColumn<com.sibim.model.Resguardo, String> cItems = new javafx.scene.control.TableColumn<>("Bienes");
+        cItems.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+            c.getValue().getItems() != null ? String.valueOf(c.getValue().getItems().size()) : "—"));
+        cItems.setPrefWidth(70);
+
+        tbl.getColumns().addAll(cFolio, cResguardante, cFecha, cItems);
+        tbl.getItems().setAll(resguardos);
+        tbl.setColumnResizePolicy(javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        VBox content = new VBox(8, header, tbl);
+        content.setPadding(new Insets(4, 0, 0, 0));
+        dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
     }
 }

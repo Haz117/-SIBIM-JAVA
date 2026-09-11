@@ -110,6 +110,28 @@ public class SchedulerService {
                 log.error("Error al revisar préstamos para email", e);
             }
 
+            // Resumen semanal — every Monday
+            if (hoy.getDayOfWeek() == java.time.DayOfWeek.MONDAY) {
+                try {
+                    com.sibim.repository.ProductoRepository prodRepo = new com.sibim.repository.ProductoRepository();
+                    com.sibim.repository.ResguardoRepository rsgRepo  = new com.sibim.repository.ResguardoRepository();
+                    com.sibim.repository.MovimientoRepository movRepo  = new com.sibim.repository.MovimientoRepository();
+                    PrestamoRepository prestamoRepo2 = new PrestamoRepository();
+
+                    java.util.List<com.sibim.model.Producto> agotados   = prodRepo.findAgotados();
+                    java.util.List<com.sibim.model.Producto> bajoStock   = prodRepo.findBajoStock();
+                    java.util.List<Prestamo> prestVencidos               = prestamoRepo2.findVencidos();
+                    java.util.List<Prestamo> prestActivos                = prestamoRepo2.findActivos();
+                    java.util.List<com.sibim.model.Resguardo> rsgActivos = rsgRepo.findAll().stream()
+                        .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado())).toList();
+                    int movSemana = movRepo.findByDateRange(hoy.minusDays(7), hoy).size();
+
+                    new EmailService().enviarResumenSemanal(agotados, bajoStock, prestVencidos, prestActivos, rsgActivos, movSemana);
+                } catch (Exception e) {
+                    log.error("Error al enviar resumen semanal", e);
+                }
+            }
+
         } catch (Exception e) {
             log.error("Error en SchedulerService.tick()", e);
         }

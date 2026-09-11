@@ -49,6 +49,11 @@ public final class ProductoDetailDialog {
         catch (Exception ex) { log.warn("No se pudo cargar historial de resguardos para '{}': {}", p.getCodigo(), ex.getMessage()); }
         final java.util.List<com.sibim.model.Resguardo> _resguardos = resguardoHistory;
 
+        java.util.List<com.sibim.model.Prestamo> prestamoHistory = java.util.List.of();
+        try { prestamoHistory = new com.sibim.service.PrestamoService().getByProductoId(p.getId()); }
+        catch (Exception ex) { log.warn("No se pudo cargar historial de préstamos para '{}': {}", p.getCodigo(), ex.getMessage()); }
+        final java.util.List<com.sibim.model.Prestamo> _prestamos = prestamoHistory;
+
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Detalle del Bien");
@@ -444,6 +449,101 @@ public final class ProductoDetailDialog {
             root.getChildren().addAll(rsgTitle, rsgList);
         }
 
+        // ── Historial de préstamos ─────────────────────────────────────
+        if (!_prestamos.isEmpty()) {
+            Separator sepPrs = new Separator();
+            sepPrs.getStyleClass().add("form-separator");
+            root.getChildren().add(sepPrs);
+
+            Label prsTitle = new Label("Préstamos (" + _prestamos.size() + ")");
+            prsTitle.getStyleClass().add("dialog-field-label");
+
+            java.time.format.DateTimeFormatter fmtPrs = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            VBox prsList = new VBox(4);
+            for (com.sibim.model.Prestamo prs : _prestamos) {
+                String fecha = prs.getFechaPrestamo() != null ? prs.getFechaPrestamo().format(fmtPrs) : "—";
+                String badgeClass = switch (prs.getEstado() != null ? prs.getEstado() : "") {
+                    case "DEVUELTO" -> "cell-badge-muted";
+                    case "VENCIDO"  -> "cell-badge-warn";
+                    default         -> "cell-badge-ok";
+                };
+                Label lblFolio = new Label(prs.getNumero() != null ? prs.getNumero() : "—");
+                lblFolio.getStyleClass().add("dlg-detail-code");
+                Label lblResponsable = new Label(prs.getResponsableNombre() != null ? prs.getResponsableNombre() : "—");
+                lblResponsable.getStyleClass().add("muted-sm");
+                Label lblFecha = new Label(fecha);
+                lblFecha.getStyleClass().add("muted-sm");
+                Label lblEstado = new Label(prs.getEstado() != null ? prs.getEstado() : "—");
+                lblEstado.getStyleClass().add(badgeClass);
+                javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                HBox row = new HBox(8, lblFolio, lblResponsable, lblFecha, spacer, lblEstado);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.getStyleClass().add("mov-history-row");
+                prsList.getChildren().add(row);
+            }
+            root.getChildren().addAll(prsTitle, prsList);
+        }
+
+        // ── Alertas de mantenimiento ───────────────────────────────────
+        {
+            com.sibim.service.MantenimientoService mantSvc = new com.sibim.service.MantenimientoService();
+            java.util.List<com.sibim.service.MantenimientoService.Alerta> alertas = mantSvc.getAlertas(p.getId());
+            boolean tieneAlertas = !alertas.isEmpty();
+
+            Separator sepMant = new Separator();
+            sepMant.getStyleClass().add("form-separator");
+            root.getChildren().add(sepMant);
+
+            HBox mantHeader = new HBox(8);
+            mantHeader.setAlignment(Pos.CENTER_LEFT);
+            Label mantTitle = new Label("Mantenimiento" + (tieneAlertas ? " (" + alertas.size() + ")" : ""));
+            mantTitle.getStyleClass().add("dialog-field-label");
+            javafx.scene.layout.Region mantSpacer = new javafx.scene.layout.Region();
+            HBox.setHgrow(mantSpacer, Priority.ALWAYS);
+            Button btnAgregarMant = new Button("+ Agregar alerta");
+            btnAgregarMant.getStyleClass().add("btn-link");
+            mantHeader.getChildren().addAll(mantTitle, mantSpacer, btnAgregarMant);
+
+            VBox mantList = new VBox(4);
+            root.getChildren().addAll(mantHeader, mantList);
+
+            java.time.format.DateTimeFormatter fmtMant = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            // Use a holder to allow self-referential Runnable (rebuild triggers itself via buttons)
+            Runnable[] rebuildHolder = { null };
+            rebuildHolder[0] = () -> {
+                mantList.getChildren().clear();
+                java.util.List<com.sibim.service.MantenimientoService.Alerta> current = mantSvc.getAlertas(p.getId());
+                mantTitle.setText("Mantenimiento" + (current.isEmpty() ? "" : " (" + current.size() + ")"));
+                if (current.isEmpty()) {
+                    Label empty = new Label("Sin alertas de mantenimiento.");
+                    empty.getStyleClass().add("muted-sm");
+                    mantList.getChildren().add(empty);
+                    return;
+                }
+                for (com.sibim.service.MantenimientoService.Alerta a : current) {
+                    if (a.completada()) continue;
+                    boolean vencida = a.fecha() != null && a.fecha().isBefore(java.time.LocalDate.now());
+                    Label lblDesc = new Label(a.descripcion());
+                    lblDesc.getStyleClass().add(vencida ? "cell-badge-warn" : "muted-sm");
+                    Label lblFecha = new Label(a.fecha() != null ? a.fecha().format(fmtMant) : "—");
+                    lblFecha.getStyleClass().add(vencida ? "cell-badge-warn" : "muted-sm");
+                    Button btnOk = new Button("✓");
+                    btnOk.getStyleClass().add("btn-link");
+                    btnOk.setOnAction(ev -> { mantSvc.marcarCompletada(p.getId(), a.index()); rebuildHolder[0].run(); });
+                    javafx.scene.layout.Region sp2 = new javafx.scene.layout.Region();
+                    HBox.setHgrow(sp2, Priority.ALWAYS);
+                    HBox row = new HBox(8, lblDesc, sp2, lblFecha, btnOk);
+                    row.setAlignment(Pos.CENTER_LEFT);
+                    row.getStyleClass().add("mov-history-row");
+                    mantList.getChildren().add(row);
+                }
+            };
+            rebuildHolder[0].run();
+
+            btnAgregarMant.setOnAction(e -> showAgregarMantenimientoDialog(p, mantSvc, scene, rebuildHolder[0]));
+        }
+
         AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
 
         // Same overflow risk as the create/edit "Nuevo Bien" dialog: the header
@@ -456,6 +556,46 @@ public final class ProductoDetailDialog {
         rootScroll.getStyleClass().add("dlg-tabs-scroll");
         dialog.getDialogPane().setContent(rootScroll);
         dialog.showAndWait();
+    }
+
+    private static void showAgregarMantenimientoDialog(Producto p,
+                                                        com.sibim.service.MantenimientoService mantSvc,
+                                                        Scene scene, Runnable onSaved) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        dlg.setTitle("Agregar alerta de mantenimiento");
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        VBox form = new VBox(10);
+        form.setPadding(new Insets(16));
+
+        Label lblDesc = new Label("Descripción / tarea:");
+        lblDesc.getStyleClass().add("dialog-field-label");
+        TextField tfDesc = new TextField();
+        tfDesc.setPromptText("ej. Calibración anual, Limpieza de filtros…");
+        tfDesc.getStyleClass().add("form-field");
+
+        Label lblFecha = new Label("Fecha de revisión:");
+        lblFecha.getStyleClass().add("dialog-field-label");
+        DatePicker dpFecha = new DatePicker(java.time.LocalDate.now().plusMonths(6));
+        dpFecha.getStyleClass().add("form-field");
+        dpFecha.setPrefWidth(Double.MAX_VALUE);
+
+        form.getChildren().addAll(lblDesc, tfDesc, lblFecha, dpFecha);
+        dlg.getDialogPane().setContent(form);
+
+        Button btnOk = (Button) dlg.getDialogPane().lookupButton(ButtonType.OK);
+        btnOk.getStyleClass().add("btn-primary");
+        btnOk.setDisable(true);
+        tfDesc.textProperty().addListener((obs, ov, nv) -> btnOk.setDisable(nv.isBlank()));
+
+        dlg.showAndWait().ifPresent(bt -> {
+            if (bt == ButtonType.OK && !tfDesc.getText().isBlank() && dpFecha.getValue() != null) {
+                mantSvc.agregarAlerta(p.getId(), tfDesc.getText().trim(), dpFecha.getValue());
+                onSaved.run();
+            }
+        });
     }
 
     private static void showQrPopup(Producto p, javafx.scene.image.Image qrSmall, Scene scene) {

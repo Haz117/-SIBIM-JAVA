@@ -95,6 +95,10 @@
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2m-microsoft-excel" styleClass="btn-icon"/></graphic>
         </Button>
+        <ToggleButton fx:id="btnKanban" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2v-view-column-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Vista Kanban — ver préstamos por columnas de estado"/></tooltip>
+        </ToggleButton>
     </HBox>
 
     <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
@@ -114,4 +118,7 @@
                    styleClass="table-placeholder"/>
         </placeholder>
     </TableView>
+
+    <!-- ══ KANBAN BOARD (hidden by default) ══════════════════════════ -->
+    <HBox fx:id="kanbanBoard" VBox.vgrow="ALWAYS" spacing="10" visible="false" managed="false"/>
 </VBox>

@@ -145,6 +145,20 @@ public class PrestamoRepository {
         }
     }
 
+    public List<Prestamo> findByProductoId(String productoId) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        List<Prestamo> list = new ArrayList<>();
+        String sql = "SELECT * FROM prestamos WHERE producto_id = ? ORDER BY created_at DESC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
+
     public String nextNumero() throws SQLException {
         int year = LocalDate.now().getYear();
         String sql = "SELECT COUNT(*) FROM prestamos WHERE numero LIKE 'PRS-" + year + "-%'";

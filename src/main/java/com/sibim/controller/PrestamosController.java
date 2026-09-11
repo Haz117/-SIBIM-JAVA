@@ -17,6 +17,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -55,11 +56,14 @@ public class PrestamosController {
     @FXML private ProgressIndicator spinner;
     @FXML private ComboBox<String> estadoFilter;
     @FXML private TextField searchField;
+    @FXML private ToggleButton btnKanban;
+    @FXML private HBox kanbanBoard;
 
     private final PrestamoService service       = new PrestamoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
     private final ObservableList<Prestamo> data  = FXCollections.observableArrayList();
     private List<Prestamo> allData               = List.of();
+    private boolean kanbanMode                   = false;
 
     @FXML
     public void initialize() {
@@ -68,6 +72,15 @@ public class PrestamosController {
         setupPermisos();
         setupSearch();
         setupButtonState();
+        if (btnKanban != null) {
+            btnKanban.selectedProperty().addListener((obs, ov, nv) -> {
+                kanbanMode = nv;
+                if (table != null)      { table.setVisible(!nv); table.setManaged(!nv); }
+                if (kanbanBoard != null) { kanbanBoard.setVisible(nv); kanbanBoard.setManaged(nv); }
+                if (nv) buildKanbanBoard(data);
+            });
+        }
+        if (kanbanBoard != null) { kanbanBoard.setVisible(false); kanbanBoard.setManaged(false); }
         loadData();
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
@@ -204,6 +217,93 @@ public class PrestamosController {
                     || p.getAreaDestino().toLowerCase().contains(lq);
             }).toList();
         data.setAll(filtered);
+        if (kanbanMode) buildKanbanBoard(data);
+    }
+
+    private void buildKanbanBoard(java.util.Collection<Prestamo> items) {
+        if (kanbanBoard == null) return;
+        kanbanBoard.getChildren().clear();
+        kanbanBoard.setSpacing(10);
+        kanbanBoard.setFillHeight(true);
+
+        String[][] cols = {
+            { "ACTIVO",    "Activos",               "kanban-col-teal",   "mdi2s-swap-horizontal" },
+            { "VENCIDO",   "Vencidos",               "kanban-col-amber",  "mdi2a-alert-circle-outline" },
+            { "DEVUELTO",  "Devueltos",              "kanban-col-indigo", "mdi2c-check-all" }
+        };
+
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy");
+        for (String[] col : cols) {
+            String estado = col[0], label = col[1], styleClass = col[2], icon = col[3];
+            List<Prestamo> colItems = items.stream()
+                .filter(p -> estado.equals(p.getEstado()) || (estado.equals("VENCIDO") && p.isVencidoCalc()))
+                .toList();
+
+            VBox column = new VBox(8);
+            column.getStyleClass().addAll("kanban-column", styleClass);
+            column.setPadding(new Insets(12));
+            HBox.setHgrow(column, Priority.ALWAYS);
+
+            HBox colHeader = new HBox(8);
+            colHeader.setAlignment(Pos.CENTER_LEFT);
+            FontIcon colIcon = new FontIcon(icon);
+            colIcon.setIconSize(14); colIcon.getStyleClass().add("kanban-col-icon");
+            Label colLabel = new Label(label);
+            colLabel.getStyleClass().add("kanban-col-title");
+            javafx.scene.layout.Region sp = new javafx.scene.layout.Region();
+            HBox.setHgrow(sp, Priority.ALWAYS);
+            Label colCount = new Label(String.valueOf(colItems.size()));
+            colCount.getStyleClass().add("kanban-col-count");
+            colHeader.getChildren().addAll(colIcon, colLabel, sp, colCount);
+            column.getChildren().add(colHeader);
+
+            ScrollPane colScroll = new ScrollPane();
+            colScroll.setFitToWidth(true);
+            colScroll.getStyleClass().add("kanban-col-scroll");
+            VBox.setVgrow(colScroll, Priority.ALWAYS);
+            VBox cards = new VBox(6);
+            cards.setPadding(new Insets(4, 0, 4, 0));
+
+            if (colItems.isEmpty()) {
+                Label empty = new Label("Sin préstamos");
+                empty.getStyleClass().add("kanban-empty");
+                cards.getChildren().add(empty);
+            } else {
+                for (Prestamo p : colItems) {
+                    VBox card = new VBox(4);
+                    card.getStyleClass().add("kanban-card");
+                    card.setPadding(new Insets(10, 12, 10, 12));
+                    card.setCursor(javafx.scene.Cursor.HAND);
+
+                    Label lblBien = new Label(p.getProductoNombre() != null ? p.getProductoNombre() : "—");
+                    lblBien.getStyleClass().add("kanban-card-title");
+                    lblBien.setWrapText(true);
+
+                    Label lblFolio = new Label(p.getNumero() != null ? p.getNumero() : "—");
+                    lblFolio.getStyleClass().add("kanban-card-folio");
+
+                    Label lblResp = new Label(p.getResponsableNombre() != null ? p.getResponsableNombre() : "—");
+                    lblResp.getStyleClass().add("kanban-card-meta");
+
+                    String fechaStr = p.getFechaDevolucionPrevista() != null
+                        ? "Dev. " + p.getFechaDevolucionPrevista().format(fmt) : "";
+                    Label lblFecha = new Label(fechaStr);
+                    lblFecha.getStyleClass().add("kanban-card-meta");
+                    if (p.isVencidoCalc() && !fechaStr.isEmpty())
+                        lblFecha.getStyleClass().add("kanban-card-overdue");
+
+                    card.getChildren().addAll(lblBien, lblFolio, lblResp);
+                    if (!fechaStr.isEmpty()) card.getChildren().add(lblFecha);
+
+                    // Double-click or single click → detail
+                    card.setOnMouseClicked(e -> { if (e.getClickCount() >= 1) mostrarDetalle(p); });
+                    cards.getChildren().add(card);
+                }
+            }
+            colScroll.setContent(cards);
+            column.getChildren().add(colScroll);
+            kanbanBoard.getChildren().add(column);
+        }
     }
 
     private void updateStats(List<Prestamo> list) {

@@ -50,6 +50,8 @@ public class PrestamoService {
 
     public int countVencidos() throws SQLException { return repo.countVencidos(); }
 
+    public List<Prestamo> getByProductoId(String productoId) throws SQLException { return repo.findByProductoId(productoId); }
+
     public int actualizarVencidos() throws SQLException { return repo.updateVencidos(); }
 
     public Prestamo crear(String productoId, String areaDestino,
