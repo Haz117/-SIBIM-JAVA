@@ -1,0 +1,142 @@
+package com.sibim.repository;
+
+import com.sibim.db.DatabaseConfig;
+import com.sibim.model.Prestamo;
+import com.sibim.session.SessionManager;
+
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public class PrestamoRepository {
+
+    public List<Prestamo> findAll() throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        List<Prestamo> list = new ArrayList<>();
+        String sql = "SELECT * FROM prestamos ORDER BY created_at DESC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        }
+        return list;
+    }
+
+    public List<Prestamo> findActivos() throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        List<Prestamo> list = new ArrayList<>();
+        String sql = "SELECT * FROM prestamos WHERE estado IN ('ACTIVO','VENCIDO') ORDER BY fecha_devolucion_prevista ASC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        }
+        return list;
+    }
+
+    public Prestamo save(Prestamo prestamo) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null)
+            throw new IllegalStateException("Préstamos no disponibles en modo offline/demo");
+        if (prestamo.getId() == null) prestamo.setId(UUID.randomUUID().toString());
+        if (prestamo.getNumero() == null) prestamo.setNumero(nextNumero());
+
+        com.sibim.model.Usuario u = SessionManager.getCurrentUser();
+        if (u != null) {
+            prestamo.setCreadoPorId(u.getId());
+            prestamo.setCreadoPorNombre(u.getNombre());
+        }
+
+        String sql = """
+            INSERT INTO prestamos
+              (id, numero, producto_id, producto_nombre, producto_codigo,
+               area_origen, area_destino, responsable_nombre, responsable_cargo,
+               motivo, fecha_prestamo, fecha_devolucion_prevista, estado,
+               creado_por_id, creado_por_nombre, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'ACTIVO',?,?,NOW())
+            """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, prestamo.getId());
+            ps.setString(2, prestamo.getNumero());
+            ps.setString(3, prestamo.getProductoId());
+            ps.setString(4, prestamo.getProductoNombre());
+            ps.setString(5, prestamo.getProductoCodigo());
+            ps.setString(6, prestamo.getAreaOrigen());
+            ps.setString(7, prestamo.getAreaDestino());
+            ps.setString(8, prestamo.getResponsableNombre());
+            ps.setString(9, prestamo.getResponsableCargo());
+            ps.setString(10, prestamo.getMotivo());
+            ps.setDate(11, Date.valueOf(prestamo.getFechaPrestamo() != null
+                ? prestamo.getFechaPrestamo() : LocalDate.now()));
+            ps.setDate(12, Date.valueOf(prestamo.getFechaDevolucionPrevista()));
+            ps.setString(13, prestamo.getCreadoPorId());
+            ps.setString(14, prestamo.getCreadoPorNombre());
+            ps.executeUpdate();
+        }
+        prestamo.setCreadoEn(LocalDateTime.now());
+        return prestamo;
+    }
+
+    public void devolver(String id, LocalDate fechaDevolucionReal) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return;
+        String sql = "UPDATE prestamos SET estado = 'DEVUELTO', fecha_devolucion_real = ? WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(fechaDevolucionReal));
+            ps.setString(2, id);
+            ps.executeUpdate();
+        }
+    }
+
+    public int updateVencidos() throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return 0;
+        String sql = """
+            UPDATE prestamos SET estado = 'VENCIDO'
+            WHERE estado = 'ACTIVO' AND fecha_devolucion_prevista < CURRENT_DATE
+            """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            return ps.executeUpdate();
+        }
+    }
+
+    public String nextNumero() throws SQLException {
+        int year = LocalDate.now().getYear();
+        String sql = "SELECT COUNT(*) FROM prestamos WHERE numero LIKE 'PRS-" + year + "-%'";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            return String.format("PRS-%d-%04d", year, rs.getInt(1) + 1);
+        }
+    }
+
+    private Prestamo mapRow(ResultSet rs) throws SQLException {
+        Prestamo p = new Prestamo();
+        p.setId(rs.getString("id"));
+        p.setNumero(rs.getString("numero"));
+        p.setProductoId(rs.getString("producto_id"));
+        p.setProductoNombre(rs.getString("producto_nombre"));
+        p.setProductoCodigo(rs.getString("producto_codigo"));
+        p.setAreaOrigen(rs.getString("area_origen"));
+        p.setAreaDestino(rs.getString("area_destino"));
+        p.setResponsableNombre(rs.getString("responsable_nombre"));
+        p.setResponsableCargo(rs.getString("responsable_cargo"));
+        p.setMotivo(rs.getString("motivo"));
+        Date fp = rs.getDate("fecha_prestamo");
+        if (fp != null) p.setFechaPrestamo(fp.toLocalDate());
+        Date fdp = rs.getDate("fecha_devolucion_prevista");
+        if (fdp != null) p.setFechaDevolucionPrevista(fdp.toLocalDate());
+        Date fdr = rs.getDate("fecha_devolucion_real");
+        if (fdr != null) p.setFechaDevolucionReal(fdr.toLocalDate());
+        p.setEstado(rs.getString("estado"));
+        p.setCreadoPorId(rs.getString("creado_por_id"));
+        p.setCreadoPorNombre(rs.getString("creado_por_nombre"));
+        Timestamp ts = rs.getTimestamp("created_at");
+        if (ts != null) p.setCreadoEn(ts.toLocalDateTime());
+        return p;
+    }
+}

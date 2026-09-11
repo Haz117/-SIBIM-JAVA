@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.ActasController"
+      fx:id="rootPane" spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-blue">
+        <StackPane styleClass="page-header-icon page-header-icon-blue">
+            <FontIcon iconLiteral="mdi2s-swap-horizontal-bold" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Actas de Entrega-Recepción" styleClass="page-title"/>
+            <Label text="Documentos para cambio de administración · captura el inventario completo" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22" visible="false" managed="false"/>
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+        </Button>
+        <Button fx:id="btnNueva" text="＋ Nueva Acta" onAction="#onNuevaActa" styleClass="btn-primary"/>
+    </HBox>
+
+    <!-- ══ STAT CARDS ══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-indigo"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2s-swap-horizontal-bold" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="ACTAS GENERADAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
+            <Label text="documentos de entrega-recepción" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox styleClass="rich-stat-card, rich-stat-teal"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2i-information-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="ACERCA DE ESTA FUNCIÓN" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label text="Genera un acta formal con el inventario" styleClass="rich-stat-value" style="-fx-font-size: 13px;"/>
+            <Label text="completo al momento de la generación" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+        </Button>
+    </HBox>
+
+    <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table"
+               columnResizePolicy="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN">
+        <columns>
+            <TableColumn fx:id="colNumero"    text="Folio"      prefWidth="110"/>
+            <TableColumn fx:id="colSaliente"  text="Saliente"   prefWidth="200"/>
+            <TableColumn fx:id="colEntrante"  text="Entrante"   prefWidth="200"/>
+            <TableColumn fx:id="colFecha"     text="Fecha"      prefWidth="100"/>
+            <TableColumn fx:id="colBienes"    text="Bienes"     prefWidth="70"/>
+            <TableColumn fx:id="colValor"     text="Valor Total" prefWidth="130"/>
+        </columns>
+        <placeholder>
+            <Label text="No hay actas generadas. Crea la primera con ＋ Nueva Acta (solo Admin)."
+                   styleClass="table-placeholder"/>
+        </placeholder>
+    </TableView>
+</VBox>

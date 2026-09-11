@@ -3933,6 +3933,10 @@
 .filter-chip-rose { -fx-background-color: #fff1f2; -fx-border-color: #fda4af; -fx-text-fill: #e11d48; }
 .filter-chip-rose:selected { -fx-background-color: #f43f5e; -fx-text-fill: white; -fx-border-color: #e11d48; }
 
+/* ─── Resguardos / Préstamos / Actas — slate stat card ─── */
+.rich-stat-slate { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #f8fafc, #f1f5f9); -fx-border-color: #CBD5E1; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
+.rich-stat-icon-badge-slate { -fx-background-color: #64748B; -fx-background-radius: 10px; }
+
 /* ─── Table density toggle ─── */
 .density-btn {
     -fx-background-color: transparent;

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.ResguardosController"
+      fx:id="rootPane" spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-indigo">
+        <StackPane styleClass="page-header-icon page-header-icon-indigo">
+            <FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Resguardos de Bienes" styleClass="page-title"/>
+            <Label text="Documentos oficiales de custodia patrimonial por servidor público" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22" visible="false" managed="false"/>
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+        </Button>
+        <Button fx:id="btnNuevo" text="＋ Nuevo Resguardo" onAction="#onNuevoResguardo" styleClass="btn-primary"/>
+    </HBox>
+
+    <!-- ══ STAT CARDS ══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-indigo"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="TOTAL RESGUARDOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
+            <Label text="documentos registrados" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardActivos" styleClass="rich-stat-card, rich-stat-teal"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="RESGUARDOS ACTIVOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatActivos" text="—" styleClass="rich-stat-value"/>
+            <Label text="resguardos vigentes" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ TOOLBAR ═══════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <TextField fx:id="searchField" promptText="Buscar por resguardante, área o número…"
+                   styleClass="search-field" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+        </Button>
+        <Button fx:id="btnCancelar" text="Cancelar" onAction="#onCancelar"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2c-cancel" styleClass="btn-icon"/></graphic>
+        </Button>
+    </HBox>
+
+    <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table"
+               columnResizePolicy="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN">
+        <columns>
+            <TableColumn fx:id="colNumero"       text="Folio"        prefWidth="110"/>
+            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="200"/>
+            <TableColumn fx:id="colArea"         text="Área"         prefWidth="220"/>
+            <TableColumn fx:id="colFecha"        text="Fecha"        prefWidth="100"/>
+            <TableColumn fx:id="colEstado"       text="Estado"       prefWidth="90"/>
+        </columns>
+        <placeholder>
+            <Label text="No hay resguardos registrados. Crea el primero con ＋ Nuevo Resguardo."
+                   styleClass="table-placeholder"/>
+        </placeholder>
+    </TableView>
+</VBox>

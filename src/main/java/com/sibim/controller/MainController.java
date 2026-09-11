@@ -75,6 +75,9 @@ public class MainController {
     @FXML private Button btnReportes;
     @FXML private Button btnDepreciacion;
     @FXML private Button btnConteoFisico;
+    @FXML private Button btnResguardos;
+    @FXML private Button btnPrestamos;
+    @FXML private Button btnActas;
     @FXML private Button btnConfiguracion;
     @FXML private Button btnAuditoria;
     @FXML private Label alertBadge;
@@ -159,6 +162,7 @@ public class MainController {
         addNavTooltips();
         setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
                       btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
+                      btnResguardos, btnPrestamos, btnActas,
                       btnConfiguracion, btnAuditoria);
 
         if (btnAuditoria != null) {
@@ -232,6 +236,9 @@ public class MainController {
     @FXML private void onAlertas()       { navigateTo("alertas",       btnAlertas); }
     @FXML private void onReportes()      { navigateTo("reportes",      btnReportes); }
     @FXML private void onDepreciacion()  { navigateTo("depreciacion",  btnDepreciacion); }
+    @FXML private void onResguardos()    { navigateTo("resguardos",   btnResguardos); }
+    @FXML private void onPrestamos()     { navigateTo("prestamos",    btnPrestamos); }
+    @FXML private void onActas()         { navigateTo("actas",        btnActas); }
     @FXML private void onConfiguracion() { navigateTo("configuracion", btnConfiguracion); }
 
     @FXML

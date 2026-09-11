@@ -138,6 +138,18 @@
                         <graphic><FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Tomar conteo físico del inventario"/></tooltip>
                     </Button>
+                    <Button fx:id="btnResguardos" text="Resguardos" onAction="#onResguardos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="nav-icon"/></graphic>
+                        <tooltip><Tooltip text="Resguardos de bienes por servidor público"/></tooltip>
+                    </Button>
+                    <Button fx:id="btnPrestamos" text="Préstamos" onAction="#onPrestamos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="nav-icon"/></graphic>
+                        <tooltip><Tooltip text="Préstamos temporales entre áreas"/></tooltip>
+                    </Button>
+                    <Button fx:id="btnActas" text="Actas E/R" onAction="#onActas" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal-bold" styleClass="nav-icon"/></graphic>
+                        <tooltip><Tooltip text="Actas de entrega-recepción (cambio de administración)"/></tooltip>
+                    </Button>
 
                     <Region prefHeight="4"/>
                     <Separator styleClass="sidebar-divider"/>

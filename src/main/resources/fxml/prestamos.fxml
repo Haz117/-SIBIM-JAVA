@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.PrestamosController"
+      fx:id="rootPane" spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-emerald">
+        <StackPane styleClass="page-header-icon page-header-icon-emerald">
+            <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="page-icon-emoji"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Préstamos Temporales" styleClass="page-title"/>
+            <Label text="Registro de bienes prestados entre áreas con fecha de devolución" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22" visible="false" managed="false"/>
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+        </Button>
+        <Button fx:id="btnNuevo" text="＋ Nuevo Préstamo" onAction="#onNuevoPrestamo" styleClass="btn-primary"/>
+    </HBox>
+
+    <!-- ══ STAT CARDS ══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <VBox fx:id="statCardActivos" styleClass="rich-stat-card, rich-stat-teal"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="ACTIVOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatActivos" text="—" styleClass="rich-stat-value"/>
+            <Label text="préstamos en curso" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardVencidos" styleClass="rich-stat-card, rich-stat-amber"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="VENCIDOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatVencidos" text="—" styleClass="rich-stat-value"/>
+            <Label text="fuera de plazo" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardDevueltos" styleClass="rich-stat-card, rich-stat-indigo"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2c-check-all" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="DEVUELTOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatDevueltos" text="—" styleClass="rich-stat-value"/>
+            <Label text="préstamos cerrados" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-slate"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
+                    <FontIcon iconLiteral="mdi2f-format-list-bulleted" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="TOTAL" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
+            <Label text="préstamos registrados" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <TextField fx:id="searchField" promptText="Buscar por bien, responsable, área o número…"
+                   styleClass="search-field" HBox.hgrow="ALWAYS"/>
+        <ComboBox fx:id="estadoFilter" prefWidth="130"/>
+        <Button fx:id="btnDevolver" text="Registrar devolución" onAction="#onDevolver"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="btn-icon"/></graphic>
+        </Button>
+        <Button fx:id="btnExportarPdf" text="PDF" onAction="#onExportarPdf"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+        </Button>
+    </HBox>
+
+    <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table"
+               columnResizePolicy="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN">
+        <columns>
+            <TableColumn fx:id="colNumero"       text="Folio"         prefWidth="110"/>
+            <TableColumn fx:id="colBien"         text="Bien"          prefWidth="200"/>
+            <TableColumn fx:id="colAreaOrigen"   text="Área origen"   prefWidth="150"/>
+            <TableColumn fx:id="colAreaDestino"  text="Área destino"  prefWidth="150"/>
+            <TableColumn fx:id="colResponsable"  text="Responsable"   prefWidth="170"/>
+            <TableColumn fx:id="colFechaPrevista" text="Dev. prevista" prefWidth="100"/>
+            <TableColumn fx:id="colEstado"       text="Estado"        prefWidth="90"/>
+        </columns>
+        <placeholder>
+            <Label text="No hay préstamos registrados. Las filas en amarillo indican préstamos vencidos."
+                   styleClass="table-placeholder"/>
+        </placeholder>
+    </TableView>
+</VBox>
