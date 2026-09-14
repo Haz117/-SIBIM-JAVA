@@ -32,7 +32,7 @@ public class AuthService {
     private static final long VENTANA_MS   = 15 * 60_000L; // 15 minutos
 
     public record LoginResult(Usuario user, String offlineWarning) {
-        boolean hasWarning() { return offlineWarning != null; }
+        public boolean hasWarning() { return offlineWarning != null; }
     }
 
     /**
