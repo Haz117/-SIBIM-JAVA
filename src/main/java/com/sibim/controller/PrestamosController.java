@@ -93,6 +93,7 @@ public class PrestamosController {
     }
 
     private void setupTable() {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         colNumero.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNumero()));
         colBien.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
         colAreaOrigen.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getAreaOrigen()));

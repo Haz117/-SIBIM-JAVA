@@ -102,8 +102,7 @@
     </HBox>
 
     <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
-    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table"
-               columnResizePolicy="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN">
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
         <columns>
             <TableColumn fx:id="colNumero"       text="Folio"         prefWidth="110"/>
             <TableColumn fx:id="colBien"         text="Bien"          prefWidth="200"/>

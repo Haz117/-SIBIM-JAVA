@@ -67,6 +67,7 @@ public class ResguardosController {
     }
 
     private void setupTable() {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         colNumero.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNumero()));
         colResguardante.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getResguardanteNombre()));
         colArea.setCellValueFactory(c -> new SimpleStringProperty(

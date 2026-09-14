@@ -785,9 +785,11 @@ public class MainController {
         if (idle > INACTIVITY_TIMEOUT_MS) {
             log.info("Sesión cerrada por inactividad");
             inactivityWarned = false;
-            auditRepo.log("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
-                SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
-                "logout", "Cierre automático por inactividad");
+            stopTimers();
+            com.sibim.model.Usuario me = SessionManager.getCurrentUser();
+            if (me != null)
+                auditRepo.log("sesion", me.getId(), me.getNombre(),
+                    "logout", "Cierre automático por inactividad");
             SessionManager.logout();
             try { MainApp.showLogin(); }
             catch (Exception e) { log.error("Error al cerrar sesión por inactividad", e); }

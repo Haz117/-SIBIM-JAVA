@@ -56,6 +56,7 @@ public class ActasController {
     }
 
     private void setupTable() {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         colNumero.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNumero()));
         colSaliente.setCellValueFactory(c -> {
             String s = c.getValue().getAdminSaliente();
