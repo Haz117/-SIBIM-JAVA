@@ -106,6 +106,7 @@ public class DashboardController {
     private List<Producto> lastBajoStock = List.of();
     private DashboardService.Resumen lastResumen;
     private javafx.animation.Timeline autoRefresh;
+    private javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneReadyListener;
     private boolean chartsFirstLoad = true;
 
     @FXML
@@ -157,12 +158,10 @@ public class DashboardController {
 
         // Defer data loading until the node is in a scene so that charts render
         // correctly and don't get caught mid-animation during the page transition.
-        statsGrid.sceneProperty().addListener(new javafx.beans.value.ChangeListener<>() {
-            @Override
-            public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Scene> obs,
-                                javafx.scene.Scene old, javafx.scene.Scene newScene) {
-                if (newScene != null) {
-                    statsGrid.sceneProperty().removeListener(this);
+        sceneReadyListener = (obs, old, newScene) -> {
+            if (newScene != null) {
+                    statsGrid.sceneProperty().removeListener(sceneReadyListener);
+                    sceneReadyListener = null;
                     // Reset scroll to top before animations so nodes rendered
                     // during stagger don't pull the viewport down.
                     javafx.application.Platform.runLater(() -> {
@@ -184,8 +183,8 @@ public class DashboardController {
                     autoRefresh.setCycleCount(javafx.animation.Timeline.INDEFINITE);
                     autoRefresh.play();
                 }
-            }
-        });
+        };
+        statsGrid.sceneProperty().addListener(sceneReadyListener);
     }
 
     private void loadDataAsync() {
@@ -1064,6 +1063,10 @@ public class DashboardController {
 
     public void stopAutoRefresh() {
         if (autoRefresh != null) autoRefresh.stop();
+        if (sceneReadyListener != null) {
+            statsGrid.sceneProperty().removeListener(sceneReadyListener);
+            sceneReadyListener = null;
+        }
     }
 
 }

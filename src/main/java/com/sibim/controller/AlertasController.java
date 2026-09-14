@@ -106,6 +106,7 @@ public class AlertasController {
     private List<Producto> allGarantias     = List.of();
     private List<Producto> allMantenimiento = List.of();
     private Timeline autoRefresh;
+    private javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter;
 
     @FXML
     public void initialize() {
@@ -128,12 +129,13 @@ public class AlertasController {
         AnimationUtils.staggeredFadeInUp(fadeNodes, 250, 60);
         javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
         if (rootPane != null) {
-            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+            keyFilter = ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
                     if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
                     ev.consume();
                 }
-            });
+            };
+            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
         }
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
@@ -793,9 +795,13 @@ public class AlertasController {
         tl.play();
     }
 
-    /** Stops the auto-refresh timer. Must be called before this controller's view is discarded. */
+    /** Stops the auto-refresh timer and cleans up listeners. Must be called before this controller's view is discarded. */
     public void stopAutoRefresh() {
         if (autoRefresh != null) autoRefresh.stop();
+        if (keyFilter != null && rootPane != null) {
+            rootPane.removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+            keyFilter = null;
+        }
     }
 
     private static javafx.scene.Node searchEmptyNode(String q) {

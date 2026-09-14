@@ -98,8 +98,8 @@ class AuthServiceTest {
         try (MockedConstruction<UsuarioRepository> ignored = mockConstruction(UsuarioRepository.class,
                 (mock, ctx) -> when(mock.findByUsername("testuser")).thenReturn(Optional.of(u)))) {
             AuthService svc = new AuthService();
-            Usuario result = svc.login("testuser", "buena123");
-            assertEquals(u.getId(), result.getId());
+            AuthService.LoginResult result = svc.login("testuser", "buena123");
+            assertEquals(u.getId(), result.user().getId());
             assertNotNull(SessionManager.getCurrentUser());
             assertEquals(u.getId(), SessionManager.getCurrentUser().getId());
         }
@@ -190,8 +190,8 @@ class AuthServiceTest {
 
         try (MockedConstruction<UsuarioRepository> ignored = mockConstruction(UsuarioRepository.class,
                 (mock, ctx) -> when(mock.findByUsername("superusuario")).thenReturn(Optional.of(u)))) {
-            Usuario result = new AuthService().login("superusuario", "admin123456");
-            assertEquals("u-admin", result.getId());
+            AuthService.LoginResult result = new AuthService().login("superusuario", "admin123456");
+            assertEquals("u-admin", result.user().getId());
             assertNotNull(SessionManager.getCurrentUser());
         }
     }

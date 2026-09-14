@@ -31,11 +31,15 @@ public class AuthService {
     private static final int  MAX_INTENTOS = 5;
     private static final long VENTANA_MS   = 15 * 60_000L; // 15 minutos
 
+    public record LoginResult(Usuario user, String offlineWarning) {
+        boolean hasWarning() { return offlineWarning != null; }
+    }
+
     /**
-     * Authenticates user credentials. Returns the user on success.
+     * Authenticates user credentials. Returns a LoginResult on success.
      * @throws AuthException if credentials are invalid, locked out, or DB error occurs.
      */
-    public Usuario login(String username, String password) throws AuthException {
+    public LoginResult login(String username, String password) throws AuthException {
         if (username == null || username.isBlank())
             throw new AuthException("El usuario es obligatorio");
         if (password == null || password.isBlank())
@@ -61,7 +65,7 @@ public class AuthService {
                 BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash());
                 if (!result.verified) throw new AuthException("Usuario o contraseña incorrectos");
                 SessionManager.setCurrentUser(user);
-                return user;
+                return new LoginResult(user, null);
             }
 
             // ── Rate-limit check (persisted across restarts) ─────────────────
@@ -90,11 +94,6 @@ public class AuthService {
                     throw new AuthException("La cuenta no tiene contraseña establecida. Contacta al administrador.");
                 }
                 credencialesOk = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash()).verified;
-                try {
-                    OfflineStore.cacheUser(user);
-                } catch (SQLException ex) {
-                    log.warn("No se pudo cachear usuario '{}' para modo offline: {}", user.getUsername(), ex.getMessage());
-                }
             }
             if (!credencialesOk) {
                 registrarFallo(key);
@@ -107,7 +106,17 @@ public class AuthService {
             SessionManager.setCurrentUser(user);
             auditRepo.log("sesion", user.getId(), user.getNombre(), "login",
                 "Inicio de sesión — " + (DatabaseConfig.isDemoMode() ? "modo demo" : "base de datos"));
-            return user;
+            String offlineWarning = null;
+            if (!DatabaseConfig.isDemoMode()) {
+                try {
+                    OfflineStore.cacheUser(user);
+                } catch (SQLException ex) {
+                    log.error("No se pudo cachear usuario '{}' para modo offline: {}", user.getUsername(), ex.getMessage());
+                    offlineWarning = "El acceso sin conexión no pudo guardarse. Si pierdes acceso a internet, "
+                        + "no podrás iniciar sesión hasta reconectarte.";
+                }
+            }
+            return new LoginResult(user, offlineWarning);
         } catch (SQLException e) {
             throw new AuthException("No se pudo conectar al servidor. Verifica la conexión a la base de datos.");
         }

@@ -203,9 +203,12 @@ public class DepreciacionController {
             }
         });
 
-        colPct.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getPorcentajeDepreciado() + "% depreciado"));
+        colPct.setCellValueFactory(c -> {
+            Integer pct = c.getValue().getPorcentajeDepreciado();
+            return new SimpleStringProperty(pct != null ? pct + "% depreciado" : "—");
+        });
         colPct.setCellFactory(DialogUtil.badgeCellFactory(item -> {
+            if ("—".equals(item)) return "cell-badge-success";
             int pct = Integer.parseInt(item.substring(0, item.indexOf('%')));
             return pct >= 90 ? "cell-badge-danger" : pct >= 50 ? "cell-badge-warning" : "cell-badge-success";
         }));

@@ -183,13 +183,13 @@ public class LoginController {
 
         setLoading(true);
 
-        Task<Void> task = new Task<>() {
-            @Override protected Void call() throws Exception {
-                authService.login(username, password);
-                return null;
+        Task<com.sibim.service.AuthService.LoginResult> task = new Task<>() {
+            @Override protected com.sibim.service.AuthService.LoginResult call() throws Exception {
+                return authService.login(username, password);
             }
             @Override protected void succeeded() {
                 setLoading(false);
+                com.sibim.service.AuthService.LoginResult result = getValue();
                 Usuario user = SessionManager.getCurrentUser();
                 // Can't push a password change anywhere while offline (user
                 // management isn't in the sync scope — see the offline-mode
@@ -209,8 +209,15 @@ public class LoginController {
                             passwordField.clear();
                         });
                 } else {
-                    try { MainApp.showMain(); }
-                    catch (Exception e) { showError("No se pudo cargar la pantalla principal"); }
+                    try {
+                        MainApp.showMain();
+                        if (result != null && result.hasWarning()) {
+                            javafx.application.Platform.runLater(() ->
+                                com.sibim.util.NotificacionUtil.error(
+                                    com.sibim.MainApp.getPrimaryStage().getScene(),
+                                    result.offlineWarning()));
+                        }
+                    } catch (Exception e) { showError("No se pudo cargar la pantalla principal"); }
                 }
             }
             @Override protected void failed() {

@@ -796,7 +796,12 @@ public class MovimientoRepository {
         m.setUsuarioNombre(rs.getString("usuario_nombre"));
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) m.setCreadoEn(ts.toLocalDateTime());
-        try { m.setEstado(rs.getString("estado")); } catch (SQLException ignored) {}
+        try {
+            m.setEstado(rs.getString("estado"));
+        } catch (SQLException e) {
+            // Column added in V8 migration — absent in queries that pre-date the JOIN
+            if (!e.getMessage().contains("estado")) throw e;
+        }
         return m;
     }
 }

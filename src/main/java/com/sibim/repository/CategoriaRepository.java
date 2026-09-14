@@ -154,7 +154,12 @@ public class CategoriaRepository {
         c.setIcono(rs.getString("icono"));
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) c.setCreadoEn(ts.toLocalDateTime());
-        try { c.setTotalProductos(rs.getInt("total_productos")); } catch (SQLException ignored) {}
+        try {
+            c.setTotalProductos(rs.getInt("total_productos"));
+        } catch (SQLException e) {
+            // Column only present in list queries that JOIN the count — absent in single-row fetches
+            if (!e.getMessage().contains("total_productos")) throw e;
+        }
         return c;
     }
 }
