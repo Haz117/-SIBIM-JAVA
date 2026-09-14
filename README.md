@@ -44,7 +44,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db` cifrada con clave derivada de `MachineGuid` |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (333 tests) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (361 tests) |
 
 ---
 
@@ -79,7 +79,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales son `V1` (esquema inicial), `V2`–`V4` (mejoras incrementales) y `V5` (columna `activo` en usuarios + tabla `configuracion` con datos institucionales). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V12` y cubren el esquema inicial, índices de rendimiento, campos de activos (factura, marca, modelo, serie), usuario activo + configuración institucional, etiquetado multi-fotos, resguardos, conteos físicos, email y scheduler, historial de precios, filtros guardados, mantenimiento y préstamos/actas. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -201,7 +201,7 @@ SIBIM-Java/
 │   │   │   ├── session/       # SessionManager (usuario activo, áreas accesibles)
 │   │   │   └── config/        # Áreas del organigrama y configuración de BD
 │   │   └── resources/
-│   │       ├── fxml/          # 12 vistas de la interfaz
+│   │       ├── fxml/          # 16 vistas de la interfaz
 │   │       ├── css/           # Design System v2.3 (tema indigo/purple)
 │   │       ├── db/migration/  # Migraciones Flyway — se aplican solas al arrancar
 │   │       ├── offline.sql    # Esquema del almacén SQLite offline
@@ -212,7 +212,7 @@ SIBIM-Java/
 │       ├── db/offline/        # Tests del almacén offline (caducidad, outbox)
 │       ├── model/             # Tests de entidades
 │       ├── repository/        # Tests de autorización de repositorios
-│       ├── service/           # Tests unitarios + autorización de servicios + exports (331 tests total)
+│       ├── service/           # Tests unitarios + autorización de servicios + exports (361 tests total)
 │       ├── session/           # Tests de SessionManager
 │       └── util/              # Tests de utilidades
 ├── packaging/
@@ -263,14 +263,14 @@ pg_dump -U tu_usuario -d sibim -F c -f sibim_$(date +%Y%m%d).dump
 pg_restore -U tu_usuario -d sibim --clean sibim_20260101.dump
 ```
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V2__descripcion.sql` (numeración consecutiva) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites `V1__schema_inicial.sql` una vez publicado — Flyway rechaza una migración ya aplicada si su contenido cambia.
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V13__descripcion.sql` (numeración consecutiva a partir de V12) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia.
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (333 en total)
+# Correr todos los tests (361 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase
