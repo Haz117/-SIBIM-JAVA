@@ -84,20 +84,44 @@ public final class TutorialOverlay {
                 "Desde el detalle de un movimiento puedes ver el historial completo del bien"
             }),
 
-            // ── Conteo Físico (diálogo, se centra en lugar de apuntar al sidebar) ─
+            // ── Resguardos ───────────────────────────────────────────────────────
+            new Step("mdi2c-clipboard-account-outline", "#0891B2", "#0E7490",
+                "Resguardos", null, "resguardos", new String[]{
+                "Vincula cada bien a un responsable — registra quién lo tiene a su cargo",
+                "Genera el PDF del resguardo para firma: es el documento oficial de asignación",
+                "Cancela el resguardo cuando el bien cambia de responsable o de área"
+            }),
+
+            // ── Préstamos ────────────────────────────────────────────────────────
+            new Step("mdi2s-swap-horizontal", "#D97706", "#92400E",
+                "Préstamos", null, "prestamos", new String[]{
+                "Registra el préstamo temporal de un bien con fecha de devolución esperada",
+                "Vista kanban: columnas Vigente / Por vencer / Vencido para control rápido",
+                "Registra la devolución con un clic — el bien regresa a su área automáticamente"
+            }),
+
+            // ── Actas de Entrega-Recepción ───────────────────────────────────────
+            new Step("mdi2s-swap-horizontal-bold", "#1D4ED8", "#1E3A8A",
+                "Actas E/R", null, "actas", new String[]{
+                "Documenta la entrega formal de bienes entre funcionarios al cambio de administración",
+                "Incluye inventario de bienes entregados, observaciones y firma de responsiva",
+                "Exporta el acta completa a PDF lista para firma y archivo oficial"
+            }),
+
+            // ── Conteo Físico ────────────────────────────────────────────────────
             new Step("mdi2c-clipboard-check-outline", "#0F766E", "#134E4A",
                 "Conteo Físico", null, null, new String[]{
                 "Ábrelo desde el sidebar o desde Bienes ya filtrado por área o categoría",
-                "Marca cada bien: Encontrado ✓, Faltante ✗ o con Discrepancia — sin salir",
-                "Al terminar genera un reporte de diferencias para ajustes de inventario"
+                "Marca cada bien: Encontrado ✓, Faltante ✗ o Discrepancia — sin salir de la pantalla",
+                "Al terminar genera un reporte de diferencias para ajustes de inventario auditados"
             }),
 
             // ── Alertas ──────────────────────────────────────────────────────────
             new Step("mdi2b-bell-outline", "#DC2626", "#991B1B",
                 "Alertas", "Ctrl + 6", "alertas", new String[]{
-                "Se generan automáticamente — solo necesitas revisarlas y resolverlas",
-                "El badge rojo en el sidebar muestra cuántas hay activas sin atender",
-                "Selecciona una o varias y usa 'Resolver seleccionadas' para cerrarlas"
+                "Se generan automáticamente: bienes agotados, bajo stock y garantías por vencer",
+                "El badge rojo en el sidebar muestra cuántas alertas activas hay sin atender",
+                "Usa 'Reponer' en cada sección para registrar una entrada y limpiar la alerta"
             }),
 
             // ── Reportes ─────────────────────────────────────────────────────────
@@ -139,15 +163,15 @@ public final class TutorialOverlay {
                 "Atajos de Teclado", "F1", null, new String[]{
                 "Ctrl+1…9 navega entre módulos; Ctrl+0 abre Auditoría (solo admin)",
                 "Ctrl+F busca en la tabla activa · F5 actualiza · Ctrl+N crea nuevo registro",
-                "En tablas: Ctrl+E edita la fila seleccionada · Supr elimina · F1 abre esta lista"
+                "En tablas: Ctrl+E edita la fila seleccionada · Supr elimina · F2 reabre el tutorial"
             }),
 
             // ── Primeros pasos: cierre accionable ────────────────────────────────
             new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
                 "¡Listo para empezar!", null, "dashboard", new String[]{
-                "① Crea tus categorías (Ctrl+4) — la base de todo el inventario",
-                "② Da de alta tu primer bien con código y área asignada (Ctrl+3 → Ctrl+N)",
-                "③ Registra el primer movimiento de entrada para tener trazabilidad desde hoy"
+                "① Crea categorías (Ctrl+4), da de alta bienes (Ctrl+3 → Ctrl+N) y registra la primera entrada",
+                "② Asigna resguardos a los responsables y documenta préstamos temporales",
+                "③ F2 en cualquier momento reabre este tutorial · F1 muestra todos los atajos"
             })
         ));
 
@@ -170,7 +194,7 @@ public final class TutorialOverlay {
     public static void showIfFirstTime(StackPane outerStack) {
         String username = SessionManager.getCurrentUser() != null
             ? SessionManager.getCurrentUser().getUsername() : "unknown";
-        String key = "tutorial.v5." + username;
+        String key = "tutorial.v6." + username;
         if (PREFS.getBoolean(key, false)) return;
         PREFS.putBoolean(key, true);
         javafx.application.Platform.runLater(() -> buildAndShow(outerStack));

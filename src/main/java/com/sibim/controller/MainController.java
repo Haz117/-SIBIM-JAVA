@@ -430,7 +430,10 @@ public class MainController {
 
     /** Navigate programmatically by view name — used by TutorialOverlay. */
     public void navigateToView(String view) {
-        if ("auditoria".equals(view)) { navigateTo(view, btnAuditoria); return; }
+        if ("auditoria".equals(view))  { navigateTo(view, btnAuditoria);  return; }
+        if ("resguardos".equals(view)) { navigateTo(view, btnResguardos); return; }
+        if ("prestamos".equals(view))  { navigateTo(view, btnPrestamos);  return; }
+        if ("actas".equals(view))      { navigateTo(view, btnActas);      return; }
         navigateTo(view, resolveNavigationButton(view,
             btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
             btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
@@ -439,7 +442,10 @@ public class MainController {
 
     /** Return the sidebar Button for a given view — used by TutorialOverlay for ring positioning. */
     public Button getNavButton(String view) {
-        if ("auditoria".equals(view)) return btnAuditoria;
+        if ("auditoria".equals(view))  return btnAuditoria;
+        if ("resguardos".equals(view)) return btnResguardos;
+        if ("prestamos".equals(view))  return btnPrestamos;
+        if ("actas".equals(view))      return btnActas;
         return resolveNavigationButton(view,
             btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
             btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
