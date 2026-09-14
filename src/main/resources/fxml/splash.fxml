@@ -44,7 +44,7 @@
     </VBox>
 
     <!-- Version watermark -->
-    <Label text="SIBIM  v1.0" styleClass="splash-version"
+    <Label text="SIBIM  v12.3.5" styleClass="splash-version"
            StackPane.alignment="BOTTOM_RIGHT"/>
 
 </StackPane>
