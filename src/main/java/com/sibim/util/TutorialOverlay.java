@@ -53,7 +53,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Dashboard ────────────────────────────────────────────────────────
-            new Step("mdi2v-view-dashboard-outline", "#0EA5E9", "#0369A1",
+            new Step("mdi2v-view-dashboard-outline", "#2563EB", "#1D4ED8",
                 "Dashboard", "Ctrl + 1", "dashboard", new String[]{
                 "Los recuadros de estadísticas son clicables — llevan directo al módulo",
                 "Haz clic en un segmento de la gráfica para filtrar Bienes por esa categoría",
