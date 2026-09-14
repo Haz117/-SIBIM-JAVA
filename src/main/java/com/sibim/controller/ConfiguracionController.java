@@ -164,8 +164,16 @@ public class ConfiguracionController {
         }
 
         if (isAdmin) {
-            buildEmailSection();
-            buildSchedulerSection();
+            AppExecutor.submit(() -> {
+                java.util.Map<String, String> cfg;
+                try { cfg = configRepo.findAll(); }
+                catch (Exception e) { cfg = java.util.Map.of(); }
+                final var cfgFinal = cfg;
+                javafx.application.Platform.runLater(() -> {
+                    buildEmailSection(cfgFinal);
+                    buildSchedulerSection(cfgFinal);
+                });
+            });
         }
 
         if (isAdmin) {
@@ -230,7 +238,7 @@ public class ConfiguracionController {
 
     // ── Email settings section ────────────────────────────────────────────
 
-    private void buildEmailSection() {
+    private void buildEmailSection(java.util.Map<String, String> cfg) {
         if (backupSection == null || !(backupSection.getParent() instanceof VBox rootVBox)) return;
 
         VBox emailCard = new VBox(12);
@@ -245,33 +253,33 @@ public class ConfiguracionController {
         titleRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         CheckBox chkHabilitado = new CheckBox("Activar alertas por email");
-        chkHabilitado.setSelected("true".equals(configRepo.get("alertas_email_habilitado", "false")));
+        chkHabilitado.setSelected("true".equals(cfg.getOrDefault("alertas_email_habilitado", "false")));
 
         GridPane grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(8);
 
         Label lSmtpHost = new Label("Servidor SMTP");
-        TextField tfSmtpHost = new TextField(configRepo.get("smtp_host", ""));
+        TextField tfSmtpHost = new TextField(cfg.getOrDefault("smtp_host", ""));
         tfSmtpHost.setPromptText("smtp.gmail.com");
         GridPane.setHgrow(tfSmtpHost, Priority.ALWAYS);
 
         Label lSmtpPort = new Label("Puerto");
-        TextField tfSmtpPort = new TextField(configRepo.get("smtp_port", "587"));
+        TextField tfSmtpPort = new TextField(cfg.getOrDefault("smtp_port", "587"));
         tfSmtpPort.setPrefWidth(80);
 
         Label lSmtpUser = new Label("Usuario SMTP");
-        TextField tfSmtpUser = new TextField(configRepo.get("smtp_usuario", ""));
+        TextField tfSmtpUser = new TextField(cfg.getOrDefault("smtp_usuario", ""));
         tfSmtpUser.setPromptText("tu@correo.com");
         GridPane.setHgrow(tfSmtpUser, Priority.ALWAYS);
 
         Label lSmtpPass = new Label("Contraseña SMTP");
         PasswordField tfSmtpPass = new PasswordField();
-        tfSmtpPass.setText(configRepo.get("smtp_password", ""));
+        tfSmtpPass.setText(cfg.getOrDefault("smtp_password", ""));
         GridPane.setHgrow(tfSmtpPass, Priority.ALWAYS);
 
         Label lDest = new Label("Correo destino");
-        TextField tfDest = new TextField(configRepo.get("alertas_correo_destino", ""));
+        TextField tfDest = new TextField(cfg.getOrDefault("alertas_correo_destino", ""));
         tfDest.setPromptText("alertas@municipio.gob.mx");
         GridPane.setHgrow(tfDest, Priority.ALWAYS);
 
@@ -339,7 +347,7 @@ public class ConfiguracionController {
 
     // ── Scheduled reports section ─────────────────────────────────────────
 
-    private void buildSchedulerSection() {
+    private void buildSchedulerSection(java.util.Map<String, String> cfg) {
         if (backupSection == null || !(backupSection.getParent() instanceof VBox rootVBox)) return;
 
         VBox schedCard = new VBox(12);
@@ -354,7 +362,7 @@ public class ConfiguracionController {
         titleRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         CheckBox chkHabilitado = new CheckBox("Activar reportes programados");
-        chkHabilitado.setSelected("true".equals(configRepo.get("reportes_habilitado", "false")));
+        chkHabilitado.setSelected("true".equals(cfg.getOrDefault("reportes_habilitado", "false")));
 
         GridPane grid = new GridPane();
         grid.setHgap(12);
@@ -363,10 +371,10 @@ public class ConfiguracionController {
         Label lFrec = new Label("Frecuencia");
         ComboBox<String> cbFrecuencia = new ComboBox<>();
         cbFrecuencia.getItems().addAll("DIARIO", "SEMANAL", "MENSUAL");
-        cbFrecuencia.setValue(configRepo.get("reportes_frecuencia", "MENSUAL"));
+        cbFrecuencia.setValue(cfg.getOrDefault("reportes_frecuencia", "MENSUAL"));
 
         Label lCarpeta = new Label("Carpeta destino");
-        TextField tfCarpeta = new TextField(configRepo.get("reportes_carpeta", ""));
+        TextField tfCarpeta = new TextField(cfg.getOrDefault("reportes_carpeta", ""));
         tfCarpeta.setPromptText("/ruta/a/carpeta");
         GridPane.setHgrow(tfCarpeta, Priority.ALWAYS);
         Button btnExaminar = new Button("Examinar…");
@@ -382,7 +390,7 @@ public class ConfiguracionController {
         HBox.setHgrow(tfCarpeta, Priority.ALWAYS);
 
         Label lTipos = new Label("Tipos de reporte");
-        String tiposGuardados = configRepo.get("reportes_tipos", "INVENTARIO");
+        String tiposGuardados = cfg.getOrDefault("reportes_tipos", "INVENTARIO");
         CheckBox chkInventario  = new CheckBox("Inventario");
         CheckBox chkMovimientos = new CheckBox("Movimientos");
         CheckBox chkAlertas     = new CheckBox("Alertas");
@@ -391,7 +399,7 @@ public class ConfiguracionController {
         chkAlertas.setSelected(tiposGuardados.contains("ALERTAS"));
         HBox tiposRow = new HBox(14, chkInventario, chkMovimientos, chkAlertas);
 
-        String ultimaEjec = configRepo.get("reportes_ultima_ejecucion", "");
+        String ultimaEjec = cfg.getOrDefault("reportes_ultima_ejecucion", "");
         Label lblUltima = new Label("Último reporte generado: " + (ultimaEjec.isBlank() ? "Nunca" : ultimaEjec));
         lblUltima.getStyleClass().add("muted-sm");
 
