@@ -252,7 +252,7 @@
     -fx-border-color: #E2E8F0;
     -fx-border-radius: 10;
     -fx-border-width: 1;
-    -fx-padding: 10 10;
+    -fx-padding: 8 10;
 }
 .user-avatar {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
@@ -2362,6 +2362,11 @@
 }
 .page-scroll-inner > .viewport { -fx-background-color: transparent; }
 
+/* Wraps tall dialog content (see DialogUtil.setScrollableContent) so it
+   scrolls instead of growing the dialog past the screen's visible height. */
+.dialog-scroll { -fx-background-color: transparent; -fx-border-color: transparent; }
+.dialog-scroll > .viewport { -fx-background-color: transparent; }
+
 /* ═══════════════════════════════════════════════════════════════════
    DIALOG — stock preview widget (Movimientos) & product detail (Productos)
    ═══════════════════════════════════════════════════════════════════ */
@@ -3958,6 +3963,19 @@
 /* ─── Resguardos / Préstamos / Actas — slate stat card ─── */
 .rich-stat-slate { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #f8fafc, #f1f5f9); -fx-border-color: #CBD5E1; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
 .rich-stat-icon-badge-slate { -fx-background-color: #64748B; -fx-background-radius: 10px; }
+
+/* ─── Tinted stat-card backgrounds for the other rich-stat-icon-badge-*
+   colors — these were referenced as a second styleClass (e.g.
+   "rich-stat-card, rich-stat-indigo") across Movimientos, Productos,
+   Organigrama, Categorías, Depreciación, Resguardos, Préstamos and Actas,
+   but only .rich-stat-rose/.rich-stat-slate existed, so every other card
+   silently fell back to plain white instead of getting its color tint. ─── */
+.rich-stat-indigo { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #eef2ff, #e0e7ff); -fx-border-color: #a5b4fc; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
+.rich-stat-teal   { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #ecfeff, #cffafe); -fx-border-color: #67e8f9; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
+.rich-stat-amber  { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fffbeb, #fef3c7); -fx-border-color: #fcd34d; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
+.rich-stat-green  { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #f0fdf4, #dcfce7); -fx-border-color: #86efac; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
+.rich-stat-purple { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #faf5ff, #f3e8ff); -fx-border-color: #d8b4fe; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
+.rich-stat-red    { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fef2f2, #fee2e2); -fx-border-color: #fca5a5; -fx-border-width: 1px; -fx-border-radius: 12px; -fx-background-radius: 12px; }
 
 /* ─── Table density toggle ─── */
 .density-btn {

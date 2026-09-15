@@ -133,7 +133,7 @@
         </VBox>
 
         <!-- ── Movimientos — teal ── -->
-        <VBox styleClass="report-card report-card-teal" spacing="10"
+        <VBox styleClass="report-card, report-card-teal" spacing="10"
               GridPane.columnIndex="1" GridPane.rowIndex="0">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
@@ -166,7 +166,7 @@
         </VBox>
 
         <!-- ── Alertas de Stock — amber ── -->
-        <VBox styleClass="report-card report-card-amber" spacing="10"
+        <VBox styleClass="report-card, report-card-amber" spacing="10"
               GridPane.columnIndex="0" GridPane.rowIndex="1">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
@@ -199,7 +199,7 @@
         </VBox>
 
         <!-- ── Distribución por Área — emerald ── -->
-        <VBox styleClass="report-card report-card-green" spacing="10"
+        <VBox styleClass="report-card, report-card-green" spacing="10"
               GridPane.columnIndex="1" GridPane.rowIndex="1">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
@@ -232,7 +232,7 @@
         </VBox>
 
         <!-- ── Bienes Dados de Baja — slate ── -->
-        <VBox styleClass="report-card report-card-slate" spacing="10"
+        <VBox styleClass="report-card, report-card-slate" spacing="10"
               GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2">
             <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
