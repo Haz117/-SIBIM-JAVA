@@ -53,15 +53,15 @@ public class ReporteService {
         this.configRepo     = configRepo;
     }
 
-    private String orgName() {
+    protected String orgName() {
         String org = configRepo.get("nombre_ayuntamiento", "");
         String mun = configRepo.get("municipio", "");
         if (org.isBlank()) return "SIBIM — Sistema Integral de Bienes Municipales";
         return mun.isBlank() ? org : org + "  ·  " + mun;
     }
 
-    private static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
+    protected static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int MAX_EXPORT_ROWS = 50_000;
 
     private static <T> List<T> guardExportSize(List<T> rows, String entidad) throws Exception {
@@ -592,7 +592,7 @@ public class ReporteService {
 
     // ───────────────────────────── Helpers ─────────────────────────────
 
-    private File tempFile(String prefix, String suffix) throws IOException {
+    protected File tempFile(String prefix, String suffix) throws IOException {
         File file = File.createTempFile("sibim_" + prefix + "_", suffix);
         // These files get handed to an external viewer via Desktop.open()
         // right after creation, so they can't be deleted immediately —
@@ -601,7 +601,7 @@ public class ReporteService {
         return file;
     }
 
-    private Sheet createSheet(Workbook wb, String name) {
+    protected Sheet createSheet(Workbook wb, String name) {
         return wb.createSheet(name);
     }
 
@@ -629,7 +629,7 @@ public class ReporteService {
         info.autoSizeColumn(1);
     }
 
-    private void writeHeader(Sheet sheet, String[] headers, Workbook wb) {
+    protected void writeHeader(Sheet sheet, String[] headers, Workbook wb) {
         CellStyle style = wb.createCellStyle();
         Font font = wb.createFont();
         font.setBold(true);
@@ -644,7 +644,7 @@ public class ReporteService {
         }
     }
 
-    private void autosizeColumns(Sheet sheet, int count) {
+    protected void autosizeColumns(Sheet sheet, int count) {
         for (int i = 0; i < count; i++) {
             sheet.autoSizeColumn(i);
         }
@@ -658,7 +658,7 @@ public class ReporteService {
         r.createCell(4).setCellValue(p.getEstado().getEtiqueta());
     }
 
-    private void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta) throws IOException {
+    protected void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta) throws IOException {
         PdfFont titleFont   = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         Table header = new Table(1).useAllAvailableWidth();
@@ -687,7 +687,7 @@ public class ReporteService {
         }
     }
 
-    private Table createPdfTable(String[] headers, float[] widths) throws IOException {
+    protected Table createPdfTable(String[] headers, float[] widths) throws IOException {
         Table table = new Table(widths).useAllAvailableWidth();
         PdfFont hFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         for (String h : headers) {
@@ -700,7 +700,7 @@ public class ReporteService {
         return table;
     }
 
-    private void addPdfFooter(Document doc, int count) throws IOException {
+    protected void addPdfFooter(Document doc, int count) throws IOException {
         PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
         String user = u != null ? u.getNombre() : "—";
@@ -804,7 +804,7 @@ public class ReporteService {
      *  qualified: "Cell" bare would resolve to POI's org.apache.poi.ss.
      *  usermodel.Cell via the wildcard import used by the Excel export code
      *  below, not itext7's com.itextpdf.layout.element.Cell. */
-    private static com.itextpdf.layout.element.Cell cell(String text) {
+    protected static com.itextpdf.layout.element.Cell cell(String text) {
         return new com.itextpdf.layout.element.Cell().add(new Paragraph(text == null ? "" : text));
     }
 
@@ -1095,238 +1095,12 @@ public class ReporteService {
         return out;
     }
 
-    private static String itemEstadoLabel(String code) {
-        return switch (code != null ? code : "ENCONTRADO") {
-            case "MAL_ESTADO"   -> "Mal estado";
-            case "EN_OTRA_AREA" -> "En otra área";
-            case "FALTANTE"     -> "Faltante";
-            default             -> "Encontrado";
-        };
-    }
-
-    /** Exports a physical inventory count session to a formatted PDF report. */
-    public File exportarConteoPdf(com.sibim.model.ConteoFisico c,
-                                   List<com.sibim.model.ConteoItem> items) throws Exception {
-        File out = tempFile("conteo_fisico_", ".pdf");
-        try (PdfWriter writer = new PdfWriter(out);
-             PdfDocument pdf = new PdfDocument(writer);
-             Document doc = new Document(pdf, PageSize.LETTER.rotate())) {
-
-            doc.setMargins(50, 50, 60, 50);
-            PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-            PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-            DeviceRgb accent = new DeviceRgb(8, 145, 178);
-
-            // Header
-            doc.add(new Paragraph("REPORTE DE CONTEO FÍSICO DE INVENTARIO")
-                .setFont(bold).setFontSize(15)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            doc.add(new Paragraph(orgName())
-                .setFont(regular).setFontSize(11)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setMarginBottom(3));
-
-            String fechaStr = c.getCreadoEn() != null
-                ? com.sibim.util.FormatUtils.formatDateTime(c.getCreadoEn()) : "—";
-            doc.add(new Paragraph(
-                    "Fecha: " + fechaStr
-                    + "    |    Realizado por: " + (c.getUsuarioNombre() != null ? c.getUsuarioNombre() : "—")
-                    + "    |    Bienes: " + c.getTotalContados()
-                    + "    |    Discrepancias: " + c.getTotalDiscrepancias())
-                .setFont(regular).setFontSize(10)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setMarginBottom(16));
-
-            // Summary badge
-            boolean sinDiff = c.getTotalDiscrepancias() == 0;
-            String statusText = sinDiff
-                ? "INVENTARIO CONFORME — Sin diferencias detectadas"
-                : c.getTotalDiscrepancias() + " diferencia(s) detectada(s) y registrada(s) como ajustes";
-            doc.add(new Paragraph(statusText)
-                .setFont(bold).setFontSize(10)
-                .setFontColor(sinDiff ? new DeviceRgb(5, 150, 105) : new DeviceRgb(217, 119, 6))
-                .setMarginBottom(14));
-
-            // Items table — landscape fits 8 columns comfortably
-            float[] widths = {3.0f, 1.2f, 0.8f, 0.8f, 0.7f, 1.0f, 1.2f, 2.5f};
-            Table table = new Table(widths).useAllAvailableWidth();
-            String[] headers = {"Bien / Área", "Código", "Sistema", "Contado", "Diff.", "Estado", "Incidencia", "Observación"};
-            for (String h : headers) {
-                table.addHeaderCell(new com.itextpdf.layout.element.Cell()
-                    .add(new Paragraph(h).setFont(bold).setFontSize(9).setFontColor(ColorConstants.WHITE))
-                    .setBackgroundColor(accent).setPadding(5));
-            }
-            boolean alt = false;
-            for (com.sibim.model.ConteoItem it : items) {
-                DeviceRgb rowBg = alt ? new DeviceRgb(243, 244, 246) : new DeviceRgb(255, 255, 255);
-                int diff = it.getStockContado() - it.getStockSistema();
-                String diffStr    = diff == 0 ? "—" : (diff > 0 ? "+" + diff : String.valueOf(diff));
-                String status     = diff == 0 ? "OK" : (it.isAjustado() ? "Ajustado" : "Pendiente");
-                String incidencia = itemEstadoLabel(it.getEstadoConteo());
-                String nota       = it.getNota() != null ? it.getNota() : "";
-                String[] cells = {
-                    it.getProductoNombre() + (it.getArea() != null ? "\n" + it.getArea() : ""),
-                    it.getProductoCodigo() != null ? it.getProductoCodigo() : "",
-                    String.valueOf(it.getStockSistema()),
-                    String.valueOf(it.getStockContado()),
-                    diffStr,
-                    status,
-                    incidencia,
-                    nota
-                };
-                for (String cellVal : cells) {
-                    table.addCell(new com.itextpdf.layout.element.Cell()
-                        .add(new Paragraph(cellVal != null ? cellVal : "").setFont(regular).setFontSize(8))
-                        .setBackgroundColor(rowBg).setPadding(4));
-                }
-                alt = !alt;
-            }
-            doc.add(table);
-
-            doc.add(new Paragraph("\nTotal de bienes contados: " + c.getTotalContados()
-                    + "    |    Discrepancias: " + c.getTotalDiscrepancias())
-                .setFont(bold).setFontSize(10).setMarginTop(12));
-            doc.add(new Paragraph("\n\n\n_______________________________          _______________________________")
-                .setFont(regular).setFontSize(10)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            doc.add(new Paragraph("Firma del responsable de conteo                   Vo.Bo. Administrador")
-                .setFont(regular).setFontSize(9)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-        }
-        return out;
-    }
-
-    /** Generates a structured organigrama PDF — one section per area with bienes table. */
-    public File exportOrganigrama(Map<String, List<Producto>> porArea) throws Exception {
-        File file = tempFile("organigrama_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
-        String generadoEn = com.sibim.util.FormatUtils.formatDateTime(LocalDateTime.now());
-
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdf = new PdfDocument(writer);
-             Document doc = new Document(pdf, com.itextpdf.kernel.geom.PageSize.A4)) {
-
-            doc.setMargins(0, 36, 36, 36);
-
-            PdfFont regular = PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
-            PdfFont bold    = PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD);
-
-            DeviceRgb indigo  = new DeviceRgb(79,  70, 229);
-            DeviceRgb dark    = new DeviceRgb(17,  24,  39);
-            DeviceRgb muted   = new DeviceRgb(107, 114, 128);
-            DeviceRgb bgLight = new DeviceRgb(238, 242, 255);
-            DeviceRgb bgAlt   = new DeviceRgb(245, 247, 255);
-            DeviceRgb white   = new DeviceRgb(255, 255, 255);
-
-            // ── Header band ────────────────────────────────────────────
-            Table header = new Table(new float[]{1f}).useAllAvailableWidth();
-            header.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(orgName().toUpperCase())
-                    .setFont(bold).setFontSize(9f).setFontColor(white).setMargin(0))
-                .add(new Paragraph("ORGANIGRAMA DE BIENES MUNICIPALES")
-                    .setFont(bold).setFontSize(15f).setFontColor(white).setMarginTop(2).setMarginBottom(2))
-                .add(new Paragraph("Distribución de bienes patrimoniales por secretaría y dirección — " + generadoEn)
-                    .setFont(regular).setFontSize(8.5f).setFontColor(bgLight).setMargin(0))
-                .setBackgroundColor(indigo).setPadding(18)
-                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
-            doc.add(header);
-            doc.add(spacer(14));
-
-            // ── Summary stats ──────────────────────────────────────────
-            int totalAreas  = porArea.size();
-            int totalBienes = porArea.values().stream().mapToInt(List::size).sum();
-            double totalValor = porArea.values().stream()
-                .flatMap(List::stream)
-                .mapToDouble(p -> {
-                    java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
-                    return v.doubleValue() * p.getStockActual();
-                })
-                .sum();
-
-            Table statsTable = new Table(new float[]{1f, 1f, 1f}).useAllAvailableWidth();
-            for (String[] stat : new String[][]{
-                    {"Áreas con bienes",   String.valueOf(totalAreas)},
-                    {"Total de bienes",    String.valueOf(totalBienes)},
-                    {"Valor patrimonial",  FormatUtils.formatCurrency(java.math.BigDecimal.valueOf(totalValor))}}) {
-                statsTable.addCell(new com.itextpdf.layout.element.Cell()
-                    .add(new Paragraph(stat[0]).setFont(regular).setFontSize(8f).setFontColor(muted).setMarginBottom(2))
-                    .add(new Paragraph(stat[1]).setFont(bold).setFontSize(13f).setFontColor(dark))
-                    .setBackgroundColor(bgLight).setPadding(12)
-                    .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
-            }
-            doc.add(statsTable);
-            doc.add(spacer(16));
-
-            // ── One section per area ────────────────────────────────────
-            List<String> areas = new java.util.ArrayList<>(porArea.keySet());
-            java.util.Collections.sort(areas);
-
-            for (String area : areas) {
-                List<Producto> bienes = porArea.get(area);
-                int cnt = bienes.size();
-                double valorArea = bienes.stream()
-                    .mapToDouble(p -> {
-                        java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
-                        return v.doubleValue() * p.getStockActual();
-                    })
-                    .sum();
-
-                // Area header row
-                Table areaHeader = new Table(new float[]{1f}).useAllAvailableWidth();
-                areaHeader.addCell(new com.itextpdf.layout.element.Cell()
-                    .add(new Paragraph(area.toUpperCase())
-                        .setFont(bold).setFontSize(9.5f).setFontColor(indigo).setMargin(0))
-                    .add(new Paragraph(cnt + " bien" + (cnt != 1 ? "es" : "") +
-                            (valorArea > 0 ? "  ·  Valor: " + FormatUtils.formatCurrency(java.math.BigDecimal.valueOf(valorArea)) : ""))
-                        .setFont(regular).setFontSize(8f).setFontColor(muted).setMarginTop(1).setMarginBottom(0))
-                    .setBackgroundColor(bgLight).setPadding(8)
-                    .setBorderLeft(new com.itextpdf.layout.borders.SolidBorder(indigo, 3))
-                    .setBorderTop(com.itextpdf.layout.borders.Border.NO_BORDER)
-                    .setBorderRight(com.itextpdf.layout.borders.Border.NO_BORDER)
-                    .setBorderBottom(com.itextpdf.layout.borders.Border.NO_BORDER));
-                doc.add(areaHeader);
-
-                // Bienes table
-                Table t = createPdfTable(
-                    new String[]{"Nombre del bien", "Código", "Categoría", "Estado", "Stock", "Valor compra"},
-                    new float[]{3f, 1.2f, 1.6f, 1f, 0.7f, 1.4f});
-                for (int i = 0; i < bienes.size(); i++) {
-                    Producto p = bienes.get(i);
-                    DeviceRgb bg = (i % 2 == 1) ? bgAlt : white;
-                    String[] vals = {
-                        p.getNombre() != null ? p.getNombre() : "—",
-                        p.getCodigo() != null ? p.getCodigo() : "—",
-                        p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—",
-                        p.getEstado() != null ? p.getEstado().getEtiqueta() : "—",
-                        String.valueOf(p.getStockActual()),
-                        p.getPrecioCompra() != null ? FormatUtils.formatCurrency(p.getPrecioCompra()) : "—"
-                    };
-                    for (String v : vals) {
-                        t.addCell(new com.itextpdf.layout.element.Cell()
-                            .add(new Paragraph(v).setFont(regular).setFontSize(8f))
-                            .setBackgroundColor(bg).setPadding(5)
-                            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
-                    }
-                }
-                doc.add(t);
-                doc.add(spacer(12));
-            }
-
-            // ── Footer ──────────────────────────────────────────────────
-            doc.add(spacer(8));
-            doc.add(new Paragraph(
-                "SIBIM — Sistema Integral de Bienes Municipales  |  " + orgName() + "  |  " + generadoEn)
-                .setFont(regular).setFontSize(7.5f).setFontColor(muted)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-        }
-        return file;
-    }
-
-    private Paragraph sectionTitle(String text, PdfFont bold, DeviceRgb color) {
+    protected Paragraph sectionTitle(String text, PdfFont bold, DeviceRgb color) {
         return new Paragraph(text).setFont(bold).setFontSize(8.5f).setFontColor(color)
             .setMarginBottom(3).setMarginTop(0);
     }
 
-    private void addRow(Table table, String key, String value,
+    protected void addRow(Table table, String key, String value,
             PdfFont bold, PdfFont regular, DeviceRgb muted, DeviceRgb bgAlt, boolean alt) {
         DeviceRgb bg = alt ? bgAlt : new DeviceRgb(255, 255, 255);
         table.addCell(new com.itextpdf.layout.element.Cell()
@@ -1339,134 +1113,14 @@ public class ReporteService {
             .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
     }
 
-    private static com.itextpdf.layout.element.Cell cellSm(String text, PdfFont font) {
+    protected static com.itextpdf.layout.element.Cell cellSm(String text, PdfFont font) {
         return new com.itextpdf.layout.element.Cell()
             .add(new Paragraph(text == null ? "" : text).setFont(font).setFontSize(8f))
             .setPadding(4);
     }
 
-    private static Paragraph spacer(float size) {
+    protected static Paragraph spacer(float size) {
         return new Paragraph("").setFontSize(size).setMarginBottom(0).setMarginTop(0);
-    }
-
-    /** Flat CSV — one row per bien — from the already-filtered map that
-     *  OrganigramaController holds in memory (no extra DB call). */
-    public File exportOrganigramaCsv(Map<String, List<Producto>> porArea) throws Exception {
-        File file = tempFile("organigrama_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".csv");
-        try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(file, java.nio.charset.StandardCharsets.UTF_8))) {
-            pw.println("﻿" + "Área,Nombre,Código,Categoría,Stock actual,Estado,Valor compra");
-            for (Map.Entry<String, List<Producto>> e : porArea.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey()).toList()) {
-                for (Producto p : e.getValue()) {
-                    pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\",%.2f%n",
-                        esc(e.getKey()),
-                        esc(p.getNombre()),
-                        esc(p.getCodigo()),
-                        esc(p.getCategoriaNombre()),
-                        p.getStockActual(),
-                        p.getEstado() != null ? p.getEstado().name() : "",
-                        p.getPrecioCompra() != null ? p.getPrecioCompra() : java.math.BigDecimal.ZERO);
-                }
-            }
-        }
-        return file;
-    }
-
-    // ─────────────────────────── CONTEO FÍSICO PDF ──────────────────────────
-
-    public File exportConteoPdf(String titulo, String usuario,
-                                List<com.sibim.model.ConteoItem> items) throws Exception {
-        File file = tempFile("conteo_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-
-            PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-
-            Table headerTable = new Table(1).useAllAvailableWidth();
-            com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph("Conteo Físico — " + (titulo != null ? titulo : ""))
-                    .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD))
-                    .setFontSize(15).setFontColor(ColorConstants.WHITE))
-                .add(new Paragraph(LocalDate.now().format(FMT) + " · " + (usuario != null ? usuario : ""))
-                    .setFont(regularFont).setFontSize(9)
-                    .setFontColor(new DeviceRgb(200, 210, 240)));
-            headerCell.setBackgroundColor(COLOR_HEADER).setPadding(12);
-            headerTable.addCell(headerCell);
-            doc.add(headerTable);
-
-            String[] headers = {"Código", "Nombre", "Área", "Sistema", "Contado", "Diferencia", "Estado", "Nota"};
-            float[] widths = {1.5f, 3f, 2f, 1f, 1f, 1f, 1.5f, 2f};
-            Table table = createPdfTable(headers, widths);
-
-            DeviceRgb redCell = new DeviceRgb(220, 38, 38);
-
-            for (com.sibim.model.ConteoItem item : items) {
-                int diff = item.getStockContado() - item.getStockSistema();
-                boolean hasDiff = diff != 0;
-
-                table.addCell(cell(item.getProductoCodigo() != null ? item.getProductoCodigo() : ""));
-                table.addCell(cell(item.getProductoNombre() != null ? item.getProductoNombre() : ""));
-                table.addCell(cell(item.getArea() != null ? item.getArea() : ""));
-                table.addCell(cell(String.valueOf(item.getStockSistema())));
-                table.addCell(cell(String.valueOf(item.getStockContado())));
-
-                com.itextpdf.layout.element.Cell diffCell = new com.itextpdf.layout.element.Cell()
-                    .add(new Paragraph((diff > 0 ? "+" : "") + diff).setFont(regularFont).setFontSize(9));
-                if (hasDiff) diffCell.setFontColor(redCell);
-                table.addCell(diffCell);
-
-                table.addCell(cell(item.getEstadoConteo() != null ? item.getEstadoConteo() : (hasDiff ? "DIFERENCIA" : "OK")));
-                table.addCell(cell(item.getNota() != null ? item.getNota() : ""));
-            }
-            doc.add(table);
-            addPdfFooter(doc, items.size());
-        }
-        return file;
-    }
-
-    public File exportConteoExcel(String titulo, String usuario,
-                                  List<com.sibim.model.ConteoItem> items) throws Exception {
-        String[] headers = {"Código", "Nombre", "Área", "Sistema", "Contado", "Diferencia", "Estado", "Nota"};
-        File file = tempFile("conteo", ".xlsx");
-        try (Workbook wb = new XSSFWorkbook()) {
-            Sheet sheet = createSheet(wb, "Conteo Físico");
-            writeHeader(sheet, headers, wb);
-
-            CellStyle yellowStyle = wb.createCellStyle();
-            yellowStyle.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
-            yellowStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
-            int rowIdx = 1;
-            for (com.sibim.model.ConteoItem it : items) {
-                Row r = sheet.createRow(rowIdx++);
-                int delta = it.getDelta();
-                boolean hasDiff = it.isDiscrepancia();
-                r.createCell(0).setCellValue(it.getProductoCodigo() != null ? it.getProductoCodigo() : "");
-                r.createCell(1).setCellValue(it.getProductoNombre() != null ? it.getProductoNombre() : "");
-                r.createCell(2).setCellValue(it.getArea() != null ? it.getArea() : "");
-                r.createCell(3).setCellValue(it.getStockSistema());
-                r.createCell(4).setCellValue(it.getStockContado());
-                r.createCell(5).setCellValue(delta);
-                r.createCell(6).setCellValue(hasDiff ? (it.isAjustado() ? "Ajustado" : "Con diferencia") : "Correcto");
-                r.createCell(7).setCellValue(it.getNota() != null ? it.getNota() : "");
-                if (hasDiff)
-                    for (int i = 0; i < headers.length; i++) r.getCell(i).setCellStyle(yellowStyle);
-            }
-            autosizeColumns(sheet, headers.length);
-
-            Sheet info = wb.createSheet("_Info");
-            info.createRow(0).createCell(0).setCellValue("Título");
-            info.getRow(0).createCell(1).setCellValue(titulo != null ? titulo : "Conteo Físico");
-            info.createRow(1).createCell(0).setCellValue("Usuario");
-            info.getRow(1).createCell(1).setCellValue(usuario != null ? usuario : "—");
-            info.createRow(2).createCell(0).setCellValue("Fecha");
-            info.getRow(2).createCell(1).setCellValue(LocalDate.now().format(FMT));
-            info.autoSizeColumn(0); info.autoSizeColumn(1);
-
-            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
-        }
-        return file;
     }
 
     // ─────────────────────────── BIENES DADOS DE BAJA ──────────────────────────
@@ -1548,7 +1202,7 @@ public class ReporteService {
         return file;
     }
 
-    private String esc(String s) {
+    protected String esc(String s) {
         if (s == null) return "";
         return s.replace("\"", "\"\"");
     }

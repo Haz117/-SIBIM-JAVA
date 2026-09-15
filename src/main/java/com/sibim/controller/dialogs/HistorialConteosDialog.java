@@ -3,7 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.repository.ConteoRepository;
-import com.sibim.service.ReporteService;
+import com.sibim.service.ReporteConteoService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
@@ -251,7 +251,7 @@ public final class HistorialConteosDialog {
         AppExecutor.submit(() -> {
             try {
                 List<ConteoItem> items = new ConteoRepository().findItems(c.getId());
-                File pdf = new ReporteService().exportarConteoPdf(c, items);
+                File pdf = new ReporteConteoService().exportarConteoPdf(c, items);
                 javafx.application.Platform.runLater(() -> {
                     btnExport.setDisable(false);
                     btnExport.setText("PDF");

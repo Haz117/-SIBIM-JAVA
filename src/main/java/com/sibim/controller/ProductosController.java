@@ -972,42 +972,24 @@ public class ProductosController {
 
     @FXML
     private void onExportCsv() {
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
-            () -> reporteService.exportInventarioCsv(null, null),
-            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
-            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportCsv)
-        );
+        ProductosExporter.exportCsv(table.getScene(), reporteService, this::onExportCsv);
     }
 
     @FXML
     private void onExportExcel() {
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
-            () -> reporteService.exportInventarioExcel(null, null),
-            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
-            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportExcel)
-        );
+        ProductosExporter.exportExcel(table.getScene(), reporteService, this::onExportExcel);
     }
 
     @FXML
     private void onExportSeleccionCsv() {
-        List<Producto> seleccion = List.copyOf(table.getSelectionModel().getSelectedItems());
-        if (seleccion.isEmpty()) return;
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando CSV…",
-            () -> reporteService.exportInventarioCsv(seleccion),
-            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
-            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el CSV", "Reintentar", this::onExportSeleccionCsv)
-        );
+        ProductosExporter.exportSeleccionCsv(table.getScene(),
+            List.copyOf(table.getSelectionModel().getSelectedItems()), reporteService, this::onExportSeleccionCsv);
     }
 
     @FXML
     private void onExportSeleccionExcel() {
-        List<Producto> seleccion = List.copyOf(table.getSelectionModel().getSelectedItems());
-        if (seleccion.isEmpty()) return;
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando Excel…",
-            () -> reporteService.exportInventarioExcel(seleccion),
-            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
-            e -> NotificacionUtil.errorConAccion(table.getScene(), "No se pudo exportar el Excel", "Reintentar", this::onExportSeleccionExcel)
-        );
+        ProductosExporter.exportSeleccionExcel(table.getScene(),
+            List.copyOf(table.getSelectionModel().getSelectedItems()), reporteService, this::onExportSeleccionExcel);
     }
 
     // ── Bulk actions ─────────────────────────────────────────────────────────
@@ -1047,81 +1029,30 @@ public class ProductosController {
     private void onBulkCambiarArea() {
         List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
         if (sel.size() < 2 || !canEdit) return;
-        var areaNames = new java.util.ArrayList<>(Areas.getAllAreaNames());
-        ChoiceDialog<String> dlg = new ChoiceDialog<>(areaNames.get(0), areaNames);
-        dlg.setTitle("Cambiar área");
-        dlg.setHeaderText("Nueva área para " + sel.size() + " bienes seleccionados");
-        dlg.setContentText("Área:");
-        DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.showAndWait().ifPresent(area -> {
-            table.lookupAll(".table-row-cell:selected")
-                 .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
-            DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando área…",
-                () -> {
-                    for (Producto p : sel) { p.setArea(area); productoService.save(p); }
-                    return sel.size();
-                },
-                count -> {
-                    refreshing = true; loadData();
-                    NotificacionUtil.exito(table.getScene(), count + " bien(es) movidos a \"" + area + "\"");
-                },
-                e -> NotificacionUtil.errorConAccion(table.getScene(),
-                        "No se pudo cambiar el área", "Reintentar", () -> onBulkCambiarArea())
-            );
-        });
+        ProductosBulkDialog.showCambiarArea(
+            sel, table.getScene(), productoService, table,
+            () -> { refreshing = true; loadData(); },
+            this::onBulkCambiarArea);
     }
 
     @FXML
     private void onBulkCambiarResguardante() {
         List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
         if (sel.size() < 2 || !canEdit) return;
-        TextInputDialog dlg = new TextInputDialog();
-        dlg.setTitle("Cambiar resguardante");
-        dlg.setHeaderText("Nuevo resguardante para " + sel.size() + " bienes seleccionados");
-        dlg.setContentText("Nombre:");
-        DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.showAndWait().map(String::trim).filter(s -> !s.isBlank()).ifPresent(nombre -> {
-            table.lookupAll(".table-row-cell:selected")
-                 .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
-            DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando resguardante…",
-                () -> {
-                    for (Producto p : sel) { p.setResguardante(nombre); productoService.save(p); }
-                    return sel.size();
-                },
-                count -> {
-                    refreshing = true; loadData();
-                    NotificacionUtil.exito(table.getScene(), count + " bien(es) asignados a \"" + nombre + "\"");
-                },
-                e -> NotificacionUtil.errorConAccion(table.getScene(),
-                        "No se pudo cambiar el resguardante", "Reintentar", () -> onBulkCambiarResguardante())
-            );
-        });
+        ProductosBulkDialog.showCambiarResguardante(
+            sel, table.getScene(), productoService, table,
+            () -> { refreshing = true; loadData(); },
+            this::onBulkCambiarResguardante);
     }
 
     @FXML
     private void onBulkMarcarEtiquetado() {
         List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
         if (sel.size() < 2 || !canEdit) return;
-        long yaEtiquetados = sel.stream().filter(Producto::isEtiquetado).count();
-        long sinEtiq = sel.size() - yaEtiquetados;
-        String msg = sinEtiq == sel.size()
-            ? "¿Marcar " + sel.size() + " bienes como etiquetados?"
-            : "De los " + sel.size() + " seleccionados, " + sinEtiq + " aún no están etiquetados. ¿Marcar todos como etiquetados?";
-        if (!ConfirmacionUtil.confirmar("Marcar como etiquetado", msg)) return;
-        table.lookupAll(".table-row-cell:selected")
-             .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
-        List<String> ids = sel.stream().map(Producto::getId).toList();
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Actualizando etiquetado…",
-            () -> { productoService.marcarEtiquetado(ids, true); return ids.size(); },
-            count -> {
-                refreshing = true; loadData();
-                NotificacionUtil.exito(table.getScene(), count + " bien(es) marcados como etiquetados");
-            },
-            e -> NotificacionUtil.errorConAccion(table.getScene(),
-                    "No se pudo actualizar el etiquetado", "Reintentar", () -> onBulkMarcarEtiquetado())
-        );
+        ProductosBulkDialog.showMarcarEtiquetado(
+            sel, table.getScene(), productoService, table,
+            () -> { refreshing = true; loadData(); },
+            this::onBulkMarcarEtiquetado);
     }
 
     private void onCardSinEtiquetar() {
@@ -1146,22 +1077,8 @@ public class ProductosController {
 
     @FXML
     private void onBulkResguardoPdf() {
-        java.util.List<Producto> seleccionados = new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems());
-        if (seleccionados.isEmpty()) return;
-        // Tomar el primer resguardante y área no-nulos del lote
-        String resguardante = seleccionados.stream()
-            .map(Producto::getResguardante)
-            .filter(r -> r != null && !r.isBlank())
-            .findFirst().orElse("Sin resguardante");
-        String area = seleccionados.stream()
-            .map(Producto::getArea)
-            .filter(a -> a != null && !a.isBlank())
-            .findFirst().orElse("");
-        DialogUtil.runAsync(
-            () -> reporteService.exportarResguardoPdf(resguardante, area, seleccionados),
-            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
-            e -> NotificacionUtil.error(table.getScene(), "Error al generar el resguardo PDF")
-        );
+        ProductosExporter.exportResguardoPdf(table.getScene(),
+            new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems()), reporteService);
     }
 
     @FXML
@@ -1227,13 +1144,7 @@ public class ProductosController {
     }
 
     private void exportarEtiquetasQr(List<Producto> productos) {
-        DialogUtil.runAsyncWithProgress(table.getScene(), "Generando etiquetas QR…",
-            () -> reporteService.exportEtiquetasQrPdf(productos),
-            file -> {
-                if (file == null) { NotificacionUtil.advertencia(table.getScene(), "No se generaron etiquetas"); return; }
-                DialogUtil.showExportResultDialog(table.getScene(), file);
-            },
-            e -> NotificacionUtil.error(table.getScene(), "No se pudo generar las etiquetas QR"));
+        ProductosExporter.exportEtiquetasQr(table.getScene(), productos, reporteService);
     }
 
     // ── Filter presets ───────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import com.google.zxing.MultiFormatReader;
 import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 import com.sibim.service.MovimientoService;
-import com.sibim.service.ReporteService;
+import com.sibim.service.ReporteConteoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
@@ -494,7 +494,7 @@ public final class ConteoFisicoDialog {
             dialog.close();
         });
 
-        ReporteService reporteService = new ReporteService();
+        ReporteConteoService reporteService = new ReporteConteoService();
         String tituloConteo = "Conteo del " + com.sibim.util.FormatUtils.formatDate(LocalDate.now());
         Usuario userForPdf = SessionManager.getCurrentUser();
         String userNameForPdf = userForPdf != null ? userForPdf.getNombre() : "Sistema";

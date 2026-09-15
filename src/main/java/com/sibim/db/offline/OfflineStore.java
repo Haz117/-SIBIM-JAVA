@@ -7,7 +7,6 @@ import com.sibim.model.ConteoItem;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.Usuario;
-import com.sibim.model.enums.Rol;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.util.ProductoUtils;
@@ -913,66 +912,28 @@ public final class OfflineStore {
     /** Refreshed after every successful ONLINE login (see AuthService) —
      *  never written from the offline side. Lets a previously-seen real
      *  user keep logging in if the connection later drops, for up to
-     *  {@link #OFFLINE_CACHE_TTL_DAYS} days before requiring re-authentication online. */
-    static final int OFFLINE_CACHE_TTL_DAYS = 30;
+     *  {@link OfflineUserCache#OFFLINE_CACHE_TTL_DAYS} days before
+     *  requiring re-authentication online.
+     *
+     *  Actual logic lives in {@link OfflineUserCache}; these thin wrappers
+     *  exist so existing callers (AuthService) need no import change. */
+    static final int OFFLINE_CACHE_TTL_DAYS = OfflineUserCache.OFFLINE_CACHE_TTL_DAYS;
 
     public static void cacheUser(Usuario u) throws SQLException {
-        String sql = """
-            INSERT INTO users_cache (id, username, password_hash, nombre, rol, area, debe_cambiar_password, activo, cached_at)
-            VALUES (?,?,?,?,?,?,?,?,?)
-            ON CONFLICT(id) DO UPDATE SET username=excluded.username, password_hash=excluded.password_hash,
-                nombre=excluded.nombre, rol=excluded.rol, area=excluded.area,
-                debe_cambiar_password=excluded.debe_cambiar_password,
-                activo=excluded.activo, cached_at=excluded.cached_at
-            """;
-        try (PreparedStatement ps = conn().prepareStatement(sql)) {
-            ps.setString(1, u.getId());
-            ps.setString(2, u.getUsername());
-            ps.setString(3, u.getPasswordHash());
-            ps.setString(4, u.getNombre());
-            ps.setString(5, u.getRol().getCodigo());
-            ps.setString(6, u.getArea());
-            ps.setInt(7, u.isDebeCambiarPassword() ? 1 : 0);
-            ps.setInt(8, u.isActivo() ? 1 : 0);
-            ps.setString(9, str(LocalDateTime.now()));
-            ps.executeUpdate();
-        }
+        OfflineUserCache.cacheUser(conn(), u);
     }
 
     /**
      * Returns the cached user only if:
      * (a) the entry exists, AND
-     * (b) it was cached within the last {@link #OFFLINE_CACHE_TTL_DAYS} days.
+     * (b) it was cached within the last {@link OfflineUserCache#OFFLINE_CACHE_TTL_DAYS} days.
      * Expired entries return {@link Optional#empty()} so AuthService can show
      * a meaningful "reconnect required" message rather than accepting stale credentials.
+     *
+     * @see OfflineUserCache#findCachedUserByUsername
      */
     public static Optional<Usuario> findCachedUserByUsername(String username) throws SQLException {
-        try (PreparedStatement ps = conn().prepareStatement(
-                "SELECT * FROM users_cache WHERE username = ?")) {
-            ps.setString(1, username);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) return Optional.empty();
-                String cachedAtStr = rs.getString("cached_at");
-                if (cachedAtStr != null) {
-                    try {
-                        LocalDateTime cachedAt = LocalDateTime.parse(cachedAtStr);
-                        if (cachedAt.isBefore(LocalDateTime.now().minusDays(OFFLINE_CACHE_TTL_DAYS))) {
-                            return Optional.empty(); // caché caducado
-                        }
-                    } catch (Exception ignored) {}
-                }
-                Usuario u = new Usuario();
-                u.setId(rs.getString("id"));
-                u.setUsername(rs.getString("username"));
-                u.setPasswordHash(rs.getString("password_hash"));
-                u.setNombre(rs.getString("nombre"));
-                u.setRol(Rol.fromCodigo(rs.getString("rol")));
-                u.setArea(rs.getString("area"));
-                u.setDebeCambiarPassword(rs.getInt("debe_cambiar_password") != 0);
-                try { u.setActivo(rs.getInt("activo") != 0); } catch (Exception ignored) { u.setActivo(true); }
-                return Optional.of(u);
-            }
-        }
+        return OfflineUserCache.findCachedUserByUsername(conn(), username);
     }
 
     // ─────────────────────────────── Outbox ──────────────────────────────────

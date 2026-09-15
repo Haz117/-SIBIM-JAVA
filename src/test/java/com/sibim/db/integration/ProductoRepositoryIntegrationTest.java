@@ -3,6 +3,7 @@ package com.sibim.db.integration;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.repository.ProductoRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -39,9 +40,15 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
     // Helpers
     // -----------------------------------------------------------------------
 
+    @BeforeEach
+    void insertarCategoria() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Categoría Integración");
+        }
+    }
+
     /**
-     * Inserts a category directly via JDBC. Tests must call this before
-     * inserting any product that references the category via FK.
+     * Inserts a category directly via JDBC.
      */
     private void insertCategoria(Connection c, String id, String nombre) throws SQLException {
         String sql = "INSERT INTO categories (id, nombre, color) VALUES (?, ?, '#3B82F6')";
@@ -85,10 +92,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void saveOnline_newProduct_persistsToDb() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Integracion");
-        }
-
         String id = UUID.randomUUID().toString();
         Producto producto = buildProducto(id, "Escritorio de Madera", "ESC-001");
         repo.saveOnline(producto);
@@ -111,10 +114,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void saveOnline_updateExisting_updatesFields() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Integracion");
-        }
-
         String id = UUID.randomUUID().toString();
         Producto original = buildProducto(id, "Silla Plastica", "SIL-001");
         repo.saveOnline(original);
@@ -140,10 +139,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void findAll_returnsOnlyActive() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Integracion");
-        }
-
         String idActivo = UUID.randomUUID().toString();
         String idBaja   = UUID.randomUUID().toString();
 
@@ -187,10 +182,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void findStats_sinEtiquetarCount_correcta() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Stats");
-        }
-
         Producto noEtiquetado = buildProducto(UUID.randomUUID().toString(), "Mesa Sin Etiqueta", "MSE-001");
         noEtiquetado.setEtiquetado(false);
         repo.saveOnline(noEtiquetado);
@@ -212,10 +203,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void findStats_todosEtiquetados_sinEtiquetarEsCero() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Stats");
-        }
-
         Producto p = buildProducto(UUID.randomUUID().toString(), "Computadora", "COM-001");
         p.setEtiquetado(true);
         repo.saveOnline(p);
@@ -230,10 +217,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void saveOnline_etiquetadoTrue_persisteYRegresa() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Etiquetado");
-        }
-
         String id = UUID.randomUUID().toString();
         Producto p = buildProducto(id, "Impresora", "IMP-001");
         p.setEtiquetado(true);
@@ -253,10 +236,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void saveFotos_persistsInOrder() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Fotos");
-        }
-
         String id = UUID.randomUUID().toString();
         repo.saveOnline(buildProducto(id, "Laptop", "LAP-001"));
 
@@ -281,10 +260,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void saveFotos_replacesPreviousFotos() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Fotos Replace");
-        }
-
         String id = UUID.randomUUID().toString();
         repo.saveOnline(buildProducto(id, "Monitor", "MON-001"));
 
@@ -302,10 +277,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void saveFotos_listaVacia_eliminaFotosExistentes() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Fotos Delete");
-        }
-
         String id = UUID.randomUUID().toString();
         repo.saveOnline(buildProducto(id, "Teclado", "TEC-001"));
 
@@ -323,10 +294,6 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
      */
     @Test
     void findFotos_sinFotos_retornaListaVacia() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Categoria Sin Fotos");
-        }
-
         String id = UUID.randomUUID().toString();
         repo.saveOnline(buildProducto(id, "Escritorio", "ESC-002"));
 

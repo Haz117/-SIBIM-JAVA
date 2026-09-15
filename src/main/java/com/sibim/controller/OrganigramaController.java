@@ -55,7 +55,7 @@ public class OrganigramaController {
         java.util.prefs.Preferences.userRoot().node("sibim/filters/organigrama");
 
     private final ProductoService productoService = new ProductoService();
-    private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
+    private final com.sibim.service.ReporteOrganigramaService reporteService = new com.sibim.service.ReporteOrganigramaService();
     private final MovimientoService movimientoService = new MovimientoService();
     private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
     private Map<String, List<Producto>> productosPorArea = new HashMap<>();
