@@ -7,7 +7,6 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.service.PrestamoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
-import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -21,27 +20,22 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.Desktop;
+import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
 
-public class PrestamosController {
+public class PrestamosController extends BaseDocumentController<Prestamo> {
 
-    private static final Logger log = LoggerFactory.getLogger(PrestamosController.class);
-
-    @FXML private VBox rootPane;
-    @FXML private Label lblStatActivos;
-    @FXML private Label lblStatVencidos;
-    @FXML private Label lblStatDevueltos;
-    @FXML private Label lblStatTotal;
-    @FXML private VBox statCardActivos;
-    @FXML private VBox statCardVencidos;
-    @FXML private VBox statCardDevueltos;
-    @FXML private VBox statCardTotal;
-    @FXML private TableView<Prestamo> table;
+    @FXML private Label   lblStatActivos;
+    @FXML private Label   lblStatVencidos;
+    @FXML private Label   lblStatDevueltos;
+    @FXML private Label   lblStatTotal;
+    @FXML private VBox    statCardActivos;
+    @FXML private VBox    statCardVencidos;
+    @FXML private VBox    statCardDevueltos;
+    @FXML private VBox    statCardTotal;
     @FXML private TableColumn<Prestamo, String> colNumero;
     @FXML private TableColumn<Prestamo, String> colBien;
     @FXML private TableColumn<Prestamo, String> colAreaOrigen;
@@ -49,51 +43,23 @@ public class PrestamosController {
     @FXML private TableColumn<Prestamo, String> colResponsable;
     @FXML private TableColumn<Prestamo, String> colFechaPrevista;
     @FXML private TableColumn<Prestamo, String> colEstado;
-    @FXML private Button btnNuevo;
-    @FXML private Button btnDevolver;
-    @FXML private Button btnExportarPdf;
-    @FXML private Button btnExportarExcel;
-    @FXML private ProgressIndicator spinner;
-    @FXML private ComboBox<String> estadoFilter;
-    @FXML private TextField searchField;
-    @FXML private ToggleButton btnKanban;
-    @FXML private HBox kanbanBoard;
+    @FXML private Button      btnNuevo;
+    @FXML private Button      btnDevolver;
+    @FXML private Button      btnExportarExcel;
+    @FXML private ComboBox<String>  estadoFilter;
+    @FXML private TextField         searchField;
+    @FXML private ToggleButton      btnKanban;
+    @FXML private HBox              kanbanBoard;
 
-    private final PrestamoService service       = new PrestamoService();
+    private final PrestamoService   service      = new PrestamoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
-    private final ObservableList<Prestamo> data  = FXCollections.observableArrayList();
-    private List<Prestamo> allData               = List.of();
-    private boolean kanbanMode                   = false;
+    private List<Prestamo> allData  = List.of();
+    private boolean        kanbanMode = false;
 
-    @FXML
-    public void initialize() {
-        setupEstadoFilter();
-        setupTable();
-        setupPermisos();
-        setupSearch();
-        setupButtonState();
-        if (btnKanban != null) {
-            btnKanban.selectedProperty().addListener((obs, ov, nv) -> {
-                kanbanMode = nv;
-                if (table != null)      { table.setVisible(!nv); table.setManaged(!nv); }
-                if (kanbanBoard != null) { kanbanBoard.setVisible(nv); kanbanBoard.setManaged(nv); }
-                if (nv) buildKanbanBoard(data);
-            });
-        }
-        if (kanbanBoard != null) { kanbanBoard.setVisible(false); kanbanBoard.setManaged(false); }
-        loadData();
-        Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
-    }
+    // ── BaseDocumentController hooks ─────────────────────────────────────────
 
-    private void setupEstadoFilter() {
-        if (estadoFilter == null) return;
-        estadoFilter.getItems().addAll("Todos", "Activos", "Vencidos", "Devueltos");
-        estadoFilter.setValue("Todos");
-        estadoFilter.valueProperty().addListener((obs, o, n) -> applyFilter());
-    }
-
-    private void setupTable() {
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+    @Override
+    protected void setupColumns() {
         colNumero.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNumero()));
         colBien.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
         colAreaOrigen.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getAreaOrigen()));
@@ -124,69 +90,92 @@ public class PrestamosController {
             }
         });
         colEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
-
-        // Row color for overdue
         table.setRowFactory(tv -> new TableRow<>() {
             @Override protected void updateItem(Prestamo p, boolean empty) {
                 super.updateItem(p, empty);
                 getStyleClass().removeAll("row-warning");
-                if (!empty && p != null && p.isVencidoCalc())
-                    getStyleClass().add("row-warning");
+                if (!empty && p != null && p.isVencidoCalc()) getStyleClass().add("row-warning");
             }
         });
-
-        table.setItems(data);
-        table.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
-                mostrarDetalle(table.getSelectionModel().getSelectedItem());
-        });
-
-        ContextMenu cm = new ContextMenu();
-        MenuItem miDev  = new MenuItem("Registrar devolución");
-        miDev.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
-        miDev.setOnAction(e -> onDevolver());
-        MenuItem miPdf  = new MenuItem("Exportar comprobante PDF");
-        miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
-        miPdf.setOnAction(e -> onExportarPdf());
-        cm.getItems().addAll(miDev, new SeparatorMenuItem(), miPdf);
-        table.setContextMenu(cm);
     }
 
-    private void setupPermisos() {
+    @Override
+    protected void onInitialize() {
+        if (estadoFilter != null) {
+            estadoFilter.getItems().addAll("Todos", "Activos", "Vencidos", "Devueltos");
+            estadoFilter.setValue("Todos");
+            estadoFilter.valueProperty().addListener((obs, o, n) -> applyFilter());
+        }
         boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
+        if (searchField != null)
+            searchField.textProperty().addListener((obs, o, n) -> applyFilter());
+        if (btnKanban != null) {
+            btnKanban.selectedProperty().addListener((obs, ov, nv) -> {
+                kanbanMode = nv;
+                if (table != null)       { table.setVisible(!nv); table.setManaged(!nv); }
+                if (kanbanBoard != null) { kanbanBoard.setVisible(nv); kanbanBoard.setManaged(nv); }
+                if (nv) buildKanbanBoard(data);
+            });
+        }
+        if (kanbanBoard != null) { kanbanBoard.setVisible(false); kanbanBoard.setManaged(false); }
+        Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
-    private void setupSearch() {
-        if (searchField == null) return;
-        searchField.textProperty().addListener((obs, o, n) -> applyFilter());
-    }
-
-    private void setupButtonState() {
-        javafx.beans.property.ReadOnlyObjectProperty<Prestamo> sel =
-            table.getSelectionModel().selectedItemProperty();
+    @Override
+    protected void setupButtonState() {
+        super.setupButtonState();
         if (btnDevolver != null)
             btnDevolver.disableProperty().bind(
                 table.getSelectionModel().selectedItemProperty()
                     .map(p -> p == null || Prestamo.ESTADO_DEVUELTO.equals(p.getEstado()))
                     .orElse(true));
-        if (btnExportarPdf != null)
-            btnExportarPdf.disableProperty().bind(sel.isNull());
     }
 
-    private void loadData() {
-        DialogUtil.loadAsync(spinner, rootPane.getScene(),
-            () -> { service.actualizarVencidos(); return service.getAll(); },
-            list -> {
-                allData = list;
-                applyFilter();
-                updateStats(list);
-                AnimationUtils.staggeredFadeInUp(
-                    List.of(statCardActivos, statCardVencidos, statCardDevueltos, statCardTotal),
-                    280, 55);
-            },
-            "No se pudieron cargar los préstamos", log);
+    @Override
+    protected List<Prestamo> fetchAll() throws Exception {
+        service.actualizarVencidos();
+        return service.getAll();
     }
+
+    @Override
+    protected void onDataLoaded(List<Prestamo> list) {
+        allData = list;
+        applyFilter();
+        long activos   = list.stream().filter(p -> Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
+        long vencidos  = list.stream().filter(p -> Prestamo.ESTADO_VENCIDO.equals(p.getEstado()) || p.isVencidoCalc()).count();
+        long devueltos = list.stream().filter(p -> Prestamo.ESTADO_DEVUELTO.equals(p.getEstado())).count();
+        AnimationUtils.animateCount(lblStatActivos,   activos,            700);
+        AnimationUtils.animateCount(lblStatVencidos,  vencidos,           700);
+        AnimationUtils.animateCount(lblStatDevueltos, devueltos,          700);
+        AnimationUtils.animateCount(lblStatTotal,     (long) list.size(), 700);
+        AnimationUtils.staggeredFadeInUp(
+            List.of(statCardActivos, statCardVencidos, statCardDevueltos, statCardTotal), 280, 55);
+    }
+
+    @Override
+    protected File doExportPdf(Prestamo item) throws Exception { return service.exportarPdf(item); }
+
+    @Override
+    protected String getLoadErrorMessage() { return "No se pudieron cargar los préstamos"; }
+
+    @Override
+    protected void onTableDoubleClick(Prestamo item) { mostrarDetalle(item); }
+
+    @Override
+    protected ContextMenu buildContextMenu() {
+        ContextMenu cm = new ContextMenu();
+        MenuItem miDev = new MenuItem("Registrar devolución");
+        miDev.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
+        miDev.setOnAction(e -> onDevolver());
+        MenuItem miPdf = new MenuItem("Exportar comprobante PDF");
+        miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
+        miPdf.setOnAction(e -> onExportarPdf());
+        cm.getItems().addAll(miDev, new SeparatorMenuItem(), miPdf);
+        return cm;
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
 
     private void applyFilter() {
         String q      = searchField != null ? searchField.getText() : "";
@@ -217,9 +206,9 @@ public class PrestamosController {
         kanbanBoard.setFillHeight(true);
 
         String[][] cols = {
-            { "ACTIVO",    "Activos",               "kanban-col-teal",   "mdi2s-swap-horizontal" },
-            { "VENCIDO",   "Vencidos",               "kanban-col-amber",  "mdi2a-alert-circle-outline" },
-            { "DEVUELTO",  "Devueltos",              "kanban-col-indigo", "mdi2c-check-all" }
+            { "ACTIVO",   "Activos",   "kanban-col-teal",   "mdi2s-swap-horizontal" },
+            { "VENCIDO",  "Vencidos",  "kanban-col-amber",  "mdi2a-alert-circle-outline" },
+            { "DEVUELTO", "Devueltos", "kanban-col-indigo", "mdi2c-check-all" }
         };
 
         java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy");
@@ -238,10 +227,8 @@ public class PrestamosController {
             colHeader.setAlignment(Pos.CENTER_LEFT);
             FontIcon colIcon = new FontIcon(icon);
             colIcon.setIconSize(14); colIcon.getStyleClass().add("kanban-col-icon");
-            Label colLabel = new Label(label);
-            colLabel.getStyleClass().add("kanban-col-title");
-            javafx.scene.layout.Region sp = new javafx.scene.layout.Region();
-            HBox.setHgrow(sp, Priority.ALWAYS);
+            Label colLabel = new Label(label); colLabel.getStyleClass().add("kanban-col-title");
+            Region sp = new Region(); HBox.setHgrow(sp, Priority.ALWAYS);
             Label colCount = new Label(String.valueOf(colItems.size()));
             colCount.getStyleClass().add("kanban-col-count");
             colHeader.getChildren().addAll(colIcon, colLabel, sp, colCount);
@@ -265,16 +252,12 @@ public class PrestamosController {
                     card.setPadding(new Insets(10, 12, 10, 12));
                     card.setCursor(javafx.scene.Cursor.HAND);
 
-                    Label lblBien = new Label(p.getProductoNombre() != null ? p.getProductoNombre() : "—");
-                    lblBien.getStyleClass().add("kanban-card-title");
-                    lblBien.setWrapText(true);
-
+                    Label lblBien  = new Label(p.getProductoNombre() != null ? p.getProductoNombre() : "—");
+                    lblBien.getStyleClass().add("kanban-card-title"); lblBien.setWrapText(true);
                     Label lblFolio = new Label(p.getNumero() != null ? p.getNumero() : "—");
                     lblFolio.getStyleClass().add("kanban-card-folio");
-
-                    Label lblResp = new Label(p.getResponsableNombre() != null ? p.getResponsableNombre() : "—");
+                    Label lblResp  = new Label(p.getResponsableNombre() != null ? p.getResponsableNombre() : "—");
                     lblResp.getStyleClass().add("kanban-card-meta");
-
                     String fechaStr = p.getFechaDevolucionPrevista() != null
                         ? "Dev. " + p.getFechaDevolucionPrevista().format(fmt) : "";
                     Label lblFecha = new Label(fechaStr);
@@ -284,8 +267,6 @@ public class PrestamosController {
 
                     card.getChildren().addAll(lblBien, lblFolio, lblResp);
                     if (!fechaStr.isEmpty()) card.getChildren().add(lblFecha);
-
-                    // Double-click or single click → detail
                     card.setOnMouseClicked(e -> { if (e.getClickCount() >= 1) mostrarDetalle(p); });
                     cards.getChildren().add(card);
                 }
@@ -296,18 +277,7 @@ public class PrestamosController {
         }
     }
 
-    private void updateStats(List<Prestamo> list) {
-        long activos   = list.stream().filter(p -> Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
-        long vencidos  = list.stream().filter(p -> Prestamo.ESTADO_VENCIDO.equals(p.getEstado()) || p.isVencidoCalc()).count();
-        long devueltos = list.stream().filter(p -> Prestamo.ESTADO_DEVUELTO.equals(p.getEstado())).count();
-        AnimationUtils.animateCount(lblStatActivos,   activos,            700);
-        AnimationUtils.animateCount(lblStatVencidos,  vencidos,           700);
-        AnimationUtils.animateCount(lblStatDevueltos, devueltos,          700);
-        AnimationUtils.animateCount(lblStatTotal,     (long) list.size(), 700);
-    }
-
-    @FXML
-    private void onRefresh() { loadData(); }
+    // ── FXML actions ─────────────────────────────────────────────────────────
 
     @FXML
     private void onNuevoPrestamo() {
@@ -337,7 +307,6 @@ public class PrestamosController {
         GridPane form = DialogUtil.formGrid(170);
         int row = 0;
 
-        // Bien
         ObservableList<Producto> productosObs = FXCollections.observableArrayList(productos);
         ComboBox<Producto> productoCombo = new ComboBox<>(productosObs);
         productoCombo.setMaxWidth(Double.MAX_VALUE);
@@ -358,43 +327,31 @@ public class PrestamosController {
                     || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(lq))));
             });
         }
+        form.add(DialogUtil.fieldLabel("Bien *"), 0, row); form.add(productoCombo, 1, row++);
 
-        form.add(DialogUtil.fieldLabel("Bien *"), 0, row);
-        form.add(productoCombo, 1, row++);
-
-        // Área destino
         ComboBox<String> areaDestino = new ComboBox<>(
             FXCollections.observableArrayList(new java.util.ArrayList<>(Areas.getAllAreaNames())));
-        areaDestino.setEditable(true);
-        areaDestino.setMaxWidth(Double.MAX_VALUE);
+        areaDestino.setEditable(true); areaDestino.setMaxWidth(Double.MAX_VALUE);
         areaDestino.setPromptText("Área que recibe el bien…");
         areaDestino.getStyleClass().add("form-input");
-        form.add(DialogUtil.fieldLabel("Área destino *"), 0, row);
-        form.add(areaDestino, 1, row++);
+        form.add(DialogUtil.fieldLabel("Área destino *"), 0, row); form.add(areaDestino, 1, row++);
 
-        // Responsable
         TextField fResponsable = new TextField(); fResponsable.setPromptText("Nombre del responsable que recibe");
         fResponsable.getStyleClass().add("form-input");
         TextField fCargo = new TextField(); fCargo.setPromptText("Cargo o puesto");
         fCargo.getStyleClass().add("form-input");
-        form.add(DialogUtil.fieldLabel("Responsable *"), 0, row);
-        form.add(fResponsable, 1, row++);
-        form.add(DialogUtil.fieldLabel("Cargo"), 0, row);
-        form.add(fCargo, 1, row++);
+        form.add(DialogUtil.fieldLabel("Responsable *"), 0, row); form.add(fResponsable, 1, row++);
+        form.add(DialogUtil.fieldLabel("Cargo"),         0, row); form.add(fCargo,       1, row++);
 
-        // Fecha devolución
         DatePicker fFecha = new DatePicker(LocalDate.now().plusWeeks(2));
         fFecha.setMaxWidth(Double.MAX_VALUE);
         fFecha.getStyleClass().add("form-input");
         fFecha.setConverter(FormatUtils.datePickerConverter());
-        form.add(DialogUtil.fieldLabel("Devolución prevista *"), 0, row);
-        form.add(fFecha, 1, row++);
+        form.add(DialogUtil.fieldLabel("Devolución prevista *"), 0, row); form.add(fFecha, 1, row++);
 
-        // Motivo
         TextField fMotivo = new TextField(); fMotivo.setPromptText("Motivo / uso (opcional)");
         fMotivo.getStyleClass().add("form-input");
-        form.add(DialogUtil.fieldLabel("Motivo / uso"), 0, row);
-        form.add(fMotivo, 1, row++);
+        form.add(DialogUtil.fieldLabel("Motivo / uso"), 0, row); form.add(fMotivo, 1, row++);
 
         Label lblError = new Label();
         lblError.getStyleClass().add("form-error-label");
@@ -472,7 +429,7 @@ public class PrestamosController {
         fFechaReal.getStyleClass().add("form-input");
 
         GridPane form = DialogUtil.formGrid(160);
-        form.add(DialogUtil.fieldLabel("Préstamo:"), 0, 0);
+        form.add(DialogUtil.fieldLabel("Préstamo:"),          0, 0);
         form.add(new Label(sel.getNumero() + " — " + sel.getProductoNombre()), 1, 0);
         form.add(DialogUtil.fieldLabel("Fecha real devolución:"), 0, 1);
         form.add(fFechaReal, 1, 1);
@@ -495,29 +452,10 @@ public class PrestamosController {
     }
 
     @FXML
-    private void onExportarPdf() {
-        Prestamo sel = table.getSelectionModel().getSelectedItem();
-        if (sel == null) return;
-        javafx.scene.Scene scene = rootPane.getScene();
-        DialogUtil.runAsync(
-            () -> service.exportarPdf(sel),
-            file -> {
-                if (file == null) return;
-                try { Desktop.getDesktop().open(file); }
-                catch (Exception e) { NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath()); }
-            },
-            e -> NotificacionUtil.error(scene, "No se pudo generar el PDF")
-        );
-    }
-
-    @FXML
     private void onExportarExcel() {
         javafx.scene.Scene scene = rootPane.getScene();
         List<Prestamo> rows = data.isEmpty() ? allData : new java.util.ArrayList<>(data);
-        if (rows.isEmpty()) {
-            NotificacionUtil.advertencia(scene, "No hay préstamos para exportar");
-            return;
-        }
+        if (rows.isEmpty()) { NotificacionUtil.advertencia(scene, "No hay préstamos para exportar"); return; }
         DialogUtil.runAsync(
             () -> service.exportarExcel(rows),
             file -> {
@@ -537,9 +475,7 @@ public class PrestamosController {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2s-swap-horizontal",
-            "Detalle del Préstamo " + p.getNumero(),
-            p.getProductoNombre(),
-            "#166534", "#15803D");
+            "Detalle del Préstamo " + p.getNumero(), p.getProductoNombre(), "#166534", "#15803D");
 
         GridPane g = DialogUtil.formGrid(160);
         String[][] rows = {

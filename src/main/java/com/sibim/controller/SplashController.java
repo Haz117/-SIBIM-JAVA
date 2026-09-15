@@ -70,29 +70,35 @@ public class SplashController {
         rootFade.setFromValue(0); rootFade.setToValue(1);
         rootFade.setInterpolator(Interpolator.EASE_OUT);
 
-        // ── Logo: scale pop (0.6→1.06→1.0) + fade ────────────────────────────
+        // ── Logo: rise from below + spring bounce (0.5→1.12→0.96→1.0) + fade ──
         logoBadge.setOpacity(0);
-        logoBadge.setScaleX(0.6); logoBadge.setScaleY(0.6);
-        FadeTransition logoFade = new FadeTransition(Duration.millis(360), logoBadge);
+        logoBadge.setScaleX(0.5);  logoBadge.setScaleY(0.5);
+        logoBadge.setTranslateY(24);
+        FadeTransition logoFade = new FadeTransition(Duration.millis(380), logoBadge);
         logoFade.setFromValue(0); logoFade.setToValue(1);
         logoFade.setInterpolator(Interpolator.EASE_OUT);
         Timeline logoScale = new Timeline(
             new KeyFrame(Duration.ZERO,
-                new KeyValue(logoBadge.scaleXProperty(), 0.60, Interpolator.EASE_OUT),
-                new KeyValue(logoBadge.scaleYProperty(), 0.60, Interpolator.EASE_OUT)),
-            new KeyFrame(Duration.millis(300),
-                new KeyValue(logoBadge.scaleXProperty(), 1.06, Interpolator.EASE_OUT),
-                new KeyValue(logoBadge.scaleYProperty(), 1.06, Interpolator.EASE_OUT)),
-            new KeyFrame(Duration.millis(420),
-                new KeyValue(logoBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
-                new KeyValue(logoBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+                new KeyValue(logoBadge.scaleXProperty(),    0.50, Interpolator.EASE_OUT),
+                new KeyValue(logoBadge.scaleYProperty(),    0.50, Interpolator.EASE_OUT),
+                new KeyValue(logoBadge.translateYProperty(), 24,  Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(320),
+                new KeyValue(logoBadge.scaleXProperty(),    1.12, Interpolator.EASE_OUT),
+                new KeyValue(logoBadge.scaleYProperty(),    1.12, Interpolator.EASE_OUT),
+                new KeyValue(logoBadge.translateYProperty(),  0,  Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(430),
+                new KeyValue(logoBadge.scaleXProperty(),    0.96, Interpolator.EASE_BOTH),
+                new KeyValue(logoBadge.scaleYProperty(),    0.96, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(520),
+                new KeyValue(logoBadge.scaleXProperty(),    1.0,  Interpolator.EASE_BOTH),
+                new KeyValue(logoBadge.scaleYProperty(),    1.0,  Interpolator.EASE_BOTH))
         );
         ParallelTransition logoIn = new ParallelTransition(logoFade, logoScale);
-        logoIn.setDelay(Duration.millis(100));
+        logoIn.setDelay(Duration.millis(80));
 
-        // ── Brand labels: sequential fade-up ─────────────────────────────────
-        ParallelTransition titleIn    = labelFadeUp(lblTitle,    200, 340);
-        ParallelTransition subtitleIn = labelFadeUp(lblSubtitle, 300, 300);
+        // ── Brand labels: sequential fade-up con micro-escala en el título ────
+        ParallelTransition titleIn    = labelFadeUpScale(lblTitle,    220, 380);
+        ParallelTransition subtitleIn = labelFadeUp(lblSubtitle,      340, 300);
 
         // Divider: scale-X from 0 → 1, fade 0 → 1
         splashDivider.setScaleX(0); splashDivider.setOpacity(0);
@@ -167,6 +173,7 @@ public class SplashController {
         entrance.play();
 
         startGlowPulse();
+        startBlobFloat();
     }
 
     private Arc buildArcRing() {
@@ -225,6 +232,28 @@ public class SplashController {
         dotAnim.play();
     }
 
+    /** Slow vertical float on the decorative background blobs — makes the dark background feel alive. */
+    private void startBlobFloat() {
+        if (ringTr == null || ringBl == null) return;
+        Timeline floatTr = new Timeline(
+            new KeyFrame(Duration.ZERO,        new KeyValue(ringTr.translateYProperty(), -150.0, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(3800), new KeyValue(ringTr.translateYProperty(), -168.0, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(7600), new KeyValue(ringTr.translateYProperty(), -150.0, Interpolator.EASE_BOTH))
+        );
+        floatTr.setCycleCount(Animation.INDEFINITE);
+        floatTr.play();
+        Timeline floatBl = new Timeline(
+            new KeyFrame(Duration.ZERO,        new KeyValue(ringBl.translateYProperty(),  110.0, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(4200), new KeyValue(ringBl.translateYProperty(),  124.0, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(8400), new KeyValue(ringBl.translateYProperty(),  110.0, Interpolator.EASE_BOTH))
+        );
+        floatBl.setCycleCount(Animation.INDEFINITE);
+        floatBl.setDelay(Duration.millis(1200));
+        floatBl.play();
+        loops.add(floatTr);
+        loops.add(floatBl);
+    }
+
     /** Single ambient effect: a subtle glow pulse on the logo badge. */
     private void startGlowPulse() {
         DropShadow glow = new DropShadow(36, Color.rgb(99, 102, 241, 0.65));
@@ -250,6 +279,29 @@ public class SplashController {
         tt.setFromY(14); tt.setToY(0);
         tt.setInterpolator(Interpolator.EASE_OUT);
         ParallelTransition pt = new ParallelTransition(ft, tt);
+        pt.setDelay(Duration.millis(delayMs));
+        return pt;
+    }
+
+    /** Like labelFadeUp but also animates scale 0.94→1.0 for a weightier entrance. */
+    private static ParallelTransition labelFadeUpScale(javafx.scene.Node node, int delayMs, int durationMs) {
+        node.setOpacity(0);
+        node.setScaleX(0.94); node.setScaleY(0.94);
+        if (node instanceof javafx.scene.control.Labeled l) l.setTranslateY(12);
+        FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
+        ft.setFromValue(0); ft.setToValue(1);
+        TranslateTransition tt = new TranslateTransition(Duration.millis(durationMs), node);
+        tt.setFromY(12); tt.setToY(0);
+        tt.setInterpolator(Interpolator.EASE_OUT);
+        Timeline scaleIn = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(node.scaleXProperty(), 0.94, Interpolator.EASE_OUT),
+                new KeyValue(node.scaleYProperty(), 0.94, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(durationMs),
+                new KeyValue(node.scaleXProperty(), 1.0, Interpolator.EASE_OUT),
+                new KeyValue(node.scaleYProperty(), 1.0, Interpolator.EASE_OUT))
+        );
+        ParallelTransition pt = new ParallelTransition(ft, tt, scaleIn);
         pt.setDelay(Duration.millis(delayMs));
         return pt;
     }
@@ -314,6 +366,19 @@ public class SplashController {
                     if (arcRing != null) { arcRing.setLength(-360); }
                     progressBar.setProgress(1.0);
                     lblStatus.setText("Sistema listo  ✓");
+                    // Brief logo pulse as visual confirmation
+                    Timeline confirmPulse = new Timeline(
+                        new KeyFrame(Duration.ZERO,
+                            new KeyValue(logoBadge.scaleXProperty(), 1.0, Interpolator.EASE_OUT),
+                            new KeyValue(logoBadge.scaleYProperty(), 1.0, Interpolator.EASE_OUT)),
+                        new KeyFrame(Duration.millis(180),
+                            new KeyValue(logoBadge.scaleXProperty(), 1.07, Interpolator.EASE_OUT),
+                            new KeyValue(logoBadge.scaleYProperty(), 1.07, Interpolator.EASE_OUT)),
+                        new KeyFrame(Duration.millis(340),
+                            new KeyValue(logoBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                            new KeyValue(logoBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+                    );
+                    confirmPulse.play();
                 }
                 maybeTransition();
             });

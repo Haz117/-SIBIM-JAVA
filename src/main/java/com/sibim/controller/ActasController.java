@@ -9,29 +9,21 @@ import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import org.kordamp.ikonli.javafx.FontIcon;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.Desktop;
+import java.io.File;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
-public class ActasController {
+public class ActasController extends BaseDocumentController<ActaEntregaRecepcion> {
 
-    private static final Logger log = LoggerFactory.getLogger(ActasController.class);
-
-    @FXML private VBox rootPane;
     @FXML private Label lblStatTotal;
-    @FXML private VBox statCardTotal;
-    @FXML private TableView<ActaEntregaRecepcion> table;
+    @FXML private VBox  statCardTotal;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colNumero;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colSaliente;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colEntrante;
@@ -39,24 +31,13 @@ public class ActasController {
     @FXML private TableColumn<ActaEntregaRecepcion, String> colBienes;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colValor;
     @FXML private Button btnNueva;
-    @FXML private Button btnExportarPdf;
-    @FXML private ProgressIndicator spinner;
 
     private final ActaService service = new ActaService();
-    private final ObservableList<ActaEntregaRecepcion> data = FXCollections.observableArrayList();
 
-    @FXML
-    public void initialize() {
-        if (!SessionManager.isAdmin()) {
-            if (btnNueva != null) { btnNueva.setVisible(false); btnNueva.setManaged(false); }
-        }
-        setupTable();
-        setupButtonState();
-        loadData();
-    }
+    // ── BaseDocumentController hooks ─────────────────────────────────────────
 
-    private void setupTable() {
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+    @Override
+    protected void setupColumns() {
         colNumero.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNumero()));
         colSaliente.setCellValueFactory(c -> {
             String s = c.getValue().getAdminSaliente();
@@ -75,41 +56,45 @@ public class ActasController {
             String.valueOf(c.getValue().getTotalBienes())));
         colValor.setCellValueFactory(c -> new SimpleStringProperty(
             FormatUtils.formatCurrency(c.getValue().getValorTotal())));
-
-        table.setItems(data);
-        table.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
-                onExportarPdf();
-        });
-
-        ContextMenu cm = new ContextMenu();
-        MenuItem miPdf = new MenuItem("Exportar PDF");
-        miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
-        miPdf.setOnAction(e -> onExportarPdf());
-        cm.getItems().add(miPdf);
-        table.setContextMenu(cm);
     }
 
-    private void setupButtonState() {
-        if (btnExportarPdf != null)
-            btnExportarPdf.disableProperty().bind(
-                table.getSelectionModel().selectedItemProperty().isNull());
+    @Override
+    protected void onInitialize() {
+        if (!SessionManager.isAdmin() && btnNueva != null) {
+            btnNueva.setVisible(false); btnNueva.setManaged(false);
+        }
     }
 
-    private void loadData() {
-        DialogUtil.loadAsync(spinner, rootPane.getScene(), service::getAll,
-            list -> {
-                data.setAll(list);
-                if (lblStatTotal != null)
-                    AnimationUtils.animateCount(lblStatTotal, (long) list.size(), 700);
-                if (statCardTotal != null)
-                    AnimationUtils.staggeredFadeInUp(List.of(statCardTotal), 280, 60);
+    @Override
+    protected List<ActaEntregaRecepcion> fetchAll() throws Exception { return service.getAll(); }
+
+    @Override
+    protected void onDataLoaded(List<ActaEntregaRecepcion> list) {
+        data.setAll(list);
+        if (lblStatTotal != null)  AnimationUtils.animateCount(lblStatTotal, (long) list.size(), 700);
+        if (statCardTotal != null) AnimationUtils.staggeredFadeInUp(List.of(statCardTotal), 280, 60);
+    }
+
+    @Override
+    protected File doExportPdf(ActaEntregaRecepcion item) throws Exception { return service.exportarPdf(item); }
+
+    @Override
+    protected String getLoadErrorMessage() { return "No se pudieron cargar las actas"; }
+
+    @Override
+    protected void exportarPdfAsync(ActaEntregaRecepcion item, Scene scene) {
+        DialogUtil.runAsyncWithProgress(scene, "Generando PDF del acta…",
+            () -> service.exportarPdf(item),
+            file -> {
+                if (file == null) return;
+                try { Desktop.getDesktop().open(file); }
+                catch (Exception e) { NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath()); }
             },
-            "No se pudieron cargar las actas", log);
+            e -> NotificacionUtil.error(scene, "No se pudo generar el PDF")
+        );
     }
 
-    @FXML
-    private void onRefresh() { loadData(); }
+    // ── FXML actions ─────────────────────────────────────────────────────────
 
     @FXML
     private void onNuevaActa() {
@@ -118,7 +103,7 @@ public class ActasController {
                 "Solo el administrador puede generar actas de entrega-recepción");
             return;
         }
-        javafx.scene.Scene scene = rootPane.getScene();
+        Scene scene = rootPane.getScene();
 
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
@@ -140,9 +125,9 @@ public class ActasController {
         form.add(secSal, 0, row++);
         form.add(new Separator(), 0, row++, 2, 1);
 
-        TextField fNombreSal  = new TextField(); fNombreSal.setPromptText("Nombre completo");
+        TextField fNombreSal = new TextField(); fNombreSal.setPromptText("Nombre completo");
         fNombreSal.getStyleClass().add("form-input");
-        TextField fCargoSal   = new TextField(); fCargoSal.setPromptText("Cargo o puesto");
+        TextField fCargoSal  = new TextField(); fCargoSal.setPromptText("Cargo o puesto");
         fCargoSal.getStyleClass().add("form-input");
         form.add(DialogUtil.fieldLabel("Nombre *"), 0, row); form.add(fNombreSal, 1, row++);
         form.add(DialogUtil.fieldLabel("Cargo"),   0, row); form.add(fCargoSal,  1, row++);
@@ -213,7 +198,7 @@ public class ActasController {
             }
         });
 
-        dialog.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
+        dialog.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt ->
             DialogUtil.runAsyncWithProgress(scene, "Generando acta y capturando inventario…",
                 () -> service.generar(
                     fNombreSal.getText().trim(), fCargoSal.getText().trim(),
@@ -237,23 +222,7 @@ public class ActasController {
                 },
                 e -> NotificacionUtil.error(scene, "No se pudo generar el acta: "
                     + (e.getMessage() != null ? e.getMessage() : "Error"))
-            );
-        });
-    }
-
-    @FXML
-    private void onExportarPdf() {
-        ActaEntregaRecepcion sel = table.getSelectionModel().getSelectedItem();
-        if (sel == null) return;
-        javafx.scene.Scene scene = rootPane.getScene();
-        DialogUtil.runAsyncWithProgress(scene, "Generando PDF del acta…",
-            () -> service.exportarPdf(sel),
-            file -> {
-                if (file == null) return;
-                try { Desktop.getDesktop().open(file); }
-                catch (Exception e) { NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath()); }
-            },
-            e -> NotificacionUtil.error(scene, "No se pudo generar el PDF")
+            )
         );
     }
 }

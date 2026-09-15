@@ -871,6 +871,9 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.DIGIT8, KeyCombination.CONTROL_DOWN), () -> onDepreciacion());
         a.put(new KeyCodeCombination(KeyCode.DIGIT9, KeyCombination.CONTROL_DOWN), () -> onConfiguracion());
         a.put(new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.CONTROL_DOWN), () -> { if (SessionManager.isAdmin()) onAuditoria(); });
+        a.put(new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onResguardos());
+        a.put(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onPrestamos());
+        a.put(new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onActas());
         a.put(new KeyCodeCombination(KeyCode.F5),                                   () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
@@ -895,15 +898,18 @@ public class MainController {
     private void onCommandPalette() {
         javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
         java.util.List<SearchPaletteDialog.NavEntry> baseEntries = new java.util.ArrayList<>(java.util.List.of(
-            new SearchPaletteDialog.NavEntry("mdi2v-view-dashboard",      "Dashboard",           "Ctrl+1", this::onDashboard),
-            new SearchPaletteDialog.NavEntry("mdi2s-sitemap",             "Organigrama",         "Ctrl+2", this::onOrganigrama),
-            new SearchPaletteDialog.NavEntry("mdi2p-package-variant",     "Bienes / Inventario", "Ctrl+3", this::onProductos),
-            new SearchPaletteDialog.NavEntry("mdi2t-tag-multiple",        "Categorías",          "Ctrl+4", this::onCategorias),
-            new SearchPaletteDialog.NavEntry("mdi2s-swap-vertical",       "Movimientos",         "Ctrl+5", this::onMovimientos),
-            new SearchPaletteDialog.NavEntry("mdi2b-bell-alert",          "Alertas",             "Ctrl+6", this::onAlertas),
-            new SearchPaletteDialog.NavEntry("mdi2f-file-chart",          "Reportes",            "Ctrl+7", this::onReportes),
-            new SearchPaletteDialog.NavEntry("mdi2c-chart-line",          "Depreciación",        "Ctrl+8", this::onDepreciacion),
-            new SearchPaletteDialog.NavEntry("mdi2c-cog-outline",         "Configuración",       "Ctrl+9", this::onConfiguracion)
+            new SearchPaletteDialog.NavEntry("mdi2v-view-dashboard",          "Dashboard",           "Ctrl+1", this::onDashboard),
+            new SearchPaletteDialog.NavEntry("mdi2s-sitemap",                 "Organigrama",         "Ctrl+2", this::onOrganigrama),
+            new SearchPaletteDialog.NavEntry("mdi2p-package-variant",         "Bienes / Inventario", "Ctrl+3", this::onProductos),
+            new SearchPaletteDialog.NavEntry("mdi2t-tag-multiple",            "Categorías",          "Ctrl+4", this::onCategorias),
+            new SearchPaletteDialog.NavEntry("mdi2s-swap-vertical",           "Movimientos",         "Ctrl+5", this::onMovimientos),
+            new SearchPaletteDialog.NavEntry("mdi2b-bell-alert",              "Alertas",             "Ctrl+6", this::onAlertas),
+            new SearchPaletteDialog.NavEntry("mdi2f-file-chart",              "Reportes",            "Ctrl+7", this::onReportes),
+            new SearchPaletteDialog.NavEntry("mdi2c-chart-line",              "Depreciación",        "Ctrl+8", this::onDepreciacion),
+            new SearchPaletteDialog.NavEntry("mdi2c-clipboard-account-outline","Resguardos",         "Ctrl+Alt+G", this::onResguardos),
+            new SearchPaletteDialog.NavEntry("mdi2s-swap-horizontal",         "Préstamos",          "Ctrl+Alt+P", this::onPrestamos),
+            new SearchPaletteDialog.NavEntry("mdi2s-swap-horizontal-bold",    "Actas E/R",          "Ctrl+Alt+A", this::onActas),
+            new SearchPaletteDialog.NavEntry("mdi2c-cog-outline",             "Configuración",       "Ctrl+9", this::onConfiguracion)
         ));
         if (com.sibim.session.SessionManager.isAdmin())
             baseEntries.add(new SearchPaletteDialog.NavEntry("mdi2h-history", "Auditoría", "Ctrl+0", this::onAuditoria));
@@ -946,6 +952,9 @@ public class MainController {
         addNavTooltip(btnReportes,      "Reportes  (Ctrl+7)");
         addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+8)");
         addNavTooltip(btnConteoFisico,  "Conteo físico del inventario");
+        addNavTooltip(btnResguardos,    "Resguardos  (Ctrl+Alt+G)");
+        addNavTooltip(btnPrestamos,     "Préstamos  (Ctrl+Alt+P)");
+        addNavTooltip(btnActas,         "Actas E/R  (Ctrl+Alt+A)");
         addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+9)");
         addNavTooltip(btnAuditoria,     "Auditoría  (Ctrl+0)");
     }
@@ -1030,15 +1039,18 @@ public class MainController {
         };
 
         GridPane navGrid = makeSection.apply("NAVEGACIÓN", new String[][]{
-            {"Ctrl + 1",  "Dashboard"},
-            {"Ctrl + 2",  "Organigrama"},
-            {"Ctrl + 3",  "Bienes / Inventario"},
-            {"Ctrl + 4",  "Categorías"},
-            {"Ctrl + 5",  "Movimientos"},
-            {"Ctrl + 6",  "Alertas"},
-            {"Ctrl + 7",  "Reportes"},
-            {"Ctrl + 8",  "Depreciación"},
-            {"Ctrl + 9",  "Configuración"},
+            {"Ctrl + 1",      "Dashboard"},
+            {"Ctrl + 2",      "Organigrama"},
+            {"Ctrl + 3",      "Bienes / Inventario"},
+            {"Ctrl + 4",      "Categorías"},
+            {"Ctrl + 5",      "Movimientos"},
+            {"Ctrl + 6",      "Alertas"},
+            {"Ctrl + 7",      "Reportes"},
+            {"Ctrl + 8",      "Depreciación"},
+            {"Ctrl + 9",      "Configuración"},
+            {"Ctrl+Alt + G",  "Resguardos"},
+            {"Ctrl+Alt + P",  "Préstamos"},
+            {"Ctrl+Alt + A",  "Actas E/R"},
         });
 
         GridPane accGrid = makeSection.apply("ACCIONES EN TABLA", new String[][]{
