@@ -80,6 +80,25 @@ public class DashboardService {
     @FunctionalInterface
     private interface SqlSupplier<T> { T get() throws SQLException; }
 
+    // ── Cache ────────────────────────────────────────────────────────────────
+
+    private static final long CACHE_TTL_MS = 30_000;
+    private static volatile Resumen cachedResumen = null;
+    private static volatile long    cacheTimestamp = 0;
+
+    /** Returns cached data if fresh, otherwise fetches and caches. */
+    public Resumen getCachedOrFetch() throws SQLException {
+        long now = System.currentTimeMillis();
+        if (cachedResumen != null && (now - cacheTimestamp) < CACHE_TTL_MS)
+            return cachedResumen;
+        Resumen r = cargarResumen();
+        cachedResumen  = r;
+        cacheTimestamp = System.currentTimeMillis();
+        return r;
+    }
+
+    public void invalidateCache() { cacheTimestamp = 0; }
+
     public record Resumen(
             ProductoRepository.ProductoStats stats,
             List<ProductoRepository.CategoriaValor> catValores,

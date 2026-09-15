@@ -190,7 +190,7 @@ public class DashboardController {
     private void loadDataAsync() {
         Task<DashboardService.Resumen> task = new Task<>() {
             @Override protected DashboardService.Resumen call() throws Exception {
-                return dashboardService.cargarResumen();
+                return dashboardService.getCachedOrFetch();
             }
             @Override protected void succeeded() {
                 updateUI(getValue());
@@ -664,7 +664,7 @@ public class DashboardController {
         }
     }
 
-    @FXML private void onRefreshDash() { loadDataAsync(); }
+    @FXML private void onRefreshDash() { dashboardService.invalidateCache(); loadDataAsync(); }
 
     @FXML private void onVerProductos()    { navigarA("Productos"); }
     @FXML private void onVerMovimientos()  { navigarA("Movimientos"); }
