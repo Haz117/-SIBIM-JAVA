@@ -89,7 +89,8 @@ public abstract class IntegrationTestBase {
              Statement st = c.createStatement()) {
             st.execute(
                 "TRUNCATE resguardo_items, resguardos, prestamos, actas_entrega_recepcion, " +
-                "conteo_items, conteos_fisicos, movements, products, categories, users, audit_log CASCADE"
+                "price_history, conteo_items, conteos_fisicos, movements, products, categories, " +
+                "users, audit_log, area_resguardos, configuracion CASCADE"
             );
         }
         // Re-seed the admin user row so FK constraints on movements and

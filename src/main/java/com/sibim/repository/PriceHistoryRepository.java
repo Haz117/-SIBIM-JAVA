@@ -48,7 +48,7 @@ public class PriceHistoryRepository {
         String sql = """
             SELECT campo, valor_anterior, valor_nuevo, usuario_nombre, created_at
             FROM price_history
-            WHERE producto_id = ?::uuid
+            WHERE producto_id = ?
             ORDER BY created_at DESC
             LIMIT 20
             """;

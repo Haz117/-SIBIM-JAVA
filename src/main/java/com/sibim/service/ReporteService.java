@@ -1,9 +1,5 @@
 package com.sibim.service;
 
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.EncodeHintType;
-import com.google.zxing.MultiFormatWriter;
-import com.google.zxing.common.BitMatrix;
 import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
@@ -12,9 +8,7 @@ import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.utils.PdfMerger;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
@@ -713,90 +707,8 @@ public class ReporteService {
 
     // ───────────────────────────── ETIQUETAS QR ─────────────────────
 
-    /** Generates a printable A4 PDF sheet of QR label cards (3 columns × N rows).
-     *  Each card has the QR (encoding the product código), nombre, código and área.
-     *  Max 200 products per sheet to keep file size reasonable. */
     public File exportEtiquetasQrPdf(List<Producto> productos) throws Exception {
-        if (productos.isEmpty()) return null;
-        List<Producto> items = productos.size() > 200 ? productos.subList(0, 200) : productos;
-        File file = tempFile("etiquetas_qr", ".pdf");
-        PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-        PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        DeviceRgb headerBg = new DeviceRgb(76, 29, 149);
-
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.A4)) {
-            doc.setMargins(18, 14, 18, 14);
-            Table grid = new Table(3).useAllAvailableWidth();
-            grid.setMarginBottom(0);
-
-            for (Producto p : items) {
-                // Build QR as PNG bytes via BitMatrix → BufferedImage → PNG stream
-                byte[] qrBytes = qrToPngBytes(p.getCodigo() != null ? p.getCodigo() : p.getNombre(), 160);
-
-                com.itextpdf.layout.element.Cell card = new com.itextpdf.layout.element.Cell();
-                card.setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(203, 213, 225), 0.5f));
-                card.setPadding(8).setMargin(3);
-                card.setKeepTogether(true);
-
-                // QR image
-                if (qrBytes != null) {
-                    com.itextpdf.layout.element.Image qrImg = new com.itextpdf.layout.element.Image(
-                        ImageDataFactory.create(qrBytes));
-                    qrImg.setAutoScale(false).setWidth(80).setHeight(80)
-                         .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
-                    card.add(qrImg);
-                }
-
-                // Código badge
-                Paragraph codigoPar = new Paragraph(p.getCodigo() != null ? p.getCodigo() : "—")
-                    .setFont(bold).setFontSize(8).setFontColor(ColorConstants.WHITE);
-                com.itextpdf.layout.element.Cell codBadge = new com.itextpdf.layout.element.Cell()
-                    .add(codigoPar).setBackgroundColor(headerBg).setPadding(2)
-                    .setBorder(null)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
-                Table codTable = new Table(1).useAllAvailableWidth().addCell(codBadge);
-                card.add(codTable);
-
-                // Nombre
-                card.add(new Paragraph(p.getNombre() != null ? p.getNombre() : "—")
-                    .setFont(bold).setFontSize(7.5f).setFontColor(new DeviceRgb(15, 23, 42))
-                    .setMarginTop(4).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-
-                // Área
-                if (p.getArea() != null && !p.getArea().isBlank()) {
-                    card.add(new Paragraph(p.getArea())
-                        .setFont(regular).setFontSize(6.5f).setFontColor(new DeviceRgb(100, 116, 139))
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-                }
-
-                grid.addCell(card);
-            }
-            // Pad last row to complete 3-col grid
-            int rem = items.size() % 3;
-            if (rem != 0) for (int i = rem; i < 3; i++)
-                grid.addCell(new com.itextpdf.layout.element.Cell().setBorder(null));
-
-            doc.add(grid);
-            addPdfFooter(doc, items.size());
-        }
-        return file;
-    }
-
-    private static byte[] qrToPngBytes(String content, int size) {
-        try {
-            BitMatrix matrix = new MultiFormatWriter().encode(
-                content, BarcodeFormat.QR_CODE, size, size, java.util.Map.of(EncodeHintType.MARGIN, 1));
-            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(size, size,
-                java.awt.image.BufferedImage.TYPE_INT_RGB);
-            for (int x = 0; x < size; x++)
-                for (int y = 0; y < size; y++)
-                    img.setRGB(x, y, matrix.get(x, y) ? 0x000000 : 0xFFFFFF);
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            javax.imageio.ImageIO.write(img, "PNG", baos);
-            return baos.toByteArray();
-        } catch (Exception e) { return null; }
+        return new ReporteEtiquetasService().exportEtiquetasQrPdf(productos);
     }
 
     /** Wraps plain text in a Cell+Paragraph for Table.addCell — itext7's Table
@@ -810,216 +722,13 @@ public class ReporteService {
 
     // ───────────────────────────── FICHA TÉCNICA ─────────────────────
 
-    /** Generates a 1-page A4 PDF "ficha técnica" for a single bien,
-     *  including identification, patrimonial value, recent movement history,
-     *  and a signature block for formal administrative sign-off. */
-    public File exportFichaTecnica(Producto p, List<com.sibim.model.Movimiento> movimientos) throws Exception {
-        String safeName = p.getCodigo() != null ? p.getCodigo().replaceAll("[^a-zA-Z0-9_\\-]", "_") : "bien";
-        File file = tempFile("ficha_" + safeName, ".pdf");
-
-        PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-        PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-
-        DeviceRgb indigo  = new DeviceRgb(99,  102, 241);
-        DeviceRgb dark    = new DeviceRgb(15,  23,  42);
-        DeviceRgb muted   = new DeviceRgb(100, 116, 139);
-        DeviceRgb bgLight = new DeviceRgb(241, 245, 249);
-        DeviceRgb bgAlt   = new DeviceRgb(248, 250, 252);
-        DeviceRgb green   = new DeviceRgb(22,  163, 74);
-        DeviceRgb amber   = new DeviceRgb(180, 83,  9);
-        DeviceRgb red     = new DeviceRgb(185, 28,  28);
-        DeviceRgb indigo2 = new DeviceRgb(199, 210, 254); // indigo-200
-
-        String generadoEn = "Generado el " + LocalDate.now().format(FMT);
-
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.A4)) {
-
-            doc.setMargins(28, 36, 28, 36);
-
-            // ── 1. Header band ──────────────────────────────────────────
-            Table headerBand = new Table(new float[]{3f, 1f}).useAllAvailableWidth();
-
-            com.itextpdf.layout.element.Cell orgCell = new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(orgName())
-                    .setFont(bold).setFontSize(10.5f).setFontColor(ColorConstants.WHITE).setMarginBottom(3))
-                .add(new Paragraph("FICHA TÉCNICA DE BIEN PATRIMONIAL")
-                    .setFont(bold).setFontSize(15f).setFontColor(ColorConstants.WHITE).setMarginBottom(2))
-                .add(new Paragraph("Sistema Integral de Bienes Municipales  ·  SIBIM")
-                    .setFont(regular).setFontSize(8f).setFontColor(indigo2))
-                .setBackgroundColor(indigo).setPadding(14)
-                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER);
-
-            com.itextpdf.layout.element.Cell dateCell = new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(generadoEn)
-                    .setFont(regular).setFontSize(8f).setFontColor(indigo2)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
-                .setBackgroundColor(indigo).setPadding(14)
-                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.BOTTOM);
-
-            headerBand.addCell(orgCell);
-            headerBand.addCell(dateCell);
-            doc.add(headerBand);
-            doc.add(spacer(4));
-
-            // ── 2. Code + Status band ───────────────────────────────────
-            DeviceRgb estadoColor = p.getEstado() == EstadoProducto.ACTIVO ? green
-                : p.getEstado() == EstadoProducto.BAJO_STOCK ? amber : red;
-
-            Table codeBand = new Table(new float[]{1f, 1f}).useAllAvailableWidth();
-
-            com.itextpdf.layout.element.Cell codeCell = new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph("CÓDIGO").setFont(regular).setFontSize(7.5f).setFontColor(muted).setMarginBottom(2))
-                .add(new Paragraph(p.getCodigo() != null ? p.getCodigo() : "—")
-                    .setFont(bold).setFontSize(20f).setFontColor(dark))
-                .setBackgroundColor(bgLight).setPadding(12)
-                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER);
-
-            com.itextpdf.layout.element.Cell statusCell = new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph("ESTADO").setFont(regular).setFontSize(7.5f).setFontColor(muted).setMarginBottom(2))
-                .add(new Paragraph(p.getEstado().getEtiqueta().toUpperCase())
-                    .setFont(bold).setFontSize(16f).setFontColor(estadoColor).setMarginBottom(2))
-                .add(new Paragraph("Stock: " + p.getStockActual()
-                    + "  ·  Mín: " + p.getStockMinimo()
-                    + "  ·  Máx: " + p.getStockMaximo())
-                    .setFont(regular).setFontSize(8.5f).setFontColor(muted))
-                .setBackgroundColor(bgLight).setPadding(12)
-                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER);
-
-            codeBand.addCell(codeCell);
-            codeBand.addCell(statusCell);
-            doc.add(codeBand);
-            doc.add(spacer(8));
-
-            // ── 3. Identification ───────────────────────────────────────
-            doc.add(sectionTitle("IDENTIFICACIÓN", bold, indigo));
-            Table idTable = new Table(new float[]{1f, 2.5f}).useAllAvailableWidth();
-            addRow(idTable, "Nombre",          p.getNombre(),          bold, regular, muted, bgAlt, false);
-            addRow(idTable, "Categoría",        p.getCategoriaNombre(), bold, regular, muted, bgAlt, true);
-            addRow(idTable, "Área / Dirección", p.getArea(),           bold, regular, muted, bgAlt, false);
-            addRow(idTable, "Resguardante",     p.getResguardante(),   bold, regular, muted, bgAlt, true);
-            if (p.getMarca() != null && !p.getMarca().isBlank())
-                addRow(idTable, "Marca", p.getMarca(), bold, regular, muted, bgAlt, false);
-            if (p.getModelo() != null && !p.getModelo().isBlank())
-                addRow(idTable, "Modelo", p.getModelo(), bold, regular, muted, bgAlt, true);
-            if (p.getNumeroSerie() != null && !p.getNumeroSerie().isBlank())
-                addRow(idTable, "N° de Serie", p.getNumeroSerie(), bold, regular, muted, bgAlt, false);
-            if (p.getUbicacion() != null && !p.getUbicacion().isBlank())
-                addRow(idTable, "Ubicación", p.getUbicacion(), bold, regular, muted, bgAlt, true);
-            doc.add(idTable);
-            doc.add(spacer(8));
-
-            // ── 4. Patrimonial value ────────────────────────────────────
-            doc.add(sectionTitle("VALOR PATRIMONIAL", bold, indigo));
-            Table valTable = new Table(new float[]{1f, 2.5f}).useAllAvailableWidth();
-            addRow(valTable, "Precio de adquisición", FormatUtils.formatCurrency(p.getPrecioCompra()), bold, regular, muted, bgAlt, false);
-            addRow(valTable, "Precio unitario",        FormatUtils.formatCurrency(p.getPrecioVenta()),  bold, regular, muted, bgAlt, true);
-            addRow(valTable, "Valor total inventario", FormatUtils.formatCurrency(p.getValorTotal()),   bold, regular, muted, bgAlt, false);
-            if (p.getFechaAdquisicion() != null)
-                addRow(valTable, "Fecha de adquisición", FormatUtils.formatDate(p.getFechaAdquisicion()), bold, regular, muted, bgAlt, true);
-            if (p.getProveedor() != null && !p.getProveedor().isBlank())
-                addRow(valTable, "Proveedor", p.getProveedor(), bold, regular, muted, bgAlt, false);
-            if (p.getVidaUtilAnios() != null) {
-                addRow(valTable, "Vida útil", p.getVidaUtilAnios() + " año(s)", bold, regular, muted, bgAlt, true);
-                java.math.BigDecimal dep = p.getValorDepreciado();
-                Integer pct = p.getPorcentajeDepreciado();
-                if (dep != null && pct != null)
-                    addRow(valTable, "Valor actual (dep.)",
-                        FormatUtils.formatCurrency(dep) + "  (" + pct + "% depreciado)",
-                        bold, regular, muted, bgAlt, false);
-            }
-            doc.add(valTable);
-
-            // ── 5. Description (optional) ───────────────────────────────
-            if (p.getDescripcion() != null && !p.getDescripcion().isBlank()) {
-                doc.add(spacer(8));
-                doc.add(sectionTitle("DESCRIPCIÓN", bold, indigo));
-                doc.add(new Paragraph(p.getDescripcion())
-                    .setFont(regular).setFontSize(9.5f).setFontColor(dark)
-                    .setMarginLeft(4));
-            }
-
-            // ── 6. Movement history ─────────────────────────────────────
-            if (!movimientos.isEmpty()) {
-                doc.add(spacer(8));
-                int shown = Math.min(movimientos.size(), 8);
-                doc.add(sectionTitle("HISTORIAL DE MOVIMIENTOS  (últimos " + shown + ")", bold, indigo));
-                Table movTable = createPdfTable(
-                    new String[]{"Fecha", "Tipo", "Cant.", "Ant.", "Nuevo", "Usuario", "Motivo"},
-                    new float[]{1.6f, 1f, 0.55f, 0.55f, 0.65f, 1.2f, 2f});
-                for (int i = 0; i < shown; i++) {
-                    com.sibim.model.Movimiento m = movimientos.get(i);
-                    movTable.addCell(cellSm(FormatUtils.formatDateTime(m.getCreadoEn()), regular));
-                    movTable.addCell(cellSm(m.getTipo().getEtiqueta(), regular));
-                    movTable.addCell(cellSm(String.valueOf(m.getCantidad()), regular));
-                    movTable.addCell(cellSm(String.valueOf(m.getStockAnterior()), regular));
-                    movTable.addCell(cellSm(String.valueOf(m.getStockNuevo()), regular));
-                    movTable.addCell(cellSm(m.getUsuarioNombre(), regular));
-                    movTable.addCell(cellSm(m.getMotivo() != null ? m.getMotivo() : "—", regular));
-                }
-                doc.add(movTable);
-            }
-
-            // ── 7. Signature block ──────────────────────────────────────
-            doc.add(spacer(22));
-            Table sigTable = new Table(new float[]{1f, 1f, 1f}).useAllAvailableWidth();
-            for (String role : new String[]{"Elaboró", "Revisó", "Autorizó"}) {
-                com.itextpdf.layout.element.Cell sigCell = new com.itextpdf.layout.element.Cell()
-                    .add(new Paragraph("___________________________")
-                        .setFont(regular).setFontSize(10f).setFontColor(muted)
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                    .add(new Paragraph(role)
-                        .setFont(bold).setFontSize(9f).setFontColor(dark)
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                    .add(new Paragraph("Nombre y firma")
-                        .setFont(regular).setFontSize(7.5f).setFontColor(muted)
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                    .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER).setPadding(4);
-                sigTable.addCell(sigCell);
-            }
-            doc.add(sigTable);
-
-            // ── 8. Footer ────────────────────────────────────────────────
-            doc.add(spacer(6));
-            doc.add(new Paragraph(
-                "SIBIM — Sistema Integral de Bienes Municipales  |  " + orgName() + "  |  " + generadoEn)
-                .setFont(regular).setFontSize(7.5f).setFontColor(muted)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-        }
-        return file;
+    public File exportFichaTecnica(Producto p, List<Movimiento> movimientos) throws Exception {
+        return new ReporteFichaTecnicaService().exportFichaTecnica(p, movimientos);
     }
 
-    /** Generates a single merged PDF containing one ficha técnica per bien.
-     *  Fetches movements via {@code movimientoService} (one query per bien).
-     *  Caller should limit the list to a reasonable size (≤ 100). */
     public File exportFichasTecnicasMasivas(List<Producto> bienes,
             MovimientoService movimientoService) throws Exception {
-        if (bienes == null || bienes.isEmpty())
-            throw new IllegalArgumentException("La lista de bienes está vacía — no hay fichas que generar");
-        // Batch-load all movements in one query instead of N individual calls.
-        List<String> ids = bienes.stream().map(Producto::getId).toList();
-        java.util.Map<String, List<com.sibim.model.Movimiento>> movsByProducto =
-            movimientoService.getByProductoIds(ids);
-
-        File output = tempFile("fichas_tecnicas_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
-        List<File> temps = new java.util.ArrayList<>();
-        try (PdfWriter writer = new PdfWriter(output.getAbsolutePath());
-             PdfDocument merged = new PdfDocument(writer)) {
-            PdfMerger merger = new PdfMerger(merged);
-            for (Producto p : bienes) {
-                List<com.sibim.model.Movimiento> movs = movsByProducto.getOrDefault(p.getId(), java.util.List.of());
-                File ficha = exportFichaTecnica(p, movs);
-                temps.add(ficha);
-                try (PdfDocument src = new PdfDocument(new PdfReader(ficha.getAbsolutePath()))) {
-                    merger.merge(src, 1, src.getNumberOfPages());
-                }
-            }
-        } finally {
-            temps.forEach(File::delete);
-        }
-        return output;
+        return new ReporteFichaTecnicaService().exportFichasTecnicasMasivas(bienes, movimientoService);
     }
 
     /**
