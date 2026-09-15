@@ -47,3 +47,4 @@ packaging/dist/
 *.tmp
 *.tmp.*
 CTempsibim-stdout.txt
+test-output.txt

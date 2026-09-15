@@ -30,9 +30,16 @@ import java.util.List;
 
 public class PrestamoService {
 
-    private final PrestamoRepository repo        = new PrestamoRepository();
-    private final ProductoRepository productoRepo = new ProductoRepository();
-    private final ConfiguracionRepository cfgRepo = new ConfiguracionRepository();
+    private final PrestamoRepository repo;
+    private final ProductoRepository productoRepo;
+    private final ConfiguracionRepository cfgRepo;
+
+    public PrestamoService() { this(new PrestamoRepository(), new ProductoRepository(), new ConfiguracionRepository()); }
+    PrestamoService(PrestamoRepository repo, ProductoRepository productoRepo, ConfiguracionRepository cfgRepo) {
+        this.repo = repo;
+        this.productoRepo = productoRepo;
+        this.cfgRepo = cfgRepo;
+    }
 
     private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(22, 101, 52);   // green-800
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(240, 253, 244);  // green-50

@@ -33,9 +33,16 @@ import java.util.stream.Collectors;
 
 public class ActaService {
 
-    private final ActaRepository actaRepo       = new ActaRepository();
-    private final ProductoRepository productoRepo = new ProductoRepository();
-    private final ConfiguracionRepository cfgRepo = new ConfiguracionRepository();
+    private final ActaRepository actaRepo;
+    private final ProductoRepository productoRepo;
+    private final ConfiguracionRepository cfgRepo;
+
+    public ActaService() { this(new ActaRepository(), new ProductoRepository(), new ConfiguracionRepository()); }
+    ActaService(ActaRepository actaRepo, ProductoRepository productoRepo, ConfiguracionRepository cfgRepo) {
+        this.actaRepo = actaRepo;
+        this.productoRepo = productoRepo;
+        this.cfgRepo = cfgRepo;
+    }
 
     private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(76, 29, 149);
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(241, 245, 249);

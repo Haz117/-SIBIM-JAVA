@@ -33,8 +33,14 @@ import java.util.List;
 
 public class ResguardoService {
 
-    private final ResguardoRepository repo = new ResguardoRepository();
-    private final ConfiguracionRepository configRepo = new ConfiguracionRepository();
+    private final ResguardoRepository repo;
+    private final ConfiguracionRepository configRepo;
+
+    public ResguardoService() { this(new ResguardoRepository(), new ConfiguracionRepository()); }
+    ResguardoService(ResguardoRepository repo, ConfiguracionRepository configRepo) {
+        this.repo = repo;
+        this.configRepo = configRepo;
+    }
 
     private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(76, 29, 149);
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(241, 245, 249);
