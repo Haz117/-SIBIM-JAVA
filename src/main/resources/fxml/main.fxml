@@ -64,19 +64,24 @@
 
             <Region prefHeight="14"/>
 
-            <!-- User card -->
+            <!-- User card — single row (avatar + name + role chip) instead of
+                 a stacked 2-line block, so it reads at a glance and costs
+                 less vertical space for the nav list below. -->
             <HBox spacing="11" alignment="CENTER_LEFT" styleClass="sidebar-user-box">
-                <padding><Insets top="0" right="18" bottom="0" left="10"/></padding>
+                <padding><Insets top="0" right="14" bottom="0" left="10"/></padding>
                 <StackPane styleClass="user-avatar">
                     <Label fx:id="userAvatarLabel" text="U" styleClass="user-avatar-text"/>
                 </StackPane>
-                <VBox fx:id="userInfoVBox" spacing="4" HBox.hgrow="ALWAYS">
-                    <Label fx:id="userNameLabel" styleClass="sidebar-username" wrapText="true"/>
-                    <Label fx:id="userRolLabel" styleClass="sidebar-userrole"/>
+                <VBox fx:id="userInfoVBox" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <Label fx:id="userNameLabel" styleClass="sidebar-username" HBox.hgrow="ALWAYS"
+                               maxWidth="1.7976931348623157E308" textOverrun="ELLIPSIS"/>
+                        <Label fx:id="userRolLabel" styleClass="sidebar-userrole"/>
+                    </HBox>
                 </VBox>
             </HBox>
 
-            <Region prefHeight="18"/>
+            <Region prefHeight="16"/>
 
             <!-- Scrollable nav sections -->
             <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="sidebar-scroll">
@@ -122,7 +127,7 @@
                         </Button>
                         <Label fx:id="alertBadge" text="0"
                                styleClass="alert-nav-badge"
-                               visible="false" managed="false"
+                               visible="false" managed="false" mouseTransparent="true"
                                StackPane.alignment="CENTER_RIGHT"/>
                     </StackPane>
 
@@ -135,11 +140,16 @@
                         <tooltip><Tooltip text="Depreciación de activos  (Ctrl+8)"/></tooltip>
                     </Button>
                     <Button fx:id="btnConteoFisico" text="Conteo Físico" onAction="#onConteoFisico" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                        <graphic><FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="nav-icon"/></graphic>
+                        <graphic><FontIcon iconLiteral="mdi2c-clipboard-search-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Tomar conteo físico del inventario"/></tooltip>
                     </Button>
+                    <Region prefHeight="4"/>
+                    <Separator styleClass="sidebar-divider"/>
+                    <Region prefHeight="4"/>
+                    <Label text="CONTROL PATRIMONIAL" styleClass="nav-section-label"/>
+
                     <Button fx:id="btnResguardos" text="Resguardos" onAction="#onResguardos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                        <graphic><FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="nav-icon"/></graphic>
+                        <graphic><FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Resguardos de bienes por servidor público"/></tooltip>
                     </Button>
                     <!-- Préstamos con badge de vencidos -->
@@ -147,16 +157,16 @@
                         <Button fx:id="btnPrestamos" text="Préstamos" onAction="#onPrestamos"
                                 styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER"
                                 contentDisplay="LEFT" graphicTextGap="10">
-                            <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="nav-icon"/></graphic>
+                            <graphic><FontIcon iconLiteral="mdi2c-cube-send" styleClass="nav-icon"/></graphic>
                             <tooltip><Tooltip text="Préstamos temporales entre áreas"/></tooltip>
                         </Button>
                         <Label fx:id="loanBadge" text="0"
                                styleClass="alert-nav-badge"
-                               visible="false" managed="false"
+                               visible="false" managed="false" mouseTransparent="true"
                                StackPane.alignment="CENTER_RIGHT"/>
                     </StackPane>
                     <Button fx:id="btnActas" text="Actas E/R" onAction="#onActas" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                        <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal-bold" styleClass="nav-icon"/></graphic>
+                        <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Actas de entrega-recepción (cambio de administración)"/></tooltip>
                     </Button>
 

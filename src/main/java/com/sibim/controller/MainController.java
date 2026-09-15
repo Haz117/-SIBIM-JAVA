@@ -716,7 +716,8 @@ public class MainController {
         java.util.Set<javafx.scene.Node> sectionLabels = sidebar.lookupAll(".nav-section-label");
         java.util.List<Button> navBtns = java.util.stream.Stream.of(
                 btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConfiguracion, btnAuditoria)
+                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
+                btnResguardos, btnPrestamos, btnActas, btnConfiguracion, btnAuditoria)
             .filter(b -> b != null).collect(java.util.stream.Collectors.toList());
         java.util.List<Button> footerBtns = new java.util.ArrayList<>();
         sidebar.lookupAll(".logout-btn").forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });

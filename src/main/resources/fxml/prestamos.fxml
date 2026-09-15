@@ -12,7 +12,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-emerald">
         <StackPane styleClass="page-header-icon page-header-icon-emerald">
-            <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2c-cube-send" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Préstamos Temporales" styleClass="page-title"/>
@@ -33,7 +33,7 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
-                    <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2c-cube-send" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="ACTIVOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>

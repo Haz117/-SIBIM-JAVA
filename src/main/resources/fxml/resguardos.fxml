@@ -12,7 +12,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-indigo">
         <StackPane styleClass="page-header-icon page-header-icon-indigo">
-            <FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Resguardos de Bienes" styleClass="page-title"/>
@@ -33,7 +33,7 @@
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
-                    <FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="TOTAL RESGUARDOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
