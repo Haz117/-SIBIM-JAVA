@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.controller.dialogs.MovimientoDetailDialog;
 import com.sibim.controller.dialogs.MovimientoDialogFactory;
 import com.sibim.controller.dialogs.MovimientoTimelineDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -144,7 +145,7 @@ public class MovimientosController {
                     ev.consume();
                 } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
                         && table.getSelectionModel().getSelectedItem() != null) {
-                    showMovimientoDetail(table.getSelectionModel().getSelectedItem()); ev.consume();
+                    MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(), table.getScene(), movimientoService, this::loadData); ev.consume();
                 }
             });
         }
@@ -181,7 +182,7 @@ public class MovimientosController {
             if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 table.getSelectionModel().clearSelection(); ev.consume();
             } else if (ev.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
-                showMovimientoDetail(sel); ev.consume();
+                MovimientoDetailDialog.show(sel, table.getScene(), movimientoService, this::loadData); ev.consume();
             } else if (ev.getCode() == javafx.scene.input.KeyCode.DELETE && sel != null) {
                 onDelete(); ev.consume();
             }
@@ -189,7 +190,7 @@ public class MovimientosController {
 
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
-                showMovimientoDetail(table.getSelectionModel().getSelectedItem());
+                MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(), table.getScene(), movimientoService, this::loadData);
         });
 
         // Context menu
@@ -198,7 +199,7 @@ public class MovimientosController {
         cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
         cmDetalle.setOnAction(e -> {
             Movimiento sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) showMovimientoDetail(sel);
+            if (sel != null) MovimientoDetailDialog.show(sel, table.getScene(), movimientoService, this::loadData);
         });
         cm.getItems().add(cmDetalle);
         boolean canDelete = SessionManager.isAdmin() || SessionManager.isSecretario();
@@ -857,149 +858,4 @@ public class MovimientosController {
         );
     }
 
-    private void showMovimientoDetail(Movimiento m) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(470);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        String tipoIcon = switch (m.getTipo()) {
-            case ENTRADA       -> "mdi2a-arrow-up-bold-circle-outline";
-            case SALIDA        -> "mdi2a-arrow-down-bold-circle-outline";
-            case AJUSTE        -> "mdi2s-swap-horizontal";
-            case TRANSFERENCIA -> "mdi2a-arrow-right-bold-circle-outline";
-        };
-        String color1 = switch (m.getTipo()) {
-            case ENTRADA       -> "#059669";
-            case SALIDA        -> "#DC2626";
-            case AJUSTE        -> "#D97706";
-            case TRANSFERENCIA -> "#2563EB";
-        };
-        String color2 = switch (m.getTipo()) {
-            case ENTRADA       -> "#047857";
-            case SALIDA        -> "#B91C1C";
-            case AJUSTE        -> "#B45309";
-            case TRANSFERENCIA -> "#1D4ED8";
-        };
-
-        HBox header = DialogUtil.gradientHeader(tipoIcon,
-            m.getTipo().getEtiqueta() + "  —  " + m.getCantidad() + " uds.",
-            m.getProductoNombre(),
-            color1, color2);
-
-        GridPane grid = DialogUtil.formGrid(120);
-        int r = 0;
-
-        // Stock change row
-        HBox stockRow = new HBox(10);
-        stockRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        Label antes = new Label(String.valueOf(m.getStockAnterior()));
-        antes.getStyleClass().add("dlg-stock-val");
-        Label arrowLbl = new Label("→");
-        boolean up = m.getStockNuevo() > m.getStockAnterior();
-        boolean down = m.getStockNuevo() < m.getStockAnterior();
-        arrowLbl.getStyleClass().add(up ? "dlg-stock-arrow-up" : down ? "dlg-stock-arrow-down" : "dlg-stock-arrow");
-        Label despues = new Label(String.valueOf(m.getStockNuevo()));
-        despues.getStyleClass().add(m.getStockNuevo() <= 0 ? "dlg-stock-new-empty"
-            : up ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
-        stockRow.getChildren().addAll(antes, arrowLbl, despues);
-
-        Label fProducto = new Label(m.getProductoNombre());
-        fProducto.setWrapText(true);
-        Label fMotivo    = new Label(m.getMotivo()     != null && !m.getMotivo().isBlank()     ? m.getMotivo()     : "—");
-        Label fRef       = new Label(m.getReferencia() != null && !m.getReferencia().isBlank() ? m.getReferencia() : "—");
-        Label fUsuario   = new Label(m.getUsuarioNombre());
-        Label fFecha     = new Label(FormatUtils.formatDateTime(m.getCreadoEn()));
-
-        for (Label l : new Label[]{fProducto, fMotivo, fRef, fUsuario, fFecha})
-            l.getStyleClass().add("dlg-detail-value");
-
-        grid.add(DialogUtil.fieldLabel("Bien"),           0, r); grid.add(fProducto, 1, r++);
-        grid.add(DialogUtil.fieldLabel("Stock"),          0, r); grid.add(stockRow,  1, r++);
-        if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
-            HBox areaRow = new HBox(8);
-            areaRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-            Label areaOrigenLbl = new Label(m.getAreaOrigen() != null ? m.getAreaOrigen() : "—");
-            areaOrigenLbl.getStyleClass().add("dlg-detail-value");
-            Label areaArrow = new Label("→");
-            areaArrow.getStyleClass().add("dlg-stock-arrow");
-            Label areaDestinoLbl = new Label(m.getAreaDestino());
-            areaDestinoLbl.getStyleClass().add("dlg-detail-value");
-            areaRow.getChildren().addAll(areaOrigenLbl, areaArrow, areaDestinoLbl);
-            grid.add(DialogUtil.fieldLabel("Área"), 0, r); grid.add(areaRow, 1, r++);
-        }
-        grid.add(DialogUtil.fieldLabel("Motivo"),         0, r); grid.add(fMotivo,   1, r++);
-        grid.add(DialogUtil.fieldLabel("Referencia"),     0, r); grid.add(fRef,      1, r++);
-        grid.add(DialogUtil.fieldLabel("Registrado por"), 0, r); grid.add(fUsuario,  1, r++);
-        grid.add(DialogUtil.fieldLabel("Fecha"),          0, r); grid.add(fFecha,    1, r);
-
-        Button btnHistorial = new Button("Ver historial del bien");
-        btnHistorial.getStyleClass().add("btn-secondary");
-        btnHistorial.setGraphic(new FontIcon("mdi2h-history"));
-        btnHistorial.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-        btnHistorial.setGraphicTextGap(8);
-        btnHistorial.setOnAction(e -> {
-            dialog.close();
-            Producto stub = new Producto();
-            stub.setId(m.getProductoId());
-            stub.setNombre(m.getProductoNombre());
-            MovimientoTimelineDialog.show(stub, table.getScene(), movimientoService);
-        });
-
-        javafx.scene.layout.Region footerSpacer = new javafx.scene.layout.Region();
-        javafx.scene.layout.HBox.setHgrow(footerSpacer, javafx.scene.layout.Priority.ALWAYS);
-        javafx.scene.layout.HBox footer = new javafx.scene.layout.HBox(8, btnHistorial, footerSpacer);
-        footer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        footer.setPadding(new javafx.geometry.Insets(12, 16, 4, 16));
-
-        boolean canRevert = (SessionManager.isAdmin() || SessionManager.isSecretario())
-            && m.getTipo() != TipoMovimiento.TRANSFERENCIA
-            && !"RECHAZADO".equals(m.getEstado());
-        if (canRevert) {
-            String tipoInverso = m.getTipo() == TipoMovimiento.ENTRADA ? "salida compensatoria"
-                : m.getTipo() == TipoMovimiento.SALIDA ? "entrada compensatoria" : "ajuste de reversión";
-            Button btnRevertir = new Button("Revertir");
-            btnRevertir.getStyleClass().add("btn-danger");
-            btnRevertir.setGraphic(new FontIcon("mdi2u-undo-variant"));
-            btnRevertir.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            btnRevertir.setGraphicTextGap(8);
-            btnRevertir.setOnAction(ev -> {
-                javafx.scene.control.TextInputDialog reasonDlg = new javafx.scene.control.TextInputDialog();
-                reasonDlg.setTitle("Revertir movimiento");
-                reasonDlg.setHeaderText("Motivo de la reversión (opcional):");
-                reasonDlg.setContentText("Razón:");
-                com.sibim.util.DialogUtil.applyOwner(reasonDlg);
-                com.sibim.util.DialogUtil.applyStylesheet(reasonDlg.getDialogPane());
-                reasonDlg.showAndWait().ifPresent(razon -> {
-                    if (!com.sibim.util.ConfirmacionUtil.confirmar("Confirmar reversión",
-                            "Se creará una " + tipoInverso + " de " + m.getCantidad()
-                            + " uds para \"" + m.getProductoNombre() + "\".\n"
-                            + "Este movimiento no se elimina — quedará como comprobante en el historial.\n\n"
-                            + "¿Continuar?")) return;
-                    dialog.close();
-                    AppExecutor.submit(() -> {
-                        try {
-                            movimientoService.revertirMovimiento(m, razon.trim());
-                            Platform.runLater(() -> {
-                                NotificacionUtil.exito(table.getScene(), "Movimiento revertido — se registró " + tipoInverso);
-                                loadData();
-                            });
-                        } catch (MovimientoService.ValidationException ex) {
-                            Platform.runLater(() -> NotificacionUtil.advertencia(table.getScene(), ex.getMessage()));
-                        } catch (Exception ex) {
-                            log.error("Error al revertir movimiento {}", m.getId(), ex);
-                            Platform.runLater(() -> NotificacionUtil.error(table.getScene(), "No se pudo revertir el movimiento"));
-                        }
-                    });
-                });
-            });
-            footer.getChildren().add(btnRevertir);
-        }
-
-        VBox content = new VBox(0, header, grid, footer);
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid, footer), 260, 70);
-        dialog.getDialogPane().setContent(content);
-        dialog.showAndWait();
-    }
 }

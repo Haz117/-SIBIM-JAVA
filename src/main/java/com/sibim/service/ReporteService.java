@@ -335,90 +335,18 @@ public class ReporteService {
         return file;
     }
 
-    // ── Depreciación ── (recibe la lista ya cargada/filtrada por la pantalla
-    // de Depreciación en vez de re-consultar productoRepo — exporta
-    // exactamente lo que el usuario está viendo)
-
-    private static final String[] DEP_HEADERS = {
-        "Nombre", "Categoria", "Fecha Adquisicion", "Vida Util (años)",
-        "Valor Compra", "Valor Actual", "% Depreciado"};
+    // ── Depreciación ── delegates to ReporteDepreciacionService
 
     public File exportDepreciacionExcel(List<Producto> productos) throws Exception {
-        File file = tempFile("depreciacion", ".xlsx");
-        try (Workbook wb = new XSSFWorkbook()) {
-            Sheet sheet = createSheet(wb, "Depreciación");
-            writeHeader(sheet, DEP_HEADERS, wb);
-            int row = 1;
-            for (Producto p : productos) {
-                Row r = sheet.createRow(row++);
-                r.createCell(0).setCellValue(p.getNombre());
-                r.createCell(1).setCellValue(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "");
-                r.createCell(2).setCellValue(FormatUtils.formatDate(p.getFechaAdquisicion()));
-                r.createCell(3).setCellValue(p.getVidaUtilAnios());
-                r.createCell(4).setCellValue(p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0);
-                r.createCell(5).setCellValue(p.getValorDepreciado() != null ? p.getValorDepreciado().doubleValue() : 0);
-                r.createCell(6).setCellValue(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0);
-            }
-            autosizeColumns(sheet, DEP_HEADERS.length);
-            addExcelInfoSheet(wb, "Depreciación de Activos", null, null);
-            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
-        }
-        return file;
+        return new ReporteDepreciacionService().exportDepreciacionExcel(productos);
     }
 
     public File exportDepreciacionPdf(List<Producto> productos) throws Exception {
-        File file = tempFile("depreciacion", ".pdf");
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Depreciación de Activos", null, null);
-            float[] widths = {3f, 1.8f, 1.5f, 1.2f, 1.5f, 1.5f, 1.2f};
-            Table table = createPdfTable(DEP_HEADERS, widths);
-            for (Producto p : productos) {
-                table.addCell(cell(p.getNombre()));
-                table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
-                table.addCell(cell(FormatUtils.formatDate(p.getFechaAdquisicion())));
-                table.addCell(cell(String.valueOf(p.getVidaUtilAnios())));
-                table.addCell(cell(FormatUtils.formatCurrency(p.getPrecioCompra())));
-                table.addCell(cell(FormatUtils.formatCurrency(p.getValorDepreciado())));
-                table.addCell(cell(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() + "%" : "—"));
-            }
-            doc.add(table);
-            addPdfFooter(doc, productos.size());
-        }
-        return file;
+        return new ReporteDepreciacionService().exportDepreciacionPdf(productos);
     }
 
     public File exportDepreciacionCsv(List<Producto> productos) throws Exception {
-        File file = tempFile("depreciacion", ".csv");
-        java.time.LocalDate hoy = java.time.LocalDate.now();
-        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Nombre,Categoria,Area,Fecha Adquisicion,Vida Util (años),Vida Util Restante,Valor Compra,Valor Actual,% Depreciado,Depreciado el");
-            for (Producto p : productos) {
-                java.time.LocalDate fechaTotal = (p.getFechaAdquisicion() != null && p.getVidaUtilAnios() != null && p.getVidaUtilAnios() > 0)
-                    ? p.getFechaAdquisicion().plusYears(p.getVidaUtilAnios()) : null;
-                String restante = "—";
-                if (fechaTotal != null) {
-                    if (!fechaTotal.isAfter(hoy)) restante = "Cumplida";
-                    else {
-                        long meses = java.time.temporal.ChronoUnit.MONTHS.between(hoy, fechaTotal);
-                        restante = meses < 12 ? meses + " meses" : (meses / 12) + " años";
-                    }
-                }
-                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\",%.2f,%.2f,%s,\"%s\"%n",
-                    esc(p.getNombre()),
-                    esc(p.getCategoriaNombre()),
-                    esc(p.getArea()),
-                    FormatUtils.formatDate(p.getFechaAdquisicion()),
-                    p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() : 0,
-                    restante,
-                    p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0.0,
-                    p.getValorDepreciado() != null ? p.getValorDepreciado().doubleValue() : 0.0,
-                    p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0,
-                    fechaTotal != null ? fechaTotal.format(FMT) : "");
-            }
-        }
-        return file;
+        return new ReporteDepreciacionService().exportDepreciacionCsv(productos);
     }
 
     // ───────────────────────────── PDF ─────────────────────────────
@@ -480,43 +408,11 @@ public class ReporteService {
     public File exportAuditoriaPdf(List<com.sibim.model.AuditLog> logs,
                                String busqueda, String entidad,
                                LocalDate desde, LocalDate hasta) throws Exception {
-        if (logs.isEmpty()) return null;
-        File file = tempFile("auditoria", ".pdf");
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Registro de Auditoría", desde, hasta);
-            String[] headers = {"Entidad", "Nombre", "Acción", "Usuario", "Detalle", "Fecha"};
-            float[] widths = {1.5f, 1.5f, 1.2f, 1.5f, 3f, 2f};
-            Table table = createPdfTable(headers, widths);
-            for (com.sibim.model.AuditLog l : logs) {
-                table.addCell(cell(l.getEntidad() != null ? l.getEntidad() : ""));
-                table.addCell(cell(l.getEntidadNombre() != null ? l.getEntidadNombre() : ""));
-                table.addCell(cell(l.getAccion() != null ? l.getAccion() : ""));
-                table.addCell(cell(l.getUsuarioNombre() != null ? l.getUsuarioNombre() : ""));
-                table.addCell(cell(l.getDetalle() != null ? l.getDetalle() : ""));
-                table.addCell(cell(l.getCreadoEn() != null ? FormatUtils.formatDateTime(l.getCreadoEn()) : ""));
-            }
-            doc.add(table);
-            addPdfFooter(doc, logs.size());
-        }
-        return file;
+        return new ReporteAuditoriaService().exportAuditoriaPdf(logs, busqueda, entidad, desde, hasta);
     }
 
     public File exportAuditoriaCsv(List<com.sibim.model.AuditLog> logs) throws Exception {
-        if (logs.isEmpty()) return null;
-        File file = tempFile("auditoria", ".csv");
-        try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(file))) {
-            pw.println("Entidad,Nombre,Accion,Usuario,Detalle,Fecha");
-            for (com.sibim.model.AuditLog l : logs) {
-                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
-                    esc(l.getEntidad()), esc(l.getEntidadNombre()),
-                    esc(l.getAccion()), esc(l.getUsuarioNombre()),
-                    esc(l.getDetalle()), l.getCreadoEn() != null
-                        ? FormatUtils.formatDateTime(l.getCreadoEn()) : "");
-            }
-        }
-        return file;
+        return new ReporteAuditoriaService().exportAuditoriaCsv(logs);
     }
 
     // ───────────────────────────── CSV ─────────────────────────────
@@ -599,7 +495,7 @@ public class ReporteService {
         return wb.createSheet(name);
     }
 
-    private void addExcelInfoSheet(Workbook wb, String titulo, LocalDate desde, LocalDate hasta) {
+    protected void addExcelInfoSheet(Workbook wb, String titulo, LocalDate desde, LocalDate hasta) {
         Sheet info = wb.createSheet("_Info");
         com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
         String user = u != null ? u.getNombre() : "—";
@@ -774,72 +670,15 @@ public class ReporteService {
     public File exportBajasCsv() throws Exception   { return exportBajasCsv(fetchBajas()); }
 
     public File exportBajasPdf(List<com.sibim.model.Producto> bajas) throws Exception {
-        if (bajas.isEmpty()) return null;
-        File file = tempFile("bienes_baja", ".pdf");
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Bienes Dados de Baja", null, null);
-            String[] headers = {"Nombre", "Código", "Área", "Categoría", "Fecha baja", "Motivo"};
-            float[] widths  = {3f, 1.5f, 2f, 1.5f, 1.5f, 3f};
-            Table table = createPdfTable(headers, widths);
-            for (com.sibim.model.Producto p : bajas) {
-                table.addCell(cell(p.getNombre()));
-                table.addCell(cell(p.getCodigo()));
-                table.addCell(cell(p.getArea() != null ? p.getArea() : ""));
-                table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
-                table.addCell(cell(p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : ""));
-                table.addCell(cell(p.getMotivoBaja() != null ? p.getMotivoBaja() : ""));
-            }
-            doc.add(table);
-            addPdfFooter(doc, bajas.size());
-        }
-        return file;
+        return new ReporteBajasService().exportBajasPdf(bajas);
     }
 
     public File exportBajasExcel(List<com.sibim.model.Producto> bajas) throws Exception {
-        if (bajas.isEmpty()) return null;
-        String[] headers = {"Nombre", "Código", "Área", "Categoría", "Resguardante",
-                            "Precio compra", "Fecha baja", "Motivo"};
-        File file = tempFile("bienes_baja", ".xlsx");
-        try (Workbook wb = new XSSFWorkbook()) {
-            Sheet sheet = createSheet(wb, "Dados de Baja");
-            writeHeader(sheet, headers, wb);
-            int row = 1;
-            for (com.sibim.model.Producto p : bajas) {
-                Row r = sheet.createRow(row++);
-                r.createCell(0).setCellValue(p.getNombre());
-                r.createCell(1).setCellValue(p.getCodigo());
-                r.createCell(2).setCellValue(p.getArea() != null ? p.getArea() : "");
-                r.createCell(3).setCellValue(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "");
-                r.createCell(4).setCellValue(p.getResguardante() != null ? p.getResguardante() : "");
-                r.createCell(5).setCellValue(p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0);
-                r.createCell(6).setCellValue(p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : "");
-                r.createCell(7).setCellValue(p.getMotivoBaja() != null ? p.getMotivoBaja() : "");
-            }
-            autosizeColumns(sheet, headers.length);
-            addExcelInfoSheet(wb, "Bienes Dados de Baja", null, null);
-            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
-        }
-        return file;
+        return new ReporteBajasService().exportBajasExcel(bajas);
     }
 
     public File exportBajasCsv(List<com.sibim.model.Producto> bajas) throws Exception {
-        if (bajas.isEmpty()) return null;
-        File file = tempFile("bienes_baja", ".csv");
-        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Nombre,Código,Área,Categoría,Resguardante,Precio compra,Fecha baja,Motivo");
-            for (com.sibim.model.Producto p : bajas) {
-                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%.2f,\"%s\",\"%s\"%n",
-                    esc(p.getNombre()), esc(p.getCodigo()),
-                    esc(p.getArea()), esc(p.getCategoriaNombre()),
-                    esc(p.getResguardante()),
-                    p.getPrecioCompra() != null ? p.getPrecioCompra() : java.math.BigDecimal.ZERO,
-                    p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : "",
-                    esc(p.getMotivoBaja()));
-            }
-        }
-        return file;
+        return new ReporteBajasService().exportBajasCsv(bajas);
     }
 
     protected String esc(String s) {
@@ -847,259 +686,15 @@ public class ReporteService {
         return s.replace("\"", "\"\"");
     }
 
-    // ── FEATURE 8: Dashboard PDF export ──────────────────────────────
+    // ── Dashboard PDF export ──────────────────────────────
 
     public File exportDashboardPdf(DashboardService.Resumen resumen, String destFolder) throws Exception {
-        File file = destFolder != null
-            ? new File(destFolder, "dashboard_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".pdf")
-            : tempFile("dashboard", ".pdf");
-        try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
-             PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.A4)) {
-
-            addPdfHeader(doc, "Resumen del Inventario", null, null);
-
-            PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-            PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-
-            // Stats table
-            doc.add(new Paragraph("Estadísticas Generales")
-                .setFont(bold).setFontSize(11).setFontColor(COLOR_HEADER)
-                .setMarginTop(8).setMarginBottom(4));
-
-            var stats = resumen.stats();
-            String[][] statsRows = {
-                {"Total de bienes",         String.valueOf(stats.total())},
-                {"Bienes activos",          String.valueOf(stats.activos())},
-                {"Agotados",                String.valueOf(resumen.agotados().size())},
-                {"Bajo stock",              String.valueOf(resumen.bajoStock().size())},
-                {"Categorías",              String.valueOf(stats.categorias())},
-                {"Valor total (compra)",    com.sibim.util.FormatUtils.formatCurrency(stats.valorTotal())},
-            };
-            Table tStats = createPdfTable(new String[]{"Indicador", "Valor"}, new float[]{3f, 2f});
-            for (String[] row : statsRows) {
-                tStats.addCell(cell(row[0]));
-                tStats.addCell(cell(row[1]));
-            }
-            doc.add(tStats);
-
-            // Movimientos hoy
-            doc.add(new Paragraph("Movimientos Hoy (" + resumen.movHoy().size() + ")")
-                .setFont(bold).setFontSize(11).setFontColor(COLOR_HEADER)
-                .setMarginTop(12).setMarginBottom(4));
-            if (!resumen.movHoy().isEmpty()) {
-                Table tMov = createPdfTable(
-                    new String[]{"Bien", "Tipo", "Cantidad", "Usuario"},
-                    new float[]{3f, 1.5f, 1f, 2f});
-                resumen.movHoy().stream().limit(20).forEach(m -> {
-                    tMov.addCell(cell(m.getProductoNombre() != null ? m.getProductoNombre() : ""));
-                    tMov.addCell(cell(m.getTipo() != null ? m.getTipo().getEtiqueta() : ""));
-                    tMov.addCell(cell(String.valueOf(m.getCantidad())));
-                    tMov.addCell(cell(m.getUsuarioNombre() != null ? m.getUsuarioNombre() : ""));
-                });
-                doc.add(tMov);
-                if (resumen.movHoy().size() > 20)
-                    doc.add(new Paragraph("… y " + (resumen.movHoy().size() - 20) + " movimientos más")
-                        .setFont(regular).setFontSize(9).setFontColor(ColorConstants.GRAY));
-            } else {
-                doc.add(new Paragraph("Sin movimientos registrados hoy.")
-                    .setFont(regular).setFontSize(10).setFontColor(ColorConstants.GRAY));
-            }
-
-            // Distribution by area
-            if (!resumen.byArea().isEmpty()) {
-                doc.add(new Paragraph("Distribución por Área (Top " + resumen.byArea().size() + ")")
-                    .setFont(bold).setFontSize(11).setFontColor(COLOR_HEADER)
-                    .setMarginTop(12).setMarginBottom(4));
-                Table tArea = createPdfTable(new String[]{"Área", "Total bienes"}, new float[]{4f, 1.5f});
-                resumen.byArea().forEach((area, count) -> {
-                    tArea.addCell(cell(area));
-                    tArea.addCell(cell(String.valueOf(count)));
-                });
-                doc.add(tArea);
-            }
-
-            addPdfFooter(doc, (int) stats.total());
-        }
-        return file;
+        return new ReporteDashboardService().exportDashboardPdf(resumen, destFolder);
     }
 
     // ─────────────────── AUDITORÍA CONSOLIDADA ───────────────────
 
     public File exportAuditoriaPdf() throws Exception {
-        java.util.List<com.sibim.model.Prestamo> todosPrestamos;
-        java.util.List<com.sibim.model.Resguardo> resguardos;
-        try {
-            todosPrestamos = new com.sibim.repository.PrestamoRepository().findAll();
-            resguardos     = new com.sibim.repository.ResguardoRepository().findAll();
-        } catch (Exception e) {
-            throw new RuntimeException("No se pudo cargar datos para el reporte de auditoría", e);
-        }
-
-        java.util.List<com.sibim.model.Prestamo> prestamosAbiertos = todosPrestamos.stream()
-            .filter(p -> !com.sibim.model.Prestamo.ESTADO_DEVUELTO.equals(p.getEstado()))
-            .sorted(java.util.Comparator
-                .comparing((com.sibim.model.Prestamo p) -> com.sibim.model.Prestamo.ESTADO_VENCIDO.equals(p.getEstado()) ? 0 : 1)
-                .thenComparing(p -> p.getFechaDevolucionPrevista() != null
-                    ? p.getFechaDevolucionPrevista() : java.time.LocalDate.MAX))
-            .toList();
-        java.util.List<com.sibim.model.Resguardo> resguardosActivos = resguardos.stream()
-            .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado()))
-            .toList();
-
-        com.itextpdf.kernel.colors.DeviceRgb colorPurple  = new com.itextpdf.kernel.colors.DeviceRgb(76, 29, 149);
-        com.itextpdf.kernel.colors.DeviceRgb colorMuted   = new com.itextpdf.kernel.colors.DeviceRgb(100, 116, 139);
-        com.itextpdf.kernel.colors.DeviceRgb colorAmber   = new com.itextpdf.kernel.colors.DeviceRgb(146, 64, 14);
-        com.itextpdf.kernel.colors.DeviceRgb colorSubhead = new com.itextpdf.kernel.colors.DeviceRgb(241, 245, 249);
-        java.time.format.DateTimeFormatter fmtD = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-        com.itextpdf.kernel.font.PdfFont bold    = com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD);
-        com.itextpdf.kernel.font.PdfFont regular = com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
-
-        String orgName;
-        try {
-            String org = configRepo.get("nombre_ayuntamiento", "");
-            String mun = configRepo.get("municipio", "");
-            orgName = org.isBlank() ? "H. Ayuntamiento Municipal"
-                    : mun.isBlank() ? org : org + " · " + mun;
-        } catch (Exception e) { orgName = "H. Ayuntamiento Municipal"; }
-
-        File file = tempFile("auditoria_consolidada", ".pdf");
-        try (com.itextpdf.kernel.pdf.PdfWriter   writer  = new com.itextpdf.kernel.pdf.PdfWriter(file.getAbsolutePath());
-             com.itextpdf.kernel.pdf.PdfDocument pdfDoc  = new com.itextpdf.kernel.pdf.PdfDocument(writer);
-             com.itextpdf.layout.Document        doc     = new com.itextpdf.layout.Document(pdfDoc, PageSize.A4)) {
-
-            doc.setMargins(36, 36, 36, 36);
-
-            com.itextpdf.layout.element.Table headerTbl = new com.itextpdf.layout.element.Table(1).useAllAvailableWidth();
-            headerTbl.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new com.itextpdf.layout.element.Paragraph("REPORTE DE AUDITORÍA DE BIENES")
-                    .setFont(bold).setFontSize(15).setFontColor(com.itextpdf.kernel.colors.ColorConstants.WHITE)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                .add(new com.itextpdf.layout.element.Paragraph(orgName)
-                    .setFont(regular).setFontSize(9)
-                    .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(200, 210, 240))
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                .add(new com.itextpdf.layout.element.Paragraph(
-                    "Generado: " + java.time.LocalDate.now().format(fmtD))
-                    .setFont(regular).setFontSize(8)
-                    .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(180, 190, 220))
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                .setBackgroundColor(colorPurple).setPadding(14).setBorder(null));
-            doc.add(headerTbl);
-
-            doc.add(new com.itextpdf.layout.element.Paragraph("RESUMEN")
-                .setFont(bold).setFontSize(9).setMarginTop(14).setMarginBottom(4));
-            com.itextpdf.layout.element.Table sumTbl = new com.itextpdf.layout.element.Table(
-                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{2, 1, 2, 1}))
-                .useAllAvailableWidth();
-            addAuditCell(sumTbl, bold, regular, "Resguardos activos",  String.valueOf(resguardosActivos.size()), colorSubhead);
-            addAuditCell(sumTbl, bold, regular, "Préstamos abiertos",  String.valueOf(prestamosAbiertos.size()), colorSubhead);
-            addAuditCell(sumTbl, bold, regular, "Préstamos vencidos",
-                String.valueOf(prestamosAbiertos.stream()
-                    .filter(p -> com.sibim.model.Prestamo.ESTADO_VENCIDO.equals(p.getEstado())).count()),
-                colorSubhead);
-            addAuditCell(sumTbl, bold, regular, "Total resguardos", String.valueOf(resguardos.size()), colorSubhead);
-            doc.add(sumTbl);
-
-            if (!resguardosActivos.isEmpty()) {
-                doc.add(new com.itextpdf.layout.element.Paragraph("RESGUARDOS ACTIVOS (" + resguardosActivos.size() + ")")
-                    .setFont(bold).setFontSize(9).setMarginTop(18).setMarginBottom(4));
-                com.itextpdf.layout.element.Table rsgTbl = new com.itextpdf.layout.element.Table(
-                    com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{1.2f, 2f, 1.5f, 1f}))
-                    .useAllAvailableWidth();
-                for (String h : new String[]{"Folio", "Resguardante", "Área", "Fecha"}) {
-                    rsgTbl.addHeaderCell(new com.itextpdf.layout.element.Cell()
-                        .add(new com.itextpdf.layout.element.Paragraph(h).setFont(bold).setFontSize(8)
-                            .setFontColor(com.itextpdf.kernel.colors.ColorConstants.WHITE))
-                        .setBackgroundColor(colorPurple).setPadding(5).setBorder(null));
-                }
-                int rowIdx = 0;
-                for (com.sibim.model.Resguardo r : resguardosActivos) {
-                    com.itextpdf.kernel.colors.DeviceRgb bg = rowIdx++ % 2 == 0 ? null : colorSubhead;
-                    for (String v : new String[]{
-                        r.getNumero() != null ? r.getNumero() : "—",
-                        r.getResguardanteNombre() != null ? r.getResguardanteNombre() : "—",
-                        r.getResguardanteArea() != null ? r.getResguardanteArea() : "—",
-                        r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate().format(fmtD) : "—"
-                    }) {
-                        com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
-                            .add(new com.itextpdf.layout.element.Paragraph(v).setFont(regular).setFontSize(8))
-                            .setPadding(4).setBorderTop(null).setBorderLeft(null).setBorderRight(null)
-                            .setBorderBottom(new com.itextpdf.layout.borders.SolidBorder(
-                                new com.itextpdf.kernel.colors.DeviceRgb(226, 232, 240), 0.5f));
-                        if (bg != null) c.setBackgroundColor(bg);
-                        rsgTbl.addCell(c);
-                    }
-                }
-                doc.add(rsgTbl);
-            }
-
-            if (!prestamosAbiertos.isEmpty()) {
-                doc.add(new com.itextpdf.layout.element.Paragraph("PRÉSTAMOS ABIERTOS (" + prestamosAbiertos.size() + ")")
-                    .setFont(bold).setFontSize(9).setMarginTop(18).setMarginBottom(4));
-                com.itextpdf.layout.element.Table prsTbl = new com.itextpdf.layout.element.Table(
-                    com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{1f, 2f, 1.5f, 1.2f, 0.8f}))
-                    .useAllAvailableWidth();
-                for (String h : new String[]{"Folio", "Bien", "Responsable", "Dev. Prevista", "Estado"}) {
-                    prsTbl.addHeaderCell(new com.itextpdf.layout.element.Cell()
-                        .add(new com.itextpdf.layout.element.Paragraph(h).setFont(bold).setFontSize(8)
-                            .setFontColor(com.itextpdf.kernel.colors.ColorConstants.WHITE))
-                        .setBackgroundColor(colorPurple).setPadding(5).setBorder(null));
-                }
-                int pRowIdx = 0;
-                for (com.sibim.model.Prestamo p : prestamosAbiertos) {
-                    boolean vencido = com.sibim.model.Prestamo.ESTADO_VENCIDO.equals(p.getEstado());
-                    com.itextpdf.kernel.colors.DeviceRgb bg = vencido
-                        ? new com.itextpdf.kernel.colors.DeviceRgb(254, 243, 199)
-                        : (pRowIdx % 2 == 0 ? null : colorSubhead);
-                    pRowIdx++;
-                    String[] vals = {
-                        p.getNumero() != null ? p.getNumero() : "—",
-                        p.getProductoNombre() != null ? p.getProductoNombre() : "—",
-                        p.getResponsableNombre() != null ? p.getResponsableNombre() : "—",
-                        p.getFechaDevolucionPrevista() != null ? p.getFechaDevolucionPrevista().format(fmtD) : "—",
-                        p.getEstado() != null ? p.getEstado() : "—"
-                    };
-                    for (int vi = 0; vi < vals.length; vi++) {
-                        com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
-                            .add(new com.itextpdf.layout.element.Paragraph(vals[vi]).setFont(
-                                (vencido && vi == 4) ? bold : regular).setFontSize(8))
-                            .setPadding(4).setBorderTop(null).setBorderLeft(null).setBorderRight(null)
-                            .setBorderBottom(new com.itextpdf.layout.borders.SolidBorder(
-                                new com.itextpdf.kernel.colors.DeviceRgb(226, 232, 240), 0.5f));
-                        if (bg != null) c.setBackgroundColor(bg);
-                        if (vencido && vi == 4) c.setFontColor(colorAmber);
-                        prsTbl.addCell(c);
-                    }
-                }
-                doc.add(prsTbl);
-            }
-
-            if (resguardosActivos.isEmpty() && prestamosAbiertos.isEmpty()) {
-                doc.add(new com.itextpdf.layout.element.Paragraph(
-                    "No hay resguardos activos ni préstamos abiertos registrados en el sistema.")
-                    .setFont(regular).setFontSize(9).setFontColor(colorMuted).setMarginTop(20));
-            }
-
-            doc.add(new com.itextpdf.layout.element.Paragraph(
-                "Generado por SIBIM · " + orgName + " · " + java.time.LocalDate.now().format(fmtD))
-                .setFont(regular).setFontSize(7).setFontColor(colorMuted)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER).setMarginTop(20));
-        }
-        return file;
-    }
-
-    private void addAuditCell(com.itextpdf.layout.element.Table t,
-                               com.itextpdf.kernel.font.PdfFont bold,
-                               com.itextpdf.kernel.font.PdfFont regular,
-                               String label, String value,
-                               com.itextpdf.kernel.colors.DeviceRgb bg) {
-        t.addCell(new com.itextpdf.layout.element.Cell()
-            .add(new com.itextpdf.layout.element.Paragraph(label).setFont(bold).setFontSize(9))
-            .setBackgroundColor(bg).setPadding(6).setBorder(null));
-        t.addCell(new com.itextpdf.layout.element.Cell()
-            .add(new com.itextpdf.layout.element.Paragraph(value).setFont(regular).setFontSize(9))
-            .setPadding(6).setBorder(null));
+        return new ReporteAuditoriaService().exportAuditoriaPdf();
     }
 }
