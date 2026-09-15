@@ -731,77 +731,8 @@ public class ReporteService {
         return new ReporteFichaTecnicaService().exportFichasTecnicasMasivas(bienes, movimientoService);
     }
 
-    /**
-     * Genera un PDF de resguardo con todos los bienes de un resguardante dado.
-     * Formato: encabezado institucional, tabla de bienes, línea de firma al final.
-     */
     public File exportarResguardoPdf(String resguardante, String area, List<Producto> bienes) throws Exception {
-        File out = File.createTempFile("resguardo_", ".pdf");
-        out.deleteOnExit();
-        try (PdfWriter writer = new PdfWriter(out);
-             PdfDocument pdf = new PdfDocument(writer);
-             Document doc = new Document(pdf, PageSize.LETTER)) {
-
-            doc.setMargins(50, 50, 60, 50);
-            PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-            PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-
-            // Encabezado
-            doc.add(new Paragraph("RESGUARDO DE BIENES MUNICIPALES")
-                .setFont(bold).setFontSize(16)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            doc.add(new Paragraph(orgName())
-                .setFont(regular).setFontSize(11)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setMarginBottom(4));
-            doc.add(new Paragraph("Resguardante: " + (resguardante != null ? resguardante : "—")
-                    + "    |    Área: " + (area != null ? area : "—")
-                    + "    |    Fecha: " + com.sibim.util.FormatUtils.formatDate(java.time.LocalDate.now()))
-                .setFont(regular).setFontSize(10)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setMarginBottom(16));
-
-            // Tabla de bienes
-            float[] widths = {1.5f, 3.5f, 1.2f, 1.2f, 1.5f, 1.5f};
-            Table table = new Table(widths).useAllAvailableWidth();
-            DeviceRgb headerColor = new DeviceRgb(59, 130, 246);
-            String[] headers = {"Código", "Nombre / Descripción", "Serie", "Stock", "Ubicación", "Estado"};
-            for (String h : headers) {
-                table.addHeaderCell(new com.itextpdf.layout.element.Cell()
-                    .add(new Paragraph(h).setFont(bold).setFontSize(9).setFontColor(ColorConstants.WHITE))
-                    .setBackgroundColor(headerColor).setPadding(5));
-            }
-            boolean alt = false;
-            for (Producto p : bienes) {
-                DeviceRgb rowBg = alt ? new DeviceRgb(243, 244, 246) : new DeviceRgb(255, 255, 255);
-                String[] cells = {
-                    p.getCodigo(),
-                    p.getNombre() + (p.getDescripcion() != null && !p.getDescripcion().isBlank() ? "\n" + p.getDescripcion() : ""),
-                    p.getNumeroSerie() != null ? p.getNumeroSerie() : "—",
-                    String.valueOf(p.getStockActual()),
-                    p.getUbicacion() != null ? p.getUbicacion() : "—",
-                    p.getEstado().name()
-                };
-                for (String cellVal : cells) {
-                    table.addCell(new com.itextpdf.layout.element.Cell()
-                        .add(new Paragraph(cellVal != null ? cellVal : "").setFont(regular).setFontSize(8))
-                        .setBackgroundColor(rowBg).setPadding(4));
-                }
-                alt = !alt;
-            }
-            doc.add(table);
-
-            // Total y firma
-            doc.add(new Paragraph("\nTotal de bienes: " + bienes.size())
-                .setFont(bold).setFontSize(10).setMarginTop(12));
-            doc.add(new Paragraph("\n\n\n_______________________________          _______________________________")
-                .setFont(regular).setFontSize(10)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            doc.add(new Paragraph("Firma del resguardante                         Vo.Bo. Jefe del Área")
-                .setFont(regular).setFontSize(9)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-        }
-        return out;
+        return new ReporteResguardoService().exportarResguardoPdf(resguardante, area, bienes);
     }
 
     protected Paragraph sectionTitle(String text, PdfFont bold, DeviceRgb color) {

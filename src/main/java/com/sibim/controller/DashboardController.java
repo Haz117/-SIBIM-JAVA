@@ -1,9 +1,7 @@
 package com.sibim.controller;
 
-import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
-import com.sibim.repository.MovimientoRepository.MonthlyStats;
 import com.sibim.service.DashboardService;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
@@ -22,8 +20,6 @@ import javafx.scene.layout.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.TextStyle;
 import java.util.*;
 
 public class DashboardController {
@@ -108,6 +104,8 @@ public class DashboardController {
     private javafx.animation.Timeline autoRefresh;
     private javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneReadyListener;
     private boolean chartsFirstLoad = true;
+    private DashboardChartBuilder chartBuilder;
+    private DashboardStatusSectionBuilder statusBuilder;
 
     @FXML
     public void initialize() {
@@ -134,7 +132,14 @@ public class DashboardController {
         if (lblFechaDia != null) lblFechaDia.setText(String.valueOf(hoy.getDayOfMonth()));
         if (lblFechaMes != null) lblFechaMes.setText(meses[hoy.getMonthValue()-1] + " " + hoy.getYear());
 
-        setupTablaReciente();
+        new DashboardTablaRecienteSetup(tablaReciente, productoService, movimientoService, log).setup();
+
+        chartBuilder = new DashboardChartBuilder(
+            chartMovimientos, categoriaValorBox, pieEmptyState,
+            chartTendencia, trendCard, lblTrendEmpty, this::navigarA);
+        statusBuilder = new DashboardStatusSectionBuilder(
+            statusCardsRow, areasCard, areasBarBox, areasSectionHdr,
+            () -> navigarA("Productos"), this::onVerBajoStock, this::onVerAgotados, () -> navigarA("Alertas"));
 
         // JavaFX's default tooltip only appears after ~1s of hovering, which
         // reads as "broken" on a small icon — same click-to-show behavior
@@ -244,11 +249,11 @@ public class DashboardController {
         alertBanner.setManaged(showAlert);
         if (showAlert) AnimationUtils.springIn(alertBanner);
 
-        buildMovimientosChart(data.movSemana());
-        buildCategoriaChart(data.catValores());
-        buildStatusCards(stats);
-        buildTrendChart(data.movMensual());
-        buildAreasSection(data.byArea(), stats.total());
+        chartBuilder.buildMovimientosChart(data.movSemana());
+        chartBuilder.buildCategoriaChart(data.catValores());
+        statusBuilder.buildStatusCards(stats);
+        chartBuilder.buildTrendChart(data.movMensual());
+        statusBuilder.buildAreasSection(data.byArea(), stats.total());
 
         // Trend indicator: today vs yesterday from movSemana data
         if (lblMovimientosHoy != null && lblMovimientosHoy.getParent() instanceof VBox inner) {
@@ -330,300 +335,6 @@ public class DashboardController {
         }
     }
 
-    // ── Status mini-cards ────────────────────────────────────────────
-
-    private void buildStatusCards(com.sibim.repository.ProductoRepository.ProductoStats stats) {
-        if (statusCardsRow == null) return;
-        statusCardsRow.getChildren().clear();
-        long total = stats.total();
-        if (total == 0) { statusCardsRow.setVisible(false); statusCardsRow.setManaged(false); return; }
-
-        record CardDef(String icon, String label, String colorKey, long count, Runnable onClick, String tooltip) {}
-        List<CardDef> defs = List.of(
-            new CardDef("mdi2c-check-circle-outline",  "Activos",    "green",  stats.activos(),   () -> navigarA("Productos"), "Ver todos los bienes activos del inventario"),
-            new CardDef("mdi2a-alert-circle-outline",  "Bajo Stock", "amber",  stats.bajoStock(), this::onVerBajoStock,        "Ver bienes por debajo de su stock mínimo"),
-            new CardDef("mdi2a-alert-octagon-outline", "Agotados",   "red",    stats.agotados(),  this::onVerAgotados,         "Ver bienes con stock en cero — requieren reposición"),
-            new CardDef("mdi2c-clock-alert-outline",   "Vencidos",   "violet", stats.vencidos(),  () -> navigarA("Alertas"),   "Ver garantías próximas a vencer o ya vencidas")
-        );
-
-        for (int i = 0; i < defs.size(); i++) {
-            CardDef def = defs.get(i);
-            int pct = (int) Math.round(def.count() * 100.0 / total);
-
-            org.kordamp.ikonli.javafx.FontIcon ico = new org.kordamp.ikonli.javafx.FontIcon(def.icon());
-            ico.getStyleClass().add("status-icon-" + def.colorKey());
-
-            Label lbl = new Label(def.label());
-            lbl.getStyleClass().add("status-mini-label");
-            HBox.setHgrow(lbl, Priority.ALWAYS);
-
-            Label pctLbl = new Label(pct + "%");
-            pctLbl.getStyleClass().addAll("status-mini-pct", "status-pct-" + def.colorKey());
-
-            HBox topRow = new HBox(7, ico, lbl, pctLbl);
-            topRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            Label cntLbl = new Label("0 bienes");
-            cntLbl.getStyleClass().add("status-mini-count");
-
-            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
-            pb.setMaxWidth(Double.MAX_VALUE);
-            pb.getStyleClass().addAll("status-pb", "status-pb-" + def.colorKey());
-
-            VBox card = new VBox(9, topRow, cntLbl, pb);
-            card.getStyleClass().addAll("status-mini-card", "status-mini-card-" + def.colorKey());
-            card.setPadding(new javafx.geometry.Insets(14, 16, 14, 16));
-            HBox.setHgrow(card, Priority.ALWAYS);
-
-            Runnable action = def.onClick();
-            card.setOnMouseClicked(e -> action.run());
-            card.getStyleClass().add("stat-card-clickable");
-            Tooltip tip = new Tooltip(def.tooltip());
-            Tooltip.install(card, tip);
-
-            statusCardsRow.getChildren().add(card);
-
-            double targetPct = (double) def.count() / total;
-            long cardCount = def.count();
-            int delay = i * 100;
-            javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay + 300));
-            wait.setOnFinished(ev -> {
-                javafx.animation.Timeline anim = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
-                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(850),
-                        new javafx.animation.KeyValue(pb.progressProperty(), targetPct,
-                            javafx.animation.Interpolator.EASE_OUT))
-                );
-                anim.play();
-                AnimationUtils.animateCount(cntLbl, cardCount, 750, v -> v + " bienes");
-            });
-            wait.play();
-        }
-
-        statusCardsRow.setVisible(true);
-        statusCardsRow.setManaged(true);
-        AnimationUtils.staggeredFadeInUp(statusCardsRow.getChildren(), 280, 50);
-    }
-
-    private static final String[] AREA_BAR_CLASSES = {
-        "area-bar-pb-1", "area-bar-pb-2", "area-bar-pb-3", "area-bar-pb-4", "area-bar-pb-5"
-    };
-
-    private void buildAreasSection(java.util.LinkedHashMap<String,Long> byArea, long total) {
-        if (areasCard == null || areasBarBox == null || byArea == null || byArea.isEmpty()) return;
-        areasBarBox.getChildren().clear();
-
-        int i = 0;
-        for (java.util.Map.Entry<String,Long> entry : byArea.entrySet()) {
-            double pct = total > 0 ? (double) entry.getValue() / total : 0;
-
-            Label nameLbl = new Label(entry.getKey());
-            nameLbl.getStyleClass().add("area-bar-name");
-            HBox.setHgrow(nameLbl, Priority.ALWAYS);
-
-            Label cntLbl = new Label("0 bienes");
-            cntLbl.getStyleClass().add("area-bar-count");
-
-            HBox nameRow = new HBox(nameLbl, cntLbl);
-            nameRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
-            pb.setMaxWidth(Double.MAX_VALUE);
-            pb.getStyleClass().addAll("area-bar-pb", AREA_BAR_CLASSES[i % AREA_BAR_CLASSES.length]);
-
-            VBox item = new VBox(5, nameRow, pb);
-            areasBarBox.getChildren().add(item);
-
-            double target = pct;
-            long count = entry.getValue();
-            int delay = i * 90;
-            javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay + 400));
-            wait.setOnFinished(ev -> {
-                javafx.animation.Timeline anim = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
-                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(900),
-                        new javafx.animation.KeyValue(pb.progressProperty(), target,
-                            javafx.animation.Interpolator.EASE_OUT))
-                );
-                anim.play();
-                AnimationUtils.animateCount(cntLbl, count, 800, v -> v + " bienes");
-            });
-            wait.play();
-            i++;
-        }
-
-        areasCard.setVisible(true);
-        areasCard.setManaged(true);
-        if (areasSectionHdr != null) { areasSectionHdr.setVisible(true); areasSectionHdr.setManaged(true); }
-        AnimationUtils.fadeInUp(areasCard, 300, 0);
-    }
-
-    // ── Charts ───────────────────────────────────────────────────────
-
-    private void buildMovimientosChart(List<Movimiento> movimientos) {
-        chartMovimientos.getData().clear();
-        XYChart.Series<String, Number> entradas = new XYChart.Series<>(); entradas.setName("Entradas");
-        XYChart.Series<String, Number> salidas  = new XYChart.Series<>(); salidas.setName("Salidas");
-
-        LocalDate today = LocalDate.now();
-        List<String> labels = new ArrayList<>();
-        for (int i = 6; i >= 0; i--) {
-            String raw = today.minusDays(i).getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.of("es"))
-                .replace(".", "");
-            labels.add(raw.substring(0, 1).toUpperCase() + raw.substring(1));
-        }
-
-        Map<LocalDate, Integer> entMap = new HashMap<>(), salMap = new HashMap<>();
-        for (Movimiento m : movimientos) {
-            LocalDate d = m.getCreadoEn().toLocalDate();
-            switch (m.getTipo()) {
-                case ENTRADA -> entMap.merge(d, m.getCantidad(), Integer::sum);
-                case SALIDA  -> salMap.merge(d, m.getCantidad(), Integer::sum);
-                default -> {}
-            }
-        }
-        for (int i = 6; i >= 0; i--) {
-            LocalDate day = today.minusDays(i);
-            String label = labels.get(6 - i);
-            entradas.getData().add(new XYChart.Data<>(label, entMap.getOrDefault(day, 0)));
-            salidas.getData().add(new XYChart.Data<>(label, salMap.getOrDefault(day, 0)));
-        }
-        chartMovimientos.getData().addAll(java.util.List.of(entradas, salidas));
-        // A chart Data's Node is created lazily on the next layout/CSS pass,
-        // not synchronously by addAll() above — checking d.getNode() right
-        // here almost always sees null, so the tooltip silently never got
-        // installed. Listening for the node to appear fixes that (more
-        // robust than a single Platform.runLater, which assumes one frame
-        // is always enough).
-        for (XYChart.Data<String, Number> d : entradas.getData())
-            installTooltipWhenReady(d.nodeProperty(), "Entradas " + d.getXValue() + ": " + d.getYValue());
-        for (XYChart.Data<String, Number> d : salidas.getData())
-            installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue());
-    }
-
-    private void installTooltipWhenReady(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> nodeProp, String text) {
-        javafx.scene.Node node = nodeProp.getValue();
-        if (node != null) { Tooltip.install(node, new Tooltip(text)); return; }
-        nodeProp.addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
-            @Override
-            public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> obs,
-                                javafx.scene.Node old, javafx.scene.Node n) {
-                if (n != null) {
-                    Tooltip.install(n, new Tooltip(text));
-                    nodeProp.removeListener(this);
-                }
-            }
-        });
-    }
-
-    /** Ranked horizontal-bar list (same visual language as "Distribución por
-     *  Área" below it) instead of a pie chart — a pie with 6+ slices has no
-     *  room for on-slice labels, and relying on a legend alone made the
-     *  category names impossible to match to a color at a glance. */
-    private void buildCategoriaChart(List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores) {
-        if (categoriaValorBox == null) return;
-        categoriaValorBox.getChildren().clear();
-
-        BigDecimal total = catValores.stream()
-            .map(com.sibim.repository.ProductoRepository.CategoriaValor::valor)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        int i = 0;
-        for (com.sibim.repository.ProductoRepository.CategoriaValor cv : catValores) {
-            double pct = total.compareTo(BigDecimal.ZERO) > 0
-                ? cv.valor().doubleValue() / total.doubleValue() : 0;
-
-            Label nameLbl = new Label(cv.nombre());
-            nameLbl.getStyleClass().add("area-bar-name");
-            HBox.setHgrow(nameLbl, Priority.ALWAYS);
-
-            Label valLbl = new Label(FormatUtils.formatCurrency(cv.valor()));
-            valLbl.getStyleClass().add("area-bar-count");
-
-            HBox nameRow = new HBox(nameLbl, valLbl);
-            nameRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
-            pb.setMaxWidth(Double.MAX_VALUE);
-            pb.getStyleClass().addAll("area-bar-pb", AREA_BAR_CLASSES[i % AREA_BAR_CLASSES.length]);
-
-            VBox item = new VBox(5, nameRow, pb);
-            item.setCursor(javafx.scene.Cursor.HAND);
-            item.getStyleClass().add("stat-card-clickable");
-            String catName = cv.nombre();
-            item.setOnMouseClicked(e -> {
-                com.sibim.session.NavigationContext.setPendingCategoryFilter(catName);
-                navigarA("Productos");
-            });
-            Tooltip.install(item, new Tooltip(catName + ": " + FormatUtils.formatCurrency(cv.valor())));
-            categoriaValorBox.getChildren().add(item);
-
-            double target = pct;
-            int delay = i * 90;
-            javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(
-                javafx.util.Duration.millis(delay + 400));
-            wait.setOnFinished(ev -> {
-                javafx.animation.Timeline anim = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
-                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(900),
-                        new javafx.animation.KeyValue(pb.progressProperty(), target,
-                            javafx.animation.Interpolator.EASE_OUT))
-                );
-                anim.play();
-            });
-            wait.play();
-            i++;
-        }
-
-        boolean hasData = !catValores.isEmpty();
-        categoriaValorBox.setVisible(hasData);
-        categoriaValorBox.setManaged(hasData);
-        if (pieEmptyState != null) {
-            boolean wasVisible = pieEmptyState.isVisible();
-            pieEmptyState.setVisible(!hasData);
-            pieEmptyState.setManaged(!hasData);
-            if (!hasData && !wasVisible) AnimationUtils.springIn(pieEmptyState);
-        }
-    }
-
-    private void buildTrendChart(List<MonthlyStats> monthly) {
-        if (chartTendencia == null || trendCard == null) return;
-        chartTendencia.getData().clear();
-
-        boolean allZero = monthly.stream()
-            .allMatch(m -> m.entradas() == 0 && m.salidas() == 0);
-
-        if (lblTrendEmpty != null) {
-            lblTrendEmpty.setVisible(allZero);
-            lblTrendEmpty.setManaged(allZero);
-        }
-        chartTendencia.setVisible(!allZero);
-        chartTendencia.setManaged(!allZero);
-
-        if (allZero) return;
-
-        XYChart.Series<String, Number> entradas = new XYChart.Series<>();
-        entradas.setName("Entradas");
-        XYChart.Series<String, Number> salidas  = new XYChart.Series<>();
-        salidas.setName("Salidas");
-
-        for (MonthlyStats m : monthly) {
-            entradas.getData().add(new XYChart.Data<>(m.label(), m.entradas()));
-            salidas.getData().add(new XYChart.Data<>(m.label(), m.salidas()));
-        }
-
-        chartTendencia.getData().addAll(java.util.List.of(entradas, salidas));
-
-        for (XYChart.Data<String, Number> d : entradas.getData())
-            installTooltipWhenReady(d.nodeProperty(), "Entradas " + d.getXValue() + ": " + d.getYValue() + " uds.");
-        for (XYChart.Data<String, Number> d : salidas.getData())
-            installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue() + " uds.");
-
-        AnimationUtils.fadeInUp(trendCard, 300, 0);
-    }
 
     // ── Navigation ───────────────────────────────────────────────────
 
@@ -788,201 +499,6 @@ public class DashboardController {
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
         dlg.getDialogPane().setContent(content);
-        dlg.showAndWait();
-    }
-
-    // ── Recent activity table ────────────────────────────────────────
-
-    private void setupTablaReciente() {
-        if (tablaReciente == null) return;
-
-        // Columns are given a fixed sum below and then stretched to fill the
-        // card's full width — without this, the default resize policy leaves
-        // a wide blank strip to the right of the last column once the table
-        // is wider than the columns' prefWidth sum.
-        tablaReciente.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-
-        // Row factory — tint rows by movement type
-        tablaReciente.setRowFactory(tv -> new TableRow<>() {
-            @Override protected void updateItem(Movimiento m, boolean empty) {
-                super.updateItem(m, empty);
-                getStyleClass().removeAll("row-entrada","row-salida","row-ajuste","row-transferencia");
-                if (!empty && m != null) {
-                    String cls = switch (m.getTipo()) {
-                        case ENTRADA      -> "row-entrada";
-                        case SALIDA       -> "row-salida";
-                        case AJUSTE       -> "row-ajuste";
-                        case TRANSFERENCIA -> "row-transferencia";
-                        default           -> "";
-                    };
-                    if (!cls.isEmpty()) getStyleClass().add(cls);
-                }
-            }
-        });
-
-        TableColumn<Movimiento, String> cProd = new TableColumn<>("Bien");
-        cProd.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            c.getValue().getProductoNombre() != null ? c.getValue().getProductoNombre() : ""));
-        cProd.setPrefWidth(280);
-        cProd.setMinWidth(160);
-        cProd.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().remove("recent-bien-cell");
-                if (empty || item == null) { setText(null); return; }
-                setText(item);
-                getStyleClass().add("recent-bien-cell");
-            }
-        });
-
-        TableColumn<Movimiento, String> cTipo = new TableColumn<>("Tipo");
-        cTipo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            c.getValue().getTipo().getEtiqueta()));
-        cTipo.setPrefWidth(100);
-        cTipo.setMinWidth(90);
-        cTipo.setMaxWidth(120);
-        cTipo.setCellFactory(com.sibim.util.DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Entrada"       -> "cell-badge-success";
-            case "Salida"        -> "cell-badge-danger";
-            case "Ajuste"        -> "cell-badge-warning";
-            case "Transferencia" -> "cell-badge-blue";
-            default              -> "cell-badge-purple";
-        }));
-
-        TableColumn<Movimiento, Integer> cCant = new TableColumn<>("Cant.");
-        cCant.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getCantidad()));
-        cCant.setPrefWidth(55);
-        cCant.setMinWidth(50);
-        cCant.setMaxWidth(70);
-        cCant.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(Integer v, boolean empty) {
-                super.updateItem(v, empty);
-                getStyleClass().removeAll("qty-in", "qty-out", "qty-neutral");
-                if (empty || v == null) { setText(null); return; }
-                Movimiento row = getTableRow() != null ? getTableRow().getItem() : null;
-                String sign = "", cls = "qty-neutral";
-                if (row != null) {
-                    switch (row.getTipo()) {
-                        case ENTRADA -> { sign = "+"; cls = "qty-in"; }
-                        case SALIDA  -> { sign = "-"; cls = "qty-out"; }
-                        default -> {}
-                    }
-                }
-                setText(sign + v);
-                getStyleClass().add(cls);
-            }
-        });
-
-        TableColumn<Movimiento, String> cUsuario = new TableColumn<>("Usuario");
-        cUsuario.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            c.getValue().getUsuarioNombre() != null ? c.getValue().getUsuarioNombre() : ""));
-        cUsuario.setPrefWidth(160);
-        cUsuario.setMinWidth(110);
-
-        TableColumn<Movimiento, String> cFecha = new TableColumn<>("Fecha");
-        cFecha.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
-        cFecha.setPrefWidth(140);
-        cFecha.setMinWidth(130);
-        cFecha.setMaxWidth(160);
-
-        tablaReciente.getColumns().add(cProd);
-        tablaReciente.getColumns().add(cTipo);
-        tablaReciente.getColumns().add(cCant);
-        tablaReciente.getColumns().add(cUsuario);
-        tablaReciente.getColumns().add(cFecha);
-
-        tablaReciente.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2) {
-                Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
-                if (sel != null) showMovimientoDetalle(sel);
-            }
-        });
-
-        tablaReciente.setOnKeyPressed(e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
-                tablaReciente.getSelectionModel().clearSelection();
-                e.consume();
-            } else if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
-                Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
-                if (sel != null) { showMovimientoDetalle(sel); e.consume(); }
-            }
-        });
-
-        MenuItem cmDetalle = new MenuItem("Ver detalle del movimiento");
-        cmDetalle.setOnAction(e -> {
-            Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
-            if (sel != null) showMovimientoDetalle(sel);
-        });
-        MenuItem cmVerBien = new MenuItem("Ver ficha del bien");
-        cmVerBien.setOnAction(e -> {
-            Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
-            if (sel == null || sel.getProductoId() == null) return;
-            DialogUtil.runAsyncWithProgress(tablaReciente.getScene(), "Cargando bien…",
-                () -> productoService.findById(sel.getProductoId()),
-                opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, tablaReciente.getScene(), movimientoService, log)),
-                ex -> { log.error("Error cargando bien desde dashboard", ex); NotificacionUtil.error(tablaReciente.getScene(), "No se pudo cargar el bien"); });
-        });
-        ContextMenu cm = new ContextMenu(cmDetalle, new SeparatorMenuItem(), cmVerBien);
-        tablaReciente.setContextMenu(cm);
-        cm.setOnShowing(e -> {
-            boolean none = tablaReciente.getSelectionModel().getSelectedItem() == null;
-            cmDetalle.setDisable(none);
-            cmVerBien.setDisable(none);
-        });
-    }
-
-    private void showMovimientoDetalle(Movimiento m) {
-        Dialog<ButtonType> dlg = new Dialog<>();
-        DialogUtil.applyOwner(dlg);
-        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dlg.getDialogPane().setPrefWidth(440);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        String icon  = switch (m.getTipo()) { case ENTRADA -> "mdi2a-arrow-up-bold-circle-outline"; case SALIDA -> "mdi2a-arrow-down-bold-circle-outline"; case AJUSTE -> "mdi2s-swap-horizontal"; default -> "mdi2a-arrow-right-bold-circle-outline"; };
-        String color = switch (m.getTipo()) { case ENTRADA -> "#059669"; case SALIDA -> "#DC2626"; case AJUSTE -> "#D97706"; default -> "#2563EB"; };
-        String color2= switch (m.getTipo()) { case ENTRADA -> "#047857"; case SALIDA -> "#B91C1C"; case AJUSTE -> "#B45309"; default -> "#1D4ED8"; };
-
-        javafx.scene.layout.HBox header = com.sibim.util.DialogUtil.gradientHeader(icon,
-            m.getTipo().getEtiqueta() + "  —  " + m.getCantidad() + " uds.", m.getProductoNombre(), color, color2);
-
-        javafx.scene.layout.GridPane grid = com.sibim.util.DialogUtil.formGrid(120);
-        int r = 0;
-        javafx.scene.control.Label antes = new javafx.scene.control.Label(String.valueOf(m.getStockAnterior()));
-        antes.getStyleClass().add("dlg-stock-val");
-        javafx.scene.control.Label arrow = new javafx.scene.control.Label("→");
-        arrow.getStyleClass().add(m.getStockNuevo() > m.getStockAnterior() ? "dlg-stock-arrow-up" : "dlg-stock-arrow-down");
-        javafx.scene.control.Label despues = new javafx.scene.control.Label(String.valueOf(m.getStockNuevo()));
-        despues.getStyleClass().add(m.getStockNuevo() <= 0 ? "dlg-stock-new-empty" : m.getStockNuevo() > m.getStockAnterior() ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
-        javafx.scene.layout.HBox stockRow = new javafx.scene.layout.HBox(8, antes, arrow, despues);
-        stockRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-        javafx.scene.control.Label bienLbl = new javafx.scene.control.Label(m.getProductoNombre());
-        bienLbl.setWrapText(true);
-        javafx.scene.control.Hyperlink linkVerBien = new javafx.scene.control.Hyperlink("Ver ficha →");
-        linkVerBien.getStyleClass().add("muted-sm");
-        if (m.getProductoId() != null) {
-            linkVerBien.setOnAction(ev -> {
-                dlg.close();
-                DialogUtil.runAsyncWithProgress(tablaReciente.getScene(), "Cargando bien…",
-                    () -> productoService.findById(m.getProductoId()),
-                    opt -> opt.ifPresent(p -> ProductoDetailDialog.show(p, tablaReciente.getScene(), movimientoService, log)),
-                    ex -> { log.error("Error cargando bien desde dashboard movimiento", ex); NotificacionUtil.error(tablaReciente.getScene(), "No se pudo cargar el bien"); });
-            });
-        } else {
-            linkVerBien.setDisable(true);
-        }
-        javafx.scene.layout.HBox bienRow = new javafx.scene.layout.HBox(10, bienLbl, linkVerBien);
-        bienRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-        grid.add(com.sibim.util.DialogUtil.fieldLabel("Bien"),     0, r); grid.add(bienRow,  1, r++);
-        grid.add(com.sibim.util.DialogUtil.fieldLabel("Stock"),    0, r); grid.add(stockRow, 1, r++);
-        grid.add(com.sibim.util.DialogUtil.fieldLabel("Motivo"),   0, r); grid.add(new javafx.scene.control.Label(m.getMotivo() != null ? m.getMotivo() : "—"), 1, r++);
-        grid.add(com.sibim.util.DialogUtil.fieldLabel("Usuario"),  0, r); grid.add(new javafx.scene.control.Label(m.getUsuarioNombre()), 1, r++);
-        grid.add(com.sibim.util.DialogUtil.fieldLabel("Fecha"),    0, r); grid.add(new javafx.scene.control.Label(com.sibim.util.FormatUtils.formatDateTime(m.getCreadoEn())), 1, r);
-
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
-        dlg.getDialogPane().setContent(new javafx.scene.layout.VBox(0, header, grid));
         dlg.showAndWait();
     }
 

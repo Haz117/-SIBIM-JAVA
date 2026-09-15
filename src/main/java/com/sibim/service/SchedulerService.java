@@ -137,7 +137,7 @@ public class SchedulerService {
         }
     }
 
-    private static boolean esTiempoDeEjecutar(String frecuencia, LocalDate hoy, LocalDate ultima) {
+    static boolean esTiempoDeEjecutar(String frecuencia, LocalDate hoy, LocalDate ultima) {
         if (ultima == null) return true;
         return switch (frecuencia.toUpperCase()) {
             case "DIARIO"   -> hoy.isAfter(ultima);
@@ -147,7 +147,7 @@ public class SchedulerService {
         };
     }
 
-    private static LocalDate parseDate(String s) {
+    static LocalDate parseDate(String s) {
         try { return s != null && !s.isBlank() ? LocalDate.parse(s) : null; }
         catch (Exception e) { return null; }
     }

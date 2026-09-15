@@ -48,8 +48,6 @@ import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -94,7 +92,8 @@ public class MainController {
     @FXML private Button   btnToggleSidebar;
     @FXML private FontIcon statusDotIcon;
 
-    private SidebarManager sidebarManager;
+    private SidebarManager      sidebarManager;
+    private MainStatusBarManager statusBarManager;
     private Object   currentController;
     private Timeline badgeRefresh;
     private Timeline badgePulse;
@@ -131,7 +130,7 @@ public class MainController {
      *  server's state instead of the stale offline snapshot it loaded with. */
     public void refreshCurrentViewAfterSync() {
         refreshCurrentView();
-        updateStatusBar();
+        statusBarManager.update();
     }
 
     @FXML
@@ -143,6 +142,9 @@ public class MainController {
             java.util.List.of(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
                 btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
                 btnResguardos, btnPrestamos, btnActas, btnConfiguracion, btnAuditoria));
+        statusBarManager = new MainStatusBarManager(
+            offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
+            statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
         if (SessionManager.getCurrentUser() != null) {
             String nombre = SessionManager.getCurrentUser().getNombre();
             userNameLabel.setText(nombre);
@@ -214,12 +216,12 @@ public class MainController {
 
         // Refresh badge every 3 minutes; also nudges the status bar so the
         // offline-mode pending-sync count doesn't go stale between syncs.
-        badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> { loadAlertBadge(); loadLoanBadge(); updateStatusBar(); }));
+        badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> { loadAlertBadge(); loadLoanBadge(); statusBarManager.update(); }));
         badgeRefresh.setCycleCount(Timeline.INDEFINITE);
         badgeRefresh.play();
 
-        updateStatusBar();
-        clock = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateStatusTime()));
+        statusBarManager.update();
+        clock = new Timeline(new KeyFrame(Duration.seconds(1), e -> statusBarManager.updateTime()));
         clock.setCycleCount(Timeline.INDEFINITE);
         clock.play();
 
@@ -522,68 +524,6 @@ public class MainController {
         );
     }
 
-    private void updateStatusBar() {
-        if (statusUserLabel != null && SessionManager.getCurrentUser() != null)
-            statusUserLabel.setText(SessionManager.getCurrentUser().getNombre() +
-                "  ·  " + SessionManager.getCurrentUser().getRol().getEtiqueta());
-
-        boolean offline = DatabaseConfig.isOfflineMode();
-        boolean demo    = DatabaseConfig.isDemoMode();
-        int pending     = offline ? SyncService.pendingCount() : 0;
-
-        if (statusDbLabel != null) {
-            String text = offline
-                ? (pending > 0 ? "Sin conexión · " + pending + " pendiente(s)" : "Sin conexión")
-                : demo ? "Modo demo" : "Conectado";
-            statusDbLabel.setText(text);
-            if (statusDotIcon != null) {
-                statusDotIcon.getStyleClass().removeAll(
-                    "status-dot-icon-ok", "status-dot-icon-demo", "status-dot-icon-offline");
-                if (offline) {
-                    statusDotIcon.setIconLiteral("mdi2c-close-circle");
-                    statusDotIcon.getStyleClass().add("status-dot-icon-offline");
-                } else if (demo) {
-                    statusDotIcon.setIconLiteral("mdi2c-clock-outline");
-                    statusDotIcon.getStyleClass().add("status-dot-icon-demo");
-                } else {
-                    statusDotIcon.setIconLiteral("mdi2c-check-circle");
-                    statusDotIcon.getStyleClass().add("status-dot-icon-ok");
-                }
-            }
-            if (statusDbTooltip != null) {
-                String tip = offline
-                    ? (pending > 0
-                        ? "Sin conexión a la base de datos.\n" + pending + " operación(es) pendiente(s) de sincronizar\ncuando se recupere la conexión."
-                        : "Sin conexión a la base de datos.\nTus cambios se guardan localmente\ny se sincronizarán cuando vuelva la conexión.")
-                    : demo
-                    ? "Modo demostración activo.\nLos datos mostrados no son reales\ny no se almacenan en ninguna base de datos."
-                    : "Base de datos conectada (Supabase).\nTus cambios se guardan en tiempo real.\nÚltima verificación: al iniciar la aplicación.";
-                statusDbTooltip.setText(tip);
-            }
-        }
-
-        if (offlineBanner != null) {
-            boolean show = offline || demo;
-            offlineBanner.setVisible(show);
-            offlineBanner.setManaged(show);
-            if (show && offlineBannerLabel != null) {
-                offlineBannerLabel.setText(offline
-                    ? (pending > 0
-                        ? "Sin conexión — " + pending + " cambio(s) guardados localmente, se sincronizarán al reconectar"
-                        : "Sin conexión — trabajando en modo offline")
-                    : "Modo demostración — los datos no se guardan");
-            }
-            if (offlineBannerSyncBtn != null) {
-                offlineBannerSyncBtn.setVisible(offline);
-                offlineBannerSyncBtn.setManaged(offline);
-            }
-            offlineBanner.getStyleClass().removeAll("offline-banner-demo");
-            if (demo) offlineBanner.getStyleClass().add("offline-banner-demo");
-        }
-
-        updateStatusTime();
-    }
-
     @FXML
     private void onSyncNow() {
         if (offlineBannerSyncBtn != null) {
@@ -599,7 +539,7 @@ public class MainController {
         com.sibim.util.AppExecutor.submit(() -> {
             com.sibim.db.offline.SyncService.syncNow();
             javafx.application.Platform.runLater(() -> {
-                updateStatusBar();
+                statusBarManager.update();
                 if (offlineBannerSyncBtn != null) {
                     offlineBannerSyncBtn.setDisable(false);
                     offlineBannerSyncBtn.setText("Sincronizar ahora");
@@ -638,11 +578,6 @@ public class MainController {
     @FXML
     private void onToggleSidebar() {
         sidebarManager.toggle();
-    }
-
-    private void updateStatusTime() {
-        if (statusTimeLabel != null)
-            statusTimeLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
     }
 
     private void checkInactivity() {
@@ -746,7 +681,7 @@ public class MainController {
             com.sibim.session.NavigationContext.setPendingNuevoBien();
             onProductos();
         });
-        a.put(new KeyCodeCombination(KeyCode.F1), () -> showShortcutHelp());
+        a.put(new KeyCodeCombination(KeyCode.F1), () -> MainShortcutHelpDialog.show());
         a.put(new KeyCodeCombination(KeyCode.F2), () -> onShowTutorial());
     }
 
@@ -869,90 +804,7 @@ public class MainController {
     }
 
     @FXML
-    private void onShowShortcuts() { showShortcutHelp(); }
-
-    private void showShortcutHelp() {
-        Dialog<ButtonType> dlg = new Dialog<>();
-        DialogUtil.applyOwner(dlg);
-        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dlg.getDialogPane().setPrefWidth(540);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        HBox header = DialogUtil.gradientHeader("mdi2k-keyboard-outline", "Atajos de Teclado",
-            "Referencia rápida de todos los atajos disponibles en SIBIM",
-            "#4338CA", "#3730A3");
-
-        // Section builder helper
-        java.util.function.BiFunction<String, String[][], GridPane> makeSection = (title, rows) -> {
-            GridPane g = new GridPane();
-            g.setHgap(20); g.setVgap(5);
-            g.setPadding(new Insets(6, 16, 10, 16));
-            Label tit = new Label(title);
-            tit.getStyleClass().add("nav-section-label");
-            tit.setPadding(new Insets(0, 0, 4, 0));
-            g.add(tit, 0, 0, 2, 1);
-            for (int i = 0; i < rows.length; i++) {
-                Label key = new Label(rows[i][0]);
-                key.getStyleClass().add("shortcut-key");
-                Label desc = new Label(rows[i][1]);
-                desc.getStyleClass().add("shortcut-desc");
-                g.add(key, 0, i + 1);
-                g.add(desc, 1, i + 1);
-            }
-            return g;
-        };
-
-        GridPane navGrid = makeSection.apply("NAVEGACIÓN", new String[][]{
-            {"Ctrl + 1",      "Dashboard"},
-            {"Ctrl + 2",      "Organigrama"},
-            {"Ctrl + 3",      "Bienes / Inventario"},
-            {"Ctrl + 4",      "Categorías"},
-            {"Ctrl + 5",      "Movimientos"},
-            {"Ctrl + 6",      "Alertas"},
-            {"Ctrl + 7",      "Reportes"},
-            {"Ctrl + 8",      "Depreciación"},
-            {"Ctrl + 9",      "Configuración"},
-            {"Ctrl+Alt + G",  "Resguardos"},
-            {"Ctrl+Alt + P",  "Préstamos"},
-            {"Ctrl+Alt + A",  "Actas E/R"},
-        });
-
-        GridPane accGrid = makeSection.apply("ACCIONES EN TABLA", new String[][]{
-            {"Ctrl + N",        "Nuevo registro (Bienes / Movimientos / Categorías)"},
-            {"Ctrl + E",        "Editar fila seleccionada (Bienes / Categorías)"},
-            {"Ctrl + I",        "Importar bienes desde CSV (sólo en Bienes)"},
-            {"Supr",            "Dar de baja / eliminar fila seleccionada"},
-            {"Escape",          "Deseleccionar todas las filas de la tabla"},
-            {"Doble clic",      "Ver detalle del registro"},
-            {"F5",              "Actualizar datos de la vista actual"},
-            {"Ctrl / Shift+clic","Selección múltiple — activa barra de acciones en lote (sólo Bienes)"},
-        });
-
-        GridPane busqGrid = makeSection.apply("BÚSQUEDA Y FILTROS", new String[][]{
-            {"Escribir",             "Búsqueda en tiempo real (con debounce 280 ms)"},
-            {"✕ (botón)",            "Limpiar campo de búsqueda"},
-            {"Hoy / Semana / Mes",   "Presets de rango de fechas en Movimientos y Reportes"},
-            {"Guardar preset",        "Guarda los filtros activos como preset con nombre (sólo Bienes)"},
-            {"Clic en chip de preset","Aplica o elimina un preset de filtros guardado (sólo Bienes)"},
-            {"Clic derecho en fila",  "Menú contextual: Ver detalle · Imprimir ficha técnica · (editar/baja si admin)"},
-        });
-
-        GridPane sysGrid = makeSection.apply("SISTEMA", new String[][]{
-            {"Ctrl+K",      "Búsqueda global / paleta de comandos"},
-            {"F1",          "Mostrar esta ayuda de atajos"},
-            {"F2",          "Tutorial interactivo del sistema"},
-            {"F5 / Ctrl+R", "Actualizar vista actual"},
-            {"Ctrl+F",      "Enfocar campo de búsqueda"},
-            {"Ctrl+0",      "Auditoría del sistema  (solo administrador)"},
-        });
-
-        VBox content = new VBox(0, header, navGrid, new Separator(),
-            accGrid, new Separator(), busqGrid,
-            new Separator(), sysGrid);
-
-        dlg.getDialogPane().setContent(content);
-        dlg.showAndWait();
-    }
+    private void onShowShortcuts() { MainShortcutHelpDialog.show(); }
 
     private void loadLoanBadge() {
         DialogUtil.runAsync(
