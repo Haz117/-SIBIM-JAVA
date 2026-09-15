@@ -701,6 +701,20 @@
     -fx-font-size: 14px;
     -fx-font-style: italic;
 }
+.data-table .table-row-cell:filled { -fx-cursor: hand; }
+.data-table .table-row-cell:empty  { -fx-cursor: default; }
+.data-table .column-header .arrow {
+    -fx-background-color: rgba(255,255,255,0.70);
+    -fx-padding: 3;
+}
+.data-table .column-header:hover .arrow { -fx-background-color: white; }
+.data-table .column-header:pressed { -fx-background-color: rgba(255,255,255,0.14); }
+.card > .data-table {
+    -fx-border-radius: 0 0 20 20;
+    -fx-background-radius: 0 0 20 20;
+    -fx-border-color: transparent;
+    -fx-effect: none;
+}
 
 /* ── Inputs ── */
 .text-field {
@@ -1142,9 +1156,9 @@
    ═══════════════════════════════════════════════════════════════════ */
 .dialog-pane {
     -fx-background-color: white;
-    -fx-border-radius: 20;
-    -fx-background-radius: 20;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.28), 44, 0, 0, 14);
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.20), 28, 0, 0, 10);
 }
 .dialog-pane > .content { -fx-background-color: white; -fx-padding: 0; }
 .dialog-pane .header-panel {
@@ -1162,8 +1176,9 @@
     -fx-background-color: #F4F6FA;
     -fx-border-color: #E2E8F0 transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
-    -fx-padding: 12 16;
+    -fx-padding: 10 18 14 18;
 }
+.dialog-pane .button-bar .container { -fx-spacing: 8; }
 .dialog-pane .button-bar .button {
     -fx-background-radius: 8;
     -fx-cursor: hand;
@@ -1225,6 +1240,9 @@
     -fx-background-color: white;
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 8, 0, 0, 0);
 }
+.dialog-pane .text-area { -fx-min-height: 58px; }
+.dialog-pane .text-area .content { -fx-background-color: #F8FAFC; -fx-background-radius: 8; }
+.dialog-pane .text-area:focused .content { -fx-background-color: white; }
 
 /* ═══════════════════════════════════════════════════════════════════
    CONFIGURACIÓN — PERFIL
@@ -1895,12 +1913,6 @@
 .page-header-blue    { -fx-border-color: #1D4ED8 #E2E8F0 #E2E8F0 #1D4ED8; -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.10), 10, 0, 0, 2); }
 
 /* ═══════════════════════════════════════════════════════════════════
-   TABLE ROW — hand cursor signals double-click is available
-   ═══════════════════════════════════════════════════════════════════ */
-.data-table .table-row-cell:filled  { -fx-cursor: hand; }
-.data-table .table-row-cell:empty   { -fx-cursor: default; }
-
-/* ═══════════════════════════════════════════════════════════════════
    CODIGO CELL — monospace badge, signals click-to-copy
    ═══════════════════════════════════════════════════════════════════ */
 .codigo-cell {
@@ -2043,20 +2055,6 @@
 .alert-banner:hover {
     -fx-background-color: #FEF9C3;
     -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.25), 10, 0, 0, 2);
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   DIALOG — improved text-area styling
-   ═══════════════════════════════════════════════════════════════════ */
-.dialog-pane .text-area {
-    -fx-min-height: 58px;
-}
-.dialog-pane .text-area .content {
-    -fx-background-color: #F8FAFC;
-    -fx-background-radius: 8;
-}
-.dialog-pane .text-area:focused .content {
-    -fx-background-color: white;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2658,17 +2656,6 @@
 .rich-stat-icon  { -fx-icon-size: 15; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   TABLE SORT ARROWS  — make them visible on purple gradient header
-   ═══════════════════════════════════════════════════════════════════ */
-.data-table .column-header .arrow {
-    -fx-background-color: rgba(255,255,255,0.70);
-    -fx-padding: 3;
-}
-.data-table .column-header:hover .arrow {
-    -fx-background-color: white;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
    TEXT AREA — global hover state (non-dialog)
    ═══════════════════════════════════════════════════════════════════ */
 .text-area:hover .content {
@@ -2713,26 +2700,6 @@
     -fx-text-fill: #B91C1C;
     -fx-border-color: #EF4444;
     -fx-border-width: 0 0 0 3;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   CARD — table inside card fits corner radius
-   ═══════════════════════════════════════════════════════════════════ */
-.card > .data-table {
-    -fx-border-radius: 0 0 20 20;
-    -fx-background-radius: 0 0 20 20;
-    -fx-border-color: transparent;
-    -fx-effect: none;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   DIALOG BUTTON BAR — consistent padding + spacing
-   ═══════════════════════════════════════════════════════════════════ */
-.dialog-pane .button-bar {
-    -fx-padding: 10 18 14 18;
-}
-.dialog-pane .button-bar .container {
-    -fx-spacing: 8;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -3097,22 +3064,6 @@
     -fx-border-color: #E2E8F0;
     -fx-border-radius: 14;
     -fx-border-width: 1;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   TABLE COLUMN SORT — clearer interactive feedback
-   ═══════════════════════════════════════════════════════════════════ */
-.data-table .column-header:pressed {
-    -fx-background-color: rgba(255,255,255,0.14);
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   DIALOG PANE — smoother backdrop
-   ═══════════════════════════════════════════════════════════════════ */
-.dialog-pane {
-    -fx-background-color: white;
-    -fx-background-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.20), 28, 0, 0, 10);
 }
 
 /* Version watermark */
