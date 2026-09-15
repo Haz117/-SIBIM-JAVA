@@ -15,9 +15,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MovimientoServiceValidationTest {
 
-    // p-01 exists in DemoDataStore: stock=18, area="Secretaria General Municipal"
+    // p-01 exists in DemoDataStore: stock=18, area="Secretaría General Municipal"
     private static final String PROD_ID  = "p-01";
-    private static final String AREA_SGM = "Secretaria General Municipal";
+    private static final String AREA_SGM = "Secretaría General Municipal";
 
     private final MovimientoService service = new MovimientoService();
 

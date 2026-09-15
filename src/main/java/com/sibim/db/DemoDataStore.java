@@ -28,14 +28,14 @@ public final class DemoDataStore {
     private static final LinkedList<ConteoFisico> CONTEOS   = new LinkedList<>();
 
     // ── Constantes de área ────────────────────────────────────────────────────
-    private static final String SGM   = "Secretaria General Municipal";
-    private static final String RH    = "Direccion de Recursos Humanos";
-    private static final String ADM   = "Direccion de Administracion";
-    private static final String BM    = "Direccion de Bienes Municipales";
-    private static final String OBRAS = "Secretaria de Obras Publicas y Desarrollo Urbano";
-    private static final String PLAN  = "Secretaria de Planeacion y Evaluacion";
-    private static final String FIN   = "Secretaria de Finanzas y Tesoreria Municipal";
-    private static final String SEG   = "Secretaria de Seguridad Publica Municipal";
+    private static final String SGM   = "Secretaría General Municipal";
+    private static final String RH    = "Dirección de Recursos Humanos";
+    private static final String ADM   = "Dirección de Administración";
+    private static final String BM    = "Dirección de Bienes Municipales";
+    private static final String OBRAS = "Secretaría de Obras Públicas y Desarrollo Urbano";
+    private static final String PLAN  = "Secretaría de Planeación y Evaluación";
+    private static final String FIN   = "Secretaría de Finanzas y Tesorería Municipal";
+    private static final String SEG   = "Secretaría de Seguridad Pública Municipal";
     private static final String PRES  = "Despacho de la Presidencia";
 
     // Hash BCrypt de "admin123456" (factor 12) — solo para demo; la autenticación

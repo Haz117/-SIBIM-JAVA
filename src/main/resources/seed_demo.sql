@@ -28,7 +28,7 @@ INSERT INTO users (id, username, password, nombre, cargo, role, area, debe_cambi
 ('u-sec-1', 'secretario.demo',
  '$2a$12$RfQKHBQQlnBqnUjefY0n9.5Z2hxPzG4A1k2ZOBqFr9QQZJPBDhQBu',
  'Secretario de Ejemplo', 'Secretario General Municipal',
- 'secretario', 'Secretaria General Municipal', TRUE)
+ 'secretario', 'Secretaría General Municipal', TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Dirección de ejemplo (password: dir123456)
@@ -36,7 +36,7 @@ INSERT INTO users (id, username, password, nombre, cargo, role, area, debe_cambi
 ('u-dir-1', 'direccion.demo',
  '$2a$12$n8TWbDFZ2F/Q3VdTHxuvTO.7OP7f/bJYKMXPJRb5LTkmHlKxhALiu',
  'Director de Ejemplo', 'Director de Recursos Humanos',
- 'direccion', 'Direccion de Recursos Humanos', TRUE)
+ 'direccion', 'Dirección de Recursos Humanos', TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Categorías de ejemplo
@@ -52,12 +52,12 @@ ON CONFLICT (id) DO NOTHING;
 -- Bienes de ejemplo
 INSERT INTO products (id, nombre, codigo, categoria_id, precio_compra, precio_venta,
     stock_actual, stock_minimo, stock_maximo, unidad, area) VALUES
-('p-01', 'Escritorio ejecutivo de madera', 'MB-001', 'cat-mob',  4500, 5000, 18, 5,  30, 'pieza', 'Secretaria General Municipal'),
-('p-02', 'Silla ejecutiva ergonomica',     'MB-002', 'cat-mob',  3200, 3800,  6, 8,  40, 'pieza', 'Direccion de Recursos Humanos'),
-('p-03', 'Archivero metalico 4 gavetas',   'MB-003', 'cat-mob',  2800, 3200,  0, 3,  20, 'pieza', 'Secretaria General Municipal'),
-('p-04', 'Camioneta pick-up Ford Ranger',  'VH-001', 'cat-veh', 380000,420000, 1, 1,  5, 'unidad','Secretaria de Obras Publicas y Desarrollo Urbano'),
-('p-05', 'Laptop Dell Latitude 5440',      'EC-001', 'cat-comp', 22000,25000, 12, 5,  30, 'equipo','Secretaria de Planeacion y Evaluacion'),
-('p-06', 'Impresora multifuncional Epson', 'EO-001', 'cat-ofi',  8500, 9500,  2, 2,  10, 'equipo','Secretaria General Municipal'),
-('p-07', 'Retroexcavadora CAT 420',        'HM-001', 'cat-maq',850000,900000, 1, 1,   3, 'unidad','Secretaria de Obras Publicas y Desarrollo Urbano'),
-('p-08', 'Camara de videovigilancia PTZ',  'AV-001', 'cat-av',   4800, 5500, 22, 5,  50, 'pieza', 'Secretaria de Seguridad Publica Municipal')
+('p-01', 'Escritorio ejecutivo de madera', 'MB-001', 'cat-mob',  4500, 5000, 18, 5,  30, 'pieza', 'Secretaría General Municipal'),
+('p-02', 'Silla ejecutiva ergonomica',     'MB-002', 'cat-mob',  3200, 3800,  6, 8,  40, 'pieza', 'Dirección de Recursos Humanos'),
+('p-03', 'Archivero metalico 4 gavetas',   'MB-003', 'cat-mob',  2800, 3200,  0, 3,  20, 'pieza', 'Secretaría General Municipal'),
+('p-04', 'Camioneta pick-up Ford Ranger',  'VH-001', 'cat-veh', 380000,420000, 1, 1,  5, 'unidad','Secretaría de Obras Públicas y Desarrollo Urbano'),
+('p-05', 'Laptop Dell Latitude 5440',      'EC-001', 'cat-comp', 22000,25000, 12, 5,  30, 'equipo','Secretaría de Planeación y Evaluación'),
+('p-06', 'Impresora multifuncional Epson', 'EO-001', 'cat-ofi',  8500, 9500,  2, 2,  10, 'equipo','Secretaría General Municipal'),
+('p-07', 'Retroexcavadora CAT 420',        'HM-001', 'cat-maq',850000,900000, 1, 1,   3, 'unidad','Secretaría de Obras Públicas y Desarrollo Urbano'),
+('p-08', 'Camara de videovigilancia PTZ',  'AV-001', 'cat-av',   4800, 5500, 22, 5,  50, 'pieza', 'Secretaría de Seguridad Pública Municipal')
 ON CONFLICT (id) DO NOTHING;

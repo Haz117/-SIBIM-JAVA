@@ -112,7 +112,7 @@ class DemoDataStoreTest {
 
     @Test
     void findAllProductos_areaFiltrada_retornaSoloEsaArea() {
-        String area = "Secretaria General Municipal";
+        String area = "Secretaría General Municipal";
         List<Producto> filtrados = DemoDataStore.findAllProductos(Set.of(area));
         assertFalse(filtrados.isEmpty());
         filtrados.forEach(p -> assertEquals(area, p.getArea()));
@@ -204,7 +204,7 @@ class DemoDataStoreTest {
     void findAllMovimientos_areaFiltrada_retornaSoloMovimientosDeEsaArea() {
         List<Movimiento> todos = DemoDataStore.findAllMovimientos(null);
         List<Movimiento> filtrados = DemoDataStore.findAllMovimientos(
-            Set.of("Secretaria General Municipal"));
+            Set.of("Secretaría General Municipal"));
         assertTrue(filtrados.size() < todos.size());
     }
 
