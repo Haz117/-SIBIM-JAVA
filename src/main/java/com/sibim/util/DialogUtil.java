@@ -9,6 +9,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.slf4j.Logger;
 
 import javafx.animation.PauseTransition;
 import javafx.scene.image.Image;
@@ -495,6 +496,28 @@ public final class DialogUtil {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
             }
         });
+    }
+
+    /**
+     * Wraps {@link #runAsync(java.util.concurrent.Callable, Consumer, Consumer)} with the
+     * show-spinner / hide-spinner / log-and-toast-on-error boilerplate that was duplicated
+     * nearly identically across the loadData() of Actas/Resguardos/Prestamos (and is a
+     * reasonable template for any future "load a list into a table" screen with an inline
+     * ProgressIndicator, as opposed to {@link #runAsyncWithProgress} which pops its own toast).
+     */
+    public static <R> void loadAsync(ProgressIndicator spinner, javafx.scene.Scene scene,
+            java.util.concurrent.Callable<R> task, Consumer<R> onSuccess, String errorMsg, Logger log) {
+        if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
+        runAsync(task,
+            result -> {
+                onSuccess.accept(result);
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+            },
+            ex -> {
+                log.error(errorMsg, ex);
+                if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
+                NotificacionUtil.error(scene, errorMsg);
+            });
     }
 
     /** Same as {@link #runAsync(java.util.concurrent.Callable, Consumer, Consumer)} but shows a

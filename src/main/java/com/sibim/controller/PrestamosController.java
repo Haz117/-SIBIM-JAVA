@@ -175,28 +175,17 @@ public class PrestamosController {
     }
 
     private void loadData() {
-        if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        com.sibim.util.AppExecutor.submit(() -> {
-            try {
-                service.actualizarVencidos();
-                List<Prestamo> list = service.getAll();
-                Platform.runLater(() -> {
-                    allData = list;
-                    applyFilter();
-                    updateStats(list);
-                    AnimationUtils.staggeredFadeInUp(
-                        List.of(statCardActivos, statCardVencidos, statCardDevueltos, statCardTotal),
-                        280, 55);
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                });
-            } catch (Exception e) {
-                log.error("Error cargando préstamos", e);
-                Platform.runLater(() -> {
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                    NotificacionUtil.error(rootPane.getScene(), "No se pudieron cargar los préstamos");
-                });
-            }
-        });
+        DialogUtil.loadAsync(spinner, rootPane.getScene(),
+            () -> { service.actualizarVencidos(); return service.getAll(); },
+            list -> {
+                allData = list;
+                applyFilter();
+                updateStats(list);
+                AnimationUtils.staggeredFadeInUp(
+                    List.of(statCardActivos, statCardVencidos, statCardDevueltos, statCardTotal),
+                    280, 55);
+            },
+            "No se pudieron cargar los préstamos", log);
     }
 
     private void applyFilter() {

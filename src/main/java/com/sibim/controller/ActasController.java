@@ -97,26 +97,15 @@ public class ActasController {
     }
 
     private void loadData() {
-        if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        com.sibim.util.AppExecutor.submit(() -> {
-            try {
-                List<ActaEntregaRecepcion> list = service.getAll();
-                Platform.runLater(() -> {
-                    data.setAll(list);
-                    if (lblStatTotal != null)
-                        AnimationUtils.animateCount(lblStatTotal, (long) list.size(), 700);
-                    if (statCardTotal != null)
-                        AnimationUtils.staggeredFadeInUp(List.of(statCardTotal), 280, 60);
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                });
-            } catch (Exception e) {
-                log.error("Error cargando actas", e);
-                Platform.runLater(() -> {
-                    if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                    NotificacionUtil.error(rootPane.getScene(), "No se pudieron cargar las actas");
-                });
-            }
-        });
+        DialogUtil.loadAsync(spinner, rootPane.getScene(), service::getAll,
+            list -> {
+                data.setAll(list);
+                if (lblStatTotal != null)
+                    AnimationUtils.animateCount(lblStatTotal, (long) list.size(), 700);
+                if (statCardTotal != null)
+                    AnimationUtils.staggeredFadeInUp(List.of(statCardTotal), 280, 60);
+            },
+            "No se pudieron cargar las actas", log);
     }
 
     @FXML
