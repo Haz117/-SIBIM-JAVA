@@ -493,7 +493,7 @@ public class CategoriasController {
         grid.add(new Label(),                          0, r); grid.add(previewRow,   1, r);
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 270, 70);
-        dialog.getDialogPane().setContent(new VBox(0, header, grid));
+        DialogUtil.setScrollableContent(dialog.getDialogPane(), new VBox(0, header, grid));
         Platform.runLater(() -> fNombre.requestFocus());
 
         dialog.setResultConverter(btn -> {

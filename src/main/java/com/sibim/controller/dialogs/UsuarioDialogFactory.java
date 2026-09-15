@@ -163,7 +163,7 @@ public final class UsuarioDialogFactory {
         }
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 270, 70);
-        dialog.getDialogPane().setContent(new VBox(0, header, grid, lblFormError));
+        DialogUtil.setScrollableContent(dialog.getDialogPane(), new VBox(0, header, grid, lblFormError));
         Platform.runLater(() -> (passwordOnly ? fPassword : fNombre).requestFocus());
 
         Optional<ButtonType> result = dialog.showAndWait();

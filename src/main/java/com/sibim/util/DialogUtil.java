@@ -185,6 +185,22 @@ public final class DialogUtil {
         dialog.showAndWait();
     }
 
+    /**
+     * Wraps dialog content in a ScrollPane and caps the DialogPane's height to
+     * ~85% of the screen's visual height. Without this, a form with many
+     * fields (Actas, Resguardos, Préstamos, etc.) can render taller than the
+     * screen — the OS places the window at the top and the OK/Cancel buttons
+     * end up below the visible area, behind the taskbar, unreachable.
+     */
+    public static void setScrollableContent(DialogPane pane, Node content) {
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("dialog-scroll");
+        pane.setContent(scroll);
+        double maxH = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() * 0.85;
+        pane.setMaxHeight(maxH);
+    }
+
     // ── Form grid ────────────────────────────────────────────────────────
 
     /** Standard two-column form grid with label column + expanding field column. */

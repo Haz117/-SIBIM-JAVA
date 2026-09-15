@@ -432,7 +432,16 @@ public final class MovimientoDialogFactory {
         });
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, actionBar), 280, 70);
-        VBox dialogContent = new VBox(0, header, grid, lblFormError, actionBar);
+        // Only the form scrolls — actionBar stays pinned at the bottom so it's
+        // always reachable even when the form is taller than the screen
+        // (was reproducible with the dialog's real button-bar off-screen;
+        // see DialogUtil.setScrollableContent).
+        VBox scrollableForm = new VBox(0, header, grid, lblFormError);
+        javafx.scene.control.ScrollPane formScroll = new javafx.scene.control.ScrollPane(scrollableForm);
+        formScroll.setFitToWidth(true);
+        formScroll.getStyleClass().add("dialog-scroll");
+        VBox dialogContent = new VBox(0, formScroll, actionBar);
+        VBox.setVgrow(formScroll, Priority.ALWAYS);
         // Enter in a Spinner or TextField (not inside a ComboBox editor) confirms
         // the dialog — only block Enter when a ComboBox dropdown is open (isShowing);
         // a closed ComboBox with Enter should still submit, saving the user a Tab.
@@ -445,6 +454,8 @@ public final class MovimientoDialogFactory {
             if (okBtn instanceof Button b && !b.isDisabled()) { b.fire(); e.consume(); }
         });
         dialog.getDialogPane().setContent(dialogContent);
+        dialog.getDialogPane().setMaxHeight(
+            javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() * 0.85);
 
         // Dirty tracking — only prompt if the user actually selected a product
         // (at that point they've done meaningful work worth protecting).

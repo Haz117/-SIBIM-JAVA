@@ -199,7 +199,7 @@ public class ActasController {
 
         VBox content = new VBox(10, header, form, infoLbl, lblError);
         content.setPadding(new Insets(0, 16, 16, 16));
-        dialog.getDialogPane().setContent(content);
+        DialogUtil.setScrollableContent(dialog.getDialogPane(), content);
 
         Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
         okBtn.setText("Generar Acta");
