@@ -341,6 +341,12 @@ public class OrganigramaController {
             if (!hasAlert) return;
         }
 
+        // Áreas sin ningún bien no aportan nada al listado y solo agregan
+        // ruido visual — se omiten salvo que el usuario esté buscando algo
+        // específico (una búsqueda por nombre de área vacía sigue debiendo
+        // encontrarla).
+        if (allAreaProdsCheck.isEmpty() && filter.isBlank()) return;
+
         if (!filter.isBlank()) {
             boolean nameMatch = parentName.toLowerCase().contains(filter)
                 || children.stream().anyMatch(c -> c.toLowerCase().contains(filter));
