@@ -250,6 +250,12 @@ public final class OfflineStore {
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE conteo_items_outbox ADD COLUMN nota TEXT");
         } catch (SQLException ignored) {}
+        // M10 (2026): activo para users_cache — offline.db previos a este campo
+        // en offline.sql se quedaron sin la columna; sin esta migración, cacheUser()
+        // falla al reautenticar offline a cualquier usuario existente.
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE users_cache ADD COLUMN activo INTEGER NOT NULL DEFAULT 1");
+        } catch (SQLException ignored) {}
     }
 
     private static void runSchema(Connection c) throws SQLException {
