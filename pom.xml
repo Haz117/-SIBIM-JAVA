@@ -6,7 +6,7 @@
 
     <groupId>com.sibim</groupId>
     <artifactId>sibim-desktop</artifactId>
-    <version>12.3.5</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>SIBIM Desktop</name>
     <description>Sistema Integral de Bienes Municipales - Aplicacion de escritorio Java</description>

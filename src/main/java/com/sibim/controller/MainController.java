@@ -22,20 +22,15 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
-import javafx.animation.TranslateTransition;
-import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
-import javafx.geometry.Point2D;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.fxml.FXML;
@@ -98,9 +93,8 @@ public class MainController {
     @FXML private VBox     userInfoVBox;
     @FXML private Button   btnToggleSidebar;
     @FXML private FontIcon statusDotIcon;
-    private boolean sidebarCollapsed = false;
 
-    private Button   activeButton;
+    private SidebarManager sidebarManager;
     private Object   currentController;
     private Timeline badgeRefresh;
     private Timeline badgePulse;
@@ -116,14 +110,6 @@ public class MainController {
     private static final long INACTIVITY_WARN_MS    = INACTIVITY_TIMEOUT_MS - 5 * 60_000L;
     private long    lastActivityMs    = System.currentTimeMillis();
     private boolean inactivityWarned  = false;
-
-    // Tab overlay — extends the active sidebar pill into the content area
-    private static final double SIDEBAR_WIDTH  = 220;
-    private static final double TAB_OVERLAP    = 6;    // starts this many px before sidebar edge
-    private static final double TAB_EXTENSION  = 40;   // extends this many px past sidebar edge
-    private Pane   tabOverlay;
-    private Region tabProtrusion;
-    private boolean tabPositioned = false;
     private boolean startupTasksScheduled = false;
 
     // Only one MainController is ever active at a time — this lets child
@@ -151,6 +137,12 @@ public class MainController {
     @FXML
     public void initialize() {
         instance = this;
+        sidebarManager = new SidebarManager(
+            sidebar, sidebarBackdrop, outerStack,
+            logoTextBox, userInfoVBox, btnToggleSidebar,
+            java.util.List.of(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
+                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
+                btnResguardos, btnPrestamos, btnActas, btnConfiguracion, btnAuditoria));
         if (SessionManager.getCurrentUser() != null) {
             String nombre = SessionManager.getCurrentUser().getNombre();
             userNameLabel.setText(nombre);
@@ -181,7 +173,7 @@ public class MainController {
                 setupKeyboardShortcuts(scene);
                 scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
                 scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
-                javafx.application.Platform.runLater(this::setupTabProtrusion);
+                javafx.application.Platform.runLater(sidebarManager::setup);
                 if (!startupTasksScheduled) {
                     startupTasksScheduled = true;
                     javafx.application.Platform.runLater(() -> TutorialOverlay.showIfFirstTime(outerStack));
@@ -459,13 +451,10 @@ public class MainController {
                 return;
             }
             // Update nav state + reset hover transforms immediately
-            if (activeButton != null) activeButton.getStyleClass().remove("nav-active");
             Timeline pendingHover = navHoverAnims.remove(button);
             if (pendingHover != null) pendingHover.stop();
             button.setTranslateX(0);
-            button.getStyleClass().add("nav-active");
-            activeButton = button;
-            updateTabProtrusion(button);
+            sidebarManager.setActive(button);
 
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
@@ -497,60 +486,6 @@ public class MainController {
                 : MainApp.getPrimaryStage() != null ? MainApp.getPrimaryStage().getScene() : null;
             NotificacionUtil.error(errScene, "No se pudo cargar la vista: " + view);
         }
-    }
-
-    // ── Tab overlay ──────────────────────────────────────────────────────────
-    private void setupTabProtrusion() {
-        if (outerStack == null || tabOverlay != null) return;
-
-        tabProtrusion = new Region();
-        tabProtrusion.setPrefWidth(TAB_OVERLAP + TAB_EXTENSION);
-        tabProtrusion.getStyleClass().add("nav-tab-extension");
-
-        tabOverlay = new Pane(tabProtrusion);
-        tabOverlay.setMouseTransparent(true);
-        tabOverlay.setPickOnBounds(false);
-        outerStack.getChildren().add(tabOverlay);
-
-        javafx.application.Platform.runLater(() -> updateTabProtrusion(btnDashboard));
-    }
-
-    private double currentSidebarWidth() {
-        return (sidebar != null && sidebar.getWidth() > 0) ? sidebar.getWidth() : SIDEBAR_WIDTH;
-    }
-
-    private void updateTabProtrusion(Button btn) {
-        if (tabProtrusion == null || outerStack == null || outerStack.getScene() == null) return;
-        javafx.application.Platform.runLater(() -> {
-            // translateX is horizontal-only, so minY/maxY are stable during animation.
-            Bounds  b    = btn.localToScene(btn.getBoundsInLocal());
-            Point2D org  = outerStack.sceneToLocal(0, 0);
-            double  btnTop = b.getMinY() + org.getY();
-            double  btnBot = b.getMaxY() + org.getY();
-            double  btnH   = btnBot - btnTop;
-
-            double sw    = currentSidebarWidth();
-            double extX  = sw - TAB_OVERLAP;
-
-            if (!tabPositioned) {
-                tabProtrusion.setLayoutX(extX); tabProtrusion.setLayoutY(btnTop);
-                tabPositioned = true;
-            } else {
-                glideTab(tabProtrusion, extX, btnTop);
-            }
-            tabProtrusion.setPrefHeight(btnH);
-        });
-    }
-
-    private void glideTab(Region node, double targetX, double targetY) {
-        double fromY = node.getLayoutY() + node.getTranslateY();
-        node.setLayoutX(targetX);
-        node.setLayoutY(targetY);
-        node.setTranslateY(fromY - targetY);
-        TranslateTransition tt = new TranslateTransition(Duration.millis(190), node);
-        tt.setToY(0);
-        tt.setInterpolator(Interpolator.EASE_OUT);
-        tt.play();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -673,8 +608,6 @@ public class MainController {
         });
     }
 
-    private static final double SIDEBAR_COLLAPSED_WIDTH = 76;
-
     // ── Table density ─────────────────────────────────────────────────────────
     private static final java.util.prefs.Preferences DENSITY_PREFS =
         java.util.prefs.Preferences.userRoot().node("sibim/ui/density");
@@ -704,76 +637,7 @@ public class MainController {
 
     @FXML
     private void onToggleSidebar() {
-        sidebarCollapsed = !sidebarCollapsed;
-        double targetW = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
-
-        sidebar.setMinWidth(Region.USE_PREF_SIZE);
-        sidebar.setMaxWidth(Region.USE_PREF_SIZE);
-        sidebarBackdrop.setMinWidth(Region.USE_PREF_SIZE);
-        sidebarBackdrop.setMaxWidth(Region.USE_PREF_SIZE);
-
-        // Collect nodes to show/hide
-        java.util.Set<javafx.scene.Node> sectionLabels = sidebar.lookupAll(".nav-section-label");
-        java.util.List<Button> navBtns = java.util.stream.Stream.of(
-                btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
-                btnResguardos, btnPrestamos, btnActas, btnConfiguracion, btnAuditoria)
-            .filter(b -> b != null).collect(java.util.stream.Collectors.toList());
-        java.util.List<Button> footerBtns = new java.util.ArrayList<>();
-        sidebar.lookupAll(".logout-btn").forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });
-        sidebar.lookupAll(".about-btn" ).forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });
-
-        // The logo HBox and its badge label; user card HBox
-        javafx.scene.Node logoBadge = sidebar.lookup(".sidebar-logo-badge");
-        javafx.scene.layout.HBox logoHBox = (logoTextBox != null && logoTextBox.getParent() instanceof javafx.scene.layout.HBox h) ? h : null;
-        javafx.scene.Node userCard = (userInfoVBox != null) ? userInfoVBox.getParent() : null;
-
-        // Nav scroll VBox — reduce inner padding so icons fit at collapsed width
-        javafx.scene.control.ScrollPane navScroll =
-            sidebar.lookup(".sidebar-scroll") instanceof javafx.scene.control.ScrollPane sp ? sp : null;
-        javafx.scene.layout.VBox navVBox =
-            (navScroll != null && navScroll.getContent() instanceof javafx.scene.layout.VBox v) ? v : null;
-
-        if (sidebarCollapsed) sidebar.getStyleClass().add("sidebar-collapsed");
-        else sidebar.getStyleClass().remove("sidebar-collapsed");
-
-        if (sidebarCollapsed) {
-            // Logo: hide badge + text, shrink HBox padding so only toggle button shows
-            if (logoBadge != null) { logoBadge.setVisible(false); logoBadge.setManaged(false); }
-            logoTextBox.setVisible(false); logoTextBox.setManaged(false);
-            if (logoHBox != null) { logoHBox.setPadding(new Insets(10, 4, 0, 4)); logoHBox.setSpacing(0); }
-            // User card: hide entirely (avatar 38px would overflow 76px with its padding)
-            if (userCard != null) { userCard.setVisible(false); userCard.setManaged(false); }
-            // Nav
-            sectionLabels.forEach(n -> { n.setVisible(false); n.setManaged(false); });
-            navBtns.forEach(b -> b.setContentDisplay(ContentDisplay.GRAPHIC_ONLY));
-            if (navVBox != null) navVBox.setPadding(new Insets(6, 12, 6, 12));
-            // Footer
-            footerBtns.forEach(b -> b.setContentDisplay(ContentDisplay.GRAPHIC_ONLY));
-            ((FontIcon) btnToggleSidebar.getGraphic()).setIconLiteral("mdi2c-chevron-right");
-        } else {
-            ((FontIcon) btnToggleSidebar.getGraphic()).setIconLiteral("mdi2c-chevron-left");
-        }
-
-        Timeline t = new Timeline(
-            new KeyFrame(Duration.millis(220),
-                new KeyValue(sidebar.prefWidthProperty(), targetW, Interpolator.EASE_BOTH),
-                new KeyValue(sidebarBackdrop.prefWidthProperty(), targetW, Interpolator.EASE_BOTH))
-        );
-        t.setOnFinished(ev -> {
-            if (!sidebarCollapsed) {
-                if (logoBadge != null) { logoBadge.setVisible(true); logoBadge.setManaged(true); }
-                logoTextBox.setVisible(true); logoTextBox.setManaged(true);
-                if (logoHBox != null) { logoHBox.setPadding(new Insets(18, 18, 0, 10)); logoHBox.setSpacing(10); }
-                if (userCard != null) { userCard.setVisible(true); userCard.setManaged(true); }
-                sectionLabels.forEach(n -> { n.setVisible(true); n.setManaged(true); });
-                navBtns.forEach(b -> b.setContentDisplay(ContentDisplay.LEFT));
-                if (navVBox != null) navVBox.setPadding(new Insets(6, 18, 6, 10));
-                footerBtns.forEach(b -> b.setContentDisplay(ContentDisplay.LEFT));
-            }
-            if (activeButton != null) updateTabProtrusion(activeButton);
-        });
-        t.play();
+        sidebarManager.toggle();
     }
 
     private void updateStatusTime() {
@@ -963,7 +827,7 @@ public class MainController {
         for (Button btn : buttons) {
             if (btn == null) continue;
             btn.setOnMouseEntered(e -> {
-                if (btn == activeButton) return;
+                if (btn == sidebarManager.getActive()) return;
                 Timeline prev = navHoverAnims.get(btn);
                 if (prev != null) prev.stop();
                 Timeline t = new Timeline(
@@ -976,7 +840,7 @@ public class MainController {
                 t.play();
             });
             btn.setOnMouseExited(e -> {
-                if (btn == activeButton) return;
+                if (btn == sidebarManager.getActive()) return;
                 Timeline prev = navHoverAnims.get(btn);
                 if (prev != null) prev.stop();
                 Timeline t = new Timeline(
@@ -1001,7 +865,7 @@ public class MainController {
 
     private void refreshCurrentView() {
         // Re-navigate to the current active view to trigger a refresh
-        if (activeButton != null) activeButton.fire();
+        if (sidebarManager.getActive() != null) sidebarManager.getActive().fire();
     }
 
     @FXML

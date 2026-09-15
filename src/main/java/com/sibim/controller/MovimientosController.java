@@ -97,6 +97,8 @@ public class MovimientosController {
     private final MovimientoService movimientoService = new MovimientoService();
     private final ProductoService productoService = new ProductoService();
     private final ReporteService reporteService = new ReporteService();
+    private final PendientesDialog pendientesDialog =
+        new PendientesDialog(movimientoService, () -> { loadData(); loadPendientesCount(); });
 
     private ObservableList<Movimiento> filteredData = FXCollections.observableArrayList();
     private int currentPage = 0;
@@ -679,104 +681,8 @@ public class MovimientosController {
         );
     }
 
-    private void showPendientesDialog(java.util.List<com.sibim.model.Movimiento> pendientes) {
-        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
-            new javafx.scene.control.Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(660);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        HBox header = DialogUtil.gradientHeader("mdi2t-timer-sand", "Transferencias Pendientes de Aprobación",
-            "Solicitudes de traslado que requieren tu autorización",
-            "#D97706", "#B45309");
-
-        VBox list = new VBox(6);
-        list.setPadding(new javafx.geometry.Insets(4));
-
-        if (pendientes.isEmpty()) {
-            javafx.scene.control.Label empty = new javafx.scene.control.Label("No hay transferencias pendientes");
-            empty.getStyleClass().add("muted");
-            list.getChildren().add(empty);
-        }
-
-        for (com.sibim.model.Movimiento m : pendientes) {
-            HBox row = new HBox(12);
-            row.getStyleClass().add("dlg-detail-header");
-            row.setPadding(new javafx.geometry.Insets(10, 14, 10, 14));
-            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            VBox info = new VBox(3);
-            javafx.scene.control.Label titulo = new javafx.scene.control.Label(
-                m.getProductoNombre() + "  ·  " + (m.getAreaOrigen() != null ? m.getAreaOrigen() : "—") + " → " + m.getAreaDestino());
-            titulo.getStyleClass().add("dlg-detail-value");
-            javafx.scene.control.Label detalle = new javafx.scene.control.Label(
-                "Solicitado por " + m.getUsuarioNombre() + " · " + com.sibim.util.FormatUtils.formatDateTime(m.getCreadoEn())
-                + (m.getMotivo() != null && !m.getMotivo().isBlank() ? " · " + m.getMotivo() : ""));
-            detalle.getStyleClass().add("muted-sm");
-            detalle.setWrapText(true);
-            info.getChildren().addAll(titulo, detalle);
-            HBox.setHgrow(info, javafx.scene.layout.Priority.ALWAYS);
-
-            javafx.scene.control.Button btnAprobar  = new javafx.scene.control.Button("Aprobar");
-            javafx.scene.control.Button btnRechazar = new javafx.scene.control.Button("Rechazar");
-            btnAprobar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
-            btnRechazar.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
-            btnAprobar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            btnRechazar.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-            btnAprobar.getStyleClass().add("btn-primary");
-            btnRechazar.getStyleClass().add("btn-danger");
-
-            btnAprobar.setOnAction(e -> {
-                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
-                DialogUtil.runAsync(
-                    () -> movimientoService.aprobarTransferencia(m.getId()),
-                    () -> {
-                        list.getChildren().remove(row);
-                        loadData(); loadPendientesCount();
-                        NotificacionUtil.exitoTransferencia(dialog.getDialogPane().getScene(),
-                            m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
-                    },
-                    ex -> {
-                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
-                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aprobar la transferencia");
-                    }
-                );
-            });
-
-            btnRechazar.setOnAction(e -> {
-                if (!com.sibim.util.ConfirmacionUtil.confirmar("Rechazar transferencia",
-                        "¿Rechazar la transferencia de \"" + m.getProductoNombre() + "\"?")) return;
-                btnAprobar.setDisable(true); btnRechazar.setDisable(true);
-                DialogUtil.runAsync(
-                    () -> movimientoService.rechazarTransferencia(m.getId()),
-                    () -> {
-                        list.getChildren().remove(row);
-                        loadData(); loadPendientesCount();
-                        NotificacionUtil.info(dialog.getDialogPane().getScene(),
-                            "Transferencia de \"" + m.getProductoNombre() + "\" rechazada");
-                    },
-                    ex -> {
-                        btnAprobar.setDisable(false); btnRechazar.setDisable(false);
-                        NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo rechazar la transferencia");
-                    }
-                );
-            });
-
-            HBox actions = new HBox(8, btnAprobar, btnRechazar);
-            actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-            row.getChildren().addAll(info, actions);
-            list.getChildren().add(row);
-        }
-
-        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(list);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(400);
-        scroll.getStyleClass().add("dlg-tabs-scroll");
-
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, scroll), 260, 70);
-        dialog.getDialogPane().setContent(new VBox(0, header, scroll));
-        dialog.showAndWait();
+    private void showPendientesDialog(List<Movimiento> pendientes) {
+        pendientesDialog.show(pendientes);
     }
 
     @FXML private void onPresetHoy() {
