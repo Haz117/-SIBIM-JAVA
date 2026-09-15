@@ -28,7 +28,6 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
-import javafx.scene.layout.GridPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -267,43 +266,7 @@ public class MainController {
 
     @FXML
     private void onAcercaDe() {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(420);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        HBox header = DialogUtil.gradientHeader("mdi2d-domain", "Acerca de SIBIM",
-            "Sistema Integral de Bienes Municipales",
-            "#6366F1", "#4F46E5");
-
-        GridPane g = new GridPane();
-        g.setHgap(16); g.setVgap(10);
-        g.setPadding(new Insets(16, 22, 16, 22));
-        String[][] rows = {
-            { "Versión",         "1.0.0" },
-            { "Plataforma",      "Java " + System.getProperty("java.version") + " · JavaFX 21" },
-            { "Sistema",         System.getProperty("os.name") + " " + System.getProperty("os.version") },
-            { "Modo de datos",   DatabaseConfig.isDemoMode() ? "Demo (sin base de datos)"
-                                : DatabaseConfig.isOfflineMode() ? "Offline (" + SyncService.pendingCount() + " pendiente(s) de sincronizar)"
-                                : "PostgreSQL (conectado)" },
-            { "Desarrollado por","H. Ayuntamiento Municipal" },
-            { "Año",             "2026" },
-        };
-        for (int i = 0; i < rows.length; i++) {
-            Label k = new Label(rows[i][0]);
-            k.getStyleClass().add("dlg-detail-label");
-            k.setMinWidth(130);
-            Label v = new Label(rows[i][1]);
-            v.getStyleClass().add("dlg-detail-value");
-            v.setWrapText(true);
-            g.add(k, 0, i); g.add(v, 1, i);
-        }
-
-        VBox content = new VBox(0, header, g);
-        dialog.getDialogPane().setContent(content);
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, g), 260, 70);
-        dialog.showAndWait();
+        MainAcercaDe.show();
     }
 
     @FXML
@@ -312,31 +275,7 @@ public class MainController {
     }
 
     private void setupUserCardMenu() {
-        if (userInfoVBox == null) return;
-        javafx.scene.Node card = userInfoVBox.getParent();
-        if (card == null) return;
-        card.setCursor(javafx.scene.Cursor.HAND);
-        javafx.scene.control.Tooltip.install(card,
-            new javafx.scene.control.Tooltip("Clic para opciones de cuenta"));
-
-        javafx.scene.control.ContextMenu menu = new javafx.scene.control.ContextMenu();
-
-        javafx.scene.control.MenuItem miPassword = new javafx.scene.control.MenuItem("Cambiar contraseña");
-        miPassword.setGraphic(new FontIcon("mdi2l-lock-outline"));
-        miPassword.setOnAction(e ->
-            com.sibim.util.CambiarPasswordDialog.mostrar(contentArea.getScene()));
-
-        javafx.scene.control.SeparatorMenuItem sep = new javafx.scene.control.SeparatorMenuItem();
-
-        javafx.scene.control.MenuItem miLogout = new javafx.scene.control.MenuItem("Cerrar sesión");
-        miLogout.setGraphic(new FontIcon("mdi2l-logout"));
-        miLogout.setOnAction(e -> onLogout());
-
-        menu.getItems().addAll(miPassword, sep, miLogout);
-        card.setOnMouseClicked(e -> {
-            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY)
-                menu.show(card, e.getScreenX(), e.getScreenY());
-        });
+        MainUserMenu.setup(userInfoVBox, contentArea, this::onLogout);
     }
 
     @FXML

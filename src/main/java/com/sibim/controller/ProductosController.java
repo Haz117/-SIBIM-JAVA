@@ -161,6 +161,7 @@ public class ProductosController {
     private final AtomicBoolean loading = new AtomicBoolean(false);
     private boolean canEdit = false;
     private FilterPresetPanel presetPanel;
+    private ProductosChipsManager chipsManager;
     private String pendingHighlightId;
     private ToggleGroup estadoChipGroup;
     private Label emptyStateMsg;
@@ -177,6 +178,14 @@ public class ProductosController {
         setupTable();
         setupFilters();
         setupStatusChips();
+        chipsManager = new ProductosChipsManager(
+            activeChipsBar, btnClearFilters, btnGuardarPreset, lblTotalAll,
+            emptyStateMsg, btnEmptyLimpiar, emptyStateHint,
+            () -> canEdit, () -> filterSinEtiquetar, () -> totalFiltered,
+            estadoChipGroup, desdeRegFilter, hastaRegFilter,
+            searchField, categoriaFilter, areaFilter, resguardanteFilter,
+            this::applyFilters, this::onCardSinEtiquetar
+        );
         presetPanel = new FilterPresetPanel(presetsBar, presetsHeader, categoriaFilter,
             searchField, areaFilter, resguardanteFilter, estadoChipGroup, this::applyFilters);
         presetPanel.load();
@@ -515,7 +524,7 @@ public class ProductosController {
             ? categoriaFilter.getValue().getId() : null;
         String area = areaFilter.getValue() != null ? areaFilter.getValue() : null;
         String resguardante = resguardanteFilter.getValue();
-        EstadoProducto estado = parseEstado(getSelectedEstado());
+        EstadoProducto estado = ProductosChipsManager.parseEstado(getSelectedEstado());
         java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
         java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
 
@@ -542,7 +551,7 @@ public class ProductosController {
                 totalFiltered = count;
                 filteredData.setAll(pageData);
                 updateTablePage();
-                updateHasFiltersUi(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
+                chipsManager.refresh(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
                 updateStats(stats);
                 spinner.setVisible(false); spinner.setManaged(false);
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
@@ -586,7 +595,7 @@ public class ProductosController {
             ? categoriaFilter.getValue().getId() : null;
         String area = areaFilter.getValue() != null ? areaFilter.getValue() : null;
         String resguardante = resguardanteFilter.getValue();
-        EstadoProducto estado = parseEstado(getSelectedEstado());
+        EstadoProducto estado = ProductosChipsManager.parseEstado(getSelectedEstado());
         java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
         java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
         int offset = currentPage * pageSize;
@@ -609,7 +618,7 @@ public class ProductosController {
                 totalFiltered = count;
                 filteredData.setAll(page);
                 updateTablePage();
-                updateHasFiltersUi(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
+                chipsManager.refresh(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
                 spinner.setVisible(false); spinner.setManaged(false);
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             }
@@ -660,120 +669,6 @@ public class ProductosController {
         loadPage();
     }
 
-    /** Updates the "has filters" UI elements (clear button, preset button, total label, empty state).
-     *  Called after page loads complete so the UI reflects the current filter state. */
-    private void updateHasFiltersUi(String busqueda, String catId, String area,
-            String resguardante, EstadoProducto estado,
-            java.time.LocalDate desdeReg, java.time.LocalDate hastaReg) {
-        boolean hasFilters = !busqueda.isBlank() || catId != null || area != null
-            || resguardante != null || estado != null
-            || desdeReg != null || hastaReg != null || filterSinEtiquetar;
-        btnClearFilters.setVisible(hasFilters);
-        btnClearFilters.setManaged(hasFilters);
-        if (btnGuardarPreset != null) {
-            btnGuardarPreset.setVisible(hasFilters);
-            btnGuardarPreset.setManaged(hasFilters);
-        }
-        if (hasFilters) {
-            lblTotalAll.setText("de " + totalFiltered + " total");
-            lblTotalAll.setVisible(true);
-            lblTotalAll.setManaged(true);
-        } else {
-            lblTotalAll.setVisible(false);
-            lblTotalAll.setManaged(false);
-        }
-        if (emptyStateMsg != null) {
-            if (hasFilters) {
-                java.util.List<String> activeFilters = new java.util.ArrayList<>();
-                if (!busqueda.isBlank()) activeFilters.add("búsqueda «" + busqueda + "»");
-                if (catId != null && categoriaFilter.getValue() != null)
-                    activeFilters.add("categoría «" + categoriaFilter.getValue().getNombre() + "»");
-                if (area != null) activeFilters.add("área «" + area + "»");
-                if (resguardante != null) activeFilters.add("resguardante «" + resguardante + "»");
-                if (estado != null) activeFilters.add("estado «" + estado.getEtiqueta() + "»");
-                if (desdeReg != null) activeFilters.add("desde " + desdeReg.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")));
-                if (hastaReg != null) activeFilters.add("hasta " + hastaReg.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")));
-                if (filterSinEtiquetar) activeFilters.add("sin etiquetar");
-                String filterDesc = activeFilters.isEmpty() ? "" : " (" + String.join(", ", activeFilters) + ")";
-                emptyStateMsg.setText("No se encontraron bienes" + filterDesc);
-            } else {
-                emptyStateMsg.setText("No hay bienes registrados en el sistema");
-            }
-        }
-        if (btnEmptyLimpiar != null) {
-            btnEmptyLimpiar.setVisible(hasFilters);
-            btnEmptyLimpiar.setManaged(hasFilters);
-        }
-        if (emptyStateHint != null) {
-            emptyStateHint.setVisible(!hasFilters && canEdit);
-            emptyStateHint.setManaged(!hasFilters && canEdit);
-        }
-        refreshChips(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
-    }
-
-    /** Builds one closeable chip per active filter in the activeChipsBar FlowPane. */
-    private void refreshChips(String busqueda, String catId, String area,
-            String resguardante, EstadoProducto estado,
-            java.time.LocalDate desdeReg, java.time.LocalDate hastaReg) {
-        if (activeChipsBar == null) return;
-        activeChipsBar.getChildren().clear();
-        java.util.List<javafx.scene.Node> chips = new java.util.ArrayList<>();
-
-        if (!busqueda.isBlank())
-            chips.add(buildChip("Búsqueda: " + busqueda, () -> { searchField.clear(); applyFilters(); }));
-        if (catId != null && categoriaFilter.getValue() != null)
-            chips.add(buildChip("Categoría: " + categoriaFilter.getValue().getNombre(),
-                () -> { categoriaFilter.setValue(null); applyFilters(); }));
-        if (area != null)
-            chips.add(buildChip("Área: " + area, () -> { areaFilter.setValue(null); applyFilters(); }));
-        if (resguardante != null)
-            chips.add(buildChip("Resguardante: " + resguardante, () -> { resguardanteFilter.setValue(null); applyFilters(); }));
-        if (estado != null)
-            chips.add(buildChip("Estado: " + estado.getEtiqueta(), () -> {
-                if (estadoChipGroup != null)
-                    estadoChipGroup.getToggles().stream()
-                        .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
-                        .findFirst().ifPresent(t -> t.setSelected(true));
-                applyFilters();
-            }));
-        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy");
-        if (desdeReg != null)
-            chips.add(buildChip("Desde: " + desdeReg.format(fmt),
-                () -> { if (desdeRegFilter != null) desdeRegFilter.setValue(null); applyFilters(); }));
-        if (hastaReg != null)
-            chips.add(buildChip("Hasta: " + hastaReg.format(fmt),
-                () -> { if (hastaRegFilter != null) hastaRegFilter.setValue(null); applyFilters(); }));
-        if (filterSinEtiquetar)
-            chips.add(buildChip("Sin etiquetar", this::onCardSinEtiquetar));
-
-        activeChipsBar.getChildren().addAll(chips);
-        boolean show = !chips.isEmpty();
-        activeChipsBar.setVisible(show);
-        activeChipsBar.setManaged(show);
-    }
-
-    private javafx.scene.Node buildChip(String label, Runnable onRemove) {
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("active-chip-label");
-        Button close = new Button();
-        close.setGraphic(new FontIcon("mdi2c-close"));
-        close.getStyleClass().add("active-chip-close");
-        close.setOnAction(e -> onRemove.run());
-        close.setTooltip(new Tooltip("Quitar este filtro"));
-        HBox chip = new HBox(4, lbl, close);
-        chip.getStyleClass().add("active-chip");
-        chip.setAlignment(Pos.CENTER_LEFT);
-        return chip;
-    }
-
-    private static EstadoProducto parseEstado(String etiqueta) {
-        if (etiqueta == null || "Todos".equalsIgnoreCase(etiqueta)) return null;
-        for (EstadoProducto e : EstadoProducto.values()) {
-            if (e.getEtiqueta().equalsIgnoreCase(etiqueta)) return e;
-        }
-        return null;
-    }
-
     private void updateTablePage() {
         PaginationUtils.updatePageServer(table, filteredData, currentPage, pageSize, totalFiltered,
             lblTotal, lblPage, btnPrev, btnNext, "resultado", "resultados");
@@ -800,7 +695,7 @@ public class ProductosController {
             ? categoriaFilter.getValue().getId() : null;
         String area = areaFilter.getValue() != null ? areaFilter.getValue() : null;
         String resguardante = resguardanteFilter.getValue();
-        EstadoProducto estado = parseEstado(getSelectedEstado());
+        EstadoProducto estado = ProductosChipsManager.parseEstado(getSelectedEstado());
 
         Task<List<Producto>> task = new Task<>() {
             @Override protected List<Producto> call() throws Exception {
