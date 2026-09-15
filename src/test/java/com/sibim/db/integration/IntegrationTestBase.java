@@ -88,7 +88,8 @@ public abstract class IntegrationTestBase {
         try (Connection c = dataSource.getConnection();
              Statement st = c.createStatement()) {
             st.execute(
-                "TRUNCATE conteo_items, conteos_fisicos, movements, products, categories, users, audit_log CASCADE"
+                "TRUNCATE resguardo_items, resguardos, prestamos, actas_entrega_recepcion, " +
+                "conteo_items, conteos_fisicos, movements, products, categories, users, audit_log CASCADE"
             );
         }
         // Re-seed the admin user row so FK constraints on movements and
