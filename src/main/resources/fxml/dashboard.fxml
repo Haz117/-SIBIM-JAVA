@@ -273,7 +273,7 @@
               onMouseClicked="#onVerResguardos" HBox.hgrow="ALWAYS">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
-                <FontIcon iconLiteral="mdi2c-clipboard-account-outline" styleClass="rich-stat-icon"/>
+                <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="rich-stat-icon"/>
             </StackPane>
             <VBox spacing="5">
                 <Label text="RESGUARDOS ACTIVOS" styleClass="rich-stat-label"/>
@@ -328,8 +328,7 @@
                 <Label text="Valor por Categoría" styleClass="card-title"/>
             </HBox>
             <StackPane VBox.vgrow="ALWAYS">
-                <PieChart fx:id="chartValorCategoria" prefHeight="220"
-                          labelsVisible="true" animated="false"/>
+                <VBox fx:id="categoriaValorBox" spacing="12"/>
                 <VBox fx:id="pieEmptyState" alignment="CENTER" spacing="6"
                       visible="false" managed="false" styleClass="pie-empty-state">
                     <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="pie-empty-icon"/>

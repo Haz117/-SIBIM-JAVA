@@ -61,7 +61,7 @@ public class DashboardController {
 
     // ── Charts ───────────────────────────────────────────────────────
     @FXML private LineChart<String, Number>  chartMovimientos;
-    @FXML private PieChart                   chartValorCategoria;
+    @FXML private VBox                       categoriaValorBox;
     @FXML private VBox                       pieEmptyState;
     @FXML private AreaChart<String, Number>  chartTendencia;
     @FXML private VBox                       trendCard;
@@ -503,25 +503,6 @@ public class DashboardController {
             installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue());
     }
 
-    private void installClickWhenReady(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> nodeProp, String categoryName) {
-        javafx.scene.Node node = nodeProp.getValue();
-        if (node != null) { setupPieSliceClick(node, categoryName); return; }
-        nodeProp.addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
-            @Override public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> obs,
-                                          javafx.scene.Node old, javafx.scene.Node n) {
-                if (n != null) { setupPieSliceClick(n, categoryName); nodeProp.removeListener(this); }
-            }
-        });
-    }
-
-    private void setupPieSliceClick(javafx.scene.Node node, String categoryName) {
-        node.getStyleClass().add("stat-card-clickable");
-        node.setOnMouseClicked(e -> {
-            com.sibim.session.NavigationContext.setPendingCategoryFilter(categoryName);
-            navigarA("Productos");
-        });
-    }
-
     private void installTooltipWhenReady(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> nodeProp, String text) {
         javafx.scene.Node node = nodeProp.getValue();
         if (node != null) { Tooltip.install(node, new Tooltip(text)); return; }
@@ -537,25 +518,69 @@ public class DashboardController {
         });
     }
 
+    /** Ranked horizontal-bar list (same visual language as "Distribución por
+     *  Área" below it) instead of a pie chart — a pie with 6+ slices has no
+     *  room for on-slice labels, and relying on a legend alone made the
+     *  category names impossible to match to a color at a glance. */
     private void buildCategoriaChart(List<com.sibim.repository.ProductoRepository.CategoriaValor> catValores) {
-        chartValorCategoria.getData().clear();
-        catValores.forEach(cv -> chartValorCategoria.getData().add(
-            new PieChart.Data(cv.nombre(), cv.valor().doubleValue())));
+        if (categoriaValorBox == null) return;
+        categoriaValorBox.getChildren().clear();
 
-        // With 6+ categories the built-in radial labels overlap each other.
-        // Disable them and let the legend (always visible at the bottom) be
-        // the sole label source — tooltips still show the full value on hover.
-        chartValorCategoria.setLabelsVisible(catValores.size() <= 5);
+        BigDecimal total = catValores.stream()
+            .map(com.sibim.repository.ProductoRepository.CategoriaValor::valor)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        for (PieChart.Data d : chartValorCategoria.getData()) {
-            String text = d.getName() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getPieValue()));
-            installTooltipWhenReady(d.nodeProperty(), text);
-            installClickWhenReady(d.nodeProperty(), d.getName());
+        int i = 0;
+        for (com.sibim.repository.ProductoRepository.CategoriaValor cv : catValores) {
+            double pct = total.compareTo(BigDecimal.ZERO) > 0
+                ? cv.valor().doubleValue() / total.doubleValue() : 0;
+
+            Label nameLbl = new Label(cv.nombre());
+            nameLbl.getStyleClass().add("area-bar-name");
+            HBox.setHgrow(nameLbl, Priority.ALWAYS);
+
+            Label valLbl = new Label(FormatUtils.formatCurrency(cv.valor()));
+            valLbl.getStyleClass().add("area-bar-count");
+
+            HBox nameRow = new HBox(nameLbl, valLbl);
+            nameRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            pb.setMaxWidth(Double.MAX_VALUE);
+            pb.getStyleClass().addAll("area-bar-pb", AREA_BAR_CLASSES[i % AREA_BAR_CLASSES.length]);
+
+            VBox item = new VBox(5, nameRow, pb);
+            item.setCursor(javafx.scene.Cursor.HAND);
+            item.getStyleClass().add("stat-card-clickable");
+            String catName = cv.nombre();
+            item.setOnMouseClicked(e -> {
+                com.sibim.session.NavigationContext.setPendingCategoryFilter(catName);
+                navigarA("Productos");
+            });
+            Tooltip.install(item, new Tooltip(catName + ": " + FormatUtils.formatCurrency(cv.valor())));
+            categoriaValorBox.getChildren().add(item);
+
+            double target = pct;
+            int delay = i * 90;
+            javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(
+                javafx.util.Duration.millis(delay + 400));
+            wait.setOnFinished(ev -> {
+                javafx.animation.Timeline anim = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(900),
+                        new javafx.animation.KeyValue(pb.progressProperty(), target,
+                            javafx.animation.Interpolator.EASE_OUT))
+                );
+                anim.play();
+            });
+            wait.play();
+            i++;
         }
 
-        boolean hasData = !chartValorCategoria.getData().isEmpty();
-        chartValorCategoria.setVisible(hasData);
-        chartValorCategoria.setManaged(hasData);
+        boolean hasData = !catValores.isEmpty();
+        categoriaValorBox.setVisible(hasData);
+        categoriaValorBox.setManaged(hasData);
         if (pieEmptyState != null) {
             boolean wasVisible = pieEmptyState.isVisible();
             pieEmptyState.setVisible(!hasData);
