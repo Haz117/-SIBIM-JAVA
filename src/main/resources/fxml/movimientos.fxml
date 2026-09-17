@@ -25,6 +25,19 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar desde la base de datos (F5)"/></tooltip>
         </Button>
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Restaurar ancho y orden de columnas a su configuración original  (para visibilidad, clic derecho en el encabezado)"
+                              wrapText="true" maxWidth="270"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Button fx:id="btnPendientes" text="Pendientes" onAction="#onVerPendientes"
                 styleClass="btn-secondary" visible="false" managed="false"
                 contentDisplay="LEFT" graphicTextGap="8">
@@ -38,6 +51,7 @@
         </Button>
     </HBox>
 
+    <VBox fx:id="resumenBox" spacing="12">
     <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar-purple"/>
@@ -114,6 +128,7 @@
             <Label text="ajustes y transferencias" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
+    </VBox>
 
     <!-- ══ BUSCAR Y FILTRAR ════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
@@ -140,6 +155,9 @@
         <Separator orientation="VERTICAL"/>
         <!-- Tipo filter chips (populated by controller) -->
         <HBox fx:id="tipoChipsBar" spacing="5" alignment="CENTER_LEFT"/>
+        <Label fx:id="helpTipoChips" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Filtra por tipo de movimiento:&#10;• Entrada — suma al stock&#10;• Salida — resta del stock&#10;• Ajuste — corrección manual&#10;• Transferencia — traslado entre áreas (requiere aprobación)" wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Separator orientation="VERTICAL"/>
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="170">
             <tooltip><Tooltip text="Filtrar por la categoría del bien involucrado en el movimiento"/></tooltip>
@@ -166,6 +184,9 @@
             <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
             <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
         </Button>
+        <Label fx:id="helpFechaMov" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Filtra por la fecha en que se registró el movimiento. Usa los accesos rápidos (Hoy/Semana/Mes) o elige un rango manual con Desde/Hasta." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
                 styleClass="btn-secondary" visible="false" managed="false"
@@ -173,14 +194,20 @@
             <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Quitar todos los filtros activos"/></tooltip>
         </Button>
-        <Separator orientation="VERTICAL"/>
+    </FlowPane>
+
+    <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar-purple"/>
+        <Label text="TABLA DE MOVIMIENTOS" styleClass="dash-section-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
         <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
             <tooltip><Tooltip text="Exportar movimientos filtrados a CSV"/></tooltip>
         </Button>
         <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
             <tooltip><Tooltip text="Exportar movimientos filtrados a Excel (.xlsx)"/></tooltip>
         </Button>
-    </FlowPane>
+    </HBox>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">

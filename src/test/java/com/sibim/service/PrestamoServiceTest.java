@@ -2,6 +2,7 @@ package com.sibim.service;
 
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.PrestamoRepository;
 import com.sibim.repository.ProductoRepository;
@@ -29,6 +30,7 @@ class PrestamoServiceTest {
     @Mock PrestamoRepository      mockRepo;
     @Mock ProductoRepository      mockProductoRepo;
     @Mock ConfiguracionRepository mockCfg;
+    @Mock AuditLogRepository      mockAudit;
 
     private PrestamoService service;
     private Producto producto;
@@ -36,7 +38,7 @@ class PrestamoServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        service = new PrestamoService(mockRepo, mockProductoRepo, mockCfg);
+        service = new PrestamoService(mockRepo, mockProductoRepo, mockCfg, mockAudit);
 
         producto = new Producto();
         producto.setId("p-01");

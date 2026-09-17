@@ -22,7 +22,6 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
-import com.sibim.util.QrUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
@@ -43,11 +42,9 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -114,6 +111,8 @@ public class ProductosController {
     @FXML private HBox presetsHeader;
     @FXML private Button btnGuardarPreset;
     @FXML private Button btnToggleFiltros;
+    @FXML private VBox resumenBox;
+    @FXML private Button btnToggleResumen;
     @FXML private HBox bulkBar;
     @FXML private Label lblBulkCount;
     @FXML private Button btnBulkArea;
@@ -144,6 +143,8 @@ public class ProductosController {
     @FXML private Label helpChips;
     @FXML private Label helpPresets;
     @FXML private Label helpColumnas;
+    @FXML private Label helpFechaReg;
+    @FXML private Label helpResumen;
     @FXML private javafx.scene.control.DatePicker desdeRegFilter;
     @FXML private javafx.scene.control.DatePicker hastaRegFilter;
 
@@ -162,6 +163,7 @@ public class ProductosController {
     private boolean canEdit = false;
     private FilterPresetPanel presetPanel;
     private ProductosChipsManager chipsManager;
+    private ProductosBulkBar bulkBarManager;
     private String pendingHighlightId;
     private ToggleGroup estadoChipGroup;
     private Label emptyStateMsg;
@@ -175,6 +177,9 @@ public class ProductosController {
         canEdit = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (btnToggleFiltros != null && filterBar != null)
             DialogUtil.makeCollapsible("bienes.filtros.colapsado", btnToggleFiltros, filterBar);
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible("bienes.resumen.colapsado", btnToggleResumen, resumenBox,
+                "Mostrar resumen", "Ocultar resumen");
         setupTable();
         setupFilters();
         setupStatusChips();
@@ -186,6 +191,8 @@ public class ProductosController {
             searchField, categoriaFilter, areaFilter, resguardanteFilter,
             this::applyFilters, this::onCardSinEtiquetar
         );
+        bulkBarManager = new ProductosBulkBar(bulkBar, lblBulkCount, btnBulkArea,
+            btnBulkResguardante, btnBulkMarcarEtiquetado, btnComparar, () -> canEdit);
         presetPanel = new FilterPresetPanel(presetsBar, presetsHeader, categoriaFilter,
             searchField, areaFilter, resguardanteFilter, estadoChipGroup, this::applyFilters);
         presetPanel.load();
@@ -250,6 +257,8 @@ public class ProductosController {
         if (helpChips    != null) DialogUtil.enableClickToShowTooltip(helpChips);
         if (helpPresets  != null) DialogUtil.enableClickToShowTooltip(helpPresets);
         if (helpColumnas != null) DialogUtil.enableClickToShowTooltip(helpColumnas);
+        if (helpFechaReg != null) DialogUtil.enableClickToShowTooltip(helpFechaReg);
+        if (helpResumen  != null) DialogUtil.enableClickToShowTooltip(helpResumen);
     }
 
     // ── Table setup ──────────────────────────────────────────────────────────
@@ -266,7 +275,10 @@ public class ProductosController {
         ProductosColumnSetup.configureEstado(colEstado);
         ProductosColumnSetup.configureRowFactory(table, () -> pendingHighlightId);
         setupTableListeners();
-        setupContextMenu();
+        table.setContextMenu(ProductosContextMenu.build(
+            table, canEdit, reporteService, movimientoService, log,
+            this::showProductDetail, this::showMovimientoTimeline, this::exportarEtiquetasQr,
+            this::onEdit, this::onDelete));
         setupEmptyState();
         setupPagination();
         // Clic derecho en encabezado → toggle columnas secundarias
@@ -288,7 +300,7 @@ public class ProductosController {
             if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
             if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
             updateSelectionLabel(lblSeleccionados, n);
-            updateBulkBar(n);
+            bulkBarManager.update(n);
         });
         if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(true);
         if (btnQr        != null) btnQr.setDisable(true);
@@ -322,53 +334,6 @@ public class ProductosController {
                 else showProductDetail(table.getSelectionModel().getSelectedItem());
             }
         });
-    }
-
-    private void setupContextMenu() {
-        ContextMenu cm = new ContextMenu();
-        MenuItem cmDetalle  = new MenuItem("Ver detalle");
-        cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
-        cmDetalle.setOnAction(e -> {
-            Producto sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) showProductDetail(sel);
-        });
-        cm.getItems().add(cmDetalle);
-        MenuItem cmFicha = new MenuItem("Imprimir ficha técnica");
-        cmFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
-        cmFicha.setOnAction(e -> {
-            Producto sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) {
-                DialogUtil.runAsyncWithProgress(table.getScene(), "Generando ficha…",
-                    () -> reporteService.exportFichaTecnica(sel, movimientoService.getByProducto(sel.getId())),
-                    file -> DialogUtil.showExportResultDialog(table.getScene(), file),
-                    ex -> { log.error("Error ficha técnica", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la ficha técnica"); });
-            }
-        });
-        MenuItem cmHistorial = new MenuItem("Ver historial de movimientos");
-        cmHistorial.setGraphic(new FontIcon("mdi2h-history"));
-        cmHistorial.setOnAction(e -> {
-            Producto sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) showMovimientoTimeline(sel);
-        });
-        MenuItem cmEtiquetaQr = new MenuItem("Imprimir etiqueta QR");
-        cmEtiquetaQr.setGraphic(new FontIcon("mdi2q-qrcode"));
-        cmEtiquetaQr.setOnAction(e -> {
-            Producto sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) exportarEtiquetasQr(java.util.List.of(sel));
-        });
-        cm.getItems().add(new SeparatorMenuItem());
-        cm.getItems().addAll(cmFicha, cmHistorial, cmEtiquetaQr);
-        if (canEdit) {
-            cm.getItems().add(new SeparatorMenuItem());
-            MenuItem cmEditar   = new MenuItem("Editar");
-            cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
-            MenuItem cmEliminar = new MenuItem("Dar de baja");
-            cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
-            cmEditar.setOnAction(e -> onEdit());
-            cmEliminar.setOnAction(e -> onDelete());
-            cm.getItems().addAll(cmEditar, cmEliminar);
-        }
-        table.setContextMenu(cm);
     }
 
     private void setupEmptyState() {
@@ -889,37 +854,6 @@ public class ProductosController {
 
     // ── Bulk actions ─────────────────────────────────────────────────────────
 
-    private boolean bulkBarVisible = false;
-
-    private void updateBulkBar(int n) {
-        if (bulkBar == null) return;
-        boolean show = n >= 2;
-        if (lblBulkCount != null && show)
-            lblBulkCount.setText(n + " bienes seleccionados");
-        if (btnBulkArea           != null) { btnBulkArea.setVisible(canEdit);           btnBulkArea.setManaged(canEdit); }
-        if (btnBulkResguardante   != null) { btnBulkResguardante.setVisible(canEdit);   btnBulkResguardante.setManaged(canEdit); }
-        if (btnBulkMarcarEtiquetado != null) { btnBulkMarcarEtiquetado.setVisible(canEdit); btnBulkMarcarEtiquetado.setManaged(canEdit); }
-        if (btnComparar != null) { btnComparar.setVisible(n == 2); btnComparar.setManaged(n == 2); }
-        if (show == bulkBarVisible) return;
-        bulkBarVisible = show;
-        if (show) {
-            bulkBar.setOpacity(0);
-            bulkBar.setTranslateY(12);
-            bulkBar.setVisible(true);
-            bulkBar.setManaged(true);
-            var ft = new javafx.animation.FadeTransition(javafx.util.Duration.millis(180), bulkBar);
-            ft.setToValue(1);
-            var tt = new javafx.animation.TranslateTransition(javafx.util.Duration.millis(180), bulkBar);
-            tt.setToY(0);
-            new javafx.animation.ParallelTransition(ft, tt).play();
-        } else {
-            var ft = new javafx.animation.FadeTransition(javafx.util.Duration.millis(140), bulkBar);
-            ft.setToValue(0);
-            ft.setOnFinished(e -> { bulkBar.setVisible(false); bulkBar.setManaged(false); });
-            ft.play();
-        }
-    }
-
     @FXML
     private void onBulkCambiarArea() {
         List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
@@ -980,50 +914,7 @@ public class ProductosController {
     private void onImprimirQr() {
         Producto sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) return;
-
-        Image qrImg = QrUtils.generateQr(sel.getCodigo(), 300);
-        if (qrImg == null) { NotificacionUtil.error(table.getScene(), "No se pudo generar el QR"); return; }
-
-        ButtonType savePng = new ButtonType("Guardar PNG", ButtonBar.ButtonData.OK_DONE);
-        Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.setTitle("Código QR — " + sel.getNombre());
-        dlg.initOwner(table.getScene().getWindow());
-        dlg.getDialogPane().getButtonTypes().addAll(savePng, ButtonType.CLOSE);
-        dlg.getDialogPane().getStylesheets().addAll(table.getScene().getStylesheets());
-
-        javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(qrImg);
-        iv.setFitWidth(260); iv.setFitHeight(260); iv.setPreserveRatio(true);
-        Label lblCodigo = new Label(sel.getCodigo());
-        lblCodigo.getStyleClass().add("dlg-detail-value");
-        Label lblNombre = new Label(sel.getNombre());
-        lblNombre.getStyleClass().add("muted-sm");
-
-        VBox content = new VBox(8, iv, lblCodigo, lblNombre);
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(16));
-        dlg.getDialogPane().setContent(content);
-
-        Optional<ButtonType> result = dlg.showAndWait();
-        if (result.isPresent() && result.get() == savePng) {
-            FileChooser fc = new FileChooser();
-            fc.setTitle("Guardar código QR como imagen");
-            fc.setInitialFileName("QR_" + sel.getCodigo() + ".png");
-            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Imagen PNG (*.png)", "*.png"));
-            File dest = fc.showSaveDialog(table.getScene().getWindow());
-            if (dest != null) {
-                try {
-                    saveQrAsPng(qrImg, dest);
-                    DialogUtil.showExportResultDialog(table.getScene(), dest);
-                } catch (Exception e) {
-                    log.error("Error guardando QR para {}", sel.getCodigo(), e);
-                    NotificacionUtil.error(table.getScene(), "No se pudo guardar el QR");
-                }
-            }
-        }
-    }
-
-    private static void saveQrAsPng(Image img, File dest) throws java.io.IOException {
-        QrUtils.saveAsPng(img, dest);
+        ProductosExporter.showQrDialog(table.getScene(), sel, log);
     }
 
     @FXML

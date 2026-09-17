@@ -26,7 +26,7 @@
          The sidebar is layered ON TOP of the content row (via the outer
          StackPane) rather than laid out beside it as a plain HBox sibling.
          The active nav button gets translateX'd a few px to the right (see
-         MainController#animateActivePill) so it "invades" the content area —
+         SidebarManager#setActive) so it "invades" the content area —
          translateX doesn't affect layout, only paint position, so it needs
          the sidebar drawn above the content row to not get clipped by it.
          The base HBox below only exists to reserve the 220px of horizontal
@@ -223,10 +223,27 @@
             <tooltip><Tooltip text="Ver todos los atajos de teclado  ·  F2 = Tutorial"/></tooltip>
         </Label>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
+        <StackPane>
+            <Button fx:id="btnNotificaciones" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+                <graphic><FontIcon iconLiteral="mdi2b-bell-outline" styleClass="status-icon"/></graphic>
+                <tooltip><Tooltip text="Notificaciones — alertas de stock y préstamos vencidos"
+                                  wrapText="true" maxWidth="240"/></tooltip>
+            </Button>
+            <Label fx:id="notifBadge" text="0" styleClass="notif-bell-badge"
+                   visible="false" managed="false" mouseTransparent="true"
+                   StackPane.alignment="TOP_RIGHT"/>
+        </StackPane>
+        <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Button fx:id="btnDensity" onAction="#onToggleDensity" styleClass="density-btn"
                 text="Normal" graphicTextGap="5" contentDisplay="LEFT">
             <graphic><FontIcon iconLiteral="mdi2v-view-list" styleClass="status-icon"/></graphic>
             <tooltip><Tooltip text="Densidad de filas: Compacto → Normal → Cómodo"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL" styleClass="status-separator"/>
+        <Button fx:id="btnTextSize" onAction="#onToggleTextSize" styleClass="density-btn"
+                text="Normal" graphicTextGap="5" contentDisplay="LEFT">
+            <graphic><FontIcon iconLiteral="mdi2f-format-size" styleClass="status-icon"/></graphic>
+            <tooltip><Tooltip text="Tamaño de texto: Normal → Grande → Extra grande" wrapText="true" maxWidth="220"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusTimeLabel" text="00:00" styleClass="status-time"/>

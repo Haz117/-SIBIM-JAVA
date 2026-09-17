@@ -2,6 +2,7 @@ package com.sibim.service;
 
 import com.sibim.model.Resguardo;
 import com.sibim.model.ResguardoItem;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.ResguardoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,12 +23,13 @@ class ResguardoServiceTest {
 
     @Mock ResguardoRepository    mockRepo;
     @Mock ConfiguracionRepository mockCfg;
+    @Mock AuditLogRepository     mockAudit;
 
     private ResguardoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ResguardoService(mockRepo, mockCfg);
+        service = new ResguardoService(mockRepo, mockCfg, mockAudit);
     }
 
     // ── Validación: nombre del resguardante ───────────────────────────────────

@@ -8,9 +8,10 @@ import org.flywaydb.core.Flyway;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
+import com.sibim.util.DialogUtil;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.effect.DropShadow;
@@ -425,28 +426,25 @@ public class SplashController {
     }
 
     private void notifyFirstRun() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Primera ejecución — Credenciales iniciales");
-        alert.setHeaderText("Base de datos configurada correctamente");
-        alert.setContentText(
+        Dialog<ButtonType> dialog = DialogUtil.styledMessage(
+            "mdi2c-check-decagram", "Credenciales iniciales", "Base de datos configurada correctamente",
+            "#059669", "#047857",
             "El sistema creó un usuario administrador inicial.\n\n"
             + "Credenciales para el primer acceso:\n"
             + "  • Usuario:     superusuario\n"
             + "  • Contraseña:  admin123456\n\n"
             + "Al iniciar sesión el sistema te pedirá cambiar la contraseña. "
             + "Una vez adentro, crea los demás usuarios desde Configuración.");
-        alert.getButtonTypes().setAll(ButtonType.OK);
-        alert.getDialogPane().setPrefWidth(440);
-        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
-        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
-        alert.showAndWait();
+        dialog.setTitle("Primera ejecución — Credenciales iniciales");
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
+        DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, "#059669");
+        dialog.showAndWait();
     }
 
     private boolean confirmDemoMode() {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle("Sin conexión a la base de datos");
-        alert.setHeaderText("No se pudo conectar a la base de datos real");
-        alert.setContentText(
+        Dialog<ButtonType> dialog = DialogUtil.styledMessage(
+            "mdi2w-wifi-off", "Sin conexión a la base de datos", "No se pudo conectar a la base de datos real",
+            "#D97706", "#B45309",
             "El sistema va a iniciar en modo demo, con datos de práctica que NO se guardan. "
             + "Cualquier bien, movimiento o cambio que captures se perderá al cerrar la aplicación.\n\n"
             + "Esto normalmente indica un problema de conexión (base de datos apagada, credenciales "
@@ -454,11 +452,9 @@ public class SplashController {
             + "verifica la configuración antes de continuar.");
         ButtonType btnSalir     = new ButtonType("Salir", ButtonBar.ButtonData.CANCEL_CLOSE);
         ButtonType btnContinuar = new ButtonType("Continuar en modo demo", ButtonBar.ButtonData.OK_DONE);
-        alert.getButtonTypes().setAll(btnSalir, btnContinuar);
-        alert.getDialogPane().setPrefWidth(440);
-        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
-        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
-        Optional<ButtonType> result = alert.showAndWait();
+        dialog.getDialogPane().getButtonTypes().setAll(btnSalir, btnContinuar);
+        DialogUtil.styleButton(dialog.getDialogPane(), btnContinuar, "#D97706");
+        Optional<ButtonType> result = dialog.showAndWait();
         return result.isPresent() && result.get() == btnContinuar;
     }
 
@@ -505,40 +501,36 @@ public class SplashController {
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             boolean otherInstance = msg.contains("OTRA_INSTANCIA");
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            if (otherInstance) {
-                alert.setTitle("Sistema ya está ejecutándose");
-                alert.setHeaderText("Ya hay una instancia abierta");
-                alert.setContentText(
+            Dialog<ButtonType> dialog = otherInstance
+                ? DialogUtil.styledMessage("mdi2a-alert-circle-outline",
+                    "Sistema ya está ejecutándose", "Ya hay una instancia abierta",
+                    "#DC2626", "#991B1B",
                     "El sistema SIBIM ya está abierto en esta computadora. "
-                    + "Cierra esa ventana primero y vuelve a intentarlo.");
-            } else {
-                alert.setTitle("Error al abrir datos locales");
-                alert.setHeaderText("No se pudo acceder al almacén offline");
-                alert.setContentText(
+                    + "Cierra esa ventana primero y vuelve a intentarlo.")
+                : DialogUtil.styledMessage("mdi2a-alert-circle-outline",
+                    "Error al abrir datos locales", "No se pudo acceder al almacén offline",
+                    "#DC2626", "#991B1B",
                     "Ocurrió un error al abrir la base de datos local: " + msg
                     + "\n\nCierra todas las ventanas del sistema y vuelve a intentarlo.");
-            }
-            alert.getButtonTypes().setAll(ButtonType.OK);
-            if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
-            alert.showAndWait();
+            dialog.setTitle(otherInstance ? "Sistema ya está ejecutándose" : "Error al abrir datos locales");
+            dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
+            DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, "#DC2626");
+            dialog.showAndWait();
             Platform.exit();
             return false;
         }
     }
 
     private void notifyOfflineMode() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Sin conexión a la base de datos");
-        alert.setHeaderText("Trabajando sin conexión");
-        alert.setContentText(
+        Dialog<ButtonType> dialog = DialogUtil.styledMessage(
+            "mdi2c-cloud-off-outline", "Trabajando sin conexión", "Sin conexión a la base de datos",
+            "#2563EB", "#1D4ED8",
             "No se pudo conectar a la base de datos ahora mismo. El sistema va a funcionar en modo offline: "
             + "todo lo que captures se guarda en esta computadora, y se subirá automáticamente al servidor "
             + "en cuanto vuelva la conexión — no necesitas hacer nada.");
-        alert.getButtonTypes().setAll(ButtonType.OK);
-        alert.getDialogPane().setPrefWidth(440);
-        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
-        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
-        alert.showAndWait();
+        dialog.setTitle("Sin conexión a la base de datos");
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
+        DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, "#2563EB");
+        dialog.showAndWait();
     }
 }

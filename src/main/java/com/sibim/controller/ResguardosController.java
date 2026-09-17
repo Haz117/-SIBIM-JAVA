@@ -164,7 +164,24 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         areaCombo.setEditable(true); areaCombo.setMaxWidth(Double.MAX_VALUE);
         areaCombo.getStyleClass().add("form-input");
 
-        form.add(DialogUtil.fieldLabel("Resguardante *"), 0, row); form.add(fNombre,    1, row++);
+        Label lblNombreHint = new Label("Campo requerido");
+        lblNombreHint.getStyleClass().addAll("field-hint", "field-hint-error");
+        lblNombreHint.setVisible(false); lblNombreHint.setManaged(false);
+        fNombre.focusedProperty().addListener((obs, was, now) -> {
+            if (!now) {
+                boolean empty = fNombre.getText().isBlank();
+                lblNombreHint.setVisible(empty); lblNombreHint.setManaged(empty);
+                if (empty) fNombre.getStyleClass().add("field-error");
+            }
+        });
+        fNombre.textProperty().addListener((o, a, b) -> {
+            if (!b.isBlank()) {
+                fNombre.getStyleClass().remove("field-error");
+                lblNombreHint.setVisible(false); lblNombreHint.setManaged(false);
+            }
+        });
+
+        form.add(DialogUtil.fieldLabel("Resguardante *"), 0, row); form.add(new VBox(2, fNombre, lblNombreHint), 1, row++);
         form.add(DialogUtil.fieldLabel("Cargo"),          0, row); form.add(fCargo,     1, row++);
         form.add(DialogUtil.fieldLabel("Área / Dirección"), 0, row); form.add(areaCombo, 1, row++);
 
@@ -289,6 +306,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
             lblError.setVisible(false);
             if (fNombre.getText().isBlank()) {
+                fNombre.getStyleClass().add("field-error");
+                lblNombreHint.setVisible(true); lblNombreHint.setManaged(true);
+                fNombre.requestFocus();
                 lblError.setText("El nombre del resguardante es obligatorio"); lblError.setVisible(true);
                 AnimationUtils.shake(lblError); ev.consume(); return;
             }

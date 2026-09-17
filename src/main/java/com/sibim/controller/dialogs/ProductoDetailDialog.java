@@ -530,7 +530,7 @@ public final class ProductoDetailDialog {
                     lblFecha.getStyleClass().add(vencida ? "cell-badge-warn" : "muted-sm");
                     Button btnOk = new Button("✓");
                     btnOk.getStyleClass().add("btn-link");
-                    btnOk.setOnAction(ev -> { mantSvc.marcarCompletada(p.getId(), a.index()); rebuildHolder[0].run(); });
+                    btnOk.setOnAction(ev -> { mantSvc.marcarCompletada(a.id()); rebuildHolder[0].run(); });
                     javafx.scene.layout.Region sp2 = new javafx.scene.layout.Region();
                     HBox.setHgrow(sp2, Priority.ALWAYS);
                     HBox row = new HBox(8, lblDesc, sp2, lblFecha, btnOk);

@@ -6,6 +6,7 @@ import com.sibim.model.Producto;
 import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
@@ -55,8 +56,11 @@ public final class ConflictResolutionDialog {
 
         VBox content = new VBox(12);
         content.setPadding(new Insets(4, 0, 4, 0));
+        List<Node> cards = new java.util.ArrayList<>();
         for (ConflictoInfo c : conflictos) {
-            content.getChildren().add(buildCard(c, decisions));
+            VBox card = buildCard(c, decisions);
+            cards.add(card);
+            content.getChildren().add(card);
         }
 
         ScrollPane scroll = new ScrollPane(content);
@@ -67,6 +71,7 @@ public final class ConflictResolutionDialog {
         dialog.getDialogPane().setContent(scroll);
         dialog.getDialogPane().setPrefWidth(700);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
+        com.sibim.util.AnimationUtils.staggeredFadeInUp(cards, 220, 50);
 
         // Deliberately unconditional: apply the current selections regardless
         // of how the dialog closed (the button, Escape, or the window's own

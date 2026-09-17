@@ -28,19 +28,28 @@
         <padding><Insets top="18" right="22" bottom="18" left="22"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="10">
             <FontIcon iconLiteral="mdi2c-calendar-month" styleClass="card-icon-lg"/>
-            <Label text="Período del reporte" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label text="Período del reporte" styleClass="card-title"/>
+            <Label fx:id="helpPeriodo" text="?" styleClass="help-badge">
+                <tooltip><Tooltip text="Filtra por fecha de registro del bien. Aplica tanto a la gráfica de distribución como a los reportes de Inventario y Movimientos de abajo — Alertas, Bajas y Auditoría siempre incluyen todo el historial." wrapText="true" maxWidth="290"/></tooltip>
+            </Label>
+            <Region HBox.hgrow="ALWAYS"/>
             <Label text="Opcional — deja vacío para incluir todos los registros"
                    styleClass="report-hint"/>
         </HBox>
-        <HBox spacing="10" alignment="CENTER_LEFT">
-            <Label text="Desde:" styleClass="form-label"/>
-            <DatePicker fx:id="desdeField" prefWidth="145">
-                <tooltip><Tooltip text="Fecha de inicio del período"/></tooltip>
-            </DatePicker>
-            <Label text="Hasta:" styleClass="form-label"/>
-            <DatePicker fx:id="hastaField" prefWidth="145">
-                <tooltip><Tooltip text="Fecha de fin del período"/></tooltip>
-            </DatePicker>
+        <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT">
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="Desde:" styleClass="form-label"/>
+                <DatePicker fx:id="desdeField" prefWidth="145">
+                    <tooltip><Tooltip text="Fecha de inicio del período"/></tooltip>
+                </DatePicker>
+            </HBox>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <Label text="Hasta:" styleClass="form-label"/>
+                <DatePicker fx:id="hastaField" prefWidth="145">
+                    <tooltip><Tooltip text="Fecha de fin del período"/></tooltip>
+                </DatePicker>
+            </HBox>
+            <Separator orientation="VERTICAL"/>
             <Button fx:id="btnPresetHoy" text="Hoy"   onAction="#onReportHoy"    styleClass="btn-preset">
                 <tooltip><Tooltip text="Solo el día de hoy"/></tooltip>
             </Button>
@@ -56,7 +65,7 @@
             <Button fx:id="btnPresetTodo" text="Todo"  onAction="#onReportTodo"   styleClass="btn-preset">
                 <tooltip><Tooltip text="Sin restricción de fecha"/></tooltip>
             </Button>
-        </HBox>
+        </FlowPane>
     </VBox>
 
     <!-- ══ GRÁFICA BIENES POR ÁREA ══════════════════════════════════════ -->
@@ -65,10 +74,13 @@
         <HBox alignment="CENTER_LEFT" spacing="10">
             <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-lg"/>
             <Label text="Distribución de bienes por área" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label text="?" styleClass="help-badge">
+                <tooltip><Tooltip text="Muestra hasta las 20 áreas con más bienes asignados, de mayor a menor, dentro del período seleccionado arriba. Un área sin ningún bien asignado en ese período simplemente no aparece — no es que falte, es que no tiene nada que mostrar." wrapText="true" maxWidth="300"/></tooltip>
+            </Label>
             <ProgressIndicator fx:id="chartSpinner" prefWidth="18" prefHeight="18"
                                visible="false" managed="false"/>
         </HBox>
-        <BarChart fx:id="areaChart" prefHeight="220" animated="false"
+        <BarChart fx:id="areaChart" prefHeight="300" animated="false"
                   styleClass="area-bar-chart" legendVisible="false">
             <xAxis><CategoryAxis fx:id="chartXAxis" tickLabelRotation="-35"/></xAxis>
             <yAxis><NumberAxis fx:id="chartYAxis" label="Bienes" minorTickVisible="false"/></yAxis>
@@ -78,6 +90,31 @@
             <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
             <Label text="Sin bienes asignados a áreas" styleClass="empty-state-msg"/>
             <Label text="Los bienes con área asignada aparecerán aquí" styleClass="empty-state-hint"/>
+        </VBox>
+    </VBox>
+
+    <!-- ══ GRÁFICA VALOR POR CATEGORÍA ══════════════════════════════════ -->
+    <VBox styleClass="card" spacing="8">
+        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-lg"/>
+            <Label text="Valor patrimonial por categoría" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label text="?" styleClass="help-badge">
+                <tooltip><Tooltip text="Suma del valor de los bienes (precio × existencias) agrupados por categoría, dentro del período seleccionado arriba. Útil para ver en qué tipo de bienes está concentrado el patrimonio." wrapText="true" maxWidth="290"/></tooltip>
+            </Label>
+            <ProgressIndicator fx:id="categoriaChartSpinner" prefWidth="18" prefHeight="18"
+                               visible="false" managed="false"/>
+        </HBox>
+        <BarChart fx:id="categoriaChart" prefHeight="300" animated="false"
+                  styleClass="area-bar-chart" legendVisible="false">
+            <xAxis><CategoryAxis fx:id="categoriaChartXAxis" tickLabelRotation="-35"/></xAxis>
+            <yAxis><NumberAxis fx:id="categoriaChartYAxis" label="Valor ($)" minorTickVisible="false"/></yAxis>
+        </BarChart>
+        <VBox fx:id="categoriaChartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
+              visible="false" managed="false" styleClass="empty-state-pane">
+            <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
+            <Label text="Sin valor patrimonial en este período" styleClass="empty-state-msg"/>
+            <Label text="Los bienes con categoría y precio asignado aparecerán aquí" styleClass="empty-state-hint"/>
         </VBox>
     </VBox>
 

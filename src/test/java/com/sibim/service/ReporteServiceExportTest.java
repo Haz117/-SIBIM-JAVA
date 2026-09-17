@@ -1,10 +1,13 @@
 package com.sibim.service;
 
+import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +29,11 @@ import static org.mockito.Mockito.*;
  *
  * Now that ReporteService accepts repositories via constructor, tests inject mocks
  * directly instead of using MockedConstruction — no bytecode manipulation needed.
+ * The constructor still builds a real ConfiguracionRepository internally though, and
+ * orgName() (used in every PDF/Excel header) only catches SQLException — an
+ * unreachable Postgres fails earlier with an unchecked
+ * HikariPool$PoolInitializationException. Demo mode is enabled so orgName() reads
+ * from ConfiguracionRepository's in-memory demo values instead.
  *
  * List-based methods (exportInventarioExcel(List), exportMovimientosExcel(List),
  * exportFichaTecnica) never call the repos; mock repos are injected but unused.
@@ -40,6 +48,12 @@ class ReporteServiceExportTest {
 
     @Mock ProductoRepository   mockProductoRepo;
     @Mock MovimientoRepository mockMovimientoRepo;
+
+    @BeforeAll
+    static void enableDemoMode() { DatabaseConfig.setDemoMode(true); }
+
+    @AfterAll
+    static void disableDemoMode() { DatabaseConfig.setDemoMode(false); }
 
     private ReporteService service;
     private Producto activo;

@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,6 +85,9 @@ class ProductoServiceTest {
     }
 
     @Test void save_codigoBlanco_lanzaValidation() {
+        // El código solo se valida a mano al editar — al dar de alta un bien
+        // nuevo se asigna automáticamente por área (ver ProductoService#asignarCodigo).
+        productoValido.setId("p-01");
         productoValido.setCodigo("");
         assertThrows(ProductoService.ValidationException.class, () -> service.save(productoValido));
     }
@@ -120,7 +124,9 @@ class ProductoServiceTest {
     }
 
     @Test void save_codigoDuplicado_lanzaValidation() throws Exception {
-        when(mockProductoRepo.existsByCodigo("SL-001", null)).thenReturn(true);
+        // El código solo se valida a mano al editar (en alta se asigna automático).
+        productoValido.setId("p-01");
+        when(mockProductoRepo.existsByCodigo("SL-001", "p-01")).thenReturn(true);
         assertThrows(ProductoService.ValidationException.class, () -> service.save(productoValido));
     }
 
@@ -179,10 +185,14 @@ class ProductoServiceTest {
 
     // ── reactivar() ──────────────────────────────────────────────────────────
 
-    @Test void reactivar_exitosa_llamaReactivarEnRepo() throws Exception {
+    @Test void reactivar_exitosa_llamaReactivarConCodigoEnRepo() throws Exception {
+        // productoExistente() vive en "Secretaria General Municipal", un área
+        // con prefijo de nomenclatura — reactivar() debe reasignar código
+        // (ver AreaCodigos) en vez de solo limpiar la fecha de baja.
         when(mockProductoRepo.findById("p-01")).thenReturn(Optional.of(productoExistente()));
         service.reactivar("p-01");
-        verify(mockProductoRepo).reactivar("p-01");
+        verify(mockProductoRepo).reactivarConCodigo(eq("p-01"), any());
+        verify(mockProductoRepo, never()).reactivar("p-01");
     }
 
     @Test void reactivar_productoNoExiste_lanzaValidation() {

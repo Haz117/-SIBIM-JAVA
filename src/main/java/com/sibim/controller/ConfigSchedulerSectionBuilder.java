@@ -99,6 +99,8 @@ class ConfigSchedulerSectionBuilder {
                 configRepo.set("reportes_frecuencia", cbFrecuencia.getValue() != null ? cbFrecuencia.getValue() : "MENSUAL");
                 configRepo.set("reportes_carpeta",    tfCarpeta.getText().strip());
                 configRepo.set("reportes_tipos",      tiposStr.isBlank() ? "INVENTARIO" : tiposStr);
+                new com.sibim.repository.AuditLogRepository().log("configuracion", "scheduler", "Reportes programados",
+                    "actualizar", "Configuración de reportes programados actualizada");
                 return null;
             }, v -> NotificacionUtil.exito(scene, "Configuración de reportes guardada"),
                e -> NotificacionUtil.error(scene, "No se pudo guardar la configuración de reportes"));

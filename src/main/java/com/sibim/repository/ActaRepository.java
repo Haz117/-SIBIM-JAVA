@@ -64,6 +64,9 @@ public class ActaRepository {
             ps.executeUpdate();
         }
         acta.setCreadoEn(LocalDateTime.now());
+        new AuditLogRepository().log("acta", acta.getId(), acta.getNumero(), "crear",
+            "Acta de entrega-recepción " + acta.getNumero() + " · " + acta.getAdminSaliente()
+                + " → " + acta.getAdminEntrante() + " · " + acta.getTotalBienes() + " bienes");
         return acta;
     }
 

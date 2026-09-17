@@ -514,6 +514,25 @@ public class ProductoRepository {
         }
     }
 
+    /** Same as {@link #reactivar}, but also assigns {@code nuevoCodigo} in the
+     *  same statement — the bien's old código may since have been claimed by
+     *  another bien in its área while it was dado de baja (see AreaCodigos),
+     *  so doing both in one UPDATE avoids a moment where this row is active
+     *  with a código another active row already holds. Online-only, like the
+     *  rest of the área-nomenclature feature (see ProductoService#asignarCodigo). */
+    public void reactivarConCodigo(String id, String nuevoCodigo) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) { reactivar(id); return; }
+        String sql = "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, codigo = ?, updated_at = NOW() "
+            + "WHERE id = ? AND fecha_baja IS NOT NULL";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, nuevoCodigo);
+            ps.setString(2, id);
+            if (ps.executeUpdate() == 0)
+                throw new SQLException("El bien no existe o no estaba dado de baja (id=" + id + ")");
+        }
+    }
+
     public void delete(String id) throws SQLException {
         if (DatabaseConfig.isOfflineMode()) {
             // A hard delete isn't queueable in this version's offline scope
@@ -536,12 +555,15 @@ public class ProductoRepository {
         }
     }
 
+    /** Only counts active bienes — a bien dado de baja keeps its historical
+     *  codigo on record, but that value is free for a new/reactivated bien
+     *  to reuse (see V14, idx_products_codigo_activo). */
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) return local.existsByCodigo(codigo, excludeId);
         String sql = excludeId != null
-            ? "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ?"
-            : "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?)";
+            ? "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND id != ? AND fecha_baja IS NULL"
+            : "SELECT 1 FROM products WHERE LOWER(codigo) = LOWER(?) AND fecha_baja IS NULL";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, codigo);
@@ -667,6 +689,56 @@ public class ProductoRepository {
         return result;
     }
 
+    /** Same as {@link #getValorPorCategoria()} but restricted to bienes
+     *  registered within [{@code desde}, {@code hasta}] and capped at
+     *  {@code limit} entries — feeds the period-filterable chart in
+     *  Reportes, mirroring {@link #countByArea(int, LocalDate, LocalDate)}. */
+    public List<CategoriaValor> getValorPorCategoria(int limit, LocalDate desde, LocalDate hasta) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            var all = local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> !p.isDadoDeBaja())
+                .filter(p -> desde == null || (p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isBefore(desde)))
+                .filter(p -> hasta == null || (p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isAfter(hasta)))
+                .toList();
+            Map<String, BigDecimal> map = new LinkedHashMap<>();
+            for (Producto p : all) {
+                String cat = p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "Sin categoría";
+                map.merge(cat, p.getValorTotal(), BigDecimal::add);
+            }
+            return map.entrySet().stream()
+                .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) > 0)
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .limit(limit)
+                .map(e -> new CategoriaValor(e.getKey(), e.getValue()))
+                .toList();
+        }
+        StringBuilder sb = new StringBuilder("""
+            SELECT c.nombre, COALESCE(SUM(p.precio_venta * p.stock_actual), 0) AS valor
+            FROM products p
+            LEFT JOIN categories c ON c.id = p.categoria_id
+            WHERE p.fecha_baja IS NULL
+            """);
+        List<Object> params = new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.isEmpty()) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        if (desde != null) { sb.append(" AND p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { sb.append(" AND p.created_at <= ?"); params.add(java.sql.Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
+        sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_venta * p.stock_actual) > 0 ORDER BY valor DESC LIMIT ").append(limit);
+        List<CategoriaValor> result = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = buildStatement(conn, sb.toString(), params)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next())
+                    result.add(new CategoriaValor(rs.getString("nombre"), rs.getBigDecimal("valor")));
+            }
+        }
+        return result;
+    }
+
     /** COUNT(*) of active bienes visible to the current user — no full load. */
     public long countAll() throws SQLException {
         if (DatabaseConfig.isDemoMode()) {
@@ -699,10 +771,22 @@ public class ProductoRepository {
     /** Active bienes grouped by area — used for the Reportes area distribution chart.
      *  Returns a LinkedHashMap ordered descending by count (up to {@code limit} entries). */
     public LinkedHashMap<String, Long> countByArea(int limit) throws SQLException {
+        return countByArea(limit, null, null);
+    }
+
+    /** Same as {@link #countByArea(int)}, but restricted to bienes registered within
+     *  [{@code desde}, {@code hasta}] (either bound optional) — lets the Reportes
+     *  chart honor the same "Período del reporte" filter as the export cards below it,
+     *  instead of always showing the all-time distribution regardless of what period
+     *  is selected. */
+    public LinkedHashMap<String, Long> countByArea(int limit, LocalDate desde, LocalDate hasta) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             var all = local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
-                .filter(p -> !p.isDadoDeBaja()).toList();
+                .filter(p -> !p.isDadoDeBaja())
+                .filter(p -> desde == null || (p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isBefore(desde)))
+                .filter(p -> hasta == null || (p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isAfter(hasta)))
+                .toList();
             LinkedHashMap<String, Long> result = new LinkedHashMap<>();
             all.stream()
                 .collect(java.util.stream.Collectors.groupingBy(
@@ -723,6 +807,8 @@ public class ProductoRepository {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
+        if (desde != null) { sb.append(" AND p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { sb.append(" AND p.created_at <= ?"); params.add(java.sql.Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
         sb.append(" GROUP BY area_label ORDER BY cnt DESC LIMIT ").append(limit);
         LinkedHashMap<String, Long> result = new LinkedHashMap<>();
         try (Connection conn = DatabaseConfig.getConnection();

@@ -5,6 +5,7 @@ import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -36,6 +37,8 @@ class MainShortcutHelpDialog {
                 key.getStyleClass().add("shortcut-key");
                 Label desc = new Label(rows[i][1]);
                 desc.getStyleClass().add("shortcut-desc");
+                desc.setWrapText(true);
+                desc.setMaxWidth(320);
                 g.add(key, 0, i + 1);
                 g.add(desc, 1, i + 1);
             }
@@ -86,11 +89,22 @@ class MainShortcutHelpDialog {
             {"Ctrl+0",      "Auditoría del sistema  (solo administrador)"},
         });
 
-        VBox content = new VBox(0, header, navGrid, new Separator(),
+        VBox scrollable = new VBox(0, navGrid, new Separator(),
             accGrid, new Separator(), busqGrid,
             new Separator(), sysGrid);
+        ScrollPane scroll = new ScrollPane(scrollable);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("dialog-scroll");
+        // Cap total height to the screen so this never grows taller than the
+        // window it's opening over — with 4 sections + this many rows it
+        // easily could, especially at "Grande"/"Extra grande" text size.
+        double maxH = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() * 0.82;
+        scroll.setMaxHeight(maxH);
 
+        VBox content = new VBox(0, header, scroll);
         dlg.getDialogPane().setContent(content);
+        com.sibim.util.AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(header, navGrid, accGrid, busqGrid, sysGrid), 260, 60);
         dlg.showAndWait();
     }
 }

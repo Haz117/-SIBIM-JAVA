@@ -69,6 +69,9 @@ public class DepreciacionController {
     @FXML private Label helpValorActual;
     @FXML private Label helpPct;
     @FXML private Label helpTotalmente;
+    @FXML private VBox resumenBox;
+    @FXML private Button btnToggleResumen;
+    @FXML private Label helpResumen;
     @FXML private LineChart<String, Number> chartTendencia;
     @FXML private Label lblTotalFiltrado;
     @FXML private TextField searchField;
@@ -79,6 +82,7 @@ public class DepreciacionController {
     @FXML private Label lblPlaceholderMsg;
     @FXML private Label lblPlaceholderHint;
     @FXML private TableView<Producto> table;
+    @FXML private Button btnResetColumns;
     @FXML private TableColumn<Producto, String> colNombre;
     @FXML private TableColumn<Producto, String> colCategoria;
     @FXML private TableColumn<Producto, String> colArea;
@@ -105,6 +109,9 @@ public class DepreciacionController {
     private void initialize() {
         setupTable();
         setupFiltros();
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible("depreciacion.resumen.colapsado", btnToggleResumen, resumenBox,
+                "Mostrar resumen", "Ocultar resumen");
         loadData();
         AnimationUtils.staggeredFadeInUp(
             List.of(statCardCompra, statCardActual, statCardPct, statCardTotalmente), 300, 55);
@@ -114,6 +121,7 @@ public class DepreciacionController {
         if (helpValorActual  != null) DialogUtil.enableClickToShowTooltip(helpValorActual);
         if (helpPct          != null) DialogUtil.enableClickToShowTooltip(helpPct);
         if (helpTotalmente   != null) DialogUtil.enableClickToShowTooltip(helpTotalmente);
+        if (helpResumen      != null) DialogUtil.enableClickToShowTooltip(helpResumen);
     }
 
     private void setupFiltros() {
@@ -145,6 +153,7 @@ public class DepreciacionController {
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        com.sibim.util.DialogUtil.setupColumnReset(table, btnResetColumns, null);
         FontIcon emptyIcon = new FontIcon("mdi2c-chart-line");
         emptyIcon.setIconSize(44);
         emptyIcon.getStyleClass().add("empty-icon-lg");

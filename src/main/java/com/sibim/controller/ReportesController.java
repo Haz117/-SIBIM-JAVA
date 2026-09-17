@@ -37,11 +37,17 @@ public class ReportesController {
     @FXML private Button btnPresetAnio;
     @FXML private Button btnPresetTodo;
     @FXML private Label helpTiposReporte;
+    @FXML private Label helpPeriodo;
     @FXML private BarChart<String, Number> areaChart;
     @FXML private CategoryAxis  chartXAxis;
     @FXML private NumberAxis    chartYAxis;
     @FXML private ProgressIndicator chartSpinner;
     @FXML private VBox chartEmptyState;
+    @FXML private BarChart<String, Number> categoriaChart;
+    @FXML private CategoryAxis  categoriaChartXAxis;
+    @FXML private NumberAxis    categoriaChartYAxis;
+    @FXML private ProgressIndicator categoriaChartSpinner;
+    @FXML private VBox categoriaChartEmptyState;
 
     private static final java.util.prefs.Preferences STICKY =
         java.util.prefs.Preferences.userRoot().node("sibim/filters/reportes");
@@ -56,8 +62,8 @@ public class ReportesController {
         spinner.setManaged(false);
         desdeField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         hastaField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
-        desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
-        hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) clearPresetActive(); });
+        desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
+        hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
         switch (STICKY.get("preset", "mes")) {
             case "hoy"    -> onReportHoy();
             case "semana" -> onReportSemana();
@@ -66,6 +72,7 @@ public class ReportesController {
             default       -> onReportMes();
         }
         if (helpTiposReporte != null) DialogUtil.enableClickToShowTooltip(helpTiposReporte);
+        if (helpPeriodo      != null) DialogUtil.enableClickToShowTooltip(helpPeriodo);
 
         if (periodCard != null) {
             AnimationUtils.fadeInUp(periodCard, 300, 0);
@@ -81,7 +88,6 @@ public class ReportesController {
             });
         }
         if (reportGrid != null) AnimationUtils.staggeredFadeInUp(reportGrid.getChildren(), 300, 70);
-        loadAreaChart();
     }
 
     private void setPresetActive(Button active) {
@@ -105,6 +111,8 @@ public class ReportesController {
                    : source == btnPresetTodo   ? "todo"
                    : "mes";
         STICKY.put("preset", key);
+        loadAreaChart();
+        loadCategoriaChart();
     }
 
     @FXML private void onReportHoy() {
@@ -176,9 +184,10 @@ public class ReportesController {
     private void loadAreaChart() {
         if (areaChart == null) return;
         if (chartSpinner != null) { chartSpinner.setVisible(true); chartSpinner.setManaged(true); }
+        LocalDate desde = getDesde(), hasta = getHasta();
         AppExecutor.submit(() -> {
             try {
-                var counts = productoRepo.countByArea(12);
+                var counts = productoRepo.countByArea(20, desde, hasta);
                 XYChart.Series<String, Number> series = new XYChart.Series<>();
                 counts.forEach((area, cnt) -> series.getData().add(new XYChart.Data<>(area, cnt)));
                 Platform.runLater(() -> {
@@ -200,6 +209,38 @@ public class ReportesController {
                     if (chartEmptyState != null) { chartEmptyState.setVisible(true); chartEmptyState.setManaged(true); }
                     areaChart.setVisible(false);
                     areaChart.setManaged(false);
+                });
+            }
+        });
+    }
+
+    private void loadCategoriaChart() {
+        if (categoriaChart == null) return;
+        if (categoriaChartSpinner != null) { categoriaChartSpinner.setVisible(true); categoriaChartSpinner.setManaged(true); }
+        LocalDate desde = getDesde(), hasta = getHasta();
+        AppExecutor.submit(() -> {
+            try {
+                var valores = productoRepo.getValorPorCategoria(20, desde, hasta);
+                XYChart.Series<String, Number> series = new XYChart.Series<>();
+                valores.forEach(cv -> series.getData().add(new XYChart.Data<>(cv.nombre(), cv.valor())));
+                Platform.runLater(() -> {
+                    categoriaChart.getData().setAll(series);
+                    if (categoriaChartSpinner != null) { categoriaChartSpinner.setVisible(false); categoriaChartSpinner.setManaged(false); }
+                    boolean empty = series.getData().isEmpty();
+                    if (categoriaChartEmptyState != null) {
+                        categoriaChartEmptyState.setVisible(empty);
+                        categoriaChartEmptyState.setManaged(empty);
+                    }
+                    categoriaChart.setVisible(!empty);
+                    categoriaChart.setManaged(!empty);
+                    if (!empty) AnimationUtils.fadeInUp(categoriaChart, 350, 0);
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    if (categoriaChartSpinner != null) { categoriaChartSpinner.setVisible(false); categoriaChartSpinner.setManaged(false); }
+                    if (categoriaChartEmptyState != null) { categoriaChartEmptyState.setVisible(true); categoriaChartEmptyState.setManaged(true); }
+                    categoriaChart.setVisible(false);
+                    categoriaChart.setManaged(false);
                 });
             }
         });

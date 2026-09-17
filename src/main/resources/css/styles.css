@@ -335,7 +335,7 @@
 }
 
 /* Nav FontIcon colors */
-.nav-icon { -fx-icon-size: 16; -fx-icon-color: #94A3B8; }
+.nav-icon { -fx-icon-size: 16; -fx-icon-color: #64748B; }
 .nav-btn:hover .nav-icon { -fx-icon-color: #6366F1; }
 .nav-btn.nav-active .nav-icon { -fx-icon-color: #6366F1; }
 .logout-btn .nav-icon { -fx-icon-color: #DC2626; }
@@ -803,7 +803,7 @@
 .chart-vertical-grid-lines   { -fx-stroke: #E2E8F0; }
 .chart-horizontal-grid-lines { -fx-stroke: #E2E8F0; }
 .axis-label { -fx-text-fill: #64748B; -fx-font-size: 11px; }
-.axis       { -fx-tick-label-fill: #94A3B8; -fx-font-size: 11px; }
+.axis       { -fx-tick-label-fill: #64748B; -fx-font-size: 11px; }
 /* Line chart series */
 .default-color0.chart-series-line { -fx-stroke: #6366F1; -fx-stroke-width: 2.5px; }
 .default-color0.chart-line-symbol { -fx-background-color: #6366F1, white; -fx-background-radius: 5px; -fx-padding: 4px; }
@@ -1513,6 +1513,15 @@
 }
 .help-badge-inv:hover { -fx-background-color: rgba(255,255,255,0.4); }
 
+/* Collapse/expand chevron on an Alertas section header (colored gradient bar) */
+.alert-section-chevron {
+    -fx-icon-size: 18;
+    -fx-icon-color: white;
+    -fx-cursor: hand;
+    -fx-opacity: 0.85;
+}
+.alert-section-chevron:hover { -fx-opacity: 1; }
+
 /* Full-size photo viewer (DialogUtil.showPhotoViewer) */
 .photo-viewer-frame {
     -fx-background-color: #0F172A;
@@ -1716,6 +1725,28 @@
     -fx-translate-x: -10;
     -fx-translate-y: -8;
 }
+
+/* Notification bell badge — same red pill as alert-nav-badge but without its
+   translate offset (tuned for a wide sidebar nav row, not a small icon-only
+   status-bar button where the badge should just sit at its StackPane corner). */
+.notif-bell-badge {
+    -fx-background-color: #EF4444;
+    -fx-text-fill: white;
+    -fx-background-radius: 99;
+    -fx-font-size: 9.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1.5 5;
+    -fx-min-width: 16; -fx-min-height: 16;
+    -fx-max-width: 26;
+    -fx-alignment: CENTER;
+    -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.55), 6, 0, 0, 1);
+}
+
+.notif-center-menu .custom-menu-item { -fx-padding: 2 4; }
+.notif-item-text { -fx-font-size: 12.5px; -fx-text-fill: #1E293B; }
+.notif-item-icon-danger  { -fx-icon-color: #DC2626; -fx-icon-size: 16; }
+.notif-item-icon-warning { -fx-icon-color: #D97706; -fx-icon-size: 16; }
+.notif-item-icon-info    { -fx-icon-color: #2563EB; -fx-icon-size: 16; }
 
 /* ═══════════════════════════════════════════════════════════════════
    OFFLINE / DEMO BANNER  — barra superior cuando no hay BD real
@@ -2808,6 +2839,11 @@
     -fx-text-fill: rgba(255,255,255,0.75);
     -fx-font-size: 12px;
 }
+.dlg-message-body {
+    -fx-text-fill: -color-fg-default;
+    -fx-font-size: 13px;
+    -fx-line-spacing: 3px;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    TOAST NOTIFICATIONS (NotificacionUtil)
@@ -3812,8 +3848,8 @@
 /* Search history context menu */
 .search-history-menu { -fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 12, 0, 0, 4); }
 .search-history-menu .menu-item:hover { -fx-background-color: #F1F5F9; }
-.history-menu-header { -fx-font-size: 10.5px; -fx-text-fill: #94A3B8; -fx-font-weight: bold; }
-.history-icon { -fx-fill: #94A3B8; -fx-icon-size: 14; }
+.history-menu-header { -fx-font-size: 10.5px; -fx-text-fill: #64748B; -fx-font-weight: bold; }
+.history-icon { -fx-fill: #64748B; -fx-icon-size: 14; }
 
 /* Inline table cell editor — stockMín / stockMáx double-click edit */
 .inline-edit-field {
@@ -3861,18 +3897,30 @@
 .status-icon-red    { -fx-icon-color: #DC2626; -fx-icon-size: 16; }
 .status-icon-violet { -fx-icon-color: #7C3AED; -fx-icon-size: 16; }
 
-/* ProgressBar styling for status cards */
+/* ProgressBar styling for status cards.
+   AtlantaFX's own .bar rule reads "-fx-background-color: -color-progress-bar-fill"
+   (its own custom looked-up color, NOT the legacy -fx-accent) — recoloring an
+   instance means overriding that variable on the ProgressBar itself, since a
+   plain -fx-background-color rule on .track/.bar loses to AtlantaFX's rule
+   regardless of author-stylesheet order. */
 .status-pb { -fx-pref-height: 7; -fx-background-radius: 4; }
 .status-pb .track { -fx-background-radius: 4; -fx-background-insets: 0; }
 .status-pb .bar   { -fx-background-radius: 4; -fx-background-insets: 0; }
-.status-pb-green  .track { -fx-background-color: rgba(16,185,129,0.12); }
-.status-pb-green  .bar   { -fx-background-color: #10B981; }
-.status-pb-amber  .track { -fx-background-color: rgba(217,119,6,0.12); }
-.status-pb-amber  .bar   { -fx-background-color: #F59E0B; }
-.status-pb-red    .track { -fx-background-color: rgba(220,38,38,0.12); }
-.status-pb-red    .bar   { -fx-background-color: #EF4444; }
-.status-pb-violet .track { -fx-background-color: rgba(124,58,237,0.12); }
-.status-pb-violet .bar   { -fx-background-color: #8B5CF6; }
+.status-pb-green  { -color-progress-bar-fill: #10B981; -color-progress-bar-track: rgba(16,185,129,0.12); }
+.status-pb-amber  { -color-progress-bar-fill: #F59E0B; -color-progress-bar-track: rgba(217,119,6,0.12); }
+.status-pb-red    { -color-progress-bar-fill: #EF4444; -color-progress-bar-track: rgba(220,38,38,0.12); }
+.status-pb-violet { -color-progress-bar-fill: #8B5CF6; -color-progress-bar-track: rgba(124,58,237,0.12); }
+
+/* Belt-and-suspenders: #id selectors have the highest CSS specificity there
+   is, so these win outright no matter what AtlantaFX's own rules do. fx:id
+   in FXML sets the node's id automatically, so these match pbAgotados/
+   pbBajoStock/pbGarantias directly without needing any lookup-color chain. */
+#pbAgotados  > .bar { -fx-background-color: #EF4444; }
+#pbAgotados  > .track { -fx-background-color: rgba(220,38,38,0.12); }
+#pbBajoStock > .bar { -fx-background-color: #F59E0B; }
+#pbBajoStock > .track { -fx-background-color: rgba(217,119,6,0.12); }
+#pbGarantias > .bar { -fx-background-color: #8B5CF6; }
+#pbGarantias > .track { -fx-background-color: rgba(124,58,237,0.12); }
 
 /* ─── Area distribution bars ─── */
 .area-bar-name  { -fx-font-size: 12.5px; -fx-text-fill: #334155; }
@@ -3945,10 +3993,49 @@
 .density-btn:pressed { -fx-background-color: rgba(255,255,255,0.12); }
 .density-btn .status-icon { -fx-icon-size: 13; -fx-icon-color: #94A3B8; }
 .density-btn:hover .status-icon { -fx-icon-color: #C7D2FE; }
+/* Icon-only status-bar buttons (e.g. the notification bell) aren't
+   .density-btn, so the rule above never reached them — the icon fell back
+   to AtlantaFX's default dark fill and all but disappeared against the
+   status bar's dark navy background. */
+.status-bar .btn-icon-only .status-icon { -fx-icon-size: 15; -fx-icon-color: #94A3B8; }
+.status-bar .btn-icon-only:hover .status-icon { -fx-icon-color: #C7D2FE; }
 
 /* Compact: 32px rows / Comfortable: 58px rows (Normal default is 44px) */
 .density-compact .data-table .table-row-cell  { -fx-cell-size: 32px; }
 .density-comfortable .data-table .table-row-cell { -fx-cell-size: 58px; }
+
+/* ─── Text size (accessibility) ───────────────────────────────────────────
+   Applied to the main content area (all screens) and to every dialog pane
+   (see DialogUtil.applyStylesheet) — a curated set of the highest-traffic
+   text selectors, not exhaustive: anything not listed here keeps its
+   default size instead of breaking, so this degrades gracefully. */
+.text-scale-lg .data-table .table-cell     { -fx-font-size: 15px; }
+.text-scale-lg .page-title                 { -fx-font-size: 24px; }
+.text-scale-lg .page-subtitle              { -fx-font-size: 14.5px; }
+.text-scale-lg .form-label                 { -fx-font-size: 14.5px; }
+.text-scale-lg .field-hint                 { -fx-font-size: 13px; }
+.text-scale-lg .dash-section-label         { -fx-font-size: 12px; }
+.text-scale-lg .rich-stat-label            { -fx-font-size: 12px; }
+.text-scale-lg .rich-stat-value            { -fx-font-size: 34px; }
+.text-scale-lg .rich-stat-hint             { -fx-font-size: 13px; }
+.text-scale-lg .dlg-header-title           { -fx-font-size: 18px; }
+.text-scale-lg .dlg-header-subtitle        { -fx-font-size: 13.5px; }
+.text-scale-lg .dlg-message-body           { -fx-font-size: 15px; }
+.text-scale-lg .muted-sm                   { -fx-font-size: 13px; }
+
+.text-scale-xl .data-table .table-cell     { -fx-font-size: 17px; }
+.text-scale-xl .page-title                 { -fx-font-size: 27px; }
+.text-scale-xl .page-subtitle              { -fx-font-size: 16px; }
+.text-scale-xl .form-label                 { -fx-font-size: 16px; }
+.text-scale-xl .field-hint                 { -fx-font-size: 14px; }
+.text-scale-xl .dash-section-label         { -fx-font-size: 13.5px; }
+.text-scale-xl .rich-stat-label            { -fx-font-size: 13.5px; }
+.text-scale-xl .rich-stat-value            { -fx-font-size: 39px; }
+.text-scale-xl .rich-stat-hint             { -fx-font-size: 14px; }
+.text-scale-xl .dlg-header-title           { -fx-font-size: 20px; }
+.text-scale-xl .dlg-header-subtitle        { -fx-font-size: 15px; }
+.text-scale-xl .dlg-message-body           { -fx-font-size: 17px; }
+.text-scale-xl .muted-sm                   { -fx-font-size: 14px; }
 
 /* ─── Dashboard trend indicator ─── */
 .trend-lbl {
@@ -4090,11 +4177,12 @@
 .kanban-col-amber  { -fx-border-color: #D97706; -fx-border-width: 0 0 0 4; }
 .kanban-col-indigo { -fx-border-color: #4F46E5; -fx-border-width: 0 0 0 4; }
 .kanban-col-title  { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #475569; }
-.kanban-col-count  { -fx-font-size: 11px; -fx-text-fill: #94A3B8; -fx-font-weight: bold; }
-.kanban-col-icon   { -fx-icon-size: 14; -fx-icon-color: #94A3B8; }
+.kanban-col-count  { -fx-font-size: 11px; -fx-text-fill: #64748B; -fx-font-weight: bold; }
+.kanban-col-icon   { -fx-icon-size: 14; -fx-icon-color: #64748B; }
 .kanban-col-scroll { -fx-background-color: transparent; -fx-border-color: transparent; }
 .kanban-col-scroll > .viewport { -fx-background-color: transparent; }
-.kanban-empty { -fx-font-size: 11px; -fx-text-fill: #CBD5E1; -fx-padding: 8 0; }
+.kanban-empty { -fx-font-size: 12px; -fx-text-fill: #94A3B8; -fx-padding: 8 0; }
+.kanban-empty-icon { -fx-icon-color: #94A3B8; -fx-opacity: 0.55; }
 .kanban-card {
     -fx-background-color: white;
     -fx-background-radius: 7;

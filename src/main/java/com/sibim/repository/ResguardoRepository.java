@@ -15,19 +15,40 @@ import java.util.UUID;
 
 public class ResguardoRepository {
 
+    /** Resguardos belong to one área (resguardanteArea), unlike Préstamos
+     *  which cross two — mirrors ProductoRepository's single-column area
+     *  scoping. Returns null for admin (no restriction). */
+    private static String scopeCondicion(List<Object> params) {
+        java.util.Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible == null) return null;
+        params.add(accessible.toArray(new String[0]));
+        return "r.resguardante_area = ANY(?)";
+    }
+
+    private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            Object p = params.get(i);
+            if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
+            else ps.setObject(i + 1, p);
+        }
+    }
+
     public List<Resguardo> findAll() throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
         List<Resguardo> list = new ArrayList<>();
-        String sql = """
-            SELECT r.*,
-                   (SELECT COUNT(*) FROM resguardo_items i WHERE i.resguardo_id = r.id) AS total_items
-            FROM resguardos r
-            ORDER BY r.created_at DESC
-            """;
+        List<Object> params = new ArrayList<>();
+        String scope = scopeCondicion(params);
+        String sql = "SELECT r.*, "
+            + "(SELECT COUNT(*) FROM resguardo_items i WHERE i.resguardo_id = r.id) AS total_items "
+            + "FROM resguardos r"
+            + (scope != null ? " WHERE " + scope : "")
+            + " ORDER BY r.created_at DESC";
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) list.add(mapRow(rs));
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
         }
         return list;
     }

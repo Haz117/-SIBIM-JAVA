@@ -23,9 +23,18 @@
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
         </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Button fx:id="btnNueva" text="＋ Nueva Acta" onAction="#onNuevaActa" styleClass="btn-primary"/>
     </HBox>
 
+    <VBox fx:id="resumenBox" spacing="12">
     <!-- ══ STAT CARDS ══════════════════════════════════════════════ -->
     <HBox spacing="12">
         <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-indigo"
@@ -53,6 +62,7 @@
             <Label text="completo al momento de la generación" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
+    </VBox>
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">

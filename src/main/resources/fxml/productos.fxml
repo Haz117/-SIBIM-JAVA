@@ -40,6 +40,14 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar lista (F5)"/></tooltip>
         </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Button fx:id="btnNuevoBien" text="Nuevo Bien" onAction="#onNuevoBien" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
@@ -47,6 +55,7 @@
         </Button>
     </HBox>
 
+    <VBox fx:id="resumenBox" spacing="9">
     <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
@@ -120,6 +129,7 @@
             <Label text="bienes sin etiqueta física" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
+    </VBox>
 
     <!-- ══ BUSCAR Y FILTRAR ════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
@@ -154,16 +164,21 @@
         <DatePicker fx:id="desdeRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
         <Label text="hasta:" styleClass="form-label"/>
         <DatePicker fx:id="hastaRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
-        <Button text="✕" onAction="#onLimpiarFechaReg" styleClass="btn-secondary"
+        <Button onAction="#onLimpiarFechaReg" styleClass="btn-secondary"
                 prefWidth="28" prefHeight="28">
+            <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Limpiar filtro de fechas de registro"/></tooltip>
         </Button>
+        <Label fx:id="helpFechaReg" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Filtra por la fecha en que el bien fue registrado en el sistema (no la fecha de compra). Deja un campo vacío para no acotar ese extremo del rango." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Separator orientation="VERTICAL"/>
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
         <Label fx:id="helpChips" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Filtra por estado de stock:&#10;• Activo — stock por encima del mínimo configurado&#10;• Bajo Stock — existencias por debajo del mínimo&#10;• Agotado — sin existencias (stock = 0)&#10;• Vencido — fecha de vencimiento superada&#10;&#10;Se combina con el resto de filtros activos." wrapText="true" maxWidth="280"/></tooltip>
         </Label>
+        <Separator orientation="VERTICAL"/>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
                 styleClass="btn-secondary" visible="false" managed="false"
                 contentDisplay="LEFT" graphicTextGap="8">
@@ -175,19 +190,6 @@
                 contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2b-bookmark-plus-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Guardar la combinación de filtros actual como acceso rápido"/></tooltip>
-        </Button>
-        <Separator orientation="VERTICAL"/>
-        <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
-            <tooltip><Tooltip text="Exportar inventario filtrado a CSV"/></tooltip>
-        </Button>
-        <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
-            <tooltip><Tooltip text="Exportar inventario filtrado a Excel (.xlsx)"/></tooltip>
-        </Button>
-        <Separator orientation="VERTICAL"/>
-        <Button text="Importar CSV" onAction="#onImportarCsv" styleClass="btn-import"
-                contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Importar bienes en lote desde un archivo CSV — descarga la plantilla desde el mismo diálogo" wrapText="true" maxWidth="250"/></tooltip>
         </Button>
     </FlowPane>
 
@@ -214,12 +216,25 @@
         <Label fx:id="helpColumnas" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="▸ Columnas: usa el botón ⋮ (arriba a la derecha de la tabla) o clic derecho en el encabezado para mostrar u ocultar columnas. Elige 'Restaurar columnas predeterminadas' para verlas todas de nuevo.&#10;&#10;▸ Stock Mín./Máx.: doble clic en la celda para editar el umbral directamente — se guarda solo al salir o presionar Enter." wrapText="true" maxWidth="310"/></tooltip>
         </Label>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
+            <tooltip><Tooltip text="Exportar inventario filtrado a CSV"/></tooltip>
+        </Button>
+        <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
+            <tooltip><Tooltip text="Exportar inventario filtrado a Excel (.xlsx)"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button text="Importar CSV" onAction="#onImportarCsv" styleClass="btn-import"
+                contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Importar bienes en lote desde un archivo CSV — descarga la plantilla desde el mismo diálogo" wrapText="true" maxWidth="250"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
-            <TableColumn fx:id="colFoto"      text=""                prefWidth="54"  minWidth="54" maxWidth="54"  sortable="false" resizable="false"/>
+            <TableColumn fx:id="colFoto"      text="Foto"             prefWidth="54"  minWidth="54" maxWidth="54"  sortable="false" resizable="false"/>
             <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="215" sortable="true"/>
             <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="105" sortable="true"/>
             <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="135" sortable="true"/>

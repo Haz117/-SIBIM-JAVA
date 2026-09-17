@@ -65,10 +65,17 @@ public class UsuarioRepository {
         requireAdmin();
         boolean isNew = u.getId() == null;
         if (isNew) u.setId(UUID.randomUUID().toString());
+        // A role or área reassignment is a privilege change, not a routine
+        // edit — logging it under the same generic "Datos del usuario
+        // actualizados" as a cargo/nombre tweak means a promotion to ADMIN
+        // leaves no trace distinguishable from trivial edits anywhere in the
+        // audit log. Diff against the pre-update row so that specific change
+        // is called out by name.
+        Usuario before = isNew ? null : findById(u.getId()).orElse(null);
         if (DatabaseConfig.isDemoMode()) {
             if (u.getCreadoEn() == null) u.setCreadoEn(java.time.LocalDateTime.now());
             DemoDataStore.saveUsuario(u);
-            logUsuario(u, isNew ? "crear" : "actualizar", isNew ? "Usuario registrado" : "Datos del usuario actualizados");
+            logUsuario(u, isNew ? "crear" : "actualizar", isNew ? "Usuario registrado" : updateDetalle(before, u));
             return u;
         }
         String sql = """
@@ -100,8 +107,27 @@ public class UsuarioRepository {
                 : Timestamp.valueOf(LocalDateTime.now()));
             ps.executeUpdate();
         }
-        logUsuario(u, isNew ? "crear" : "actualizar", isNew ? "Usuario registrado" : "Datos del usuario actualizados");
+        logUsuario(u, isNew ? "crear" : "actualizar", isNew ? "Usuario registrado" : updateDetalle(before, u));
         return u;
+    }
+
+    /** Builds the audit "detalle" for a user update — calls out a role or área
+     *  change specifically (privilege-relevant), falling back to a generic
+     *  message when neither changed. */
+    private String updateDetalle(Usuario before, Usuario after) {
+        if (before == null) return "Datos del usuario actualizados";
+        StringBuilder sb = new StringBuilder();
+        if (before.getRol() != after.getRol()) {
+            sb.append("Rol cambiado de ").append(before.getRol().getCodigo())
+              .append(" a ").append(after.getRol().getCodigo());
+        }
+        boolean areaChanged = !java.util.Objects.equals(before.getArea(), after.getArea());
+        if (areaChanged) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append("Área cambiada de ").append(before.getArea() != null ? before.getArea() : "—")
+              .append(" a ").append(after.getArea() != null ? after.getArea() : "—");
+        }
+        return sb.length() > 0 ? sb.toString() : "Datos del usuario actualizados";
     }
 
     /**

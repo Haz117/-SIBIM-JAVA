@@ -16,6 +16,7 @@ import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.PrestamoRepository;
 import com.sibim.repository.ProductoRepository;
@@ -33,12 +34,14 @@ public class PrestamoService {
     private final PrestamoRepository repo;
     private final ProductoRepository productoRepo;
     private final ConfiguracionRepository cfgRepo;
+    private final AuditLogRepository auditRepo;
 
-    public PrestamoService() { this(new PrestamoRepository(), new ProductoRepository(), new ConfiguracionRepository()); }
-    PrestamoService(PrestamoRepository repo, ProductoRepository productoRepo, ConfiguracionRepository cfgRepo) {
+    public PrestamoService() { this(new PrestamoRepository(), new ProductoRepository(), new ConfiguracionRepository(), new AuditLogRepository()); }
+    PrestamoService(PrestamoRepository repo, ProductoRepository productoRepo, ConfiguracionRepository cfgRepo, AuditLogRepository auditRepo) {
         this.repo = repo;
         this.productoRepo = productoRepo;
         this.cfgRepo = cfgRepo;
+        this.auditRepo = auditRepo;
     }
 
     private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(22, 101, 52);   // green-800
@@ -89,12 +92,21 @@ public class PrestamoService {
         p.setMotivo(motivo != null ? motivo.trim() : null);
         p.setFechaPrestamo(LocalDate.now());
         p.setFechaDevolucionPrevista(fechaDevolucionPrevista);
-        return repo.save(p);
+        Prestamo saved = repo.save(p);
+        auditRepo.log("prestamo", saved.getId(), saved.getProductoNombre(), "crear",
+            "Préstamo " + saved.getNumero() + " · " + saved.getResponsableNombre()
+                + " (" + saved.getAreaOrigen() + " → " + saved.getAreaDestino() + ")"
+                + " · Dev. prevista: " + fechaDevolucionPrevista.format(FMT));
+        return saved;
     }
 
     public void devolver(String prestamoId, LocalDate fechaDevolucionReal) throws SQLException {
         if (fechaDevolucionReal == null) fechaDevolucionReal = LocalDate.now();
+        Prestamo p = repo.findById(prestamoId);
         repo.devolver(prestamoId, fechaDevolucionReal);
+        if (p != null)
+            auditRepo.log("prestamo", prestamoId, p.getProductoNombre(), "devolver",
+                "Préstamo " + p.getNumero() + " devuelto por " + p.getResponsableNombre());
     }
 
     public File exportarPdf(Prestamo prestamo) throws Exception {

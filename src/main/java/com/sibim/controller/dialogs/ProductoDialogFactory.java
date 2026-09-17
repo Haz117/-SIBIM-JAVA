@@ -71,8 +71,17 @@ public final class ProductoDialogFactory {
         fNombre.setPromptText("Nombre descriptivo del bien");
         fNombre.getStyleClass().add("form-input");
         TextField fCodigo = new TextField(existing != null ? existing.getCodigo() : "");
-        fCodigo.setPromptText("Código único de inventario");
         fCodigo.getStyleClass().add("form-input");
+        if (isNewProduct) {
+            // El código se asigna por área al guardar (ver AreaCodigos /
+            // ProductoService#asignarCodigo) — no se captura a mano para un
+            // bien nuevo. Al editar uno existente sigue siendo editable para
+            // poder corregir datos heredados que no siguen este formato.
+            fCodigo.setDisable(true);
+            fCodigo.setPromptText("Se asignará automáticamente según el área");
+        } else {
+            fCodigo.setPromptText("Código único de inventario");
+        }
 
         // Inline código uniqueness check — debounced 280ms
         ProductoRepository codigoRepo = new ProductoRepository();
@@ -312,10 +321,15 @@ public final class ProductoDialogFactory {
             if (files != null) {
                 for (File file : files) {
                     if (ImageUtils.exceedsMaxSize(file)) {
-                        Alert tooBig = new Alert(Alert.AlertType.WARNING,
-                            "La imagen '" + file.getName() + "' pesa " + (file.length() / (1024 * 1024)) + " MB — máximo " + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.");
-                        tooBig.setHeaderText("Imagen demasiado pesada");
-                        tooBig.initOwner(dialog.getOwner());
+                        Dialog<ButtonType> tooBig = DialogUtil.styledMessage(
+                            "mdi2a-alert-circle-outline", "Imagen demasiado pesada",
+                            "Elige un archivo más pequeño",
+                            "#D97706", "#B45309",
+                            "La imagen '" + file.getName() + "' pesa " + (file.length() / (1024 * 1024))
+                            + " MB — máximo " + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.",
+                            dialog.getOwner());
+                        tooBig.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
+                        DialogUtil.styleButton(tooBig.getDialogPane(), ButtonType.OK, "#D97706");
                         tooBig.showAndWait();
                         continue;
                     }
@@ -384,11 +398,15 @@ public final class ProductoDialogFactory {
             File file = chooser.showOpenDialog(dialog.getOwner());
             if (file != null) {
                 if (ImageUtils.exceedsMaxSize(file)) {
-                    Alert tooBig = new Alert(Alert.AlertType.WARNING,
+                    Dialog<ButtonType> tooBig = DialogUtil.styledMessage(
+                        "mdi2a-alert-circle-outline", "Imagen demasiado pesada",
+                        "Elige un archivo más pequeño",
+                        "#D97706", "#B45309",
                         "La imagen pesa " + (file.length() / (1024 * 1024)) + " MB — el máximo permitido es "
-                        + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB. Elige un archivo más pequeño.");
-                    tooBig.setHeaderText("Imagen demasiado pesada");
-                    tooBig.initOwner(dialog.getOwner());
+                        + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.",
+                        dialog.getOwner());
+                    tooBig.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
+                    DialogUtil.styleButton(tooBig.getDialogPane(), ButtonType.OK, "#D97706");
                     tooBig.showAndWait();
                     return;
                 }
@@ -644,8 +662,9 @@ public final class ProductoDialogFactory {
 
         if (okBtn != null) {
             Runnable checkOk = () -> {
-                boolean codigoError = lblCodigoHint.getStyleClass().contains("field-hint-error");
-                boolean invalid = fNombre.getText().isBlank() || fCodigo.getText().isBlank()
+                boolean codigoError = !isNewProduct && lblCodigoHint.getStyleClass().contains("field-hint-error");
+                boolean codigoBlank = !isNewProduct && fCodigo.getText().isBlank();
+                boolean invalid = fNombre.getText().isBlank() || codigoBlank
                     || fArea.getValue() == null || fArea.getValue().isBlank()
                     || fCat.getValue() == null || codigoError;
                 okBtn.setDisable(invalid);

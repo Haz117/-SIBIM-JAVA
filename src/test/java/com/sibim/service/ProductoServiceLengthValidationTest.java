@@ -54,7 +54,10 @@ class ProductoServiceLengthValidationTest {
 
     @Test
     void save_codigo51Chars_throwsValidation() {
+        // El código solo se valida a mano al editar — en alta se asigna
+        // automático por área (ver ProductoService#asignarCodigo).
         Producto p = validProducto();
+        p.setId("p-existing-len51");
         p.setCodigo("X".repeat(51));
         var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
         assertTrue(ex.getMessage().contains("codigo") || ex.getMessage().contains("código")
@@ -64,6 +67,7 @@ class ProductoServiceLengthValidationTest {
     @Test
     void save_codigo50Chars_valido() {
         Producto p = validProducto();
+        p.setId("p-existing-len50");
         p.setCodigo("X".repeat(50));
         assertDoesNotThrow(() -> service.save(p));
     }

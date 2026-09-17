@@ -100,4 +100,33 @@ class DatabaseConfigSslTest {
         assertTrue(ex.getMessage().contains("prod.example.com"));
         assertTrue(ex.getMessage().contains("prefer"));
     }
+
+    // ── enforcePasswordPolicy ─────────────────────────────────────────────────
+
+    @Test void local_blankPassword_neverBlocked() {
+        assertDoesNotThrow(() ->
+            DatabaseConfig.enforcePasswordPolicy("jdbc:postgresql://localhost/db", false, true, false));
+    }
+
+    @Test void remote_nonBlankPassword_passes() {
+        assertDoesNotThrow(() ->
+            DatabaseConfig.enforcePasswordPolicy("jdbc:postgresql://remote/db", true, false, false));
+    }
+
+    @Test void remote_blankPassword_noBypass_throws() {
+        assertThrows(IllegalStateException.class, () ->
+            DatabaseConfig.enforcePasswordPolicy("jdbc:postgresql://remote/db", true, true, false));
+    }
+
+    @Test void remote_blankPassword_withBypass_doesNotThrow() {
+        assertDoesNotThrow(() ->
+            DatabaseConfig.enforcePasswordPolicy("jdbc:postgresql://remote/db", true, true, true));
+    }
+
+    @Test void passwordErrorMessage_containsUrl() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+            DatabaseConfig.enforcePasswordPolicy("jdbc:postgresql://prod.example.com/db", true, true, false));
+        assertTrue(ex.getMessage().contains("prod.example.com"));
+        assertTrue(ex.getMessage().contains("DB_PASSWORD"));
+    }
 }

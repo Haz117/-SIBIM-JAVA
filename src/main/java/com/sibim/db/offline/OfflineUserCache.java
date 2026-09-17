@@ -27,8 +27,13 @@ import java.util.Optional;
 public final class OfflineUserCache {
 
     /** Credentials cached for longer than this many days are rejected —
-     *  the user must re-authenticate online to refresh the local copy. */
-    public static final int OFFLINE_CACHE_TTL_DAYS = OfflineStore.OFFLINE_CACHE_TTL_DAYS;
+     *  the user must re-authenticate online to refresh the local copy.
+     *  This is the one canonical definition — OfflineStore re-exports it
+     *  from here; it must not also read from OfflineStore, or the two
+     *  fields become a circular reference that resolves to 0 (whichever
+     *  class the JVM initializes second reads the other's not-yet-assigned
+     *  default), making every cache entry look instantly expired. */
+    public static final int OFFLINE_CACHE_TTL_DAYS = 30;
 
     private OfflineUserCache() {}
 

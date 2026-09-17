@@ -15,7 +15,6 @@ import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
-import com.sibim.util.FormatUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
@@ -23,7 +22,6 @@ import com.sibim.util.SearchUtils;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -31,15 +29,12 @@ import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.util.Duration;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,11 +48,14 @@ public class MovimientosController {
     @FXML private VBox rootPane;
     @FXML private javafx.scene.layout.FlowPane filterBar;
     @FXML private Button btnToggleFiltros;
+    @FXML private VBox resumenBox;
+    @FXML private Button btnToggleResumen;
     @FXML private TextField searchField;
     @FXML private HBox tipoChipsBar;
     @FXML private DatePicker desdeFilter;
     @FXML private DatePicker hastaFilter;
     @FXML private TableView<Movimiento> table;
+    @FXML private Button btnResetColumns;
     @FXML private TableColumn<Movimiento, String> colProducto;
     @FXML private TableColumn<Movimiento, String> colTipo;
     @FXML private TableColumn<Movimiento, Integer> colCantidad;
@@ -90,6 +88,9 @@ public class MovimientosController {
     @FXML private Button btnClearSearch;
     @FXML private Button btnPendientes;
     @FXML private Label helpAjustes;
+    @FXML private Label helpResumen;
+    @FXML private Label helpTipoChips;
+    @FXML private Label helpFechaMov;
     @FXML private Label helpTotalMov;
     @FXML private Label helpEntradas;
     @FXML private Label helpSalidas;
@@ -119,6 +120,9 @@ public class MovimientosController {
     public void initialize() {
         if (btnToggleFiltros != null && filterBar != null)
             DialogUtil.makeCollapsible("movimientos.filtros.colapsado", btnToggleFiltros, filterBar);
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible("movimientos.resumen.colapsado", btnToggleResumen, resumenBox,
+                "Mostrar resumen", "Ocultar resumen");
         setupTable();
         setupFilters();
         setupTipoChips();
@@ -127,6 +131,9 @@ public class MovimientosController {
         if (helpTotalMov  != null) DialogUtil.enableClickToShowTooltip(helpTotalMov);
         if (helpEntradas  != null) DialogUtil.enableClickToShowTooltip(helpEntradas);
         if (helpSalidas   != null) DialogUtil.enableClickToShowTooltip(helpSalidas);
+        if (helpResumen   != null) DialogUtil.enableClickToShowTooltip(helpResumen);
+        if (helpTipoChips != null) DialogUtil.enableClickToShowTooltip(helpTipoChips);
+        if (helpFechaMov  != null) DialogUtil.enableClickToShowTooltip(helpFechaMov);
 
         boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
         btnNuevo.setVisible(canCreate);
@@ -193,24 +200,9 @@ public class MovimientosController {
                 MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(), table.getScene(), movimientoService, this::loadData);
         });
 
-        // Context menu
-        ContextMenu cm = new ContextMenu();
-        MenuItem cmDetalle = new MenuItem("Ver detalle");
-        cmDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
-        cmDetalle.setOnAction(e -> {
-            Movimiento sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) MovimientoDetailDialog.show(sel, table.getScene(), movimientoService, this::loadData);
-        });
-        cm.getItems().add(cmDetalle);
         boolean canDelete = SessionManager.isAdmin() || SessionManager.isSecretario();
-        if (canDelete) {
-            cm.getItems().add(new SeparatorMenuItem());
-            MenuItem cmEliminar = new MenuItem("Eliminar");
-            cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
-            cmEliminar.setOnAction(e -> onDelete());
-            cm.getItems().add(cmEliminar);
-        }
-        table.setContextMenu(cm);
+        table.setContextMenu(MovimientosContextMenu.build(
+            table, canDelete, movimientoService, this::onDelete, this::loadData));
 
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
@@ -255,106 +247,15 @@ public class MovimientosController {
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        colProducto.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getProductoNombre() != null ? c.getValue().getProductoNombre() : ""));
-        colProducto.setCellFactory(DialogUtil.highlightCellFactory(
-            () -> searchField != null ? searchField.getText() : ""));
-        colTipo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTipo().getEtiqueta()));
-        colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
-        colStock.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getStockAnterior() + " → " + c.getValue().getStockNuevo()));
-        colStock.setCellFactory(col -> new TableCell<>() {
-            private final Label lblAntes   = new Label();
-            private final Label lblArrow   = new Label();
-            private final Label lblDespues = new Label();
-            private final HBox  box        = new HBox(4, lblAntes, lblArrow, lblDespues);
-            {
-                lblAntes.getStyleClass().add("stock-before");
-                box.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-            }
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(null); setText(null);
-                if (empty || item == null || getTableRow() == null) return;
-                Movimiento m = getTableRow().getItem();
-                if (m == null) return;
-                int antes = m.getStockAnterior(), despues = m.getStockNuevo();
-                lblAntes.setText(String.valueOf(antes));
-                lblArrow.setText(antes < despues ? "↑" : (antes > despues ? "↓" : "·"));
-                lblArrow.getStyleClass().setAll(
-                    antes < despues ? "stock-arrow-up" : (antes > despues ? "stock-arrow-down" : "stock-arrow-neutral"));
-                lblDespues.setText(String.valueOf(despues));
-                lblDespues.getStyleClass().setAll(
-                    despues <= 0 ? "stock-after-empty" : (despues < antes ? "stock-after-warn" : "stock-after-ok"));
-                setGraphic(box);
-            }
-        });
-        colMotivo.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getMotivo() != null ? c.getValue().getMotivo() : ""));
-        colMotivo.setCellFactory(col -> new TableCell<>() {
-            private final Tooltip tip = new Tooltip();
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null || item.isBlank()) { setText(null); setTooltip(null); return; }
-                setText(item);
-                tip.setText(item);
-                setTooltip(tip);
-            }
-        });
-        colUsuario.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsuarioNombre()));
-        colFecha.setCellValueFactory(c ->
-            new SimpleStringProperty(FormatUtils.formatDateTime(c.getValue().getCreadoEn())));
-        colEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
-        colEstado.setCellFactory(DialogUtil.badgeCellFactory(estado -> switch (estado) {
-            case "PENDIENTE"  -> "cell-badge-warning";
-            case "RECHAZADO"  -> "cell-badge-danger";
-            default           -> "cell-badge-success";   // APROBADO — green, no llama la atención
-        }));
-
-        // Tipo badge cell
-        colTipo.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Entrada"       -> "cell-badge-success";
-            case "Salida"        -> "cell-badge-danger";
-            case "Ajuste"        -> "cell-badge-warning";
-            case "Transferencia" -> "cell-badge-blue";
-            default              -> "cell-badge-purple";
-        }));
-
-        // Cantidad coloring based on tipo
-        colCantidad.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(Integer value, boolean empty) {
-                super.updateItem(value, empty);
-                setText(null); getStyleClass().removeAll("stock-ok","stock-low","stock-warn");
-                if (empty || value == null) return;
-                setText(String.valueOf(value));
-                if (getTableRow() != null && getTableRow().getItem() != null) {
-                    String tipo = ((Movimiento) getTableRow().getItem()).getTipo().getEtiqueta();
-                    if ("Entrada".equals(tipo)) getStyleClass().add("stock-ok");
-                    else if ("Salida".equals(tipo)) getStyleClass().add("stock-low");
-                    else getStyleClass().add("stock-warn");
-                }
-            }
-        });
-
-        // Row tints by movement type; new-row flash via pendingHighlightId
-        table.setRowFactory(tv -> new TableRow<>() {
-            @Override protected void updateItem(Movimiento m, boolean empty) {
-                super.updateItem(m, empty);
-                getStyleClass().removeAll("row-entrada","row-salida","row-ajuste","row-transferencia","row-new");
-                if (!empty && m != null) {
-                    String clase = switch (m.getTipo().getEtiqueta()) {
-                        case "Entrada"       -> "row-entrada";
-                        case "Salida"        -> "row-salida";
-                        case "Ajuste"        -> "row-ajuste";
-                        case "Transferencia" -> "row-transferencia";
-                        default              -> null;
-                    };
-                    if (clase != null) getStyleClass().add(clase);
-                    if (m.getId() != null && m.getId().equals(pendingHighlightId))
-                        getStyleClass().add("row-new");
-                }
-            }
-        });
+        MovimientosColumnSetup.configureProducto(colProducto, () -> searchField != null ? searchField.getText() : "");
+        MovimientosColumnSetup.configureTipo(colTipo);
+        MovimientosColumnSetup.configureCantidad(colCantidad);
+        MovimientosColumnSetup.configureStock(colStock);
+        MovimientosColumnSetup.configureMotivo(colMotivo);
+        MovimientosColumnSetup.configureUsuario(colUsuario);
+        MovimientosColumnSetup.configureFecha(colFecha);
+        MovimientosColumnSetup.configureEstado(colEstado);
+        MovimientosColumnSetup.configureRowFactory(table, () -> pendingHighlightId);
 
         table.getSortOrder().clear();
         colFecha.setSortType(TableColumn.SortType.DESCENDING);
@@ -400,6 +301,7 @@ public class MovimientosController {
         table.setPlaceholder(emptyState);
         DialogUtil.setupColumnVisibilityMenu("movimientos.cols", table,
             java.util.List.of(colProducto, colTipo, colFecha));
+        DialogUtil.setupColumnReset(table, btnResetColumns, STICKY);
         DialogUtil.persistTableSort(table, STICKY, "sort");
         DialogUtil.persistColumnWidths(table, STICKY, "colW");
     }

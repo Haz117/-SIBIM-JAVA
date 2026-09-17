@@ -12,8 +12,9 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
-- **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría o usuario, consultable desde Configuración (solo Admin)
-- **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo JSON, o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). Solo disponible conectado a la base de datos real, no en modo offline/demo
+- **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
+- **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con el conteo de bienes agotados, stock bajo, garantías por vencer y préstamos vencidos/por vencer; cada elemento navega directo a la pantalla correspondiente
+- **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). Solo disponible conectado a la base de datos real, no en modo offline/demo
 - **Depreciación de activos** — 4 tarjetas (valor compra, valor actual, % promedio, totalmente depreciados); distribución del inventario en 4 rangos de depreciación (0–24 % / 25–49 % / 50–99 % / 100 %+) como barras animadas; columna de visualización con `ProgressBar` codificada por color en la tabla; gráfica de proyección del valor a 10 años; exportable a PDF / Excel / fichas técnicas en lote
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
 - **Alertas** — resumen rápido con 3 tarjetas animadas (Agotados / Bajo Stock / Garantías) con barras de proporción; detalle de garantías vencidas vs. próximas; exportable a PDF, Excel y CSV directamente desde la pantalla de alertas (Ctrl+F para filtrar, atajos de teclado en todos los módulos)
@@ -26,6 +27,8 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
 - **Notificaciones toast** en tiempo real
 - **Recuperación de formularios** — si falla el guardado (BD caída, validación), el diálogo se reabre con los datos ya capturados en vez de perderlos
+- **Accesibilidad** — texto accesible automático para lectores de pantalla en botones de solo-ícono (toma el texto del tooltip); tamaño de texto ajustable (Normal / Grande / Extra grande) y densidad de filas de tabla (Compacto / Normal / Cómodo), ambos en la barra de estado; interruptor para desactivar animaciones en equipos de gama baja (Configuración → Accesibilidad y rendimiento)
+- **Columnas de tabla restaurables** — en las tablas con menú de columnas (Auditoría, Categorías, Movimientos, Depreciación, Alertas), un botón junto a "Actualizar" regresa el orden, ancho y visibilidad de las columnas a como estaban originalmente, sin tener que recordar qué se cambió
 
 ---
 
@@ -44,7 +47,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db` cifrada con clave derivada de `MachineGuid` |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (361 tests) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (629 tests) |
 
 ---
 
@@ -59,10 +62,10 @@ El sistema implementa múltiples capas de defensa:
 | Sesión activa | Timeout de inactividad a los 30 min con countdown UI; cierre automático o manual |
 | Credenciales offline | Caché local expira a los **30 días** — requiere conexión periódica al servidor para renovar; el estado `activo` se sincroniza en cada login online — una cuenta desactivada no puede entrar ni en modo offline |
 | Autorización | Guards en capa de servicio/repositorio: `SecurityException` si el rol no tiene permiso (no solo en UI) |
-| Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área |
+| Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área. Los préstamos son visibles si el área accesible coincide con el área de origen **o** destino (una transferencia debe verse desde ambos lados); los resguardos se acotan por su área única; las actas de entrega-recepción son documentos de todo el ayuntamiento y no se acotan por área (no tienen un área propia — son un corte de administración completa) |
 | Cifrado en tránsito | Configurable via `DB_SSL_MODE` en `.env`; la app emite advertencia en log si la BD es remota y SSL no está en modo `require` |
-| Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías y usuarios queda en `audit_log` con usuario y timestamp |
-| Backup | Solo Admin puede ejecutar respaldo/restauración; verificación de tablas y columnas permitidas antes de restaurar |
+| Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías, usuarios, resguardos, préstamos, actas y configuración queda en `audit_log` con usuario y timestamp, incluyendo intentos de inicio de sesión fallidos |
+| Backup | Solo Admin puede ejecutar respaldo/restauración; el archivo se cifra con AES-256-GCM y una contraseña elegida al momento (no ligada a esta PC); verificación de tablas y columnas permitidas antes de restaurar |
 
 > **Cifrado en reposo**: el archivo `offline.db` está cifrado con **AES-256-GCM**. La clave se deriva del `MachineGuid` de Windows y es estable ante renombres de equipo. Los datos de inventario **no son legibles** sin la clave; solo los hashes BCrypt de credenciales están además protegidos por su propio factor de costo.
 
@@ -79,7 +82,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V12` y cubren el esquema inicial, índices de rendimiento, campos de activos (factura, marca, modelo, serie), usuario activo + configuración institucional, etiquetado multi-fotos, resguardos, conteos físicos, email y scheduler, historial de precios, filtros guardados, mantenimiento y préstamos/actas. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V14` y cubren el esquema inicial, índices de rendimiento, campos de activos (factura, marca, modelo, serie), usuario activo + configuración institucional, etiquetado multi-fotos, resguardos, conteos físicos, email y scheduler, historial de precios, filtros guardados, mantenimiento, préstamos/actas y nomenclatura de código por área. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -212,7 +215,7 @@ SIBIM-Java/
 │       ├── db/offline/        # Tests del almacén offline (caducidad, outbox)
 │       ├── model/             # Tests de entidades
 │       ├── repository/        # Tests de autorización de repositorios
-│       ├── service/           # Tests unitarios + autorización de servicios + exports (361 tests total)
+│       ├── service/           # Tests unitarios + autorización de servicios + exports (629 tests total)
 │       ├── session/           # Tests de SessionManager
 │       └── util/              # Tests de utilidades
 ├── packaging/
@@ -237,7 +240,8 @@ SIBIM-Java/
 | Organigrama | 4 tarjetas (áreas, bienes, top área, valor patrimonial); barras animadas top-5 áreas; alertas de stock por área; acceso directo al Inventario filtrado por área |
 | Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV); encabezado institucional configurable |
 | Depreciación | Tarjetas de valor compra/actual/% promedio/totalmente depreciados; distribución en 4 rangos como barras animadas; columna visual `ProgressBar` en la tabla; gráfica de proyección a 10 años; export PDF/Excel/fichas en lote |
-| Configuración | Datos institucionales editables (nombre, municipio, responsable, correo); gestión de cuentas con activar/desactivar; historial de auditoría; conteos físicos; respaldo/restauración (solo Admin) |
+| Auditoría | Registro de acciones de todo el sistema (bienes, movimientos, usuarios, resguardos, préstamos, actas, configuración, inicios de sesión); filtros por entidad/acción/usuario con presets de fecha; tarjetas de resumen; export PDF/Excel/CSV (solo Admin) |
+| Configuración | Datos institucionales editables (nombre, municipio, responsable, correo); gestión de cuentas con activar/desactivar; historial de auditoría; conteos físicos; respaldo/restauración cifrado (solo Admin); interruptor de animaciones |
 
 ---
 
@@ -270,7 +274,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (361 en total)
+# Correr todos los tests (629 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

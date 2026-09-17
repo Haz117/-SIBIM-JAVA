@@ -1,5 +1,6 @@
 package com.sibim.service;
 
+import com.sibim.config.Areas;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
@@ -15,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MovimientoServiceValidationTest {
 
-    // p-01 exists in DemoDataStore: stock=18, area="Secretaría General Municipal"
+    // p-01 exists in DemoDataStore with area = Areas.SECRETARIAS.get(0)
     private static final String PROD_ID  = "p-01";
-    private static final String AREA_SGM = "Secretaría General Municipal";
+    private static final String AREA_SGM = Areas.SECRETARIAS.get(0).nombre();
 
     private final MovimientoService service = new MovimientoService();
 

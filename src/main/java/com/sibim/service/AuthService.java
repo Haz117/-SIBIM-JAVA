@@ -46,6 +46,22 @@ public class AuthService {
             throw new AuthException("La contraseña es obligatoria");
         String key = username.trim().toLowerCase();
         try {
+            // ── Rate-limit check (persisted across restarts) ─────────────────
+            // Applies before both the offline and online paths below — the
+            // offline branch reads a local BCrypt hash cache, so without this
+            // check here it would be brute-forceable at unlimited speed
+            // against that cached file with no lockout at all.
+            long ahora = System.currentTimeMillis();
+            long windowStart = AuthAttemptStore.getWindowStart(key);
+            int  intentos    = AuthAttemptStore.getCount(key);
+            if (windowStart > 0 && ahora - windowStart < VENTANA_MS && intentos >= MAX_INTENTOS) {
+                long mins = Math.max(1, (VENTANA_MS - (ahora - windowStart)) / 60_000 + 1);
+                throw new AuthException(
+                    "Demasiados intentos fallidos. Espera " + mins + " minuto(s) antes de volver a intentar.");
+            } else if (windowStart > 0 && ahora - windowStart > VENTANA_MS) {
+                AuthAttemptStore.clear(key); // ventana expirada — reiniciar
+            }
+
             // Users aren't part of the offline sync scope (see the
             // offline-mode plan), but login still has to work — verifies
             // against a local read-only cache populated the last time this
@@ -57,27 +73,20 @@ public class AuthService {
                 Optional<Usuario> cached = OfflineStore.findCachedUserByUsername(key);
                 if (cached.isEmpty()) {
                     throw new AuthException("No hay conexión. El acceso sin conexión requiere haber iniciado sesión "
-                        + "en esta PC con conexión activa en los últimos 30 días.");
+                        + "en esta PC con conexión activa en los últimos "
+                        + com.sibim.db.offline.OfflineUserCache.OFFLINE_CACHE_TTL_DAYS + " días.");
                 }
                 Usuario user = cached.get();
                 if (!user.isActivo())
                     throw new AuthException("Tu cuenta está desactivada. Contacta al administrador.");
                 BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash());
-                if (!result.verified) throw new AuthException("Usuario o contraseña incorrectos");
+                if (!result.verified) {
+                    registrarFallo(key);
+                    throw new AuthException("Usuario o contraseña incorrectos");
+                }
+                AuthAttemptStore.clear(key); // login exitoso — limpiar contadores
                 SessionManager.setCurrentUser(user);
                 return new LoginResult(user, null);
-            }
-
-            // ── Rate-limit check (persisted across restarts) ─────────────────
-            long ahora = System.currentTimeMillis();
-            long windowStart = AuthAttemptStore.getWindowStart(key);
-            int  intentos    = AuthAttemptStore.getCount(key);
-            if (windowStart > 0 && ahora - windowStart < VENTANA_MS && intentos >= MAX_INTENTOS) {
-                long mins = Math.max(1, (VENTANA_MS - (ahora - windowStart)) / 60_000 + 1);
-                throw new AuthException(
-                    "Demasiados intentos fallidos. Espera " + mins + " minuto(s) antes de volver a intentar.");
-            } else if (windowStart > 0 && ahora - windowStart > VENTANA_MS) {
-                AuthAttemptStore.clear(key); // ventana expirada — reiniciar
             }
 
             Optional<Usuario> opt = usuarioRepo.findByUsername(key);
@@ -122,8 +131,16 @@ public class AuthService {
         }
     }
 
-    private static void registrarFallo(String key) {
+    /** Bumps the in-memory rate-limit counter AND writes an audit entry —
+     *  before this, a failed login only ever touched AuthAttemptStore (purely
+     *  in-memory, reset on every app restart), so a brute-force attempt or
+     *  someone trying an ex-employee's account left no trace anywhere once
+     *  the app closed. There's no real Usuario to attach the entry to when
+     *  the username doesn't even exist, so the attempted username goes in
+     *  as the entidad name instead, with a null id. */
+    private void registrarFallo(String key) {
         AuthAttemptStore.increment(key);
+        auditRepo.log("sesion", null, key, "login_fallido", "Intento de inicio de sesión fallido");
     }
 
     public void logout() {

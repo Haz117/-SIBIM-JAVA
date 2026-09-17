@@ -48,8 +48,12 @@ public class BackupService {
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
     }
 
-    /** Dumps every table into {@code destino} as a single JSON file. */
-    public void backup(File destino) throws SQLException, IOException {
+    /** Dumps every table into {@code destino}, encrypted with {@code password}
+     *  (AES-256-GCM, see {@link BackupEncryption}) — the dump includes every
+     *  user's bcrypt password hash (see {@code TABLAS}), so an unencrypted
+     *  backup sitting on a USB drive or in an email would hand out everyone's
+     *  hash bundle to whoever finds it. */
+    public void backup(File destino, char[] password) throws SQLException, IOException {
         requireOnlineMode();
         Map<String, Object> raiz = new LinkedHashMap<>();
         raiz.put("version", BACKUP_VERSION);
@@ -61,18 +65,26 @@ public class BackupService {
             }
         }
         raiz.put("tablas", tablas);
-        mapper.writeValue(destino, raiz);
+        byte[] json = mapper.writeValueAsBytes(raiz);
+        byte[] encrypted = BackupEncryption.encrypt(json, password);
+        java.nio.file.Files.write(destino.toPath(), encrypted);
         new AuditLogRepository().log("backup", destino.getName(), destino.getName(), "crear",
             "Respaldo completo generado");
     }
 
     /** Replaces every row in every table with what's in {@code origen}.
      *  Runs inside a single transaction — any failure rolls back completely,
-     *  never leaving the database half-restored. */
+     *  never leaving the database half-restored.
+     *  @throws BackupEncryption.WrongPasswordException if {@code password}
+     *  doesn't match the one used to create an encrypted backup. Backups from
+     *  before encryption was added (plain JSON, no "SIBK" magic) are still
+     *  accepted as-is — {@code password} is ignored for those. */
     @SuppressWarnings("unchecked")
-    public void restore(File origen) throws SQLException, IOException {
+    public void restore(File origen, char[] password) throws SQLException, IOException, BackupEncryption.WrongPasswordException {
         requireOnlineMode();
-        Map<String, Object> raiz = mapper.readValue(origen, Map.class);
+        byte[] raw = java.nio.file.Files.readAllBytes(origen.toPath());
+        byte[] json = BackupEncryption.isEncrypted(raw) ? BackupEncryption.decrypt(raw, password) : raw;
+        Map<String, Object> raiz = mapper.readValue(json, Map.class);
         Object tablasObj = raiz.get("tablas");
         if (!(tablasObj instanceof Map)) throw new IOException("Archivo de respaldo inválido: falta 'tablas'");
         Map<String, List<Map<String, Object>>> tablas = (Map<String, List<Map<String, Object>>>) tablasObj;

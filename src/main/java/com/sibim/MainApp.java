@@ -78,6 +78,7 @@ public class MainApp extends Application {
     public static void showLogin() throws Exception {
         Parent root = FXMLLoader.load(
             Objects.requireNonNull(MainApp.class.getResource("/fxml/login.fxml")));
+        com.sibim.util.AccessibilityUtils.applyAccessibleTextFromTooltips(root);
         transitionTo(root, 960, 620, () -> {
             primaryStage.setResizable(false);
             primaryStage.centerOnScreen();
@@ -88,6 +89,7 @@ public class MainApp extends Application {
         FXMLLoader loader = new FXMLLoader(
             Objects.requireNonNull(MainApp.class.getResource("/fxml/main.fxml")));
         Parent root = loader.load();
+        com.sibim.util.AccessibilityUtils.applyAccessibleTextFromTooltips(root);
         transitionTo(root, 1280, 800, () -> {
             primaryStage.setResizable(true);
             primaryStage.setMinWidth(1024);

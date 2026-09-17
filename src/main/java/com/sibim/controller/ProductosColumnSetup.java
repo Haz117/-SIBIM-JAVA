@@ -34,6 +34,7 @@ class ProductosColumnSetup {
             private final ImageView iv = new ImageView();
             private final FontIcon lbl = new FontIcon("mdi2c-camera-outline");
             private final StackPane box;
+            private final Tooltip tip = new Tooltip();
             {
                 iv.setFitWidth(38); iv.setFitHeight(38); iv.setPreserveRatio(true);
                 lbl.setIconSize(16);
@@ -41,6 +42,7 @@ class ProductosColumnSetup {
                 box = new StackPane(lbl, iv);
                 box.setPrefSize(40, 40); box.setMinSize(40, 40); box.setMaxSize(40, 40);
                 box.getStyleClass().add("foto-cell-box");
+                Tooltip.install(box, tip);
                 box.setOnMouseClicked(e -> {
                     if (!iv.isVisible()) return;
                     Producto p = getTableRow() != null ? getTableRow().getItem() : null;
@@ -65,17 +67,21 @@ class ProductosColumnSetup {
                         }
                         if (cached.isError()) {
                             iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
+                            tip.setText("Sin foto");
                         } else {
                             iv.setImage(cached);
                             iv.setVisible(true); lbl.setVisible(false);
                             box.getStyleClass().add("foto-cell-box-clickable");
+                            tip.setText("Foto — clic para ampliar");
                         }
                     } catch (Exception ex) {
                         log.warn("No se pudo cargar thumbnail: {}", url, ex);
                         iv.setVisible(false); lbl.setVisible(true);
+                        tip.setText("Sin foto");
                     }
                 } else {
                     iv.setImage(null); iv.setVisible(false); lbl.setVisible(true);
+                    tip.setText("Sin foto");
                 }
                 setGraphic(box);
                 setAlignment(Pos.CENTER);

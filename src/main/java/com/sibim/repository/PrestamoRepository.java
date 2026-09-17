@@ -9,18 +9,47 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class PrestamoRepository {
 
+    /** A préstamo moves a bien FROM one área TO another, unlike Producto's
+     *  single-area ownership — restricting visibility to only areaOrigen
+     *  would hide it from the destination área's own staff (and vice versa),
+     *  breaking the legitimate case of both sides needing to see an active
+     *  transfer. Returns null for admin (no restriction), matching
+     *  SessionManager.getAccessibleAreas()'s own convention. */
+    private static String scopeCondicion(List<Object> params) {
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible == null) return null;
+        String[] areas = accessible.toArray(new String[0]);
+        params.add(areas);
+        params.add(areas);
+        return "(area_origen = ANY(?) OR area_destino = ANY(?))";
+    }
+
+    private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            Object p = params.get(i);
+            if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
+            else ps.setObject(i + 1, p);
+        }
+    }
+
     public List<Prestamo> findAll() throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
         List<Prestamo> list = new ArrayList<>();
-        String sql = "SELECT * FROM prestamos ORDER BY created_at DESC";
+        List<Object> params = new ArrayList<>();
+        String scope = scopeCondicion(params);
+        String sql = "SELECT * FROM prestamos" + (scope != null ? " WHERE " + scope : "")
+            + " ORDER BY created_at DESC";
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) list.add(mapRow(rs));
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
         }
         return list;
     }
@@ -28,13 +57,30 @@ public class PrestamoRepository {
     public List<Prestamo> findActivos() throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
         List<Prestamo> list = new ArrayList<>();
-        String sql = "SELECT * FROM prestamos WHERE estado IN ('ACTIVO','VENCIDO') ORDER BY fecha_devolucion_prevista ASC";
+        List<Object> params = new ArrayList<>();
+        String scope = scopeCondicion(params);
+        String sql = "SELECT * FROM prestamos WHERE estado IN ('ACTIVO','VENCIDO')"
+            + (scope != null ? " AND " + scope : "") + " ORDER BY fecha_devolucion_prevista ASC";
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) list.add(mapRow(rs));
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
         }
         return list;
+    }
+
+    public Prestamo findById(String id) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return null;
+        String sql = "SELECT * FROM prestamos WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? mapRow(rs) : null;
+            }
+        }
     }
 
     public Prestamo save(Prestamo prestamo) throws SQLException {
@@ -106,11 +152,16 @@ public class PrestamoRepository {
     public List<Prestamo> findVencidos() throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
         List<Prestamo> list = new ArrayList<>();
-        String sql = "SELECT * FROM prestamos WHERE estado = 'VENCIDO' ORDER BY fecha_devolucion_prevista ASC";
+        List<Object> params = new ArrayList<>();
+        String scope = scopeCondicion(params);
+        String sql = "SELECT * FROM prestamos WHERE estado = 'VENCIDO'"
+            + (scope != null ? " AND " + scope : "") + " ORDER BY fecha_devolucion_prevista ASC";
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) list.add(mapRow(rs));
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
         }
         return list;
     }
@@ -118,15 +169,16 @@ public class PrestamoRepository {
     public List<Prestamo> findProximosAVencer(int days) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
         List<Prestamo> list = new ArrayList<>();
-        String sql = """
-            SELECT * FROM prestamos
-            WHERE estado = 'ACTIVO'
-              AND fecha_devolucion_prevista BETWEEN CURRENT_DATE AND CURRENT_DATE + ?
-            ORDER BY fecha_devolucion_prevista ASC
-            """;
+        List<Object> params = new ArrayList<>();
+        params.add(days);
+        String scope = scopeCondicion(params);
+        String sql = "SELECT * FROM prestamos"
+            + " WHERE estado = 'ACTIVO' AND fecha_devolucion_prevista BETWEEN CURRENT_DATE AND CURRENT_DATE + ?"
+            + (scope != null ? " AND " + scope : "")
+            + " ORDER BY fecha_devolucion_prevista ASC";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, days);
+            bindParams(ps, conn, params);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) list.add(mapRow(rs));
             }
@@ -136,12 +188,17 @@ public class PrestamoRepository {
 
     public int countVencidos() throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return 0;
-        String sql = "SELECT COUNT(*) FROM prestamos WHERE estado = 'VENCIDO'";
+        List<Object> params = new ArrayList<>();
+        String scope = scopeCondicion(params);
+        String sql = "SELECT COUNT(*) FROM prestamos WHERE estado = 'VENCIDO'"
+            + (scope != null ? " AND " + scope : "");
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            return rs.getInt(1);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -35,6 +36,9 @@ public abstract class BaseDocumentController<T> {
     @FXML protected TableView<T> table;
     @FXML protected Button       btnExportarPdf;
     @FXML protected ProgressIndicator spinner;
+    @FXML protected VBox     resumenBox;
+    @FXML protected Button   btnToggleResumen;
+    @FXML protected Label    helpResumen;
 
     protected final ObservableList<T> data = FXCollections.observableArrayList();
 
@@ -42,6 +46,10 @@ public abstract class BaseDocumentController<T> {
 
     @FXML
     public void initialize() {
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible(getClass().getSimpleName() + ".resumen.colapsado",
+                btnToggleResumen, resumenBox, "Mostrar resumen", "Ocultar resumen");
+        if (helpResumen != null) DialogUtil.enableClickToShowTooltip(helpResumen);
         setupTableBase();
         setupColumns();
         onInitialize();
@@ -131,6 +139,7 @@ public abstract class BaseDocumentController<T> {
                 List<T> list = fetchAll();
                 Platform.runLater(() -> {
                     onDataLoaded(list);
+                    AnimationUtils.staggerTableRows(table);
                     if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 });
             } catch (Exception e) {

@@ -11,7 +11,10 @@ import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
@@ -21,6 +24,7 @@ import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
+import java.util.Optional;
 
 public class ConfiguracionController {
 
@@ -60,6 +64,7 @@ public class ConfiguracionController {
     @FXML private VBox adminSection;
     @FXML private VBox auditSection;
     @FXML private VBox backupSection;
+    @FXML private CheckBox chkAnimaciones;
     @FXML private Button btnGenerarRespaldo;
     @FXML private Button btnRestaurar;
     @FXML private Button btnEditUser;
@@ -83,6 +88,8 @@ public class ConfiguracionController {
         for (Label badge : new Label[]{ helpUsuarios, helpAuditoria, helpRespaldo }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
+
+        if (chkAnimaciones != null) chkAnimaciones.setSelected(AnimationUtils.isEnabled());
 
         Usuario me = SessionManager.getCurrentUser();
         if (me == null) return;
@@ -300,6 +307,8 @@ public class ConfiguracionController {
                 configRepo.set("responsable",         resp);
                 configRepo.set("correo_contacto",     correo);
                 configRepo.set("logo_path",           logoPath);
+                new com.sibim.repository.AuditLogRepository().log("configuracion", "general", "Datos generales",
+                    "actualizar", "Datos generales del ayuntamiento actualizados");
                 return null;
             },
             v -> {
@@ -611,6 +620,11 @@ public class ConfiguracionController {
         );
     }
 
+    @FXML
+    private void onToggleAnimaciones() {
+        AnimationUtils.setEnabled(chkAnimaciones.isSelected());
+    }
+
     // ── Respaldo y restauración ──────────────────────────────────────────
 
     @FXML
@@ -623,8 +637,13 @@ public class ConfiguracionController {
 
         if (!ConfirmacionUtil.confirmar("Información sensible en el respaldo",
                 "El archivo generado contendrá todos los datos del sistema: bienes, movimientos, "
-                + "usuarios y auditoría.\n\nGuárdalo en un lugar seguro y no lo compartas. ¿Continuar?"))
+                + "usuarios y auditoría.\n\nSe cifrará con la contraseña que definas a continuación — "
+                + "sin ella, el respaldo no podrá restaurarse. ¿Continuar?"))
             return;
+
+        Optional<char[]> passwordOpt = promptBackupPassword(true);
+        if (passwordOpt.isEmpty()) return;
+        char[] password = passwordOpt.get();
 
         javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
         chooser.setTitle("Guardar respaldo de la base de datos");
@@ -632,14 +651,91 @@ public class ConfiguracionController {
         chooser.setInitialFileName("sibim_backup_"
             + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE) + ".json");
         java.io.File destino = chooser.showSaveDialog(com.sibim.MainApp.getPrimaryStage());
-        if (destino == null) return;
+        if (destino == null) { java.util.Arrays.fill(password, '\0'); return; }
 
         DialogUtil.runAsyncWithProgress(backupSection.getScene(), "Generando respaldo…",
-            () -> { backupService.backup(destino); return destino; },
-            file -> NotificacionUtil.exito(backupSection.getScene(), "Respaldo generado: " + file.getName()),
-            e -> NotificacionUtil.error(backupSection.getScene(),
-                e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo generar el respaldo")
+            () -> { backupService.backup(destino, password); return destino; },
+            file -> { java.util.Arrays.fill(password, '\0');
+                NotificacionUtil.exito(backupSection.getScene(), "Respaldo generado: " + file.getName()); },
+            e -> { java.util.Arrays.fill(password, '\0');
+                NotificacionUtil.error(backupSection.getScene(),
+                    e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo generar el respaldo"); }
         );
+    }
+
+    /** Prompts for the passphrase that encrypts/decrypts a backup file — a
+     *  backup must be restorable on a different machine (e.g. a replacement
+     *  server), so unlike the offline store's key this can't be derived from
+     *  this machine's identity; it has to be something the admin chooses and
+     *  keeps. {@code confirmar} shows a second field to catch typos when
+     *  CREATING a backup; restoring only needs the one field. */
+    private Optional<char[]> promptBackupPassword(boolean confirmar) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        if (com.sibim.MainApp.getPrimaryStage() != null) dialog.initOwner(com.sibim.MainApp.getPrimaryStage());
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        dialog.getDialogPane().setPrefWidth(440);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("mdi2l-lock-outline",
+            confirmar ? "Cifrar respaldo" : "Descifrar respaldo",
+            confirmar ? "Esta contraseña será necesaria para restaurar el respaldo"
+                      : "Ingresa la contraseña usada al generar este respaldo",
+            "#4F46E5", "#7C3AED");
+
+        PasswordField fPass = new PasswordField();
+        fPass.setPromptText(confirmar ? "Contraseña (mínimo 8 caracteres)" : "Contraseña del respaldo");
+        fPass.getStyleClass().add("form-input");
+
+        PasswordField fConfirmar = new PasswordField();
+        fConfirmar.setPromptText("Confirmar contraseña");
+        fConfirmar.getStyleClass().add("form-input");
+
+        Label errorLbl = new Label();
+        errorLbl.getStyleClass().add("field-error-label");
+        errorLbl.setVisible(false);
+        errorLbl.setManaged(false);
+        errorLbl.setWrapText(true);
+
+        VBox form = new VBox(10, DialogUtil.fieldLabel("Contraseña *"), fPass);
+        if (confirmar) form.getChildren().addAll(DialogUtil.fieldLabel("Confirmar contraseña *"), fConfirmar);
+        form.getChildren().add(errorLbl);
+        form.setPadding(new Insets(18, 22, 20, 22));
+        dialog.getDialogPane().setContent(new VBox(header, form));
+
+        ButtonType btnOk = new ButtonType(confirmar ? "Cifrar y guardar" : "Restaurar", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().setAll(btnOk, ButtonType.CANCEL);
+        Node okBtn = dialog.getDialogPane().lookupButton(btnOk);
+        DialogUtil.styleButton(dialog.getDialogPane(), btnOk, "#4F46E5");
+
+        Runnable hideError = () -> { errorLbl.setVisible(false); errorLbl.setManaged(false); };
+        fPass.textProperty().addListener((o, a, b) -> hideError.run());
+        fConfirmar.textProperty().addListener((o, a, b) -> hideError.run());
+
+        okBtn.addEventFilter(ActionEvent.ACTION, event -> {
+            if (confirmar && fPass.getText().length() < 8) {
+                event.consume();
+                errorLbl.setText("La contraseña debe tener al menos 8 caracteres");
+                errorLbl.setVisible(true); errorLbl.setManaged(true);
+                AnimationUtils.shake(fPass);
+            } else if (confirmar && !fPass.getText().equals(fConfirmar.getText())) {
+                event.consume();
+                errorLbl.setText("Las contraseñas no coinciden");
+                errorLbl.setVisible(true); errorLbl.setManaged(true);
+                AnimationUtils.shake(fConfirmar);
+            } else if (fPass.getText().isEmpty()) {
+                event.consume();
+                errorLbl.setText("La contraseña no puede estar vacía");
+                errorLbl.setVisible(true); errorLbl.setManaged(true);
+                AnimationUtils.shake(fPass);
+            }
+        });
+
+        javafx.application.Platform.runLater(fPass::requestFocus);
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        return (result.isPresent() && result.get() == btnOk)
+            ? Optional.of(fPass.getText().toCharArray())
+            : Optional.empty();
     }
 
     @FXML
@@ -662,8 +758,12 @@ public class ConfiguracionController {
                 + "Esta acción no se puede deshacer. ¿Continuar?"))
             return;
 
+        Optional<char[]> passwordOpt = promptBackupPassword(false);
+        if (passwordOpt.isEmpty()) return;
+        char[] password = passwordOpt.get();
+
         DialogUtil.runAsyncWithProgress(backupSection.getScene(), "Restaurando base de datos…",
-            () -> { backupService.restore(origen); return null; },
+            () -> { backupService.restore(origen, password); java.util.Arrays.fill(password, '\0'); return null; },
             v -> {
                 NotificacionUtil.restauracionCompletada(backupSection.getScene(), origen.getName());
                 // Redirect to login so all in-memory caches reload with restored data
@@ -676,8 +776,13 @@ public class ConfiguracionController {
                 });
                 delay.play();
             },
-            e -> NotificacionUtil.error(backupSection.getScene(),
-                e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo restaurar el respaldo")
+            e -> {
+                java.util.Arrays.fill(password, '\0');
+                NotificacionUtil.error(backupSection.getScene(),
+                    e instanceof com.sibim.service.BackupEncryption.WrongPasswordException
+                        ? "Contraseña incorrecta para este respaldo"
+                        : e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo restaurar el respaldo");
+            }
         );
     }
 }

@@ -284,6 +284,7 @@ public final class SearchPaletteDialog {
 
         VBox content = new VBox(0, searchRow, new Separator(), listView, lblEmpty);
         dialog.getDialogPane().setContent(content);
+        com.sibim.util.AnimationUtils.springIn(content);
         Platform.runLater(searchField::requestFocus);
         dialog.showAndWait();
     }

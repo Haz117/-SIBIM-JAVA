@@ -87,10 +87,18 @@ public final class DialogUtil {
         d.initModality(Modality.APPLICATION_MODAL);
     }
 
-    /** Apply the app stylesheet to any dialog pane. */
+    /** Apply the app stylesheet to any dialog pane. Every dialog builder in the
+     *  app calls this, which makes it the one place to also backfill
+     *  screen-reader labels for icon-only buttons (see AccessibilityUtils) —
+     *  deferred to the pane's sceneProperty so it runs after the caller has
+     *  finished adding its buttons/content, right when the dialog is shown. */
     public static void applyStylesheet(DialogPane pane) {
         var css = DialogUtil.class.getResource("/css/styles.css");
         if (css != null) pane.getStylesheets().add(css.toExternalForm());
+        AccessibilityUtils.applyCurrentTextScaleClass(pane);
+        pane.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene != null) AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
+        });
     }
 
     // ── OK button ────────────────────────────────────────────────────────
@@ -99,7 +107,14 @@ public final class DialogUtil {
      *  Uses a disabledProperty listener + inline styles so the button stays
      *  visible regardless of Modena's opacity:0.4 rule for :disabled buttons. */
     public static void styleOkButton(DialogPane pane, String hexColor) {
-        Node btn = pane.lookupButton(ButtonType.OK);
+        styleButton(pane, ButtonType.OK, hexColor);
+    }
+
+    /** Same as {@link #styleOkButton} but for any ButtonType, not just OK —
+     *  needed for dialogs that use a custom primary action (e.g. "Continuar
+     *  en modo demo" instead of a generic OK). */
+    public static void styleButton(DialogPane pane, ButtonType type, String hexColor) {
+        Node btn = pane.lookupButton(type);
         if (btn == null) return;
         btn.getStyleClass().add("dialog-ok-btn");
         String on  = "-fx-background-color:" + hexColor + ";-fx-text-fill:white;"
@@ -148,6 +163,46 @@ public final class DialogUtil {
         header.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%,"
             + color1 + "," + color2 + "); -fx-background-radius: 8 8 0 0;");
         return header;
+    }
+
+    /** Builds a message-style dialog (gradient header + wrapped body text) —
+     *  a drop-in replacement for a plain {@link Alert}, which renders with a
+     *  default JavaFX header (icon + bold text on a flat white background)
+     *  that looks jarringly plain next to every other dialog in the app, all
+     *  of which use {@link #gradientHeader}. Caller still adds its own
+     *  ButtonTypes and, if it wants a colored primary action, calls
+     *  {@link #styleButton} afterwards — this only builds the header+body. */
+    public static Dialog<ButtonType> styledMessage(String icon, String title, String subtitle,
+                                                    String color1, String color2, String body) {
+        return styledMessage(icon, title, subtitle, color1, color2, body, null);
+    }
+
+    /** Same as {@link #styledMessage(String, String, String, String, String, String)}
+     *  but with an explicit owner window — for a message dialog raised from
+     *  inside another already-open dialog (e.g. a form-validation warning),
+     *  which must be owned by that dialog rather than the primary stage so
+     *  modality stacks correctly. */
+    public static Dialog<ButtonType> styledMessage(String icon, String title, String subtitle,
+                                                    String color1, String color2, String body,
+                                                    javafx.stage.Window owner) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        if (owner != null) dialog.initOwner(owner);
+        else if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle(title);
+        dialog.getDialogPane().setPrefWidth(460);
+        applyStylesheet(dialog.getDialogPane());
+
+        HBox header = gradientHeader(icon, title, subtitle, color1, color2);
+
+        Label bodyLbl = new Label(body);
+        bodyLbl.setWrapText(true);
+        bodyLbl.getStyleClass().add("dlg-message-body");
+        VBox bodyBox = new VBox(bodyLbl);
+        bodyBox.setPadding(new Insets(20, 24, 22, 24));
+
+        dialog.getDialogPane().setContent(new VBox(header, bodyBox));
+        return dialog;
     }
 
     /** Opens a full-size view of a bien's photo — every other place in the
@@ -348,19 +403,26 @@ public final class DialogUtil {
      * across restarts under {@code prefKey} (unique per page).
      */
     public static void makeCollapsible(String prefKey, Button toggle, Region content) {
+        makeCollapsible(prefKey, toggle, content, "Mostrar filtros", "Ocultar filtros");
+    }
+
+    /** Same as {@link #makeCollapsible(String, Button, Region)} but with
+     *  custom show/hide labels — for sections that aren't a filter bar
+     *  (e.g. a summary/stats block on a dashboard-like page). */
+    public static void makeCollapsible(String prefKey, Button toggle, Region content, String showLabel, String hideLabel) {
         boolean collapsed = UI_PREFS.getBoolean(prefKey, false);
-        applyCollapsed(toggle, content, collapsed);
+        applyCollapsed(toggle, content, collapsed, showLabel, hideLabel);
         toggle.setOnAction(e -> {
             boolean wasExpanded = content.isVisible();
-            applyCollapsed(toggle, content, wasExpanded);
+            applyCollapsed(toggle, content, wasExpanded, showLabel, hideLabel);
             UI_PREFS.putBoolean(prefKey, wasExpanded);
         });
     }
 
-    private static void applyCollapsed(Button toggle, Region content, boolean collapsed) {
+    private static void applyCollapsed(Button toggle, Region content, boolean collapsed, String showLabel, String hideLabel) {
         content.setVisible(!collapsed);
         content.setManaged(!collapsed);
-        toggle.setText(collapsed ? "Mostrar filtros" : "Ocultar filtros");
+        toggle.setText(collapsed ? showLabel : hideLabel);
         FontIcon icon = new FontIcon(collapsed ? "mdi2c-chevron-down" : "mdi2c-chevron-up");
         icon.getStyleClass().add("btn-icon");
         toggle.setGraphic(icon);
@@ -727,6 +789,55 @@ public final class DialogUtil {
                     col.getSortType() == TableColumn.SortType.DESCENDING ? "DESC" : "ASC");
             }
         });
+    }
+
+    /** Wires {@code btnReset} to put every column in {@code table} back the
+     *  way it started: visible, original width, original order, no sort —
+     *  for tables with the built-in column-visibility menu
+     *  (tableMenuButtonVisible="true"), where a user who hides a few columns
+     *  via that checkbox list has no way to remember or undo which ones,
+     *  short of restarting the app. Must be called BEFORE
+     *  {@link #persistColumnWidths} / {@link #persistTableSort} on the same
+     *  table, so the widths captured here are the FXML-authored defaults,
+     *  not whatever a previous session had already restored from prefs.
+     *  {@code prefs}/{@code keyPrefix} may be null when this table doesn't
+     *  persist width/sort — visibility and order still get reset either way. */
+    public static void setupColumnReset(TableView<?> table, Button btnReset,
+                                         java.util.prefs.Preferences prefs) {
+        if (btnReset == null || table == null) return;
+        Runnable reset = captureColumnReset(table, prefs);
+        btnReset.setOnAction(e -> reset.run());
+    }
+
+    /** Same idea as {@link #setupColumnReset}, but returns the reset action
+     *  instead of wiring it to a button — for a screen with several tables
+     *  (e.g. Alertas' four tabs) sharing a single "Restaurar columnas"
+     *  button, whose handler just runs each table's captured reset in turn.
+     *  {@code prefs} may be null for a table that doesn't call
+     *  {@link #persistColumnWidths}/{@link #persistTableSort} at all —
+     *  visibility and order still get reset either way. The "colW"/"sort"
+     *  prefixes below are hardcoded because every caller of those two
+     *  methods in this codebase already uses exactly those two literals. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Runnable captureColumnReset(TableView table, java.util.prefs.Preferences prefs) {
+        List<TableColumn> defaultOrder = new java.util.ArrayList<>(table.getColumns());
+        double[] defaultWidths = new double[defaultOrder.size()];
+        for (int i = 0; i < defaultOrder.size(); i++) defaultWidths[i] = defaultOrder.get(i).getPrefWidth();
+
+        return () -> {
+            for (int i = 0; i < defaultOrder.size(); i++) {
+                TableColumn col = defaultOrder.get(i);
+                col.setVisible(true);
+                col.setPrefWidth(defaultWidths[i]);
+                if (prefs != null) prefs.remove("colW.colW." + i);
+            }
+            table.getColumns().setAll(defaultOrder);
+            table.getSortOrder().clear();
+            if (prefs != null) {
+                prefs.remove("sort.sortIdx");
+                prefs.remove("sort.sortDir");
+            }
+        };
     }
 
     /** Saves and restores column widths for {@code table} so the user's manual

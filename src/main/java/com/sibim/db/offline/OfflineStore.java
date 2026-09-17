@@ -38,6 +38,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -63,6 +66,13 @@ public final class OfflineStore {
 
     private static Connection conn;
     private static boolean loaded = false;
+
+    /** Periodic checkpoint so a crash (power loss, kill -9, OOM — anything
+     *  that skips the JVM shutdown hook below) only loses the last few
+     *  minutes of offline work instead of everything since the last clean
+     *  exit. See {@link #checkpoint()}. */
+    private static ScheduledExecutorService checkpointExecutor;
+    private static final int CHECKPOINT_INTERVAL_MIN = 3;
 
     private static final List<Producto> PRODUCTOS = new ArrayList<>();
     private static final List<Categoria> CATEGORIAS = new ArrayList<>();
@@ -138,6 +148,7 @@ public final class OfflineStore {
                 final Path fEnc = encFile, fWork = workFile;
                 final javax.crypto.SecretKey fKey = key;
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    if (checkpointExecutor != null) checkpointExecutor.shutdownNow();
                     try {
                         if (conn != null && !conn.isClosed()) conn.close();
                     } catch (Exception ignored) {}
@@ -148,11 +159,61 @@ public final class OfflineStore {
                     }
                 }, "offline-db-encrypt-on-shutdown"));
 
+                startCheckpointTimer(fWork, fEnc, fKey);
+
             } catch (IOException e) {
                 throw new SQLException("No se pudo abrir el almacén offline local", e);
             }
         }
         return conn;
+    }
+
+    private static void startCheckpointTimer(Path workFile, Path encFile, javax.crypto.SecretKey key) {
+        // Captured once: conn is assigned exactly one time, in conn() above,
+        // and never reassigned for the life of the process.
+        Connection capturedConn = conn;
+        checkpointExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "offline-db-checkpoint");
+            t.setDaemon(true);
+            return t;
+        });
+        checkpointExecutor.scheduleAtFixedRate(
+            () -> checkpoint(capturedConn, workFile.getParent(), encFile, key),
+            CHECKPOINT_INTERVAL_MIN, CHECKPOINT_INTERVAL_MIN, TimeUnit.MINUTES);
+    }
+
+    /**
+     * Writes a consistent snapshot of the live work DB out to the encrypted
+     * blob without closing the connection — so a crash between checkpoints
+     * only loses up to {@link #CHECKPOINT_INTERVAL_MIN} minutes of offline
+     * work (including queued-but-unsynced outbox rows) instead of everything
+     * back to the last clean shutdown, which is what {@code conn()} discards
+     * as a "stale work file" on the next startup.
+     *
+     * Uses SQLite's own {@code VACUUM INTO} rather than copying the work
+     * file's bytes directly: it's SQLite's guaranteed-atomic hot-backup
+     * primitive, so it can't race a concurrent write into an inconsistent
+     * copy the way a raw file copy of a live database could. Package-visible
+     * (takes the connection explicitly, not via conn()) so it can be
+     * exercised in tests against a throwaway SQLite file instead of the real
+     * one under the user's home directory.
+     */
+    static void checkpoint(Connection sourceConn, Path snapshotDir, Path encFile, javax.crypto.SecretKey key) {
+        Path snapshot = snapshotDir.resolve("offline.db.checkpoint-tmp");
+        try {
+            synchronized (LOCK) {
+                Files.deleteIfExists(snapshot);
+                try (Statement st = sourceConn.createStatement()) {
+                    st.execute("VACUUM INTO '" + snapshot.toString().replace("'", "''") + "'");
+                }
+            }
+            OfflineEncryption.encryptFrom(snapshot, encFile, key);
+            log.debug("offline.db: checkpoint guardado");
+        } catch (Exception e) {
+            log.warn("offline.db: no se pudo guardar el checkpoint periódico", e);
+        } finally {
+            try { Files.deleteIfExists(snapshot); } catch (IOException ignored) {}
+        }
     }
 
     private static boolean schemaExists(Connection c) throws SQLException {
@@ -576,6 +637,7 @@ public final class OfflineStore {
         ensureLoaded();
         return PRODUCTOS.stream()
             .anyMatch(p -> p.getCodigo().equalsIgnoreCase(codigo)
+                       && !p.isDadoDeBaja()
                        && !p.getId().equals(excludeId != null ? excludeId : ""));
     }
 

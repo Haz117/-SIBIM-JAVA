@@ -48,8 +48,11 @@ public class OrganigramaController {
     @FXML private VBox  statCardValor;
     @FXML private Label lblStatValor;
     @FXML private Label helpValor;
+    @FXML private Label helpResumen;
     @FXML private VBox  areaDistribCard;
     @FXML private VBox  areaDistribBox;
+    @FXML private VBox  resumenBox;
+    @FXML private Button btnToggleResumen;
 
     private static final java.util.prefs.Preferences STICKY =
         java.util.prefs.Preferences.userRoot().node("sibim/filters/organigrama");
@@ -72,9 +75,12 @@ public class OrganigramaController {
 
     @FXML
     public void initialize() {
-        for (Label badge : new Label[]{ helpAreas, helpBienes, helpTopArea, helpValor }) {
+        for (Label badge : new Label[]{ helpAreas, helpBienes, helpTopArea, helpValor, helpResumen }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible("organigrama.resumen.colapsado", btnToggleResumen, resumenBox,
+                "Mostrar resumen", "Ocultar resumen");
 
         // Restore sticky state
         String stickySearch = STICKY.get("search", "");
@@ -142,9 +148,10 @@ public class OrganigramaController {
 
     private void updateStats() {
         if (lblStatAreas == null) return;
+        Map<String, List<Producto>> rollup = rollupByTopLevelArea();
         int totalBienes = productosPorArea.values().stream().mapToInt(List::size).sum();
-        AnimationUtils.animateCount(lblStatAreas,  productosPorArea.size(), 650);
-        AnimationUtils.animateCount(lblStatBienes, totalBienes,             800);
+        AnimationUtils.animateCount(lblStatAreas,  rollup.size(), 650);
+        AnimationUtils.animateCount(lblStatBienes, totalBienes,   800);
 
         java.math.BigDecimal totalValor = productosPorArea.values().stream()
             .flatMap(List::stream)
@@ -165,7 +172,7 @@ public class OrganigramaController {
         });
         pop.play();
 
-        productosPorArea.entrySet().stream()
+        rollup.entrySet().stream()
             .max(Comparator.comparingInt(e -> e.getValue().size()))
             .ifPresentOrElse(
                 e -> {
@@ -177,18 +184,48 @@ public class OrganigramaController {
                 },
                 () -> lblStatTopArea.setText("—"));
 
-        buildAreaDistrib();
+        buildAreaDistrib(rollup);
+    }
+
+    /** Rolls {@link #productosPorArea} (keyed by the literal {@code Producto.area}
+     *  string, which can be either a secretaría or one of its direcciones) up to
+     *  the same top-level grouping the org tree below renders as its sections
+     *  (Presidencia, each Secretaría, Organismos Autónomos) — a parent's own
+     *  bienes combined with all its children's.
+     *  Before this, the stats cards and the "Distribución por Área" chart read
+     *  {@link #productosPorArea} directly, treating a secretaría and each of its
+     *  direcciones as unrelated peers: a secretaría's rollup total shown in its
+     *  tree section header never matched what "ÁREA CON MÁS BIENES" or the Top-5
+     *  chart reported for that same secretaría. */
+    private Map<String, List<Producto>> rollupByTopLevelArea() {
+        Map<String, List<Producto>> rollup = new LinkedHashMap<>();
+
+        List<Producto> presidencia = new ArrayList<>(productosPorArea.getOrDefault(Areas.PRESIDENCIA, List.of()));
+        Areas.DIRECCIONES_PRESIDENCIA.forEach(c -> presidencia.addAll(productosPorArea.getOrDefault(c, List.of())));
+        if (!presidencia.isEmpty()) rollup.put(Areas.PRESIDENCIA, presidencia);
+
+        for (Areas.SecretariaInfo sec : Areas.SECRETARIAS) {
+            List<Producto> combined = new ArrayList<>(productosPorArea.getOrDefault(sec.nombre(), List.of()));
+            sec.direcciones().forEach(c -> combined.addAll(productosPorArea.getOrDefault(c, List.of())));
+            if (!combined.isEmpty()) rollup.put(sec.nombre(), combined);
+        }
+
+        List<Producto> autonomos = new ArrayList<>();
+        Areas.AUTONOMOS.forEach(c -> autonomos.addAll(productosPorArea.getOrDefault(c, List.of())));
+        if (!autonomos.isEmpty()) rollup.put("Organismos Autónomos", autonomos);
+
+        return rollup;
     }
 
     private static final String[] DISTRIB_COLORS = {
         "area-bar-pb-1", "area-bar-pb-2", "area-bar-pb-3", "area-bar-pb-4", "area-bar-pb-5"
     };
 
-    private void buildAreaDistrib() {
+    private void buildAreaDistrib(Map<String, List<Producto>> rollup) {
         if (areaDistribBox == null || areaDistribCard == null) return;
         areaDistribBox.getChildren().clear();
 
-        var sorted = productosPorArea.entrySet().stream()
+        var sorted = rollup.entrySet().stream()
             .sorted((a, b) -> b.getValue().size() - a.getValue().size())
             .toList();
         int top = Math.min(5, sorted.size());
@@ -340,12 +377,6 @@ public class OrganigramaController {
                 p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK);
             if (!hasAlert) return;
         }
-
-        // Áreas sin ningún bien no aportan nada al listado y solo agregan
-        // ruido visual — se omiten salvo que el usuario esté buscando algo
-        // específico (una búsqueda por nombre de área vacía sigue debiendo
-        // encontrarla).
-        if (allAreaProdsCheck.isEmpty() && filter.isBlank()) return;
 
         if (!filter.isBlank()) {
             boolean nameMatch = parentName.toLowerCase().contains(filter)

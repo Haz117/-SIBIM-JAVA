@@ -41,6 +41,7 @@ public class DashboardService {
             var fCatValores   = async(() -> productoRepo.getValorPorCategoria(),      exec);
             var fAgotados     = async(() -> productoRepo.findAgotados(),              exec);
             var fBajoStock    = async(() -> productoRepo.findBajoStock(),             exec);
+            var fProximasRev  = async(() -> productoRepo.findProximasRevisiones(30),  exec);
             var fMovHoy       = async(() -> movimientoRepo.findToday(),               exec);
             var fMovSemana    = async(() -> movimientoRepo.findLastNDays(7),          exec);
             var fMovMensual   = async(() -> movimientoRepo.findMonthlyStats(6),       exec);
@@ -50,7 +51,7 @@ public class DashboardService {
 
             try {
                 CompletableFuture.allOf(
-                    fStats, fCatValores, fAgotados, fBajoStock,
+                    fStats, fCatValores, fAgotados, fBajoStock, fProximasRev,
                     fMovHoy, fMovSemana, fMovMensual, fByArea,
                     fMovsActual, fMovsAnterior).join();
             } catch (CompletionException ce) {
@@ -64,7 +65,7 @@ public class DashboardService {
             log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
                 stats.total(), stats.categorias(), movHoy.size());
             return new Resumen(stats, fCatValores.join(), fAgotados.join(),
-                               fBajoStock.join(), movHoy, fMovSemana.join(), fMovMensual.join(),
+                               fBajoStock.join(), fProximasRev.join(), movHoy, fMovSemana.join(), fMovMensual.join(),
                                fByArea.join(), fMovsActual.join(), fMovsAnterior.join());
         }
     }
@@ -99,11 +100,59 @@ public class DashboardService {
 
     public void invalidateCache() { cacheTimestamp = 0; }
 
+    /** Panel ejecutivo (tesorería/presidencia): % del patrimonio ya
+     *  depreciado y qué bienes cumplen su vida útil este año — a diferencia
+     *  de {@link #cargarResumen}, esto recorre el inventario completo (la
+     *  depreciación se calcula en Java por bien, no hay agregado en SQL), así
+     *  que se calcula bajo demanda en vez de cada 30 s. */
+    public ResumenEjecutivo calcularResumenEjecutivo() throws SQLException {
+        List<Producto> activos = productoRepo.findAll(false);
+        java.math.BigDecimal valorCompraTotal = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal valorDepreciadoTotal = java.math.BigDecimal.ZERO;
+        int conDatosDepreciacion = 0;
+        int finVidaUtilEsteAnio = 0;
+        List<Producto> bienesFinVidaUtil = new java.util.ArrayList<>();
+        int anioActual = java.time.LocalDate.now().getYear();
+
+        for (Producto p : activos) {
+            java.math.BigDecimal valorDep = p.getValorDepreciado();
+            if (valorDep == null) continue;
+            conDatosDepreciacion++;
+            valorCompraTotal = valorCompraTotal.add(p.getPrecioCompra());
+            valorDepreciadoTotal = valorDepreciadoTotal.add(valorDep);
+
+            java.time.LocalDate finVidaUtil = p.getFechaAdquisicion().plusYears(p.getVidaUtilAnios());
+            if (finVidaUtil.getYear() == anioActual) {
+                finVidaUtilEsteAnio++;
+                bienesFinVidaUtil.add(p);
+            }
+        }
+
+        double porcentajeDepreciado = valorCompraTotal.signum() > 0
+            ? valorCompraTotal.subtract(valorDepreciadoTotal)
+                .divide(valorCompraTotal, 4, java.math.RoundingMode.HALF_UP)
+                .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+            : 0.0;
+
+        return new ResumenEjecutivo(activos.size(), conDatosDepreciacion, valorCompraTotal,
+            valorDepreciadoTotal, porcentajeDepreciado, finVidaUtilEsteAnio, bienesFinVidaUtil);
+    }
+
+    public record ResumenEjecutivo(
+            int totalBienes,
+            int bienesConDatosDepreciacion,
+            java.math.BigDecimal valorCompraTotal,
+            java.math.BigDecimal valorDepreciadoTotal,
+            double porcentajeDepreciado,
+            int bienesFinVidaUtilEsteAnio,
+            List<Producto> bienesFinVidaUtil) {}
+
     public record Resumen(
             ProductoRepository.ProductoStats stats,
             List<ProductoRepository.CategoriaValor> catValores,
             List<Producto> agotados,
             List<Producto> bajoStock,
+            List<Producto> proximasRevisiones,
             List<Movimiento> movHoy,
             List<Movimiento> movSemana,
             List<MovimientoRepository.MonthlyStats> movMensual,

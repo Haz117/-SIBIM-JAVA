@@ -37,11 +37,13 @@ public class BackupServiceAuthorizationTest {
         tempFile = new File(System.getProperty("java.io.tmpdir"), "backup_test.json");
     }
 
+    private static final char[] TEST_PASSWORD = "test-password-123".toCharArray();
+
     @Test
     public void testBackup_RequiresAdmin() throws SQLException {
         SessionManager.setCurrentUser(secretarioUser);
         assertThrows(SecurityException.class,
-            () -> service.backup(tempFile),
+            () -> service.backup(tempFile, TEST_PASSWORD),
             "Un Secretario no puede ejecutar backup");
     }
 
@@ -49,7 +51,7 @@ public class BackupServiceAuthorizationTest {
     public void testRestore_RequiresAdmin() throws SQLException {
         SessionManager.setCurrentUser(secretarioUser);
         assertThrows(SecurityException.class,
-            () -> service.restore(tempFile),
+            () -> service.restore(tempFile, TEST_PASSWORD),
             "Un Secretario no puede ejecutar restore");
     }
 
@@ -58,7 +60,7 @@ public class BackupServiceAuthorizationTest {
         SessionManager.setCurrentUser(adminUser);
         // El guard de autorización debe pasar; IOException/SQLException por BD offline son aceptables.
         try {
-            service.backup(tempFile);
+            service.backup(tempFile, TEST_PASSWORD);
         } catch (SecurityException e) {
             fail("Un Admin no debe recibir SecurityException: " + e.getMessage());
         } catch (Exception ignored) {}
@@ -68,7 +70,7 @@ public class BackupServiceAuthorizationTest {
     public void testRestore_AllowsAdmin() {
         SessionManager.setCurrentUser(adminUser);
         try {
-            service.restore(tempFile);
+            service.restore(tempFile, TEST_PASSWORD);
         } catch (SecurityException e) {
             fail("Un Admin no debe recibir SecurityException: " + e.getMessage());
         } catch (Exception ignored) {}

@@ -72,6 +72,7 @@ public class ConfirmacionUtil {
 
         VBox root = new VBox(content, motivoBox);
         dialog.getDialogPane().setContent(root);
+        AnimationUtils.springIn(root);
 
         Node confirmBtn = dialog.getDialogPane().lookupButton(btnConfirm);
         if (confirmBtn != null) {
@@ -131,6 +132,7 @@ public class ConfirmacionUtil {
         content.setPadding(new Insets(22, 22, 16, 22));
 
         dialog.getDialogPane().setContent(content);
+        AnimationUtils.springIn(content);
 
         Node confirmBtn = dialog.getDialogPane().lookupButton(btnConfirm);
         if (confirmBtn != null) {

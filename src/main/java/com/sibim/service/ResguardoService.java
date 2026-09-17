@@ -18,8 +18,10 @@ import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.layout.element.Image;
 import com.sibim.model.Resguardo;
 import com.sibim.model.ResguardoItem;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.ResguardoRepository;
+import com.sibim.session.SessionManager;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.QrUtils;
 
@@ -35,11 +37,13 @@ public class ResguardoService {
 
     private final ResguardoRepository repo;
     private final ConfiguracionRepository configRepo;
+    private final AuditLogRepository auditRepo;
 
-    public ResguardoService() { this(new ResguardoRepository(), new ConfiguracionRepository()); }
-    ResguardoService(ResguardoRepository repo, ConfiguracionRepository configRepo) {
+    public ResguardoService() { this(new ResguardoRepository(), new ConfiguracionRepository(), new AuditLogRepository()); }
+    ResguardoService(ResguardoRepository repo, ConfiguracionRepository configRepo, AuditLogRepository auditRepo) {
         this.repo = repo;
         this.configRepo = configRepo;
+        this.auditRepo = auditRepo;
     }
 
     private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(76, 29, 149);
@@ -64,10 +68,21 @@ public class ResguardoService {
         r.setResguardanteArea(resguardanteArea != null ? resguardanteArea.trim() : null);
         r.setObservaciones(observaciones != null ? observaciones.trim() : null);
         r.setItems(items);
-        return repo.save(r);
+        Resguardo saved = repo.save(r);
+        auditRepo.log("resguardo", saved.getId(), saved.getResguardanteNombre(), "crear",
+            "Resguardo " + saved.getNumero() + " · " + items.size()
+                + (items.size() == 1 ? " bien" : " bienes")
+                + (resguardanteArea != null && !resguardanteArea.isBlank() ? " · Área: " + resguardanteArea.trim() : ""));
+        return saved;
     }
 
-    public void cancelar(String id) throws SQLException { repo.cancelar(id); }
+    public void cancelar(String id) throws SQLException {
+        Resguardo r = repo.findById(id);
+        repo.cancelar(id);
+        if (r != null)
+            auditRepo.log("resguardo", id, r.getResguardanteNombre(), "cancelar",
+                "Resguardo " + r.getNumero() + " cancelado");
+    }
 
     public java.util.List<Resguardo> getByProductoId(String productoId) throws java.sql.SQLException {
         return repo.findByProductoId(productoId);

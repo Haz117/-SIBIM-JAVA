@@ -117,7 +117,7 @@ public class MovimientoService {
         if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
         Producto producto = opt.get();
 
-        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(producto.getArea()))
+        if (!SessionManager.isAreaAccessible(producto.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
 
         if (tipo == TipoMovimiento.AJUSTE) {

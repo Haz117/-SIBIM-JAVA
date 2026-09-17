@@ -51,8 +51,8 @@ class AuditLogRepositoryIntegrationTest extends IntegrationTestBase {
     void findPaginated_offset_paginaCorrectamente() throws SQLException {
         for (int i = 0; i < 4; i++) repo.logOnline(buildEntry("Movimiento", "CREAR-" + i));
 
-        List<AuditLog> pag1 = repo.findPaginated(2, 0, null, null, null, null, null);
-        List<AuditLog> pag2 = repo.findPaginated(2, 2, null, null, null, null, null);
+        List<AuditLog> pag1 = repo.findPaginated(2, 0, null, null, null, null, null, null);
+        List<AuditLog> pag2 = repo.findPaginated(2, 2, null, null, null, null, null, null);
 
         assertEquals(2, pag1.size(), "primera página debe tener 2 registros");
         assertEquals(2, pag2.size(), "segunda página debe tener 2 registros");
@@ -65,7 +65,7 @@ class AuditLogRepositoryIntegrationTest extends IntegrationTestBase {
         repo.logOnline(buildEntry("Usuario", "EDITAR"));
         repo.logOnline(buildEntry("Usuario", "ELIMINAR"));
 
-        int total = repo.countFiltrado(null, null, null, null, null);
+        int total = repo.countFiltrado(null, null, null, null, null, null);
         assertEquals(3, total);
     }
 
@@ -75,8 +75,8 @@ class AuditLogRepositoryIntegrationTest extends IntegrationTestBase {
         repo.logOnline(buildEntry("Producto", "EDITAR"));
         repo.logOnline(buildEntry("Movimiento", "CREAR"));
 
-        int countProducto   = repo.countFiltrado(null, "Producto",   null, null, null);
-        int countMovimiento = repo.countFiltrado(null, "Movimiento", null, null, null);
+        int countProducto   = repo.countFiltrado(null, "Producto",   null, null, null, null);
+        int countMovimiento = repo.countFiltrado(null, "Movimiento", null, null, null, null);
 
         assertEquals(2, countProducto,   "debe contar solo entradas de entidad=Producto");
         assertEquals(1, countMovimiento, "debe contar solo entradas de entidad=Movimiento");
@@ -88,7 +88,7 @@ class AuditLogRepositoryIntegrationTest extends IntegrationTestBase {
         repo.logOnline(buildEntry("Categoria", "EDITAR"));
         repo.logOnline(buildEntry("Reporte",   "EXPORTAR"));
 
-        List<AuditLog> result = repo.findPaginated(10, 0, null, "Categoria", null, null, null);
+        List<AuditLog> result = repo.findPaginated(10, 0, null, "Categoria", null, null, null, null);
 
         assertEquals(2, result.size());
         assertTrue(result.stream().allMatch(a -> "Categoria".equals(a.getEntidad())));

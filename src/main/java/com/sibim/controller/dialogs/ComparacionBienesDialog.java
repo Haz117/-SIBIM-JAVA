@@ -84,6 +84,8 @@ public final class ComparacionBienesDialog {
         content.setPadding(new Insets(0, 18, 0, 18));
         VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
         dlg.getDialogPane().setContent(content);
+        com.sibim.util.AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(header, summaryBar, table), 260, 60);
         dlg.showAndWait();
     }
 

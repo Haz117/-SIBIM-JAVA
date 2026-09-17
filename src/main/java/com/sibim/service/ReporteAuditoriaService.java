@@ -7,8 +7,13 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Table;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -54,6 +59,30 @@ public class ReporteAuditoriaService extends ReporteService {
                     esc(l.getDetalle()), l.getCreadoEn() != null
                         ? FormatUtils.formatDateTime(l.getCreadoEn()) : "");
             }
+        }
+        return file;
+    }
+
+    public File exportAuditoriaExcel(List<AuditLog> logs) throws Exception {
+        if (logs.isEmpty()) return null;
+        String[] headers = {"Entidad", "Nombre", "Acción", "Usuario", "Detalle", "Fecha"};
+        File file = tempFile("auditoria", ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = createSheet(wb, "Auditoría");
+            writeHeader(sheet, headers, wb);
+            int row = 1;
+            for (AuditLog l : logs) {
+                Row r = sheet.createRow(row++);
+                r.createCell(0).setCellValue(l.getEntidad() != null ? l.getEntidad() : "");
+                r.createCell(1).setCellValue(l.getEntidadNombre() != null ? l.getEntidadNombre() : "");
+                r.createCell(2).setCellValue(l.getAccion() != null ? l.getAccion() : "");
+                r.createCell(3).setCellValue(l.getUsuarioNombre() != null ? l.getUsuarioNombre() : "");
+                r.createCell(4).setCellValue(l.getDetalle() != null ? l.getDetalle() : "");
+                r.createCell(5).setCellValue(l.getCreadoEn() != null ? FormatUtils.formatDateTime(l.getCreadoEn()) : "");
+            }
+            autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Registro de Auditoría", null, null);
+            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
     }

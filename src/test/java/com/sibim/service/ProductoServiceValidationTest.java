@@ -53,7 +53,10 @@ class ProductoServiceValidationTest {
 
     @Test
     void save_nullCodigo_throwsValidation() {
+        // El código solo se valida a mano al editar — en alta se asigna
+        // automático por área (ver ProductoService#asignarCodigo).
         Producto p = validProducto();
+        p.setId("p-existing");
         p.setCodigo(null);
         var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
         assertTrue(ex.getMessage().contains("codigo") || ex.getMessage().contains("código"));

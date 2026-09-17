@@ -28,15 +28,22 @@ public final class DemoDataStore {
     private static final LinkedList<ConteoFisico> CONTEOS   = new LinkedList<>();
 
     // ── Constantes de área ────────────────────────────────────────────────────
-    private static final String SGM   = "Secretaría General Municipal";
-    private static final String RH    = "Dirección de Recursos Humanos";
-    private static final String ADM   = "Dirección de Administración";
-    private static final String BM    = "Dirección de Bienes Municipales";
-    private static final String OBRAS = "Secretaría de Obras Públicas y Desarrollo Urbano";
-    private static final String PLAN  = "Secretaría de Planeación y Evaluación";
-    private static final String FIN   = "Secretaría de Finanzas y Tesorería Municipal";
-    private static final String SEG   = "Secretaría de Seguridad Pública Municipal";
-    private static final String PRES  = "Despacho de la Presidencia";
+    // Referencian las constantes de Areas (sin acentos) en vez de repetir el
+    // texto con acentos: estas cadenas antes eran copias propias con
+    // ortografía "correcta" que nunca coincidían con Areas.SECRETARIAS/
+    // DIRECCIONES_* (que sí llevan los nombres oficiales sin acentos) — el
+    // organigrama agrupa por esos nombres exactos, así que cada producto
+    // sembrado aquí quedaba invisible en su sección de secretaría/dirección
+    // (solo "Despacho de la Presidencia" coincidía por casualidad).
+    private static final String SGM   = com.sibim.config.Areas.SECRETARIAS.get(0).nombre();                  // Secretaria General Municipal
+    private static final String RH    = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(0);       // Direccion de Recursos Humanos
+    private static final String ADM   = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(1);       // Direccion de Administracion
+    private static final String BM    = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(5);       // Direccion de Bienes Municipales
+    private static final String OBRAS = com.sibim.config.Areas.SECRETARIAS.get(2).nombre();                   // Secretaria de Obras Publicas y Desarrollo Urbano
+    private static final String PLAN  = com.sibim.config.Areas.SECRETARIAS.get(3).nombre();                   // Secretaria de Planeacion y Evaluacion
+    private static final String FIN   = com.sibim.config.Areas.SECRETARIAS.get(1).nombre();                   // Secretaria de Tesoreria Municipal
+    private static final String SEG   = com.sibim.config.Areas.SECRETARIAS.get(6).nombre();                   // Secretaria de Seguridad Publica Municipal
+    private static final String PRES  = com.sibim.config.Areas.PRESIDENCIA;                                   // Despacho de la Presidencia
 
     // Hash BCrypt de "admin123456" (factor 12) — solo para demo; la autenticación
     // real usa DEMO_PASSWORDS abajo.
@@ -573,6 +580,7 @@ public final class DemoDataStore {
     public static boolean existsByCodigo(String codigo, String excludeId) {
         return PRODUCTOS.stream()
             .anyMatch(p -> p.getCodigo().equalsIgnoreCase(codigo)
+                       && !p.isDadoDeBaja()
                        && !p.getId().equals(excludeId != null ? excludeId : ""));
     }
 

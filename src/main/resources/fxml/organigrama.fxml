@@ -20,6 +20,11 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24"
                            visible="false" managed="false"/>
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Recargar distribución de bienes por área (F5)"/></tooltip>
+        </Button>
         <Button text="Exportar PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
@@ -30,12 +35,18 @@
             <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar listado de bienes por área a CSV (Excel compatible)" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Recargar distribución de bienes por área (F5)"/></tooltip>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen y la gráfica para dar más espacio al organigrama" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen y la gráfica para darle más espacio al árbol de áreas — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
     </HBox>
+
+    <!-- ══ RESUMEN (tarjetas + gráfica) — colapsable ═══════════════════ -->
+    <VBox fx:id="resumenBox" spacing="12">
 
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
     <HBox spacing="12">
@@ -118,6 +129,8 @@
             <Label text="Top 5 áreas por cantidad de bienes" styleClass="muted"/>
         </HBox>
         <VBox fx:id="areaDistribBox" spacing="10"/>
+    </VBox>
+
     </VBox>
 
     <!-- ══ SEARCH BAR ════════════════════════════════════════════════ -->

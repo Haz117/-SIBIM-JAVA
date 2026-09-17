@@ -45,6 +45,7 @@ public class DashboardController {
     @FXML private Label lblAlertBannerText;
     @FXML private Label  lblStatsActualizacion;
     @FXML private javafx.scene.control.Button btnRefreshDash;
+    @FXML private javafx.scene.control.Button btnPanelEjecutivo;
 
     // ── Help badges ("?") ────────────────────────────────────────────
     @FXML private Label helpStats;
@@ -158,6 +159,14 @@ public class DashboardController {
             if (cardNuevaEntrada != null) { cardNuevaEntrada.setVisible(false); cardNuevaEntrada.setManaged(false); }
         }
 
+        // Panel ejecutivo (depreciación patrimonial) es información financiera
+        // sensible — igual que Auditoría, solo para administradores.
+        if (btnPanelEjecutivo != null) {
+            boolean isAdmin = SessionManager.isAdmin();
+            btnPanelEjecutivo.setVisible(isAdmin);
+            btnPanelEjecutivo.setManaged(isAdmin);
+        }
+
         // Operaciones row starts invisible — fades in after async data loads
         if (operacionesRow != null) operacionesRow.setOpacity(0);
 
@@ -236,13 +245,16 @@ public class DashboardController {
             AnimationUtils.pulse(lblStatsActualizacion, 2);
         }
 
-        boolean showAlert = stats.agotados() > 0 || stats.bajoStock() > 0;
+        int proximasRevisiones = data.proximasRevisiones().size();
+        boolean showAlert = stats.agotados() > 0 || stats.bajoStock() > 0 || proximasRevisiones > 0;
         if (showAlert && lblAlertBannerText != null) {
             java.util.List<String> parts = new java.util.ArrayList<>();
             if (stats.agotados() > 0)
                 parts.add(stats.agotados() + " agotado" + (stats.agotados() != 1 ? "s" : ""));
             if (stats.bajoStock() > 0)
                 parts.add(stats.bajoStock() + " con bajo stock");
+            if (proximasRevisiones > 0)
+                parts.add(proximasRevisiones + " con revisión próxima");
             lblAlertBannerText.setText(String.join("  ·  ", parts) + " — requieren atención");
         }
         alertBanner.setVisible(showAlert);
@@ -600,6 +612,11 @@ public class DashboardController {
                     "No se pudo generar el PDF del dashboard");
             }
         );
+    }
+
+    @FXML
+    private void onPanelEjecutivo() {
+        com.sibim.controller.dialogs.PanelEjecutivoDialog.show(statsGrid.getScene(), dashboardService);
     }
 
     public void stopAutoRefresh() {

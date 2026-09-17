@@ -135,6 +135,7 @@ public class EmailService {
     }
 
     public void enviarResumenSemanal(List<Producto> agotados, List<Producto> bajoStock,
+                                      List<Producto> proximasRevisiones,
                                       List<Prestamo> prestamosVencidos, List<Prestamo> prestamosActivos,
                                       List<com.sibim.model.Resguardo> resguardosActivos,
                                       int totalMovimientos) {
@@ -200,7 +201,16 @@ public class EmailService {
                         .append("</b> — stock: ").append(p.getStockActual()).append("</li>");
                 html.append("</ul>");
             }
-            if (prestamosVencidos.isEmpty() && agotados.isEmpty() && bajoStock.isEmpty())
+            if (!proximasRevisiones.isEmpty()) {
+                html.append("<h3 style='color:#0891B2;font-size:13px;margin:12px 0 6px'>REVISIONES PRÓXIMAS (")
+                    .append(proximasRevisiones.size()).append(")</h3><ul style='margin:0;padding-left:18px'>");
+                for (Producto p : proximasRevisiones)
+                    html.append("<li style='font-size:12px;margin-bottom:3px'><b>").append(p.getNombre())
+                        .append("</b> — ").append(p.getProximaRevision() != null
+                            ? p.getProximaRevision().format(fmt) : "—").append("</li>");
+                html.append("</ul>");
+            }
+            if (prestamosVencidos.isEmpty() && agotados.isEmpty() && bajoStock.isEmpty() && proximasRevisiones.isEmpty())
                 html.append("<p style='color:#059669;font-size:13px'>&#10003; Sin alertas pendientes esta semana.</p>");
 
             html.append("</div><div style='background:#F1F5F9;padding:10px 24px;font-size:11px;color:#94A3B8;border-radius:0 0 8px 8px'>")

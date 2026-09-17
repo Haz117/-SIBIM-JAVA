@@ -31,6 +31,7 @@ public class CategoriasController {
     @FXML private VBox rootPane;
     @FXML private TextField searchField;
     @FXML private TableView<Categoria> table;
+    @FXML private Button btnResetColumns;
     @FXML private TableColumn<Categoria, String> colNombre;
     @FXML private TableColumn<Categoria, String> colDescripcion;
     @FXML private TableColumn<Categoria, String> colColor;
@@ -52,6 +53,9 @@ public class CategoriasController {
     @FXML private Label helpStatTotal;
     @FXML private Label helpStatClasificados;
     @FXML private Label helpStatTop;
+    @FXML private VBox resumenBox;
+    @FXML private Button btnToggleResumen;
+    @FXML private Label helpResumen;
 
     private static final java.util.prefs.Preferences STICKY =
         java.util.prefs.Preferences.userRoot().node("sibim/filters/categorias");
@@ -64,9 +68,12 @@ public class CategoriasController {
     @FXML
     public void initialize() {
         setupTable();
-        for (Label badge : new Label[]{ helpCategorias, helpStatTotal, helpStatClasificados, helpStatTop }) {
+        for (Label badge : new Label[]{ helpCategorias, helpStatTotal, helpStatClasificados, helpStatTop, helpResumen }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible("categorias.resumen.colapsado", btnToggleResumen, resumenBox,
+                "Mostrar resumen", "Ocultar resumen");
 
         boolean isAdmin = SessionManager.isAdmin();
         btnNueva.setVisible(isAdmin);    btnNueva.setManaged(isAdmin);
@@ -229,6 +236,7 @@ public class CategoriasController {
                 }
             }
         });
+        DialogUtil.setupColumnReset(table, btnResetColumns, STICKY);
         DialogUtil.persistTableSort(table, STICKY, "sort");
         DialogUtil.persistColumnWidths(table, STICKY, "colW");
     }

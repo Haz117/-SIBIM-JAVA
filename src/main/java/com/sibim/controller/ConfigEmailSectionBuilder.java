@@ -100,6 +100,8 @@ class ConfigEmailSectionBuilder {
                 configRepo.set("smtp_usuario",           tfSmtpUser.getText().strip());
                 configRepo.set("smtp_password",          tfSmtpPass.getText());
                 configRepo.set("alertas_correo_destino", tfDest.getText().strip());
+                new com.sibim.repository.AuditLogRepository().log("configuracion", "email", "Correo y SMTP",
+                    "actualizar", "Configuración de alertas por correo actualizada");
                 return null;
             }, v -> NotificacionUtil.exito(scene, "Configuración de email guardada"),
                e -> NotificacionUtil.error(scene, "No se pudo guardar la configuración de email"));

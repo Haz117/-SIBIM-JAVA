@@ -481,25 +481,27 @@ public class MovimientoRepository {
      *  two concurrent online users. */
     public Movimiento addMovimientoAtomicOnline(Movimiento m, Integer expectedStockAnterior) throws SQLException {
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
-        String lockProducto = "SELECT stock_actual, area FROM products WHERE id = ? FOR UPDATE";
+        String lockProducto = "SELECT stock_actual, area, codigo FROM products WHERE id = ? FOR UPDATE";
         String insertMov = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
                 area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
-        String updateProducto = "UPDATE products SET stock_actual = ?, area = ?, updated_at = NOW() WHERE id = ?";
+        String updateProducto = "UPDATE products SET stock_actual = ?, area = ?, codigo = ?, updated_at = NOW() WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 int stockActual;
                 String areaActual;
+                String codigoActual;
                 try (PreparedStatement ps = conn.prepareStatement(lockProducto)) {
                     ps.setString(1, m.getProductoId());
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) throw new SQLException("Producto no encontrado: " + m.getProductoId());
                         stockActual = rs.getInt("stock_actual");
                         areaActual = rs.getString("area");
+                        codigoActual = rs.getString("codigo");
                     }
                 }
 
@@ -519,6 +521,11 @@ public class MovimientoRepository {
                 boolean esTransferencia = m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null;
                 String areaNueva = esTransferencia ? m.getAreaDestino() : areaActual;
                 if (esTransferencia) m.setAreaOrigen(areaActual);
+                // Reasigna el código de nomenclatura por área en cada transferencia —
+                // el número que deja libre en el área de origen queda disponible para
+                // el siguiente bien nuevo ahí (ver com.sibim.config.AreaCodigos).
+                String codigoNuevo = (esTransferencia && com.sibim.config.AreaCodigos.tienePrefijo(areaNueva))
+                    ? siguienteCodigo(conn, areaNueva) : codigoActual;
 
                 try (PreparedStatement ps = conn.prepareStatement(insertMov)) {
                     ps.setString(1, m.getId());
@@ -540,7 +547,8 @@ public class MovimientoRepository {
                 try (PreparedStatement ps = conn.prepareStatement(updateProducto)) {
                     ps.setInt(1, m.getStockNuevo());
                     ps.setString(2, areaNueva);
-                    ps.setString(3, m.getProductoId());
+                    ps.setString(3, codigoNuevo);
+                    ps.setString(4, m.getProductoId());
                     ps.executeUpdate();
                 }
                 conn.commit();
@@ -552,6 +560,28 @@ public class MovimientoRepository {
             }
         }
         return m;
+    }
+
+    /** Menor número positivo no usado por ningún bien activo con el prefijo
+     *  de {@code area}, calculado dentro de la transacción/conexión dada —
+     *  ver ProductoService#asignarCodigo para la misma lógica fuera de una
+     *  transacción explícita. */
+    private static String siguienteCodigo(Connection conn, String area) throws SQLException {
+        String prefijo = com.sibim.config.AreaCodigos.prefijo(area);
+        java.util.Set<Integer> usados = new java.util.HashSet<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT codigo FROM products WHERE codigo LIKE ? AND fecha_baja IS NULL")) {
+            ps.setString(1, prefijo + "/%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    try { usados.add(Integer.parseInt(rs.getString("codigo").substring(prefijo.length() + 1))); }
+                    catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        int numero = 1;
+        while (usados.contains(numero)) numero++;
+        return prefijo + "/" + String.format("%02d", numero);
     }
 
     /**
@@ -582,7 +612,8 @@ public class MovimientoRepository {
         String getMov = "SELECT producto_id, stock_anterior, stock_nuevo, area_origen FROM movements WHERE id = ?";
         String lockProduct = "SELECT stock_actual FROM products WHERE id = ? FOR UPDATE";
         String deleteMov = "DELETE FROM movements WHERE id = ?";
-        String restoreProducto = "UPDATE products SET stock_actual = ?, area = COALESCE(?, area), updated_at = NOW() WHERE id = ?";
+        String restoreProducto = "UPDATE products SET stock_actual = ?, area = COALESCE(?, area), " +
+            "codigo = COALESCE(?, codigo), updated_at = NOW() WHERE id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
@@ -610,10 +641,17 @@ public class MovimientoRepository {
                     ps.setString(1, movimientoId);
                     ps.executeUpdate();
                 }
+                // areaOrigen is only set when the deleted movement was a
+                // transferencia — recompute a fresh código for that área the
+                // same way as everywhere else, since its old número there may
+                // have since been claimed by a different bien.
+                String codigoRestaurado = (areaOrigen != null && com.sibim.config.AreaCodigos.tienePrefijo(areaOrigen))
+                    ? siguienteCodigo(conn, areaOrigen) : null;
                 try (PreparedStatement ps = conn.prepareStatement(restoreProducto)) {
                     ps.setInt(1, currentStock + delta);
                     ps.setString(2, areaOrigen);
-                    ps.setString(3, productoId);
+                    ps.setString(3, codigoRestaurado);
+                    ps.setString(4, productoId);
                     ps.executeUpdate();
                 }
                 conn.commit();

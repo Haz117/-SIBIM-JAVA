@@ -41,8 +41,22 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recalcular alertas (auto-refresca cada 5 min)"/></tooltip>
         </Button>
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Restaurar columnas de las 4 tablas (agotados, stock bajo, garantías y mantenimiento) a su configuración original"
+                              wrapText="true" maxWidth="270"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a las secciones de abajo" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a las secciones de abajo — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
     </HBox>
 
+    <VBox fx:id="resumenBox" spacing="20">
     <!-- ══ RESUMEN RÁPIDO ═══════════════════════════════════════════ -->
     <HBox spacing="12">
         <VBox fx:id="statCardAgotados" styleClass="status-mini-card status-mini-card-red"
@@ -83,6 +97,7 @@
                          styleClass="status-pb status-pb-violet"/>
         </VBox>
     </HBox>
+    </VBox>
 
     <!-- ══ BARRA DE BÚSQUEDA ════════════════════════════════════════ -->
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-danger">
@@ -110,7 +125,7 @@
     <!-- ══ BIENES AGOTADOS ═══════════════════════════════════════════ -->
     <VBox fx:id="sectionAgotados" styleClass="alert-section alert-danger" spacing="0">
         <!-- Header gradiente -->
-        <HBox styleClass="alert-header-danger" alignment="CENTER_LEFT" spacing="12">
+        <HBox fx:id="headerAgotados" styleClass="alert-header-danger" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Bienes Agotados" styleClass="alert-section-title-inv"/>
@@ -121,9 +136,10 @@
                 <tooltip><Tooltip text="Bienes activos con stock actual en 0. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="250"/></tooltip>
             </Label>
             <Label fx:id="lblAgotadosCount" styleClass="badge-count-inv"/>
+            <FontIcon fx:id="chevronAgotados" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
         </HBox>
 
-        <VBox spacing="10">
+        <VBox fx:id="contentAgotados" spacing="10">
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <TableView fx:id="tableAgotados" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
@@ -157,7 +173,7 @@
 
     <!-- ══ EXISTENCIAS BAJAS ══════════════════════════════════════════ -->
     <VBox fx:id="sectionBajoStock" styleClass="alert-section alert-warning" spacing="0">
-        <HBox styleClass="alert-header-warning" alignment="CENTER_LEFT" spacing="12">
+        <HBox fx:id="headerBajoStock" styleClass="alert-header-warning" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="alert-section-icon-white"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Existencias Bajas" styleClass="alert-section-title-inv"/>
@@ -168,9 +184,10 @@
                 <tooltip><Tooltip text="Bienes activos cuyo stock actual está por debajo del stock mínimo configurado (pero aún no en 0). Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
             </Label>
             <Label fx:id="lblBajoStockCount" styleClass="badge-count-inv"/>
+            <FontIcon fx:id="chevronBajoStock" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
         </HBox>
 
-        <VBox spacing="10">
+        <VBox fx:id="contentBajoStock" spacing="10">
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <TableView fx:id="tableBajoStock" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
@@ -200,7 +217,7 @@
 
     <!-- ══ GARANTÍAS POR VENCER ═══════════════════════════════════════ -->
     <VBox fx:id="sectionGarantias" styleClass="alert-section alert-info" spacing="0">
-        <HBox styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
+        <HBox fx:id="headerGarantias" styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
                 <Label text="Garantías por Vencer" styleClass="alert-section-title-inv"/>
@@ -211,9 +228,10 @@
                 <tooltip><Tooltip text="Bienes cuya garantía ya venció, o vence dentro de los próximos 30 días. La columna &quot;Días Restantes&quot; indica cuál es cuál. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
             </Label>
             <Label fx:id="lblGarantiasCount" styleClass="badge-count-inv"/>
+            <FontIcon fx:id="chevronGarantias" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
         </HBox>
 
-        <VBox spacing="10">
+        <VBox fx:id="contentGarantias" spacing="10">
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <TableView fx:id="tableGarantias" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
@@ -234,15 +252,21 @@
 
     <!-- ══════════════ Mantenimiento próximo ══════════════ -->
     <VBox fx:id="sectionMantenimiento" styleClass="alert-section alert-info" spacing="0">
-        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="alert-section-header alert-header-blue">
-            <padding><Insets top="12" right="16" bottom="12" left="16"/></padding>
-            <FontIcon iconLiteral="mdi2w-wrench-outline" iconSize="18" styleClass="alert-section-icon"/>
-            <Label text="Mantenimiento Próximo" styleClass="alert-section-title"/>
-            <Label fx:id="lblMantenimientoCount" text="0 bienes" styleClass="alert-count-badge"/>
-            <Region HBox.hgrow="ALWAYS"/>
+        <HBox fx:id="headerMantenimiento" styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
+            <FontIcon iconLiteral="mdi2w-wrench-outline" styleClass="alert-section-icon"/>
+            <VBox HBox.hgrow="ALWAYS" spacing="1">
+                <Label text="Mantenimiento Próximo" styleClass="alert-section-title-inv"/>
+                <Label text="Revisiones de mantenimiento programadas en los próximos 30 días"
+                       styleClass="alert-section-subtitle"/>
+            </VBox>
+            <Label fx:id="helpMantenimiento" text="?" styleClass="help-badge-inv">
+                <tooltip><Tooltip text="Bienes con una revisión de mantenimiento programada dentro de los próximos 30 días." wrapText="true" maxWidth="250"/></tooltip>
+            </Label>
+            <Label fx:id="lblMantenimientoCount" text="0 bienes" styleClass="badge-count-inv"/>
+            <FontIcon fx:id="chevronMantenimiento" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
         </HBox>
-        <VBox>
-            <padding><Insets top="8" right="12" bottom="12" left="12"/></padding>
+        <VBox fx:id="contentMantenimiento" spacing="10">
+            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <TableView fx:id="tableMantenimiento" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
                     <TableColumn fx:id="colMantNombre"  text="Nombre"            prefWidth="200" sortable="true"/>

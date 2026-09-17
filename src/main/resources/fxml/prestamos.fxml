@@ -23,9 +23,18 @@
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
         </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <Button fx:id="btnNuevo" text="＋ Nuevo Préstamo" onAction="#onNuevoPrestamo" styleClass="btn-primary"/>
     </HBox>
 
+    <VBox fx:id="resumenBox" spacing="12">
     <!-- ══ STAT CARDS ══════════════════════════════════════════════ -->
     <HBox spacing="12">
         <VBox fx:id="statCardActivos" styleClass="rich-stat-card, rich-stat-teal"
@@ -77,6 +86,7 @@
             <Label text="préstamos registrados" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
+    </VBox>
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
@@ -95,9 +105,9 @@
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2m-microsoft-excel" styleClass="btn-icon"/></graphic>
         </Button>
-        <ToggleButton fx:id="btnKanban" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+        <ToggleButton fx:id="btnKanban" text="Vista Kanban" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2v-view-column-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Vista Kanban — ver préstamos por columnas de estado"/></tooltip>
+            <tooltip><Tooltip text="Ver préstamos por columnas de estado (Activos / Vencidos / Devueltos)" wrapText="true" maxWidth="240"/></tooltip>
         </ToggleButton>
     </HBox>
 

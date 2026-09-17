@@ -58,16 +58,10 @@ public final class DatabaseConfig {
         String url      = getEnv(dotenv, "DB_URL", "jdbc:postgresql://localhost:5432/sibim");
         String user     = getEnv(dotenv, "DB_USER", "postgres");
         String password = getEnv(dotenv, "DB_PASSWORD", "");
+        boolean isRemote = isRemoteUrl(url);
+        boolean bypass   = "true".equalsIgnoreCase(getEnv(dotenv, "DB_SSL_BYPASS", "false"));
 
-        // A blank password only works if the server trusts the connection
-        // unconditionally (pg_hba.conf "trust") — fine for local dev, a real
-        // misconfiguration risk in production. Make it loud instead of
-        // silently connecting with no client-side credential.
-        if (password.isBlank()) {
-            log.warn("DB_PASSWORD no está configurada (.env o variable de entorno) — "
-                + "conectando sin contraseña. Solo seguro si pg_hba.conf usa 'trust'. "
-                + "No dejes esto así en producción.");
-        }
+        enforcePasswordPolicy(url, isRemote, password.isBlank(), bypass);
 
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(url);
@@ -85,8 +79,6 @@ public final class DatabaseConfig {
         config.addDataSourceProperty("preparedStatementCacheQueries", "25");
         config.addDataSourceProperty("socketTimeout", "30");
 
-        boolean isRemote = isRemoteUrl(url);
-        boolean bypass   = "true".equalsIgnoreCase(getEnv(dotenv, "DB_SSL_BYPASS", "false"));
         // Remote connections default to "require"; local connections to "prefer".
         String sslMode = resolveSslMode(getEnv(dotenv, "DB_SSL_MODE", null), isRemote);
         enforceSslPolicy(url, sslMode, isRemote, bypass);
@@ -135,6 +127,30 @@ public final class DatabaseConfig {
     static String resolveSslMode(String explicitMode, boolean isRemote) {
         if (explicitMode != null && !explicitMode.isBlank()) return explicitMode;
         return isRemote ? "require" : "prefer";
+    }
+
+    /**
+     * Enforces a non-blank DB_PASSWORD for remote connections.
+     * Remote + blank password + no bypass → throws (blocks startup): anyone who
+     * reaches the host connects with no credential at all.
+     * Remote + blank password + DB_SSL_BYPASS=true → warns and continues (dev escape hatch,
+     * shared with enforceSslPolicy since both guard the same class of mistake).
+     * Local connections only warn — a blank password there just means pg_hba.conf trusts
+     * the client outright, which is a normal local-dev setup.
+     */
+    static void enforcePasswordPolicy(String url, boolean isRemote, boolean passwordBlank, boolean bypass) {
+        if (!passwordBlank) return;
+        if (!isRemote) {
+            log.warn("DB_PASSWORD no está configurada (.env o variable de entorno) — "
+                + "conectando sin contraseña. Solo seguro si pg_hba.conf usa 'trust'. "
+                + "No dejes esto así en producción.");
+            return;
+        }
+        String msg = "BLOQUEADO: conexión remota (" + url + ") sin DB_PASSWORD — "
+            + "cualquiera que alcance el host se conecta sin credencial. Configura "
+            + "DB_PASSWORD en el .env. Para desarrollo sin contraseña usa DB_SSL_BYPASS=true.";
+        if (bypass) log.warn(msg);
+        else throw new IllegalStateException(msg);
     }
 
     /**

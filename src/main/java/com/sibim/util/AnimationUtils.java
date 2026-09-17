@@ -27,8 +27,25 @@ public final class AnimationUtils {
     // noise and makes the UI feel slow rather than lively.
     static final int MAX_STAGGER_ROWS = 15;
 
+    // ── Global on/off switch (Configuración → low-end machines) ────────────
+    // Every method below checks this first and, when off, jumps the node
+    // straight to its END state instead of skipping the call outright — a
+    // caller that does node.setOpacity(0) then calls fadeIn() expects the
+    // node visible afterward either way, animated or not.
+    private static final java.util.prefs.Preferences ANIM_PREFS =
+        java.util.prefs.Preferences.userRoot().node("sibim/ui/animations");
+    private static volatile boolean enabled = ANIM_PREFS.getBoolean("enabled", true);
+
+    public static boolean isEnabled() { return enabled; }
+
+    public static void setEnabled(boolean value) {
+        enabled = value;
+        ANIM_PREFS.putBoolean("enabled", value);
+    }
+
     /** Fade from transparent to opaque. */
     public static void fadeIn(Node node, int durationMs, int delayMs) {
+        if (!enabled) { node.setOpacity(1); return; }
         node.setOpacity(0);
         FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
         ft.setFromValue(0); ft.setToValue(1);
@@ -39,6 +56,7 @@ public final class AnimationUtils {
 
     /** Slide up from below while fading in. */
     public static void fadeInUp(Node node, int durationMs, int delayMs) {
+        if (!enabled) { node.setOpacity(1); node.setTranslateY(0); return; }
         node.setOpacity(0);
         node.setTranslateY(SLIDE_V_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
@@ -53,6 +71,7 @@ public final class AnimationUtils {
 
     /** Slide down from above while fading in. */
     public static void fadeInDown(Node node, int durationMs, int delayMs) {
+        if (!enabled) { node.setOpacity(1); node.setTranslateY(0); return; }
         node.setOpacity(0);
         node.setTranslateY(-SLIDE_V_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
@@ -67,6 +86,7 @@ public final class AnimationUtils {
 
     /** Slide in from the right while fading in. */
     public static void fadeInRight(Node node, int durationMs, int delayMs) {
+        if (!enabled) { node.setOpacity(1); node.setTranslateX(0); return; }
         node.setOpacity(0);
         node.setTranslateX(SLIDE_H_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
@@ -81,6 +101,7 @@ public final class AnimationUtils {
 
     /** Slide in from the left while fading in. */
     public static void fadeInLeft(Node node, int durationMs, int delayMs) {
+        if (!enabled) { node.setOpacity(1); node.setTranslateX(0); return; }
         node.setOpacity(0);
         node.setTranslateX(-SLIDE_H_OFFSET);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
@@ -112,6 +133,7 @@ public final class AnimationUtils {
      * Horizontal shake — error feedback for form fields.
      */
     public static void shake(Node node) {
+        if (!enabled) return;
         double x = node.getTranslateX();
         Timeline tl = new Timeline(
             kf(node,   0, x),
@@ -128,6 +150,7 @@ public final class AnimationUtils {
 
     /** Quick scale-pop on a stat card after its value updates. */
     public static void statCardPop(Node card) {
+        if (!enabled) return;
         ScaleTransition grow = new ScaleTransition(Duration.millis(130), card);
         grow.setToX(1.07); grow.setToY(1.07);
         grow.setInterpolator(Interpolator.EASE_OUT);
@@ -145,6 +168,7 @@ public final class AnimationUtils {
      */
     public static void animateCount(Label label, long target, int durationMs,
                                     LongFunction<String> formatter) {
+        if (!enabled) { label.setText(formatter.apply(target)); return; }
         label.setText(formatter.apply(0));
         if (target == 0) return;
         SimpleDoubleProperty prop = new SimpleDoubleProperty(0);
@@ -167,6 +191,7 @@ public final class AnimationUtils {
      * layoutBounds are available); use a short Timeline delay if needed.
      */
     public static void revealBarLTR(Region bar, int durationMs) {
+        if (!enabled) { bar.setClip(null); return; }
         double w = bar.getWidth();
         if (w <= 0) w = bar.getPrefWidth() > 0 ? bar.getPrefWidth() : 500;
         Rectangle clip = new Rectangle(0, 0, 0, bar.getBoundsInLocal().getHeight() + 4);
@@ -189,7 +214,10 @@ public final class AnimationUtils {
         shrink.setInterpolator(Interpolator.EASE_IN);
         SequentialTransition beat = new SequentialTransition(grow, shrink);
         beat.setCycleCount(cycles);
-        beat.play();
+        // Built either way so callers can unconditionally call .stop() on the
+        // result later — just never started when animations are off, so the
+        // badge stays at its normal (unscaled) size instead of pulsing.
+        if (enabled) beat.play();
         return beat;
     }
 
@@ -198,6 +226,7 @@ public final class AnimationUtils {
      * More satisfying than a plain fadeIn for overlays and dialog entrances.
      */
     public static void springIn(Node node) {
+        if (!enabled) { node.setOpacity(1); node.setScaleX(1); node.setScaleY(1); return; }
         node.setOpacity(0);
         node.setScaleX(0.85);
         node.setScaleY(0.85);
@@ -222,6 +251,7 @@ public final class AnimationUtils {
 
     /** Slide out to the right while fading; calls {@code after} when done. */
     public static void slideOutRight(Node node, int durationMs, Runnable after) {
+        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setToValue(0);
         fade.setInterpolator(Interpolator.EASE_IN);
@@ -235,6 +265,7 @@ public final class AnimationUtils {
 
     /** Slide out to the left while fading; calls {@code after} when done. */
     public static void slideOutLeft(Node node, int durationMs, Runnable after) {
+        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setToValue(0);
         fade.setInterpolator(Interpolator.EASE_IN);
@@ -248,6 +279,7 @@ public final class AnimationUtils {
 
     /** Fade a node out; calls {@code after} on the FX thread when done. */
     public static void fadeOut(Node node, int durationMs, Runnable after) {
+        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
         FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
         ft.setFromValue(node.getOpacity());
         ft.setToValue(0);
@@ -261,6 +293,7 @@ public final class AnimationUtils {
      * Useful for flashing a table row green after a save, or red after a delete.
      */
     public static void flashClass(Node node, String cssClass, int holdMs) {
+        if (!enabled) return;
         node.getStyleClass().add(cssClass);
         new Timeline(new KeyFrame(Duration.millis(holdMs),
             e -> node.getStyleClass().remove(cssClass))).play();
@@ -290,16 +323,31 @@ public final class AnimationUtils {
             new KeyFrame(Duration.millis(1600), new KeyValue(box.opacityProperty(), 0.7))
         );
         pulse.setCycleCount(Animation.INDEFINITE);
-        pulse.play();
+        // An indefinitely-looping animation is exactly the kind worth
+        // skipping on a low-end machine — a static skeleton at a fixed
+        // opacity still reads as "loading" just fine without it.
+        if (enabled) pulse.play(); else box.setOpacity(0.55);
         table.setPlaceholder(box);
         return pulse;
     }
 
     public static <T> void staggerTableRows(TableView<T> table) {
         Platform.runLater(() -> {
-            var rows = table.lookupAll(".table-row-cell").stream()
+            var allRowCells = table.lookupAll(".table-row-cell").stream()
                 .filter(n -> n instanceof TableRow<?>)
                 .map(n -> (TableRow<?>) n)
+                .toList();
+            // TableView recycles TableRow nodes as data reloads/pagination/filtering
+            // happen — a row's opacity/translateY from a PREVIOUS stagger call stays
+            // on that Node even after it's reused to display different data, since
+            // TableRow.updateItem() only refreshes cell content, not these Node-level
+            // effects. If that previous fade got interrupted (another reload firing
+            // mid-animation) or the row fell outside this run's limit/isEmpty filter
+            // below, it's left permanently faded. Unconditionally resetting every
+            // realized row first guarantees none can ever get stuck that way.
+            for (TableRow<?> row : allRowCells) { row.setOpacity(1); row.setTranslateY(0); }
+            if (!enabled) return;
+            var rows = allRowCells.stream()
                 .filter(r -> !r.isEmpty())
                 .sorted(Comparator.comparingDouble(Node::getLayoutY))
                 .limit(MAX_STAGGER_ROWS)
@@ -314,7 +362,9 @@ public final class AnimationUtils {
                 TranslateTransition tt = new TranslateTransition(Duration.millis(200), row);
                 tt.setFromY(10); tt.setToY(0); tt.setDelay(Duration.millis(delay));
                 tt.setInterpolator(Interpolator.EASE_OUT);
-                new ParallelTransition(ft, tt).play();
+                ParallelTransition pt = new ParallelTransition(ft, tt);
+                pt.setOnFinished(e -> { row.setOpacity(1); row.setTranslateY(0); });
+                pt.play();
             }
         });
     }

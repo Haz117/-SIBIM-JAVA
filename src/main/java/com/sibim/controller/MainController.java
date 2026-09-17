@@ -75,6 +75,8 @@ public class MainController {
     @FXML private Button btnAuditoria;
     @FXML private Label alertBadge;
     @FXML private Label loanBadge;
+    @FXML private Button btnNotificaciones;
+    @FXML private Label notifBadge;
     @FXML private javafx.scene.layout.HBox offlineBanner;
     @FXML private Label offlineBannerLabel;
     @FXML private javafx.scene.control.Button offlineBannerSyncBtn;
@@ -108,6 +110,7 @@ public class MainController {
     private static final long INACTIVITY_WARN_MS    = INACTIVITY_TIMEOUT_MS - 5 * 60_000L;
     private long    lastActivityMs    = System.currentTimeMillis();
     private boolean inactivityWarned  = false;
+    private Dialog<javafx.scene.control.ButtonType> activeInactivityDialog;
     private boolean startupTasksScheduled = false;
 
     // Only one MainController is ever active at a time — this lets child
@@ -152,9 +155,11 @@ public class MainController {
                 userAvatarLabel.setText(String.valueOf(nombre.charAt(0)).toUpperCase());
         }
         setupUserCardMenu();
+        NotificationCenter.setup(btnNotificaciones, notifBadge, alertProductoService, prestamoService, this::navigateTo);
         navigateTo("dashboard", btnDashboard);
         densityIndex = DENSITY_PREFS.getInt("index", 1);
         applyDensityClass();
+        applyTextScaleClass();
         addNavTooltips();
         setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
                       btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
@@ -187,7 +192,7 @@ public class MainController {
                     // Delay badge 800 ms so dashboard queries finish first
                     javafx.animation.PauseTransition badgeDelay =
                         new javafx.animation.PauseTransition(Duration.millis(800));
-                    badgeDelay.setOnFinished(e -> { loadAlertBadge(); loadLoanBadge(); });
+                    badgeDelay.setOnFinished(e -> { loadAlertBadge(); loadLoanBadge(); refreshNotifBadge(); });
                     badgeDelay.play();
                     // Vencidos check: 1.5 s (informational toast, not blocking)
                     javafx.animation.PauseTransition vencidosDelay =
@@ -215,7 +220,8 @@ public class MainController {
 
         // Refresh badge every 3 minutes; also nudges the status bar so the
         // offline-mode pending-sync count doesn't go stale between syncs.
-        badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3), e -> { loadAlertBadge(); loadLoanBadge(); statusBarManager.update(); }));
+        badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3),
+            e -> { loadAlertBadge(); loadLoanBadge(); refreshNotifBadge(); statusBarManager.update(); }));
         badgeRefresh.setCycleCount(Timeline.INDEFINITE);
         badgeRefresh.play();
 
@@ -400,6 +406,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
             Node node = loader.load();
+            com.sibim.util.AccessibilityUtils.applyAccessibleTextFromTooltips(node);
 
             if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
             if (currentController instanceof DashboardController dc) dc.stopAutoRefresh();
@@ -514,6 +521,23 @@ public class MainController {
         }
     }
 
+    // ── Text size (accessibility) ───────────────────────────────────────────
+    @FXML private Button btnTextSize;
+
+    @FXML
+    private void onToggleTextSize() {
+        com.sibim.util.AccessibilityUtils.cycleTextScaleIndex();
+        applyTextScaleClass();
+    }
+
+    private void applyTextScaleClass() {
+        com.sibim.util.AccessibilityUtils.applyCurrentTextScaleClass(contentArea);
+        if (btnTextSize != null) {
+            int idx = com.sibim.util.AccessibilityUtils.getTextScaleIndex();
+            btnTextSize.setText(com.sibim.util.AccessibilityUtils.TEXT_SCALE_LABELS[idx]);
+        }
+    }
+
     @FXML
     private void onToggleSidebar() {
         sidebarManager.toggle();
@@ -524,6 +548,17 @@ public class MainController {
         if (idle > INACTIVITY_TIMEOUT_MS) {
             log.info("Sesión cerrada por inactividad");
             inactivityWarned = false;
+            // If the warning dialog is still open when this 1-min tick catches
+            // the same timeout independently, dismiss it WITHOUT a result so
+            // its own showAndWait().ifPresent(...) below is skipped — otherwise
+            // its countdown reaches zero moments later and redundantly repeats
+            // the whole logout+showLogin sequence on top of the one this branch
+            // is about to run, which can reload the login screen out from under
+            // someone who already started typing on the first one.
+            if (activeInactivityDialog != null) {
+                activeInactivityDialog.close();
+                activeInactivityDialog = null;
+            }
             stopTimers();
             com.sibim.model.Usuario me = SessionManager.getCurrentUser();
             if (me != null)
@@ -574,10 +609,18 @@ public class MainController {
             long mins = msLeft[0] / 60_000;
             long secs = (msLeft[0] % 60_000) / 1000;
             lblCountdown.setText(String.format("%d:%02d", mins, secs));
-            if (msLeft[0] == 0) dlg.close();
+            // Closing with no result here would make showAndWait() return
+            // Optional.empty(), skipping both branches below — the dialog
+            // would just vanish with the session left dangling (neither
+            // logged out nor extended) until the 1-min sessionGuard tick
+            // catches up. Set the same result "Cerrar sesión" would so the
+            // countdown reaching zero actually logs out, matching what the
+            // dialog tells the user will happen.
+            if (msLeft[0] == 0) { dlg.setResult(btnLogout); dlg.close(); }
         }));
         countdown.setCycleCount(Timeline.INDEFINITE);
         countdown.play();
+        activeInactivityDialog = dlg;
 
         dlg.showAndWait().ifPresent(r -> {
             countdown.stop();
@@ -590,11 +633,21 @@ public class MainController {
                 auditRepo.log("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
                     SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
                     "logout", "Cierre de sesión desde aviso de inactividad");
+                // Same cleanup onLogout() does — without stopping sessionGuard
+                // and clearing instance, the old Timeline keeps ticking every
+                // minute after this, sees the same stale (>30 min) idle time
+                // forever, and forces MainApp.showLogin() again on whatever
+                // screen the user is on next (e.g. reloading the login form
+                // while they're mid-typing), which looks like "salir" did
+                // nothing useful.
+                stopTimers();
+                instance = null;
                 SessionManager.logout();
                 try { MainApp.showLogin(); } catch (Exception ex) { log.error("Error al cerrar sesión", ex); }
             }
         });
         countdown.stop();
+        activeInactivityDialog = null;
     }
 
     private void setupKeyboardShortcuts(javafx.scene.Scene scene) {
@@ -744,6 +797,10 @@ public class MainController {
 
     @FXML
     private void onShowShortcuts() { MainShortcutHelpDialog.show(); }
+
+    private void refreshNotifBadge() {
+        NotificationCenter.refreshBadge(notifBadge, alertProductoService, prestamoService);
+    }
 
     private void loadLoanBadge() {
         DialogUtil.runAsync(

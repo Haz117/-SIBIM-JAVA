@@ -115,6 +115,16 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
                 kanbanMode = nv;
                 if (table != null)       { table.setVisible(!nv); table.setManaged(!nv); }
                 if (kanbanBoard != null) { kanbanBoard.setVisible(nv); kanbanBoard.setManaged(nv); }
+                // Icon-only before made this ambiguous — same glyph stayed on
+                // screen whether you were about to switch TO kanban or back
+                // to the table, with no label to disambiguate. Swap both the
+                // icon and the text so "how do I get back to the table" has
+                // an obvious answer.
+                btnKanban.setText(nv ? "Ver como tabla" : "Vista Kanban");
+                btnKanban.setGraphic(new FontIcon(nv ? "mdi2t-table" : "mdi2v-view-column-outline"));
+                btnKanban.setTooltip(new Tooltip(nv
+                    ? "Volver a la vista de tabla"
+                    : "Ver préstamos por columnas de estado (Activos / Vencidos / Devueltos)"));
                 if (nv) buildKanbanBoard(data);
             });
         }
@@ -236,15 +246,30 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
 
             ScrollPane colScroll = new ScrollPane();
             colScroll.setFitToWidth(true);
+            colScroll.setFitToHeight(true);
             colScroll.getStyleClass().add("kanban-col-scroll");
             VBox.setVgrow(colScroll, Priority.ALWAYS);
             VBox cards = new VBox(6);
             cards.setPadding(new Insets(4, 0, 4, 0));
+            VBox.setVgrow(cards, Priority.ALWAYS);
 
             if (colItems.isEmpty()) {
+                // A single small, pale label at the top of an otherwise empty
+                // column reads as unfinished/broken rather than "no data" —
+                // center an icon + message in the available space instead,
+                // matching the empty-state treatment used on every other
+                // list screen in the app.
+                FontIcon emptyIcon = new FontIcon(icon);
+                emptyIcon.setIconSize(28);
+                emptyIcon.getStyleClass().add("kanban-empty-icon");
                 Label empty = new Label("Sin préstamos");
                 empty.getStyleClass().add("kanban-empty");
-                cards.getChildren().add(empty);
+                VBox emptyBox = new VBox(8, emptyIcon, empty);
+                emptyBox.setAlignment(Pos.CENTER);
+                emptyBox.setFillWidth(true);
+                VBox.setVgrow(emptyBox, Priority.ALWAYS);
+                cards.setAlignment(Pos.CENTER);
+                cards.getChildren().add(emptyBox);
             } else {
                 for (Prestamo p : colItems) {
                     VBox card = new VBox(4);

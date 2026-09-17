@@ -28,16 +28,19 @@ public class AreaResguardoRepository {
 
     public void save(String area, String pdfUrl, String descripcion, LocalDate fecha) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null || DatabaseConfig.isDemoMode()) return;
+        String id = UUID.randomUUID().toString();
         String sql = "INSERT INTO area_resguardos (id, area, pdf_url, descripcion, fecha) VALUES (?,?,?,?,?)";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(1, id);
             ps.setString(2, area);
             ps.setString(3, pdfUrl);
             ps.setString(4, descripcion);
             ps.setObject(5, fecha);
             ps.executeUpdate();
         }
+        new AuditLogRepository().log("area_resguardo", id, area, "crear",
+            "Resguardo de área agregado a " + area + (descripcion != null && !descripcion.isBlank() ? " · " + descripcion : ""));
     }
 
     public void delete(String id) throws SQLException {
@@ -47,6 +50,7 @@ public class AreaResguardoRepository {
             ps.setString(1, id);
             ps.executeUpdate();
         }
+        new AuditLogRepository().log("area_resguardo", id, id, "eliminar", "Resguardo de área eliminado");
     }
 
     private AreaResguardo mapRow(ResultSet rs) throws SQLException {

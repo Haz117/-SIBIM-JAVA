@@ -415,6 +415,10 @@ public class ReporteService {
         return new ReporteAuditoriaService().exportAuditoriaCsv(logs);
     }
 
+    public File exportAuditoriaExcel(List<com.sibim.model.AuditLog> logs) throws Exception {
+        return new ReporteAuditoriaService().exportAuditoriaExcel(logs);
+    }
+
     // ───────────────────────────── CSV ─────────────────────────────
 
     public File exportInventarioCsv(LocalDate desde, LocalDate hasta) throws Exception {
@@ -681,9 +685,26 @@ public class ReporteService {
         return new ReporteBajasService().exportBajasCsv(bajas);
     }
 
+    /** CSV field escaping. Doubles embedded quotes (standard CSV escaping)
+     *  AND neutralizes CSV/formula injection (CWE-1236): a free-text field
+     *  (proveedor, motivo, nombre de bien, etc.) that starts with = + - or @
+     *  gets interpreted as a live formula by Excel/LibreOffice when the
+     *  exported file is opened, regardless of the surrounding double-quotes
+     *  the printf format strings already add — those are just CSV field
+     *  delimiters, stripped before the spreadsheet app looks at the value.
+     *  A leading single quote is the standard mitigation: it forces the
+     *  cell to render as literal text instead of evaluating it. */
     protected String esc(String s) {
         if (s == null) return "";
-        return s.replace("\"", "\"\"");
+        String escaped = s.replace("\"", "\"\"");
+        if (!escaped.isEmpty()) {
+            char first = escaped.charAt(0);
+            if (first == '=' || first == '+' || first == '-' || first == '@'
+                    || first == '\t' || first == '\r') {
+                escaped = "'" + escaped;
+            }
+        }
+        return escaped;
     }
 
     // ── Dashboard PDF export ──────────────────────────────

@@ -23,6 +23,11 @@
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el registro de auditoría visible a PDF" wrapText="true" maxWidth="220"/></tooltip>
         </Button>
+        <Button fx:id="btnExportExcel" text="Excel" onAction="#onExportarExcel" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2m-microsoft-excel" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de auditoría visible a Excel" wrapText="true" maxWidth="220"/></tooltip>
+        </Button>
         <Button fx:id="btnExportCsv" text="CSV" onAction="#onExportarCsv" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="btn-icon"/></graphic>
@@ -33,27 +38,127 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar  (F5)"/></tooltip>
         </Button>
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Restaurar columnas de la tabla a su configuración original (orden, ancho y visibilidad)"
+                              wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
+        <Separator orientation="VERTICAL"/>
+        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
+        </Button>
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
     </HBox>
 
+    <VBox fx:id="resumenBox" spacing="12">
+    <!-- ══ RESUMEN ═════════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <padding><Insets top="14" right="22" bottom="0" left="34"/></padding>
+        <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-slate"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
+                    <FontIcon iconLiteral="mdi2f-format-list-bulleted" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="TOTAL" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
+            <Label text="registros con los filtros actuales" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardLogins" styleClass="rich-stat-card, rich-stat-green"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
+                    <FontIcon iconLiteral="mdi2l-login" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="INICIOS DE SESIÓN" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblStatLogins" text="—" styleClass="rich-stat-value"/>
+            <Label text="accesos exitosos" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardFallidos" styleClass="rich-stat-card, rich-stat-red"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
+                    <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="INTENTOS FALLIDOS" styleClass="rich-stat-label"/>
+                <Label fx:id="helpFallidos" text="?" styleClass="help-badge">
+                    <tooltip><Tooltip text="Intentos de inicio de sesión con usuario o contraseña incorrectos. Varios seguidos a la misma cuenta pueden indicar un intento de acceso no autorizado." wrapText="true" maxWidth="260"/></tooltip>
+                </Label>
+            </HBox>
+            <Label fx:id="lblStatFallidos" text="—" styleClass="rich-stat-value"/>
+            <Label text="usuario o contraseña incorrectos" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardEliminaciones" styleClass="rich-stat-card, rich-stat-amber"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <FontIcon iconLiteral="mdi2d-delete-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="ELIMINACIONES / BAJAS" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblStatEliminaciones" text="—" styleClass="rich-stat-value"/>
+            <Label text="registros eliminados o dados de baja" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+    </VBox>
+
     <!-- FILTER BAR -->
-    <HBox fx:id="filterBar" spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar">
+    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
         <padding><Insets top="12" right="22" bottom="12" left="34"/></padding>
-        <FontIcon iconLiteral="mdi2m-magnify" styleClass="search-icon"/>
-        <TextField fx:id="searchField" promptText="Buscar por nombre, detalle o acción…"
-                   styleClass="search-field" prefWidth="240"
-                   onKeyReleased="#onSearch"/>
-        <Label text="Entidad:" styleClass="form-label"/>
-        <ComboBox fx:id="entidadFilter" prefWidth="140" onAction="#onFilter"/>
-        <Label text="Usuario:" styleClass="form-label"/>
-        <TextField fx:id="usuarioFilter" promptText="Nombre de usuario…"
-                   prefWidth="160" styleClass="search-field" onKeyReleased="#onFilter"/>
-        <Label text="Desde:" styleClass="form-label"/>
-        <DatePicker fx:id="desdeField" prefWidth="130" onAction="#onFilter"/>
-        <Label text="Hasta:" styleClass="form-label"/>
-        <DatePicker fx:id="hastaField" prefWidth="130" onAction="#onFilter"/>
+        <StackPane prefWidth="220">
+            <TextField fx:id="searchField" promptText="🔍  Buscar por nombre, detalle o acción…"
+                       styleClass="search-field" maxWidth="Infinity"
+                       onKeyReleased="#onSearch"/>
+        </StackPane>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Entidad:" styleClass="form-label"/>
+            <ComboBox fx:id="entidadFilter" prefWidth="140" onAction="#onFilter"/>
+        </HBox>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Acción:" styleClass="form-label"/>
+            <ComboBox fx:id="accionFilter" prefWidth="140" onAction="#onFilter"/>
+        </HBox>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Usuario:" styleClass="form-label"/>
+            <ComboBox fx:id="usuarioFilter" prefWidth="170" onAction="#onFilter"/>
+        </HBox>
+        <Separator orientation="VERTICAL"/>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Desde:" styleClass="form-label"/>
+            <DatePicker fx:id="desdeField" prefWidth="130" onAction="#onFiltroFecha"/>
+        </HBox>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Hasta:" styleClass="form-label"/>
+            <DatePicker fx:id="hastaField" prefWidth="130" onAction="#onFiltroFecha"/>
+        </HBox>
+        <Button fx:id="btnPresetHoy"    text="Hoy"    onAction="#onPresetHoy"    styleClass="btn-preset">
+            <tooltip><Tooltip text="Solo el día de hoy"/></tooltip>
+        </Button>
+        <Button fx:id="btnPresetSemana" text="Semana" onAction="#onPresetSemana" styleClass="btn-preset">
+            <tooltip><Tooltip text="Últimos 7 días"/></tooltip>
+        </Button>
+        <Button fx:id="btnPresetMes"    text="Mes"    onAction="#onPresetMes"    styleClass="btn-preset">
+            <tooltip><Tooltip text="Mes actual (del 1 al hoy)"/></tooltip>
+        </Button>
         <Button text="Limpiar" onAction="#onLimpiar" styleClass="btn-secondary">
             <graphic><FontIcon iconLiteral="mdi2c-close-circle-outline" styleClass="btn-icon"/></graphic>
         </Button>
+    </FlowPane>
+
+    <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <padding><Insets top="8" right="22" bottom="0" left="34"/></padding>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="REGISTROS" styleClass="dash-section-label"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblTotal" styleClass="muted-sm"/>
     </HBox>

@@ -24,6 +24,18 @@ public class NotificacionUtil {
     private static final double TOAST_OFFSET  = 64;
     private static final int    MAX_TOASTS    = 4;
 
+    /** Toasts requested while MAX_TOASTS are already showing wait here instead
+     *  of being silently dropped — a burst (e.g. import results) would
+     *  otherwise lose feedback past the 4th message with no sign anything
+     *  was missed. Drained one at a time as slots free up, see releaseSlot(). */
+    private static final java.util.ArrayDeque<Runnable> pendingQueue = new java.util.ArrayDeque<>();
+
+    private static void releaseSlot() {
+        activeToasts--;
+        Runnable next = pendingQueue.poll();
+        if (next != null) Platform.runLater(next);
+    }
+
     public static void mostrar(Scene scene, String mensaje, Tipo tipo) {
         if (scene == null) return;
         Platform.runLater(() -> show(scene.getWindow(), mensaje, tipo));
@@ -81,7 +93,7 @@ public class NotificacionUtil {
 
     private static void show(Window owner, String mensaje, Tipo tipo) {
         if (owner == null) return;
-        if (activeToasts >= MAX_TOASTS) return;
+        if (activeToasts >= MAX_TOASTS) { pendingQueue.add(() -> show(owner, mensaje, tipo)); return; }
 
         String iconLiteral, toastClass, iconClass;
         switch (tipo) {
@@ -150,7 +162,7 @@ public class NotificacionUtil {
         FadeTransition fadeOut = new FadeTransition(Duration.millis(260), box);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
-        dismissAnim.setOnFinished(e -> { popup.hide(); activeToasts--; });
+        dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
 
         SequentialTransition seq = new SequentialTransition(
             new ParallelTransition(fadeIn, slideIn, iconPop), pause, dismissAnim);
@@ -172,7 +184,7 @@ public class NotificacionUtil {
             FadeTransition quickFade = new FadeTransition(Duration.millis(190), box);
             quickFade.setFromValue(box.getOpacity()); quickFade.setToValue(0);
             ParallelTransition quickDismiss = new ParallelTransition(quickSlide, quickFade);
-            quickDismiss.setOnFinished(ev -> { popup.hide(); activeToasts--; });
+            quickDismiss.setOnFinished(ev -> { popup.hide(); releaseSlot(); });
             quickDismiss.play();
         });
     }
@@ -393,7 +405,10 @@ public class NotificacionUtil {
 
     private static void showConAccionCountdown(Window owner, String mensaje, String btnLabel, Runnable onAction) {
         if (owner == null) return;
-        if (activeToasts >= MAX_TOASTS) return;
+        if (activeToasts >= MAX_TOASTS) {
+            pendingQueue.add(() -> showConAccionCountdown(owner, mensaje, btnLabel, onAction));
+            return;
+        }
 
         FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
         iconLbl.setIconSize(16);
@@ -461,7 +476,7 @@ public class NotificacionUtil {
         FadeTransition fadeOut = new FadeTransition(Duration.millis(260), box);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
-        dismissAnim.setOnFinished(e -> { popup.hide(); activeToasts--; });
+        dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
         countdown.setOnFinished(e -> dismissAnim.play());
         countdown.play();
 
@@ -475,7 +490,7 @@ public class NotificacionUtil {
             FadeTransition qf = new FadeTransition(Duration.millis(190), box);
             qf.setFromValue(box.getOpacity()); qf.setToValue(0);
             ParallelTransition qd = new ParallelTransition(qs, qf);
-            qd.setOnFinished(ev -> { popup.hide(); activeToasts--; });
+            qd.setOnFinished(ev -> { popup.hide(); releaseSlot(); });
             qd.play();
         };
 
@@ -485,7 +500,10 @@ public class NotificacionUtil {
 
     private static void showConAccion(Window owner, String mensaje, String btnLabel, Runnable onAction, Tipo tipo) {
         if (owner == null) return;
-        if (activeToasts >= MAX_TOASTS) return;
+        if (activeToasts >= MAX_TOASTS) {
+            pendingQueue.add(() -> showConAccion(owner, mensaje, btnLabel, onAction, tipo));
+            return;
+        }
 
         String iconLiteral, toastClass, iconClass;
         switch (tipo) {
@@ -545,7 +563,7 @@ public class NotificacionUtil {
         FadeTransition fadeOut = new FadeTransition(Duration.millis(260), box);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
-        dismissAnim.setOnFinished(e -> { popup.hide(); activeToasts--; });
+        dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
 
         SequentialTransition seq = new SequentialTransition(
             new ParallelTransition(fadeIn, slideIn), pause, dismissAnim);
@@ -558,7 +576,7 @@ public class NotificacionUtil {
             FadeTransition qf = new FadeTransition(Duration.millis(190), box);
             qf.setFromValue(box.getOpacity()); qf.setToValue(0);
             ParallelTransition qd = new ParallelTransition(qs, qf);
-            qd.setOnFinished(ev -> { popup.hide(); activeToasts--; });
+            qd.setOnFinished(ev -> { popup.hide(); releaseSlot(); });
             qd.play();
         };
 

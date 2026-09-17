@@ -18,10 +18,8 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.util.Duration;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -29,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,6 +69,7 @@ public class AlertasController {
     @FXML private VBox  sectionMantenimiento;
 
     @FXML private TableView<Producto>           tableMantenimiento;
+    @FXML private Button btnResetColumns;
     @FXML private TableColumn<Producto, String> colMantNombre;
     @FXML private TableColumn<Producto, String> colMantCodigo;
     @FXML private TableColumn<Producto, String> colMantArea;
@@ -81,6 +79,24 @@ public class AlertasController {
     @FXML private Label helpAgotados;
     @FXML private Label helpBajoStock;
     @FXML private Label helpGarantias;
+    @FXML private Label helpMantenimiento;
+    @FXML private Label helpResumen;
+    @FXML private VBox resumenBox;
+    @FXML private Button btnToggleResumen;
+
+    // ── Collapsible section headers ───────────────────────────────────
+    @FXML private HBox headerAgotados;
+    @FXML private HBox headerBajoStock;
+    @FXML private HBox headerGarantias;
+    @FXML private HBox headerMantenimiento;
+    @FXML private VBox contentAgotados;
+    @FXML private VBox contentBajoStock;
+    @FXML private VBox contentGarantias;
+    @FXML private VBox contentMantenimiento;
+    @FXML private FontIcon chevronAgotados;
+    @FXML private FontIcon chevronBajoStock;
+    @FXML private FontIcon chevronGarantias;
+    @FXML private FontIcon chevronMantenimiento;
 
     // ── Resumen rápido (stat cards al tope) ──────────────────────────
     @FXML private VBox    statCardAgotados;
@@ -120,6 +136,14 @@ public class AlertasController {
         if (tableMantenimiento != null) {
             tableMantenimiento.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
             tableMantenimiento.setPlaceholder(alertaOkNode("Sin revisiones en los próximos 30 días"));
+        }
+        if (btnResetColumns != null) {
+            Runnable r1 = com.sibim.util.DialogUtil.captureColumnReset(tableAgotados, null);
+            Runnable r2 = com.sibim.util.DialogUtil.captureColumnReset(tableBajoStock, null);
+            Runnable r3 = com.sibim.util.DialogUtil.captureColumnReset(tableGarantias, null);
+            Runnable r4 = tableMantenimiento != null
+                ? com.sibim.util.DialogUtil.captureColumnReset(tableMantenimiento, null) : null;
+            btnResetColumns.setOnAction(e -> { r1.run(); r2.run(); r3.run(); if (r4 != null) r4.run(); });
         }
         loadData();
         java.util.List<javafx.scene.Node> fadeNodes = new java.util.ArrayList<>(java.util.List.of(
@@ -201,52 +225,18 @@ public class AlertasController {
             }
         });
 
-        // Context menu for tableAgotados
-        ContextMenu cmAg = new ContextMenu();
-        MenuItem miAgDetalle = new MenuItem("Ver detalle");
-        miAgDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
-        miAgDetalle.setOnAction(e -> {
-            Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
-            if (sel != null) AlertasDialogs.showProductoInfo(sel, true);
-        });
-        MenuItem miAgReponer = new MenuItem("Registrar Entrada");
-        miAgReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
-        miAgReponer.setOnAction(e -> onReponerAgotado());
-        MenuItem miAgBaja = new MenuItem("Dar de baja");
-        miAgBaja.setGraphic(new FontIcon("mdi2d-delete-outline"));
-        miAgBaja.setOnAction(e -> {
-            Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
-            if (sel != null) darDeBajaDesdeAlertas(sel);
-        });
-        if (!canWrite) miAgBaja.setVisible(false);
-        MenuItem miAgFicha = new MenuItem("Imprimir ficha técnica");
-        miAgFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
-        miAgFicha.setOnAction(e -> {
-            Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
-            if (sel != null) imprimirFicha(sel);
-        });
-        cmAg.getItems().addAll(miAgDetalle, new SeparatorMenuItem(), miAgReponer, miAgBaja, new SeparatorMenuItem(), miAgFicha);
-        tableAgotados.setContextMenu(cmAg);
+        tableAgotados.setContextMenu(AlertasContextMenus.buildAgotados(
+            tableAgotados, canWrite,
+            sel -> AlertasDialogs.showProductoInfo(sel, true),
+            this::onReponerAgotado,
+            this::darDeBajaDesdeAlertas,
+            this::imprimirFicha));
 
-        // Context menu for tableBajoStock
-        ContextMenu cmBs = new ContextMenu();
-        MenuItem miBsDetalle = new MenuItem("Ver detalle");
-        miBsDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
-        miBsDetalle.setOnAction(e -> {
-            Producto sel = tableBajoStock.getSelectionModel().getSelectedItem();
-            if (sel != null) AlertasDialogs.showProductoInfo(sel, false);
-        });
-        MenuItem miBsReponer = new MenuItem("Registrar Entrada");
-        miBsReponer.setGraphic(new FontIcon("mdi2p-plus-circle-outline"));
-        miBsReponer.setOnAction(e -> onSolicitarBajoStock());
-        MenuItem miBsFicha = new MenuItem("Imprimir ficha técnica");
-        miBsFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
-        miBsFicha.setOnAction(e -> {
-            Producto sel = tableBajoStock.getSelectionModel().getSelectedItem();
-            if (sel != null) imprimirFicha(sel);
-        });
-        cmBs.getItems().addAll(miBsDetalle, new SeparatorMenuItem(), miBsReponer, new SeparatorMenuItem(), miBsFicha);
-        tableBajoStock.setContextMenu(cmBs);
+        tableBajoStock.setContextMenu(AlertasContextMenus.buildBajoStock(
+            tableBajoStock,
+            sel -> AlertasDialogs.showProductoInfo(sel, false),
+            this::onSolicitarBajoStock,
+            this::imprimirFicha));
 
         // tableGarantias: same double-click / context-menu "ver detalle"
         // pattern as the other two tables — it was the only one without it.
@@ -256,104 +246,52 @@ public class AlertasController {
                 if (sel != null) AlertasDialogs.showGarantiaInfo(sel);
             }
         });
-        ContextMenu cmGa = new ContextMenu();
-        MenuItem miGaDetalle = new MenuItem("Ver detalle");
-        miGaDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
-        miGaDetalle.setOnAction(e -> {
-            Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
-            if (sel != null) AlertasDialogs.showGarantiaInfo(sel);
-        });
-        cmGa.getItems().add(miGaDetalle);
-        cmGa.getItems().add(new SeparatorMenuItem());
-        MenuItem miGaFicha = new MenuItem("Imprimir ficha técnica");
-        miGaFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
-        miGaFicha.setOnAction(e -> {
-            Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
-            if (sel != null) imprimirFicha(sel);
-        });
-        cmGa.getItems().add(miGaFicha);
-        tableGarantias.setContextMenu(cmGa);
+        tableGarantias.setContextMenu(AlertasContextMenus.buildGarantias(
+            tableGarantias, AlertasDialogs::showGarantiaInfo, this::imprimirFicha));
 
-        for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias }) {
+        for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias, helpMantenimiento, helpResumen }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
+
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible("alertas.resumen.colapsado", btnToggleResumen, resumenBox,
+                "Mostrar resumen", "Ocultar resumen");
+
+        setupCollapsibleSection("alertas.agotados.colapsado", headerAgotados, contentAgotados, chevronAgotados);
+        setupCollapsibleSection("alertas.bajostock.colapsado", headerBajoStock, contentBajoStock, chevronBajoStock);
+        setupCollapsibleSection("alertas.garantias.colapsado", headerGarantias, contentGarantias, chevronGarantias);
+        setupCollapsibleSection("alertas.mantenimiento.colapsado", headerMantenimiento, contentMantenimiento, chevronMantenimiento);
+    }
+
+    /** Lets the user collapse/expand one of the 4 alert sections by clicking
+     *  its colored header bar — this page stacks all 4 with no way to skip
+     *  past the ones you don't care about, so a long list in "Agotados"
+     *  pushes "Garantías"/"Mantenimiento" far down the scroll. State is
+     *  remembered per section across restarts, same as the other
+     *  collapsible sections in the app (see DialogUtil.makeCollapsible). */
+    private void setupCollapsibleSection(String prefKey, HBox header, VBox content, FontIcon chevron) {
+        if (header == null || content == null || chevron == null) return;
+        boolean collapsed = STICKY.getBoolean(prefKey, false);
+        applySectionCollapsed(content, chevron, collapsed);
+        header.setCursor(javafx.scene.Cursor.HAND);
+        header.setOnMouseClicked(e -> {
+            boolean nowCollapsed = content.isVisible();
+            applySectionCollapsed(content, chevron, nowCollapsed);
+            STICKY.putBoolean(prefKey, nowCollapsed);
+        });
+    }
+
+    private static void applySectionCollapsed(VBox content, FontIcon chevron, boolean collapsed) {
+        content.setVisible(!collapsed);
+        content.setManaged(!collapsed);
+        chevron.setIconLiteral(collapsed ? "mdi2c-chevron-down" : "mdi2c-chevron-up");
     }
 
     private void setupColumns() {
-        colAgNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        colAgCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
-        colAgArea.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getArea()));
-        colAgArea.setCellFactory(col -> new TableCell<>() {
-            private final Tooltip tip = new Tooltip();
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) { setText(null); setTooltip(null); return; }
-                setText(item); tip.setText(item); setTooltip(tip);
-            }
-        });
-
-        colBsNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        colBsCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
-        colBsStock.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stockActual"));
-        colBsMin.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stockMinimo"));
-
-        colBsStock.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(Integer item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().removeAll("stock-low", "stock-warn");
-                if (empty || item == null) { setText(null); return; }
-                setText(String.valueOf(item));
-                Producto p = getTableRow() != null ? getTableRow().getItem() : null;
-                getStyleClass().add(p != null && item <= p.getStockMinimo() ? "stock-low" : "stock-warn");
-            }
-        });
-        colBsMin.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(Integer item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().remove("cell-muted");
-                if (empty || item == null) { setText(null); return; }
-                setText(String.valueOf(item));
-                getStyleClass().add("cell-muted");
-            }
-        });
-
-        if (colMantNombre != null) colMantNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        if (colMantCodigo != null) colMantCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
-        if (colMantArea   != null) colMantArea.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getArea() != null ? c.getValue().getArea() : ""));
-        if (colMantFecha  != null) colMantFecha.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getProximaRevision() != null ? com.sibim.util.FormatUtils.formatDate(c.getValue().getProximaRevision()) : "—"));
-        if (colMantNotas  != null) colMantNotas.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getNotasMantenimiento() != null ? c.getValue().getNotasMantenimiento() : ""));
-
-        colGaNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        colGaCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
-        colGaFecha.setCellValueFactory(c ->
-            new SimpleStringProperty(FormatUtils.formatDate(c.getValue().getFechaVencimiento())));
-        colGaDias.setCellValueFactory(c -> {
-            LocalDate fv = c.getValue().getFechaVencimiento();
-            if (fv == null) return new SimpleStringProperty("—");
-            long dias = ChronoUnit.DAYS.between(LocalDate.now(), fv);
-            if (dias < 0) return new SimpleStringProperty("Vencido");
-            if (dias == 0) return new SimpleStringProperty("Vence hoy");
-            return new SimpleStringProperty(dias + " días");
-        });
-        colGaDias.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().removeAll("days-critical", "days-warn");
-                if (empty || item == null) { setText(null); return; }
-                setText(item);
-                switch (item) {
-                    case "Vencido", "Vence hoy" -> getStyleClass().add("days-critical");
-                    default -> {
-                        try {
-                            if (Integer.parseInt(item.split(" ")[0]) <= 3)
-                                getStyleClass().add("days-warn");
-                        } catch (NumberFormatException ignored) {}
-                    }
-                }
-            }
-        });
+        AlertasColumnSetup.configureAgotados(colAgNombre, colAgCodigo, colAgArea);
+        AlertasColumnSetup.configureBajoStock(colBsNombre, colBsCodigo, colBsStock, colBsMin);
+        AlertasColumnSetup.configureMantenimiento(colMantNombre, colMantCodigo, colMantArea, colMantFecha, colMantNotas);
+        AlertasColumnSetup.configureGarantias(colGaNombre, colGaCodigo, colGaFecha, colGaDias);
     }
 
     private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias, List<Producto> mantenimiento) {}
@@ -385,7 +323,12 @@ public class AlertasController {
                 }
                 final List<Producto> _ag = data.agotados(), _bs = data.bajoStock(), _ga = data.garantias();
                 AppExecutor.submit(() -> new EmailService().enviarAlertas(_ag, _bs, _ga));
-                if (!allAgotados.isEmpty())
+                // Solo avisa por la bandeja del sistema si el usuario no está viendo
+                // la app ahora mismo — si la ventana está enfocada, ya está viendo
+                // esta misma cifra en la sección "Agotados" de esta pantalla.
+                javafx.stage.Stage primary = com.sibim.MainApp.getPrimaryStage();
+                boolean appEnFoco = primary != null && primary.isFocused() && !primary.isIconified();
+                if (!allAgotados.isEmpty() && !appEnFoco)
                     com.sibim.service.TrayService.notify("Alerta de inventario",
                         allAgotados.size() + " bien(es) agotado(s)");
                 updateSumCards();
@@ -488,100 +431,7 @@ public class AlertasController {
 
     @FXML
     private void onReponerTodosAgotados() {
-        if (allAgotados.isEmpty()) return;
-
-        java.util.Map<String, Spinner<Integer>> spinners = new java.util.LinkedHashMap<>();
-
-        VBox rows = new VBox(6);
-        rows.setPadding(new javafx.geometry.Insets(4, 8, 4, 8));
-        for (Producto p : allAgotados) {
-            Spinner<Integer> sp = new Spinner<>(1, 9_999, 1, 1);
-            sp.setEditable(true);
-            sp.setPrefWidth(90);
-
-            Label nameLbl = new Label(p.getNombre());
-            nameLbl.setMaxWidth(Double.MAX_VALUE);
-            javafx.scene.layout.HBox.setHgrow(nameLbl, javafx.scene.layout.Priority.ALWAYS);
-
-            Label codLbl = new Label(p.getCodigo());
-            codLbl.getStyleClass().add("codigo-cell");
-
-            Label stockLbl = new Label("Stock: 0");
-            stockLbl.getStyleClass().add("stock-low");
-
-            HBox row = new HBox(10, nameLbl, codLbl, stockLbl, sp);
-            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-            row.getStyleClass().add("batch-reponer-row");
-            rows.getChildren().add(row);
-            spinners.put(p.getId(), sp);
-        }
-
-        ScrollPane scroll = new ScrollPane(rows);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(Math.min(allAgotados.size() * 52 + 16, 320));
-        scroll.getStyleClass().add("edge-to-edge");
-
-        HBox header = DialogUtil.gradientHeader(
-            "mdi2p-package-variant",
-            "Reponer todos los bienes agotados",
-            allAgotados.size() + " bienes · ingresa la cantidad de entrada para cada uno",
-            "#4338CA", "#6366F1");
-
-        Dialog<ButtonType> dlg = new Dialog<>();
-        DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.setTitle("Reposición masiva");
-        dlg.getDialogPane().setPrefWidth(530);
-        dlg.getDialogPane().setContent(new VBox(0, header, scroll));
-
-        ButtonType btnConfirmar = new ButtonType("Registrar entradas", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(btnConfirmar, ButtonType.CANCEL);
-        Button okBtn = (Button) dlg.getDialogPane().lookupButton(btnConfirmar);
-        okBtn.getStyleClass().add("btn-primary");
-
-        dlg.showAndWait().ifPresent(result -> {
-            if (result != btnConfirmar) return;
-
-            java.util.List<Object[]> entradas = new java.util.ArrayList<>();
-            for (Producto p : allAgotados) {
-                Spinner<Integer> sp = spinners.get(p.getId());
-                int qty = 1;
-                try { qty = Math.max(1, Integer.parseInt(sp.getEditor().getText().trim())); }
-                catch (NumberFormatException ignored) { qty = sp.getValue(); }
-                entradas.add(new Object[]{p.getId(), p.getNombre(), qty});
-            }
-
-            com.sibim.util.AppExecutor.submit(() -> {
-                int ok = 0, fail = 0;
-                java.util.List<String> errores = new java.util.ArrayList<>();
-                for (Object[] entry : entradas) {
-                    try {
-                        movimientoService.registrar((String) entry[0], TipoMovimiento.ENTRADA,
-                            (int) entry[2], "Reposición masiva desde Alertas", null);
-                        ok++;
-                    } catch (Exception ex) {
-                        fail++;
-                        errores.add((String) entry[1]);
-                        log.error("Error al reponer {}: {}", entry[1], ex.getMessage(), ex);
-                    }
-                }
-                final int finalOk = ok, finalFail = fail;
-                javafx.application.Platform.runLater(() -> {
-                    if (tableAgotados.getScene() == null) return;
-                    if (finalFail == 0) {
-                        NotificacionUtil.info(tableAgotados.getScene(),
-                            finalOk + (finalOk == 1 ? " entrada registrada" : " entradas registradas") + " correctamente");
-                    } else if (finalOk > 0) {
-                        NotificacionUtil.advertencia(tableAgotados.getScene(),
-                            finalOk + " registradas, " + finalFail + " con error");
-                    } else {
-                        NotificacionUtil.error(tableAgotados.getScene(),
-                            "No se pudo registrar ninguna entrada");
-                    }
-                    loadData();
-                });
-            });
-        });
+        AlertasReponerDialog.showBulk(allAgotados, movimientoService, tableAgotados.getScene(), log, this::loadData);
     }
 
     @FXML

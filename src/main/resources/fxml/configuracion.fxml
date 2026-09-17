@@ -153,6 +153,33 @@
         </HBox>
     </VBox>
 
+    <!-- ══ ACCESIBILIDAD Y RENDIMIENTO ════════════════════════════════ -->
+    <VBox fx:id="accesibilidadCard" styleClass="card" spacing="12">
+        <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="12">
+            <StackPane styleClass="section-icon-badge">
+                <FontIcon iconLiteral="mdi2h-human" styleClass="page-icon-emoji"/>
+            </StackPane>
+            <VBox spacing="2" HBox.hgrow="ALWAYS">
+                <Label text="Accesibilidad y rendimiento" styleClass="card-title"/>
+                <Label text="Preferencias personales — se guardan en esta PC, no afectan a otros usuarios"
+                       styleClass="page-subtitle"/>
+            </VBox>
+        </HBox>
+        <Separator/>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <CheckBox fx:id="chkAnimaciones" text="Animaciones de la interfaz" selected="true"
+                      onAction="#onToggleAnimaciones"/>
+            <Label text="?" styleClass="help-badge">
+                <tooltip><Tooltip
+                    text="Desactívalo en equipos lentos o de gama baja: quita las transiciones de entrada, el desvanecido de filas de tablas y otros efectos decorativos. El sistema sigue funcionando igual, solo sin las animaciones."
+                    wrapText="true" maxWidth="280"/></tooltip>
+            </Label>
+        </HBox>
+        <Label text="El tamaño de texto y la densidad de filas de las tablas se ajustan desde la barra inferior de la ventana."
+               styleClass="muted-sm" wrapText="true"/>
+    </VBox>
+
     <!-- ══ GESTIÓN DE USUARIOS (solo ADMIN) ══════════════════════════ -->
     <VBox fx:id="adminSection" styleClass="card" spacing="12">
         <padding><Insets top="18" right="20" bottom="20" left="20"/></padding>

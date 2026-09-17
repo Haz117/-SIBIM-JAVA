@@ -114,8 +114,13 @@ public class ProductoService {
     }
 
     public Producto save(Producto p) throws SQLException, ValidationException {
-        validate(p);
         boolean isNew = p.getId() == null;
+        // El código se asigna por área (ver AreaCodigos) al dar de alta un bien
+        // nuevo; al editar uno existente el código sigue siendo editable a mano
+        // (útil para corregir datos heredados que no siguen este formato).
+        if (isNew && p.getArea() != null && com.sibim.config.AreaCodigos.tienePrefijo(p.getArea()))
+            p.setCodigo(asignarCodigo(p.getArea()));
+        validate(p);
 
         java.math.BigDecimal prevCompra = null, prevVenta = null;
         if (!isNew) {
@@ -147,6 +152,24 @@ public class ProductoService {
         return saved;
     }
 
+    /** Menor número positivo no usado por ningún bien activo con el prefijo
+     *  de {@code area} — no hay un contador persistido: dado que un bien
+     *  dado de baja o transferido deja de contar como activo, su número
+     *  vuelve a aparecer libre automáticamente en el próximo cálculo. */
+    private String asignarCodigo(String area) throws SQLException {
+        String prefijo = com.sibim.config.AreaCodigos.prefijo(area);
+        java.util.Set<Integer> usados = new java.util.HashSet<>();
+        for (Producto p : productoRepo.findAll(false)) {
+            String codigo = p.getCodigo();
+            if (codigo == null || !codigo.startsWith(prefijo + "/")) continue;
+            try { usados.add(Integer.parseInt(codigo.substring(prefijo.length() + 1))); }
+            catch (NumberFormatException ignored) {}
+        }
+        int numero = 1;
+        while (usados.contains(numero)) numero++;
+        return prefijo + "/" + String.format("%02d", numero);
+    }
+
     private static boolean priceChanged(java.math.BigDecimal a, java.math.BigDecimal b) {
         if (a == null && b == null) return false;
         if (a == null || b == null) return true;
@@ -157,7 +180,7 @@ public class ProductoService {
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) return;
         Producto p = opt.get();
-        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+        if (!SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
         try {
             productoRepo.delete(id);
@@ -177,7 +200,7 @@ public class ProductoService {
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();
-        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+        if (!SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
         if (motivo == null || motivo.isBlank())
             throw new ValidationException("El motivo de la baja es obligatorio");
@@ -186,14 +209,21 @@ public class ProductoService {
         auditRepo.log("producto", id, p.getNombre(), "baja", "Motivo: " + motivo.trim());
     }
 
-    /** Reverses a baja patrimonial, restoring the bien to active inventory. */
+    /** Reverses a baja patrimonial, restoring the bien to active inventory.
+     *  Also reassigns its código according to its área — the número it held
+     *  before the baja may have since been claimed by a different bien in
+     *  that área (see AreaCodigos, asignarCodigo). */
     public void reactivar(String id) throws SQLException, ValidationException {
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();
-        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+        if (!SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
-        productoRepo.reactivar(id);
+        if (com.sibim.config.AreaCodigos.tienePrefijo(p.getArea())) {
+            productoRepo.reactivarConCodigo(id, asignarCodigo(p.getArea()));
+        } else {
+            productoRepo.reactivar(id);
+        }
         log.info("Bien reactivado [{}] '{}'", id, p.getNombre());
         auditRepo.log("producto", id, p.getNombre(), "reactivar", "Bien reactivado tras baja");
     }
@@ -239,7 +269,7 @@ public class ProductoService {
             throw new ValidationException("La categoria es obligatoria");
         if (p.getArea() == null || p.getArea().isBlank())
             throw new ValidationException("El area es obligatoria");
-        if (!SessionManager.isAdmin() && !SessionManager.isAreaAccessible(p.getArea()))
+        if (!SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
         if (p.getPrecioCompra() == null || p.getPrecioCompra().signum() < 0)
             throw new ValidationException("El precio de compra no puede ser negativo");
