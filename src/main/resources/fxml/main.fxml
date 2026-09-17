@@ -165,6 +165,10 @@
                                visible="false" managed="false" mouseTransparent="true"
                                StackPane.alignment="CENTER_RIGHT"/>
                     </StackPane>
+                    <Button fx:id="btnComodatos" text="Comodatos" onAction="#onComodatos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                        <graphic><FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="nav-icon"/></graphic>
+                        <tooltip><Tooltip text="Comodatos — préstamos formales a entidades externas  (Ctrl+Alt+O)"/></tooltip>
+                    </Button>
                     <Button fx:id="btnActas" text="Actas E/R" onAction="#onActas" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Actas de entrega-recepción (cambio de administración)"/></tooltip>

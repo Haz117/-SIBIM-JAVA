@@ -677,7 +677,7 @@ public final class DialogUtil {
         HBox fileCard = new HBox(14, iconLbl, info);
         fileCard.setAlignment(Pos.CENTER_LEFT);
         fileCard.setPadding(new Insets(14, 18, 14, 18));
-        fileCard.getStyleClass().add("dlg-detail-header");
+        fileCard.getStyleClass().add("dlg-detail-header");  
 
         Button btnAbrir   = new Button("Abrir");
         Button btnCarpeta = new Button("Carpeta");

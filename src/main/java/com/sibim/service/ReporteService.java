@@ -20,6 +20,7 @@ import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
+import com.sibim.repository.FolioRepository;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.util.FormatUtils;
@@ -40,16 +41,22 @@ public class ReporteService {
     private final ProductoRepository   productoRepo;
     private final MovimientoRepository movimientoRepo;
     private final com.sibim.repository.ConfiguracionRepository configRepo;
+    private final FolioRepository folioRepo;
 
-    public ReporteService() { this(new ProductoRepository(), new MovimientoRepository(), new com.sibim.repository.ConfiguracionRepository()); }
+    public ReporteService() { this(new ProductoRepository(), new MovimientoRepository(), new com.sibim.repository.ConfiguracionRepository(), new FolioRepository()); }
     ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo) {
-        this(productoRepo, movimientoRepo, new com.sibim.repository.ConfiguracionRepository());
+        this(productoRepo, movimientoRepo, new com.sibim.repository.ConfiguracionRepository(), new FolioRepository());
     }
     ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo,
                    com.sibim.repository.ConfiguracionRepository configRepo) {
+        this(productoRepo, movimientoRepo, configRepo, new FolioRepository());
+    }
+    ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo,
+                   com.sibim.repository.ConfiguracionRepository configRepo, FolioRepository folioRepo) {
         this.productoRepo   = productoRepo;
         this.movimientoRepo = movimientoRepo;
         this.configRepo     = configRepo;
+        this.folioRepo      = folioRepo;
     }
 
     protected String orgName() {
@@ -63,8 +70,14 @@ public class ReporteService {
     protected static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int MAX_EXPORT_ROWS = 50_000;
 
-    protected static String generateFolio(String prefix) {
-        return prefix + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+    protected String generateFolio(String prefix) {
+        try {
+            return folioRepo.next(prefix);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(ReporteService.class)
+                .warn("FolioRepository.next falló para '{}', usando folio por timestamp: {}", prefix, e.getMessage());
+            return prefix + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        }
     }
 
     protected static String getCurrentUserName() {

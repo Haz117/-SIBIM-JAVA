@@ -214,6 +214,16 @@ public class ProductoService {
      *  active inventory" action; unlike {@link #delete}, the record and its
      *  full movement history stay in the database for audits. */
     public void darDeBaja(String id, String motivo) throws SQLException, ValidationException {
+        darDeBaja(id, motivo, null, null, null, null);
+    }
+
+    /** Full baja patrimonial with committee dictamen data.
+     *  {@code tipoDestino}, {@code dictamen}, {@code numeroActa} and {@code fechaDictamen}
+     *  are all optional (null means not filled). */
+    public void darDeBaja(String id, String motivo,
+                          String tipoDestino, String dictamen,
+                          String numeroActa, LocalDate fechaDictamen)
+            throws SQLException, ValidationException {
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();
@@ -221,9 +231,13 @@ public class ProductoService {
             throw new ValidationException("No tienes acceso a esa area");
         if (motivo == null || motivo.isBlank())
             throw new ValidationException("El motivo de la baja es obligatorio");
-        productoRepo.darDeBaja(id, motivo.trim());
-        log.info("Baja patrimonial bien [{}] '{}' — motivo: {}", id, p.getNombre(), motivo.trim());
-        auditRepo.log("producto", id, p.getNombre(), "baja", "Motivo: " + motivo.trim());
+        productoRepo.darDeBaja(id, motivo.trim(), tipoDestino, dictamen, numeroActa, fechaDictamen);
+        log.info("Baja patrimonial bien [{}] '{}' — motivo: {} destino: {}",
+            id, p.getNombre(), motivo.trim(), tipoDestino);
+        String auditDetail = "Motivo: " + motivo.trim()
+            + (tipoDestino != null ? " | Destino: " + tipoDestino : "")
+            + (numeroActa  != null ? " | Acta: " + numeroActa     : "");
+        auditRepo.log("producto", id, p.getNombre(), "baja", auditDetail);
     }
 
     /** Reverses a baja patrimonial, restoring the bien to active inventory.

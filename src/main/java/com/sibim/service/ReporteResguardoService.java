@@ -52,7 +52,7 @@ public class ReporteResguardoService extends ReporteService {
     /** Export rápido desde selección masiva de productos. */
     public File exportarResguardoPdf(String resguardante, String area, List<Producto> bienes) throws Exception {
         Resguardo r = new Resguardo();
-        r.setNumero(folioProvisional());
+        r.setNumero(generateFolio("RSG"));
         r.setResguardanteNombre(resguardante != null ? resguardante : "—");
         r.setResguardanteCargo("");
         r.setResguardanteArea(area != null ? area : "—");
@@ -101,7 +101,7 @@ public class ReporteResguardoService extends ReporteService {
             LocalDateTime ts   = r.getCreadoEn() != null ? r.getCreadoEn() : LocalDateTime.now();
             String fechaStr    = ts.toLocalDate().format(DATE_FMT);
             String horaStr     = ts.format(TIME_FMT);
-            String numero      = r.getNumero() != null ? r.getNumero() : folioProvisional();
+            String numero      = r.getNumero() != null ? r.getNumero() : generateFolio("RSG");
             String estado      = r.getEstado() != null ? r.getEstado() : "PENDIENTE";
             boolean pendiente  = !"ACTIVO".equalsIgnoreCase(estado);
 
@@ -349,8 +349,5 @@ public class ReporteResguardoService extends ReporteService {
         return null;
     }
 
-    private static String folioProvisional() {
-        long ts = System.currentTimeMillis() % 1_000_000L;
-        return String.format("%06d", ts);
-    }
+
 }

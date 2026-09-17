@@ -805,18 +805,21 @@ public class ProductosController {
         // and its full movement history stay in the database for auditoría;
         // the bien just stops showing up in the active inventory. Requires a
         // motivo since a baja is a formal administrative act.
-        Optional<String> motivo = ConfirmacionUtil.confirmarConMotivo(
-            "mdi2d-delete-outline",
-            "Dar de baja",
-            "¿Dar de baja \"" + seleccionado.getNombre() + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
-            "Dar de baja", true,
-            "Motivo de la baja (obligatorio)"
-        );
-        if (motivo.isEmpty()) return;
+        BajaDialogResult resultado = showBajaDialog(seleccionado.getNombre());
+        if (resultado == null) return;
+
         String nombre = seleccionado.getNombre();
         String idBaja = seleccionado.getId();
+        final BajaDialogResult r = resultado;
         Runnable doDelete = () -> DialogUtil.runAsync(
-            () -> productoService.darDeBaja(idBaja, motivo.get()),
+            () -> {
+                if (r.tipoDestino() != null) {
+                    productoService.darDeBaja(idBaja, r.motivo(),
+                        r.tipoDestino(), r.dictamen(), r.numeroActa(), r.fechaDictamen());
+                } else {
+                    productoService.darDeBaja(idBaja, r.motivo());
+                }
+            },
             () -> {
                 loadData();
                 NotificacionUtil.exitoConAccionCountdown(table.getScene(),
@@ -839,6 +842,108 @@ public class ProductosController {
         } else {
             doDelete.run();
         }
+    }
+
+    /** Simple record to carry the baja dialog result. */
+    private record BajaDialogResult(
+        String motivo,
+        String tipoDestino,
+        String dictamen,
+        String numeroActa,
+        java.time.LocalDate fechaDictamen
+    ) {}
+
+    /**
+     * Shows the enhanced "Dar de baja" dialog with motivo (required) and
+     * optional committee/dictamen fields. Returns null if the user cancelled.
+     */
+    private BajaDialogResult showBajaDialog(String nombreBien) {
+        javafx.scene.control.Dialog<BajaDialogResult> dlg = new javafx.scene.control.Dialog<>();
+        dlg.setTitle("Dar de baja");
+        dlg.getDialogPane().getButtonTypes().addAll(
+            javafx.scene.control.ButtonType.OK,
+            javafx.scene.control.ButtonType.CANCEL
+        );
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        // Header
+        javafx.scene.layout.HBox header = DialogUtil.gradientHeader(
+            "mdi2d-delete-outline",
+            "Dar de baja",
+            "¿Dar de baja \"" + nombreBien + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
+            "#B45309", "#92400E"
+        );
+
+        // ── Form fields ───────────────────────────────────────────────
+        javafx.scene.control.TextField tfMotivo = new javafx.scene.control.TextField();
+        tfMotivo.setPromptText("Motivo de la baja (obligatorio)");
+        tfMotivo.setPrefWidth(360);
+
+        javafx.scene.control.ComboBox<String> cbDestino = new javafx.scene.control.ComboBox<>();
+        cbDestino.getItems().addAll("", "Destrucción", "Donación", "Subasta",
+            "Transferencia a otro ente", "Otro");
+        cbDestino.setValue("");
+        cbDestino.setPrefWidth(360);
+        cbDestino.setPromptText("Tipo de destino (opcional)");
+
+        javafx.scene.control.TextField tfDictamen = new javafx.scene.control.TextField();
+        tfDictamen.setPromptText("Dictamen / Resolución (opcional)");
+        tfDictamen.setPrefWidth(360);
+
+        javafx.scene.control.TextField tfNumeroActa = new javafx.scene.control.TextField();
+        tfNumeroActa.setPromptText("No. de Acta (opcional)");
+        tfNumeroActa.setPrefWidth(360);
+
+        javafx.scene.control.DatePicker dpFechaDictamen = new javafx.scene.control.DatePicker();
+        dpFechaDictamen.setPromptText("Fecha del dictamen (opcional)");
+        dpFechaDictamen.setPrefWidth(360);
+
+        // Disable OK if motivo is blank
+        javafx.scene.Node btnOk = dlg.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK);
+        btnOk.setDisable(true);
+        tfMotivo.textProperty().addListener((obs, o, n) ->
+            btnOk.setDisable(n == null || n.isBlank()));
+
+        // Layout
+        VBox form = new VBox(10);
+        form.setPadding(new javafx.geometry.Insets(20, 24, 8, 24));
+        form.getChildren().addAll(
+            new javafx.scene.control.Label("Motivo de la baja *"),
+            tfMotivo,
+            new javafx.scene.control.Label("Tipo de destino"),
+            cbDestino,
+            new javafx.scene.control.Label("Dictamen / Resolución"),
+            tfDictamen,
+            new javafx.scene.control.Label("No. de Acta"),
+            tfNumeroActa,
+            new javafx.scene.control.Label("Fecha del dictamen"),
+            dpFechaDictamen
+        );
+
+        dlg.getDialogPane().setContent(new VBox(header, form));
+        dlg.getDialogPane().setPrefWidth(440);
+
+        // Map OK to result
+        dlg.setResultConverter(bt -> {
+            if (bt != javafx.scene.control.ButtonType.OK) return null;
+            String motivo = tfMotivo.getText().trim();
+            String destLabel = cbDestino.getValue();
+            String tipoDestino = switch (destLabel == null ? "" : destLabel) {
+                case "Destrucción"             -> "DESTRUCCION";
+                case "Donación"                -> "DONACION";
+                case "Subasta"                 -> "SUBASTA";
+                case "Transferencia a otro ente" -> "TRANSFERENCIA_ENTE";
+                case "Otro"                    -> "OTRO";
+                default                        -> null;
+            };
+            String dictamen   = tfDictamen.getText().isBlank()   ? null : tfDictamen.getText().trim();
+            String numeroActa = tfNumeroActa.getText().isBlank() ? null : tfNumeroActa.getText().trim();
+            java.time.LocalDate fechaDictamen = dpFechaDictamen.getValue();
+            return new BajaDialogResult(motivo, tipoDestino, dictamen, numeroActa, fechaDictamen);
+        });
+
+        return dlg.showAndWait().orElse(null);
     }
 
     @FXML
@@ -1055,6 +1160,18 @@ public class ProductosController {
             lbl.setVisible(false);
             lbl.setManaged(false);
         }
+    }
+
+    /**
+     * Sets the search field to {@code codigo} and triggers a search.
+     * Called by {@link MainController#handleBarcodeScan(String)} after the
+     * barcode scanner fires and the Productos screen is already visible.
+     */
+    public void buscarPorCodigo(String codigo) {
+        if (searchField == null || codigo == null) return;
+        searchField.setText(codigo);
+        currentPage = 0;
+        applyFilters();
     }
 
 }

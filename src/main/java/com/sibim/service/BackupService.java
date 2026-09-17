@@ -35,7 +35,9 @@ public class BackupService {
      *  this order, all inside one transaction. */
     private static final List<String> TABLAS = List.of(
         "users", "categories", "products", "movements",
-        "audit_log", "conteos_fisicos", "conteo_items");
+        "audit_log", "conteos_fisicos", "conteo_items",
+        "resguardos", "resguardo_items", "prestamos",
+        "actas_entrega_recepcion");
 
     private static final int BACKUP_VERSION = 1;
 

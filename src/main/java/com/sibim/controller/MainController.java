@@ -68,6 +68,7 @@ public class MainController {
     @FXML private Button btnConteoFisico;
     @FXML private Button btnResguardos;
     @FXML private Button btnPrestamos;
+    @FXML private Button btnComodatos;
     @FXML private Button btnActas;
     @FXML private Button btnConfiguracion;
     @FXML private Button btnAuditoria;
@@ -142,7 +143,7 @@ public class MainController {
             logoTextBox, userInfoVBox, btnToggleSidebar,
             java.util.List.of(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
                 btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
-                btnResguardos, btnPrestamos, btnActas, btnConfiguracion, btnAuditoria));
+                btnResguardos, btnPrestamos, btnComodatos, btnActas, btnConfiguracion, btnAuditoria));
         statusBarManager = new MainStatusBarManager(
             offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
@@ -164,7 +165,7 @@ public class MainController {
         addNavTooltips();
         setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
                       btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
-                      btnResguardos, btnPrestamos, btnActas,
+                      btnResguardos, btnPrestamos, btnComodatos, btnActas,
                       btnConfiguracion, btnAuditoria);
 
         if (btnAuditoria != null) {
@@ -180,6 +181,7 @@ public class MainController {
                 setupKeyboardShortcuts(scene);
                 scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
                 scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
+                com.sibim.util.BarcodeScanner.attach(scene, this::handleBarcodeScan);
                 javafx.application.Platform.runLater(sidebarManager::setup);
                 if (!startupTasksScheduled) {
                     startupTasksScheduled = true;
@@ -246,6 +248,7 @@ public class MainController {
     @FXML private void onDepreciacion()  { navigateTo("depreciacion",  btnDepreciacion); }
     @FXML private void onResguardos()    { navigateTo("resguardos",   btnResguardos); }
     @FXML private void onPrestamos()     { navigateTo("prestamos",    btnPrestamos); }
+    @FXML private void onComodatos()     { navigateTo("comodatos",    btnComodatos); }
     @FXML private void onActas()         { navigateTo("actas",        btnActas); }
     @FXML private void onConfiguracion() { navigateTo("configuracion", btnConfiguracion); }
 
@@ -337,6 +340,7 @@ public class MainController {
         if ("auditoria".equals(view))  { navigateTo(view, btnAuditoria);  return; }
         if ("resguardos".equals(view)) { navigateTo(view, btnResguardos); return; }
         if ("prestamos".equals(view))  { navigateTo(view, btnPrestamos);  return; }
+        if ("comodatos".equals(view))  { navigateTo(view, btnComodatos);  return; }
         if ("actas".equals(view))      { navigateTo(view, btnActas);      return; }
         navigateTo(view, resolveNavigationButton(view,
             btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
@@ -349,6 +353,7 @@ public class MainController {
         if ("auditoria".equals(view))  return btnAuditoria;
         if ("resguardos".equals(view)) return btnResguardos;
         if ("prestamos".equals(view))  return btnPrestamos;
+        if ("comodatos".equals(view))  return btnComodatos;
         if ("actas".equals(view))      return btnActas;
         return resolveNavigationButton(view,
             btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
@@ -597,6 +602,7 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.CONTROL_DOWN), () -> { if (SessionManager.isAdmin()) onAuditoria(); });
         a.put(new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onResguardos());
         a.put(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onPrestamos());
+        a.put(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onComodatos());
         a.put(new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onActas());
         a.put(new KeyCodeCombination(KeyCode.F5),                                   () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
@@ -632,6 +638,7 @@ public class MainController {
             new SearchPaletteDialog.NavEntry("mdi2c-chart-line",              "Depreciación",        "Ctrl+8", this::onDepreciacion),
             new SearchPaletteDialog.NavEntry("mdi2c-clipboard-account-outline","Resguardos",         "Ctrl+Alt+G", this::onResguardos),
             new SearchPaletteDialog.NavEntry("mdi2s-swap-horizontal",         "Préstamos",          "Ctrl+Alt+P", this::onPrestamos),
+            new SearchPaletteDialog.NavEntry("mdi2c-clipboard-list-outline",  "Comodatos",          "Ctrl+Alt+O", this::onComodatos),
             new SearchPaletteDialog.NavEntry("mdi2s-swap-horizontal-bold",    "Actas E/R",          "Ctrl+Alt+A", this::onActas),
             new SearchPaletteDialog.NavEntry("mdi2c-cog-outline",             "Configuración",       "Ctrl+9", this::onConfiguracion)
         ));
@@ -678,6 +685,7 @@ public class MainController {
         addNavTooltip(btnConteoFisico,  "Conteo físico del inventario");
         addNavTooltip(btnResguardos,    "Resguardos  (Ctrl+Alt+G)");
         addNavTooltip(btnPrestamos,     "Préstamos  (Ctrl+Alt+P)");
+        addNavTooltip(btnComodatos,     "Comodatos  (Ctrl+Alt+O)");
         addNavTooltip(btnActas,         "Actas E/R  (Ctrl+Alt+A)");
         addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+9)");
         addNavTooltip(btnAuditoria,     "Auditoría  (Ctrl+0)");
@@ -737,4 +745,21 @@ public class MainController {
 
     /** Called from child controllers (e.g. Alertas → Movimientos). */
     public void navigateTo(String view) { navigateToView(view); }
+
+    /**
+     * Called by the {@link com.sibim.util.BarcodeScanner} when a USB HID scanner
+     * fires a barcode or QR code. Navigates to the Productos screen and triggers
+     * a search for the scanned code. Shows a brief toast so the user has visual
+     * confirmation the scan was registered.
+     */
+    private void handleBarcodeScan(String codigo) {
+        javafx.scene.Scene scene = contentArea.getScene();
+        NotificacionUtil.info(scene, "Escaneado: " + codigo);
+        onProductos();
+        javafx.application.Platform.runLater(() -> {
+            if (currentController instanceof ProductosController productosCtrl) {
+                productosCtrl.buscarPorCodigo(codigo);
+            }
+        });
+    }
 }

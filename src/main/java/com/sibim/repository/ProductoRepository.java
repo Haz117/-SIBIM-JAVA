@@ -477,21 +477,51 @@ public class ProductoRepository {
      *  the active inventory (see {@link #findAll()}). This is what the UI's
      *  "Dar de baja" action should call, not {@link #delete}. */
     public void darDeBaja(String id, String motivo) throws SQLException {
+        darDeBaja(id, motivo, null, null, null, null);
+    }
+
+    /** Full baja patrimonial with committee dictamen data. If {@code tipoDestino}
+     *  and the other optional fields are null, behaves exactly like the simple overload. */
+    public void darDeBaja(String id, String motivo,
+                          String tipoDestino, String dictamen,
+                          String numeroActa, LocalDate fechaDictamen) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
+            // LocalDataStore interface only supports motivo — use simple path
             local.darDeBajaProducto(id, motivo);
             return;
         }
-        darDeBajaOnline(id, motivo);
+        darDeBajaOnline(id, motivo, tipoDestino, dictamen, numeroActa, fechaDictamen);
     }
 
-    /** Replay target for SyncService — see {@link #saveOnline}. */
+    /** Replay target for SyncService — see {@link #saveOnline}. Simple overload. */
     public void darDeBajaOnline(String id, String motivo) throws SQLException {
-        String sql = "UPDATE products SET fecha_baja = CURRENT_DATE, motivo_baja = ?, updated_at = NOW() WHERE id = ? AND fecha_baja IS NULL";
+        darDeBajaOnline(id, motivo, null, null, null, null);
+    }
+
+    /** Replay target for SyncService — full overload with dictamen fields. */
+    public void darDeBajaOnline(String id, String motivo,
+                                String tipoDestino, String dictamen,
+                                String numeroActa, LocalDate fechaDictamen) throws SQLException {
+        String sql = """
+            UPDATE products
+            SET fecha_baja        = CURRENT_DATE,
+                motivo_baja       = ?,
+                tipo_destino_baja = ?,
+                dictamen_baja     = ?,
+                numero_acta_baja  = ?,
+                fecha_dictamen    = ?,
+                updated_at        = NOW()
+            WHERE id = ? AND fecha_baja IS NULL
+            """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, motivo);
-            ps.setString(2, id);
+            ps.setString(2, tipoDestino);
+            ps.setString(3, dictamen);
+            ps.setString(4, numeroActa);
+            ps.setObject(5, fechaDictamen);
+            ps.setString(6, id);
             if (ps.executeUpdate() == 0)
                 throw new SQLException("El bien no existe o ya estaba dado de baja (id=" + id + ")");
         }
@@ -1011,6 +1041,15 @@ public class ProductoRepository {
             p.setNotasMantenimiento(rs.getString("notas_mantenimiento"));
         } catch (SQLException ignored) {
             // Column may not exist yet (migration not run) — ignore gracefully
+        }
+        try {
+            p.setTipoDestinoBaja(rs.getString("tipo_destino_baja"));
+            p.setDictamenBaja(rs.getString("dictamen_baja"));
+            p.setNumeroActaBaja(rs.getString("numero_acta_baja"));
+            java.sql.Date fd = rs.getDate("fecha_dictamen");
+            if (fd != null) p.setFechaDictamen(fd.toLocalDate());
+        } catch (SQLException ignored) {
+            // Columns may not exist yet (migration not run) — ignore gracefully
         }
         return p;
     }

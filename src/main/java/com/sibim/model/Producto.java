@@ -195,6 +195,24 @@ public class Producto {
     public List<String> getFotosUrls() { return fotosUrls; }
     public void setFotosUrls(List<String> fotosUrls) { this.fotosUrls = fotosUrls != null ? fotosUrls : new java.util.ArrayList<>(); }
 
+    // ── Comité de Bajas con Dictamen ──────────────────────────────────
+    private String    tipoDestinoBaja;
+    private String    dictamenBaja;
+    private String    numeroActaBaja;
+    private LocalDate fechaDictamen;
+
+    public String    getTipoDestinoBaja()   { return tipoDestinoBaja; }
+    public void      setTipoDestinoBaja(String tipoDestinoBaja)   { this.tipoDestinoBaja = tipoDestinoBaja; }
+
+    public String    getDictamenBaja()      { return dictamenBaja; }
+    public void      setDictamenBaja(String dictamenBaja)         { this.dictamenBaja = dictamenBaja; }
+
+    public String    getNumeroActaBaja()    { return numeroActaBaja; }
+    public void      setNumeroActaBaja(String numeroActaBaja)     { this.numeroActaBaja = numeroActaBaja; }
+
+    public LocalDate getFechaDictamen()     { return fechaDictamen; }
+    public void      setFechaDictamen(LocalDate fechaDictamen)    { this.fechaDictamen = fechaDictamen; }
+
     // ── Mantenimiento ─────────────────────────────────────────────────
     private LocalDate proximaRevision;
     private String notasMantenimiento;
