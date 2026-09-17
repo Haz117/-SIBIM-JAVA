@@ -633,6 +633,11 @@ public final class DemoDataStore {
             .ifPresent(p -> { p.setArea(newArea); p.setActualizadoEn(LocalDateTime.now()); });
     }
 
+    public static void updateProductoCodigo(String id, String codigo) {
+        PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst()
+            .ifPresent(p -> { p.setCodigo(codigo); p.setActualizadoEn(LocalDateTime.now()); });
+    }
+
     // ── Movimientos ───────────────────────────────────────────────────────────
 
     public static List<Movimiento> findAllMovimientos(Set<String> accessibleAreas) {

@@ -539,6 +539,20 @@ public class ProductoRepository {
         }
     }
 
+    /** Updates only the código of an active product — called when a transfer
+     *  approval causes a nomenclature reassignment to the destination area. */
+    public void actualizarCodigo(String id, String codigo) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) { local.actualizarCodigoProducto(id, codigo); return; }
+        String sql = "UPDATE products SET codigo = ?, updated_at = NOW() WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, codigo);
+            ps.setString(2, id);
+            ps.executeUpdate();
+        }
+    }
+
     public void delete(String id) throws SQLException {
         if (DatabaseConfig.isOfflineMode()) {
             // A hard delete isn't queueable in this version's offline scope

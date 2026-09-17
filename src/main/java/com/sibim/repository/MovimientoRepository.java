@@ -760,6 +760,26 @@ public class MovimientoRepository {
         }
     }
 
+    /** Returns {productoId, areaDestino} for a PENDIENTE transfer, or empty if not found. */
+    public Optional<String[]> findTransferenciaInfo(String movimientoId) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllMovimientos(null).stream()
+                .filter(m -> movimientoId.equals(m.getId()) && m.isPendiente())
+                .map(m -> new String[]{ m.getProductoId(), m.getAreaDestino() })
+                .findFirst();
+        }
+        String sql = "SELECT producto_id, area_destino FROM movements WHERE id = ? AND estado = 'PENDIENTE'";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movimientoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(new String[]{ rs.getString("producto_id"), rs.getString("area_destino") });
+            }
+        }
+    }
+
     /** Applies a pending transfer: updates product area → area_destino, marks movement APROBADO. */
     public void aprobarTransferencia(String movimientoId) throws SQLException {
         if (DatabaseConfig.isDemoMode()) { DemoDataStore.aprobarTransferencia(movimientoId); return; }

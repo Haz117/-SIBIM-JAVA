@@ -186,9 +186,31 @@ public class MovimientoService {
 
     public void aprobarTransferencia(String movimientoId) throws SQLException {
         requireAdminForTransferWorkflow();
+        Optional<String[]> infoOpt = movimientoRepo.findTransferenciaInfo(movimientoId);
         movimientoRepo.aprobarTransferencia(movimientoId);
+        if (infoOpt.isPresent()) {
+            String productoId  = infoOpt.get()[0];
+            String areaDestino = infoOpt.get()[1];
+            if (areaDestino != null && com.sibim.config.AreaCodigos.tienePrefijo(areaDestino)) {
+                productoRepo.actualizarCodigo(productoId, asignarCodigo(areaDestino));
+            }
+        }
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_aprobada",
             "Transferencia aprobada por administrador");
+    }
+
+    private String asignarCodigo(String area) throws SQLException {
+        String prefijo = com.sibim.config.AreaCodigos.prefijo(area);
+        java.util.Set<Integer> usados = new java.util.HashSet<>();
+        for (Producto p : productoRepo.findAll(false)) {
+            String codigo = p.getCodigo();
+            if (codigo == null || !codigo.startsWith(prefijo + "/")) continue;
+            try { usados.add(Integer.parseInt(codigo.substring(prefijo.length() + 1))); }
+            catch (NumberFormatException ignored) {}
+        }
+        int numero = 1;
+        while (usados.contains(numero)) numero++;
+        return prefijo + "/" + String.format("%02d", numero);
     }
 
     public void rechazarTransferencia(String movimientoId) throws SQLException {
