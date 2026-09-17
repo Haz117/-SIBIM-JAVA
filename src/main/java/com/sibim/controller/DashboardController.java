@@ -88,11 +88,18 @@ public class DashboardController {
     @FXML private VBox  cardResguardosActivos;
     @FXML private HBox  operacionesRow;
 
+    // ── Comodatos cards ───────────────────────────────────────────────
+    @FXML private Label lblComodatosVigentes;
+    @FXML private Label lblComodatosVencidos;
+    @FXML private VBox  cardComodatosVigentes;
+    @FXML private VBox  cardComodatosVencidos;
+
     private final DashboardService dashboardService = new DashboardService();
     private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
     private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
     private final com.sibim.service.PrestamoService prestamoService = new com.sibim.service.PrestamoService();
     private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
+    private final com.sibim.service.ComodatoService comodatoService = new com.sibim.service.ComodatoService();
 
     private static final String CARDS_CONFIG_KEY = "dashboard_cards_visibles";
     private static final java.util.Set<String> ALL_CARDS = java.util.Set.of(
@@ -404,6 +411,18 @@ public class DashboardController {
                     .filter(p -> com.sibim.model.Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
                 long resguardos = resguardoService.getAll().stream()
                     .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado())).count();
+                long comodatosVigentes;
+                long comodatosVencidos;
+                try {
+                    comodatoService.actualizarVencidos();
+                    comodatosVigentes = comodatoService.getVigentes().size();
+                    comodatosVencidos = comodatoService.getVencidos().size();
+                } catch (Exception ex) {
+                    comodatosVigentes = 0;
+                    comodatosVencidos = 0;
+                }
+                final long cVig = comodatosVigentes;
+                final long cVen = comodatosVencidos;
                 javafx.application.Platform.runLater(() -> {
                     if (lblPrestamosVencidos != null)
                         AnimationUtils.animateCount(lblPrestamosVencidos, vencidos, 700);
@@ -419,6 +438,18 @@ public class DashboardController {
                             cardPrestamosVencidos.getStyleClass().remove("dash-stat-urgent");
                         }
                     }
+                    if (lblComodatosVigentes != null)
+                        AnimationUtils.animateCount(lblComodatosVigentes, cVig, 700);
+                    if (lblComodatosVencidos != null)
+                        AnimationUtils.animateCount(lblComodatosVencidos, cVen, 700);
+                    if (cardComodatosVencidos != null) {
+                        if (cVen > 0) {
+                            cardComodatosVencidos.getStyleClass().removeAll("dash-stat-urgent");
+                            cardComodatosVencidos.getStyleClass().add("dash-stat-urgent");
+                        } else {
+                            cardComodatosVencidos.getStyleClass().remove("dash-stat-urgent");
+                        }
+                    }
                     if (operacionesRow != null && operacionesRow.getOpacity() < 1)
                         AnimationUtils.fadeInUp(operacionesRow, 350, 0);
                 });
@@ -431,6 +462,7 @@ public class DashboardController {
     @FXML private void onVerPrestamos()         { navigarA("Prestamos"); }
     @FXML private void onVerPrestamosVencidos() { navigarA("Prestamos"); }
     @FXML private void onVerResguardos()        { navigarA("Resguardos"); }
+    @FXML private void onVerComodatos()         { navigarA("Comodatos"); }
 
     @FXML
     private void onVerAgotados() {

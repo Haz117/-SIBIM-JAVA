@@ -1,6 +1,8 @@
 package com.sibim.service;
 
 import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -10,10 +12,13 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.repository.AuditLogRepository;
@@ -187,7 +192,35 @@ public class PrestamoService {
 
             // ── Header ──
             DeviceRgb hColor = vencido ? new DeviceRgb(146, 64, 14) : COLOR_HEADER;
-            Table headerTable = new Table(1).useAllAvailableWidth();
+
+            // Try to load the municipal logo for the header.
+            Image headerLogo = null;
+            String lp = cfgRepo.get("logo_path", null);
+            if (lp != null && new java.io.File(lp).exists()) {
+                try {
+                    ImageData imgData = ImageDataFactory.create(lp);
+                    headerLogo = new Image(imgData);
+                    headerLogo.setMaxHeight(45).setMaxWidth(60).setAutoScale(false);
+                    headerLogo.setHorizontalAlignment(HorizontalAlignment.CENTER);
+                } catch (Exception e) {
+                    org.slf4j.LoggerFactory.getLogger(PrestamoService.class)
+                        .warn("No se pudo cargar el logo municipal '{}': {}", lp, e.getMessage());
+                    headerLogo = null;
+                }
+            }
+
+            Table headerTable;
+            if (headerLogo != null) {
+                headerTable = new Table(new float[]{1f, 4f}).useAllAvailableWidth();
+                com.itextpdf.layout.element.Cell logoCell = new com.itextpdf.layout.element.Cell()
+                    .add(headerLogo)
+                    .setBackgroundColor(ColorConstants.WHITE)
+                    .setPadding(6).setBorder(null)
+                    .setVerticalAlignment(VerticalAlignment.MIDDLE);
+                headerTable.addCell(logoCell);
+            } else {
+                headerTable = new Table(1).useAllAvailableWidth();
+            }
             com.itextpdf.layout.element.Cell hCell = new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("COMPROBANTE DE PRÉSTAMO TEMPORAL")
                     .setFont(bold).setFontSize(14).setFontColor(ColorConstants.WHITE)

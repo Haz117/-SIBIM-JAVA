@@ -1,8 +1,10 @@
 package com.sibim.controller;
 
+import com.sibim.model.Comodato;
 import com.sibim.model.Producto;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.service.ComodatoService;
 import com.sibim.service.EmailService;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
@@ -97,6 +99,9 @@ public class AlertasController {
     @FXML private FontIcon chevronGarantias;
     @FXML private FontIcon chevronMantenimiento;
 
+    // ── Comodatos vencidos section (built in Java, inserted into rootPane) ──
+    private VBox sectionComodatos;
+
     // ── Resumen rápido (stat cards al tope) ──────────────────────────
     @FXML private VBox    statCardAgotados;
     @FXML private VBox    statCardBajoStockSum;
@@ -115,11 +120,13 @@ public class AlertasController {
     private final ProductoService productoService = new ProductoService();
     private final MovimientoService movimientoService = new MovimientoService();
     private final ReporteService reporteService = new ReporteService();
+    private final ComodatoService comodatoService = new ComodatoService();
 
-    private List<Producto> allAgotados      = List.of();
-    private List<Producto> allBajoStock     = List.of();
-    private List<Producto> allGarantias     = List.of();
-    private List<Producto> allMantenimiento = List.of();
+    private List<Producto>  allAgotados      = List.of();
+    private List<Producto>  allBajoStock     = List.of();
+    private List<Producto>  allGarantias     = List.of();
+    private List<Producto>  allMantenimiento = List.of();
+    private List<Comodato>  allComodatosVencidos = List.of();
     private Timeline autoRefresh;
     private javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter;
 
@@ -260,6 +267,10 @@ public class AlertasController {
         setupCollapsibleSection("alertas.bajostock.colapsado", headerBajoStock, contentBajoStock, chevronBajoStock);
         setupCollapsibleSection("alertas.garantias.colapsado", headerGarantias, contentGarantias, chevronGarantias);
         setupCollapsibleSection("alertas.mantenimiento.colapsado", headerMantenimiento, contentMantenimiento, chevronMantenimiento);
+
+        // Comodatos section is built programmatically and appended to rootPane
+        sectionComodatos = buildComodatosSection();
+        if (rootPane != null) rootPane.getChildren().add(sectionComodatos);
     }
 
     /** Lets the user collapse/expand one of the 4 alert sections by clicking
@@ -293,24 +304,30 @@ public class AlertasController {
         AlertasColumnSetup.configureGarantias(colGaNombre, colGaCodigo, colGaFecha, colGaDias);
     }
 
-    private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias, List<Producto> mantenimiento) {}
+    private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias, List<Producto> mantenimiento, List<Comodato> comodatosVencidos) {}
 
     private void loadData() { loadData(false); }
 
     private void loadData(boolean showToast) {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         DialogUtil.runAsync(
-            () -> new AlertasData(
-                productoService.getAgotados(),
-                productoService.getBajoStock(),
-                productoService.getVencidosProximos(30),
-                productoService.getProximasRevisiones(30)),
+            () -> {
+                comodatoService.actualizarVencidos();
+                return new AlertasData(
+                    productoService.getAgotados(),
+                    productoService.getBajoStock(),
+                    productoService.getVencidosProximos(30),
+                    productoService.getProximasRevisiones(30),
+                    comodatoService.getVencidos());
+            },
             data -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                allAgotados       = data.agotados();
-                allBajoStock      = data.bajoStock();
-                allGarantias      = data.garantias();
-                allMantenimiento  = data.mantenimiento();
+                allAgotados           = data.agotados();
+                allBajoStock          = data.bajoStock();
+                allGarantias          = data.garantias();
+                allMantenimiento      = data.mantenimiento();
+                allComodatosVencidos  = data.comodatosVencidos();
+                updateComodatosSection();
                 if (tableMantenimiento != null) {
                     tableMantenimiento.getItems().setAll(allMantenimiento);
                     if (lblMantenimientoCount != null)
@@ -386,7 +403,8 @@ public class AlertasController {
             if (sectionGarantias != null && !allGarantias.isEmpty()) AnimationUtils.statCardPop(sectionGarantias);
         });
         sectionPop.play();
-        boolean sinAlertas = allAgotados.isEmpty() && allBajoStock.isEmpty() && allGarantias.isEmpty();
+        boolean sinAlertas = allAgotados.isEmpty() && allBajoStock.isEmpty()
+            && allGarantias.isEmpty() && allComodatosVencidos.isEmpty();
         boolean wasVisible = lblSinAlertas.isVisible();
         lblSinAlertas.setVisible(sinAlertas);
         lblSinAlertas.setManaged(sinAlertas);
@@ -409,7 +427,8 @@ public class AlertasController {
     @FXML private void onRefresh() { loadData(true); }
 
     private boolean sinAlertas() {
-        if (allAgotados.isEmpty() && allBajoStock.isEmpty() && allGarantias.isEmpty()) {
+        if (allAgotados.isEmpty() && allBajoStock.isEmpty()
+                && allGarantias.isEmpty() && allComodatosVencidos.isEmpty()) {
             NotificacionUtil.advertencia(tableAgotados.getScene(), "No hay alertas para exportar");
             return true;
         }
@@ -566,6 +585,116 @@ public class AlertasController {
                 new javafx.animation.KeyValue(pb.progressProperty(), target,
                     javafx.animation.Interpolator.EASE_BOTH)));
         tl.play();
+    }
+
+    // ── Comodatos vencidos ──────────────────────────────────────────────
+
+    private static final String PREF_COMODATOS_COLAPSADO = "alertas.comodatos.colapsado";
+
+    private VBox buildComodatosSection() {
+        // Header
+        FontIcon headerIcon = new FontIcon("mdi2h-handshake-outline");
+        headerIcon.getStyleClass().add("alert-section-icon");
+
+        Label titleLbl = new Label("Comodatos Vencidos");
+        titleLbl.getStyleClass().add("alert-section-title-inv");
+        Label subtitleLbl = new Label("Comodatos cuya fecha límite ha sido superada sin devolución");
+        subtitleLbl.getStyleClass().add("alert-section-subtitle");
+        VBox titleBox = new VBox(1, titleLbl, subtitleLbl);
+        javafx.scene.layout.HBox.setHgrow(titleBox, javafx.scene.layout.Priority.ALWAYS);
+
+        Label countBadge = new Label("0 comodatos");
+        countBadge.getStyleClass().add("badge-count-inv");
+        countBadge.setId("comodatosCountBadge");
+
+        FontIcon chevron = new FontIcon("mdi2c-chevron-up");
+        chevron.getStyleClass().add("alert-section-chevron");
+
+        HBox header = new HBox(12, headerIcon, titleBox, countBadge, chevron);
+        header.getStyleClass().add("alert-header-warning");
+        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        // Table
+        TableView<Comodato> table = new TableView<>();
+        table.setPrefHeight(185);
+        table.getStyleClass().add("data-table");
+        table.setTableMenuButtonVisible(true);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.setId("tableComodatos");
+        table.setPlaceholder(alertaOkNode("Sin comodatos vencidos"));
+
+        TableColumn<Comodato, String> colNombre = new TableColumn<>("Bien");
+        colNombre.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+            c.getValue().getProductoNombre()));
+        colNombre.setPrefWidth(220);
+
+        TableColumn<Comodato, String> colEntidad = new TableColumn<>("Entidad Receptora");
+        colEntidad.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+            c.getValue().getEntidadReceptora()));
+        colEntidad.setPrefWidth(200);
+
+        TableColumn<Comodato, String> colFechaFin = new TableColumn<>("Fecha Fin");
+        colFechaFin.setCellValueFactory(c -> {
+            java.time.LocalDate ff = c.getValue().getFechaFin();
+            return new javafx.beans.property.SimpleStringProperty(
+                ff != null ? ff.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "—");
+        });
+        colFechaFin.setPrefWidth(120);
+        colFechaFin.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String v, boolean empty) {
+                super.updateItem(v, empty);
+                getStyleClass().removeAll("stock-low");
+                if (empty || v == null) { setText(null); return; }
+                setText(v);
+                getStyleClass().add("stock-low");
+            }
+        });
+
+        table.getColumns().addAll(colNombre, colEntidad, colFechaFin);
+
+        VBox content = new VBox(10, table);
+        content.setPadding(new javafx.geometry.Insets(14));
+        content.setId("contentComodatos");
+
+        // Collapsible behavior
+        boolean collapsed = STICKY.getBoolean(PREF_COMODATOS_COLAPSADO, false);
+        applySectionCollapsed(content, chevron, collapsed);
+        header.setCursor(javafx.scene.Cursor.HAND);
+        header.setOnMouseClicked(e -> {
+            boolean nowCollapsed = content.isVisible();
+            applySectionCollapsed(content, chevron, nowCollapsed);
+            STICKY.putBoolean(PREF_COMODATOS_COLAPSADO, nowCollapsed);
+        });
+
+        VBox section = new VBox(0, header, content);
+        section.getStyleClass().addAll("alert-section", "alert-warning");
+        section.setVisible(false);
+        section.setManaged(false);
+        return section;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void updateComodatosSection() {
+        if (sectionComodatos == null) return;
+        boolean hasVencidos = !allComodatosVencidos.isEmpty();
+        sectionComodatos.setVisible(hasVencidos);
+        sectionComodatos.setManaged(hasVencidos);
+        if (!hasVencidos) return;
+
+        // Update count badge
+        sectionComodatos.lookupAll("#comodatosCountBadge").forEach(n -> {
+            if (n instanceof Label lbl)
+                lbl.setText(allComodatosVencidos.size() + " comodato"
+                    + (allComodatosVencidos.size() == 1 ? "" : "s"));
+        });
+
+        // Update table
+        sectionComodatos.lookupAll("#tableComodatos").forEach(n -> {
+            if (n instanceof TableView<?> tv)
+                ((TableView<Comodato>) tv).getItems().setAll(allComodatosVencidos);
+        });
+
+        AnimationUtils.statCardPop(sectionComodatos);
     }
 
     /** Stops the auto-refresh timer and cleans up listeners. Must be called before this controller's view is discarded. */

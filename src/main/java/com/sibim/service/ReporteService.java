@@ -1,6 +1,8 @@
 package com.sibim.service;
 
 import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -9,6 +11,8 @@ import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.sibim.model.Movimiento;
@@ -58,6 +62,21 @@ public class ReporteService {
         String mun = configRepo.get("municipio", "");
         if (org.isBlank()) return "SIBIM — Sistema Integral de Bienes Municipales";
         return mun.isBlank() ? org : org + "  ·  " + mun;
+    }
+
+    /**
+     * Returns the configured logo file path if it exists on disk, or null.
+     * Subclasses call this instead of duplicating the configRepo + file check.
+     */
+    protected String logoPath() {
+        try {
+            String path = configRepo.get("logo_path", null);
+            if (path != null && new java.io.File(path).exists()) return path;
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(ReporteService.class)
+                .warn("No se pudo leer logo_path de configuración: {}", e.getMessage());
+        }
+        return null;
     }
 
     protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
@@ -602,8 +621,37 @@ public class ReporteService {
         PdfFont titleFont   = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
-        float[] hw = folio != null ? new float[]{4f, 1.3f} : new float[]{1f};
+        // Try to load the municipal logo; fall back gracefully on any failure.
+        Image logoImg = null;
+        String lp = logoPath();
+        if (lp != null) {
+            try {
+                ImageData imgData = ImageDataFactory.create(lp);
+                logoImg = new Image(imgData);
+                logoImg.setMaxHeight(45).setMaxWidth(60).setAutoScale(false);
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(ReporteService.class)
+                    .warn("No se pudo cargar el logo municipal '{}': {}", lp, e.getMessage());
+                logoImg = null;
+            }
+        }
+
+        // Column layout: [logo | title+org | folio] or [title+org | folio] when no logo.
+        float[] hw;
+        if (logoImg != null && folio != null)       hw = new float[]{1f, 4f, 1.5f};
+        else if (logoImg != null)                   hw = new float[]{1f, 4f};
+        else if (folio != null)                     hw = new float[]{4f, 1.3f};
+        else                                        hw = new float[]{1f};
         Table header = new Table(hw).useAllAvailableWidth();
+
+        if (logoImg != null) {
+            com.itextpdf.layout.element.Cell logoCell = new com.itextpdf.layout.element.Cell()
+                .add(logoImg.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER))
+                .setBackgroundColor(ColorConstants.WHITE)
+                .setPadding(6).setBorder(null)
+                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+            header.addCell(logoCell);
+        }
 
         com.itextpdf.layout.element.Cell leftCell = new com.itextpdf.layout.element.Cell()
             .add(new Paragraph(titulo).setFont(titleFont).setFontSize(14).setFontColor(ColorConstants.WHITE))
@@ -757,6 +805,10 @@ public class ReporteService {
 
     public File exportBajasCsv(List<com.sibim.model.Producto> bajas) throws Exception {
         return new ReporteBajasService().exportBajasCsv(bajas);
+    }
+
+    public File exportActaBaja(com.sibim.model.Producto p) throws Exception {
+        return new ReporteBajasService().exportActaBaja(p);
     }
 
     /** CSV field escaping. Doubles embedded quotes (standard CSV escaping)

@@ -812,6 +812,7 @@ public class ProductosController {
         String nombre = seleccionado.getNombre();
         String idBaja = seleccionado.getId();
         final BajaDialogResult r = resultado;
+        final Producto sel = seleccionado;
         Runnable doDelete = () -> DialogUtil.runAsync(
             () -> {
                 if (r.tipoDestino() != null) {
@@ -831,6 +832,19 @@ public class ProductosController {
                         () -> { loadData(); NotificacionUtil.info(table.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
                         e2 -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer la baja")
                     )
+                );
+                // Populate baja fields from the dialog result so the acta
+                // reflects the data just saved without a second DB round-trip
+                sel.setFechaBaja(java.time.LocalDate.now());
+                sel.setMotivoBaja(r.motivo());
+                sel.setTipoDestinoBaja(r.tipoDestino());
+                sel.setDictamenBaja(r.dictamen());
+                sel.setNumeroActaBaja(r.numeroActa());
+                sel.setFechaDictamen(r.fechaDictamen());
+                DialogUtil.runAsync(
+                    () -> reporteService.exportActaBaja(sel),
+                    file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+                    ex -> log.warn("No se pudo generar el acta de baja", ex)
                 );
             },
             e -> NotificacionUtil.error(table.getScene(),

@@ -1,6 +1,8 @@
 package com.sibim.service;
 
 import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -12,8 +14,10 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
@@ -121,9 +125,26 @@ public class ReporteResguardoService extends ReporteService {
         Table t = new Table(UnitValue.createPercentArray(new float[]{1.1f, 3.5f, 1.4f}))
             .useAllAvailableWidth().setMarginBottom(0);
 
-        // Izquierda — identificador municipal
+        // Izquierda — logo municipal (si está configurado) o identificador de texto
         Cell left = cell().setBorder(brd(GRAY_300)).setPadding(8).setVerticalAlignment(VerticalAlignment.MIDDLE);
-        left.add(para("H. AYUNTAMIENTO\nMUNICIPAL", bold, 7).setTextAlignment(TextAlignment.CENTER).setFontColor(GRAY_700));
+        String lp = logoPath();
+        boolean logoLoaded = false;
+        if (lp != null) {
+            try {
+                ImageData imgData = ImageDataFactory.create(lp);
+                Image logoImg = new Image(imgData);
+                logoImg.setMaxHeight(50).setMaxWidth(65).setAutoScale(false);
+                logoImg.setHorizontalAlignment(HorizontalAlignment.CENTER);
+                left.add(logoImg);
+                logoLoaded = true;
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(ReporteResguardoService.class)
+                    .warn("No se pudo cargar el logo municipal '{}': {}", lp, e.getMessage());
+            }
+        }
+        if (!logoLoaded) {
+            left.add(para("H. AYUNTAMIENTO\nMUNICIPAL", bold, 7).setTextAlignment(TextAlignment.CENTER).setFontColor(GRAY_700));
+        }
         t.addCell(left);
 
         // Centro — título principal

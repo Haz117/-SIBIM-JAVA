@@ -286,6 +286,30 @@
                 <Label text="Ver resguardos →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
+        <VBox fx:id="cardComodatosVigentes" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerComodatos" HBox.hgrow="ALWAYS">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <FontIcon iconLiteral="mdi2h-handshake-outline" styleClass="rich-stat-icon"/>
+            </StackPane>
+            <VBox spacing="5">
+                <Label text="COMODATOS VIGENTES" styleClass="rich-stat-label"/>
+                <Label fx:id="lblComodatosVigentes" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver comodatos →" styleClass="rich-stat-hint"/>
+            </VBox>
+        </VBox>
+        <VBox fx:id="cardComodatosVencidos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+              onMouseClicked="#onVerComodatos" HBox.hgrow="ALWAYS">
+            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
+            </StackPane>
+            <VBox spacing="5">
+                <Label text="COMODATOS VENCIDOS" styleClass="rich-stat-label"/>
+                <Label fx:id="lblComodatosVencidos" text="—" styleClass="rich-stat-value"/>
+                <Label text="Ver comodatos →" styleClass="rich-stat-hint"/>
+            </VBox>
+        </VBox>
     </HBox>
 
     <!-- ══════════════════════════════════════════════════════════
