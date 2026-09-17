@@ -193,37 +193,43 @@ SIBIM-Java/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/sibim/
-│   │   │   ├── controller/    # Controladores JavaFX por módulo
-│   │   │   │   └── dialogs/   # Formularios de diálogo extraídos (alta/edición)
-│   │   │   ├── model/         # Entidades del dominio + enums
-│   │   │   ├── repository/    # Acceso a base de datos (PreparedStatements)
-│   │   │   ├── service/       # Lógica de negocio y validaciones
+│   │   │   ├── controller/        # Controladores JavaFX por módulo
+│   │   │   │   ├── dialogs/       # Formularios de diálogo (alta/edición/detalle)
+│   │   │   │   ├── *ColumnSetup   # Configuración de columnas de tabla
+│   │   │   │   ├── *ChipsManager  # Lógica de chips de filtro activos
+│   │   │   │   ├── *Exporter      # Acciones de exportación
+│   │   │   │   ├── *Builder       # Constructores de secciones de UI
+│   │   │   │   └── *Dialog        # Diálogos auxiliares de un solo método
+│   │   │   ├── model/             # Entidades del dominio + enums
+│   │   │   ├── repository/        # Acceso a base de datos (PreparedStatements)
+│   │   │   ├── service/           # Lógica de negocio; subclases de ReporteService
+│   │   │   │   │                  # por tipo de export (Depreciación, Bajas, Dashboard, Auditoría)
 │   │   │   ├── db/
-│   │   │   │   └── offline/   # OfflineStore (SQLite), SyncService, outbox
-│   │   │   ├── util/          # Notificaciones, diálogos, animaciones, formato
-│   │   │   ├── session/       # SessionManager (usuario activo, áreas accesibles)
-│   │   │   └── config/        # Áreas del organigrama y configuración de BD
+│   │   │   │   └── offline/       # OfflineStore (SQLite), SyncService, outbox
+│   │   │   ├── util/              # Notificaciones, diálogos, animaciones, formato
+│   │   │   ├── session/           # SessionManager (usuario activo, áreas accesibles)
+│   │   │   └── config/            # Áreas del organigrama y configuración de BD
 │   │   └── resources/
-│   │       ├── fxml/          # 16 vistas de la interfaz
-│   │       ├── css/           # Design System v2.3 (tema indigo/purple)
-│   │       ├── db/migration/  # Migraciones Flyway — se aplican solas al arrancar
-│   │       ├── offline.sql    # Esquema del almacén SQLite offline
-│   │       └── seed_demo.sql  # Datos de ejemplo (solo desarrollo, nunca producción)
+│   │       ├── fxml/              # 16 vistas de la interfaz
+│   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles)
+│   │       ├── db/migration/      # Migraciones Flyway V1–V12, se aplican solas al arrancar
+│   │       ├── offline.sql        # Esquema del almacén SQLite offline
+│   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
 │   └── test/java/com/sibim/
-│       ├── controller/        # Tests de lógica de filtros y navegación
-│       ├── db/integration/    # 5 clases contra EmbeddedPostgres real
-│       ├── db/offline/        # Tests del almacén offline (caducidad, outbox)
-│       ├── model/             # Tests de entidades
-│       ├── repository/        # Tests de autorización de repositorios
-│       ├── service/           # Tests unitarios + autorización de servicios + exports (629 tests total)
-│       ├── session/           # Tests de SessionManager
-│       └── util/              # Tests de utilidades
+│       ├── controller/            # Tests de lógica de filtros y navegación
+│       ├── db/integration/        # Tests contra EmbeddedPostgres real
+│       ├── db/offline/            # Tests del almacén offline (caducidad, outbox)
+│       ├── model/                 # Tests de entidades
+│       ├── repository/            # Tests de autorización de repositorios
+│       ├── service/               # Tests unitarios + autorización + exports (629 tests total)
+│       ├── session/               # Tests de SessionManager
+│       └── util/                  # Tests de utilidades
 ├── packaging/
-│   └── build-installer.ps1    # Genera instalador .exe/.msi con jpackage
-├── maven-dist/                # Maven embebido (no requiere Maven instalado)
-├── iniciar.bat                # Arranque para desarrollo (compila y ejecuta)
-├── produccion.bat             # Arranque para producción (solo ejecuta el JAR)
-└── pom.xml                    # Dependencias y configuración de build
+│   └── build-installer.ps1        # Genera instalador .exe/.msi con jpackage
+├── maven-dist/                    # Maven embebido (no requiere Maven instalado)
+├── iniciar.bat                    # Arranque para desarrollo (compila y ejecuta)
+├── produccion.bat                 # Arranque para producción (solo ejecuta el JAR)
+└── pom.xml                        # Dependencias y configuración de build
 ```
 
 ---

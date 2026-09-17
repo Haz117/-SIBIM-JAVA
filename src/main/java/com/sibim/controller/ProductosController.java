@@ -483,15 +483,14 @@ public class ProductosController {
         table.setPlaceholder(buildSkeletonPlaceholder());
         spinner.setVisible(true); spinner.setManaged(true);
 
-        // Read filter values on the FX thread before spawning the background task
-        String busqueda = searchField.getText().toLowerCase().strip();
-        String catId = categoriaFilter.getValue() != null
-            ? categoriaFilter.getValue().getId() : null;
-        String area = areaFilter.getValue() != null ? areaFilter.getValue() : null;
-        String resguardante = resguardanteFilter.getValue();
-        EstadoProducto estado = ProductosChipsManager.parseEstado(getSelectedEstado());
-        java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
-        java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
+        ProductosFilterState snap = snapshotFilters();
+        String busqueda     = snap.busqueda();
+        String catId        = snap.catId();
+        String area         = snap.area();
+        String resguardante = snap.resguardante();
+        EstadoProducto estado = snap.estado();
+        java.time.LocalDate desdeReg = snap.desdeReg();
+        java.time.LocalDate hastaReg = snap.hastaReg();
 
         Task<Void> task = new Task<>() {
             private List<Producto> pageData;
@@ -554,16 +553,15 @@ public class ProductosController {
         if (!loading.compareAndSet(false, true)) { refreshing = true; return; }
         spinner.setVisible(true); spinner.setManaged(true);
 
-        // Read filter values on the FX thread before spawning the background task
-        String busqueda = searchField.getText().toLowerCase().strip();
-        String catId = categoriaFilter.getValue() != null
-            ? categoriaFilter.getValue().getId() : null;
-        String area = areaFilter.getValue() != null ? areaFilter.getValue() : null;
-        String resguardante = resguardanteFilter.getValue();
-        EstadoProducto estado = ProductosChipsManager.parseEstado(getSelectedEstado());
-        java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
-        java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
-        int offset = currentPage * pageSize;
+        ProductosFilterState snap = snapshotFilters();
+        String busqueda     = snap.busqueda();
+        String catId        = snap.catId();
+        String area         = snap.area();
+        String resguardante = snap.resguardante();
+        EstadoProducto estado = snap.estado();
+        java.time.LocalDate desdeReg = snap.desdeReg();
+        java.time.LocalDate hastaReg = snap.hastaReg();
+        int offset = snap.offset();
         // Persist sticky filters
         STICKY.put("search", searchField.getText() != null ? searchField.getText() : "");
         STICKY.put("area", area != null ? area : "");
@@ -627,6 +625,19 @@ public class ProductosController {
         if (estadoChipGroup == null) return "Todos";
         Toggle t = estadoChipGroup.getSelectedToggle();
         return t == null ? "Todos" : ((ToggleButton) t).getText();
+    }
+
+    /** Snapshots all filter form values on the FX thread — safe to pass to a background Task. */
+    private ProductosFilterState snapshotFilters() {
+        String busqueda = searchField.getText() != null ? searchField.getText().toLowerCase().strip() : "";
+        String catId = categoriaFilter.getValue() != null ? categoriaFilter.getValue().getId() : null;
+        String area  = areaFilter.getValue() != null ? areaFilter.getValue() : null;
+        String resguardante = resguardanteFilter.getValue();
+        EstadoProducto estado = ProductosChipsManager.parseEstado(getSelectedEstado());
+        java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
+        java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
+        return new ProductosFilterState(busqueda, catId, area, resguardante, estado,
+                filterSinEtiquetar, desdeReg, hastaReg, currentPage, pageSize);
     }
 
     private void applyFilters() {

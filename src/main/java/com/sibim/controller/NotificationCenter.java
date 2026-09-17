@@ -80,27 +80,32 @@ class NotificationCenter {
                                    Consumer<List<Item>> onLoaded) {
         DialogUtil.runAsync(() -> {
             List<Item> items = new ArrayList<>();
-            int agotados = productoService.getAgotados().size();
-            if (agotados > 0) items.add(new Item("mdi2p-package-variant-closed", "danger",
-                agotados == 1 ? "1 bien agotado" : agotados + " bienes agotados", "alertas"));
-
-            int bajoStock = productoService.getBajoStock().size();
-            if (bajoStock > 0) items.add(new Item("mdi2t-trending-down", "warning",
-                bajoStock == 1 ? "1 bien con stock bajo" : bajoStock + " bienes con stock bajo", "alertas"));
-
-            int garantias = productoService.getVencidosProximos(30).size();
-            if (garantias > 0) items.add(new Item("mdi2c-calendar-alert", "warning",
-                garantias == 1 ? "1 garantía por vencer en 30 días" : garantias + " garantías por vencer en 30 días",
-                "alertas"));
-
-            int vencidos = prestamoService.countVencidos();
-            if (vencidos > 0) items.add(new Item("mdi2c-clock-alert-outline", "danger",
-                vencidos == 1 ? "1 préstamo vencido" : vencidos + " préstamos vencidos", "prestamos"));
-
-            int proximos = prestamoService.getProximosAVencer(3).size();
-            if (proximos > 0) items.add(new Item("mdi2c-clock-outline", "info",
-                proximos == 1 ? "1 préstamo vence en 3 días" : proximos + " préstamos vencen en 3 días", "prestamos"));
-
+            try {
+                int n = productoService.getAgotados().size();
+                if (n > 0) items.add(new Item("mdi2p-package-variant-closed", "danger",
+                    n == 1 ? "1 bien agotado" : n + " bienes agotados", "alertas"));
+            } catch (Exception ignored) {}
+            try {
+                int n = productoService.getBajoStock().size();
+                if (n > 0) items.add(new Item("mdi2t-trending-down", "warning",
+                    n == 1 ? "1 bien con stock bajo" : n + " bienes con stock bajo", "alertas"));
+            } catch (Exception ignored) {}
+            try {
+                int n = productoService.getVencidosProximos(30).size();
+                if (n > 0) items.add(new Item("mdi2c-calendar-alert", "warning",
+                    n == 1 ? "1 garantía por vencer en 30 días" : n + " garantías por vencer en 30 días",
+                    "alertas"));
+            } catch (Exception ignored) {}
+            try {
+                int n = prestamoService.countVencidos();
+                if (n > 0) items.add(new Item("mdi2c-clock-alert-outline", "danger",
+                    n == 1 ? "1 préstamo vencido" : n + " préstamos vencidos", "prestamos"));
+            } catch (Exception ignored) {}
+            try {
+                int n = prestamoService.getProximosAVencer(3).size();
+                if (n > 0) items.add(new Item("mdi2c-clock-outline", "info",
+                    n == 1 ? "1 préstamo vence en 3 días" : n + " préstamos vencen en 3 días", "prestamos"));
+            } catch (Exception ignored) {}
             return items;
         }, onLoaded, ex -> onLoaded.accept(List.of()));
     }

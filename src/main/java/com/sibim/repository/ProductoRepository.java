@@ -71,78 +71,56 @@ public class ProductoRepository {
 
     /** Builds a WHERE clause (with leading space) and populates {@code params}
      *  for all server-side filter queries. */
-    private static String buildFiltroWhere(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, boolean soloSinEtiquetar, List<Object> params,
-            LocalDate desdeReg, LocalDate hastaReg) {
+    private static String buildFiltroWhere(ProductoFiltro f, List<Object> params) {
         List<String> conds = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
         if (accessible != null) {
             conds.add("p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
-        if (!incluirBaja) conds.add("p.fecha_baja IS NULL");
-        if (soloSinEtiquetar) conds.add("p.etiquetado = FALSE");
-        if (busqueda != null && !busqueda.isBlank()) {
-            String like = "%" + busqueda.toLowerCase() + "%";
+        if (!f.incluirBaja()) conds.add("p.fecha_baja IS NULL");
+        if (f.soloSinEtiquetar()) conds.add("p.etiquetado = FALSE");
+        if (f.busqueda() != null && !f.busqueda().isBlank()) {
+            String like = "%" + f.busqueda().toLowerCase() + "%";
             conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ? OR LOWER(COALESCE(p.marca,'')) LIKE ? OR LOWER(COALESCE(p.modelo,'')) LIKE ? OR LOWER(COALESCE(p.numero_serie,'')) LIKE ?)");
             params.add(like); params.add(like); params.add(like); params.add(like); params.add(like);
             params.add(like); params.add(like); params.add(like);
         }
-        if (categoriaId != null) { conds.add("p.categoria_id = ?"); params.add(categoriaId); }
-        if (area != null) { conds.add("p.area = ?"); params.add(area); }
-        if (resguardante != null) { conds.add("p.resguardante = ?"); params.add(resguardante); }
-        if (estado != null) {
+        if (f.categoriaId() != null) { conds.add("p.categoria_id = ?"); params.add(f.categoriaId()); }
+        if (f.area() != null) { conds.add("p.area = ?"); params.add(f.area()); }
+        if (f.resguardante() != null) { conds.add("p.resguardante = ?"); params.add(f.resguardante()); }
+        if (f.estado() != null) {
             conds.add("(" + ESTADO_SQL + ") = ?");
-            params.add(estado.getCodigo());
+            params.add(f.estado().getCodigo());
         }
-        if (desdeReg != null) { conds.add("p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desdeReg.atStartOfDay())); }
-        if (hastaReg != null) { conds.add("p.created_at < ?"); params.add(java.sql.Timestamp.valueOf(hastaReg.plusDays(1).atStartOfDay())); }
+        if (f.desdeReg() != null) { conds.add("p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(f.desdeReg().atStartOfDay())); }
+        if (f.hastaReg() != null) { conds.add("p.created_at < ?"); params.add(java.sql.Timestamp.valueOf(f.hastaReg().plusDays(1).atStartOfDay())); }
         return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
     }
 
     /** Returns one page of products matching the given filters (LIMIT/OFFSET). */
-    public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, int limit, int offset,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return findPaginated(busqueda, categoriaId, area, resguardante, estado, incluirBaja, false, limit, offset, desdeReg, hastaReg);
-    }
-
-    public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, boolean soloSinEtiquetar, int limit, int offset,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+    public List<Producto> findPaginated(ProductoFiltro f, int limit, int offset) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
-            List<Producto> all = findAll(incluirBaja);
-            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado, soloSinEtiquetar, desdeReg, hastaReg)
-                .stream().skip(offset).limit(limit).toList();
+            List<Producto> all = findAll(f.incluirBaja());
+            return applyClientFilters(all, f).stream().skip(offset).limit(limit).toList();
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, soloSinEtiquetar, params, desdeReg, hastaReg);
+        String where = buildFiltroWhere(f, params);
         String sql = BASE_SELECT + where + " ORDER BY p.nombre LIMIT ? OFFSET ?";
         params.add(limit); params.add(offset);
         return queryDynamic(sql, params);
     }
 
     /** Returns the COUNT(*) of products matching the given filters — for pagination. */
-    public int countFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return countFiltrado(busqueda, categoriaId, area, resguardante, estado, incluirBaja, false, desdeReg, hastaReg);
-    }
-
-    public int countFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, boolean soloSinEtiquetar, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+    public int countFiltrado(ProductoFiltro f) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
-            List<Producto> all = findAll(incluirBaja);
-            return applyClientFilters(all, busqueda, categoriaId, area, resguardante, estado, soloSinEtiquetar, desdeReg, hastaReg).size();
+            List<Producto> all = findAll(f.incluirBaja());
+            return applyClientFilters(all, f).size();
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, incluirBaja, soloSinEtiquetar, params, desdeReg, hastaReg);
+        String where = buildFiltroWhere(f, params);
         String sql = "SELECT COUNT(*) FROM products p" + where;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = buildStatement(conn, sql, params);
@@ -153,17 +131,48 @@ public class ProductoRepository {
 
     /** Returns ALL products matching the given filters — for export and conteo físico
      *  (no LIMIT/OFFSET, always excludes bienes dados de baja). */
+    public List<Producto> findAllFiltrado(ProductoFiltro f) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return applyClientFilters(local.findAllProductos(SessionManager.getAccessibleAreas()), f);
+        }
+        List<Object> params = new ArrayList<>();
+        String where = buildFiltroWhere(f, params);
+        return queryDynamic(BASE_SELECT + where + " ORDER BY p.nombre", params);
+    }
+
+    // Legacy overloads — delegan a los métodos con ProductoFiltro
+
+    public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean incluirBaja, int limit, int offset,
+            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+        return findPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, false, desdeReg, hastaReg), limit, offset);
+    }
+
+    public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean incluirBaja, boolean soloSinEtiquetar, int limit, int offset,
+            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+        return findPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, soloSinEtiquetar, desdeReg, hastaReg), limit, offset);
+    }
+
+    public int countFiltrado(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean incluirBaja, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, false, desdeReg, hastaReg));
+    }
+
+    public int countFiltrado(String busqueda, String categoriaId, String area,
+            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            boolean incluirBaja, boolean soloSinEtiquetar, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
+        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, soloSinEtiquetar, desdeReg, hastaReg));
+    }
+
     public List<Producto> findAllFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) {
-            return applyClientFilters(local.findAllProductos(SessionManager.getAccessibleAreas()),
-                busqueda, categoriaId, area, resguardante, estado, false, desdeReg, hastaReg);
-        }
-        List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(busqueda, categoriaId, area, resguardante, estado, false, false, params, desdeReg, hastaReg);
-        return queryDynamic(BASE_SELECT + where + " ORDER BY p.nombre", params);
+        return findAllFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg));
     }
 
     /** Marks the given product IDs as etiquetado = {@code valor} in one round-trip. */
@@ -255,24 +264,21 @@ public class ProductoRepository {
     }
 
     /** In-memory filter for offline/demo mode — mirrors {@link #buildFiltroWhere}. */
-    private static List<Producto> applyClientFilters(List<Producto> all, String busqueda,
-            String categoriaId, String area, String resguardante,
-            com.sibim.model.enums.EstadoProducto estado, boolean soloSinEtiquetar,
-            LocalDate desdeReg, LocalDate hastaReg) {
+    private static List<Producto> applyClientFilters(List<Producto> all, ProductoFiltro f) {
         java.util.stream.Stream<Producto> stream = all.stream()
-            .filter(p -> busqueda == null || busqueda.isBlank()
-                || p.getNombre().toLowerCase().contains(busqueda.toLowerCase())
-                || p.getCodigo().toLowerCase().contains(busqueda.toLowerCase())
-                || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(busqueda.toLowerCase()))
-                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(busqueda.toLowerCase()))
-                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(busqueda.toLowerCase())))
-            .filter(p -> categoriaId == null || categoriaId.equals(p.getCategoriaId()))
-            .filter(p -> area == null || area.equals(p.getArea()))
-            .filter(p -> resguardante == null || resguardante.equals(p.getResguardante()))
-            .filter(p -> estado == null || p.getEstado() == estado)
-            .filter(p -> !soloSinEtiquetar || !p.isEtiquetado());
-        if (desdeReg != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isBefore(desdeReg));
-        if (hastaReg != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isAfter(hastaReg));
+            .filter(p -> f.busqueda() == null || f.busqueda().isBlank()
+                || p.getNombre().toLowerCase().contains(f.busqueda().toLowerCase())
+                || p.getCodigo().toLowerCase().contains(f.busqueda().toLowerCase())
+                || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(f.busqueda().toLowerCase()))
+                || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(f.busqueda().toLowerCase()))
+                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(f.busqueda().toLowerCase())))
+            .filter(p -> f.categoriaId() == null || f.categoriaId().equals(p.getCategoriaId()))
+            .filter(p -> f.area() == null || f.area().equals(p.getArea()))
+            .filter(p -> f.resguardante() == null || f.resguardante().equals(p.getResguardante()))
+            .filter(p -> f.estado() == null || p.getEstado() == f.estado())
+            .filter(p -> !f.soloSinEtiquetar() || !p.isEtiquetado());
+        if (f.desdeReg() != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isBefore(f.desdeReg()));
+        if (f.hastaReg() != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isAfter(f.hastaReg()));
         return stream
             .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
             .toList();
@@ -622,22 +628,14 @@ public class ProductoRepository {
             params.add(accessible.toArray(new String[0]));
         }
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                Object p = params.get(i);
-                if (p instanceof String[] arr)
-                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
-                else
-                    ps.setObject(i + 1, p);
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return new ProductoStats(
-                        rs.getLong("total"), rs.getLong("activos"),
-                        rs.getLong("bajo_stock"), rs.getLong("agotados"),
-                        rs.getLong("vencidos"),
-                        rs.getBigDecimal("valor_total"), rs.getLong("categorias"));
-                }
+             PreparedStatement ps = buildStatement(conn, sb.toString(), params);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return new ProductoStats(
+                    rs.getLong("total"), rs.getLong("activos"),
+                    rs.getLong("bajo_stock"), rs.getLong("agotados"),
+                    rs.getLong("vencidos"),
+                    rs.getBigDecimal("valor_total"), rs.getLong("categorias"));
             }
         }
         return new ProductoStats(0, 0, 0, 0, 0, BigDecimal.ZERO, 0);
@@ -673,18 +671,10 @@ public class ProductoRepository {
         sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_venta * p.stock_actual) > 0 ORDER BY valor DESC");
         List<CategoriaValor> result = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                Object p = params.get(i);
-                if (p instanceof String[] arr)
-                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
-                else
-                    ps.setObject(i + 1, p);
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next())
-                    result.add(new CategoriaValor(rs.getString("nombre"), rs.getBigDecimal("valor")));
-            }
+             PreparedStatement ps = buildStatement(conn, sb.toString(), params);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next())
+                result.add(new CategoriaValor(rs.getString("nombre"), rs.getBigDecimal("valor")));
         }
         return result;
     }
@@ -754,17 +744,9 @@ public class ProductoRepository {
             params.add(accessible.toArray(new String[0]));
         }
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sb.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                Object p = params.get(i);
-                if (p instanceof String[] arr)
-                    ps.setArray(i + 1, conn.createArrayOf("text", arr));
-                else
-                    ps.setObject(i + 1, p);
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : 0L;
-            }
+             PreparedStatement ps = buildStatement(conn, sb.toString(), params);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getLong(1) : 0L;
         }
     }
 

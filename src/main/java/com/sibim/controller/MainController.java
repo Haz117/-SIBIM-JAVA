@@ -20,12 +20,10 @@ import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
-import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
-import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -97,7 +95,6 @@ public class MainController {
     private MainStatusBarManager statusBarManager;
     private Object   currentController;
     private Timeline badgeRefresh;
-    private Timeline badgePulse;
     private final Map<Button, Timeline> navHoverAnims = new HashMap<>();
     private Timeline clock;
     private Timeline sessionGuard;
@@ -112,6 +109,8 @@ public class MainController {
     private boolean inactivityWarned  = false;
     private Dialog<javafx.scene.control.ButtonType> activeInactivityDialog;
     private boolean startupTasksScheduled = false;
+    private MainBadgeManager badgeManager;
+    private MainStartupChecks startupChecks;
 
     // Only one MainController is ever active at a time — this lets child
     // views loaded into contentArea (e.g. Organigrama) trigger navigation
@@ -147,6 +146,8 @@ public class MainController {
         statusBarManager = new MainStatusBarManager(
             offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
+        badgeManager   = new MainBadgeManager(alertBadge, loanBadge, alertProductoService, prestamoService);
+        startupChecks  = new MainStartupChecks(alertProductoService, prestamoService);
         if (SessionManager.getCurrentUser() != null) {
             String nombre = SessionManager.getCurrentUser().getNombre();
             userNameLabel.setText(nombre);
@@ -192,22 +193,22 @@ public class MainController {
                     // Delay badge 800 ms so dashboard queries finish first
                     javafx.animation.PauseTransition badgeDelay =
                         new javafx.animation.PauseTransition(Duration.millis(800));
-                    badgeDelay.setOnFinished(e -> { loadAlertBadge(); loadLoanBadge(); refreshNotifBadge(); });
+                    badgeDelay.setOnFinished(e -> { badgeManager.loadAlertBadge(); badgeManager.loadLoanBadge(); refreshNotifBadge(); });
                     badgeDelay.play();
                     // Vencidos check: 1.5 s (informational toast, not blocking)
                     javafx.animation.PauseTransition vencidosDelay =
                         new javafx.animation.PauseTransition(Duration.millis(1500));
-                    vencidosDelay.setOnFinished(e -> checkVencidosOnStart(scene));
+                    vencidosDelay.setOnFinished(e -> startupChecks.checkVencidosOnStart(scene));
                     vencidosDelay.play();
                     // Préstamos check: 2 s (vencidos + próximos a vencer)
                     javafx.animation.PauseTransition prestamosDelay =
                         new javafx.animation.PauseTransition(Duration.millis(2000));
-                    prestamosDelay.setOnFinished(e -> checkPrestamosOnStart(scene));
+                    prestamosDelay.setOnFinished(e -> startupChecks.checkPrestamosOnStart(scene));
                     prestamosDelay.play();
                     // Update check: 3 s (network request, lowest priority)
                     javafx.animation.PauseTransition updateDelay =
                         new javafx.animation.PauseTransition(Duration.millis(3000));
-                    updateDelay.setOnFinished(e -> checkForUpdate(scene));
+                    updateDelay.setOnFinished(e -> startupChecks.checkForUpdate(scene));
                     updateDelay.play();
                 }
             }
@@ -221,7 +222,7 @@ public class MainController {
         // Refresh badge every 3 minutes; also nudges the status bar so the
         // offline-mode pending-sync count doesn't go stale between syncs.
         badgeRefresh = new Timeline(new KeyFrame(Duration.minutes(3),
-            e -> { loadAlertBadge(); loadLoanBadge(); refreshNotifBadge(); statusBarManager.update(); }));
+            e -> { badgeManager.loadAlertBadge(); badgeManager.loadLoanBadge(); refreshNotifBadge(); statusBarManager.update(); }));
         badgeRefresh.setCycleCount(Timeline.INDEFINITE);
         badgeRefresh.play();
 
@@ -296,47 +297,11 @@ public class MainController {
         try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
     }
 
-    /** Stops the recurring Timelines owned by this controller (and any
-     *  running in the currently loaded child view) so they don't keep
-     *  firing — and keeping this whole controller tree alive — after the
-     *  user logs out. JavaFX's animation engine holds a running Timeline
-     *  alive on its own, independent of Java reachability. */
-    private void startBadgePulse() {
-        stopBadgePulse();
-        if (alertBadge == null) return;
-        // Soft heartbeat: scale 1.0 → 1.18 → 1.0, every 2.4 s
-        badgePulse = new Timeline(
-            new KeyFrame(Duration.ZERO,
-                new KeyValue(alertBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
-                new KeyValue(alertBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(160),
-                new KeyValue(alertBadge.scaleXProperty(), 1.18, Interpolator.EASE_OUT),
-                new KeyValue(alertBadge.scaleYProperty(), 1.18, Interpolator.EASE_OUT)),
-            new KeyFrame(Duration.millis(360),
-                new KeyValue(alertBadge.scaleXProperty(), 1.0, Interpolator.EASE_IN),
-                new KeyValue(alertBadge.scaleYProperty(), 1.0, Interpolator.EASE_IN)),
-            new KeyFrame(Duration.millis(600),
-                new KeyValue(alertBadge.scaleXProperty(), 1.08, Interpolator.EASE_OUT),
-                new KeyValue(alertBadge.scaleYProperty(), 1.08, Interpolator.EASE_OUT)),
-            new KeyFrame(Duration.millis(820),
-                new KeyValue(alertBadge.scaleXProperty(), 1.0, Interpolator.EASE_IN),
-                new KeyValue(alertBadge.scaleYProperty(), 1.0, Interpolator.EASE_IN))
-        );
-        badgePulse.setCycleCount(Timeline.INDEFINITE);
-        badgePulse.setDelay(Duration.millis(600));
-        badgePulse.play();
-    }
-
-    private void stopBadgePulse() {
-        if (badgePulse != null) { badgePulse.stop(); badgePulse = null; }
-        if (alertBadge != null) { alertBadge.setScaleX(1.0); alertBadge.setScaleY(1.0); }
-    }
-
     private void stopTimers() {
         if (badgeRefresh != null) badgeRefresh.stop();
         if (clock != null) clock.stop();
         if (sessionGuard != null) sessionGuard.stop();
-        stopBadgePulse();
+        if (badgeManager != null) badgeManager.stopBadgePulse();
         if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
         if (currentController instanceof DashboardController dc) dc.stopAutoRefresh();
     }
@@ -437,38 +402,6 @@ public class MainController {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-
-    private void loadAlertBadge() {
-        DialogUtil.runAsync(
-            () -> alertProductoService.getAgotados().size()
-                + alertProductoService.getBajoStock().size()
-                + alertProductoService.getVencidosProximos(30).size(),
-            total -> {
-                if (alertBadge == null) return;
-                if (total > 0) {
-                    alertBadge.setText(total > 99 ? "99+" : String.valueOf(total));
-                    boolean wasHidden = !alertBadge.isVisible();
-                    alertBadge.setVisible(true);
-                    alertBadge.setManaged(true);
-                    if (wasHidden) {
-                        ScaleTransition pop = new ScaleTransition(Duration.millis(320), alertBadge);
-                        pop.setFromX(0.3); pop.setFromY(0.3);
-                        pop.setToX(1.0);   pop.setToY(1.0);
-                        pop.setInterpolator(Interpolator.EASE_OUT);
-                        pop.setOnFinished(ev -> startBadgePulse());
-                        pop.play();
-                    } else {
-                        AnimationUtils.pulse(alertBadge, 3);
-                    }
-                } else {
-                    stopBadgePulse();
-                    alertBadge.setVisible(false);
-                    alertBadge.setManaged(false);
-                }
-            },
-            e -> { /* silently ignore — badge is decorative */ }
-        );
-    }
 
     @FXML
     private void onSyncNow() {
@@ -800,84 +733,6 @@ public class MainController {
 
     private void refreshNotifBadge() {
         NotificationCenter.refreshBadge(notifBadge, alertProductoService, prestamoService);
-    }
-
-    private void loadLoanBadge() {
-        DialogUtil.runAsync(
-            () -> prestamoService.countVencidos(),
-            count -> {
-                if (loanBadge == null) return;
-                if (count > 0) {
-                    loanBadge.setText(count > 99 ? "99+" : String.valueOf(count));
-                    boolean wasHidden = !loanBadge.isVisible();
-                    loanBadge.setVisible(true);
-                    loanBadge.setManaged(true);
-                    if (wasHidden) {
-                        ScaleTransition pop = new ScaleTransition(Duration.millis(320), loanBadge);
-                        pop.setFromX(0.3); pop.setFromY(0.3);
-                        pop.setToX(1.0);   pop.setToY(1.0);
-                        pop.setInterpolator(Interpolator.EASE_OUT);
-                        pop.play();
-                    } else {
-                        AnimationUtils.pulse(loanBadge, 2);
-                    }
-                } else {
-                    loanBadge.setVisible(false);
-                    loanBadge.setManaged(false);
-                }
-            },
-            e -> { /* badge is decorative */ }
-        );
-    }
-
-    private void checkPrestamosOnStart(javafx.scene.Scene scene) {
-        DialogUtil.runAsync(
-            () -> {
-                int vencidos = prestamoService.getVencidos().size();
-                int proximos = prestamoService.getProximosAVencer(3).size();
-                return new int[]{vencidos, proximos};
-            },
-            counts -> {
-                int vencidos = counts[0], proximos = counts[1];
-                if (vencidos > 0)
-                    NotificacionUtil.advertencia(scene,
-                        vencidos + " préstamo(s) vencido(s) — revisa la sección Préstamos");
-                else if (proximos > 0)
-                    NotificacionUtil.advertencia(scene,
-                        proximos + " préstamo(s) vencen en los próximos 3 días");
-            },
-            e -> log.debug("Startup préstamos check failed", e)
-        );
-    }
-
-    private void checkVencidosOnStart(javafx.scene.Scene scene) {
-        DialogUtil.runAsync(
-            () -> alertProductoService.getVencidosProximos(7),
-            vencidos -> {
-                if (!vencidos.isEmpty())
-                    NotificacionUtil.advertencia(scene,
-                        vencidos.size() + " bien(es) vence(n) en los próximos 7 días — revisa la sección Alertas");
-            },
-            e -> log.debug("Startup vencidos check failed", e)
-        );
-    }
-
-    private void checkForUpdate(javafx.scene.Scene scene) {
-        com.sibim.util.AppExecutor.submit(() -> {
-            com.sibim.util.UpdateChecker.UpdateInfo info = com.sibim.util.UpdateChecker.checkForUpdate();
-            if (info != null) {
-                javafx.application.Platform.runLater(() ->
-                    NotificacionUtil.exitoConAccion(scene,
-                        "Nueva versión disponible: v" + info.latestVersion(),
-                        "Ver actualización",
-                        () -> {
-                            try { java.awt.Desktop.getDesktop().browse(new java.net.URI(info.releaseUrl())); }
-                            catch (Exception ex) { log.warn("No se pudo abrir el navegador", ex); }
-                        }
-                    )
-                );
-            }
-        });
     }
 
     /** Called from child controllers (e.g. Alertas → Movimientos). */

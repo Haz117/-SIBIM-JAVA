@@ -2,6 +2,7 @@ package com.sibim.service;
 
 import com.sibim.model.Producto;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.repository.ProductoFiltro;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import org.slf4j.Logger;
@@ -35,39 +36,55 @@ public class ProductoService {
         return productoRepo.findAll();
     }
 
+    // ── API principal con ProductoFiltro ─────────────────────────────────────
+
+    public List<Producto> getPaginated(ProductoFiltro f, int limit, int offset) throws SQLException {
+        return productoRepo.findPaginated(f, limit, offset);
+    }
+
+    public int countFiltrado(ProductoFiltro f) throws SQLException {
+        return productoRepo.countFiltrado(f);
+    }
+
+    public List<Producto> getAllFiltrado(ProductoFiltro f) throws SQLException {
+        return productoRepo.findAllFiltrado(f);
+    }
+
+    // ── Overloads legacy — delegan a los métodos con ProductoFiltro ───────────
+
     public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado, int limit, int offset) throws SQLException {
-        return productoRepo.findPaginated(busqueda, categoriaId, area, resguardante, estado, false, limit, offset, null, null);
+        return getPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, null, null), limit, offset);
     }
 
     public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado, int limit, int offset,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return productoRepo.findPaginated(busqueda, categoriaId, area, resguardante, estado, false, false, limit, offset, desdeReg, hastaReg);
+        return getPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg), limit, offset);
     }
 
     public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
             boolean soloSinEtiquetar, int limit, int offset,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return productoRepo.findPaginated(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, limit, offset, desdeReg, hastaReg);
+        return getPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg), limit, offset);
     }
 
     public int countFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
-        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, false, null, null);
+        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, null, null));
     }
 
     public int countFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg);
+        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg));
     }
 
     public int countFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
             boolean soloSinEtiquetar, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return productoRepo.countFiltrado(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg);
+        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg));
     }
 
     public void marcarEtiquetado(List<String> ids, boolean valor) throws SQLException {
@@ -76,13 +93,13 @@ public class ProductoService {
 
     public List<Producto> getAllFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
-        return productoRepo.findAllFiltrado(busqueda, categoriaId, area, resguardante, estado, null, null);
+        return getAllFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, null, null));
     }
 
     public List<Producto> getAllFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return productoRepo.findAllFiltrado(busqueda, categoriaId, area, resguardante, estado, desdeReg, hastaReg);
+        return getAllFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg));
     }
 
     public List<String> getResguardantes() throws SQLException {

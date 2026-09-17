@@ -470,18 +470,7 @@ public class ReporteService {
     public File exportMovimientosCsv(LocalDate desde, LocalDate hasta) throws Exception {
         List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
         if (movimientos.isEmpty()) return null;
-        File file = tempFile("movimientos", ".csv");
-        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Producto,Tipo,Cantidad,Stock Anterior,Stock Nuevo,Motivo,Referencia,Usuario,Fecha");
-            for (Movimiento m : movimientos) {
-                pw.printf("\"%s\",\"%s\",%d,%d,%d,\"%s\",\"%s\",\"%s\",\"%s\"%n",
-                    esc(m.getProductoNombre()), m.getTipo().getEtiqueta(),
-                    m.getCantidad(), m.getStockAnterior(), m.getStockNuevo(),
-                    esc(m.getMotivo()), esc(m.getReferencia()),
-                    esc(m.getUsuarioNombre()), FormatUtils.formatDateTime(m.getCreadoEn()));
-            }
-        }
-        return file;
+        return exportMovimientosCsv(movimientos);
     }
 
     // ───────────────────────────── Helpers ─────────────────────────────
