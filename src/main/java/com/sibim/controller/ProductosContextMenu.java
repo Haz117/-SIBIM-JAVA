@@ -33,6 +33,7 @@ final class ProductosContextMenu {
             Consumer<Producto> showDetail,
             Consumer<Producto> showTimeline,
             Consumer<List<Producto>> exportEtiquetasQr,
+            Consumer<List<Producto>> exportEtiquetaFisica,
             Runnable onEdit,
             Runnable onDelete) {
 
@@ -72,8 +73,15 @@ final class ProductosContextMenu {
             if (sel != null) exportEtiquetasQr.accept(List.of(sel));
         });
 
+        MenuItem cmEtiquetaFisica = new MenuItem("Imprimir etiqueta física");
+        cmEtiquetaFisica.setGraphic(new FontIcon("mdi2t-tag-outline"));
+        cmEtiquetaFisica.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) exportEtiquetaFisica.accept(List.of(sel));
+        });
+
         cm.getItems().add(new SeparatorMenuItem());
-        cm.getItems().addAll(cmFicha, cmHistorial, cmEtiquetaQr);
+        cm.getItems().addAll(cmFicha, cmHistorial, cmEtiquetaQr, cmEtiquetaFisica);
 
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());

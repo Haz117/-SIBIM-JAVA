@@ -10,8 +10,13 @@ import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
@@ -57,6 +62,37 @@ public class ReporteService {
     protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
     protected static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int MAX_EXPORT_ROWS = 50_000;
+
+    protected static String generateFolio(String prefix) {
+        return prefix + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+    }
+
+    protected static String getCurrentUserName() {
+        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        return u != null ? u.getNombre() : "_______________";
+    }
+
+    protected void addFirmasBlock(Document doc, String[]... firmas) throws IOException {
+        PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+        DeviceRgb grayFg  = new DeviceRgb(55,  65,  81);
+        DeviceRgb grayMut = new DeviceRgb(107, 114, 128);
+        doc.add(new Paragraph("").setMarginTop(28));
+        float[] cols = new float[firmas.length];
+        java.util.Arrays.fill(cols, 1f);
+        Table t = new Table(cols).useAllAvailableWidth().setMarginTop(8);
+        for (String[] f : firmas) {
+            com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER).setPadding(6)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
+            c.add(new Paragraph(f[0] != null ? f[0] : "").setFont(bold).setFontSize(8).setFontColor(grayFg));
+            c.add(new Paragraph("\n\n________________________").setFont(reg).setFontSize(9));
+            c.add(new Paragraph(f[1] != null ? f[1] : "_______________").setFont(bold).setFontSize(7.5f).setMarginTop(2));
+            c.add(new Paragraph(f[2] != null ? f[2] : "").setFont(reg).setFontSize(7).setFontColor(grayMut));
+            t.addCell(c);
+        }
+        doc.add(t);
+    }
 
     private static <T> List<T> guardExportSize(List<T> rows, String entidad) throws Exception {
         if (rows.size() > MAX_EXPORT_ROWS)
@@ -253,7 +289,8 @@ public class ReporteService {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4)) {
-            addPdfHeader(doc, "Alertas de Stock", null, null);
+            String folio = generateFolio("ALE");
+            addPdfHeader(doc, "Alertas de Stock", null, null, folio);
             PdfFont sectionFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
             doc.add(new Paragraph("Bienes Agotados (" + agotados.size() + ")")
                 .setFont(sectionFont).setFontSize(11).setFontColor(new DeviceRgb(185, 28, 28)));
@@ -275,7 +312,7 @@ public class ReporteService {
                 t2.addCell(cell(p.getArea() != null ? p.getArea() : ""));
             }
             doc.add(t2);
-            addPdfFooter(doc, agotados.size() + bajoStock.size());
+            addPdfFooter(doc, agotados.size() + bajoStock.size(), folio);
         }
         return file;
     }
@@ -288,7 +325,8 @@ public class ReporteService {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Distribución por Área", null, null);
+            String folio = generateFolio("DIS");
+            addPdfHeader(doc, "Distribución por Área", null, null, folio);
             String[] headers = {"Área", "Total Bienes", "Valor Total", "Agotados", "Bajo Stock"};
             float[] widths = {3f, 1.5f, 2f, 1.2f, 1.5f};
             Table table = createPdfTable(headers, widths);
@@ -305,7 +343,7 @@ public class ReporteService {
                 table.addCell(cell(String.valueOf(bajo)));
             });
             doc.add(table);
-            addPdfFooter(doc, porArea.size());
+            addPdfFooter(doc, porArea.size(), folio);
         }
         return file;
     }
@@ -360,7 +398,8 @@ public class ReporteService {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Inventario General", desde, hasta);
+            String folio = generateFolio("INV");
+            addPdfHeader(doc, "Inventario General", desde, hasta, folio);
             String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Stock", "Valor", "Estado"};
             float[] widths = {3f, 1.5f, 1.5f, 2f, 1f, 1.5f, 1.2f};
             Table table = createPdfTable(headers, widths);
@@ -374,7 +413,10 @@ public class ReporteService {
                 table.addCell(cell(p.getEstado().getEtiqueta()));
             }
             doc.add(table);
-            addPdfFooter(doc, productos.size());
+            addFirmasBlock(doc,
+                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+            addPdfFooter(doc, productos.size(), folio);
         }
         return file;
     }
@@ -386,7 +428,8 @@ public class ReporteService {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Registro de Movimientos", desde, hasta);
+            String folio = generateFolio("MOV");
+            addPdfHeader(doc, "Registro de Movimientos", desde, hasta, folio);
             String[] headers = {"Producto", "Tipo", "Cantidad", "Ant.", "Nuevo", "Usuario", "Fecha"};
             float[] widths = {3f, 1.5f, 1f, 1f, 1f, 2f, 2f};
             Table table = createPdfTable(headers, widths);
@@ -400,7 +443,10 @@ public class ReporteService {
                 table.addCell(cell(FormatUtils.formatDateTime(m.getCreadoEn())));
             }
             doc.add(table);
-            addPdfFooter(doc, movimientos.size());
+            addFirmasBlock(doc,
+                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+            addPdfFooter(doc, movimientos.size(), folio);
         }
         return file;
     }
@@ -542,28 +588,49 @@ public class ReporteService {
     }
 
     protected void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta) throws IOException {
+        addPdfHeader(doc, titulo, desde, hasta, null);
+    }
+
+    protected void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta, String folio) throws IOException {
         PdfFont titleFont   = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        Table header = new Table(1).useAllAvailableWidth();
-        com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
-            .add(new Paragraph(titulo).setFont(titleFont).setFontSize(15).setFontColor(ColorConstants.WHITE))
+
+        float[] hw = folio != null ? new float[]{4f, 1.3f} : new float[]{1f};
+        Table header = new Table(hw).useAllAvailableWidth();
+
+        com.itextpdf.layout.element.Cell leftCell = new com.itextpdf.layout.element.Cell()
+            .add(new Paragraph(titulo).setFont(titleFont).setFontSize(14).setFontColor(ColorConstants.WHITE))
             .add(new Paragraph(orgName()).setFont(regularFont).setFontSize(9)
-                .setFontColor(new DeviceRgb(200, 210, 240)));
-        headerCell.setBackgroundColor(COLOR_HEADER);
-        headerCell.setPadding(12);
-        header.addCell(headerCell);
+                .setFontColor(new DeviceRgb(200, 210, 240)))
+            .setBackgroundColor(COLOR_HEADER).setPadding(12).setBorder(null);
+        header.addCell(leftCell);
+
+        if (folio != null) {
+            com.itextpdf.layout.element.Cell folioCell = new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("FOLIO").setFont(titleFont).setFontSize(7)
+                    .setFontColor(new DeviceRgb(180, 190, 220))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                .add(new Paragraph(folio).setFont(titleFont).setFontSize(8)
+                    .setFontColor(ColorConstants.WHITE)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                .setBackgroundColor(new DeviceRgb(49, 46, 129))
+                .setPadding(8).setBorder(null)
+                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+            header.addCell(folioCell);
+        }
+
         doc.add(header);
+
+        String gen = "Generado " + LocalDate.now().format(FMT);
+        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        if (u != null) gen += " por " + u.getNombre();
         if (desde != null || hasta != null) {
             String periodo = (desde != null ? desde.format(FMT) : "inicio") + " — "
                            + (hasta != null ? hasta.format(FMT) : "hoy");
-            com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
-            String gen = "Generado " + LocalDate.now().format(FMT) + (u != null ? " por " + u.getNombre() : "");
             doc.add(new Paragraph("Período: " + periodo + "    ·    " + gen)
                 .setFont(regularFont).setFontSize(9).setFontColor(ColorConstants.DARK_GRAY)
                 .setMarginTop(4));
         } else {
-            com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
-            String gen = "Generado " + LocalDate.now().format(FMT) + (u != null ? " por " + u.getNombre() : "");
             doc.add(new Paragraph(gen)
                 .setFont(regularFont).setFontSize(9).setFontColor(ColorConstants.DARK_GRAY)
                 .setMarginTop(4));
@@ -584,20 +651,31 @@ public class ReporteService {
     }
 
     protected void addPdfFooter(Document doc, int count) throws IOException {
+        addPdfFooter(doc, count, null);
+    }
+
+    protected void addPdfFooter(Document doc, int count, String folio) throws IOException {
         PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
         String user = u != null ? u.getNombre() : "—";
         String ts   = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        String folioTxt = folio != null ? "Folio: " + folio + "   |   " : "";
         doc.add(new Paragraph(
-                "Total: " + count + " registros   |   Generado por: " + user + "   |   " + ts
+                folioTxt + "Total: " + count + " registros   |   Generado por: " + user + "   |   " + ts
                 + "   |   " + orgName())
-            .setFont(font).setFontSize(8).setFontColor(ColorConstants.GRAY));
+            .setFont(font).setFontSize(8).setFontColor(ColorConstants.GRAY)
+            .setBorderTop(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(209, 213, 219), 0.5f))
+            .setPaddingTop(4).setMarginTop(8));
     }
 
     // ───────────────────────────── ETIQUETAS QR ─────────────────────
 
     public File exportEtiquetasQrPdf(List<Producto> productos) throws Exception {
         return new ReporteEtiquetasService().exportEtiquetasQrPdf(productos);
+    }
+
+    public File exportEtiquetaFisicaPdf(List<Producto> productos) throws Exception {
+        return new ReporteEtiquetasService().exportEtiquetaFisicaPdf(productos);
     }
 
     /** Wraps plain text in a Cell+Paragraph for Table.addCell — itext7's Table

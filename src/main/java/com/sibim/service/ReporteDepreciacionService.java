@@ -50,7 +50,8 @@ public class ReporteDepreciacionService extends ReporteService {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Depreciación de Activos", null, null);
+            String folio = generateFolio("DEP");
+            addPdfHeader(doc, "Depreciación de Activos", null, null, folio);
             float[] widths = {3f, 1.8f, 1.5f, 1.2f, 1.5f, 1.5f, 1.2f};
             Table table = createPdfTable(DEP_HEADERS, widths);
             for (Producto p : productos) {
@@ -63,7 +64,11 @@ public class ReporteDepreciacionService extends ReporteService {
                 table.addCell(cell(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() + "%" : "—"));
             }
             doc.add(table);
-            addPdfFooter(doc, productos.size());
+            addFirmasBlock(doc,
+                new String[]{"ELABORÓ",           getCurrentUserName(),    "Director de Recursos Materiales"},
+                new String[]{"CONTADOR MUNICIPAL", "_______________", "Contador / Contralor Municipal"},
+                new String[]{"VO.BO.",             "_______________", "Tesorero Municipal"});
+            addPdfFooter(doc, productos.size(), folio);
         }
         return file;
     }

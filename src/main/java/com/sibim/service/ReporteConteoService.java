@@ -37,6 +37,7 @@ public class ReporteConteoService extends ReporteService {
              Document doc = new Document(pdf, PageSize.LETTER.rotate())) {
 
             doc.setMargins(50, 50, 60, 50);
+            String folio = generateFolio("CON");
             PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
             PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
             DeviceRgb accent = new DeviceRgb(8, 145, 178);
@@ -110,12 +111,10 @@ public class ReporteConteoService extends ReporteService {
             doc.add(new Paragraph("\nTotal de bienes contados: " + c.getTotalContados()
                     + "    |    Discrepancias: " + c.getTotalDiscrepancias())
                 .setFont(bold).setFontSize(10).setMarginTop(12));
-            doc.add(new Paragraph("\n\n\n_______________________________          _______________________________")
-                .setFont(regular).setFontSize(10)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            doc.add(new Paragraph("Firma del responsable de conteo                   Vo.Bo. Administrador")
-                .setFont(regular).setFontSize(9)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            addFirmasBlock(doc,
+                new String[]{"RESPONSABLE DEL CONTEO", c.getUsuarioNombre() != null ? c.getUsuarioNombre() : "_______________", "Responsable de Inventario"},
+                new String[]{"VO.BO. ADMINISTRADOR", "_______________", "Director de Recursos Materiales"});
+            addPdfFooter(doc, items.size(), folio);
         }
         return out;
     }
@@ -128,6 +127,7 @@ public class ReporteConteoService extends ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
 
             PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+            String folio = generateFolio("CON");
 
             Table headerTable = new Table(1).useAllAvailableWidth();
             com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
@@ -166,7 +166,10 @@ public class ReporteConteoService extends ReporteService {
                 table.addCell(cell(item.getNota() != null ? item.getNota() : ""));
             }
             doc.add(table);
-            addPdfFooter(doc, items.size());
+            addFirmasBlock(doc,
+                new String[]{"RESPONSABLE DEL CONTEO", usuario != null ? usuario : "_______________", "Responsable de Inventario"},
+                new String[]{"VO.BO. ADMINISTRADOR",   "_______________", "Director de Recursos Materiales"});
+            addPdfFooter(doc, items.size(), folio);
         }
         return file;
     }

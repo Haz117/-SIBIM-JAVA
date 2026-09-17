@@ -95,6 +95,23 @@ final class ProductosExporter {
         );
     }
 
+    // ── Physical label export ────────────────────────────────────────────────
+
+    static void exportEtiquetaFisica(
+            Scene scene, List<Producto> productos, ReporteService reporteService) {
+        DialogUtil.runAsyncWithProgress(scene, "Generando etiquetas físicas…",
+            () -> reporteService.exportEtiquetaFisicaPdf(productos),
+            file -> {
+                if (file == null) {
+                    NotificacionUtil.advertencia(scene, "No se generaron etiquetas");
+                    return;
+                }
+                DialogUtil.showExportResultDialog(scene, file);
+            },
+            e -> NotificacionUtil.error(scene, "No se pudo generar las etiquetas")
+        );
+    }
+
     // ── Single QR label preview/save ────────────────────────────────────────
 
     /** Shows a preview dialog for one bien's QR with an optional "Guardar PNG". */

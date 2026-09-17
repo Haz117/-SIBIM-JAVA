@@ -29,7 +29,8 @@ public class ReporteAuditoriaService extends ReporteService {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Registro de Auditoría", desde, hasta);
+            String folio = generateFolio("AUD");
+            addPdfHeader(doc, "Registro de Auditoría", desde, hasta, folio);
             String[] headers = {"Entidad", "Nombre", "Acción", "Usuario", "Detalle", "Fecha"};
             float[] widths = {1.5f, 1.5f, 1.2f, 1.5f, 3f, 2f};
             Table table = createPdfTable(headers, widths);
@@ -42,7 +43,10 @@ public class ReporteAuditoriaService extends ReporteService {
                 table.addCell(cell(l.getCreadoEn() != null ? FormatUtils.formatDateTime(l.getCreadoEn()) : ""));
             }
             doc.add(table);
-            addPdfFooter(doc, logs.size());
+            addFirmasBlock(doc,
+                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.",  "_______________",    "Secretario General Municipal"});
+            addPdfFooter(doc, logs.size(), folio);
         }
         return file;
     }
@@ -125,6 +129,7 @@ public class ReporteAuditoriaService extends ReporteService {
                     : mun.isBlank() ? org : org + " · " + mun;
         } catch (Exception e) { orgName = "H. Ayuntamiento Municipal"; }
 
+        String folio = generateFolio("AUD-CON");
         File file = tempFile("auditoria_consolidada", ".pdf");
         try (com.itextpdf.kernel.pdf.PdfWriter   writer  = new com.itextpdf.kernel.pdf.PdfWriter(file.getAbsolutePath());
              com.itextpdf.kernel.pdf.PdfDocument pdfDoc  = new com.itextpdf.kernel.pdf.PdfDocument(writer);
@@ -142,7 +147,7 @@ public class ReporteAuditoriaService extends ReporteService {
                     .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(200, 210, 240))
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                 .add(new com.itextpdf.layout.element.Paragraph(
-                    "Generado: " + java.time.LocalDate.now().format(fmtD))
+                    "Generado: " + java.time.LocalDate.now().format(fmtD) + "     Folio: " + folio)
                     .setFont(regular).setFontSize(8)
                     .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(180, 190, 220))
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
@@ -243,8 +248,11 @@ public class ReporteAuditoriaService extends ReporteService {
                     .setFont(regular).setFontSize(9).setFontColor(colorMuted).setMarginTop(20));
             }
 
+            addFirmasBlock(doc,
+                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.",  "_______________",    "Secretario General Municipal"});
             doc.add(new com.itextpdf.layout.element.Paragraph(
-                "Generado por SIBIM · " + orgName + " · " + java.time.LocalDate.now().format(fmtD))
+                "Folio: " + folio + "   |   Generado por SIBIM · " + orgName + " · " + java.time.LocalDate.now().format(fmtD))
                 .setFont(regular).setFontSize(7).setFontColor(colorMuted)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER).setMarginTop(20));
         }

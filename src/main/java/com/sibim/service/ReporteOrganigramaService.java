@@ -35,6 +35,7 @@ public class ReporteOrganigramaService extends ReporteService {
              PdfDocument pdf = new PdfDocument(writer);
              Document doc = new Document(pdf, com.itextpdf.kernel.geom.PageSize.A4)) {
 
+            String folio = generateFolio("ORG");
             doc.setMargins(0, 36, 36, 36);
 
             PdfFont regular = PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
@@ -143,10 +144,10 @@ public class ReporteOrganigramaService extends ReporteService {
 
             // ── Footer ──────────────────────────────────────────────────
             doc.add(spacer(8));
-            doc.add(new Paragraph(
-                "SIBIM — Sistema Integral de Bienes Municipales  |  " + orgName() + "  |  " + generadoEn)
-                .setFont(regular).setFontSize(7.5f).setFontColor(muted)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            addFirmasBlock(doc,
+                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+            addPdfFooter(doc, totalBienes, folio);
         }
         return file;
     }

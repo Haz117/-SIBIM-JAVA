@@ -27,7 +27,8 @@ public class ReporteDashboardService extends ReporteService {
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4)) {
 
-            addPdfHeader(doc, "Resumen del Inventario", null, null);
+            String folio = generateFolio("DAS");
+            addPdfHeader(doc, "Resumen del Inventario", null, null, folio);
 
             PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
             PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
@@ -86,7 +87,7 @@ public class ReporteDashboardService extends ReporteService {
                 doc.add(tArea);
             }
 
-            addPdfFooter(doc, (int) stats.total());
+            addPdfFooter(doc, (int) stats.total(), folio);
         }
         return file;
     }

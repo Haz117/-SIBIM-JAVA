@@ -25,7 +25,8 @@ public class ReporteBajasService extends ReporteService {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
-            addPdfHeader(doc, "Bienes Dados de Baja", null, null);
+            String folio = generateFolio("BAJ");
+            addPdfHeader(doc, "Bienes Dados de Baja", null, null, folio);
             String[] headers = {"Nombre", "Código", "Área", "Categoría", "Fecha baja", "Motivo"};
             float[] widths  = {3f, 1.5f, 2f, 1.5f, 1.5f, 3f};
             Table table = createPdfTable(headers, widths);
@@ -38,7 +39,11 @@ public class ReporteBajasService extends ReporteService {
                 table.addCell(cell(p.getMotivoBaja() != null ? p.getMotivoBaja() : ""));
             }
             doc.add(table);
-            addPdfFooter(doc, bajas.size());
+            addFirmasBlock(doc,
+                new String[]{"ELABORÓ",    getCurrentUserName(), "Director de Recursos Materiales"},
+                new String[]{"JEFE DE INVENTARIOS", "_______________", "Jefe de Inventarios y Patrimonio"},
+                new String[]{"VO.BO.",     "_______________", "Secretario General Municipal"});
+            addPdfFooter(doc, bajas.size(), folio);
         }
         return file;
     }

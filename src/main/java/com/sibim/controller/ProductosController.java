@@ -278,7 +278,7 @@ public class ProductosController {
         table.setContextMenu(ProductosContextMenu.build(
             table, canEdit, reporteService, movimientoService, log,
             this::showProductDetail, this::showMovimientoTimeline, this::exportarEtiquetasQr,
-            this::onEdit, this::onDelete));
+            this::exportarEtiquetaFisica, this::onEdit, this::onDelete));
         setupEmptyState();
         setupPagination();
         // Clic derecho en encabezado → toggle columnas secundarias
@@ -942,6 +942,17 @@ public class ProductosController {
 
     private void exportarEtiquetasQr(List<Producto> productos) {
         ProductosExporter.exportEtiquetasQr(table.getScene(), productos, reporteService);
+    }
+
+    @FXML
+    private void onBulkEtiquetaFisica() {
+        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        if (sel.isEmpty()) sel = List.copyOf(table.getItems());
+        exportarEtiquetaFisica(sel);
+    }
+
+    private void exportarEtiquetaFisica(List<Producto> productos) {
+        ProductosExporter.exportEtiquetaFisica(table.getScene(), productos, reporteService);
     }
 
     // ── Filter presets ───────────────────────────────────────────────────────
