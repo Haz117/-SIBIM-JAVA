@@ -63,6 +63,10 @@ public class DashboardController {
     @FXML private AreaChart<String, Number>  chartTendencia;
     @FXML private VBox                       trendCard;
     @FXML private Label                      lblTrendEmpty;
+    @FXML private javafx.scene.chart.BarChart<String, Number> chartValor;
+    @FXML private VBox                       valorCard;
+    @FXML private VBox                       valorSectionHdr;
+    @FXML private Label                      lblValorEmpty;
 
     // ── Layout ───────────────────────────────────────────────────────
     @FXML private javafx.scene.control.ScrollPane rootScrollPane;
@@ -144,7 +148,8 @@ public class DashboardController {
 
         chartBuilder = new DashboardChartBuilder(
             chartMovimientos, categoriaValorBox, pieEmptyState,
-            chartTendencia, trendCard, lblTrendEmpty, this::navigarA);
+            chartTendencia, trendCard, lblTrendEmpty,
+            chartValor, valorCard, lblValorEmpty, this::navigarA);
         statusBuilder = new DashboardStatusSectionBuilder(
             statusCardsRow, areasCard, areasBarBox, areasSectionHdr,
             () -> navigarA("Productos"), this::onVerBajoStock, this::onVerAgotados, () -> navigarA("Alertas"));
@@ -272,6 +277,7 @@ public class DashboardController {
         chartBuilder.buildCategoriaChart(data.catValores());
         statusBuilder.buildStatusCards(stats);
         chartBuilder.buildTrendChart(data.movMensual());
+        chartBuilder.buildValorChart(data.movMensualValor());
         statusBuilder.buildAreasSection(data.byArea(), stats.total());
 
         // Trend indicator: today vs yesterday from movSemana data
@@ -612,6 +618,8 @@ public class DashboardController {
         setCardVisible(areasCard, showCharts);
         setCardVisible(areasSectionHdr, showCharts);
         setCardVisible(trendCard, showCharts);
+        setCardVisible(valorCard, showCharts);
+        setCardVisible(valorSectionHdr, showCharts);
         setCardVisible(activityCard, visible.contains("Actividad reciente"));
     }
 

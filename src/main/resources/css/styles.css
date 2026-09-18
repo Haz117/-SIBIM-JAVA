@@ -2305,6 +2305,7 @@
 /* Card-section icon (small, decorative) */
 .card-icon         { -fx-icon-size: 15; -fx-icon-color: #64748B; }
 .card-icon-indigo  { -fx-icon-size: 15; -fx-icon-color: #6366F1; }
+.card-icon-emerald { -fx-icon-size: 15; -fx-icon-color: #059669; }
 
 /* Icon inside area-filter ComboBox cells */
 .area-filter-icon  { -fx-icon-size: 13; -fx-icon-color: #6366F1; }

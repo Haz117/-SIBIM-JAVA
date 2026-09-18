@@ -44,15 +44,16 @@ public class DashboardService {
             var fProximasRev  = async(() -> productoRepo.findProximasRevisiones(30),  exec);
             var fMovHoy       = async(() -> movimientoRepo.findToday(),               exec);
             var fMovSemana    = async(() -> movimientoRepo.findLastNDays(7),          exec);
-            var fMovMensual   = async(() -> movimientoRepo.findMonthlyStats(6),       exec);
-            var fByArea       = async(() -> productoRepo.countByArea(5),              exec);
-            var fMovsActual   = async(() -> movimientoRepo.countByAnio(anioActual),   exec);
-            var fMovsAnterior = async(() -> movimientoRepo.countByAnio(anioAnterior), exec);
+            var fMovMensual      = async(() -> movimientoRepo.findMonthlyStats(6),       exec);
+            var fMovMensualValor = async(() -> movimientoRepo.findMonthlyValorStats(6),  exec);
+            var fByArea          = async(() -> productoRepo.countByArea(5),              exec);
+            var fMovsActual      = async(() -> movimientoRepo.countByAnio(anioActual),   exec);
+            var fMovsAnterior    = async(() -> movimientoRepo.countByAnio(anioAnterior), exec);
 
             try {
                 CompletableFuture.allOf(
                     fStats, fCatValores, fAgotados, fBajoStock, fProximasRev,
-                    fMovHoy, fMovSemana, fMovMensual, fByArea,
+                    fMovHoy, fMovSemana, fMovMensual, fMovMensualValor, fByArea,
                     fMovsActual, fMovsAnterior).join();
             } catch (CompletionException ce) {
                 Throwable cause = ce.getCause();
@@ -65,7 +66,8 @@ public class DashboardService {
             log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
                 stats.total(), stats.categorias(), movHoy.size());
             return new Resumen(stats, fCatValores.join(), fAgotados.join(),
-                               fBajoStock.join(), fProximasRev.join(), movHoy, fMovSemana.join(), fMovMensual.join(),
+                               fBajoStock.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
+                               fMovMensual.join(), fMovMensualValor.join(),
                                fByArea.join(), fMovsActual.join(), fMovsAnterior.join());
         }
     }
@@ -156,6 +158,7 @@ public class DashboardService {
             List<Movimiento> movHoy,
             List<Movimiento> movSemana,
             List<MovimientoRepository.MonthlyStats> movMensual,
+            List<MovimientoRepository.MonthlyValorStats> movMensualValor,
             LinkedHashMap<String, Long> byArea,
             long movsAnioActual,
             long movsAnioAnterior) {}

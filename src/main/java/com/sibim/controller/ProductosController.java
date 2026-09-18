@@ -1102,7 +1102,11 @@ public class ProductosController {
     // ── Internal helpers ─────────────────────────────────────────────────────
 
     private void showProductDetail(Producto p) {
-        ProductoDetailDialog.show(p, table.getScene(), movimientoService, log);
+        java.lang.Runnable editCallback = canEdit ? () -> {
+            table.getSelectionModel().select(p);
+            onEdit();
+        } : null;
+        ProductoDetailDialog.show(p, table.getScene(), movimientoService, log, editCallback);
     }
 
     private void showMovimientoTimeline(Producto p) {

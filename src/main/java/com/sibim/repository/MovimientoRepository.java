@@ -33,6 +33,9 @@ public class MovimientoRepository {
     /** Monthly aggregated movements for the trend chart in the Dashboard. */
     public record MonthlyStats(String label, int entradas, int salidas) {}
 
+    /** Monthly patrimonial value for the valor chart — MXN entradas/salidas from movements × precio_compra. */
+    public record MonthlyValorStats(String label, java.math.BigDecimal valorEntradas, java.math.BigDecimal valorSalidas) {}
+
     private static final String[] MES_ABREV =
         {"Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"};
 
@@ -88,6 +91,63 @@ public class MovimientoRepository {
             String[] parts = e.getKey().split("-");
             int monthIdx = Integer.parseInt(parts[1]) - 1;
             return new MonthlyStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
+                e.getValue()[0], e.getValue()[1]);
+        }).toList();
+    }
+
+    public List<MonthlyValorStats> findMonthlyValorStats(int months) throws SQLException {
+        LocalDate fromMonth = LocalDate.now().withDayOfMonth(1).minusMonths(months - 1);
+        LinkedHashMap<String, java.math.BigDecimal[]> byMonth = new LinkedHashMap<>();
+        for (int i = months - 1; i >= 0; i--) {
+            LocalDate m = LocalDate.now().withDayOfMonth(1).minusMonths(i);
+            byMonth.put(m.getYear() + "-" + String.format("%02d", m.getMonthValue()),
+                new java.math.BigDecimal[]{ java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO });
+        }
+
+        if (DatabaseConfig.getLocalDataStore() != null) {
+            // Demo/offline mode: no price data available — return zero-filled skeleton
+            return byMonth.entrySet().stream().map(e -> {
+                String[] parts = e.getKey().split("-");
+                int monthIdx = Integer.parseInt(parts[1]) - 1;
+                return new MonthlyValorStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
+                    java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO);
+            }).toList();
+        }
+
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        StringBuilder sql = new StringBuilder("""
+            SELECT TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS ym,
+                SUM(CASE WHEN m.tipo = 'ENTRADA' THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_entradas,
+                SUM(CASE WHEN m.tipo = 'SALIDA'  THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_salidas
+            FROM movements m
+            JOIN products p ON p.id = m.producto_id
+            WHERE m.created_at >= ?
+            """);
+        if (accessible != null) sql.append("AND p.area = ANY(?) ");
+        sql.append("GROUP BY DATE_TRUNC('month', m.created_at) ORDER BY ym ASC");
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setTimestamp(1, Timestamp.valueOf(fromMonth.atStartOfDay()));
+            if (accessible != null)
+                ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.math.BigDecimal[] arr = byMonth.get(rs.getString("ym"));
+                    if (arr != null) {
+                        arr[0] = rs.getBigDecimal("valor_entradas");
+                        if (arr[0] == null) arr[0] = java.math.BigDecimal.ZERO;
+                        arr[1] = rs.getBigDecimal("valor_salidas");
+                        if (arr[1] == null) arr[1] = java.math.BigDecimal.ZERO;
+                    }
+                }
+            }
+        }
+
+        return byMonth.entrySet().stream().map(e -> {
+            String[] parts = e.getKey().split("-");
+            int monthIdx = Integer.parseInt(parts[1]) - 1;
+            return new MonthlyValorStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
                 e.getValue()[0], e.getValue()[1]);
         }).toList();
     }

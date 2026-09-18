@@ -404,6 +404,28 @@
     </VBox>
 
     <!-- ══════════════════════════════════════════════════════════
+         SECCIÓN: VALOR PATRIMONIAL MENSUAL
+         ══════════════════════════════════════════════════════════ -->
+    <HBox fx:id="valorSectionHdr" alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="VALOR PATRIMONIAL" styleClass="dash-section-label"/>
+        <Label text="Últimos 6 meses · MXN" styleClass="dash-section-badge"/>
+    </HBox>
+    <VBox fx:id="valorCard" styleClass="card" spacing="10">
+        <padding><Insets top="18" right="18" bottom="14" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="card-icon-emerald"/>
+            <Label text="Entradas vs. Salidas (MXN)" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblValorEmpty" text="Sin datos de precio en movimientos"
+                   styleClass="muted" visible="false" managed="false"/>
+        </HBox>
+        <BarChart fx:id="chartValor" prefHeight="210" animated="false">
+            <xAxis><CategoryAxis/></xAxis>
+            <yAxis><NumberAxis minorTickCount="1"/></yAxis>
+        </BarChart>
+    </VBox>
+
+    <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: ACTIVIDAD RECIENTE
          ══════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">

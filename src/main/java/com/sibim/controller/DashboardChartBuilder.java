@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.repository.MovimientoRepository.MonthlyStats;
+import com.sibim.repository.MovimientoRepository.MonthlyValorStats;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
@@ -27,6 +28,9 @@ class DashboardChartBuilder {
     private final AreaChart<String, Number>  chartTendencia;
     private final VBox                       trendCard;
     private final Label                      lblTrendEmpty;
+    private final BarChart<String, Number>   chartValor;
+    private final VBox                       valorCard;
+    private final Label                      lblValorEmpty;
     private final Consumer<String>           navigarA;
 
     static final String[] AREA_BAR_CLASSES = {
@@ -39,6 +43,9 @@ class DashboardChartBuilder {
                           AreaChart<String, Number> chartTendencia,
                           VBox trendCard,
                           Label lblTrendEmpty,
+                          BarChart<String, Number> chartValor,
+                          VBox valorCard,
+                          Label lblValorEmpty,
                           Consumer<String> navigarA) {
         this.chartMovimientos  = chartMovimientos;
         this.categoriaValorBox = categoriaValorBox;
@@ -46,6 +53,9 @@ class DashboardChartBuilder {
         this.chartTendencia    = chartTendencia;
         this.trendCard         = trendCard;
         this.lblTrendEmpty     = lblTrendEmpty;
+        this.chartValor        = chartValor;
+        this.valorCard         = valorCard;
+        this.lblValorEmpty     = lblValorEmpty;
         this.navigarA          = navigarA;
     }
 
@@ -179,6 +189,39 @@ class DashboardChartBuilder {
             installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue() + " uds.");
 
         AnimationUtils.fadeInUp(trendCard, 300, 0);
+    }
+
+    void buildValorChart(List<MonthlyValorStats> monthly) {
+        if (chartValor == null || valorCard == null) return;
+        chartValor.getData().clear();
+
+        boolean allZero = monthly.stream()
+            .allMatch(m -> m.valorEntradas().compareTo(BigDecimal.ZERO) == 0
+                       && m.valorSalidas().compareTo(BigDecimal.ZERO) == 0);
+
+        if (lblValorEmpty != null) {
+            lblValorEmpty.setVisible(allZero);
+            lblValorEmpty.setManaged(allZero);
+        }
+        chartValor.setVisible(!allZero);
+        chartValor.setManaged(!allZero);
+        if (allZero) return;
+
+        XYChart.Series<String, Number> entradas = new XYChart.Series<>(); entradas.setName("Valor Entradas");
+        XYChart.Series<String, Number> salidas  = new XYChart.Series<>(); salidas.setName("Valor Salidas");
+        for (MonthlyValorStats m : monthly) {
+            entradas.getData().add(new XYChart.Data<>(m.label(), m.valorEntradas().doubleValue()));
+            salidas.getData().add(new XYChart.Data<>(m.label(), m.valorSalidas().doubleValue()));
+        }
+        chartValor.getData().addAll(List.of(entradas, salidas));
+        for (XYChart.Data<String, Number> d : entradas.getData())
+            installTooltipWhenReady(d.nodeProperty(),
+                "Entradas " + d.getXValue() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getYValue().doubleValue())));
+        for (XYChart.Data<String, Number> d : salidas.getData())
+            installTooltipWhenReady(d.nodeProperty(),
+                "Salidas " + d.getXValue() + ": " + FormatUtils.formatCurrency(BigDecimal.valueOf(d.getYValue().doubleValue())));
+
+        AnimationUtils.fadeInUp(valorCard, 300, 60);
     }
 
     private static void installTooltipWhenReady(
