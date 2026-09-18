@@ -19,6 +19,7 @@ import com.sibim.model.Producto;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ComodatoRepository;
 import com.sibim.repository.ConfiguracionRepository;
+import com.sibim.repository.PrestamoRepository;
 import com.sibim.repository.ProductoRepository;
 
 import java.io.File;
@@ -31,22 +32,25 @@ import java.util.List;
 
 public class ComodatoService {
 
-    private final ComodatoRepository     repo;
-    private final ProductoRepository     productoRepo;
+    private final ComodatoRepository      repo;
+    private final ProductoRepository      productoRepo;
+    private final PrestamoRepository      prestamoRepo;
     private final ConfiguracionRepository cfgRepo;
-    private final AuditLogRepository     auditRepo;
+    private final AuditLogRepository      auditRepo;
 
     public ComodatoService() {
-        this(new ComodatoRepository(), new ProductoRepository(),
+        this(new ComodatoRepository(), new ProductoRepository(), new PrestamoRepository(),
              new ConfiguracionRepository(), new AuditLogRepository());
     }
 
     ComodatoService(ComodatoRepository repo, ProductoRepository productoRepo,
+                    PrestamoRepository prestamoRepo,
                     ConfiguracionRepository cfgRepo, AuditLogRepository auditRepo) {
-        this.repo        = repo;
-        this.productoRepo = productoRepo;
-        this.cfgRepo     = cfgRepo;
-        this.auditRepo   = auditRepo;
+        this.repo         = repo;
+        this.productoRepo  = productoRepo;
+        this.prestamoRepo  = prestamoRepo;
+        this.cfgRepo      = cfgRepo;
+        this.auditRepo    = auditRepo;
     }
 
     // Purple header — rgb(76, 29, 149) = purple-900
@@ -83,6 +87,9 @@ public class ComodatoService {
             .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
         if (repo.existeVigentePorProducto(productoId))
             throw new IllegalArgumentException("Este bien ya tiene un comodato vigente — concluye o rescinde el anterior primero");
+
+        if (prestamoRepo.existsActivoForProducto(productoId))
+            throw new IllegalArgumentException("El bien ya tiene un préstamo activo — debe devolverse antes de crear un comodato");
 
         Comodato c = new Comodato();
         c.setProductoId(productoId);

@@ -1,6 +1,7 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.session.SessionManager;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,6 +15,8 @@ public class AreaResguardoRepository {
     public List<AreaResguardo> findByArea(String area) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null || DatabaseConfig.isDemoMode())
             return new ArrayList<>();
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null && !accessible.contains(area)) return new ArrayList<>();
         List<AreaResguardo> result = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(

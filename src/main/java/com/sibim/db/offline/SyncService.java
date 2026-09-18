@@ -815,10 +815,102 @@ public final class SyncService {
     public static int pendingCount() {
         if (!DatabaseConfig.isOfflineMode()) return 0;
         try {
-            OfflineStore.sharedConnection(); // ensures schema/connection exist
+            OfflineStore.sharedConnection();
         } catch (SQLException e) {
             return 0;
         }
         return countPending();
+    }
+
+    // ─────────────── Outbox error review (DISCARDED rows) ─────────────────
+
+    /** One row from any outbox table that ended up permanently discarded. */
+    public record OutboxEntry(
+        String table,
+        String tableLabel,
+        int    rowId,
+        String operacion,
+        String entityLabel,
+        String error,
+        String createdAt
+    ) {}
+
+    /** All DISCARDED rows across every outbox table, newest first.
+     *  Returns an empty list when no offline store exists. */
+    public static List<OutboxEntry> getDiscarded() {
+        try {
+            OfflineStore.sharedConnection();
+        } catch (SQLException e) {
+            return List.of();
+        }
+        List<OutboxEntry> result = new ArrayList<>();
+        queryDiscarded("category_outbox",  "Categoría",  "categoria_id", "nombre",          result);
+        queryDiscarded("product_outbox",   "Bien",        "producto_id",  "nombre",          result);
+        queryDiscarded("movement_outbox",  "Movimiento",  "movimiento_id","tipo",            result);
+        queryDiscarded("conteo_outbox",    "Conteo físico","conteo_id",   "usuario_nombre",  result);
+        queryDiscarded("audit_log_outbox", "Auditoría",   "audit_id",     "entidad_nombre",  result);
+        result.sort((a, b) -> b.createdAt().compareTo(a.createdAt()));
+        return result;
+    }
+
+    private static void queryDiscarded(String table, String tableLabel,
+                                       String idCol, String nameCol,
+                                       List<OutboxEntry> out) {
+        String sql = "SELECT id, operacion, " + idCol + ", " + nameCol
+            + ", error, created_at FROM " + table + " WHERE status = 'DISCARDED' ORDER BY id DESC";
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String name = rs.getString(nameCol);
+                String id   = rs.getString(idCol);
+                String label = (name != null && !name.isBlank()) ? name : id;
+                out.add(new OutboxEntry(table, tableLabel, rs.getInt("id"),
+                    rs.getString("operacion"), label,
+                    rs.getString("error"), rs.getString("created_at")));
+            }
+        } catch (SQLException e) {
+            log.error("SyncService: no se pudieron leer descartados de {}", table, e);
+        }
+    }
+
+    /** Count of DISCARDED rows across all outbox tables. Returns 0 when no offline store exists. */
+    public static int countDiscarded() {
+        try {
+            OfflineStore.sharedConnection();
+        } catch (SQLException e) {
+            return 0;
+        }
+        int total = 0;
+        for (String table : new String[]{
+                "category_outbox", "product_outbox", "movement_outbox",
+                "conteo_outbox", "audit_log_outbox"}) {
+            try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                    "SELECT COUNT(*) FROM " + table + " WHERE status = 'DISCARDED'");
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) total += rs.getInt(1);
+            } catch (SQLException e) {
+                log.error("SyncService: no se pudo contar descartados en {}", table, e);
+            }
+        }
+        return total;
+    }
+
+    /** Permanently deletes all DISCARDED rows from every outbox table. */
+    public static void clearDiscarded() {
+        try {
+            OfflineStore.sharedConnection();
+        } catch (SQLException e) {
+            return;
+        }
+        for (String table : new String[]{
+                "category_outbox", "product_outbox", "movement_outbox",
+                "conteo_outbox", "audit_log_outbox"}) {
+            try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                    "DELETE FROM " + table + " WHERE status = 'DISCARDED'")) {
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                log.error("SyncService: no se pudieron limpiar descartados de {}", table, e);
+            }
+        }
     }
 }

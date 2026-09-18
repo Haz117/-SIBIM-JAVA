@@ -22,6 +22,7 @@ import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.repository.ComodatoRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.PrestamoRepository;
 import com.sibim.repository.ProductoRepository;
@@ -36,17 +37,19 @@ import java.util.List;
 
 public class PrestamoService {
 
-    private final PrestamoRepository repo;
-    private final ProductoRepository productoRepo;
+    private final PrestamoRepository     repo;
+    private final ProductoRepository     productoRepo;
+    private final ComodatoRepository     comodatoRepo;
     private final ConfiguracionRepository cfgRepo;
-    private final AuditLogRepository auditRepo;
+    private final AuditLogRepository     auditRepo;
 
-    public PrestamoService() { this(new PrestamoRepository(), new ProductoRepository(), new ConfiguracionRepository(), new AuditLogRepository()); }
-    PrestamoService(PrestamoRepository repo, ProductoRepository productoRepo, ConfiguracionRepository cfgRepo, AuditLogRepository auditRepo) {
-        this.repo = repo;
-        this.productoRepo = productoRepo;
-        this.cfgRepo = cfgRepo;
-        this.auditRepo = auditRepo;
+    public PrestamoService() { this(new PrestamoRepository(), new ProductoRepository(), new ComodatoRepository(), new ConfiguracionRepository(), new AuditLogRepository()); }
+    PrestamoService(PrestamoRepository repo, ProductoRepository productoRepo, ComodatoRepository comodatoRepo, ConfiguracionRepository cfgRepo, AuditLogRepository auditRepo) {
+        this.repo         = repo;
+        this.productoRepo  = productoRepo;
+        this.comodatoRepo  = comodatoRepo;
+        this.cfgRepo      = cfgRepo;
+        this.auditRepo    = auditRepo;
     }
 
     private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(22, 101, 52);   // green-800
@@ -87,6 +90,9 @@ public class PrestamoService {
             .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
         if (repo.existeActivoPorProducto(productoId))
             throw new IllegalArgumentException("Este bien ya tiene un préstamo activo — registra la devolución primero");
+
+        if (comodatoRepo.existsVigenteForProducto(productoId))
+            throw new IllegalArgumentException("El bien ya tiene un comodato vigente — debe concluirse o rescindirse antes de crear un préstamo");
 
         Prestamo p = new Prestamo();
         p.setProductoId(productoId);

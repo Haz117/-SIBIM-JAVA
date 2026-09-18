@@ -237,16 +237,33 @@ public class PrestamoRepository {
 
     public List<Prestamo> findByProductoId(String productoId) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        List<Object> params = new ArrayList<>();
+        params.add(productoId);
+        String scope = scopeCondicion(params);
+        String sql = "SELECT * FROM prestamos WHERE producto_id = ?"
+            + (scope != null ? " AND " + scope : "")
+            + " ORDER BY created_at DESC";
         List<Prestamo> list = new ArrayList<>();
-        String sql = "SELECT * FROM prestamos WHERE producto_id = ? ORDER BY created_at DESC";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productoId);
+            bindParams(ps, conn, params);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) list.add(mapRow(rs));
             }
         }
         return list;
+    }
+
+    public boolean existsActivoForProducto(String productoId) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        String sql = "SELECT 1 FROM prestamos WHERE producto_id = ? AND estado IN ('ACTIVO','VENCIDO') LIMIT 1";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
     }
 
     public String nextNumero() throws SQLException {

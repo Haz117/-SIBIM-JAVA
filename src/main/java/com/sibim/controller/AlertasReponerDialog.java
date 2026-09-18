@@ -114,7 +114,7 @@ final class AlertasReponerDialog {
                     } catch (Exception ex) {
                         fail++;
                         errores.add((String) entry[1]);
-                        log.error("Error al reponer {}: {}", entry[1], ex.getMessage(), ex);
+                        log.warn("Reposición parcial fallida para '{}': {}", entry[1], ex.getMessage());
                     }
                 }
                 final int finalOk = ok, finalFail = fail;

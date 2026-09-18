@@ -652,6 +652,11 @@ public final class DialogUtil {
         dialog.getDialogPane().setPrefWidth(460);
         applyStylesheet(dialog.getDialogPane());
 
+        if (file == null || !file.exists()) {
+            NotificacionUtil.error(scene, "El archivo no pudo generarse. Intenta de nuevo.");
+            return;
+        }
+
         HBox header = gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
             "El archivo fue exportado exitosamente.", AppColors.SUCCESS_D, AppColors.SUCCESS_DD);
 

@@ -6,6 +6,7 @@ import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import javafx.animation.PauseTransition;
@@ -154,6 +155,10 @@ public class AuditoriaController {
         }
 
         if (table != null) {
+            table.setPlaceholder(EmptyStateUtil.build(
+                "mdi2s-shield-lock-outline",
+                "Sin actividad registrada",
+                "Los eventos del sistema aparecerán aquí"));
             table.setOnMouseClicked(e -> {
                 if (e.getClickCount() == 2) {
                     AuditLog sel = table.getSelectionModel().getSelectedItem();

@@ -6,6 +6,7 @@ import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 public class EmptyStateUtil {
+
     public static VBox build(String iconCode, String title, String subtitle) {
         FontIcon icon = new FontIcon(iconCode);
         icon.getStyleClass().add("empty-state-icon");
@@ -19,5 +20,11 @@ public class EmptyStateUtil {
         box.getStyleClass().add("empty-state-box");
         box.setAlignment(Pos.CENTER);
         return box;
+    }
+
+    public static VBox buildSearch(String query) {
+        return build("mdi2m-magnify-close",
+            "Sin resultados para «" + query + "»",
+            "Prueba con otro término de búsqueda");
     }
 }

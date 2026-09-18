@@ -213,7 +213,7 @@ public class LoginController {
                         MainApp.showMain();
                         if (result != null && result.hasWarning()) {
                             javafx.application.Platform.runLater(() ->
-                                com.sibim.util.NotificacionUtil.error(
+                                com.sibim.util.NotificacionUtil.advertencia(
                                     com.sibim.MainApp.getPrimaryStage().getScene(),
                                     result.offlineWarning()));
                         }

@@ -216,6 +216,18 @@ public class ComodatoRepository {
         }
     }
 
+    public boolean existsVigenteForProducto(String productoId) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        String sql = "SELECT 1 FROM comodatos WHERE producto_id = ? AND estado IN ('VIGENTE','VENCIDO') LIMIT 1";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
     public String nextNumero() throws SQLException {
         return folioRepo.next("CDT");
     }

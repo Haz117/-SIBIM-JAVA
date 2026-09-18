@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -58,6 +59,13 @@ public abstract class BaseDocumentController<T> {
     }
 
     // ── Abstract hooks ───────────────────────────────────────────────────────
+
+    /** MDI2 icon literal for the empty-state placeholder (e.g. "mdi2b-badge-account-outline"). */
+    protected abstract String emptyStateIcon();
+    /** Main empty-state message shown when the table has no data. */
+    protected abstract String emptyStateTitle();
+    /** Secondary hint for the empty-state (one short line). */
+    protected String emptyStateSubtitle() { return ""; }
 
     /** Configure all TableColumn cell-value / cell-factories. */
     protected abstract void setupColumns();
@@ -119,6 +127,7 @@ public abstract class BaseDocumentController<T> {
     protected void setupTableBase() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         table.setItems(data);
+        table.setPlaceholder(EmptyStateUtil.build(emptyStateIcon(), emptyStateTitle(), emptyStateSubtitle()));
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
                 onTableDoubleClick(table.getSelectionModel().getSelectedItem());

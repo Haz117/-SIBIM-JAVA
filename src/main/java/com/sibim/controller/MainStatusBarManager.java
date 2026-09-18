@@ -3,10 +3,14 @@ package com.sibim.controller;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.offline.SyncService;
 import com.sibim.session.SessionManager;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.RotateTransition;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
+import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.time.LocalTime;
@@ -14,14 +18,17 @@ import java.time.format.DateTimeFormatter;
 
 class MainStatusBarManager {
 
-    private final HBox    offlineBanner;
-    private final Label   offlineBannerLabel;
-    private final Button  offlineBannerSyncBtn;
-    private final Label   statusDbLabel;
-    private final Tooltip statusDbTooltip;
-    private final Label   statusUserLabel;
-    private final Label   statusTimeLabel;
+    private final HBox     offlineBanner;
+    private final Label    offlineBannerLabel;
+    private final Button   offlineBannerSyncBtn;
+    private final Label    statusDbLabel;
+    private final Tooltip  statusDbTooltip;
+    private final Label    statusUserLabel;
+    private final Label    statusTimeLabel;
     private final FontIcon statusDotIcon;
+
+    private RotateTransition spinAnim;
+    private boolean          connecting = false;
 
     MainStatusBarManager(HBox offlineBanner, Label offlineBannerLabel, Button offlineBannerSyncBtn,
                          Label statusDbLabel, Tooltip statusDbTooltip,
@@ -36,7 +43,22 @@ class MainStatusBarManager {
         this.statusDotIcon        = statusDotIcon;
     }
 
+    void setConnecting(boolean value) {
+        this.connecting = value;
+        if (statusDotIcon == null || statusDbLabel == null) return;
+        if (value) {
+            applyIcon("mdi2d-database-sync-outline", "status-dot-icon-connecting");
+            statusDbLabel.setText("Conectando…");
+            startSpin();
+        } else {
+            stopSpin();
+            update();
+        }
+    }
+
     void update() {
+        if (connecting) return; // don't override while connecting animation is active
+
         if (statusUserLabel != null && SessionManager.getCurrentUser() != null)
             statusUserLabel.setText(SessionManager.getCurrentUser().getNombre() +
                 "  ·  " + SessionManager.getCurrentUser().getRol().getEtiqueta());
@@ -50,20 +72,17 @@ class MainStatusBarManager {
                 ? (pending > 0 ? "Sin conexión · " + pending + " pendiente(s)" : "Sin conexión")
                 : demo ? "Modo demo" : "Conectado";
             statusDbLabel.setText(text);
+
             if (statusDotIcon != null) {
-                statusDotIcon.getStyleClass().removeAll(
-                    "status-dot-icon-ok", "status-dot-icon-demo", "status-dot-icon-offline");
                 if (offline) {
-                    statusDotIcon.setIconLiteral("mdi2c-close-circle");
-                    statusDotIcon.getStyleClass().add("status-dot-icon-offline");
+                    applyIcon("mdi2d-database-off-outline", "status-dot-icon-offline");
                 } else if (demo) {
-                    statusDotIcon.setIconLiteral("mdi2c-clock-outline");
-                    statusDotIcon.getStyleClass().add("status-dot-icon-demo");
+                    applyIcon("mdi2d-database-clock-outline", "status-dot-icon-demo");
                 } else {
-                    statusDotIcon.setIconLiteral("mdi2c-check-circle");
-                    statusDotIcon.getStyleClass().add("status-dot-icon-ok");
+                    applyIcon("mdi2d-database-check-outline", "status-dot-icon-ok");
                 }
             }
+
             if (statusDbTooltip != null) {
                 String tip = offline
                     ? (pending > 0
@@ -101,5 +120,33 @@ class MainStatusBarManager {
     void updateTime() {
         if (statusTimeLabel != null)
             statusTimeLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    private void applyIcon(String literal, String styleClass) {
+        statusDotIcon.setIconLiteral(literal);
+        statusDotIcon.getStyleClass().removeAll(
+            "status-dot-icon-ok", "status-dot-icon-demo",
+            "status-dot-icon-offline", "status-dot-icon-connecting");
+        statusDotIcon.getStyleClass().add(styleClass);
+    }
+
+    private void startSpin() {
+        if (statusDotIcon == null) return;
+        if (spinAnim == null) {
+            spinAnim = new RotateTransition(Duration.millis(900), statusDotIcon);
+            spinAnim.setByAngle(360);
+            spinAnim.setCycleCount(Animation.INDEFINITE);
+            spinAnim.setInterpolator(Interpolator.LINEAR);
+        }
+        if (spinAnim.getStatus() != Animation.Status.RUNNING) spinAnim.play();
+    }
+
+    private void stopSpin() {
+        if (spinAnim != null && spinAnim.getStatus() == Animation.Status.RUNNING) {
+            spinAnim.stop();
+            if (statusDotIcon != null) statusDotIcon.setRotate(0);
+        }
     }
 }

@@ -42,7 +42,7 @@ public class ProductoMantenimientoRepository {
         return list;
     }
 
-    public void agregar(String productoId, String descripcion, LocalDate fecha) {
+    public void agregar(String productoId, String descripcion, LocalDate fecha) throws SQLException {
         if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
         String sql = """
             INSERT INTO producto_mantenimiento (id, producto_id, descripcion, fecha, completada)
@@ -55,32 +55,26 @@ public class ProductoMantenimientoRepository {
             ps.setString(3, descripcion);
             ps.setDate(4, Date.valueOf(fecha));
             ps.executeUpdate();
-        } catch (Exception e) {
-            log.error("No se pudo guardar alerta de mantenimiento para producto {}: {}", productoId, e.getMessage());
         }
     }
 
-    public void marcarCompletada(String id) {
+    public void marcarCompletada(String id) throws SQLException {
         if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "UPDATE producto_mantenimiento SET completada = TRUE WHERE id = ?")) {
             ps.setString(1, id);
             ps.executeUpdate();
-        } catch (Exception e) {
-            log.error("No se pudo marcar como completada la alerta de mantenimiento {}: {}", id, e.getMessage());
         }
     }
 
-    public void eliminar(String id) {
+    public void eliminar(String id) throws SQLException {
         if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "DELETE FROM producto_mantenimiento WHERE id = ?")) {
             ps.setString(1, id);
             ps.executeUpdate();
-        } catch (Exception e) {
-            log.error("No se pudo eliminar la alerta de mantenimiento {}: {}", id, e.getMessage());
         }
     }
 

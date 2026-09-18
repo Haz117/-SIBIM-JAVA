@@ -336,9 +336,17 @@ public class ProductoRepository {
 
     public Optional<Producto> findById(String id) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) return local.findProductoById(id);
-        String sql = BASE_SELECT + " WHERE p.id = ?";
-        List<Producto> results = query(sql, id);
+        if (local != null) {
+            Set<String> accessible = SessionManager.getAccessibleAreas();
+            return local.findProductoById(id)
+                .filter(p -> accessible == null || accessible.contains(p.getArea()));
+        }
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        StringBuilder sb = new StringBuilder(BASE_SELECT).append(" WHERE p.id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(id);
+        if (accessible != null) { sb.append(" AND p.area = ANY(?)"); params.add(accessible.toArray(new String[0])); }
+        List<Producto> results = query(sb.toString(), params.toArray());
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 

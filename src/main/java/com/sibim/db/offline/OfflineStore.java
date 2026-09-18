@@ -107,10 +107,15 @@ public final class OfflineStore {
                 }
 
                 // Stale work file from a previous crash — discard it; enc is authoritative.
-                // On Windows, deleteIfExists silently returns false if the file is held by
-                // another process (another running instance of the app).
+                // On Windows, Files.deleteIfExists throws FileSystemException (instead of
+                // returning false) when the file is held by another process, so we catch it.
                 if (Files.exists(encFile)) {
-                    boolean deleted = Files.deleteIfExists(workFile);
+                    boolean deleted;
+                    try {
+                        deleted = Files.deleteIfExists(workFile);
+                    } catch (IOException ex) {
+                        deleted = false; // Windows: file locked by another instance
+                    }
                     if (!deleted && Files.exists(workFile)) {
                         throw new IOException(
                             "OTRA_INSTANCIA: offline.db.work está en uso por otra instancia del sistema.");

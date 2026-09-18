@@ -3,6 +3,7 @@ package com.sibim.service;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ProductoMantenimientoRepository;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,18 +29,18 @@ public class MantenimientoService {
             .toList();
     }
 
-    public void agregarAlerta(String productoId, String descripcion, LocalDate fecha) {
+    public void agregarAlerta(String productoId, String descripcion, LocalDate fecha) throws SQLException {
         repo.agregar(productoId, descripcion, fecha);
         auditRepo.log("mantenimiento", productoId, descripcion, "crear",
             "Alerta de mantenimiento programada para " + fecha);
     }
 
-    public void marcarCompletada(String id) {
+    public void marcarCompletada(String id) throws SQLException {
         repo.marcarCompletada(id);
         auditRepo.log("mantenimiento", id, null, "completar", "Alerta de mantenimiento marcada como completada");
     }
 
-    public void eliminarAlerta(String id) {
+    public void eliminarAlerta(String id) throws SQLException {
         repo.eliminar(id);
         auditRepo.log("mantenimiento", id, null, "eliminar", "Alerta de mantenimiento eliminada");
     }

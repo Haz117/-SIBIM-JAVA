@@ -9,6 +9,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
@@ -336,17 +337,10 @@ public class ConfiguracionController {
 
     private void setupUsersTable() {
         usersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        FontIcon emptyIco = new FontIcon("mdi2a-account-multiple-outline");
-        emptyIco.setIconSize(44);
-        emptyIco.getStyleClass().add("empty-icon-lg");
-        javafx.scene.control.Label emptyMsg = new javafx.scene.control.Label("Sin usuarios registrados");
-        emptyMsg.getStyleClass().add("empty-state-msg");
-        javafx.scene.control.Label emptyHint = new javafx.scene.control.Label("Usa el botón \"Nuevo usuario\" para crear el primero");
-        emptyHint.getStyleClass().add("empty-state-hint");
-        javafx.scene.layout.VBox emptyBox = new javafx.scene.layout.VBox(10, emptyIco, emptyMsg, emptyHint);
-        emptyBox.setAlignment(javafx.geometry.Pos.CENTER);
-        emptyBox.getStyleClass().add("empty-state-pane");
-        usersTable.setPlaceholder(emptyBox);
+        usersTable.setPlaceholder(EmptyStateUtil.build(
+            "mdi2a-account-multiple-outline",
+            "Sin usuarios registrados",
+            "Usa el botón \"Nuevo usuario\" para crear el primero"));
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colUsername.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsername()));
         colCargo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCargo()));
@@ -613,6 +607,11 @@ public class ConfiguracionController {
             conteos -> new ConteosDialog(conteoRepo).show(conteos),
             e -> NotificacionUtil.error(usersTable.getScene(), "No se pudo cargar el historial de conteos")
         );
+    }
+
+    @FXML
+    private void onVerErroresOutbox() {
+        com.sibim.controller.dialogs.OutboxErrorsDialog.show();
     }
 
     @FXML

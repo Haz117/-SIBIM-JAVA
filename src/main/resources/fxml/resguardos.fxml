@@ -82,8 +82,8 @@
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
         <columns>
             <TableColumn fx:id="colNumero"       text="Folio"        prefWidth="110"/>
-            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="200"/>
-            <TableColumn fx:id="colArea"         text="Área"         prefWidth="220"/>
+            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="200" maxWidth="260"/>
+            <TableColumn fx:id="colArea"         text="Área"         prefWidth="220" maxWidth="260"/>
             <TableColumn fx:id="colFecha"        text="Fecha"        prefWidth="100"/>
             <TableColumn fx:id="colEstado"       text="Estado"       prefWidth="90"/>
         </columns>

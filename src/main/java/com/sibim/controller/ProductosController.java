@@ -1094,7 +1094,7 @@ public class ProductosController {
         DialogUtil.runAsync((com.sibim.util.DialogUtil.CheckedRunnable) () -> productoService.save(p),
             () -> NotificacionUtil.info(table.getScene(), "Umbrales de stock actualizados"),
             ex -> {
-                NotificacionUtil.error(table.getScene(), "No se pudo guardar");
+                NotificacionUtil.error(table.getScene(), "No se pudieron guardar los umbrales de stock — " + ex.getMessage());
                 loadPage();
             });
     }

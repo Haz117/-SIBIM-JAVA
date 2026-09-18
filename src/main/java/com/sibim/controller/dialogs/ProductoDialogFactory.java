@@ -51,7 +51,7 @@ public final class ProductoDialogFactory {
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
                                            Map<String, Image> thumbnailCache, Logger log,
                                            List<String> existingFotos) {
-        boolean isNewProduct = existing == null;
+        boolean isNewProduct = existing == null || existing.getId() == null;
         Dialog<Producto> dialog = DialogUtil.create(520);
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
 
@@ -73,16 +73,8 @@ public final class ProductoDialogFactory {
         fNombre.getStyleClass().add("form-input");
         TextField fCodigo = new TextField(existing != null ? existing.getCodigo() : "");
         fCodigo.getStyleClass().add("form-input");
-        if (isNewProduct) {
-            // El código se asigna por área al guardar (ver AreaCodigos /
-            // ProductoService#asignarCodigo) — no se captura a mano para un
-            // bien nuevo. Al editar uno existente sigue siendo editable para
-            // poder corregir datos heredados que no siguen este formato.
-            fCodigo.setDisable(true);
-            fCodigo.setPromptText("Se asignará automáticamente según el área");
-        } else {
-            fCodigo.setPromptText("Código único de inventario");
-        }
+        fCodigo.setPromptText("Código único de inventario");
+        // For new products, enable/disable is set dynamically below once fArea is declared
 
         // Inline código uniqueness check — debounced 280ms
         ProductoRepository codigoRepo = new ProductoRepository();
@@ -164,6 +156,28 @@ public final class ProductoDialogFactory {
             : sessionUser != null ? sessionUser.getArea() : null);
         if (SessionManager.isDireccion()) fArea.setDisable(true);
         fArea.getStyleClass().add("form-input");
+
+        // For new products: disable código when the area has an auto-prefix;
+        // enable it (and require manual entry) when the area has no prefix.
+        if (isNewProduct) {
+            Runnable syncCodigo = () -> {
+                String a = fArea.getValue();
+                if (a == null || a.isBlank()) {
+                    fCodigo.setDisable(true);
+                    fCodigo.setPromptText("Selecciona un área primero");
+                    fCodigo.clear();
+                } else if (com.sibim.config.AreaCodigos.tienePrefijo(a)) {
+                    fCodigo.setDisable(true);
+                    fCodigo.setPromptText("Se asignará automáticamente según el área");
+                    fCodigo.clear();
+                } else {
+                    fCodigo.setDisable(false);
+                    fCodigo.setPromptText("Código único de inventario");
+                }
+            };
+            syncCodigo.run();
+            fArea.valueProperty().addListener((o, a, b) -> syncCodigo.run());
+        }
 
         // ── Inline blur-validation hints for required fields ──────────────
         Label lblNombreHint = new Label("Campo requerido");
@@ -612,6 +626,10 @@ public final class ProductoDialogFactory {
         lblFormError.setManaged(false);
         lblFormError.setWrapText(true);
 
+        // Flag set just before firing okBtn so setOnCloseRequest skips the
+        // "Descartar cambios?" prompt when the user is intentionally saving.
+        boolean[] savingNow = {false};
+
         String submitLabel = isNewProduct ? "Guardar bien" : "Guardar cambios";
         Button btnGuardar = new Button(submitLabel);
         btnGuardar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
@@ -624,7 +642,8 @@ public final class ProductoDialogFactory {
             // triggering setOnCloseRequest (which would show "Descartar cambios").
             boolean inv = false;
             if (fNombre.getText().isBlank()) { fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
-            if (fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            boolean codigoManual = !isNewProduct || (fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(fArea.getValue()));
+            if (codigoManual && fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             if (fCat.getValue() == null) { fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             String pcText = fPrecioC.getText().trim(), pvText = fPrecioV.getText().trim();
@@ -639,6 +658,7 @@ public final class ProductoDialogFactory {
                 AnimationUtils.shake(lblFormError);
                 return; // keep dialog open — do NOT fire okBtn
             }
+            savingNow[0] = true;
             if (okBtn instanceof Button b) b.fire();
         });
 
@@ -663,8 +683,9 @@ public final class ProductoDialogFactory {
 
         if (okBtn != null) {
             Runnable checkOk = () -> {
-                boolean codigoError = !isNewProduct && lblCodigoHint.getStyleClass().contains("field-hint-error");
-                boolean codigoBlank = !isNewProduct && fCodigo.getText().isBlank();
+                boolean needsCodigo = !isNewProduct || (fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(fArea.getValue()));
+                boolean codigoError = needsCodigo && lblCodigoHint.getStyleClass().contains("field-hint-error");
+                boolean codigoBlank = needsCodigo && fCodigo.getText().isBlank();
                 boolean invalid = fNombre.getText().isBlank() || codigoBlank
                     || fArea.getValue() == null || fArea.getValue().isBlank()
                     || fCat.getValue() == null || codigoError;
@@ -737,7 +758,7 @@ public final class ProductoDialogFactory {
             });
         }
         dialog.setOnCloseRequest(e -> {
-            if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar cambios",
+            if (!savingNow[0] && dirty[0] && !ConfirmacionUtil.confirmar("Descartar cambios",
                     "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?"))
                 e.consume();
         });
@@ -761,7 +782,8 @@ public final class ProductoDialogFactory {
             Node firstErrField = null;
             if (fNombre.getText().isBlank()) { fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fNombre; invalid = true; }
             else fNombre.getStyleClass().remove("field-error");
-            if (fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fCodigo; invalid = true; }
+            boolean codigoManual = !isNewProduct || (fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(fArea.getValue()));
+            if (codigoManual && fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fCodigo; invalid = true; }
             else fCodigo.getStyleClass().remove("field-error");
             if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fArea; invalid = true; }
             else fArea.getStyleClass().remove("field-error");
@@ -812,8 +834,11 @@ public final class ProductoDialogFactory {
             DialogUtil.commitSpinner(fStockMin);
             DialogUtil.commitSpinner(fStockMax);
 
-            Producto p = existing != null ? existing : new Producto();
-            if (p.getId() == null) p.setId(UUID.randomUUID().toString());
+            Producto p = isNewProduct ? new Producto() : existing;
+            // For new products p.getId() is null (service assigns the real UUID on save).
+            // Photos need a unique name now; use a stable placeholder that travels with
+            // the product so local and storage paths are consistent within this session.
+            String photoId = p.getId() != null ? p.getId() : UUID.randomUUID().toString();
             p.setNombre(fNombre.getText().trim());
             p.setCodigo(fCodigo.getText().trim());
             p.setDescripcion(fDesc.getText().trim());
@@ -863,7 +888,7 @@ public final class ProductoDialogFactory {
                             continue;
                         }
                         Path src = java.nio.file.Path.of(rawUrl);
-                        String remoteName = p.getId() + "_" + savedFotos.size() + ".jpg";
+                        String remoteName = photoId + "_" + savedFotos.size() + ".jpg";
                         if (useStorage) {
                             java.io.File tmp = Files.createTempFile("sibim-", ".jpg").toFile();
                             try {
@@ -904,12 +929,12 @@ public final class ProductoDialogFactory {
                             java.io.File tmp = Files.createTempFile("sibim-fact-", ".jpg").toFile();
                             try {
                                 ImageUtils.resizeAndSave(Path.of(factUrlFinal).toFile(), tmp);
-                                factUrlFinal = com.sibim.util.SupabaseStorage.upload(tmp, p.getId() + "_factura.jpg");
+                                factUrlFinal = com.sibim.util.SupabaseStorage.upload(tmp, photoId + "_factura.jpg");
                             } finally { tmp.delete(); }
                         } else {
                             Path factDir = ImageUtils.storageDir().resolve("facturas");
                             Files.createDirectories(factDir);
-                            Path dest = factDir.resolve(p.getId() + ".jpg");
+                            Path dest = factDir.resolve(photoId + ".jpg");
                             Path src = Path.of(factUrlFinal);
                             if (!src.equals(dest)) {
                                 ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
