@@ -65,7 +65,7 @@ public class DashboardController {
     @FXML private Label                      lblTrendEmpty;
     @FXML private javafx.scene.chart.BarChart<String, Number> chartValor;
     @FXML private VBox                       valorCard;
-    @FXML private VBox                       valorSectionHdr;
+    @FXML private HBox                       valorSectionHdr;
     @FXML private Label                      lblValorEmpty;
 
     // ── Layout ───────────────────────────────────────────────────────
