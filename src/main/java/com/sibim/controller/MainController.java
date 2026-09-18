@@ -149,6 +149,7 @@ public class MainController {
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
         badgeManager   = new MainBadgeManager(alertBadge, loanBadge, alertProductoService, prestamoService);
         startupChecks  = new MainStartupChecks(alertProductoService, prestamoService);
+        startupChecks.cleanupStaleTempFiles();
         if (SessionManager.getCurrentUser() != null) {
             String nombre = SessionManager.getCurrentUser().getNombre();
             userNameLabel.setText(nombre);

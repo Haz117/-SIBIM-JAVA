@@ -26,6 +26,14 @@ public class ReporteOrganigramaService extends ReporteService {
 
     public ReporteOrganigramaService() { super(); }
 
+    /** precioVenta × stockActual entirely in BigDecimal — mixing in double here would
+     *  drift the patrimonial totals shown in this report away from the BigDecimal-based
+     *  sums the rest of ReporteService's exports use for the same figure. */
+    private static java.math.BigDecimal valorProducto(Producto p) {
+        java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
+        return v.multiply(java.math.BigDecimal.valueOf(p.getStockActual()));
+    }
+
     /** Generates a structured organigrama PDF — one section per area with bienes table. */
     public File exportOrganigrama(Map<String, List<Producto>> porArea) throws Exception {
         File file = tempFile("organigrama_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
@@ -65,19 +73,16 @@ public class ReporteOrganigramaService extends ReporteService {
             // ── Summary stats ──────────────────────────────────────────
             int totalAreas  = porArea.size();
             int totalBienes = porArea.values().stream().mapToInt(List::size).sum();
-            double totalValor = porArea.values().stream()
+            java.math.BigDecimal totalValor = porArea.values().stream()
                 .flatMap(List::stream)
-                .mapToDouble(p -> {
-                    java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
-                    return v.doubleValue() * p.getStockActual();
-                })
-                .sum();
+                .map(ReporteOrganigramaService::valorProducto)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
             Table statsTable = new Table(new float[]{1f, 1f, 1f}).useAllAvailableWidth();
             for (String[] stat : new String[][]{
                     {"Áreas con bienes",   String.valueOf(totalAreas)},
                     {"Total de bienes",    String.valueOf(totalBienes)},
-                    {"Valor patrimonial",  FormatUtils.formatCurrency(java.math.BigDecimal.valueOf(totalValor))}}) {
+                    {"Valor patrimonial",  FormatUtils.formatCurrency(totalValor)}}) {
                 statsTable.addCell(new com.itextpdf.layout.element.Cell()
                     .add(new Paragraph(stat[0]).setFont(regular).setFontSize(8f).setFontColor(muted).setMarginBottom(2))
                     .add(new Paragraph(stat[1]).setFont(bold).setFontSize(13f).setFontColor(dark))
@@ -94,12 +99,9 @@ public class ReporteOrganigramaService extends ReporteService {
             for (String area : areas) {
                 List<Producto> bienes = porArea.get(area);
                 int cnt = bienes.size();
-                double valorArea = bienes.stream()
-                    .mapToDouble(p -> {
-                        java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
-                        return v.doubleValue() * p.getStockActual();
-                    })
-                    .sum();
+                java.math.BigDecimal valorArea = bienes.stream()
+                    .map(ReporteOrganigramaService::valorProducto)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
                 // Area header row
                 Table areaHeader = new Table(new float[]{1f}).useAllAvailableWidth();
@@ -107,7 +109,7 @@ public class ReporteOrganigramaService extends ReporteService {
                     .add(new Paragraph(area.toUpperCase())
                         .setFont(bold).setFontSize(9.5f).setFontColor(indigo).setMargin(0))
                     .add(new Paragraph(cnt + " bien" + (cnt != 1 ? "es" : "") +
-                            (valorArea > 0 ? "  ·  Valor: " + FormatUtils.formatCurrency(java.math.BigDecimal.valueOf(valorArea)) : ""))
+                            (valorArea.signum() > 0 ? "  ·  Valor: " + FormatUtils.formatCurrency(valorArea) : ""))
                         .setFont(regular).setFontSize(8f).setFontColor(muted).setMarginTop(1).setMarginBottom(0))
                     .setBackgroundColor(bgLight).setPadding(8)
                     .setBorderLeft(new com.itextpdf.layout.borders.SolidBorder(indigo, 3))

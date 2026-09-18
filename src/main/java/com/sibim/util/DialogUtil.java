@@ -708,10 +708,17 @@ public final class DialogUtil {
         });
         btnCarpeta.setOnAction(e -> {
             try {
-                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
+                // Temp exports live in a folder with hundreds of unrelated files (see
+                // ReporteService#tempFile) — just opening it (Desktop.open on the parent)
+                // drops the user in that clutter with no indication of which file is theirs.
+                // Windows' /select switch opens Explorer with the file itself highlighted.
+                if (System.getProperty("os.name", "").toLowerCase().contains("win")) {
+                    new ProcessBuilder("explorer.exe", "/select,\"" + file.getAbsolutePath() + "\"").start();
+                } else if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
                     java.awt.Desktop.getDesktop().open(file.getParentFile());
-                else
+                } else {
                     NotificacionUtil.advertencia(scene, "No se puede abrir la carpeta en este entorno");
+                }
             } catch (Exception ex) { /* best-effort */ }
         });
         btnCopiar.setOnAction(e -> {
@@ -721,12 +728,16 @@ public final class DialogUtil {
             NotificacionUtil.info(scene, "Ruta copiada al portapapeles");
         });
         btnImpr.setOnAction(e -> {
+            // Desktop.print() sends the file straight to the OS default printer with no
+            // dialog or preview at all — surprising for a button labeled "Imprimir". Opening
+            // the file instead lets the user print from their own PDF viewer (Ctrl+P), which
+            // always gives them the printer picker, page range and print preview they expect.
             try {
-                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.PRINT))
-                    java.awt.Desktop.getDesktop().print(file);
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
+                    java.awt.Desktop.getDesktop().open(file);
                 else
-                    NotificacionUtil.advertencia(scene, "La impresión directa no está disponible en este entorno");
-            } catch (Exception ex) { NotificacionUtil.error(scene, "No se pudo enviar a la impresora"); }
+                    NotificacionUtil.advertencia(scene, "No se puede abrir el archivo en este entorno");
+            } catch (Exception ex) { NotificacionUtil.error(scene, "No se pudo abrir el archivo para imprimir"); }
         });
 
         HBox actions = new HBox(8, btnAbrir, btnImpr, btnCarpeta, btnCopiar);

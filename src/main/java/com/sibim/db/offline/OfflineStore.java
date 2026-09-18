@@ -316,6 +316,18 @@ public final class OfflineStore {
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE users_cache ADD COLUMN activo INTEGER NOT NULL DEFAULT 1");
         } catch (SQLException ignored) {}
+        // M11 (2026): retry_count en las tablas outbox — sin esto, una fila que
+        // sigue fallando (p.ej. un movimiento que ya no cabe en el stock del
+        // servidor) se reencola como PENDING en cada tick para siempre y la app
+        // nunca vuelve a modo online aunque el servidor esté disponible.
+        // SyncService la descarta tras MAX_RETRY_ATTEMPTS intentos.
+        for (String table : new String[]{
+                "product_outbox", "movement_outbox", "category_outbox",
+                "conteo_outbox", "audit_log_outbox"}) {
+            try (Statement st = c.createStatement()) {
+                st.execute("ALTER TABLE " + table + " ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0");
+            } catch (SQLException ignored) {}
+        }
     }
 
     private static void runSchema(Connection c) throws SQLException {

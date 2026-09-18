@@ -1,5 +1,6 @@
 package com.sibim.service;
 
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ProductoMantenimientoRepository;
 
 import java.time.LocalDate;
@@ -12,9 +13,14 @@ public class MantenimientoService {
     public record Alerta(String id, String descripcion, LocalDate fecha, boolean completada) {}
 
     private final ProductoMantenimientoRepository repo;
+    private final AuditLogRepository auditRepo;
 
-    public MantenimientoService() { this(new ProductoMantenimientoRepository()); }
-    public MantenimientoService(ProductoMantenimientoRepository repo) { this.repo = repo; }
+    public MantenimientoService() { this(new ProductoMantenimientoRepository(), new AuditLogRepository()); }
+    public MantenimientoService(ProductoMantenimientoRepository repo) { this(repo, new AuditLogRepository()); }
+    MantenimientoService(ProductoMantenimientoRepository repo, AuditLogRepository auditRepo) {
+        this.repo = repo;
+        this.auditRepo = auditRepo;
+    }
 
     public List<Alerta> getAlertas(String productoId) {
         return repo.findByProducto(productoId).stream()
@@ -24,14 +30,18 @@ public class MantenimientoService {
 
     public void agregarAlerta(String productoId, String descripcion, LocalDate fecha) {
         repo.agregar(productoId, descripcion, fecha);
+        auditRepo.log("mantenimiento", productoId, descripcion, "crear",
+            "Alerta de mantenimiento programada para " + fecha);
     }
 
     public void marcarCompletada(String id) {
         repo.marcarCompletada(id);
+        auditRepo.log("mantenimiento", id, null, "completar", "Alerta de mantenimiento marcada como completada");
     }
 
     public void eliminarAlerta(String id) {
         repo.eliminar(id);
+        auditRepo.log("mantenimiento", id, null, "eliminar", "Alerta de mantenimiento eliminada");
     }
 
     /** Alertas pendientes y próximas a vencer (dentro de {@code days} días) en todo el

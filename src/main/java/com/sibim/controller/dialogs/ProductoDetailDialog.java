@@ -30,29 +30,64 @@ public final class ProductoDetailDialog {
 
     private ProductoDetailDialog() {}
 
+    /** Everything show() needs from the DB, loaded off the FX thread in one batch —
+     *  see the comment on show() below for why this exists. */
+    private record DetalleData(
+        List<Movimiento> movimientos,
+        List<String> fotos,
+        List<com.sibim.model.Resguardo> resguardos,
+        List<com.sibim.model.Prestamo> prestamos,
+        List<com.sibim.service.MantenimientoService.Alerta> alertas
+    ) {}
+
+    /** Opens the read-only bien detail dialog. Loads movimientos, fotos, resguardos,
+     *  préstamos and alertas de mantenimiento — 5 sequential JDBC round-trips — on a
+     *  background thread first; doing them inline on the FX thread (as this used to)
+     *  freezes the whole app on every double-click of a row in Bienes/Depreciación/
+     *  Organigrama for as long as those 5 queries take. */
     public static void show(Producto p, Scene scene, MovimientoService movimientoService, Logger log) {
-        // Load movements eagerly so we can show history inline and reuse them for ficha
-        List<Movimiento> movimientos = List.of();
-        try {
-            List<Movimiento> result = movimientoService.getByProducto(p.getId());
-            if (result != null) movimientos = result;
-        } catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
-        final List<Movimiento> movs = movimientos;
+        DialogUtil.runAsyncWithProgress(scene, "Cargando detalle del bien…",
+            () -> {
+                List<Movimiento> movimientos = List.of();
+                try {
+                    List<Movimiento> result = movimientoService.getByProducto(p.getId());
+                    if (result != null) movimientos = result;
+                } catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-        List<String> fotosGaleria = java.util.List.of();
-        try { fotosGaleria = new com.sibim.repository.ProductoRepository().findFotos(p.getId()); }
-        catch (Exception ex) { log.warn("No se pudo cargar galería de fotos para '{}': {}", p.getCodigo(), ex.getMessage()); }
-        final List<String> _fotosGaleria = fotosGaleria;
+                List<String> fotosGaleria = List.of();
+                try { fotosGaleria = new com.sibim.repository.ProductoRepository().findFotos(p.getId()); }
+                catch (Exception ex) { log.warn("No se pudo cargar galería de fotos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-        java.util.List<com.sibim.model.Resguardo> resguardoHistory = java.util.List.of();
-        try { resguardoHistory = new com.sibim.service.ResguardoService().getByProductoId(p.getId()); }
-        catch (Exception ex) { log.warn("No se pudo cargar historial de resguardos para '{}': {}", p.getCodigo(), ex.getMessage()); }
-        final java.util.List<com.sibim.model.Resguardo> _resguardos = resguardoHistory;
+                List<com.sibim.model.Resguardo> resguardoHistory = List.of();
+                try { resguardoHistory = new com.sibim.service.ResguardoService().getByProductoId(p.getId()); }
+                catch (Exception ex) { log.warn("No se pudo cargar historial de resguardos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-        java.util.List<com.sibim.model.Prestamo> prestamoHistory = java.util.List.of();
-        try { prestamoHistory = new com.sibim.service.PrestamoService().getByProductoId(p.getId()); }
-        catch (Exception ex) { log.warn("No se pudo cargar historial de préstamos para '{}': {}", p.getCodigo(), ex.getMessage()); }
-        final java.util.List<com.sibim.model.Prestamo> _prestamos = prestamoHistory;
+                List<com.sibim.model.Prestamo> prestamoHistory = List.of();
+                try { prestamoHistory = new com.sibim.service.PrestamoService().getByProductoId(p.getId()); }
+                catch (Exception ex) { log.warn("No se pudo cargar historial de préstamos para '{}': {}", p.getCodigo(), ex.getMessage()); }
+
+                List<com.sibim.service.MantenimientoService.Alerta> alertas = List.of();
+                try { alertas = new com.sibim.service.MantenimientoService().getAlertas(p.getId()); }
+                catch (Exception ex) { log.warn("No se pudo cargar alertas de mantenimiento para '{}': {}", p.getCodigo(), ex.getMessage()); }
+
+                return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas);
+            },
+            data -> buildAndShow(p, scene, log, data),
+            ex -> {
+                log.error("No se pudo cargar el detalle del bien '{}'", p.getCodigo(), ex);
+                NotificacionUtil.error(scene, "No se pudo cargar el detalle del bien");
+            }
+        );
+    }
+
+    // TableColumn<PriceHistoryRepository.PriceHistoryEntry,?>... varargs to addAll() triggers
+    // Java's inherent generic-array-creation warning — inescapable with this API, not a real risk.
+    @SuppressWarnings("unchecked")
+    private static void buildAndShow(Producto p, Scene scene, Logger log, DetalleData loaded) {
+        final List<Movimiento> movs = loaded.movimientos();
+        final List<String> _fotosGaleria = loaded.fotos();
+        final java.util.List<com.sibim.model.Resguardo> _resguardos = loaded.resguardos();
+        final java.util.List<com.sibim.model.Prestamo> _prestamos = loaded.prestamos();
 
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
@@ -488,8 +523,7 @@ public final class ProductoDetailDialog {
         // ── Alertas de mantenimiento ───────────────────────────────────
         {
             com.sibim.service.MantenimientoService mantSvc = new com.sibim.service.MantenimientoService();
-            java.util.List<com.sibim.service.MantenimientoService.Alerta> alertas = mantSvc.getAlertas(p.getId());
-            boolean tieneAlertas = !alertas.isEmpty();
+            java.util.List<com.sibim.service.MantenimientoService.Alerta> alertasIniciales = loaded.alertas();
 
             Separator sepMant = new Separator();
             sepMant.getStyleClass().add("form-separator");
@@ -497,7 +531,7 @@ public final class ProductoDetailDialog {
 
             HBox mantHeader = new HBox(8);
             mantHeader.setAlignment(Pos.CENTER_LEFT);
-            Label mantTitle = new Label("Mantenimiento" + (tieneAlertas ? " (" + alertas.size() + ")" : ""));
+            Label mantTitle = new Label("Mantenimiento" + (alertasIniciales.isEmpty() ? "" : " (" + alertasIniciales.size() + ")"));
             mantTitle.getStyleClass().add("dialog-field-label");
             javafx.scene.layout.Region mantSpacer = new javafx.scene.layout.Region();
             HBox.setHgrow(mantSpacer, Priority.ALWAYS);
@@ -511,9 +545,8 @@ public final class ProductoDetailDialog {
             java.time.format.DateTimeFormatter fmtMant = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
             // Use a holder to allow self-referential Runnable (rebuild triggers itself via buttons)
             Runnable[] rebuildHolder = { null };
-            rebuildHolder[0] = () -> {
+            java.util.function.Consumer<java.util.List<com.sibim.service.MantenimientoService.Alerta>> renderAlertas = current -> {
                 mantList.getChildren().clear();
-                java.util.List<com.sibim.service.MantenimientoService.Alerta> current = mantSvc.getAlertas(p.getId());
                 mantTitle.setText("Mantenimiento" + (current.isEmpty() ? "" : " (" + current.size() + ")"));
                 if (current.isEmpty()) {
                     Label empty = new Label("Sin alertas de mantenimiento.");
@@ -530,7 +563,11 @@ public final class ProductoDetailDialog {
                     lblFecha.getStyleClass().add(vencida ? "cell-badge-warn" : "muted-sm");
                     Button btnOk = new Button("✓");
                     btnOk.getStyleClass().add("btn-link");
-                    btnOk.setOnAction(ev -> { mantSvc.marcarCompletada(a.id()); rebuildHolder[0].run(); });
+                    btnOk.setOnAction(ev -> DialogUtil.runAsync(
+                        () -> { mantSvc.marcarCompletada(a.id()); return null; },
+                        v -> rebuildHolder[0].run(),
+                        ex -> NotificacionUtil.error(scene, "No se pudo completar la alerta")
+                    ));
                     javafx.scene.layout.Region sp2 = new javafx.scene.layout.Region();
                     HBox.setHgrow(sp2, Priority.ALWAYS);
                     HBox row = new HBox(8, lblDesc, sp2, lblFecha, btnOk);
@@ -539,7 +576,15 @@ public final class ProductoDetailDialog {
                     mantList.getChildren().add(row);
                 }
             };
-            rebuildHolder[0].run();
+            // Rebuilding re-fetches (an "agregar"/"completar" may have changed the list on the
+            // server) — done off the FX thread like the initial load, instead of the JDBC call
+            // that used to run straight on the FX thread every time this fired.
+            rebuildHolder[0] = () -> DialogUtil.runAsync(
+                () -> mantSvc.getAlertas(p.getId()),
+                renderAlertas,
+                ex -> NotificacionUtil.error(scene, "No se pudieron actualizar las alertas de mantenimiento")
+            );
+            renderAlertas.accept(alertasIniciales);
 
             btnAgregarMant.setOnAction(e -> showAgregarMantenimientoDialog(p, mantSvc, scene, rebuildHolder[0]));
         }
@@ -592,8 +637,13 @@ public final class ProductoDetailDialog {
 
         dlg.showAndWait().ifPresent(bt -> {
             if (bt == ButtonType.OK && !tfDesc.getText().isBlank() && dpFecha.getValue() != null) {
-                mantSvc.agregarAlerta(p.getId(), tfDesc.getText().trim(), dpFecha.getValue());
-                onSaved.run();
+                String descripcion = tfDesc.getText().trim();
+                java.time.LocalDate fecha = dpFecha.getValue();
+                DialogUtil.runAsync(
+                    () -> { mantSvc.agregarAlerta(p.getId(), descripcion, fecha); return null; },
+                    v -> onSaved.run(),
+                    ex -> NotificacionUtil.error(scene, "No se pudo agregar la alerta")
+                );
             }
         });
     }

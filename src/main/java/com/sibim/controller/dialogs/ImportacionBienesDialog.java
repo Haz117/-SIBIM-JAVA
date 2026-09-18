@@ -11,7 +11,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
@@ -49,6 +48,9 @@ public class ImportacionBienesDialog {
 
     record ParsedRow(int num, String status, String error, Producto producto) {}
 
+    // TableColumn<ParsedRow,?>... varargs to addAll() triggers Java's inherent
+    // generic-array-creation warning — inescapable with this API, not a real risk here.
+    @SuppressWarnings("unchecked")
     public static void show(Scene ownerScene, List<Categoria> categorias,
                             ProductoService productoService, Runnable onSuccess) {
         ButtonType IMPORTAR = new ButtonType("Importar", ButtonBar.ButtonData.OK_DONE);
@@ -208,6 +210,33 @@ public class ImportacionBienesDialog {
         // Mutable state shared between closures
         AtomicReference<List<ParsedRow>> parsedRows = new AtomicReference<>(List.of());
 
+        // Shared UI update once a file has been parsed (on a background thread —
+        // parseFile() does blocking I/O and, for .xlsx, Apache POI parsing that can
+        // take noticeable time on large files, so it must never run on the FX thread).
+        java.util.function.BiConsumer<String, List<ParsedRow>> applyParsedRows = (fileName, rows) -> {
+            parsedRows.set(rows);
+            long validas = rows.stream().filter(r -> "ok".equals(r.status())).count();
+            long errores = rows.size() - validas;
+            lblArchivo.getStyleClass().remove("field-hint-error");
+            lblArchivo.setText(fileName + "  ·  " + rows.size() + " fila(s) leídas");
+            if (validas > 0) {
+                lblResumen.setText("✓  " + validas + " fila(s) listas para importar"
+                    + (errores > 0 ? "  ·  ⚠  " + errores + " con error(es) (se omitirán)" : ""));
+                lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
+                lblResumen.getStyleClass().add(errores > 0 ? "import-summary-warn" : "import-summary-ok");
+            } else {
+                lblResumen.setText("⚠  Ninguna fila es válida. Corrige los errores e intenta de nuevo.");
+                lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
+                lblResumen.getStyleClass().add("import-summary-warn");
+            }
+            lblResumen.setVisible(true); lblResumen.setManaged(true);
+            preview.setItems(javafx.collections.FXCollections.observableArrayList(rows));
+            preview.setVisible(true); preview.setManaged(true);
+            AnimationUtils.fadeInUp(preview, 240, 0);
+            btnImportar.setDisable(validas == 0);
+            btnImportar.setText("Importar " + validas + " registro(s)");
+        };
+
         // ── Drag & drop on drop zone ──────────────────────────────────
         dropZone.setOnDragOver(e -> {
             Dragboard db = e.getDragboard();
@@ -226,46 +255,24 @@ public class ImportacionBienesDialog {
         });
         dropZone.setOnDragDropped(e -> {
             Dragboard db = e.getDragboard();
-            boolean success = false;
-            if (db.hasFiles() && !db.getFiles().isEmpty()) {
+            boolean accepted = db.hasFiles() && !db.getFiles().isEmpty();
+            if (accepted) {
                 java.io.File droppedFile = db.getFiles().get(0);
                 dropZone.getStyleClass().remove("drop-zone-active");
+                lblArchivo.getStyleClass().remove("field-hint-error");
                 lblArchivo.setText("Procesando " + droppedFile.getName() + "…");
                 preview.setVisible(false); preview.setManaged(false);
                 lblResumen.setVisible(false); lblResumen.setManaged(false);
                 btnImportar.setDisable(true);
-                List<ParsedRow> rows;
-                try {
-                    rows = parseFile(droppedFile, categorias);
-                } catch (Exception ex) {
-                    lblArchivo.setText("Error al leer el archivo: " + ex.getMessage());
-                    lblArchivo.getStyleClass().add("field-hint-error");
-                    e.setDropCompleted(false); e.consume(); return;
-                }
-                parsedRows.set(rows);
-                long validas = rows.stream().filter(r -> "ok".equals(r.status())).count();
-                long errores = rows.size() - validas;
-                lblArchivo.getStyleClass().remove("field-hint-error");
-                lblArchivo.setText(droppedFile.getName() + "  ·  " + rows.size() + " fila(s) leídas");
-                if (validas > 0) {
-                    lblResumen.setText("✓  " + validas + " fila(s) listas para importar"
-                        + (errores > 0 ? "  ·  ⚠  " + errores + " con error(es) (se omitirán)" : ""));
-                    lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
-                    lblResumen.getStyleClass().add(errores > 0 ? "import-summary-warn" : "import-summary-ok");
-                } else {
-                    lblResumen.setText("⚠  Ninguna fila es válida. Corrige los errores e intenta de nuevo.");
-                    lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
-                    lblResumen.getStyleClass().add("import-summary-warn");
-                }
-                lblResumen.setVisible(true); lblResumen.setManaged(true);
-                preview.setItems(javafx.collections.FXCollections.observableArrayList(rows));
-                preview.setVisible(true); preview.setManaged(true);
-                AnimationUtils.fadeInUp(preview, 240, 0);
-                btnImportar.setDisable(validas == 0);
-                btnImportar.setText("Importar " + validas + " registro(s)");
-                success = true;
+                DialogUtil.runAsync(
+                    () -> parseFile(droppedFile, categorias),
+                    rows -> applyParsedRows.accept(droppedFile.getName(), rows),
+                    ex -> {
+                        lblArchivo.setText("Error al leer el archivo: " + ex.getMessage());
+                        lblArchivo.getStyleClass().add("field-hint-error");
+                    });
             }
-            e.setDropCompleted(success);
+            e.setDropCompleted(accepted);
             e.consume();
         });
 
@@ -296,45 +303,19 @@ public class ImportacionBienesDialog {
             File file = fc.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
             if (file == null) return;
 
+            lblArchivo.getStyleClass().remove("field-hint-error");
             lblArchivo.setText("Procesando " + file.getName() + "…");
             preview.setVisible(false); preview.setManaged(false);
             lblResumen.setVisible(false); lblResumen.setManaged(false);
             btnImportar.setDisable(true);
 
-            List<ParsedRow> rows;
-            try {
-                rows = parseFile(file, categorias);
-            } catch (Exception ex) {
-                lblArchivo.setText("Error al leer el archivo: " + ex.getMessage());
-                lblArchivo.getStyleClass().add("field-hint-error");
-                return;
-            }
-
-            parsedRows.set(rows);
-            long validas = rows.stream().filter(r -> "ok".equals(r.status())).count();
-            long errores = rows.size() - validas;
-
-            lblArchivo.getStyleClass().remove("field-hint-error");
-            lblArchivo.setText(file.getName() + "  ·  " + rows.size() + " fila(s) leídas");
-
-            if (validas > 0) {
-                lblResumen.setText("✓  " + validas + " fila(s) listas para importar"
-                    + (errores > 0 ? "  ·  ⚠  " + errores + " con error(es) (se omitirán)" : ""));
-                lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
-                lblResumen.getStyleClass().add(errores > 0 ? "import-summary-warn" : "import-summary-ok");
-            } else {
-                lblResumen.setText("⚠  Ninguna fila es válida. Corrige los errores e intenta de nuevo.");
-                lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
-                lblResumen.getStyleClass().add("import-summary-warn");
-            }
-            lblResumen.setVisible(true); lblResumen.setManaged(true);
-
-            preview.setItems(javafx.collections.FXCollections.observableArrayList(rows));
-            preview.setVisible(true); preview.setManaged(true);
-            AnimationUtils.fadeInUp(preview, 240, 0);
-
-            btnImportar.setDisable(validas == 0);
-            btnImportar.setText("Importar " + validas + " registro(s)");
+            DialogUtil.runAsync(
+                () -> parseFile(file, categorias),
+                rows -> applyParsedRows.accept(file.getName(), rows),
+                ex -> {
+                    lblArchivo.setText("Error al leer el archivo: " + ex.getMessage());
+                    lblArchivo.getStyleClass().add("field-hint-error");
+                });
         });
 
         // ── Result converter ─────────────────────────────────────────

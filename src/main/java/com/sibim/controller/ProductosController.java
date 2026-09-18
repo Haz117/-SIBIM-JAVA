@@ -755,10 +755,11 @@ public class ProductosController {
             NotificacionUtil.advertencia(table.getScene(), "No tienes permiso para importar bienes");
             return;
         }
-        List<Categoria> cats;
-        try { cats = categoriaService.findAll(); }
-        catch (Exception e) { NotificacionUtil.error(table.getScene(), "No se pudieron cargar las categorías"); return; }
-        ImportacionBienesDialog.show(table.getScene(), cats, productoService, () -> { refreshing = true; loadData(); });
+        javafx.scene.Scene scene = table.getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Cargando categorías…",
+            categoriaService::findAll,
+            cats -> ImportacionBienesDialog.show(scene, cats, productoService, () -> { refreshing = true; loadData(); }),
+            e -> NotificacionUtil.error(scene, "No se pudieron cargar las categorías"));
     }
 
     /** Jumps to Movimientos with the selected bien pre-filled in "Nuevo
@@ -1093,16 +1094,31 @@ public class ProductosController {
         MovimientoTimelineDialog.show(p, table.getScene(), movimientoService);
     }
 
+    private record CategoriasYFotos(List<Categoria> cats, List<String> fotos) {}
+
     private void showProductDialog(Producto existing) {
+        javafx.scene.Scene scene = table.getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Cargando categorías…",
+            () -> {
+                List<Categoria> cats = categoriaService.findAll();
+                List<String> existingFotos;
+                if (existing != null) {
+                    try { existingFotos = productoService.getFotosByProductoId(existing.getId()); }
+                    catch (Exception e) { existingFotos = new java.util.ArrayList<>(); }
+                } else {
+                    existingFotos = new java.util.ArrayList<>();
+                }
+                return new CategoriasYFotos(cats, existingFotos);
+            },
+            r -> openProductDialog(existing, r.cats(), r.fotos()),
+            e -> {
+                log.error("Error al abrir el formulario de bien", e);
+                NotificacionUtil.error(scene, "Error al abrir el formulario. Verifica la conexión a la base de datos.");
+            });
+    }
+
+    private void openProductDialog(Producto existing, List<Categoria> cats, List<String> existingFotos) {
         try {
-            List<Categoria> cats = categoriaService.findAll();
-            List<String> existingFotos;
-            if (existing != null) {
-                try { existingFotos = productoService.getFotosByProductoId(existing.getId()); }
-                catch (Exception e) { existingFotos = new java.util.ArrayList<>(); }
-            } else {
-                existingFotos = new java.util.ArrayList<>();
-            }
             Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos);
             boolean isNew = existing == null;
             result.ifPresent(p -> DialogUtil.runAsync(

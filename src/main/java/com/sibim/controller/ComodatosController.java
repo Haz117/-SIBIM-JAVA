@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Comodato;
 import com.sibim.model.Producto;
 import com.sibim.repository.ProductoRepository;
@@ -113,11 +114,17 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             estadoFilter.setValue("Todos");
             estadoFilter.valueProperty().addListener((obs, o, n) -> applyFilter());
         }
-        boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
+        boolean offline = DatabaseConfig.getLocalDataStore() != null;
+        boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         if (searchField != null)
             searchField.textProperty().addListener((obs, o, n) -> applyFilter());
-        Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+        Platform.runLater(() -> {
+            if (searchField != null) searchField.requestFocus();
+            if (offline && rootPane.getScene() != null)
+                NotificacionUtil.advertencia(rootPane.getScene(),
+                    "Comodatos no está disponible en modo offline/demo — conéctate a internet para usarlo");
+        });
     }
 
     @Override

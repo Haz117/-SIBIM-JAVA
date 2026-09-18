@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.config.Areas;
+import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.repository.ProductoRepository;
@@ -106,8 +107,16 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             estadoFilter.setValue("Todos");
             estadoFilter.valueProperty().addListener((obs, o, n) -> applyFilter());
         }
-        boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
+        boolean offline = DatabaseConfig.getLocalDataStore() != null;
+        boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
+        if (offline) {
+            Platform.runLater(() -> {
+                if (rootPane.getScene() != null)
+                    NotificacionUtil.advertencia(rootPane.getScene(),
+                        "Préstamos no está disponible en modo offline/demo — conéctate a internet para usarlo");
+            });
+        }
         if (searchField != null)
             searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         if (btnKanban != null) {
@@ -200,10 +209,10 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             .filter(p -> {
                 if (q == null || q.isBlank()) return true;
                 String lq = q.toLowerCase();
-                return p.getProductoNombre().toLowerCase().contains(lq)
-                    || p.getNumero().toLowerCase().contains(lq)
-                    || p.getResponsableNombre().toLowerCase().contains(lq)
-                    || p.getAreaDestino().toLowerCase().contains(lq);
+                return (p.getProductoNombre()   != null && p.getProductoNombre().toLowerCase().contains(lq))
+                    || (p.getNumero()           != null && p.getNumero().toLowerCase().contains(lq))
+                    || (p.getResponsableNombre() != null && p.getResponsableNombre().toLowerCase().contains(lq))
+                    || (p.getAreaDestino()      != null && p.getAreaDestino().toLowerCase().contains(lq));
             }).toList();
         data.setAll(filtered);
         if (kanbanMode) buildKanbanBoard(data);

@@ -9,7 +9,6 @@ import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
-import com.sibim.util.NotificacionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javafx.concurrent.Task;

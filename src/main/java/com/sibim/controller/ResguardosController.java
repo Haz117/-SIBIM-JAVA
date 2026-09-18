@@ -23,7 +23,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -141,6 +140,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }
 
+    // TableColumn<ResguardoItem,?>... varargs to addAll() triggers Java's inherent
+    // generic-array-creation warning — inescapable with this API, not a real risk here.
+    @SuppressWarnings("unchecked")
     private void mostrarDialogoNuevo(List<Producto> productos, javafx.scene.Scene scene) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);

@@ -830,11 +830,13 @@ public final class DemoDataStore {
     }
 
     public static List<ConteoItem> findConteoItems(String conteoId) {
-        return CONTEOS.stream()
-            .filter(c -> c.getId().equals(conteoId))
-            .findFirst()
-            .map(ConteoFisico::getItems)
-            .orElse(List.of());
+        synchronized (CONTEOS) {
+            return CONTEOS.stream()
+                .filter(c -> c.getId().equals(conteoId))
+                .findFirst()
+                .map(ConteoFisico::getItems)
+                .orElse(List.of());
+        }
     }
 
     // ── Factory helpers ───────────────────────────────────────────────────────

@@ -9,7 +9,6 @@ import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.prefs.Preferences;
@@ -43,7 +42,14 @@ public final class SearchUtils {
      * @param onPick    Callback fired when the user selects a history entry (may be null)
      */
     public static void setupSearchHistory(String prefsKey, TextField field, Runnable onPick) {
-        Preferences prefs = Preferences.userRoot().node(prefsKey);
+        // Preferences.userRoot() is keyed by the Windows account, not the SIBIM login — on a
+        // shared computer where several people use the same Windows session with their own
+        // SIBIM users, a bare prefsKey would let one user see another's recent search terms
+        // (responsable names, códigos de bienes). Namespacing by the current SIBIM user id
+        // keeps each person's history separate; falls back to a shared "anon" bucket only
+        // when there's no logged-in user yet (e.g. called before login, which doesn't happen
+        // today, but keeps this safe rather than throwing).
+        Preferences prefs = Preferences.userRoot().node(prefsKey + "/" + currentUserKey());
         ContextMenu histMenu = new ContextMenu();
         histMenu.getStyleClass().add("search-history-menu");
 
@@ -82,6 +88,11 @@ public final class SearchUtils {
                 histMenu.hide();
             }
         });
+    }
+
+    private static String currentUserKey() {
+        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        return u != null && u.getId() != null ? u.getId() : "anon";
     }
 
     private static List<String> loadHistory(Preferences prefs) {

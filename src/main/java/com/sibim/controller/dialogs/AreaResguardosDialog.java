@@ -46,8 +46,12 @@ public final class AreaResguardosDialog {
             "Documentos PDF de resguardo patrimonial por área/dirección",
             "#059669", "#047857");
 
-        // Area selector
-        List<String> areaNames = new java.util.ArrayList<>(Areas.getAllAreaNames());
+        // Area selector — scoped to the user's own areas so a non-admin can't pick an
+        // área they don't belong to and read/download another área's resguardo PDFs
+        // (the repository query itself has no área filter of its own to fall back on).
+        java.util.Set<String> accessible = com.sibim.session.SessionManager.getAccessibleAreas();
+        List<String> areaNames = new java.util.ArrayList<>(
+            accessible != null ? accessible : Areas.getAllAreaNames());
         ComboBox<String> areaCombo = new ComboBox<>(FXCollections.observableArrayList(areaNames));
         areaCombo.setPromptText("Selecciona un área…");
         areaCombo.setMaxWidth(Double.MAX_VALUE);

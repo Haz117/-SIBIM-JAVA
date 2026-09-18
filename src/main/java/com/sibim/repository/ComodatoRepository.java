@@ -14,6 +14,8 @@ import java.util.UUID;
 
 public class ComodatoRepository {
 
+    private final FolioRepository folioRepo = new FolioRepository();
+
     /** Comodatos involve an external entity — no internal area restriction applies
      *  to the comodato record itself; however we still scope by producto_id's
      *  area ownership so a user can only create/see comodatos for goods they have
@@ -28,10 +30,15 @@ public class ComodatoRepository {
     }
 
     private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params) throws SQLException {
+        bindParams(ps, conn, params, 1);
+    }
+
+    private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params, int startIndex) throws SQLException {
         for (int i = 0; i < params.size(); i++) {
             Object p = params.get(i);
-            if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
-            else ps.setObject(i + 1, p);
+            int idx = startIndex + i;
+            if (p instanceof String[] arr) ps.setArray(idx, conn.createArrayOf("text", arr));
+            else ps.setObject(idx, p);
         }
     }
 
@@ -89,6 +96,35 @@ public class ComodatoRepository {
         return list;
     }
 
+    public Comodato findById(String id) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return null;
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "SELECT c.* FROM comodatos c WHERE c.id = ?" + (scope != null ? " AND " + scope : "");
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
+            bindParams(ps, conn, scopeParams, 2);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? mapRow(rs) : null;
+            }
+        }
+    }
+
+    /** True when {@code productoId} already has an open comodato (VIGENTE or VENCIDO) —
+     *  used to stop the same bien from being loaned out to two entities at once. */
+    public boolean existeVigentePorProducto(String productoId) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        String sql = "SELECT 1 FROM comodatos WHERE producto_id = ? AND estado IN ('VIGENTE','VENCIDO') LIMIT 1";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
     public Comodato save(Comodato c) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null)
             throw new IllegalStateException("Comodatos no disponibles en modo offline/demo");
@@ -136,22 +172,34 @@ public class ComodatoRepository {
 
     public void concluir(String id, LocalDate fechaReal) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return;
-        String sql = "UPDATE comodatos SET estado = 'CONCLUIDO', fecha_devolucion_real = ?, updated_at = NOW() WHERE id = ?";
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "UPDATE comodatos AS c SET estado = 'CONCLUIDO', fecha_devolucion_real = ?, updated_at = NOW() "
+            + "WHERE c.id = ? AND c.estado IN ('VIGENTE','VENCIDO')"
+            + (scope != null ? " AND " + scope : "");
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(fechaReal != null ? fechaReal : LocalDate.now()));
             ps.setString(2, id);
-            ps.executeUpdate();
+            bindParams(ps, conn, scopeParams, 3);
+            if (ps.executeUpdate() == 0)
+                throw new SQLException("El comodato no existe, ya fue concluido/rescindido, o no tienes acceso a su área (id=" + id + ")");
         }
     }
 
     public void rescindir(String id) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return;
-        String sql = "UPDATE comodatos SET estado = 'RESCINDIDO', updated_at = NOW() WHERE id = ?";
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "UPDATE comodatos AS c SET estado = 'RESCINDIDO', updated_at = NOW() "
+            + "WHERE c.id = ? AND c.estado IN ('VIGENTE','VENCIDO')"
+            + (scope != null ? " AND " + scope : "");
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, id);
-            ps.executeUpdate();
+            bindParams(ps, conn, scopeParams, 2);
+            if (ps.executeUpdate() == 0)
+                throw new SQLException("El comodato no existe, ya fue concluido/rescindido, o no tienes acceso a su área (id=" + id + ")");
         }
     }
 
@@ -169,14 +217,7 @@ public class ComodatoRepository {
     }
 
     public String nextNumero() throws SQLException {
-        int year = LocalDate.now().getYear();
-        String sql = "SELECT COALESCE(MAX(CAST(NULLIF(REGEXP_REPLACE(numero, '^CDT-" + year + "-', ''), numero) AS INT)), 0) FROM comodatos WHERE numero LIKE 'CDT-" + year + "-%'";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            return String.format("CDT-%d-%04d", year, rs.getInt(1) + 1);
-        }
+        return folioRepo.next("CDT");
     }
 
     private Comodato mapRow(ResultSet rs) throws SQLException {

@@ -14,6 +14,8 @@ import java.util.UUID;
 
 public class PrestamoRepository {
 
+    private final FolioRepository folioRepo = new FolioRepository();
+
     /** A préstamo moves a bien FROM one área TO another, unlike Producto's
      *  single-area ownership — restricting visibility to only areaOrigen
      *  would hide it from the destination área's own staff (and vice versa),
@@ -30,10 +32,18 @@ public class PrestamoRepository {
     }
 
     private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params) throws SQLException {
+        bindParams(ps, conn, params, 1);
+    }
+
+    /** Same as {@link #bindParams(PreparedStatement, Connection, List)} but starting at an
+     *  arbitrary placeholder index — for statements that bind explicit columns first and
+     *  append the área scope condition's params afterward. */
+    private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params, int startIndex) throws SQLException {
         for (int i = 0; i < params.size(); i++) {
             Object p = params.get(i);
-            if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
-            else ps.setObject(i + 1, p);
+            int idx = startIndex + i;
+            if (p instanceof String[] arr) ps.setArray(idx, conn.createArrayOf("text", arr));
+            else ps.setObject(idx, p);
         }
     }
 
@@ -73,12 +83,29 @@ public class PrestamoRepository {
 
     public Prestamo findById(String id) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return null;
-        String sql = "SELECT * FROM prestamos WHERE id = ?";
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "SELECT * FROM prestamos WHERE id = ?" + (scope != null ? " AND " + scope : "");
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, id);
+            bindParams(ps, conn, scopeParams, 2);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? mapRow(rs) : null;
+            }
+        }
+    }
+
+    /** True when {@code productoId} already has an open préstamo (ACTIVO or VENCIDO) —
+     *  used to stop the same bien from being lent out to two áreas at once. */
+    public boolean existeActivoPorProducto(String productoId) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        String sql = "SELECT 1 FROM prestamos WHERE producto_id = ? AND estado IN ('ACTIVO','VENCIDO') LIMIT 1";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
             }
         }
     }
@@ -128,12 +155,18 @@ public class PrestamoRepository {
 
     public void devolver(String id, LocalDate fechaDevolucionReal) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return;
-        String sql = "UPDATE prestamos SET estado = 'DEVUELTO', fecha_devolucion_real = ? WHERE id = ?";
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "UPDATE prestamos SET estado = 'DEVUELTO', fecha_devolucion_real = ? "
+            + "WHERE id = ? AND estado IN ('ACTIVO','VENCIDO')"
+            + (scope != null ? " AND " + scope : "");
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(fechaDevolucionReal));
             ps.setString(2, id);
-            ps.executeUpdate();
+            bindParams(ps, conn, scopeParams, 3);
+            if (ps.executeUpdate() == 0)
+                throw new SQLException("El préstamo no existe, ya fue devuelto, o no tienes acceso a su área (id=" + id + ")");
         }
     }
 
@@ -217,14 +250,7 @@ public class PrestamoRepository {
     }
 
     public String nextNumero() throws SQLException {
-        int year = LocalDate.now().getYear();
-        String sql = "SELECT COUNT(*) FROM prestamos WHERE numero LIKE 'PRS-" + year + "-%'";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            return String.format("PRS-%d-%04d", year, rs.getInt(1) + 1);
-        }
+        return folioRepo.next("PRS");
     }
 
     private Prestamo mapRow(ResultSet rs) throws SQLException {

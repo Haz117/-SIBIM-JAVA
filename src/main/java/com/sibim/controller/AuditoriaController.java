@@ -3,7 +3,6 @@ package com.sibim.controller;
 import com.sibim.model.AuditLog;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.service.ReporteService;
-import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;

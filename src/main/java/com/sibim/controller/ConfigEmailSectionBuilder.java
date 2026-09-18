@@ -108,7 +108,6 @@ class ConfigEmailSectionBuilder {
         });
 
         btnProbarSMTP.setOnAction(ev -> {
-            javafx.scene.Scene scene = emailCard.getScene();
             btnProbarSMTP.setDisable(true);
             lblSmtpResult.setText("Enviando…");
             AppExecutor.submit(() -> {

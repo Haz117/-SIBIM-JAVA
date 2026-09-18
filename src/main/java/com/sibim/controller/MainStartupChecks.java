@@ -55,6 +55,28 @@ class MainStartupChecks {
         );
     }
 
+    /** Deletes leftover {@code sibim_*} export temp files from a previous session that
+     *  crashed or was killed before its shutdown hook ({@code File.deleteOnExit()}, see
+     *  ReporteService#tempFile) could run. Those PDFs/Excel files can hold patrimonial
+     *  data (bienes, precios, custodios) and would otherwise sit in the OS temp dir
+     *  indefinitely. Safe to always run: nothing in a NEW session holds a handle to a
+     *  PREVIOUS session's export — and on Windows, deleting a file some other still-open
+     *  process (e.g. a PDF viewer left open from last time) is still reading simply fails
+     *  silently (File#delete() returns false), it doesn't throw. */
+    void cleanupStaleTempFiles() {
+        AppExecutor.submit(() -> {
+            java.io.File tmpDir = new java.io.File(System.getProperty("java.io.tmpdir"));
+            java.io.File[] stale = tmpDir.listFiles((dir, name) -> name.startsWith("sibim_"));
+            if (stale == null) return;
+            int deleted = 0;
+            for (java.io.File f : stale) {
+                if (f.delete()) deleted++;
+            }
+            if (deleted > 0)
+                log.info("Limpieza de arranque: {} archivo(s) temporal(es) de sesiones anteriores eliminado(s)", deleted);
+        });
+    }
+
     void checkForUpdate(Scene scene) {
         AppExecutor.submit(() -> {
             com.sibim.util.UpdateChecker.UpdateInfo info = com.sibim.util.UpdateChecker.checkForUpdate();

@@ -8,7 +8,6 @@ import com.sibim.repository.ConteoRepository;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.LuminanceSource;
 import com.google.zxing.MultiFormatReader;
-import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteConteoService;
@@ -757,19 +756,21 @@ public final class ConteoFisicoDialog {
             fc.setTitle("Seleccionar imagen con QR o código de barras");
             fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter(
                 "Imágenes (*.png, *.jpg, *.bmp)", "*.png", "*.jpg", "*.jpeg", "*.bmp"));
-            java.io.File file = fc.showOpenDialog(scanDlg.getDialogPane().getScene().getWindow());
+            File file = fc.showOpenDialog(scanDlg.getDialogPane().getScene().getWindow());
             if (file == null) return;
-            try {
-                java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(file);
-                com.google.zxing.LuminanceSource source = bufferedImageToLuminance(img);
-                com.google.zxing.BinaryBitmap bitmap = new com.google.zxing.BinaryBitmap(
-                    new com.google.zxing.common.HybridBinarizer(source));
-                com.google.zxing.Result result = new com.google.zxing.MultiFormatReader().decode(bitmap);
-                codeField.setText(result.getText());
-            } catch (Exception e) {
-                com.sibim.util.NotificacionUtil.advertencia(
-                    scanDlg.getDialogPane().getScene(), "No se pudo decodificar la imagen");
-            }
+            // Decoding a phone-camera-sized photo (ImageIO.read + pixel-by-pixel luminance
+            // conversion + ZXing) is slow enough to freeze the dialog if run on the FX thread.
+            DialogUtil.runAsync(
+                () -> {
+                    BufferedImage img = ImageIO.read(file);
+                    LuminanceSource source = bufferedImageToLuminance(img);
+                    BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+                    return new MultiFormatReader().decode(bitmap).getText();
+                },
+                codeField::setText,
+                ex -> NotificacionUtil.advertencia(
+                    scanDlg.getDialogPane().getScene(), "No se pudo decodificar la imagen")
+            );
         });
 
         Button btnBuscar = new Button("Buscar");

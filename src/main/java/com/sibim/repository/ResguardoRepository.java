@@ -7,13 +7,14 @@ import com.sibim.session.SessionManager;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class ResguardoRepository {
+
+    private final FolioRepository folioRepo = new FolioRepository();
 
     /** Resguardos belong to one área (resguardanteArea), unlike Préstamos
      *  which cross two — mirrors ProductoRepository's single-column area
@@ -26,10 +27,15 @@ public class ResguardoRepository {
     }
 
     private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params) throws SQLException {
+        bindParams(ps, conn, params, 1);
+    }
+
+    private static void bindParams(PreparedStatement ps, Connection conn, List<Object> params, int startIndex) throws SQLException {
         for (int i = 0; i < params.size(); i++) {
             Object p = params.get(i);
-            if (p instanceof String[] arr) ps.setArray(i + 1, conn.createArrayOf("text", arr));
-            else ps.setObject(i + 1, p);
+            int idx = startIndex + i;
+            if (p instanceof String[] arr) ps.setArray(idx, conn.createArrayOf("text", arr));
+            else ps.setObject(idx, p);
         }
     }
 
@@ -55,10 +61,13 @@ public class ResguardoRepository {
 
     public Resguardo findById(String id) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return null;
-        String sql = "SELECT * FROM resguardos WHERE id = ?";
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "SELECT * FROM resguardos r WHERE r.id = ?" + (scope != null ? " AND " + scope : "");
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, id);
+            bindParams(ps, conn, scopeParams, 2);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     Resguardo r = mapRow(rs);
@@ -124,15 +133,17 @@ public class ResguardoRepository {
     public List<Resguardo> findByProductoId(String productoId) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
         List<Resguardo> list = new ArrayList<>();
-        String sql = """
-            SELECT DISTINCT r.* FROM resguardos r
-            JOIN resguardo_items i ON i.resguardo_id = r.id
-            WHERE i.producto_id = ?
-            ORDER BY r.created_at DESC
-            """;
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "SELECT DISTINCT r.* FROM resguardos r"
+            + " JOIN resguardo_items i ON i.resguardo_id = r.id"
+            + " WHERE i.producto_id = ?"
+            + (scope != null ? " AND " + scope : "")
+            + " ORDER BY r.created_at DESC";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, productoId);
+            bindParams(ps, conn, scopeParams, 2);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) list.add(mapRow(rs));
             }
@@ -141,14 +152,7 @@ public class ResguardoRepository {
     }
 
     public String nextNumero() throws SQLException {
-        int year = LocalDate.now().getYear();
-        String sql = "SELECT COUNT(*) FROM resguardos WHERE numero LIKE 'RSG-" + year + "-%'";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            return String.format("RSG-%d-%04d", year, rs.getInt(1) + 1);
-        }
+        return folioRepo.next("RSG");
     }
 
     private List<ResguardoItem> findItems(String resguardoId, Connection conn) throws SQLException {

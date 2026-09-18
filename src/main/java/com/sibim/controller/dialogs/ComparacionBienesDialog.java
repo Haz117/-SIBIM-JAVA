@@ -20,6 +20,9 @@ public final class ComparacionBienesDialog {
 
     private ComparacionBienesDialog() {}
 
+    // TableColumn<...,?>... varargs to addAll() triggers Java's inherent generic-array-creation
+    // warning — inescapable with this API, not a real risk here.
+    @SuppressWarnings("unchecked")
     public static void show(Producto a, Producto b, Scene owner) {
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.setTitle("Comparar Bienes");

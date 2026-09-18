@@ -778,6 +778,9 @@ public class OrganigramaController {
         dialog.showAndWait();
     }
 
+    // TableColumn<Resguardo,?>... varargs to addAll() triggers Java's inherent
+    // generic-array-creation warning — inescapable with this API, not a real risk here.
+    @SuppressWarnings("unchecked")
     private void showResguardosAreaDialog(String areaName, List<com.sibim.model.Resguardo> resguardos) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);

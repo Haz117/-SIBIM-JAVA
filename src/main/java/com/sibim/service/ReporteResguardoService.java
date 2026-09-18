@@ -24,7 +24,6 @@ import com.sibim.model.Usuario;
 import com.sibim.session.SessionManager;
 
 import java.io.File;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -216,7 +215,7 @@ public class ReporteResguardoService extends ReporteService {
         List<ResguardoItem> items = r.getItems();
         for (int i = 0; i < items.size(); i++) {
             ResguardoItem item = items.get(i);
-            DeviceRgb rowBg = (i % 2 == 1) ? ROW_ALT : ColorConstants.WHITE;
+            DeviceRgb rowBg = (i % 2 == 1) ? ROW_ALT : new DeviceRgb(255, 255, 255);
 
             Producto p = buscarProducto(extra, item.getProductoCodigo());
 

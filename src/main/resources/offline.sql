@@ -127,8 +127,11 @@ CREATE TABLE IF NOT EXISTS product_outbox (
     resguardante       TEXT,
     motivo_baja        TEXT,
     created_at         TEXT NOT NULL,
-    status             TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED | CONFLICT
+    status             TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED | CONFLICT | DISCARDED
     error              TEXT,
+    -- Count of failed sync attempts; SyncService discards the row instead of
+    -- retrying forever once this hits MAX_RETRY_ATTEMPTS (see isPermanentFailure).
+    retry_count        INTEGER NOT NULL DEFAULT 0,
     -- updated_at the product had on the server BEFORE this offline edit was made.
     -- SyncService compares it against the server's current updated_at at sync time:
     -- if the server was touched after this snapshot, another user edited it while
@@ -150,7 +153,8 @@ CREATE TABLE IF NOT EXISTS movement_outbox (
     usuario_nombre TEXT,
     created_at     TEXT NOT NULL,
     status         TEXT NOT NULL DEFAULT 'PENDING',
-    error          TEXT
+    error          TEXT,
+    retry_count    INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS category_outbox (
@@ -163,7 +167,8 @@ CREATE TABLE IF NOT EXISTS category_outbox (
     icono       TEXT,
     created_at  TEXT NOT NULL,
     status      TEXT NOT NULL DEFAULT 'PENDING',
-    error       TEXT
+    error       TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0
 );
 
 -- Conteo físico outbox — header row per session
@@ -176,7 +181,8 @@ CREATE TABLE IF NOT EXISTS conteo_outbox (
     total_discrepancias INTEGER NOT NULL DEFAULT 0,
     created_at          TEXT NOT NULL,
     status              TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED
-    error               TEXT
+    error               TEXT,
+    retry_count         INTEGER NOT NULL DEFAULT 0
 );
 
 -- One row per item reviewed during an offline conteo físico
@@ -205,7 +211,8 @@ CREATE TABLE IF NOT EXISTS audit_log_outbox (
     usuario_nombre  TEXT NOT NULL,
     created_at      TEXT NOT NULL,
     status          TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED
-    error           TEXT
+    error           TEXT,
+    retry_count     INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_offline_products_area     ON products(area);

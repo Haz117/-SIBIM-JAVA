@@ -1,5 +1,6 @@
 package com.sibim.service;
 
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ProductoMantenimientoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,12 +28,13 @@ import static org.mockito.Mockito.*;
 class MantenimientoServiceTest {
 
     @Mock ProductoMantenimientoRepository mockRepo;
+    @Mock AuditLogRepository mockAudit;
 
     private MantenimientoService service;
 
     @BeforeEach
     void setUp() {
-        service = new MantenimientoService(mockRepo);
+        service = new MantenimientoService(mockRepo, mockAudit);
     }
 
     // ── getAlertas() ─────────────────────────────────────────────────────────

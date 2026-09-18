@@ -57,6 +57,15 @@ public final class SyncService {
     static final String STATUS_CONFLICT  = "CONFLICT";
     static final String STATUS_DISCARDED = "DISCARDED";
 
+    /** A row that keeps failing for MAX_RETRY_ATTEMPTS sync attempts is discarded
+     *  instead of being requeued forever — otherwise a failure that never
+     *  qualifies as "permanent" under {@link #isPermanentFailure} (e.g. a
+     *  movimiento that no longer fits the server's current stock) would retry
+     *  on every connectivity tick indefinitely, and since countPending() counts
+     *  FAILED rows, the app would never be allowed back into modo online even
+     *  with the server fully reachable. */
+    private static final int MAX_RETRY_ATTEMPTS = 5;
+
     private static ScheduledExecutorService executor;
 
     private SyncService() {}
@@ -175,18 +184,24 @@ public final class SyncService {
             log.error("SyncService: fallo inesperado durante la sincronización", e);
             return;
         }
+        purgeSyncedRows();
 
         int pending = countPending();
-        // Only switch back to online mode if everything was resolved
-        // (no PENDING rows AND no unresolved CONFLICT rows).
-        if (pending == 0 && conflicts.isEmpty()) {
+        // Only switch back to online mode if everything was resolved (no PENDING/FAILED
+        // rows AND no unresolved CONFLICT rows). countConflictRows() — not just this
+        // pass's `conflicts` list — matters here: a conflict flagged on an earlier tick
+        // is already CONFLICT status by now, so it's invisible to syncProductos()'s
+        // "WHERE status = PENDING" query and would never show up in `conflicts` again;
+        // without this check we'd flip back online and abandon it unresolved.
+        boolean conflictsPending = !conflicts.isEmpty() || countConflictRows() > 0;
+        if (pending == 0 && !conflictsPending) {
             DatabaseConfig.setOfflineMode(false);
             // Next offline stint (if any) should re-read from SQLite instead
             // of replaying whatever was in memory from before this reconnect.
             OfflineStore.invalidateCache();
             log.info("SyncService: sincronización completa ({} cambio(s) aplicados). Volviendo a modo online.", synced.get());
-        } else if (!conflicts.isEmpty()) {
-            log.warn("SyncService: {} conflicto(s) requieren resolución del usuario.", conflicts.size());
+        } else if (conflictsPending) {
+            log.warn("SyncService: hay conflicto(s) sin resolver que requieren decisión del usuario.");
         } else {
             log.warn("SyncService: quedaron {} cambio(s) sin poder sincronizar — requieren revisión manual.", pending);
         }
@@ -230,7 +245,7 @@ public final class SyncService {
     // ─────────────────────────────── Categorías ───────────────────────────
 
     private record CategoryRow(int id, String operacion, String categoriaId, String nombre,
-                                String descripcion, String color, String icono) {}
+                                String descripcion, String color, String icono, int retryCount) {}
 
     static void syncCategorias(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<CategoryRow> rows = new ArrayList<>();
@@ -239,7 +254,8 @@ public final class SyncService {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 rows.add(new CategoryRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("categoria_id"),
-                    rs.getString("nombre"), rs.getString("descripcion"), rs.getString("color"), rs.getString("icono")));
+                    rs.getString("nombre"), rs.getString("descripcion"), rs.getString("color"), rs.getString("icono"),
+                    rs.getInt("retry_count")));
             }
         }
         CategoriaRepository repo = new CategoriaRepository();
@@ -262,7 +278,9 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar categoría {} ({})", r.categoriaId(), r.operacion(), ex);
-                markOutbox("category_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
+                markOutbox("category_outbox", r.id(),
+                    resolveFailureStatus(ex, r.retryCount(), "categoria", r.categoriaId(), r.nombre()),
+                    ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -277,7 +295,7 @@ public final class SyncService {
                                String numeroSerie, String marca, String modelo,
                                String ubicacion, String area,
                                String resguardante, String motivoBaja, String serverSnapshotAt,
-                               boolean etiquetado, String fotosUrls) {}
+                               boolean etiquetado, String fotosUrls, int retryCount) {}
 
     static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
             throws SQLException {
@@ -297,7 +315,7 @@ public final class SyncService {
                     rs.getString("ubicacion"), rs.getString("area"),
                     rs.getString("resguardante"), rs.getString("motivo_baja"),
                     rs.getString("server_snapshot_at"),
-                    rs.getInt("etiquetado") != 0, rs.getString("fotos_urls")));
+                    rs.getInt("etiquetado") != 0, rs.getString("fotos_urls"), rs.getInt("retry_count")));
             }
         }
         ProductoRepository repo = new ProductoRepository();
@@ -339,7 +357,9 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar producto {} ({})", r.productoId(), r.operacion(), ex);
-                markOutbox("product_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
+                markOutbox("product_outbox", r.id(),
+                    resolveFailureStatus(ex, r.retryCount(), "producto", r.productoId(), r.nombre()),
+                    ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -470,7 +490,7 @@ public final class SyncService {
 
     private record MovementRow(int id, String operacion, String movimientoId, String productoId, String tipo,
                                 int cantidad, String motivo, String referencia, String areaDestino,
-                                String usuarioId, String usuarioNombre, String estado) {}
+                                String usuarioId, String usuarioNombre, String estado, int retryCount) {}
 
     static void syncMovimientos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<MovementRow> rows = new ArrayList<>();
@@ -481,7 +501,7 @@ public final class SyncService {
                 rows.add(new MovementRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("movimiento_id"),
                     rs.getString("producto_id"), rs.getString("tipo"), rs.getInt("cantidad"), rs.getString("motivo"),
                     rs.getString("referencia"), rs.getString("area_destino"), rs.getString("usuario_id"),
-                    rs.getString("usuario_nombre"), rs.getString("estado")));
+                    rs.getString("usuario_nombre"), rs.getString("estado"), rs.getInt("retry_count")));
             }
         }
         MovimientoRepository repo = new MovimientoRepository();
@@ -519,7 +539,9 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar movimiento {} ({})", r.movimientoId(), r.operacion(), ex);
-                markOutbox("movement_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
+                markOutbox("movement_outbox", r.id(),
+                    resolveFailureStatus(ex, r.retryCount(), "movimiento", r.movimientoId(), r.productoId()),
+                    ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -528,7 +550,7 @@ public final class SyncService {
     // ─────────────────────────────── Conteos ───────────────────────────────
 
     private record ConteoRow(int id, String conteoId, String usuarioId, String usuarioNombre,
-                              int totalContados, int totalDiscrepancias, String createdAt) {}
+                              int totalContados, int totalDiscrepancias, String createdAt, int retryCount) {}
 
     private record ConteoItemRow(String itemId, String productoId, String productoNombre,
                                   String productoCodigo, String area, int stockSistema, int stockContado,
@@ -542,7 +564,7 @@ public final class SyncService {
             while (rs.next()) {
                 rows.add(new ConteoRow(rs.getInt("id"), rs.getString("conteo_id"), rs.getString("usuario_id"),
                     rs.getString("usuario_nombre"), rs.getInt("total_contados"), rs.getInt("total_discrepancias"),
-                    rs.getString("created_at")));
+                    rs.getString("created_at"), rs.getInt("retry_count")));
             }
         }
         ConteoRepository repo = new ConteoRepository();
@@ -578,7 +600,9 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar conteo {}", r.conteoId(), ex);
-                markOutbox("conteo_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
+                markOutbox("conteo_outbox", r.id(),
+                    resolveFailureStatus(ex, r.retryCount(), "conteo", r.conteoId(), r.usuarioNombre()),
+                    ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -607,7 +631,7 @@ public final class SyncService {
 
     private record AuditRow(int id, String auditId, String entidad, String entidadId, String entidadNombre,
                              String accion, String detalle, String usuarioId, String usuarioNombre,
-                             String createdAt) {}
+                             String createdAt, int retryCount) {}
 
     static void syncAuditLog(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<AuditRow> rows = new ArrayList<>();
@@ -618,7 +642,7 @@ public final class SyncService {
                 rows.add(new AuditRow(rs.getInt("id"), rs.getString("audit_id"), rs.getString("entidad"),
                     rs.getString("entidad_id"), rs.getString("entidad_nombre"), rs.getString("accion"),
                     rs.getString("detalle"), rs.getString("usuario_id"), rs.getString("usuario_nombre"),
-                    rs.getString("created_at")));
+                    rs.getString("created_at"), rs.getInt("retry_count")));
             }
         }
         AuditLogRepository repo = new AuditLogRepository();
@@ -639,7 +663,9 @@ public final class SyncService {
                 synced.incrementAndGet();
             } catch (Exception ex) {
                 log.error("SyncService: no se pudo sincronizar audit entry {}", r.auditId(), ex);
-                markOutbox("audit_log_outbox", r.id(), isPermanentFailure(ex) ? STATUS_DISCARDED : STATUS_FAILED, ex.getMessage());
+                markOutbox("audit_log_outbox", r.id(),
+                    resolveFailureStatus(ex, r.retryCount(), "audit_log", r.auditId(), r.entidadNombre()),
+                    ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -661,6 +687,26 @@ public final class SyncService {
             || msg.contains("violates foreign key") || msg.contains("duplicate key");
     }
 
+    /** Decides whether a failed row should be retried again (FAILED, requeued on the
+     *  next tick) or given up on (DISCARDED). Permanent failures discard immediately;
+     *  anything else discards once it has exhausted MAX_RETRY_ATTEMPTS — and, only in
+     *  that second case, leaves an audit trail so the change isn't silently dropped
+     *  (a permanent failure already has its own descriptive {@code error} column). */
+    private static String resolveFailureStatus(Exception ex, int retryCountBeforeThisFailure,
+                                                String entidad, String entidadId, String entidadNombre) {
+        if (isPermanentFailure(ex)) return STATUS_DISCARDED;
+        int attempts = retryCountBeforeThisFailure + 1;
+        if (attempts >= MAX_RETRY_ATTEMPTS) {
+            log.error("SyncService: {} {} descartado tras {} intento(s) fallidos: {}",
+                entidad, entidadId, attempts, ex.getMessage());
+            writeAuditEntry(entidad, entidadId, entidadNombre, "sync_descartado",
+                "Se agotaron " + attempts + " intento(s) de sincronización — requiere revisión manual: "
+                    + ex.getMessage());
+            return STATUS_DISCARDED;
+        }
+        return STATUS_FAILED;
+    }
+
     private static void writeAuditEntry(String entidad, String entidadId, String entidadNombre,
                                          String accion, String detalle) {
         try {
@@ -680,7 +726,9 @@ public final class SyncService {
     }
 
     private static void markOutbox(String table, int rowId, String status, String error) {
-        String sql = "UPDATE " + table + " SET status = ?, error = ? WHERE id = ?";
+        String sql = STATUS_FAILED.equals(status)
+            ? "UPDATE " + table + " SET status = ?, error = ?, retry_count = retry_count + 1 WHERE id = ?"
+            : "UPDATE " + table + " SET status = ?, error = ? WHERE id = ?";
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(sql)) {
             ps.setString(1, status);
             ps.setString(2, error);
@@ -720,6 +768,33 @@ public final class SyncService {
             } catch (SQLException e) {
                 log.error("SyncService: no se pudieron reencolar fallos en {}", table, e);
             }
+        }
+    }
+
+    /** Deletes SYNCED rows so the outbox tables don't grow without bound over the app's
+     *  lifetime — once a row is SYNCED its change already landed in Postgres, so the local
+     *  copy has no further use (unlike FAILED/DISCARDED/CONFLICT, which stay around for
+     *  requeueFailedChanges(), manual review, or resolveConflicto() respectively). */
+    private static void purgeSyncedRows() {
+        for (String table : new String[]{
+                "category_outbox", "product_outbox", "movement_outbox",
+                "conteo_outbox", "audit_log_outbox"}) {
+            try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                    "DELETE FROM " + table + " WHERE status = ?")) {
+                ps.setString(1, STATUS_SYNCED);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                log.error("SyncService: no se pudo purgar filas SYNCED en {}", table, e);
+            }
+        }
+        // conteo_items_outbox has no status column of its own — its rows are detail lines
+        // for a conteo_outbox header, so once that header is gone (just purged above) the
+        // matching items are orphaned dead weight.
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                "DELETE FROM conteo_items_outbox WHERE conteo_id NOT IN (SELECT conteo_id FROM conteo_outbox)")) {
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            log.error("SyncService: no se pudo purgar conteo_items_outbox huérfanos", e);
         }
     }
 

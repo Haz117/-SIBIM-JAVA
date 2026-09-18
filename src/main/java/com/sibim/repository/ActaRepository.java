@@ -6,13 +6,14 @@ import com.sibim.session.SessionManager;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class ActaRepository {
+
+    private final FolioRepository folioRepo = new FolioRepository();
 
     public List<ActaEntregaRecepcion> findAll() throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();
@@ -71,14 +72,7 @@ public class ActaRepository {
     }
 
     public String nextNumero() throws SQLException {
-        int year = LocalDate.now().getYear();
-        String sql = "SELECT COUNT(*) FROM actas_entrega_recepcion WHERE numero LIKE 'AER-" + year + "-%'";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            return String.format("AER-%d-%04d", year, rs.getInt(1) + 1);
-        }
+        return folioRepo.next("AER");
     }
 
     private ActaEntregaRecepcion mapRow(ResultSet rs) throws SQLException {

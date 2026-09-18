@@ -160,10 +160,22 @@ public class ProductoService {
             com.sibim.model.Usuario u = SessionManager.getCurrentUser();
             String userId   = u != null ? u.getId()     : null;
             String userName = u != null ? u.getNombre() : "Sistema";
-            if (priceChanged(prevCompra, p.getPrecioCompra()))
+            // PriceHistoryRepository keeps the per-bien detail (shown in ProductoDetailDialog),
+            // but the central Auditoría screen only reads AuditLogRepository, and the generic
+            // "actualizar" entry above doesn't say a price moved — without this, "quién cambió
+            // el precio de X" is unanswerable from that screen.
+            if (priceChanged(prevCompra, p.getPrecioCompra())) {
                 priceHistoryRepo.save(saved.getId(), "precio_compra", prevCompra, p.getPrecioCompra(), userId, userName);
-            if (priceChanged(prevVenta, p.getPrecioVenta()))
+                auditRepo.log("producto", saved.getId(), saved.getNombre(), "cambio_precio",
+                    "Precio de compra: " + com.sibim.util.FormatUtils.formatCurrency(prevCompra)
+                        + " → " + com.sibim.util.FormatUtils.formatCurrency(p.getPrecioCompra()));
+            }
+            if (priceChanged(prevVenta, p.getPrecioVenta())) {
                 priceHistoryRepo.save(saved.getId(), "precio_venta", prevVenta, p.getPrecioVenta(), userId, userName);
+                auditRepo.log("producto", saved.getId(), saved.getNombre(), "cambio_precio",
+                    "Precio de venta: " + com.sibim.util.FormatUtils.formatCurrency(prevVenta)
+                        + " → " + com.sibim.util.FormatUtils.formatCurrency(p.getPrecioVenta()));
+            }
         }
 
         return saved;

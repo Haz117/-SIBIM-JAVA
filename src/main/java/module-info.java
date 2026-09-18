@@ -9,7 +9,9 @@ module com.sibim {
 
     requires java.sql;
     requires java.net.http;
-    requires java.prefs;
+    // transitive: DialogUtil's public API (persistTableSort, captureColumnReset,
+    // persistColumnWidths) takes java.util.prefs.Preferences as a parameter type.
+    requires transitive java.prefs;
     requires com.zaxxer.hikari;
     requires org.postgresql.jdbc;
     requires org.xerial.sqlitejdbc;
@@ -23,7 +25,8 @@ module com.sibim {
     requires io;
     requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.datatype.jsr310;
-    requires org.slf4j;
+    // transitive: DialogUtil.loadAsync's public API takes org.slf4j.Logger as a parameter.
+    requires transitive org.slf4j;
     requires ch.qos.logback.classic;
     requires io.github.cdimascio.dotenv.java;
     requires org.flywaydb.core;
@@ -45,6 +48,11 @@ module com.sibim {
     exports com.sibim.model;
     exports com.sibim.model.enums;
     exports com.sibim.service;
+    // Controllers already construct repositories directly across the module
+    // (e.g. `new ProductoRepository()`), and EmailService's public constructor
+    // takes ConfiguracionRepository — without this export, that's a "type not
+    // exported" warning even though everything involved lives in this one module.
+    exports com.sibim.repository;
     exports com.sibim.session;
     exports com.sibim.config;
     exports com.sibim.util;

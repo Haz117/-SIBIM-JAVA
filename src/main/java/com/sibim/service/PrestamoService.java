@@ -80,6 +80,8 @@ public class PrestamoService {
 
         Producto producto = productoRepo.findById(productoId)
             .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
+        if (repo.existeActivoPorProducto(productoId))
+            throw new IllegalArgumentException("Este bien ya tiene un préstamo activo — registra la devolución primero");
 
         Prestamo p = new Prestamo();
         p.setProductoId(productoId);

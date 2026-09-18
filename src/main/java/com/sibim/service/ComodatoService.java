@@ -81,6 +81,8 @@ public class ComodatoService {
 
         Producto producto = productoRepo.findById(productoId)
             .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
+        if (repo.existeVigentePorProducto(productoId))
+            throw new IllegalArgumentException("Este bien ya tiene un comodato vigente — concluye o rescinde el anterior primero");
 
         Comodato c = new Comodato();
         c.setProductoId(productoId);
@@ -105,15 +107,19 @@ public class ComodatoService {
 
     public void concluir(String id, LocalDate fechaDevolucionReal) throws SQLException {
         if (fechaDevolucionReal == null) fechaDevolucionReal = LocalDate.now();
+        Comodato c = repo.findById(id);
         repo.concluir(id, fechaDevolucionReal);
-        auditRepo.log("comodato", id, null, "concluir",
-            "Comodato concluido — devolución: " + fechaDevolucionReal.format(FMT));
+        if (c != null)
+            auditRepo.log("comodato", id, c.getProductoNombre(), "concluir",
+                "Comodato " + c.getNumero() + " concluido — devolución: " + fechaDevolucionReal.format(FMT));
     }
 
     public void rescindir(String id, String motivo) throws SQLException {
+        Comodato c = repo.findById(id);
         repo.rescindir(id);
-        auditRepo.log("comodato", id, null, "rescindir",
-            "Comodato rescindido" + (motivo != null && !motivo.isBlank() ? " · " + motivo : ""));
+        if (c != null)
+            auditRepo.log("comodato", id, c.getProductoNombre(), "rescindir",
+                "Comodato " + c.getNumero() + " rescindido" + (motivo != null && !motivo.isBlank() ? " · " + motivo : ""));
     }
 
     public File exportarPdf(Comodato c) throws Exception {
