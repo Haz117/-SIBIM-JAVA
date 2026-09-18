@@ -20,7 +20,7 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24"
                            visible="false" managed="false"/>
-        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recargar distribución de bienes por área (F5)"/></tooltip>

@@ -112,7 +112,7 @@
                     <Region prefHeight="4"/>
                     <Label text="OPERACIONES" styleClass="nav-section-label"/>
 
-                    <Button fx:id="btnMovimientos" text="Movimientos" onAction="#onMovimientos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnMovimientos" text="Movimientos" onAction="#onMovimientos" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Historial de movimientos  (Ctrl+5)"/></tooltip>
                     </Button>
@@ -120,7 +120,7 @@
                     <!-- Alertas con badge -->
                     <StackPane maxWidth="Infinity" alignment="CENTER_RIGHT">
                         <Button fx:id="btnAlertas" text="Alertas" onAction="#onAlertas"
-                                styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER"
+                                styleClass="nav-btn, nav-ops" maxWidth="Infinity" StackPane.alignment="CENTER"
                                 contentDisplay="LEFT" graphicTextGap="10">
                             <graphic><FontIcon iconLiteral="mdi2b-bell-alert" styleClass="nav-icon"/></graphic>
                             <tooltip><Tooltip text="Alertas de inventario  (Ctrl+6)"/></tooltip>
@@ -131,47 +131,47 @@
                                StackPane.alignment="CENTER_RIGHT"/>
                     </StackPane>
 
-                    <Button fx:id="btnReportes" text="Reportes" onAction="#onReportes" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnReportes" text="Reportes" onAction="#onReportes" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2f-file-chart" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
                     </Button>
-                    <Button fx:id="btnDepreciacion" text="Depreciación" onAction="#onDepreciacion" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnDepreciacion" text="Depreciación" onAction="#onDepreciacion" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2c-chart-line" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Depreciación de activos  (Ctrl+8)"/></tooltip>
                     </Button>
-                    <Button fx:id="btnConteoFisico" text="Conteo Físico" onAction="#onConteoFisico" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnConteoFisico" text="Conteo Físico" onAction="#onConteoFisico" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2c-clipboard-search-outline" styleClass="nav-icon"/></graphic>
-                        <tooltip><Tooltip text="Tomar conteo físico del inventario"/></tooltip>
+                        <tooltip><Tooltip text="Tomar conteo físico del inventario  (Ctrl+Alt+C)"/></tooltip>
                     </Button>
                     <Region prefHeight="4"/>
                     <Separator styleClass="sidebar-divider"/>
                     <Region prefHeight="4"/>
                     <Label text="CONTROL PATRIMONIAL" styleClass="nav-section-label"/>
 
-                    <Button fx:id="btnResguardos" text="Resguardos" onAction="#onResguardos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnResguardos" text="Resguardos" onAction="#onResguardos" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="nav-icon"/></graphic>
-                        <tooltip><Tooltip text="Resguardos de bienes por servidor público"/></tooltip>
+                        <tooltip><Tooltip text="Resguardos de bienes por servidor público  (Ctrl+Alt+G)"/></tooltip>
                     </Button>
                     <!-- Préstamos con badge de vencidos -->
                     <StackPane maxWidth="Infinity" alignment="CENTER_RIGHT">
                         <Button fx:id="btnPrestamos" text="Préstamos" onAction="#onPrestamos"
-                                styleClass="nav-btn" maxWidth="Infinity" StackPane.alignment="CENTER"
+                                styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" StackPane.alignment="CENTER"
                                 contentDisplay="LEFT" graphicTextGap="10">
                             <graphic><FontIcon iconLiteral="mdi2c-cube-send" styleClass="nav-icon"/></graphic>
-                            <tooltip><Tooltip text="Préstamos temporales entre áreas"/></tooltip>
+                            <tooltip><Tooltip text="Préstamos temporales entre áreas  (Ctrl+Alt+P)"/></tooltip>
                         </Button>
                         <Label fx:id="loanBadge" text="0"
                                styleClass="alert-nav-badge"
                                visible="false" managed="false" mouseTransparent="true"
                                StackPane.alignment="CENTER_RIGHT"/>
                     </StackPane>
-                    <Button fx:id="btnComodatos" text="Comodatos" onAction="#onComodatos" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnComodatos" text="Comodatos" onAction="#onComodatos" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Comodatos — préstamos formales a entidades externas  (Ctrl+Alt+O)"/></tooltip>
                     </Button>
-                    <Button fx:id="btnActas" text="Actas E/R" onAction="#onActas" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnActas" text="Actas E/R" onAction="#onActas" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="nav-icon"/></graphic>
-                        <tooltip><Tooltip text="Actas de entrega-recepción (cambio de administración)"/></tooltip>
+                        <tooltip><Tooltip text="Actas de entrega-recepción  (Ctrl+Alt+A)"/></tooltip>
                     </Button>
 
                     <Region prefHeight="4"/>
@@ -179,11 +179,11 @@
                     <Region prefHeight="4"/>
                     <Label text="SISTEMA" styleClass="nav-section-label"/>
 
-                    <Button fx:id="btnConfiguracion" text="Configuración" onAction="#onConfiguracion" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnConfiguracion" text="Configuración" onAction="#onConfiguracion" styleClass="nav-btn, nav-sys" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2c-cog-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Configuración  (Ctrl+9)"/></tooltip>
                     </Button>
-                    <Button fx:id="btnAuditoria" text="Auditoría" onAction="#onAuditoria" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                    <Button fx:id="btnAuditoria" text="Auditoría" onAction="#onAuditoria" styleClass="nav-btn, nav-sys" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                         <graphic><FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="nav-icon"/></graphic>
                         <tooltip><Tooltip text="Auditoría del sistema  (Ctrl+0)"/></tooltip>
                     </Button>
@@ -212,7 +212,7 @@
     <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="16">
         <padding><Insets top="5" right="16" bottom="5" left="16"/></padding>
         <HBox fx:id="statusDbPill" alignment="CENTER_LEFT" spacing="7" styleClass="status-db-pill">
-            <FontIcon fx:id="statusDotIcon" iconLiteral="mdi2c-check-circle" iconSize="14" styleClass="status-dot-icon-ok"/>
+            <FontIcon fx:id="statusDotIcon" iconLiteral="mdi2d-database-check-outline" iconSize="14" styleClass="status-dot-icon-ok"/>
             <Label fx:id="statusDbLabel" text="Conectado" styleClass="status-text status-db-label"/>
             <Label fx:id="statusDbHelpBadge" text="?" styleClass="status-db-help-badge">
                 <tooltip><Tooltip fx:id="statusDbTooltip" text="Base de datos conectada (Supabase). Los cambios se guardan en tiempo real." wrapText="true" maxWidth="230"/></tooltip>

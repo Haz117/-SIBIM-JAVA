@@ -49,7 +49,7 @@
             <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar fichas técnicas de todos los bienes visibles en la tabla como un solo PDF — filtra primero para acotar el lote (máx. 100)" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
-        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recalcular depreciación"/></tooltip>

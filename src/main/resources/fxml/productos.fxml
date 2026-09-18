@@ -35,7 +35,7 @@
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Gestionar documentos PDF de resguardo patrimonial por área"/></tooltip>
         </Button>
-        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-secondary"
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar lista (F5)"/></tooltip>

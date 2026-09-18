@@ -285,6 +285,11 @@
                 <graphic><FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Ver el historial de tomas de inventario físico"/></tooltip>
             </Button>
+            <Button text="Errores offline" onAction="#onVerErroresOutbox" styleClass="btn-ghost"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Ver cambios offline que no pudieron sincronizarse con el servidor"/></tooltip>
+            </Button>
         </HBox>
     </VBox>
 
