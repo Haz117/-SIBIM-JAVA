@@ -91,7 +91,7 @@
 
         <!-- Username -->
         <VBox fx:id="usernameBox" spacing="7">
-            <Label text="Usuario" styleClass="form-label" labelFor="#usernameField"/>
+            <Label text="Usuario" styleClass="form-label"/>
             <TextField fx:id="usernameField" promptText="nombre.apellido"
                        onAction="#handleLogin"
                        styleClass="form-input" maxWidth="Infinity"/>
@@ -101,7 +101,7 @@
 
         <!-- Password -->
         <VBox fx:id="passwordBox" spacing="7">
-            <Label text="Contraseña" styleClass="form-label" labelFor="#passwordField"/>
+            <Label text="Contraseña" styleClass="form-label"/>
             <StackPane>
                 <PasswordField fx:id="passwordField" promptText="••••••••"
                                onAction="#handleLogin"

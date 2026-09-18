@@ -112,7 +112,7 @@ public class ReporteAuditoriaService extends ReporteService {
             .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado()))
             .toList();
 
-        com.itextpdf.kernel.colors.DeviceRgb colorPurple  = new com.itextpdf.kernel.colors.DeviceRgb(76, 29, 149);
+        com.itextpdf.kernel.colors.DeviceRgb colorPurple  = new com.itextpdf.kernel.colors.DeviceRgb(162, 35, 45);
         com.itextpdf.kernel.colors.DeviceRgb colorMuted   = new com.itextpdf.kernel.colors.DeviceRgb(100, 116, 139);
         com.itextpdf.kernel.colors.DeviceRgb colorAmber   = new com.itextpdf.kernel.colors.DeviceRgb(146, 64, 14);
         com.itextpdf.kernel.colors.DeviceRgb colorSubhead = new com.itextpdf.kernel.colors.DeviceRgb(241, 245, 249);
@@ -144,12 +144,12 @@ public class ReporteAuditoriaService extends ReporteService {
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                 .add(new com.itextpdf.layout.element.Paragraph(orgName)
                     .setFont(regular).setFontSize(9)
-                    .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(200, 210, 240))
+                    .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(240, 195, 195))
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                 .add(new com.itextpdf.layout.element.Paragraph(
                     "Generado: " + java.time.LocalDate.now().format(fmtD) + "     Folio: " + folio)
                     .setFont(regular).setFontSize(8)
-                    .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(180, 190, 220))
+                    .setFontColor(new com.itextpdf.kernel.colors.DeviceRgb(220, 165, 168))
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                 .setBackgroundColor(colorPurple).setPadding(14).setBorder(null));
             doc.add(headerTbl);

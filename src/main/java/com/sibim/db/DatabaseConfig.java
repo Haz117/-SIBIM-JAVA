@@ -77,6 +77,10 @@ public final class DatabaseConfig {
         // PostgreSQL JDBC driver properties (pgjdbc)
         config.addDataSourceProperty("prepareThreshold", "3");
         config.addDataSourceProperty("preparedStatementCacheQueries", "25");
+        // connectTimeout: TCP connect itself (seconds). Without this, a dropped-packet
+        // scenario (Supabase unreachable) blocks for the OS default (~2 min) regardless
+        // of HikariCP's own initializationFailTimeout.
+        config.addDataSourceProperty("connectTimeout", "8");
         config.addDataSourceProperty("socketTimeout", "30");
 
         // Remote connections default to "require"; local connections to "prefer".

@@ -641,10 +641,11 @@ public final class DialogUtil {
 
     // ── Export result dialog ─────────────────────────────────────────────
 
-    /** Shows a "file generated" dialog with Abrir/Carpeta/Copiar ruta/Imprimir
+    /** Shows a "file generated" dialog with Abrir/Guardar como.../Carpeta/Copiar ruta/Imprimir
      *  actions for a just-exported report file. Shared by every screen that
      *  exports a PDF/Excel/CSV (Reportes, Depreciación) so this ~80-line
-     *  dialog isn't duplicated per controller. */
+     *  dialog isn't duplicated per controller. For PDFs the file is auto-opened
+     *  in the system viewer and "Guardar como..." becomes the primary action. */
     public static void showExportResultDialog(javafx.scene.Scene scene, java.io.File file) {
         Dialog<ButtonType> dialog = new Dialog<>();
         applyOwner(dialog);
@@ -657,11 +658,28 @@ public final class DialogUtil {
             return;
         }
 
-        HBox header = gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
-            "El archivo fue exportado exitosamente.", AppColors.SUCCESS_D, AppColors.SUCCESS_DD);
-
         String name  = file.getName();
         String ext   = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toUpperCase() : "";
+
+        // Auto-open PDFs as preview before showing the dialog
+        if ("PDF".equals(ext)) {
+            try {
+                if (java.awt.Desktop.isDesktopSupported()
+                        && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
+                    java.awt.Desktop.getDesktop().open(file);
+            } catch (Exception ignored) {}
+        }
+
+        HBox header;
+        if ("PDF".equals(ext)) {
+            header = gradientHeader("mdi2c-check-circle-outline", "Vista previa abierta",
+                "El PDF se abrió en tu visor predeterminado. Guárdalo o imprímelo desde aquí.",
+                AppColors.SUCCESS_D, AppColors.SUCCESS_DD);
+        } else {
+            header = gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
+                "El archivo fue exportado exitosamente.", AppColors.SUCCESS_D, AppColors.SUCCESS_DD);
+        }
+
         long   bytes = file.length();
         String size  = bytes < 1024 ? bytes + " B"
             : bytes < 1024 * 1024 ? (bytes / 1024) + " KB"
@@ -682,21 +700,33 @@ public final class DialogUtil {
         HBox fileCard = new HBox(14, iconLbl, info);
         fileCard.setAlignment(Pos.CENTER_LEFT);
         fileCard.setPadding(new Insets(14, 18, 14, 18));
-        fileCard.getStyleClass().add("dlg-detail-header");  
+        fileCard.getStyleClass().add("dlg-detail-header");
 
         Button btnAbrir   = new Button("Abrir");
         Button btnCarpeta = new Button("Carpeta");
         Button btnCopiar  = new Button("Copiar ruta");
         Button btnImpr    = new Button("Imprimir");
+        Button btnGuardar = new Button("Guardar como…");
         btnAbrir.setGraphic(new FontIcon("mdi2f-folder-open-outline"));
         btnCarpeta.setGraphic(new FontIcon("mdi2f-folder-outline"));
         btnCopiar.setGraphic(new FontIcon("mdi2c-content-copy"));
         btnImpr.setGraphic(new FontIcon("mdi2p-printer"));
+        btnGuardar.setGraphic(new FontIcon("mdi2c-content-save-outline"));
         btnAbrir.setContentDisplay(ContentDisplay.LEFT);
         btnCarpeta.setContentDisplay(ContentDisplay.LEFT);
         btnCopiar.setContentDisplay(ContentDisplay.LEFT);
         btnImpr.setContentDisplay(ContentDisplay.LEFT);
-        btnAbrir.getStyleClass().add("btn-primary");
+        btnGuardar.setContentDisplay(ContentDisplay.LEFT);
+
+        // For PDFs: "Guardar como..." is primary, "Abrir" is secondary
+        // For non-PDFs: "Abrir" is primary, "Guardar como..." is secondary
+        if ("PDF".equals(ext)) {
+            btnGuardar.getStyleClass().add("btn-primary");
+            btnAbrir.getStyleClass().add("btn-secondary");
+        } else {
+            btnAbrir.getStyleClass().add("btn-primary");
+            btnGuardar.getStyleClass().add("btn-secondary");
+        }
         btnCarpeta.getStyleClass().add("btn-secondary");
         btnCopiar.getStyleClass().add("btn-secondary");
         btnImpr.getStyleClass().add("btn-secondary");
@@ -744,8 +774,30 @@ public final class DialogUtil {
                     NotificacionUtil.advertencia(scene, "No se puede abrir el archivo en este entorno");
             } catch (Exception ex) { NotificacionUtil.error(scene, "No se pudo abrir el archivo para imprimir"); }
         });
+        btnGuardar.setOnAction(e -> {
+            javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
+            fc.setTitle("Guardar " + ext + " como…");
+            fc.setInitialFileName(name);
+            String filterDesc = "PDF".equals(ext) ? "Archivo PDF" : "XLSX".equals(ext) ? "Libro de Excel" : "Archivo CSV";
+            fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter(filterDesc, "*." + ext.toLowerCase()));
+            javafx.stage.Window w = dialog.getDialogPane().getScene() != null ? dialog.getDialogPane().getScene().getWindow() : null;
+            java.io.File dest = fc.showSaveDialog(w);
+            if (dest != null) {
+                try {
+                    java.nio.file.Files.copy(file.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    NotificacionUtil.info(scene, "Archivo guardado: " + dest.getName());
+                } catch (Exception ex) {
+                    NotificacionUtil.error(scene, "No se pudo guardar el archivo");
+                }
+            }
+        });
 
-        HBox actions = new HBox(8, btnAbrir, btnImpr, btnCarpeta, btnCopiar);
+        HBox actions;
+        if ("PDF".equals(ext)) {
+            actions = new HBox(8, btnGuardar, btnImpr, btnAbrir, btnCarpeta, btnCopiar);
+        } else {
+            actions = new HBox(8, btnAbrir, btnGuardar, btnCarpeta, btnCopiar);
+        }
         actions.setPadding(new Insets(10, 18, 8, 18));
         actions.setAlignment(Pos.CENTER_LEFT);
 

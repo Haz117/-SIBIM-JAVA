@@ -23,6 +23,7 @@ import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.util.FormatUtils;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
@@ -79,7 +80,9 @@ public class ReporteService {
         return null;
     }
 
-    protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(76, 29, 149); // purple-900
+    protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(162, 35, 45); // guinda Pantone 1805 C
+    protected static final DeviceRgb ROW_ALT_BG  = new DeviceRgb(252, 240, 241); // guinda claro tint for alternating rows
+    protected static final DeviceRgb BORDER_LIGHT = new DeviceRgb(226, 228, 233); // light gray border
     protected static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int MAX_EXPORT_ROWS = 50_000;
 
@@ -429,14 +432,16 @@ public class ReporteService {
             String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Stock", "Valor", "Estado"};
             float[] widths = {3f, 1.5f, 1.5f, 2f, 1f, 1.5f, 1.2f};
             Table table = createPdfTable(headers, widths);
+            int idx = 0;
             for (Producto p : productos) {
-                table.addCell(cell(p.getNombre()));
-                table.addCell(cell(p.getCodigo()));
-                table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
-                table.addCell(cell(p.getArea()));
-                table.addCell(cell(String.valueOf(p.getStockActual())));
-                table.addCell(cell(FormatUtils.formatCurrency(p.getValorTotal())));
-                table.addCell(cell(p.getEstado().getEtiqueta()));
+                boolean alt = (idx++ % 2) == 1;
+                table.addCell(alt ? cellAlt(p.getNombre()) : cell(p.getNombre()));
+                table.addCell(alt ? cellAlt(p.getCodigo()) : cell(p.getCodigo()));
+                table.addCell(alt ? cellAlt(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "") : cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
+                table.addCell(alt ? cellAlt(p.getArea()) : cell(p.getArea()));
+                table.addCell(alt ? cellAlt(String.valueOf(p.getStockActual())) : cell(String.valueOf(p.getStockActual())));
+                table.addCell(alt ? cellAlt(FormatUtils.formatCurrency(p.getValorTotal())) : cell(FormatUtils.formatCurrency(p.getValorTotal())));
+                table.addCell(alt ? cellAlt(p.getEstado().getEtiqueta()) : cell(p.getEstado().getEtiqueta()));
             }
             doc.add(table);
             addFirmasBlock(doc,
@@ -459,14 +464,16 @@ public class ReporteService {
             String[] headers = {"Producto", "Tipo", "Cantidad", "Ant.", "Nuevo", "Usuario", "Fecha"};
             float[] widths = {3f, 1.5f, 1f, 1f, 1f, 2f, 2f};
             Table table = createPdfTable(headers, widths);
+            int idx = 0;
             for (Movimiento m : movimientos) {
-                table.addCell(cell(m.getProductoNombre()));
-                table.addCell(cell(m.getTipo().getEtiqueta()));
-                table.addCell(cell(String.valueOf(m.getCantidad())));
-                table.addCell(cell(String.valueOf(m.getStockAnterior())));
-                table.addCell(cell(String.valueOf(m.getStockNuevo())));
-                table.addCell(cell(m.getUsuarioNombre()));
-                table.addCell(cell(FormatUtils.formatDateTime(m.getCreadoEn())));
+                boolean alt = (idx++ % 2) == 1;
+                table.addCell(alt ? cellAlt(m.getProductoNombre()) : cell(m.getProductoNombre()));
+                table.addCell(alt ? cellAlt(m.getTipo().getEtiqueta()) : cell(m.getTipo().getEtiqueta()));
+                table.addCell(alt ? cellAlt(String.valueOf(m.getCantidad())) : cell(String.valueOf(m.getCantidad())));
+                table.addCell(alt ? cellAlt(String.valueOf(m.getStockAnterior())) : cell(String.valueOf(m.getStockAnterior())));
+                table.addCell(alt ? cellAlt(String.valueOf(m.getStockNuevo())) : cell(String.valueOf(m.getStockNuevo())));
+                table.addCell(alt ? cellAlt(m.getUsuarioNombre()) : cell(m.getUsuarioNombre()));
+                table.addCell(alt ? cellAlt(FormatUtils.formatDateTime(m.getCreadoEn())) : cell(FormatUtils.formatDateTime(m.getCreadoEn())));
             }
             doc.add(table);
             addFirmasBlock(doc,
@@ -588,15 +595,30 @@ public class ReporteService {
         CellStyle style = wb.createCellStyle();
         Font font = wb.createFont();
         font.setBold(true);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        font.setFontHeightInPoints((short) 10);
         style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+        if (wb instanceof org.apache.poi.xssf.usermodel.XSSFWorkbook xssfWb) {
+            org.apache.poi.xssf.usermodel.XSSFCellStyle xStyle =
+                (org.apache.poi.xssf.usermodel.XSSFCellStyle) style;
+            xStyle.setFillForegroundColor(
+                new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)162, (byte)35, (byte)45}, null));
+        } else {
+            style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+        }
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setBorderBottom(BorderStyle.MEDIUM);
         Row headerRow = sheet.createRow(0);
+        headerRow.setHeight((short) 480);
         for (int i = 0; i < headers.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
             cell.setCellValue(headers[i]);
             cell.setCellStyle(style);
         }
+        sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, headers.length - 1));
+        sheet.createFreezePane(0, 1);
     }
 
     protected void autosizeColumns(Sheet sheet, int count) {
@@ -656,25 +678,33 @@ public class ReporteService {
         com.itextpdf.layout.element.Cell leftCell = new com.itextpdf.layout.element.Cell()
             .add(new Paragraph(titulo).setFont(titleFont).setFontSize(14).setFontColor(ColorConstants.WHITE))
             .add(new Paragraph(orgName()).setFont(regularFont).setFontSize(9)
-                .setFontColor(new DeviceRgb(200, 210, 240)))
+                .setFontColor(new DeviceRgb(240, 195, 195)))
             .setBackgroundColor(COLOR_HEADER).setPadding(12).setBorder(null);
         header.addCell(leftCell);
 
         if (folio != null) {
             com.itextpdf.layout.element.Cell folioCell = new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("FOLIO").setFont(titleFont).setFontSize(7)
-                    .setFontColor(new DeviceRgb(180, 190, 220))
+                    .setFontColor(new DeviceRgb(220, 165, 168))
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                 .add(new Paragraph(folio).setFont(titleFont).setFontSize(8)
                     .setFontColor(ColorConstants.WHITE)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                .setBackgroundColor(new DeviceRgb(49, 46, 129))
+                .setBackgroundColor(new DeviceRgb(120, 25, 33))
                 .setPadding(8).setBorder(null)
                 .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
             header.addCell(folioCell);
         }
 
         doc.add(header);
+
+        // Thin indigo accent bar below the header
+        Table accentBar = new Table(new float[]{1f}).useAllAvailableWidth();
+        accentBar.addCell(new com.itextpdf.layout.element.Cell()
+            .setHeight(3f)
+            .setBackgroundColor(new DeviceRgb(196, 165, 93))
+            .setBorder(Border.NO_BORDER));
+        doc.add(accentBar);
 
         String gen = "Generado " + LocalDate.now().format(FMT);
         com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
@@ -693,13 +723,17 @@ public class ReporteService {
     }
 
     protected Table createPdfTable(String[] headers, float[] widths) throws IOException {
-        Table table = new Table(widths).useAllAvailableWidth();
+        Table table = new Table(widths).useAllAvailableWidth().setMarginTop(8);
         PdfFont hFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         for (String h : headers) {
-            com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell().add(new Paragraph(h)
-                .setFont(hFont).setFontSize(9).setFontColor(ColorConstants.WHITE));
-            headerCell.setBackgroundColor(COLOR_HEADER);
-            headerCell.setPadding(5);
+            com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph(h).setFont(hFont).setFontSize(8).setFontColor(ColorConstants.WHITE))
+                .setBackgroundColor(COLOR_HEADER)
+                .setPadding(6)
+                .setBorderTop(Border.NO_BORDER)
+                .setBorderLeft(Border.NO_BORDER)
+                .setBorderRight(Border.NO_BORDER)
+                .setBorderBottom(new SolidBorder(new DeviceRgb(120, 25, 33), 1.5f));
             table.addCell(headerCell);
         }
         return table;
@@ -739,7 +773,17 @@ public class ReporteService {
      *  usermodel.Cell via the wildcard import used by the Excel export code
      *  below, not itext7's com.itextpdf.layout.element.Cell. */
     protected static com.itextpdf.layout.element.Cell cell(String text) {
-        return new com.itextpdf.layout.element.Cell().add(new Paragraph(text == null ? "" : text));
+        return new com.itextpdf.layout.element.Cell()
+            .add(new Paragraph(text == null ? "" : text).setFontSize(8.5f))
+            .setPadding(5)
+            .setBorderTop(Border.NO_BORDER)
+            .setBorderLeft(Border.NO_BORDER)
+            .setBorderRight(Border.NO_BORDER)
+            .setBorderBottom(new SolidBorder(BORDER_LIGHT, 0.4f));
+    }
+
+    protected static com.itextpdf.layout.element.Cell cellAlt(String text) {
+        return cell(text).setBackgroundColor(ROW_ALT_BG);
     }
 
     // ───────────────────────────── FICHA TÉCNICA ─────────────────────

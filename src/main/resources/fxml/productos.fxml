@@ -108,7 +108,7 @@
                 </StackPane>
                 <Label text="BIENES CON ALERTA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpAlertas" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Bienes agotados (stock = 0) o con existencias por debajo del mínimo configurado."/></tooltip>
+                    <tooltip><Tooltip text="Bienes agotados (stock = 0) o con existencias por debajo del mínimo configurado." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
             <Label fx:id="lblStatAlertas" text="—" styleClass="rich-stat-value"/>
@@ -307,7 +307,7 @@
         <MenuButton fx:id="btnExportarSeleccion" text="Exportar seleccionados" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8" disable="true">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Selecciona uno o más bienes de la tabla para exportar" showDelay="200ms"/></tooltip>
+            <tooltip><Tooltip text="Exporta solo los bienes seleccionados en la tabla (Ctrl+clic o Shift+clic para elegir varios)" wrapText="true" maxWidth="260"/></tooltip>
             <items>
                 <MenuItem text="CSV" onAction="#onExportSeleccionCsv">
                     <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>

@@ -35,7 +35,7 @@ public class ReporteEtiquetasService extends ReporteService {
         File file = tempFile("etiquetas_qr", ".pdf");
         PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        DeviceRgb headerBg = new DeviceRgb(76, 29, 149);
+        DeviceRgb headerBg = new DeviceRgb(162, 35, 45);
 
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
@@ -106,11 +106,11 @@ public class ReporteEtiquetasService extends ReporteService {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
-        DeviceRgb brandBg   = new DeviceRgb(76, 29, 149);
+        DeviceRgb brandBg   = new DeviceRgb(162, 35, 45);
         DeviceRgb brandFg   = new DeviceRgb(255, 255, 255);
-        DeviceRgb borderClr = new DeviceRgb(76, 29, 149);
-        DeviceRgb labelBg   = new DeviceRgb(237, 233, 254); // violet-100
-        DeviceRgb labelFg   = new DeviceRgb(76, 29, 149);
+        DeviceRgb borderClr = new DeviceRgb(162, 35, 45);
+        DeviceRgb labelBg   = new DeviceRgb(252, 240, 241); // guinda-50
+        DeviceRgb labelFg   = new DeviceRgb(162, 35, 45);
         DeviceRgb grayFg    = new DeviceRgb(55, 65, 81);
         DeviceRgb lightBg   = new DeviceRgb(249, 250, 251);
 
