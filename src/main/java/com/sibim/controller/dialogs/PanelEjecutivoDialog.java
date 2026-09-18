@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
 import com.sibim.service.DashboardService;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -47,7 +48,7 @@ public final class PanelEjecutivoDialog {
         VBox content = new VBox(0);
         HBox header = DialogUtil.gradientHeader("mdi2c-chart-donut", "Panel Ejecutivo",
             "Depreciación patrimonial y proyección de bajas",
-            "#4C1D95", "#3730A3");
+            AppColors.DEEP_PURPLE, AppColors.INDIGO_D);
         content.getChildren().add(header);
 
         VBox body = new VBox(18);

@@ -7,6 +7,7 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.service.ComodatoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -153,6 +154,9 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
 
     @Override
     protected String getLoadErrorMessage() { return "No se pudieron cargar los comodatos"; }
+    @Override protected String emptyStateIcon()     { return "mdi2c-clipboard-list-outline"; }
+    @Override protected String emptyStateTitle()    { return "Sin comodatos registrados"; }
+    @Override protected String emptyStateSubtitle() { return "Registra préstamos formales a entidades externas"; }
 
     @Override
     protected void onTableDoubleClick(Comodato item) { mostrarDetalle(item); }
@@ -222,7 +226,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
             "Nuevo Comodato",
             "Registra el préstamo formal de un bien a una entidad externa",
-            "#4C1D95", "#6D28D9");
+            AppColors.DEEP_PURPLE, AppColors.PURPLE);
 
         GridPane form = DialogUtil.formGrid(170);
         int row = 0;

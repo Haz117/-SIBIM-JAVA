@@ -6,6 +6,7 @@ import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -43,16 +44,16 @@ public final class MovimientoDetailDialog {
             case TRANSFERENCIA -> "mdi2a-arrow-right-bold-circle-outline";
         };
         String color1 = switch (m.getTipo()) {
-            case ENTRADA       -> "#059669";
-            case SALIDA        -> "#DC2626";
-            case AJUSTE        -> "#D97706";
-            case TRANSFERENCIA -> "#2563EB";
+            case ENTRADA       -> AppColors.SUCCESS;
+            case SALIDA        -> AppColors.DANGER;
+            case AJUSTE        -> AppColors.WARNING;
+            case TRANSFERENCIA -> AppColors.INFO;
         };
         String color2 = switch (m.getTipo()) {
-            case ENTRADA       -> "#047857";
-            case SALIDA        -> "#B91C1C";
-            case AJUSTE        -> "#B45309";
-            case TRANSFERENCIA -> "#1D4ED8";
+            case ENTRADA       -> AppColors.SUCCESS_D;
+            case SALIDA        -> AppColors.DANGER_D;
+            case AJUSTE        -> AppColors.WARNING_D;
+            case TRANSFERENCIA -> AppColors.INFO_D;
         };
 
         HBox header = DialogUtil.gradientHeader(tipoIcon,

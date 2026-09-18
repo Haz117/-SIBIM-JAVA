@@ -2,6 +2,7 @@ package com.sibim;
 
 import atlantafx.base.theme.PrimerLight;
 import com.sibim.service.SchedulerService;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
@@ -65,7 +66,7 @@ public class MainApp extends Application {
             Objects.requireNonNull(MainApp.class.getResource("/fxml/splash.fxml")));
         Scene scene = new Scene(root, 560, 390);
         scene.getStylesheets().add(STYLESHEET);
-        scene.setFill(Color.web("#0F172A"));
+        scene.setFill(Color.web(AppColors.SCENE_BG));
         primaryStage.setTitle("SIBIM — Sistema Integral de Bienes Municipales");
         primaryStage.setScene(scene);
         primaryStage.setWidth(560);

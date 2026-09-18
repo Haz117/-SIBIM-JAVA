@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.model.AuditLog;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
@@ -32,7 +33,7 @@ final class AuditoriaDetailDialog {
         HBox header = DialogUtil.gradientHeader(
             "mdi2m-magnify-scan", "Detalle del registro",
             entry.getEntidad() != null ? entry.getEntidad().toUpperCase() : "AUDITORÍA",
-            "#4338CA", "#3730A3");
+            AppColors.INDIGO, AppColors.INDIGO_D);
 
         GridPane g = new GridPane();
         g.setHgap(16); g.setVgap(8);

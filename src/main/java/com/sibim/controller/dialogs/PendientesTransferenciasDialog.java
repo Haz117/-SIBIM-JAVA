@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.Movimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -35,7 +36,7 @@ public final class PendientesTransferenciasDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2t-timer-sand", "Transferencias Pendientes de Aprobación",
             "Solicitudes de traslado que requieren tu autorización",
-            "#D97706", "#B45309");
+            AppColors.WARNING, AppColors.WARNING_D);
 
         VBox list = new VBox(6);
         list.setPadding(new Insets(4));

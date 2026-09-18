@@ -5,6 +5,7 @@ import com.sibim.model.Producto;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -161,8 +162,8 @@ class DashboardTablaRecienteSetup {
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         String icon  = switch (m.getTipo()) { case ENTRADA -> "mdi2a-arrow-up-bold-circle-outline"; case SALIDA -> "mdi2a-arrow-down-bold-circle-outline"; case AJUSTE -> "mdi2s-swap-horizontal"; default -> "mdi2a-arrow-right-bold-circle-outline"; };
-        String color = switch (m.getTipo()) { case ENTRADA -> "#059669"; case SALIDA -> "#DC2626"; case AJUSTE -> "#D97706"; default -> "#2563EB"; };
-        String color2= switch (m.getTipo()) { case ENTRADA -> "#047857"; case SALIDA -> "#B91C1C"; case AJUSTE -> "#B45309"; default -> "#1D4ED8"; };
+        String color = switch (m.getTipo()) { case ENTRADA -> AppColors.SUCCESS; case SALIDA -> AppColors.DANGER; case AJUSTE -> AppColors.WARNING; default -> AppColors.INFO; };
+        String color2= switch (m.getTipo()) { case ENTRADA -> AppColors.SUCCESS_D; case SALIDA -> AppColors.DANGER_D; case AJUSTE -> AppColors.WARNING_D; default -> AppColors.INFO_D; };
 
         HBox header = DialogUtil.gradientHeader(icon,
             m.getTipo().getEtiqueta() + "  —  " + m.getCantidad() + " uds.", m.getProductoNombre(), color, color2);

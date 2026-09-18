@@ -13,6 +13,7 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteConteoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -295,7 +296,7 @@ public final class ConteoFisicoDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
             "Captura lo contado y compáralo contra el sistema — " + com.sibim.util.FormatUtils.formatDate(LocalDate.now()),
-            "#0891B2", "#0E7490");
+            AppColors.CYAN, AppColors.CYAN_D);
 
         // Toolbar
         TextField searchField = new TextField();
@@ -742,7 +743,7 @@ public final class ConteoFisicoDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2q-qrcode-scan", "Escanear código",
             "Escribe o pega el código, o carga una imagen con QR/código de barras",
-            "#0891B2", "#0E7490");
+            AppColors.CYAN, AppColors.CYAN_D);
 
         TextField codeField = new TextField();
         codeField.setPromptText("Código del bien (ej: BIEN-001)");

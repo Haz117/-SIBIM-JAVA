@@ -5,6 +5,7 @@ import com.sibim.model.ConteoItem;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.service.ReporteConteoService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -49,7 +50,7 @@ public final class HistorialConteosDialog {
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
             "Historial de Conteos Físicos",
             "Registro de todos los levantamientos de inventario realizados",
-            "#0891B2", "#0E7490");
+            AppColors.CYAN, AppColors.CYAN_D);
 
         ProgressIndicator spinner = new ProgressIndicator();
         spinner.setMaxSize(36, 36);
@@ -151,7 +152,7 @@ public final class HistorialConteosDialog {
             "Detalle del conteo — " + fechaStr,
             c.getUsuarioNombre() + "  ·  " + c.getTotalContados() + " bien(es)"
                 + (c.getTotalDiscrepancias() > 0 ? "  ·  " + c.getTotalDiscrepancias() + " discrepancia(s)" : ""),
-            "#0891B2", "#0E7490");
+            AppColors.CYAN, AppColors.CYAN_D);
 
         ProgressIndicator sp = new ProgressIndicator();
         sp.setMaxSize(32, 32);

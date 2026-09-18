@@ -653,7 +653,7 @@ public final class DialogUtil {
         applyStylesheet(dialog.getDialogPane());
 
         HBox header = gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
-            "El archivo fue exportado exitosamente.", "#047857", "#065F46");
+            "El archivo fue exportado exitosamente.", AppColors.SUCCESS_D, AppColors.SUCCESS_DD);
 
         String name  = file.getName();
         String ext   = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toUpperCase() : "";

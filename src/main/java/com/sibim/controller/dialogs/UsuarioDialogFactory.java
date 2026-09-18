@@ -6,6 +6,7 @@ import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
@@ -42,8 +43,8 @@ public final class UsuarioDialogFactory {
         boolean isNew = existing == null;
         Dialog<ButtonType> dialog = DialogUtil.createButtonDialog(480);
 
-        String accent  = passwordOnly ? "#B45309" : (isNew ? "#4F46E5" : "#0369A1");
-        String accent2 = passwordOnly ? "#D97706" : (isNew ? "#7C3AED" : "#0891B2");
+        String accent  = passwordOnly ? AppColors.WARNING_D : (isNew ? AppColors.PRIMARY_D : "#0369A1");
+        String accent2 = passwordOnly ? AppColors.WARNING   : (isNew ? AppColors.PURPLE    : AppColors.CYAN);
         String iconChar = passwordOnly ? "mdi2k-key-outline" : (isNew ? "mdi2a-account-plus-outline" : "mdi2p-pencil");
         String titleStr = passwordOnly ? "Cambiar Contraseña"
             : (isNew ? "Nuevo Usuario" : "Editar Usuario");

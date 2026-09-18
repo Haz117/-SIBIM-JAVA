@@ -19,6 +19,7 @@ import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -887,7 +888,7 @@ public class ProductosController {
             "mdi2d-delete-outline",
             "Dar de baja",
             "¿Dar de baja \"" + nombreBien + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
-            "#B45309", "#92400E"
+            AppColors.WARNING_D, AppColors.WARNING_DD
         );
 
         // ── Form fields ───────────────────────────────────────────────

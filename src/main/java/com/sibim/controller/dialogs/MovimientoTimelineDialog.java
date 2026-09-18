@@ -10,6 +10,7 @@ import com.sibim.repository.PrestamoRepository;
 import com.sibim.repository.ResguardoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.geometry.Insets;
@@ -75,7 +76,7 @@ public final class MovimientoTimelineDialog {
                 HBox header = DialogUtil.gradientHeader(
                     "mdi2h-history", "Cadena de custodia",
                     p.getNombre() + "  ·  " + entradas.size() + " registro(s)",
-                    "#475569", "#334155");
+                    AppColors.SLATE, AppColors.SLATE_D);
                 content.getChildren().add(header);
 
                 ScrollPane scroll = new ScrollPane();

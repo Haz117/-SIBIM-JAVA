@@ -5,6 +5,7 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -40,7 +41,7 @@ public final class ProductoBajasDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2d-delete-circle-outline", "Bienes Dados de Baja",
             "Fuera del inventario activo — su historial se conserva",
-            "#EF4444", "#B91C1C");
+            AppColors.DANGER, AppColors.DANGER_D);
 
         // ── search bar ──────────────────────────────────────────────────────
         TextField searchField = new TextField();

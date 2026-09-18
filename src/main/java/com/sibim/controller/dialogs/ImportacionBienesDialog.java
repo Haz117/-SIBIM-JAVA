@@ -5,6 +5,7 @@ import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.service.ProductoService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.geometry.Insets;
@@ -68,7 +69,7 @@ public class ImportacionBienesDialog {
         HBox header = DialogUtil.gradientHeader("mdi2u-upload-outline",
             "Importar Bienes desde CSV o Excel",
             "Carga un archivo CSV o Excel (.xlsx) con tu inventario para registrar múltiples bienes de una sola vez.",
-            "#4338CA", "#6366F1");
+            AppColors.INDIGO, AppColors.PRIMARY);
 
         // ── Instructions card ─────────────────────────────────────────
         HBox step1 = stepRow("1", "Descarga la plantilla CSV — incluye las columnas y dos filas de ejemplo.");

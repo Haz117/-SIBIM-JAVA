@@ -5,8 +5,10 @@ import com.sibim.service.CategoriaService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -243,32 +245,9 @@ public class CategoriasController {
 
     private void stopSkeleton() {
         if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
-        FontIcon emptyIcon = new FontIcon("mdi2t-tag-multiple-outline");
-        emptyIcon.setIconSize(44);
-        emptyIcon.getStyleClass().add("empty-icon-lg");
-        Label emptyMsg  = new Label("No hay categorías registradas");
-        emptyMsg.getStyleClass().add("empty-state-msg");
-        Label emptyHint = new Label(SessionManager.isAdmin() ? "Presiona Ctrl+N para crear la primera" : "");
-        emptyHint.getStyleClass().add("empty-state-hint");
-        VBox emptyState = new VBox(12, emptyIcon, emptyMsg, emptyHint);
-        emptyState.setAlignment(javafx.geometry.Pos.CENTER);
-        emptyState.getStyleClass().add("empty-state-pane");
-        defaultPlaceholder = emptyState;
-        table.setPlaceholder(emptyState);
-    }
-
-    private static javafx.scene.Node searchEmptyNode(String q) {
-        FontIcon icon = new FontIcon("mdi2m-magnify-close");
-        icon.setIconSize(40);
-        icon.getStyleClass().add("empty-icon-lg");
-        Label lbl = new Label("Sin resultados para «" + q + "»");
-        lbl.getStyleClass().add("empty-state-msg");
-        Label hint = new Label("Prueba con otro término de búsqueda");
-        hint.getStyleClass().add("empty-state-hint");
-        VBox box = new VBox(8, icon, lbl, hint);
-        box.setAlignment(javafx.geometry.Pos.CENTER);
-        box.getStyleClass().add("empty-state-pane");
-        return box;
+        String hint = SessionManager.isAdmin() ? "Presiona Ctrl+N para crear la primera" : "";
+        defaultPlaceholder = EmptyStateUtil.build("mdi2t-tag-multiple-outline", "No hay categorías registradas", hint);
+        table.setPlaceholder(defaultPlaceholder);
     }
 
     private void loadData() {
@@ -321,7 +300,7 @@ public class CategoriasController {
                 || (c.getDescripcion() != null && c.getDescripcion().toLowerCase().contains(q)))
             .toList();
         if (!q.isBlank() && filtered.isEmpty() && !allData.isEmpty()) {
-            table.setPlaceholder(searchEmptyNode(q));
+            table.setPlaceholder(EmptyStateUtil.buildSearch(q));
         } else if (defaultPlaceholder != null) {
             table.setPlaceholder(defaultPlaceholder);
         }
@@ -381,15 +360,15 @@ public class CategoriasController {
     private void showDialog(Categoria existing) {
         boolean isNew = existing == null;
         Dialog<Categoria> dialog = DialogUtil.create(460);
-        DialogUtil.styleOkButton(dialog.getDialogPane(), isNew ? "#0891B2" : "#4338CA");
+        DialogUtil.styleOkButton(dialog.getDialogPane(), isNew ? AppColors.CYAN : AppColors.INDIGO);
 
         HBox header = DialogUtil.gradientHeader(
             isNew ? "mdi2t-tag-plus-outline" : "mdi2p-pencil",
             isNew ? "Nueva Categoría" : "Editar Categoría",
             isNew ? "Agrega una nueva clasificación al inventario"
                   : "Actualiza los datos de la categoría " + (existing != null ? existing.getNombre() : ""),
-            isNew ? "#0891B2" : "#4338CA",
-            isNew ? "#0E7490" : "#3730A3");
+            isNew ? AppColors.CYAN : AppColors.INDIGO,
+            isNew ? AppColors.CYAN_D : AppColors.INDIGO_D);
 
         // ── Form grid ────────────────────────────────────────────────────
         GridPane grid = DialogUtil.formGrid(110);

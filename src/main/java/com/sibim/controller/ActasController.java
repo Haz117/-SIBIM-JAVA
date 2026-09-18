@@ -4,6 +4,7 @@ import com.sibim.model.ActaEntregaRecepcion;
 import com.sibim.service.ActaService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -80,6 +81,9 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
 
     @Override
     protected String getLoadErrorMessage() { return "No se pudieron cargar las actas"; }
+    @Override protected String emptyStateIcon()     { return "mdi2f-file-swap-outline"; }
+    @Override protected String emptyStateTitle()    { return "Sin actas de entrega-recepción"; }
+    @Override protected String emptyStateSubtitle() { return "Genera actas al iniciar o concluir una administración"; }
 
     @Override
     protected void exportarPdfAsync(ActaEntregaRecepcion item, Scene scene) {
@@ -115,7 +119,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         HBox header = DialogUtil.gradientHeader("mdi2s-swap-horizontal-bold",
             "Acta de Entrega-Recepción",
             "Documento oficial para cambio de administración · captura todo el inventario actual",
-            "#1E40AF", "#1D4ED8");
+            AppColors.INFO, AppColors.INFO_D);
 
         GridPane form = DialogUtil.formGrid(160);
         int row = 0;

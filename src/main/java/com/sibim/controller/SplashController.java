@@ -8,6 +8,7 @@ import org.flywaydb.core.Flyway;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -437,14 +438,14 @@ public class SplashController {
             + "Una vez adentro, crea los demás usuarios desde Configuración.");
         dialog.setTitle("Primera ejecución — Credenciales iniciales");
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
-        DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, "#059669");
+        DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, AppColors.SUCCESS);
         dialog.showAndWait();
     }
 
     private boolean confirmDemoMode() {
         Dialog<ButtonType> dialog = DialogUtil.styledMessage(
             "mdi2w-wifi-off", "Sin conexión a la base de datos", "No se pudo conectar a la base de datos real",
-            "#D97706", "#B45309",
+            AppColors.WARNING, AppColors.WARNING_D,
             "El sistema va a iniciar en modo demo, con datos de práctica que NO se guardan. "
             + "Cualquier bien, movimiento o cambio que captures se perderá al cerrar la aplicación.\n\n"
             + "Esto normalmente indica un problema de conexión (base de datos apagada, credenciales "
@@ -453,7 +454,7 @@ public class SplashController {
         ButtonType btnSalir     = new ButtonType("Salir", ButtonBar.ButtonData.CANCEL_CLOSE);
         ButtonType btnContinuar = new ButtonType("Continuar en modo demo", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().setAll(btnSalir, btnContinuar);
-        DialogUtil.styleButton(dialog.getDialogPane(), btnContinuar, "#D97706");
+        DialogUtil.styleButton(dialog.getDialogPane(), btnContinuar, AppColors.WARNING);
         Optional<ButtonType> result = dialog.showAndWait();
         return result.isPresent() && result.get() == btnContinuar;
     }
@@ -514,7 +515,7 @@ public class SplashController {
                     + "\n\nCierra todas las ventanas del sistema y vuelve a intentarlo.");
             dialog.setTitle(otherInstance ? "Sistema ya está ejecutándose" : "Error al abrir datos locales");
             dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
-            DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, "#DC2626");
+            DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, AppColors.DANGER);
             dialog.showAndWait();
             Platform.exit();
             return false;
@@ -530,7 +531,7 @@ public class SplashController {
             + "en cuanto vuelva la conexión — no necesitas hacer nada.");
         dialog.setTitle("Sin conexión a la base de datos");
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
-        DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, "#2563EB");
+        DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, AppColors.INFO);
         dialog.showAndWait();
     }
 }

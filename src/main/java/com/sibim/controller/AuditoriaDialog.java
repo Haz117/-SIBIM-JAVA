@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.model.AuditLog;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import javafx.geometry.Insets;
@@ -22,7 +23,7 @@ class AuditoriaDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2h-history", "Historial de Auditoría",
             "Cambios en bienes, categorías y usuarios — últimos " + entries.size() + " registros",
-            "#475569", "#334155");
+            AppColors.SLATE, AppColors.SLATE_D);
 
         VBox list = new VBox(6);
         list.setPadding(new Insets(4));

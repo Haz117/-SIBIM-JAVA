@@ -2,6 +2,7 @@ package com.sibim.util;
 
 import com.sibim.MainApp;
 import com.sibim.model.Usuario;
+import com.sibim.util.AppColors;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.service.AuthService;
 import javafx.event.ActionEvent;
@@ -61,7 +62,7 @@ public final class CambiarPasswordDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2l-lock-reset", "Actualiza tu contraseña",
             "Esta cuenta tiene una contraseña temporal conocida. Define una nueva antes de continuar.",
-            "#6366F1", "#4F46E5");
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         PasswordField fNueva = new PasswordField();
         fNueva.setPromptText("Nueva contraseña (mínimo 8 caracteres)");
@@ -179,7 +180,7 @@ public final class CambiarPasswordDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2l-lock-outline", "Cambiar contraseña",
             "Verifica tu contraseña actual antes de definir una nueva",
-            "#6366F1", "#4F46E5");
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         PasswordField fActual    = new PasswordField();
         fActual.setPromptText("Contraseña actual");

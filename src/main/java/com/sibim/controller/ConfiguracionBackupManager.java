@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -120,7 +121,7 @@ class ConfiguracionBackupManager {
             confirmar ? "Cifrar respaldo" : "Descifrar respaldo",
             confirmar ? "Esta contraseña será necesaria para restaurar el respaldo"
                       : "Ingresa la contraseña usada al generar este respaldo",
-            "#4F46E5", "#7C3AED");
+            AppColors.PRIMARY_D, AppColors.PURPLE);
 
         PasswordField fPass = new PasswordField();
         fPass.setPromptText(confirmar ? "Contraseña (mínimo 8 caracteres)" : "Contraseña del respaldo");
@@ -145,7 +146,7 @@ class ConfiguracionBackupManager {
         ButtonType btnOk = new ButtonType(confirmar ? "Cifrar y guardar" : "Restaurar", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().setAll(btnOk, ButtonType.CANCEL);
         Node okBtn = dialog.getDialogPane().lookupButton(btnOk);
-        DialogUtil.styleButton(dialog.getDialogPane(), btnOk, "#4F46E5");
+        DialogUtil.styleButton(dialog.getDialogPane(), btnOk, AppColors.PRIMARY_D);
 
         Runnable hideError = () -> { errorLbl.setVisible(false); errorLbl.setManaged(false); };
         fPass.textProperty().addListener((o, a, b) -> hideError.run());

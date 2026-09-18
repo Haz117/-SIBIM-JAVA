@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
@@ -22,7 +23,7 @@ class MainShortcutHelpDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2k-keyboard-outline", "Atajos de Teclado",
             "Referencia rápida de todos los atajos disponibles en SIBIM",
-            "#4338CA", "#3730A3");
+            AppColors.INDIGO, AppColors.INDIGO_D);
 
         java.util.function.BiFunction<String, String[][], GridPane> makeSection = (title, rows) -> {
             GridPane g = new GridPane();

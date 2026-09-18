@@ -7,6 +7,7 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import org.slf4j.Logger;
@@ -469,7 +470,7 @@ public class DashboardController {
         if (lastAgotados.isEmpty()) { navigarA("Alertas"); return; }
         showProductosMiniPanel("Bienes Agotados", "mdi2a-alert-octagon-outline",
             "Stock = 0 · " + lastAgotados.size() + " bienes requieren reposición",
-            "#DC2626", "#B91C1C", lastAgotados);
+            AppColors.DANGER, AppColors.DANGER_D, lastAgotados);
     }
 
     @FXML
@@ -477,7 +478,7 @@ public class DashboardController {
         if (lastBajoStock.isEmpty()) { navigarA("Alertas"); return; }
         showProductosMiniPanel("Existencias Bajas", "mdi2a-alert-circle-outline",
             "Por debajo del mínimo · " + lastBajoStock.size() + " bienes",
-            "#D97706", "#B45309", lastBajoStock);
+            AppColors.WARNING, AppColors.WARNING_D, lastBajoStock);
     }
 
     private void showProductosMiniPanel(String titulo, String icono, String subtitulo,
@@ -565,7 +566,7 @@ public class DashboardController {
         com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         HBox header = com.sibim.util.DialogUtil.gradientHeader("mdi2t-tune-vertical",
-            "Personalizar dashboard", "Elige qué secciones mostrar", "#4F46E5", "#4338CA");
+            "Personalizar dashboard", "Elige qué secciones mostrar", AppColors.PRIMARY_D, AppColors.INDIGO);
 
         VBox checks = new VBox(10);
         checks.setPadding(new javafx.geometry.Insets(14));

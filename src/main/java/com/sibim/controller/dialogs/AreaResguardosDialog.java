@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.config.Areas;
 import com.sibim.repository.AreaResguardoRepository;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.AnimationUtils;
@@ -44,7 +45,7 @@ public final class AreaResguardosDialog {
         HBox header = DialogUtil.gradientHeader("mdi2f-file-pdf-box",
             "Resguardos por Área",
             "Documentos PDF de resguardo patrimonial por área/dirección",
-            "#059669", "#047857");
+            AppColors.SUCCESS, AppColors.SUCCESS_D);
 
         // Area selector — scoped to the user's own areas so a non-admin can't pick an
         // área they don't belong to and read/download another área's resguardo PDFs

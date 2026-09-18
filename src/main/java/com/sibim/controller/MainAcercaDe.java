@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.offline.SyncService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
@@ -25,7 +26,7 @@ class MainAcercaDe {
 
         HBox header = DialogUtil.gradientHeader("mdi2d-domain", "Acerca de SIBIM",
             "Sistema Integral de Bienes Municipales",
-            "#6366F1", "#4F46E5");
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         GridPane g = new GridPane();
         g.setHgap(16); g.setVgap(10);

@@ -8,6 +8,7 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -666,10 +667,10 @@ public class OrganigramaController {
         HBox header = soloAlertas
             ? DialogUtil.gradientHeader("mdi2a-alert-circle-outline", areaName,
                 prods.size() + (prods.size() == 1 ? " bien agotado o con bajo stock" : " bienes agotados o con bajo stock"),
-                "#D97706", "#B45309")
+                AppColors.WARNING, AppColors.WARNING_D)
             : DialogUtil.gradientHeader("mdi2f-folder-outline", areaName,
                 prods.size() + (prods.size() == 1 ? " bien registrado en esta área" : " bienes registrados en esta área"),
-                "#4338CA", "#6D28D9");
+                AppColors.INDIGO, AppColors.PURPLE);
 
         TableView<Producto> tbl = new TableView<>(FXCollections.observableArrayList(prods));
         tbl.setPrefHeight(360);

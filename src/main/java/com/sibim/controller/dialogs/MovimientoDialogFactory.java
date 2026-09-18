@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ProductoUtils;
@@ -52,11 +53,11 @@ public final class MovimientoDialogFactory {
      *  scratch. Null for a normal fresh open. */
     public static Optional<Result> show(List<Producto> productos, String preProductoId, TipoMovimiento preTipo, Result retryFrom) {
         Dialog<ButtonType> dialog = DialogUtil.createButtonDialog(480);
-        DialogUtil.styleOkButton(dialog.getDialogPane(), "#6D28D9");
+        DialogUtil.styleOkButton(dialog.getDialogPane(), AppColors.PURPLE);
 
         HBox header = DialogUtil.gradientHeader("mdi2s-swap-vertical", "Registrar Movimiento",
             "Registra una nueva entrada, salida, ajuste o transferencia al inventario",
-            "#6D28D9", "#A21CAF");
+            AppColors.PURPLE, AppColors.PURPLE_D);
 
         GridPane grid = DialogUtil.formGrid(128);
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());

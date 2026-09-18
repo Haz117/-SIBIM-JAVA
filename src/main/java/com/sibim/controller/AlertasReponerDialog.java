@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.service.MovimientoService;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -76,7 +77,7 @@ final class AlertasReponerDialog {
             "mdi2p-package-variant",
             "Reponer todos los bienes agotados",
             agotados.size() + " bienes · ingresa la cantidad de entrada para cada uno",
-            "#4338CA", "#6366F1");
+            AppColors.INDIGO, AppColors.PRIMARY);
 
         Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);

@@ -8,6 +8,7 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.service.PrestamoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -177,6 +178,9 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
 
     @Override
     protected String getLoadErrorMessage() { return "No se pudieron cargar los préstamos"; }
+    @Override protected String emptyStateIcon()     { return "mdi2c-cube-send"; }
+    @Override protected String emptyStateTitle()    { return "Sin préstamos activos"; }
+    @Override protected String emptyStateSubtitle() { return "Registra préstamos temporales de bienes entre áreas"; }
 
     @Override
     protected void onTableDoubleClick(Prestamo item) { mostrarDetalle(item); }
@@ -336,7 +340,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         HBox header = DialogUtil.gradientHeader("mdi2s-swap-horizontal",
             "Nuevo Préstamo Temporal",
             "Registra el préstamo de un bien entre áreas con fecha de devolución",
-            "#166534", "#15803D");
+            AppColors.GREEN, AppColors.GREEN_D);
 
         GridPane form = DialogUtil.formGrid(170);
         int row = 0;

@@ -12,6 +12,7 @@ import com.sibim.service.ProductoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -421,10 +422,11 @@ public class MainController {
                 ? "Sincronizando " + pending + " cambio(s) pendiente(s)…"
                 : "Conectando con el servidor…");
         }
+        statusBarManager.setConnecting(true);
         com.sibim.util.AppExecutor.submit(() -> {
             com.sibim.db.offline.SyncService.syncNow();
             javafx.application.Platform.runLater(() -> {
-                statusBarManager.update();
+                statusBarManager.setConnecting(false);
                 if (offlineBannerSyncBtn != null) {
                     offlineBannerSyncBtn.setDisable(false);
                     offlineBannerSyncBtn.setText("Sincronizar ahora");
@@ -526,7 +528,7 @@ public class MainController {
         dlg.setOnCloseRequest(javafx.event.Event::consume);
 
         HBox header = DialogUtil.gradientHeader("mdi2t-timer-outline", "Sesión inactiva",
-            "Tu sesión cerrará automáticamente por inactividad.", "#B45309", "#92400E");
+            "Tu sesión cerrará automáticamente por inactividad.", AppColors.WARNING_D, AppColors.WARNING_DD);
 
         Label lblCountdown = new Label("5:00");
         lblCountdown.getStyleClass().add("inactivity-countdown");
@@ -601,6 +603,7 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.DIGIT8, KeyCombination.CONTROL_DOWN), () -> onDepreciacion());
         a.put(new KeyCodeCombination(KeyCode.DIGIT9, KeyCombination.CONTROL_DOWN), () -> onConfiguracion());
         a.put(new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.CONTROL_DOWN), () -> { if (SessionManager.isAdmin()) onAuditoria(); });
+        a.put(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onConteoFisico());
         a.put(new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onResguardos());
         a.put(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onPrestamos());
         a.put(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onComodatos());

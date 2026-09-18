@@ -6,6 +6,7 @@ import com.sibim.model.enums.UnidadMedida;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -52,15 +53,15 @@ public final class ProductoDialogFactory {
                                            List<String> existingFotos) {
         boolean isNewProduct = existing == null;
         Dialog<Producto> dialog = DialogUtil.create(520);
-        DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? "#4F46E5" : "#059669");
+        DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
 
         HBox dialogHeader = DialogUtil.gradientHeader(
             isNewProduct ? "mdi2p-package-variant" : "mdi2p-pencil",
             isNewProduct ? "Nuevo Bien Patrimonial" : "Editar Bien",
             isNewProduct ? "Registra un nuevo bien en el inventario municipal"
                          : "Actualiza los datos de " + existing.getNombre(),
-            isNewProduct ? "#4F46E5" : "#059669",
-            isNewProduct ? "#7C3AED" : "#047857");
+            isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS,
+            isNewProduct ? AppColors.PURPLE : AppColors.SUCCESS_D);
 
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
 
@@ -324,12 +325,12 @@ public final class ProductoDialogFactory {
                         Dialog<ButtonType> tooBig = DialogUtil.styledMessage(
                             "mdi2a-alert-circle-outline", "Imagen demasiado pesada",
                             "Elige un archivo más pequeño",
-                            "#D97706", "#B45309",
+                            AppColors.WARNING, AppColors.WARNING_D,
                             "La imagen '" + file.getName() + "' pesa " + (file.length() / (1024 * 1024))
                             + " MB — máximo " + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.",
                             dialog.getOwner());
                         tooBig.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
-                        DialogUtil.styleButton(tooBig.getDialogPane(), ButtonType.OK, "#D97706");
+                        DialogUtil.styleButton(tooBig.getDialogPane(), ButtonType.OK, AppColors.WARNING);
                         tooBig.showAndWait();
                         continue;
                     }

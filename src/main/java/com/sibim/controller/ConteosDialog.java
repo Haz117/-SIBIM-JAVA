@@ -4,6 +4,7 @@ import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -31,7 +32,7 @@ class ConteosDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Historial de Conteos Físicos",
             "Tomas de inventario físico realizadas",
-            "#0891B2", "#0E7490");
+            AppColors.CYAN, AppColors.CYAN_D);
 
         VBox list = new VBox(6);
         list.setPadding(new Insets(4));
@@ -86,7 +87,7 @@ class ConteosDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2m-magnify", "Detalle del Conteo",
             FormatUtils.formatDateTime(conteo.getCreadoEn()) + " · " + conteo.getUsuarioNombre(),
-            "#0891B2", "#0E7490");
+            AppColors.CYAN, AppColors.CYAN_D);
 
         // Column widths must match data row cells; -1 means grow
         HBox colHeaders = new HBox();

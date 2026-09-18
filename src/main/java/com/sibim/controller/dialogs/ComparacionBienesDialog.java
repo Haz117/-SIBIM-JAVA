@@ -1,6 +1,7 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import javafx.beans.property.SimpleStringProperty;
@@ -36,7 +37,7 @@ public final class ComparacionBienesDialog {
         HBox header = DialogUtil.gradientHeader(
             "mdi2c-compare", "Comparación de Bienes",
             a.getNombre() + "  vs  " + b.getNombre(),
-            "#6366F1", "#4338CA");
+            AppColors.PRIMARY, AppColors.INDIGO);
 
         List<String[]> rows = buildRows(a, b);
 

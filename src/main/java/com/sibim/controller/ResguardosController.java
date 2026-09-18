@@ -8,6 +8,7 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.service.ResguardoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -102,6 +103,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
     @Override
     protected String getLoadErrorMessage() { return "No se pudieron cargar los resguardos"; }
+    @Override protected String emptyStateIcon()     { return "mdi2b-badge-account-outline"; }
+    @Override protected String emptyStateTitle()    { return "Sin resguardos registrados"; }
+    @Override protected String emptyStateSubtitle() { return "Asigna bienes a servidores públicos desde la sección Bienes"; }
 
     @Override
     protected void addContextMenuItems(ContextMenu cm) {
@@ -153,7 +157,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-account-outline",
             "Nuevo Resguardo", "Documento oficial de resguardo patrimonial",
-            "#6366F1", "#4F46E5");
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         GridPane form = DialogUtil.formGrid(130);
         int row = 0;

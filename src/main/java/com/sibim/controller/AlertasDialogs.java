@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.model.Producto;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import javafx.scene.control.*;
@@ -23,8 +24,8 @@ class AlertasDialogs {
         dlg.getDialogPane().setPrefWidth(420);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
-        String color1 = agotado ? "#DC2626" : "#D97706";
-        String color2 = agotado ? "#B91C1C" : "#B45309";
+        String color1 = agotado ? AppColors.DANGER : AppColors.WARNING;
+        String color2 = agotado ? AppColors.DANGER_D : AppColors.WARNING_D;
         String icon   = agotado ? "mdi2a-alert-octagon-outline" : "mdi2a-alert-circle-outline";
         String sub    = agotado ? "Stock agotado — requiere reposición inmediata"
                                 : "Stock actual por debajo del mínimo establecido";
@@ -68,7 +69,7 @@ class AlertasDialogs {
             : dias == 0 ? "La garantía vence hoy"
             : "Vence en " + dias + (dias == 1 ? " día" : " días");
 
-        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", p.getNombre(), sub, "#2563EB", "#1D4ED8");
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", p.getNombre(), sub, AppColors.INFO, AppColors.INFO_D);
 
         GridPane grid = DialogUtil.formGrid(120);
         int r = 0;
