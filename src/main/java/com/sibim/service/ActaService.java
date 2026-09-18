@@ -44,9 +44,9 @@ public class ActaService {
         this.cfgRepo = cfgRepo;
     }
 
-    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(76, 29, 149);
-    private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(241, 245, 249);
-    private static final DeviceRgb COLOR_AREA_BG = new DeviceRgb(224, 231, 255);
+    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(162, 35, 45);   // guinda Pantone 1805 C
+    private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(252, 240, 241); // guinda claro tint
+    private static final DeviceRgb COLOR_AREA_BG = new DeviceRgb(252, 240, 241);
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);
     private static final DateTimeFormatter FMT   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 

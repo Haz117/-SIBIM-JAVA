@@ -68,6 +68,8 @@ public class PrestamoService {
 
     public int countVencidos() throws SQLException { return repo.countVencidos(); }
 
+    public int countActivos() throws SQLException { return repo.countActivos(); }
+
     public List<Prestamo> getByProductoId(String productoId) throws SQLException { return repo.findByProductoId(productoId); }
 
     public int actualizarVencidos() throws SQLException { return repo.updateVencidos(); }

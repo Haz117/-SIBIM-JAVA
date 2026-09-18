@@ -40,13 +40,14 @@ public class ConfiguracionController {
     @FXML private Label lblSistemaHora;
     @FXML private Label lblConfigHint;
 
-    @FXML private TextField tfNombreAyuntamiento;
-    @FXML private TextField tfMunicipio;
-    @FXML private TextField tfResponsable;
-    @FXML private TextField tfCorreoContacto;
-    @FXML private TextField tfLogoPath;
-    @FXML private Button    btnLogoPath;
-    @FXML private Button    btnGuardarConfig;
+    @FXML private TextField                               tfNombreAyuntamiento;
+    @FXML private TextField                               tfMunicipio;
+    @FXML private TextField                               tfResponsable;
+    @FXML private TextField                               tfCorreoContacto;
+    @FXML private TextField                               tfLogoPath;
+    @FXML private Button                                  btnLogoPath;
+    @FXML private Button                                  btnGuardarConfig;
+    @FXML private javafx.scene.control.Spinner<Integer>   spInactividadTimeout;
 
     @FXML private TableView<Usuario> usersTable;
     @FXML private TableColumn<Usuario, String>  colNombre;
@@ -247,6 +248,12 @@ public class ConfiguracionController {
                 if (tfResponsable       != null) tfResponsable.setText(cfg.getOrDefault("responsable", ""));
                 if (tfCorreoContacto    != null) tfCorreoContacto.setText(cfg.getOrDefault("correo_contacto", ""));
                 if (tfLogoPath          != null) tfLogoPath.setText(cfg.getOrDefault("logo_path", ""));
+                if (spInactividadTimeout != null) {
+                    try { spInactividadTimeout.getValueFactory().setValue(
+                        Integer.parseInt(cfg.getOrDefault("inactividad_timeout_minutos", "30")));
+                    } catch (NumberFormatException ignored) {}
+                    spInactividadTimeout.setDisable(!isAdmin);
+                }
                 // update decorative badge in profile card
                 if (lblDecoNombre != null) {
                     String[] parts = nombre.split("\\s+de\\s+", 2);
@@ -269,6 +276,8 @@ public class ConfiguracionController {
                             tfNombreAyuntamiento, tfMunicipio, tfResponsable, tfCorreoContacto, tfLogoPath}) {
                         if (tf != null) tf.textProperty().addListener((o, a, b) -> markConfigDirty());
                     }
+                    if (spInactividadTimeout != null)
+                        spInactividadTimeout.valueProperty().addListener((o, a, b) -> markConfigDirty());
                 });
             },
             e -> {}
@@ -296,13 +305,16 @@ public class ConfiguracionController {
         String resp      = tfResponsable != null ? tfResponsable.getText().strip() : "";
         String correo    = tfCorreoContacto != null ? tfCorreoContacto.getText().strip() : "";
         String logoPath  = tfLogoPath != null ? tfLogoPath.getText().strip() : "";
+        int inactividadMin = spInactividadTimeout != null && spInactividadTimeout.getValue() != null
+            ? Math.max(6, spInactividadTimeout.getValue()) : 30;
         DialogUtil.runAsync(
             () -> {
-                configRepo.set("nombre_ayuntamiento", nombre);
-                configRepo.set("municipio",           municipio);
-                configRepo.set("responsable",         resp);
-                configRepo.set("correo_contacto",     correo);
-                configRepo.set("logo_path",           logoPath);
+                configRepo.set("nombre_ayuntamiento",        nombre);
+                configRepo.set("municipio",                  municipio);
+                configRepo.set("responsable",                resp);
+                configRepo.set("correo_contacto",            correo);
+                configRepo.set("logo_path",                  logoPath);
+                configRepo.set("inactividad_timeout_minutos", String.valueOf(inactividadMin));
                 new com.sibim.repository.AuditLogRepository().log("configuracion", "general", "Datos generales",
                     "actualizar", "Datos generales del ayuntamiento actualizados");
                 return null;

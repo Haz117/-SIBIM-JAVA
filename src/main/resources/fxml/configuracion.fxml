@@ -142,6 +142,19 @@
                 </HBox>
                 <Label text="Se muestra en la pantalla de inicio al abrir la aplicación." styleClass="muted-sm"/>
             </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="TIEMPO DE INACTIVIDAD (MINUTOS)" styleClass="profile-field-key"/>
+                    <Label text="?" styleClass="help-badge">
+                        <tooltip><Tooltip text="Minutos sin actividad antes de cerrar la sesión automáticamente. Mínimo 6 minutos (se muestra una advertencia 5 minutos antes). Cambio efectivo en la próxima sesión." wrapText="true" maxWidth="280"/></tooltip>
+                    </Label>
+                </HBox>
+                <Spinner fx:id="spInactividadTimeout" min="6" max="480" initialValue="30" editable="true" prefWidth="120">
+                    <valueFactory>
+                        <SpinnerValueFactory.IntegerSpinnerValueFactory min="6" max="480" initialValue="30"/>
+                    </valueFactory>
+                </Spinner>
+            </VBox>
         </GridPane>
         <HBox spacing="8" alignment="CENTER_RIGHT">
             <Label fx:id="lblConfigHint" text="Solo el administrador puede guardar cambios" styleClass="muted" HBox.hgrow="ALWAYS"/>

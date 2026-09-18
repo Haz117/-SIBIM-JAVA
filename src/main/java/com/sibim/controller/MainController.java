@@ -104,9 +104,7 @@ public class MainController {
     private final PrestamoService prestamoService = new PrestamoService();
     private final AuditLogRepository auditRepo = new AuditLogRepository();
 
-    // Session inactivity timeout — 30 minutes
-    private static final long INACTIVITY_TIMEOUT_MS = 30 * 60_000L;
-    private static final long INACTIVITY_WARN_MS    = INACTIVITY_TIMEOUT_MS - 5 * 60_000L;
+    private static final long INACTIVITY_WARN_WINDOW_MS = 5 * 60_000L; // 5-min countdown before logout
     private long    lastActivityMs    = System.currentTimeMillis();
     private boolean inactivityWarned  = false;
     private Dialog<javafx.scene.control.ButtonType> activeInactivityDialog;
@@ -484,9 +482,21 @@ public class MainController {
         sidebarManager.toggle();
     }
 
+    private long inactivityTimeoutMs() {
+        try {
+            int minutes = Integer.parseInt(
+                new com.sibim.repository.ConfiguracionRepository()
+                    .get("inactividad_timeout_minutos", "30"));
+            return Math.max(6, minutes) * 60_000L;
+        } catch (Exception e) {
+            return 30 * 60_000L;
+        }
+    }
+
     private void checkInactivity() {
         long idle = System.currentTimeMillis() - lastActivityMs;
-        if (idle > INACTIVITY_TIMEOUT_MS) {
+        long timeoutMs = inactivityTimeoutMs();
+        if (idle > timeoutMs) {
             log.info("Sesión cerrada por inactividad");
             inactivityWarned = false;
             // If the warning dialog is still open when this 1-min tick catches
@@ -508,7 +518,7 @@ public class MainController {
             SessionManager.logout();
             try { MainApp.showLogin(); }
             catch (Exception e) { log.error("Error al cerrar sesión por inactividad", e); }
-        } else if (!inactivityWarned && idle > INACTIVITY_WARN_MS) {
+        } else if (!inactivityWarned && idle > timeoutMs - INACTIVITY_WARN_WINDOW_MS) {
             inactivityWarned = true;
             javafx.application.Platform.runLater(this::showInactivityWarning);
         }
@@ -544,7 +554,7 @@ public class MainController {
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, body), 260, 70);
         dlg.getDialogPane().setContent(new VBox(header, body));
 
-        long[] msLeft = { 5 * 60_000L };
+        long[] msLeft = { INACTIVITY_WARN_WINDOW_MS };
         Timeline countdown = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             msLeft[0] = Math.max(0, msLeft[0] - 1000);
             long mins = msLeft[0] / 60_000;
@@ -649,32 +659,36 @@ public class MainController {
         if (com.sibim.session.SessionManager.isAdmin())
             baseEntries.add(new SearchPaletteDialog.NavEntry("mdi2h-history", "Auditoría", "Ctrl+0", this::onAuditoria));
         java.util.List<SearchPaletteDialog.NavEntry> navEntries = java.util.List.copyOf(baseEntries);
+
+        // Mutable lists: start empty so the dialog opens instantly showing nav entries,
+        // then data is appended via Platform.runLater while the dialog is open.
+        // rebuildList in SearchPaletteDialog reads these lazily on each keystroke.
+        java.util.List<com.sibim.model.Producto>  mProductos  = new java.util.ArrayList<>();
+        java.util.List<com.sibim.model.Resguardo> mResguardos = new java.util.ArrayList<>();
+        java.util.List<com.sibim.model.Prestamo>  mPrestamos  = new java.util.ArrayList<>();
+
         com.sibim.util.AppExecutor.submit(() -> {
-            java.util.List<com.sibim.model.Producto>  productos;
-            java.util.List<com.sibim.model.Resguardo> resguardos;
-            java.util.List<com.sibim.model.Prestamo>  prestamos;
-            try { productos  = alertProductoService.getAll(); }
-            catch (Exception e) { log.warn("Palette: no se pudieron cargar bienes", e);      productos  = java.util.List.of(); }
-            try { resguardos = new com.sibim.service.ResguardoService().getAll(); }
-            catch (Exception e) { log.warn("Palette: no se pudieron cargar resguardos", e);  resguardos = java.util.List.of(); }
-            try { prestamos  = prestamoService.getAll(); }
-            catch (Exception e) { log.warn("Palette: no se pudieron cargar préstamos", e);   prestamos  = java.util.List.of(); }
-            final var fProductos  = productos;
-            final var fResguardos = resguardos;
-            final var fPrestamos  = prestamos;
-            javafx.application.Platform.runLater(() ->
-                SearchPaletteDialog.show(stage, fProductos,
-                    producto -> {
-                        NavigationContext.setPendingProductId(producto.getId());
-                        navigateTo("productos", btnProductos);
-                    },
-                    fResguardos,
-                    rsg -> navigateTo("resguardos", btnResguardos),
-                    fPrestamos,
-                    prs -> navigateTo("prestamos", btnPrestamos),
-                    navEntries)
-            );
+            try { var d = alertProductoService.getAll();
+                  javafx.application.Platform.runLater(() -> mProductos.addAll(d)); }
+            catch (Exception e) { log.warn("Palette: no se pudieron cargar bienes", e); }
+            try { var d = new com.sibim.service.ResguardoService().getAll();
+                  javafx.application.Platform.runLater(() -> mResguardos.addAll(d)); }
+            catch (Exception e) { log.warn("Palette: no se pudieron cargar resguardos", e); }
+            try { var d = prestamoService.getAll();
+                  javafx.application.Platform.runLater(() -> mPrestamos.addAll(d)); }
+            catch (Exception e) { log.warn("Palette: no se pudieron cargar préstamos", e); }
         });
+
+        SearchPaletteDialog.show(stage, mProductos,
+            producto -> {
+                NavigationContext.setPendingProductId(producto.getId());
+                navigateTo("productos", btnProductos);
+            },
+            mResguardos,
+            rsg -> navigateTo("resguardos", btnResguardos),
+            mPrestamos,
+            prs -> navigateTo("prestamos", btnPrestamos),
+            navEntries);
     }
 
     private void addNavTooltips() {

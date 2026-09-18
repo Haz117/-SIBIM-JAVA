@@ -608,7 +608,7 @@ public class ReporteService {
         }
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.LEFT);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setVerticalAlignment(org.apache.poi.ss.usermodel.VerticalAlignment.CENTER);
         style.setBorderBottom(BorderStyle.MEDIUM);
         Row headerRow = sheet.createRow(0);
         headerRow.setHeight((short) 480);

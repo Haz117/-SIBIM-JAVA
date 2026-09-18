@@ -213,6 +213,22 @@ public class ResguardoRepository {
         return r;
     }
 
+    public int countActivos() throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) return 0;
+        List<Object> params = new ArrayList<>();
+        String scope = scopeCondicion(params);
+        String sql = "SELECT COUNT(*) FROM resguardos WHERE estado = 'ACTIVO'"
+            + (scope != null ? " AND " + scope : "");
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, conn, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
     private ResguardoItem mapItem(ResultSet rs) throws SQLException {
         ResguardoItem i = new ResguardoItem();
         i.setId(rs.getString("id"));

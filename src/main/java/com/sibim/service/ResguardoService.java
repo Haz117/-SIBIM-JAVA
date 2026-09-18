@@ -46,12 +46,14 @@ public class ResguardoService {
         this.auditRepo = auditRepo;
     }
 
-    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(76, 29, 149);
+    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(162, 35, 45);  // guinda Pantone 1805 C
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(241, 245, 249);
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);
     private static final DateTimeFormatter FMT   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public List<Resguardo> getAll() throws SQLException { return repo.findAll(); }
+
+    public int countActivos() throws SQLException { return repo.countActivos(); }
 
     public Resguardo findById(String id) throws SQLException { return repo.findById(id); }
 

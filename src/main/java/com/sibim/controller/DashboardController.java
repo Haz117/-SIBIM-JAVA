@@ -407,11 +407,9 @@ public class DashboardController {
     private void loadOperacionesAsync() {
         com.sibim.util.AppExecutor.submit(() -> {
             try {
-                long vencidos   = prestamoService.getVencidos().size();
-                long activos    = prestamoService.getActivos().stream()
-                    .filter(p -> com.sibim.model.Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
-                long resguardos = resguardoService.getAll().stream()
-                    .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado())).count();
+                long vencidos   = prestamoService.countVencidos();
+                long activos    = prestamoService.countActivos();
+                long resguardos = resguardoService.countActivos();
                 long comodatosVigentes;
                 long comodatosVencidos;
                 try {
@@ -455,7 +453,7 @@ public class DashboardController {
                         AnimationUtils.fadeInUp(operacionesRow, 350, 0);
                 });
             } catch (Exception e) {
-                // non-critical; silently ignore
+                log.warn("No se pudieron cargar los contadores de operaciones del dashboard", e);
             }
         });
     }
