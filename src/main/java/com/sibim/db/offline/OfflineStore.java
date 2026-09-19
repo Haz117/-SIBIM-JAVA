@@ -1022,8 +1022,9 @@ public final class OfflineStore {
             INSERT INTO product_outbox (operacion, producto_id, nombre, codigo, descripcion,
                 categoria_id, precio_compra, precio_venta, stock_actual, stock_minimo, stock_maximo,
                 unidad, proveedor, fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
-                motivo_baja, created_at, server_snapshot_at, etiquetado, fotos_urls)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                motivo_baja, created_at, server_snapshot_at, etiquetado, fotos_urls,
+                estado_fisico, numero_factura)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             int i = 1;
@@ -1054,7 +1055,9 @@ public final class OfflineStore {
             ps.setString(i++, serverSnapshotAt);
             ps.setInt(i++, p.isEtiquetado() ? 1 : 0);
             List<String> fotos = p.getFotosUrls();
-            ps.setString(i, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
+            ps.setString(i++, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
+            ps.setString(i++, p.getEstadoFisico());
+            ps.setString(i, p.getNumeroFactura());
             ps.executeUpdate();
         }
     }
@@ -1085,8 +1088,8 @@ public final class OfflineStore {
 
     private static void enqueueCategory(String operacion, Categoria c) throws SQLException {
         String sql = """
-            INSERT INTO category_outbox (operacion, categoria_id, nombre, descripcion, color, icono, created_at)
-            VALUES (?,?,?,?,?,?,?)
+            INSERT INTO category_outbox (operacion, categoria_id, nombre, descripcion, color, icono, codigo_conac, created_at)
+            VALUES (?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setString(1, operacion);
@@ -1095,7 +1098,8 @@ public final class OfflineStore {
             ps.setString(4, c.getDescripcion());
             ps.setString(5, c.getColor());
             ps.setString(6, c.getIcono());
-            ps.setString(7, str(LocalDateTime.now()));
+            ps.setString(7, c.getCodigoConac());
+            ps.setString(8, str(LocalDateTime.now()));
             ps.executeUpdate();
         }
     }

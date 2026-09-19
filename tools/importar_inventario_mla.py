@@ -18,6 +18,7 @@ import os
 import re
 import uuid
 import datetime
+import unicodedata
 from pathlib import Path
 from openpyxl import load_workbook
 
@@ -95,11 +96,19 @@ def clean_date(val):
         return None
     if isinstance(val, (datetime.date, datetime.datetime)):
         return val.strftime("%Y-%m-%d")
+    # Excel date serial (int/float sin formato de fecha aplicado)
+    if isinstance(val, (int, float)) and 10000 < float(val) < 60000:
+        try:
+            from openpyxl.utils.datetime import from_excel
+            return from_excel(int(val)).strftime("%Y-%m-%d")
+        except Exception:
+            pass
     s = clean(val)
     if s is None:
         return None
-    # Intenta DD/MM/YYYY
-    for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d", "%d-%m-%Y"):
+    # Intenta varios formatos incluyendo con hora (openpyxl → str convierte a "YYYY-MM-DD HH:MM:SS")
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S",
+                "%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d", "%d-%m-%Y"):
         try:
             return datetime.datetime.strptime(s, fmt).strftime("%Y-%m-%d")
         except ValueError:
@@ -238,9 +247,18 @@ def parse_sheet(ws):
                     col_map["modelo"] = c
                 if "SERIE" in combined_hdr:
                     col_map["serie"] = c
-                if "FACTURA" in combined_hdr or "DOCUMENTO" in combined_hdr:
+                has_factura  = "FACTURA"   in combined_hdr
+                has_doc      = "DOCUMENTO" in combined_hdr
+                has_fecha    = "FECHA"     in combined_hdr
+                fecha_in_sub = "FECHA"     in v2   # sub-header específica de FECHA
+                if has_factura:
                     col_map["factura"] = c
-                if "FECHA" in combined_hdr and "factura" not in col_map:
+                elif has_doc and fecha_in_sub:
+                    # "TIPO DE DOCUMENTO / FECHA" → la fecha va en esta columna
+                    col_map["fecha_doc"] = c
+                elif has_doc:
+                    col_map["factura"] = c
+                elif has_fecha:
                     col_map["fecha_doc"] = c
                 if "IMPORTE" in combined_hdr or "MONTO" in combined_hdr:
                     col_map["importe"] = c
@@ -306,89 +324,119 @@ def parse_sheet(ws):
 # ── Mapeo área Excel → nombre normalizado de areas.java ────────────────────────
 
 AREA_NORMALIZE = {
-    "DESPACHO DE PRESIDENCIA":                   "Despacho de Presidencia",
-    "DESPACHO PRESIDENCIA":                      "Despacho de Presidencia",
-    "SIPINNA":                                   "SIPINNA",
-    "OFICIALÍA MAYOR DE LA ASAMBLEA":            "Oficialía Mayor de la Asamblea",
-    "OFICIALÍA DE LA ASAMBLEA":                  "Oficialía Mayor de la Asamblea",
-    "CONTRALORÍA MUNICIPAL":                     "Contraloría Municipal",
-    "CONTRALORIA MUNICIPAL":                     "Contraloría Municipal",
-    "DIRECCIÓN JURÍDICA":                        "Dirección Jurídica",
-    "DIRECC. JURÍDICA":                          "Dirección Jurídica",
+    # Presidencia y sus direcciones
+    "DESPACHO DE PRESIDENCIA":               "Despacho de Presidencia",
+    "DESPACHO PRESIDENCIA":                  "Despacho de Presidencia",
+    "SIPINNA":                               "SIPINNA",
+    "DIRECCIÓN JURÍDICA":                    "Dirección Jurídica",
+    "DIRECC. JURÍDICA":                      "Dirección Jurídica",
     "COMUNICACIÓN SOCIAL Y MARKETING DIGITAL":   "Comunicación Social y Marketing Digital",
-    "DIRECCIÓN DE GOBIERNO":                     "Dirección de Gobierno",
-    "PROTECCIÓN CIVIL Y BOMBEROS":               "Protección Civil y Bomberos",
-    "PROTECCION CIVIL":                          "Protección Civil y Bomberos",
-    "ARCHIVO MUNICIPAL":                         "Archivo Municipal",
-    "REGLAMENTOS, COMERCIO Y ESPECTÁCULOS":      "Reglamentos, Comercio y Espectáculos",
-    "REGLAMENTOS Y COMERCIO":                    "Reglamentos, Comercio y Espectáculos",
-    "OFICIALÍA DEL REGISTRO DEL ESTADO FAMILIAR":"Oficialía del Registro del Estado Familiar",
-    "ATENCIÓN AL MIGRANTE":                      "Atención al Migrante",
-    "JUNTA DE RECLUTAMIENTO":                    "Junta de Reclutamiento",
-    "RECURSOS MATERIALES Y PATRIMONIO":          "Recursos Materiales y Patrimonio",
-    "DIRECCIÓN DE CONCILIACIÓN MUNICIPAL":       "Dirección de Conciliación Municipal",
-    "CONCILIACIÓN MUNICIPAL":                    "Dirección de Conciliación Municipal",
+    "DIRECCIÓN DE GOBIERNO":                 "Dirección de Gobierno",
+    "DIRECCIÓN DE LOGÍSTICA Y EVENTOS":      "Dirección de Logística y Eventos",
+    "DIRECCIÓN DE LOGÍSTICA, EVENTOS Y AYUDANTIA": "Dirección de Logística y Eventos",
+    "INSTANCIA MUNICIPAL DE LA MUJER":       "Instancia Municipal de la Mujer",
+    "INSTANCIA DE LA MUJER":                 "Instancia Municipal de la Mujer",
+    "INSTANCIA MUNICIPAL DE LA JUVENTUD":    "Instancia Municipal de la Juventud",
+    "INSTANCIA DE LA JUVENTUD":              "Instancia Municipal de la Juventud",
+    # Secretaría General
+    "SECRETARÍA GENERAL MUNICIPAL":          "Secretaría General Municipal",
+    "SECRETARÍA GENERAL":                    "Secretaría General Municipal",
+    "SECRETARIA GENERAL":                    "Secretaría General Municipal",
+    "ARCHIVO MUNICIPAL":                     "Archivo Municipal",
+    "OFICIALÍA DEL REGISTRO DEL ESTADO FAMILIAR": "Oficialía del Registro del Estado Familiar",
+    "RECURSOS MATERIALES Y PATRIMONIO":      "Recursos Materiales y Patrimonio",
+    # Contraloría
+    "CONTRALORÍA MUNICIPAL":                 "Contraloría Municipal",
+    # Asamblea
+    "OFICIALÍA MAYOR DE LA ASAMBLEA":        "Oficialía Mayor de la Asamblea",
+    "OFICIALÍA DE LA ASAMBLEA":              "Oficialía Mayor de la Asamblea",
+    # Tesorería
+    "SECRETARÍA DE TESORERÍA MUNICIPAL":     "Tesorería Municipal",
+    "TESORERÍA MUNICIPAL":                   "Tesorería Municipal",
+    "ADMINISTRACIÓN":                        "Tesorería — Administración",
+    "TESORERÍA ADMINISTRACIÓN":              "Tesorería — Administración",
+    "TESORERÍA INGRESOS":                    "Tesorería — Ingresos",
+    "TESORERÍA EGRESOS":                     "Tesorería — Egresos",
+    "CUENTA PÚBLICA":                        "Tesorería — Cuenta Pública",
+    "RECURSOS HUMANOS Y NÓMINA":             "Tesorería — Recursos Humanos y Nómina",
+    "TESORERÍA RECURSOS HUMANOS Y NÓMINA":   "Tesorería — Recursos Humanos y Nómina",
+    # Obras Públicas
+    "SECRETARÍA DE OBRAS PÚBLICAS":          "Secretaría de Obras Públicas",
+    "OBRAS PÚBLICAS":                        "Secretaría de Obras Públicas",
+    "OBRAS PUBLICAS":                        "Secretaría de Obras Públicas",
+    "DIRECCIÓN DE DESARROLLO URBANO":        "Dirección de Desarrollo Urbano",
+    "DESARROLLO URBANO":                     "Dirección de Desarrollo Urbano",
+    "DIRECCIÓN DE MEDIO AMBIENTE":           "Dirección de Medio Ambiente",
+    "MEDIO AMBIENTE":                        "Dirección de Medio Ambiente",
+    "SERVICIOS MUNICIPALES":                 "Servicios Municipales",
+    "SERVICIOS PÚBLICOS Y LIMPIAS":          "Servicios Públicos y Limpias",
+    # Planeación / TI
+    "SECRETARÍA DE PLANEACIÓN":              "Secretaría de Planeación",
+    "PLANEACIÓN":                            "Secretaría de Planeación",
+    "DIRECCIÓN DE TECNOLOGÍAS DE LA INFORMACIÓN": "Dirección de Tecnologías de la Información",
+    "TECNOLOGÍAS DE LA INFORMACIÓN":         "Dirección de Tecnologías de la Información",
+    # Catastro
+    "DIRECCIÓN DE CATASTRO":                 "Dirección de Catastro",
+    "CATASTRO":                              "Dirección de Catastro",
+    # Conciliación
+    "DIRECCIÓN DE CONCILIACIÓN MUNICIPAL":   "Dirección de Conciliación Municipal",
+    "CONCILIACIÓN MUNICIPAL":                "Dirección de Conciliación Municipal",
+    # Reglamentos (dos formas distintas)
+    "REGLAMENTOS, COMERCIO Y ESPECTÁCULOS":  "Reglamentos, Comercio y Espectáculos",
+    "REGLAMENTOS Y COMERCIO":                "Reglamentos, Comercio y Espectáculos",
+    "REGLAMENTOS, COMERCIO, MERCADO Y ESPECTÁCULOS": "Reglamentos, Comercio y Espectáculos",
+    # Bienestar Social
+    "SECRETARÍA DE BIENESTAR SOCIAL":        "Secretaría de Bienestar Social",
+    "BIENESTAR SOCIAL":                      "Secretaría de Bienestar Social",
+    "PROGRAMAS SOCIALES":                    "Programas Sociales",
+    "DIRECCIÓN DE EDUCACIÓN":                "Dirección de Educación",
+    "EDUCACIÓN":                             "Dirección de Educación",
+    "EDUCACION":                             "Dirección de Educación",
+    "DIRECCIÓN DE CULTURA":                  "Dirección de Cultura",
+    "CULTURA":                               "Dirección de Cultura",
+    "DIRECCIÓN DEL DEPORTE":                 "Dirección del Deporte",
+    "DIRECCION DEL DEPORTE":                 "Dirección del Deporte",
+    "DIRECCIÓN DE SALUD":                    "Dirección de Salud",
+    "SALUD":                                 "Dirección de Salud",
+    "ATENCIÓN AL MIGRANTE":                  "Atención al Migrante",
+    "JUNTA DE RECLUTAMIENTO":                "Junta de Reclutamiento",
+    # Desarrollo Económico
     "SECRETARÍA DE DESARROLLO ECONÓMICO Y TURISMO": "Secretaría de Desarrollo Económico y Turismo",
-    "SECRETARÍA DE TESORERÍA MUNICIPAL":         "Tesorería Municipal",
-    "TESORERÍA MUNICIPAL":                       "Tesorería Municipal",
-    "ADMINISTRACIÓN":                            "Tesorería — Administración",
-    "TESORERÍA ADMINISTRACIÓN":                  "Tesorería — Administración",
-    "TESORERÍA INGRESOS":                        "Tesorería — Ingresos",
-    "TESORERÍA EGRESOS":                         "Tesorería — Egresos",
-    "CUENTA PÚBLICA":                            "Tesorería — Cuenta Pública",
-    "RECURSOS HUMANOS Y NÓMINA":                 "Tesorería — Recursos Humanos y Nómina",
-    "CATASTRO":                                  "Dirección de Catastro",
-    "DIRECCIÓN DE CATASTRO":                     "Dirección de Catastro",
-    "SECRETARÍA DE OBRAS PÚBLICAS":              "Secretaría de Obras Públicas",
-    "OBRAS PÚBLICAS":                            "Secretaría de Obras Públicas",
-    "DESARROLLO URBANO":                         "Dirección de Desarrollo Urbano",
-    "SERVICIOS PÚBLICOS Y LIMPIAS":              "Servicios Públicos y Limpias",
-    "SERVICIOS MUNICIPALES":                     "Servicios Municipales",
-    "SECRETARÍA DE BIENESTAR SOCIAL":            "Secretaría de Bienestar Social",
-    "BIENESTAR SOCIAL":                          "Secretaría de Bienestar Social",
-    "PROGRAMAS SOCIALES":                        "Programas Sociales",
-    "RASTRO MUNICIPAL":                          "Coordinación del Rastro Municipal",
-    "COORDINACIÓN DEL RASTRO MUNICIPAL":         "Coordinación del Rastro Municipal",
-    "COORDINACIÓN BIBLIOTECAS":                  "Coordinación de Bibliotecas",
-    "BIBLIOTECAS":                               "Coordinación de Bibliotecas",
-    "DIRECCIÓN DEL DEPORTE":                     "Dirección del Deporte",
-    "DIRECCIÓN DE SALUD":                        "Dirección de Salud",
-    "SALUD":                                     "Dirección de Salud",
-    "SECRETARÍA DE PLANEACIÓN":                  "Secretaría de Planeación",
-    "PLANEACIÓN":                                "Secretaría de Planeación",
-    "SECRETARÍA DE PUEBLOS INDÍGENAS":           "Secretaría de Pueblos Indígenas",
-    "PUEBLOS INDÍGENAS":                         "Secretaría de Pueblos Indígenas",
-    "DIRECCIÓN DE EDUCACIÓN":                    "Dirección de Educación",
-    "EDUCACIÓN":                                 "Dirección de Educación",
-    "DIRECCIÓN DE CULTURA":                      "Dirección de Cultura",
-    "CULTURA":                                   "Dirección de Cultura",
-    "CONTROL CANINO":                            "Control Canino",
-    "DIRECCIÓN DE MEDIO AMBIENTE":               "Dirección de Medio Ambiente",
-    "MEDIO AMBIENTE":                            "Dirección de Medio Ambiente",
-    "INSTANCIA MUNICIPAL DE LA MUJER":           "Instancia Municipal de la Mujer",
-    "INSTANCIA DE LA MUJER":                     "Instancia Municipal de la Mujer",
-    "INSTANCIA MUNICIPAL DE LA JUVENTUD":        "Instancia Municipal de la Juventud",
-    "MERCADO MUNICIPAL":                         "Mercado Municipal",
-    "PARQUE MUNICIPAL":                          "Parque Municipal",
-    "UNIDAD DE TRANSPARENCIA":                   "Unidad de Transparencia",
-    "TRANSPARENCIA":                             "Unidad de Transparencia",
-    "SECRETARÍA GENERAL MUNICIPAL":              "Secretaría General Municipal",
-    "SECRETARÍA GENERAL":                        "Secretaría General Municipal",
-    "DIRECCIÓN DE TECNOLOGÍAS DE LA INFORMACIÓN":"Dirección de Tecnologías de la Información",
-    "TECNOLOGÍAS DE LA INFORMACIÓN":             "Dirección de Tecnologías de la Información",
+    # Pueblos Indígenas
+    "SECRETARÍA DE PUEBLOS INDÍGENAS":       "Secretaría de Pueblos Indígenas",
+    "PUEBLOS INDÍGENAS":                     "Secretaría de Pueblos Indígenas",
+    # Seguridad / Protección Civil
+    "PROTECCIÓN CIVIL Y BOMBEROS":           "Protección Civil y Bomberos",
+    "PROTECCION CIVIL":                      "Protección Civil y Bomberos",
+    # Autónomos y otros
+    "UNIDAD DE TRANSPARENCIA":               "Unidad de Transparencia",
+    "TRANSPARENCIA":                         "Unidad de Transparencia",
+    "CONTROL CANINO":                        "Control Canino",
+    "PARQUE MUNICIPAL":                      "Parque Municipal",
+    "MERCADO MUNICIPAL":                     "Mercado Municipal",
+    "COORDINACIÓN BIBLIOTECAS":              "Coordinación de Bibliotecas",
+    "BIBLIOTECAS":                           "Coordinación de Bibliotecas",
+    "RASTRO MUNICIPAL":                      "Coordinación del Rastro Municipal",
+    "COORDINACIÓN DEL RASTRO MUNICIPAL":     "Coordinación del Rastro Municipal",
 }
+
+
+def _strip_accents(s):
+    return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
 
 
 def normalize_area(raw):
     if not raw:
         return raw
-    key = raw.upper().strip()
+    key_norm = _strip_accents(raw.upper().strip())
+    # Exact match first (accent-insensitive)
     for k, v in AREA_NORMALIZE.items():
-        if key == k.upper():
+        if key_norm == _strip_accents(k.upper()):
             return v
-    # Búsqueda parcial como fallback
+    # Partial match fallback
     for k, v in AREA_NORMALIZE.items():
-        if k.upper() in key or key in k.upper():
+        k_norm = _strip_accents(k.upper())
+        if k_norm in key_norm or key_norm in k_norm:
             return v
     return raw  # devuelve tal cual si no hay match
 
@@ -423,10 +471,11 @@ def generate_sql(inventario_dir: Path, output_dir: Path):
     rsg_lines.append("-- Ejecutar DESPUÉS de import_bienes.sql")
     rsg_lines.append("")
 
-    codigos_vistos = set()
-    total_bienes   = 0
-    total_skipped  = 0
-    archivos_proc  = 0
+    codigos_vistos  = set()
+    rsg_nums_vistos = set()
+    total_bienes    = 0
+    total_skipped   = 0
+    archivos_proc   = 0
 
     for dept_dir in sorted(inventario_dir.iterdir()):
         if not dept_dir.is_dir():
@@ -474,7 +523,13 @@ def generate_sql(inventario_dir: Path, output_dir: Path):
                 prod_lines.append(f"-- Hoja: {sheet_name} | Resguardante: {resguardante} | Cargo: {cargo}")
 
                 rsg_id = new_uuid()
-                rsg_numero = f"RSG-{num_rsg}" if num_rsg else f"RSG-{sheet_name[:20]}"
+                rsg_numero_base = f"RSG-{num_rsg}" if num_rsg else f"RSG-{sheet_name[:20]}"
+                rsg_numero = rsg_numero_base
+                suffix_n = 2
+                while rsg_numero in rsg_nums_vistos:
+                    rsg_numero = f"{rsg_numero_base}-{suffix_n}"
+                    suffix_n += 1
+                rsg_nums_vistos.add(rsg_numero)
                 if fecha_rsg:
                     rsg_date = sql_str(fecha_rsg)
                 else:

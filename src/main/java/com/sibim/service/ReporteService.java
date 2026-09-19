@@ -148,7 +148,7 @@ public class ReporteService {
     private File exportInventarioExcel(List<Producto> productos, LocalDate desde, LocalDate hasta) throws Exception {
         String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Stock", "Min", "Max",
                             "Precio Venta", "Valor Total", "Estado", "Proveedor", "Marca", "Modelo",
-                            "N° de Serie", "Ubicacion", "Fecha Registro"};
+                            "N° de Serie", "Ubicacion", "Fecha Registro", "Estado Físico", "N° Factura"};
         File file = tempFile("inventario", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = createSheet(wb, "Inventario");
@@ -173,6 +173,8 @@ public class ReporteService {
                 r.createCell(14).setCellValue(p.getNumeroSerie() != null ? p.getNumeroSerie() : "");
                 r.createCell(15).setCellValue(p.getUbicacion() != null ? p.getUbicacion() : "");
                 r.createCell(16).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
+                r.createCell(17).setCellValue(p.getEstadoFisico() != null ? p.getEstadoFisico() : "");
+                r.createCell(18).setCellValue(p.getNumeroFactura() != null ? p.getNumeroFactura() : "");
             }
             autosizeColumns(sheet, headers.length);
             addExcelInfoSheet(wb, "Inventario General", desde, hasta);

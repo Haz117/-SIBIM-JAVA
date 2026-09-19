@@ -212,6 +212,10 @@ public final class ProductoDetailDialog {
         if (modelo != null && !modelo.isBlank()) rowList.add(new Row("Modelo", modelo, null));
         String serie = p.getNumeroSerie();
         if (serie != null && !serie.isBlank()) rowList.add(new Row("Número de serie", serie, null));
+        String estadoFisico = p.getEstadoFisico();
+        if (estadoFisico != null && !estadoFisico.isBlank()) rowList.add(new Row("Estado físico", estadoFisico, null));
+        String numeroFactura = p.getNumeroFactura();
+        if (numeroFactura != null && !numeroFactura.isBlank()) rowList.add(new Row("N° factura", numeroFactura, null));
         rowList.add(new Row("Stock actual",    String.valueOf(p.getStockActual()), stockClass));
         rowList.add(new Row("Stock mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null));
         rowList.add(new Row("Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null));

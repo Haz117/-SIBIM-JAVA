@@ -245,7 +245,7 @@ public final class SyncService {
     // ─────────────────────────────── Categorías ───────────────────────────
 
     private record CategoryRow(int id, String operacion, String categoriaId, String nombre,
-                                String descripcion, String color, String icono, int retryCount) {}
+                                String descripcion, String color, String icono, String codigoConac, int retryCount) {}
 
     static void syncCategorias(AtomicInteger synced, AtomicInteger failed) throws SQLException {
         List<CategoryRow> rows = new ArrayList<>();
@@ -255,7 +255,7 @@ public final class SyncService {
             while (rs.next()) {
                 rows.add(new CategoryRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("categoria_id"),
                     rs.getString("nombre"), rs.getString("descripcion"), rs.getString("color"), rs.getString("icono"),
-                    rs.getInt("retry_count")));
+                    rs.getString("codigo_conac"), rs.getInt("retry_count")));
             }
         }
         CategoriaRepository repo = new CategoriaRepository();
@@ -270,6 +270,7 @@ public final class SyncService {
                     c.setDescripcion(r.descripcion());
                     c.setColor(r.color());
                     c.setIcono(r.icono());
+                    c.setCodigoConac(r.codigoConac());
                     repo.saveOnline(c);
                 }
                 markOutbox("category_outbox", r.id(), STATUS_SYNCED, null);
@@ -295,7 +296,8 @@ public final class SyncService {
                                String numeroSerie, String marca, String modelo,
                                String ubicacion, String area,
                                String resguardante, String motivoBaja, String serverSnapshotAt,
-                               boolean etiquetado, String fotosUrls, int retryCount) {}
+                               boolean etiquetado, String fotosUrls,
+                               String estadoFisico, String numeroFactura, int retryCount) {}
 
     static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
             throws SQLException {
@@ -315,7 +317,8 @@ public final class SyncService {
                     rs.getString("ubicacion"), rs.getString("area"),
                     rs.getString("resguardante"), rs.getString("motivo_baja"),
                     rs.getString("server_snapshot_at"),
-                    rs.getInt("etiquetado") != 0, rs.getString("fotos_urls"), rs.getInt("retry_count")));
+                    rs.getInt("etiquetado") != 0, rs.getString("fotos_urls"),
+                    rs.getString("estado_fisico"), rs.getString("numero_factura"), rs.getInt("retry_count")));
             }
         }
         ProductoRepository repo = new ProductoRepository();
@@ -392,6 +395,8 @@ public final class SyncService {
         p.setEtiquetado(r.etiquetado());
         if (r.fotosUrls() != null && !r.fotosUrls().isBlank())
             p.setFotosUrls(new java.util.ArrayList<>(java.util.Arrays.asList(r.fotosUrls().split("\\|\\|"))));
+        p.setEstadoFisico(r.estadoFisico());
+        p.setNumeroFactura(r.numeroFactura());
         return p;
     }
 
