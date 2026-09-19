@@ -213,6 +213,16 @@ public class Producto {
     public LocalDate getFechaDictamen()     { return fechaDictamen; }
     public void      setFechaDictamen(LocalDate fechaDictamen)    { this.fechaDictamen = fechaDictamen; }
 
+    // ── Inventario físico MLA ─────────────────────────────────────────
+    private String estadoFisico;   // BUENO / REGULAR / MALO / DEFICIENTE
+    private String numeroFactura;  // número del documento de compra (no la URL)
+
+    public String getEstadoFisico() { return estadoFisico; }
+    public void setEstadoFisico(String estadoFisico) { this.estadoFisico = estadoFisico; }
+
+    public String getNumeroFactura() { return numeroFactura; }
+    public void setNumeroFactura(String numeroFactura) { this.numeroFactura = numeroFactura; }
+
     // ── Mantenimiento ─────────────────────────────────────────────────
     private LocalDate proximaRevision;
     private String notasMantenimiento;

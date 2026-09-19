@@ -385,6 +385,11 @@ public class CategoriasController {
         fDesc.setPrefRowCount(2); fDesc.setMaxWidth(Double.MAX_VALUE);
         fDesc.setPromptText("Descripción opcional de la categoría");
 
+        TextField fCodigoConac = new TextField(existing != null && existing.getCodigoConac() != null
+            ? existing.getCodigoConac() : "");
+        fCodigoConac.setMaxWidth(Double.MAX_VALUE);
+        fCodigoConac.setPromptText("Ej. 1.2.4.1.1.511");
+
         String initColor = existing != null ? existing.getColor() : "#6366F1";
         String[] selectedColor = { initColor };
 
@@ -475,6 +480,9 @@ public class CategoriasController {
         int r = 0;
         grid.add(DialogUtil.fieldLabel("Nombre *"),    0, r); grid.add(fNombre,      1, r++);
         grid.add(DialogUtil.fieldLabel("Descripción"), 0, r); grid.add(fDesc,        1, r++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Código CONAC",
+            "Clave de clasificación contable federal (CONAC).\nEj: 1.2.4.1.1.511 = Muebles de oficina y estantería"),
+                                               0, r); grid.add(fCodigoConac,  1, r++);
         grid.add(DialogUtil.fieldLabel("Color *"),     0, r); grid.add(colorSection, 1, r++);
         grid.add(DialogUtil.fieldLabel("Ícono"),       0, r); grid.add(iconGrid,     1, r++);
         grid.add(new Label(),                          0, r); grid.add(previewRow,   1, r);
@@ -496,6 +504,8 @@ public class CategoriasController {
             c.setDescripcion(fDesc.getText().trim());
             c.setColor(selectedColor[0]);
             c.setIcono(iconoHolder[0]);
+            String conacTxt = fCodigoConac.getText().trim();
+            c.setCodigoConac(conacTxt.isEmpty() ? null : conacTxt);
             return c;
         });
 

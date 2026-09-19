@@ -395,9 +395,9 @@ public class ProductoRepository {
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
                 fecha_adquisicion, vida_util_anios, valor_residual, etiquetado,
-                proxima_revision, notas_mantenimiento,
+                proxima_revision, notas_mantenimiento, estado_fisico, numero_factura,
                 created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -425,6 +425,8 @@ public class ProductoRepository {
                 etiquetado = EXCLUDED.etiquetado,
                 proxima_revision = EXCLUDED.proxima_revision,
                 notas_mantenimiento = EXCLUDED.notas_mantenimiento,
+                estado_fisico = EXCLUDED.estado_fisico,
+                numero_factura = EXCLUDED.numero_factura,
                 updated_at = NOW()
             """;
         try (Connection conn = DatabaseConfig.getConnection();
@@ -457,8 +459,10 @@ public class ProductoRepository {
             ps.setBoolean(25, p.isEtiquetado());
             ps.setObject(26, p.getProximaRevision());
             ps.setString(27, p.getNotasMantenimiento());
-            ps.setTimestamp(28, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(29, Timestamp.valueOf(now));
+            ps.setString(28, p.getEstadoFisico());
+            ps.setString(29, p.getNumeroFactura());
+            ps.setTimestamp(30, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
+            ps.setTimestamp(31, Timestamp.valueOf(now));
             ps.executeUpdate();
         }
         return p;
@@ -1056,6 +1060,12 @@ public class ProductoRepository {
             p.setNumeroActaBaja(rs.getString("numero_acta_baja"));
             java.sql.Date fd = rs.getDate("fecha_dictamen");
             if (fd != null) p.setFechaDictamen(fd.toLocalDate());
+        } catch (SQLException ignored) {
+            // Columns may not exist yet (migration not run) — ignore gracefully
+        }
+        try {
+            p.setEstadoFisico(rs.getString("estado_fisico"));
+            p.setNumeroFactura(rs.getString("numero_factura"));
         } catch (SQLException ignored) {
             // Columns may not exist yet (migration not run) — ignore gracefully
         }

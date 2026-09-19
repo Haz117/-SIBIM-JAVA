@@ -11,6 +11,8 @@ public class Categoria {
     private String icono;
     private LocalDateTime creadoEn;
 
+    private String codigoConac;
+
     // Computed field (not stored in DB)
     private int totalProductos;
 
@@ -43,6 +45,9 @@ public class Categoria {
 
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
+
+    public String getCodigoConac() { return codigoConac; }
+    public void setCodigoConac(String codigoConac) { this.codigoConac = codigoConac; }
 
     public int getTotalProductos() { return totalProductos; }
     public void setTotalProductos(int totalProductos) { this.totalProductos = totalProductos; }

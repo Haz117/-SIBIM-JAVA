@@ -81,13 +81,14 @@ public class CategoriaRepository {
     /** Replay target for SyncService — see ProductoRepository#saveOnline. */
     public Categoria saveOnline(Categoria c) throws SQLException {
         String sql = """
-            INSERT INTO categories (id, nombre, descripcion, color, icono, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO categories (id, nombre, descripcion, color, icono, codigo_conac, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 descripcion = EXCLUDED.descripcion,
                 color = EXCLUDED.color,
-                icono = EXCLUDED.icono
+                icono = EXCLUDED.icono,
+                codigo_conac = EXCLUDED.codigo_conac
             """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -96,7 +97,8 @@ public class CategoriaRepository {
             ps.setString(3, c.getDescripcion());
             ps.setString(4, c.getColor());
             ps.setString(5, c.getIcono());
-            ps.setTimestamp(6, c.getCreadoEn() != null
+            ps.setString(6, c.getCodigoConac());
+            ps.setTimestamp(7, c.getCreadoEn() != null
                 ? Timestamp.valueOf(c.getCreadoEn())
                 : Timestamp.valueOf(LocalDateTime.now()));
             ps.executeUpdate();
@@ -154,6 +156,11 @@ public class CategoriaRepository {
         c.setIcono(rs.getString("icono"));
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) c.setCreadoEn(ts.toLocalDateTime());
+        try {
+            c.setCodigoConac(rs.getString("codigo_conac"));
+        } catch (SQLException ignored) {
+            // Column may not exist yet (migration not run) — ignore gracefully
+        }
         try {
             c.setTotalProductos(rs.getInt("total_productos"));
         } catch (SQLException e) {

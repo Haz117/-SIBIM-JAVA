@@ -561,6 +561,16 @@ public final class ProductoDialogFactory {
         // ── Tab: Datos Patrimoniales ──
         GridPane gridPatrimonio = DialogUtil.formGrid(140);
         int rp = 0;
+        ComboBox<String> fEstadoFisico = new ComboBox<>(
+            FXCollections.observableArrayList("", "BUENO", "REGULAR", "MALO", "DEFICIENTE"));
+        fEstadoFisico.setValue(existing != null && existing.getEstadoFisico() != null ? existing.getEstadoFisico() : "");
+        fEstadoFisico.setMaxWidth(Double.MAX_VALUE);
+        fEstadoFisico.getStyleClass().add("form-input");
+
+        TextField fNumeroFactura = new TextField(existing != null && existing.getNumeroFactura() != null ? existing.getNumeroFactura() : "");
+        fNumeroFactura.setPromptText("Ej. B3623, F-MR-003343");
+        fNumeroFactura.getStyleClass().add("form-input");
+
         gridPatrimonio.add(DialogUtil.fieldLabel("Proveedor"),     0, rp); gridPatrimonio.add(fProveedor,    1, rp++);
         gridPatrimonio.add(DialogUtil.fieldLabel("Marca"),         0, rp); gridPatrimonio.add(fMarca,        1, rp++);
         gridPatrimonio.add(DialogUtil.fieldLabel("Modelo"),        0, rp); gridPatrimonio.add(fModelo,       1, rp++);
@@ -569,6 +579,12 @@ public final class ProductoDialogFactory {
         gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Resguardante",
             "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
                                                                   0, rp); gridPatrimonio.add(fResguardante, 1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Estado físico",
+            "Condición actual del bien según el último levantamiento físico.\nBUENO = sin daños; REGULAR = desgaste menor; MALO = requiere reparación; DEFICIENTE = fuera de uso."),
+                                                                  0, rp); gridPatrimonio.add(fEstadoFisico, 1, rp++);
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("N° Factura",
+            "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
+                                                                  0, rp); gridPatrimonio.add(fNumeroFactura, 1, rp++);
         Separator sepEtiq = new Separator();
         gridPatrimonio.add(sepEtiq, 0, rp, 2, 1); rp++;
         CheckBox fEtiquetado = new CheckBox("Bien etiquetado (tiene etiqueta física/QR)");
@@ -748,6 +764,8 @@ public final class ProductoDialogFactory {
         fEtiquetado.selectedProperty().addListener((o, a, b) -> markDirty.run());
         fProximaRevision.valueProperty().addListener((o, a, b) -> markDirty.run());
         fNotasMant.textProperty().addListener((o, a, b) -> markDirty.run());
+        fEstadoFisico.valueProperty().addListener((o, a, b) -> markDirty.run());
+        fNumeroFactura.textProperty().addListener((o, a, b) -> markDirty.run());
 
         javafx.scene.Node cancelBtn = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         if (cancelBtn != null) {
@@ -873,6 +891,10 @@ public final class ProductoDialogFactory {
             p.setProximaRevision(fProximaRevision.getValue());
             String notasMantTxt = fNotasMant.getText().trim();
             p.setNotasMantenimiento(notasMantTxt.isEmpty() ? null : notasMantTxt);
+            String estadoFisicoVal = fEstadoFisico.getValue();
+            p.setEstadoFisico(estadoFisicoVal == null || estadoFisicoVal.isBlank() ? null : estadoFisicoVal);
+            String numFactTxt = fNumeroFactura.getText().trim();
+            p.setNumeroFactura(numFactTxt.isEmpty() ? null : numFactTxt);
             dirty[0] = false; // clear so setOnCloseRequest doesn't prompt after a successful save
             // Procesar y guardar fotos
             List<String> savedFotos = new java.util.ArrayList<>();

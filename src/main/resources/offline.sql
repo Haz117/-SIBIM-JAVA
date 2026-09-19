@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS categories (
     descripcion TEXT,
     color       TEXT NOT NULL DEFAULT '#3B82F6',
     icono       TEXT,
+    codigo_conac TEXT,
     created_at  TEXT NOT NULL
 );
 
@@ -44,6 +45,8 @@ CREATE TABLE IF NOT EXISTS products (
     resguardante      TEXT,
     fecha_baja        TEXT,
     motivo_baja       TEXT,
+    estado_fisico     TEXT,
+    numero_factura    TEXT,
     created_at        TEXT NOT NULL,
     updated_at        TEXT NOT NULL
 );
@@ -126,6 +129,8 @@ CREATE TABLE IF NOT EXISTS product_outbox (
     area               TEXT,
     resguardante       TEXT,
     motivo_baja        TEXT,
+    estado_fisico      TEXT,
+    numero_factura     TEXT,
     created_at         TEXT NOT NULL,
     status             TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | SYNCED | FAILED | CONFLICT | DISCARDED
     error              TEXT,
@@ -165,6 +170,7 @@ CREATE TABLE IF NOT EXISTS category_outbox (
     descripcion TEXT,
     color       TEXT,
     icono       TEXT,
+    codigo_conac TEXT,
     created_at  TEXT NOT NULL,
     status      TEXT NOT NULL DEFAULT 'PENDING',
     error       TEXT,
