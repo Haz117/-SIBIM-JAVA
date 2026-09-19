@@ -202,14 +202,22 @@ def parse_sheet(ws):
             if m:
                 meta["fecha_resguardo"] = clean_date(m.group(1).strip())
 
-    # Buscamos la fila de encabezados de columna (contiene "N° DE INV" o "DESCRIPCIÓN")
+    # Buscamos la fila de encabezados de columna.
+    # Los xlsx tienen cabeceras en 2 filas: la fila N tiene "N° DE INV" y
+    # la fila N+1 tiene "DESCRIPCIÓN", "MARCA", etc. — buscamos la combinación.
     header_row_idx = None
     col_map = {}  # nombre_campo → índice columna (1-based)
     for row_idx in range(8, 20):
         vals = [str(ws.cell(row_idx, c).value or "").strip().upper()
                 for c in range(1, 20)]
-        combined = " ".join(vals)
-        if "DESCRIPCI" in combined and ("N° DE INV" in combined or "N DE INV" in combined):
+        vals_next = [str(ws.cell(row_idx + 1, c).value or "").strip().upper()
+                     for c in range(1, 20)]
+        combined      = " ".join(vals)
+        combined_next = " ".join(vals_next)
+        combined_all  = combined + " " + combined_next
+        has_inv  = "N DE INV" in combined_all or "N° DE INV" in combined_all or "INV." in combined_all
+        has_desc = "DESCRIPCI" in combined_all
+        if has_inv and has_desc:
             header_row_idx = row_idx
             # Mapear columnas en la fila header y la siguiente (sub-header)
             for c in range(1, 20):
@@ -436,7 +444,7 @@ def generate_sql(inventario_dir: Path, output_dir: Path):
                 continue  # archivo de bloqueo de Office
 
             try:
-                wb = load_workbook(xlsx_path, read_only=True, data_only=True)
+                wb = load_workbook(xlsx_path, data_only=True)
             except Exception as e:
                 print(f"    [SKIP] {xlsx_path.name}: {type(e).__name__}")
                 continue
