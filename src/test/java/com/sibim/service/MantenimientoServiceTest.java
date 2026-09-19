@@ -79,7 +79,7 @@ class MantenimientoServiceTest {
     // ── agregarAlerta() ───────────────────────────────────────────────────────
 
     @Test
-    void agregarAlerta_delegaAlRepositorio() {
+    void agregarAlerta_delegaAlRepositorio() throws Exception {
         service.agregarAlerta("p1", "Cambiar aceite", LocalDate.of(2026, 12, 1));
         verify(mockRepo).agregar("p1", "Cambiar aceite", LocalDate.of(2026, 12, 1));
     }
@@ -87,7 +87,7 @@ class MantenimientoServiceTest {
     // ── marcarCompletada() ────────────────────────────────────────────────────
 
     @Test
-    void marcarCompletada_delegaElIdCorrecto() {
+    void marcarCompletada_delegaElIdCorrecto() throws Exception {
         service.marcarCompletada("a-2");
         verify(mockRepo).marcarCompletada("a-2");
     }
@@ -95,7 +95,7 @@ class MantenimientoServiceTest {
     // ── eliminarAlerta() ──────────────────────────────────────────────────────
 
     @Test
-    void eliminarAlerta_delegaElIdCorrecto() {
+    void eliminarAlerta_delegaElIdCorrecto() throws Exception {
         service.eliminarAlerta("a-3");
         verify(mockRepo).eliminar("a-3");
     }

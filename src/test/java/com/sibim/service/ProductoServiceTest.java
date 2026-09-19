@@ -25,6 +25,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -180,7 +181,7 @@ class ProductoServiceTest {
     @Test void darDeBaja_exitosa_llama_darDeBajaEnRepo() throws Exception {
         when(mockProductoRepo.findById("p-01")).thenReturn(Optional.of(productoExistente()));
         service.darDeBaja("p-01", "Robo");
-        verify(mockProductoRepo).darDeBaja("p-01", "Robo");
+        verify(mockProductoRepo).darDeBaja(eq("p-01"), eq("Robo"), isNull(), isNull(), isNull(), isNull());
     }
 
     // ── reactivar() ──────────────────────────────────────────────────────────

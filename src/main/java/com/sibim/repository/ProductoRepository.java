@@ -346,7 +346,7 @@ public class ProductoRepository {
         List<Object> params = new ArrayList<>();
         params.add(id);
         if (accessible != null) { sb.append(" AND p.area = ANY(?)"); params.add(accessible.toArray(new String[0])); }
-        List<Producto> results = query(sb.toString(), params.toArray());
+        List<Producto> results = queryDynamic(sb.toString(), params);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 

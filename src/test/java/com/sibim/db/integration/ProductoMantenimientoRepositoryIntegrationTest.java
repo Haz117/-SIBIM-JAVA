@@ -51,7 +51,7 @@ class ProductoMantenimientoRepositoryIntegrationTest extends IntegrationTestBase
     }
 
     @Test
-    void agregar_y_findByProducto_retornaAlerta() {
+    void agregar_y_findByProducto_retornaAlerta() throws Exception {
         repo.agregar(PROD_ID, "Cambiar aceite", LocalDate.of(2026, 12, 1));
 
         List<Alerta> result = repo.findByProducto(PROD_ID);
@@ -64,7 +64,7 @@ class ProductoMantenimientoRepositoryIntegrationTest extends IntegrationTestBase
     }
 
     @Test
-    void findByProducto_ordenaPorFechaAscendente() {
+    void findByProducto_ordenaPorFechaAscendente() throws Exception {
         repo.agregar(PROD_ID, "Revisión tardía", LocalDate.of(2027, 1, 1));
         repo.agregar(PROD_ID, "Revisión próxima", LocalDate.of(2026, 3, 1));
 
@@ -76,7 +76,7 @@ class ProductoMantenimientoRepositoryIntegrationTest extends IntegrationTestBase
     }
 
     @Test
-    void findByProducto_soloDevuelveDelProductoPedido() {
+    void findByProducto_soloDevuelveDelProductoPedido() throws Exception {
         repo.agregar(PROD_ID, "Alerta producto 1", LocalDate.of(2026, 6, 1));
         repo.agregar(PROD_2,  "Alerta producto 2", LocalDate.of(2026, 6, 1));
 
@@ -90,7 +90,7 @@ class ProductoMantenimientoRepositoryIntegrationTest extends IntegrationTestBase
     }
 
     @Test
-    void marcarCompletada_actualizaFlag() {
+    void marcarCompletada_actualizaFlag() throws Exception {
         repo.agregar(PROD_ID, "Calibración", LocalDate.of(2026, 5, 1));
         String id = repo.findByProducto(PROD_ID).get(0).id();
 
@@ -100,7 +100,7 @@ class ProductoMantenimientoRepositoryIntegrationTest extends IntegrationTestBase
     }
 
     @Test
-    void eliminar_quitaLaAlerta() {
+    void eliminar_quitaLaAlerta() throws Exception {
         repo.agregar(PROD_ID, "Alerta a borrar", LocalDate.of(2026, 5, 1));
         String id = repo.findByProducto(PROD_ID).get(0).id();
 
@@ -110,7 +110,7 @@ class ProductoMantenimientoRepositoryIntegrationTest extends IntegrationTestBase
     }
 
     @Test
-    void findProximas_incluyeVencidasYDentroDelRango_excluyeCompletadasYLejanas() {
+    void findProximas_incluyeVencidasYDentroDelRango_excluyeCompletadasYLejanas() throws Exception {
         repo.agregar(PROD_ID, "Vencida",       LocalDate.now().minusDays(5));
         repo.agregar(PROD_ID, "Dentro rango",  LocalDate.now().plusDays(10));
         repo.agregar(PROD_2,  "Fuera de rango", LocalDate.now().plusDays(90));
