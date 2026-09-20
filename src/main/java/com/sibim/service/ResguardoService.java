@@ -37,6 +37,7 @@ public class ResguardoService {
     private final ResguardoRepository repo;
     private final ConfiguracionRepository configRepo;
     private final AuditLogRepository auditRepo;
+    private final ReporteService reporteService = new ReporteService();
 
     public ResguardoService() { this(new ResguardoRepository(), new ConfiguracionRepository(), new AuditLogRepository()); }
     ResguardoService(ResguardoRepository repo, ConfiguracionRepository configRepo, AuditLogRepository auditRepo) {
@@ -120,7 +121,19 @@ public class ResguardoService {
             doc.setMargins(36, 36, 36, 36);
 
             // ── Header institucional ──
-            Table headerTable = new Table(1).useAllAvailableWidth();
+            Image headerLogo = reporteService.loadHeaderLogo();
+            Table headerTable;
+            if (headerLogo != null) {
+                headerTable = new Table(new float[]{1f, 4f}).useAllAvailableWidth();
+                com.itextpdf.layout.element.Cell logoCell = new com.itextpdf.layout.element.Cell()
+                    .add(headerLogo)
+                    .setBackgroundColor(ColorConstants.WHITE)
+                    .setPadding(6).setBorder(null)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+                headerTable.addCell(logoCell);
+            } else {
+                headerTable = new Table(1).useAllAvailableWidth();
+            }
             com.itextpdf.layout.element.Cell hCell = new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("RESGUARDO DE BIENES").setFont(bold).setFontSize(16)
                     .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.CENTER))

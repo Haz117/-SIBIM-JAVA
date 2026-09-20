@@ -290,7 +290,7 @@ class ProductoServiceTest {
 
     private Producto productoExistente() {
         Producto p = new Producto(); p.setId("p-01"); p.setNombre("Escritorio ejecutivo");
-        p.setArea("Secretaria General Municipal");
+        p.setArea("Secretaría General Municipal");
         return p;
     }
 }

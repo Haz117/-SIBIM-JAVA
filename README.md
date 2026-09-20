@@ -47,7 +47,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db` cifrada con clave derivada de `MachineGuid` |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (629 tests) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (701 tests en la última ejecución) |
 
 ---
 
@@ -65,9 +65,10 @@ El sistema implementa múltiples capas de defensa:
 | Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área. Los préstamos son visibles si el área accesible coincide con el área de origen **o** destino (una transferencia debe verse desde ambos lados); los resguardos se acotan por su área única; las actas de entrega-recepción son documentos de todo el ayuntamiento y no se acotan por área (no tienen un área propia — son un corte de administración completa) |
 | Cifrado en tránsito | Configurable via `DB_SSL_MODE` en `.env`; la app emite advertencia en log si la BD es remota y SSL no está en modo `require` |
 | Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías, usuarios, resguardos, préstamos, actas y configuración queda en `audit_log` con usuario y timestamp, incluyendo intentos de inicio de sesión fallidos |
-| Backup | Solo Admin puede ejecutar respaldo/restauración; el archivo se cifra con AES-256-GCM y una contraseña elegida al momento (no ligada a esta PC); verificación de tablas y columnas permitidas antes de restaurar |
+| Backup | Solo Admin puede ejecutar respaldo/restauración; el archivo debe estar cifrado con AES-256-GCM y una contraseña elegida al momento; los respaldos JSON en claro se rechazan |
+| Supabase Storage | La app usa únicamente la clave **anon/public** de Supabase (nunca `service_role`) para subir fotos de bienes — la app corre en las PCs del ayuntamiento, así que cualquier clave embebida ahí debe asumirse extraíble; el bucket debe tener políticas RLS que permitan solo las operaciones necesarias |
 
-> **Cifrado en reposo**: el archivo `offline.db` está cifrado con **AES-256-GCM**. La clave se deriva del `MachineGuid` de Windows y es estable ante renombres de equipo. Los datos de inventario **no son legibles** sin la clave; solo los hashes BCrypt de credenciales están además protegidos por su propio factor de costo.
+> **Cifrado en reposo**: el almacén persistente `offline.db.enc` está cifrado con **AES-256-GCM**. Durante la ejecución se usa temporalmente un archivo de trabajo SQLite y el proceso debe proteger el perfil de Windows y evitar copias de seguridad de ese archivo. La clave se deriva del `MachineGuid` de Windows y es estable ante renombres de equipo.
 
 ---
 
@@ -82,7 +83,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V14` y cubren el esquema inicial, índices de rendimiento, campos de activos (factura, marca, modelo, serie), usuario activo + configuración institucional, etiquetado multi-fotos, resguardos, conteos físicos, email y scheduler, historial de precios, filtros guardados, mantenimiento, préstamos/actas y nomenclatura de código por área. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V18` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja y nomenclatura de código por área. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -160,12 +161,9 @@ maven-dist/apache-maven-3.9.9/bin/mvn javafx:run
    ```bash
    mvn package -q
    ```
-   Esto genera `target/sibim-desktop-1.0.0.jar` (el shade plugin lo deja autocontenido, con todas las dependencias empaquetadas — no hay nada más que instalar).
-2. Copia a cada PC del ayuntamiento **únicamente**:
-   - `sibim-desktop-1.0.0.jar`
-   - `produccion.bat` (en la raíz del repo)
-   - un `.env` con las credenciales reales de esa instalación (nunca el mismo `.env` de desarrollo)
-3. Ejecuta `produccion.bat` — solo requiere Java 21 instalado, no Maven ni el código fuente.
+   Esto genera el JAR de compilación, pero para distribuir JavaFX en Windows usa el app-image de `packaging/build-installer.ps1` o el workflow de release; así se incluyen correctamente los runtimes nativos de JavaFX.
+2. Copia a cada PC del ayuntamiento **únicamente** la carpeta `SIBIM Desktop` generada, `produccion.bat` y un `.env` con las credenciales reales de esa instalación.
+3. Ejecuta `produccion.bat`; el app-image incluye el runtime de Java y no requiere Maven, código fuente ni Java instalado.
 
 Así el código fuente y las credenciales de producción no quedan expuestos en cada estación de trabajo, y una PC no puede quedar corriendo una versión distinta a las demás por una recompilación local accidental.
 
@@ -212,7 +210,7 @@ SIBIM-Java/
 │   │   └── resources/
 │   │       ├── fxml/              # 16 vistas de la interfaz
 │   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles)
-│   │       ├── db/migration/      # Migraciones Flyway V1–V12, se aplican solas al arrancar
+│   │       ├── db/migration/      # Migraciones Flyway V1–V18, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
 │   └── test/java/com/sibim/
@@ -221,7 +219,7 @@ SIBIM-Java/
 │       ├── db/offline/            # Tests del almacén offline (caducidad, outbox)
 │       ├── model/                 # Tests de entidades
 │       ├── repository/            # Tests de autorización de repositorios
-│       ├── service/               # Tests unitarios + autorización + exports (629 tests total)
+│       ├── service/               # Tests unitarios + autorización + exports (701 tests total)
 │       ├── session/               # Tests de SessionManager
 │       └── util/                  # Tests de utilidades
 ├── packaging/
@@ -273,14 +271,14 @@ pg_dump -U tu_usuario -d sibim -F c -f sibim_$(date +%Y%m%d).dump
 pg_restore -U tu_usuario -d sibim --clean sibim_20260101.dump
 ```
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V13__descripcion.sql` (numeración consecutiva a partir de V12) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia.
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V19__descripcion.sql` (numeración consecutiva a partir de V18) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia.
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (629 en total)
+# Correr todos los tests (701 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

@@ -16,7 +16,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
@@ -89,11 +88,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
     protected void exportarPdfAsync(ActaEntregaRecepcion item, Scene scene) {
         DialogUtil.runAsyncWithProgress(scene, "Generando PDF del acta…",
             () -> service.exportarPdf(item),
-            file -> {
-                if (file == null) return;
-                try { Desktop.getDesktop().open(file); }
-                catch (Exception e) { NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath()); }
-            },
+            file -> DialogUtil.showExportResultDialog(scene, file),
             e -> NotificacionUtil.error(scene, "No se pudo generar el PDF")
         );
     }
@@ -212,17 +207,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
                     NotificacionUtil.exito(scene, "Acta " + acta.getNumero() + " generada — "
                         + acta.getTotalBienes() + " bienes registrados");
                     loadData();
-                    DialogUtil.runAsync(
-                        () -> service.exportarPdf(acta),
-                        file -> {
-                            if (file == null) return;
-                            try { Desktop.getDesktop().open(file); }
-                            catch (Exception ex) {
-                                NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath());
-                            }
-                        },
-                        e -> NotificacionUtil.error(scene, "No se pudo generar el PDF del acta")
-                    );
+                    exportarPdfAsync(acta, scene);
                 },
                 e -> NotificacionUtil.error(scene, "No se pudo generar el acta: "
                     + (e.getMessage() != null ? e.getMessage() : "Error"))

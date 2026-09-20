@@ -119,25 +119,6 @@ class ProductoServiceFiltroTest {
     // ── Overloads legacy construyen el filtro correctamente ──────────────────
 
     @Test
-    void countFiltrado_legacySinFechas_construyeFiltroSinBaja() throws SQLException {
-        when(mockRepo.countFiltrado(any(ProductoFiltro.class))).thenReturn(5);
-
-        service.countFiltrado("monitor", "cat1", "TI", null, EstadoProducto.ACTIVO);
-
-        ArgumentCaptor<ProductoFiltro> captor = ArgumentCaptor.forClass(ProductoFiltro.class);
-        verify(mockRepo).countFiltrado(captor.capture());
-        ProductoFiltro f = captor.getValue();
-        assertEquals("monitor", f.busqueda());
-        assertEquals("cat1", f.categoriaId());
-        assertEquals("TI", f.area());
-        assertEquals(EstadoProducto.ACTIVO, f.estado());
-        assertFalse(f.incluirBaja());
-        assertFalse(f.soloSinEtiquetar());
-        assertNull(f.desdeReg());
-        assertNull(f.hastaReg());
-    }
-
-    @Test
     void countFiltrado_legacyConSinEtiquetar_propagaBandera() throws SQLException {
         when(mockRepo.countFiltrado(any(ProductoFiltro.class))).thenReturn(3);
 
@@ -156,7 +137,7 @@ class ProductoServiceFiltroTest {
         LocalDate hasta = LocalDate.of(2024, 12, 31);
         when(mockRepo.findPaginated(any(ProductoFiltro.class), eq(25), eq(0))).thenReturn(List.of());
 
-        service.getPaginated("silla", null, null, null, null, 25, 0, desde, hasta);
+        service.getPaginated("silla", null, null, null, null, false, 25, 0, desde, hasta);
 
         ArgumentCaptor<ProductoFiltro> captor = ArgumentCaptor.forClass(ProductoFiltro.class);
         verify(mockRepo).findPaginated(captor.capture(), eq(25), eq(0));

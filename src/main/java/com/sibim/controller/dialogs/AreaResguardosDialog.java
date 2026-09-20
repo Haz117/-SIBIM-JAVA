@@ -228,6 +228,7 @@ public final class AreaResguardosDialog {
         Button btnElim = new Button();
         btnElim.setGraphic(new FontIcon("mdi2d-delete-outline"));
         btnElim.getStyleClass().add("btn-secondary");
+        Tooltip.install(btnElim, new Tooltip("Eliminar resguardo (borra también el PDF)"));
         btnElim.setOnAction(ev -> {
             if (ConfirmacionUtil.confirmar("Eliminar resguardo",
                     "¿Eliminar el resguardo \"" + desc + "\"? El archivo PDF también se eliminará.")) {

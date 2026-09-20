@@ -17,7 +17,7 @@ public final class SupabaseStorage {
 
     private static volatile boolean initialized = false;
     private static String supabaseUrl;
-    private static String serviceKey;
+    private static String anonKey;
     private static final Object LOCK = new Object();
 
     private SupabaseStorage() {}
@@ -25,7 +25,7 @@ public final class SupabaseStorage {
     /** True when Supabase Storage is configured and the app is online. */
     public static boolean isAvailable() {
         ensureInit();
-        return supabaseUrl != null && serviceKey != null
+        return supabaseUrl != null && anonKey != null
             && !com.sibim.db.DatabaseConfig.isOfflineMode()
             && !com.sibim.db.DatabaseConfig.isDemoMode();
     }
@@ -37,8 +37,8 @@ public final class SupabaseStorage {
      */
     public static String upload(File localFile, String remoteName) throws IOException {
         ensureInit();
-        if (supabaseUrl == null || serviceKey == null)
-            throw new IOException("SUPABASE_URL o SUPABASE_SERVICE_KEY no están en .env");
+        if (supabaseUrl == null || anonKey == null)
+            throw new IOException("SUPABASE_URL o SUPABASE_ANON_KEY no están en .env");
 
         byte[] bytes = Files.readAllBytes(localFile.toPath());
 
@@ -48,8 +48,8 @@ public final class SupabaseStorage {
 
         HttpRequest req = HttpRequest.newBuilder()
             .uri(URI.create(supabaseUrl + "/storage/v1/object/" + BUCKET + "/" + remoteName))
-            .header("apikey", serviceKey)
-            .header("Authorization", "Bearer " + serviceKey)
+            .header("apikey", anonKey)
+            .header("Authorization", "Bearer " + anonKey)
             .header("Content-Type", "image/jpeg")
             .header("x-upsert", "true")
             .PUT(HttpRequest.BodyPublishers.ofByteArray(bytes))
@@ -90,19 +90,19 @@ public final class SupabaseStorage {
 
             Dotenv prod = Dotenv.configure().directory(prodDir).ignoreIfMissing().load();
             supabaseUrl = prod.get("SUPABASE_URL");
-            serviceKey  = prod.get("SUPABASE_SERVICE_KEY");
+            anonKey     = prod.get("SUPABASE_ANON_KEY");
 
             if (supabaseUrl == null || supabaseUrl.isBlank()) {
                 Dotenv dev = Dotenv.configure().ignoreIfMissing().load();
                 supabaseUrl = dev.get("SUPABASE_URL");
-                serviceKey  = dev.get("SUPABASE_SERVICE_KEY");
+                anonKey     = dev.get("SUPABASE_ANON_KEY");
             }
             if (supabaseUrl == null || supabaseUrl.isBlank()) {
                 supabaseUrl = System.getenv("SUPABASE_URL");
-                serviceKey  = System.getenv("SUPABASE_SERVICE_KEY");
+                anonKey     = System.getenv("SUPABASE_ANON_KEY");
             }
             if (supabaseUrl != null) supabaseUrl = supabaseUrl.trim();
-            if (serviceKey  != null) serviceKey  = serviceKey.trim();
+            if (anonKey     != null) anonKey     = anonKey.trim();
             initialized = true;
         }
     }

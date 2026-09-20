@@ -26,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
 
-    private static final String AREA_SGM = "Secretaria General Municipal"; // prefijo SGM
-    private static final String AREA_RH  = "Direccion de Recursos Humanos"; // prefijo RH
+    private static final String AREA_SGM = "Secretaría General Municipal"; // prefijo SGM
+    private static final String AREA_RH  = "Tesorería — Recursos Humanos y Nómina"; // prefijo TESRH
     private static final String CAT_ID   = "cat-nomenclatura-test";
 
     private final ProductoService     productoService   = new ProductoService();
@@ -81,7 +81,7 @@ class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
         Producto rh  = productoService.save(nuevoBien("Bien RH", AREA_RH));
 
         assertEquals("SGM/01", sgm.getCodigo());
-        assertEquals("RH/01", rh.getCodigo());
+        assertEquals("TESRH/01", rh.getCodigo());
     }
 
     @Test
@@ -106,7 +106,7 @@ class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
 
     @Test
     void transferencia_reasignaCodigoAlAreaDestino() throws Exception {
-        // Ocupa RH/01 de antemano para que el bien transferido tenga que caer en RH/02
+        // Ocupa TESRH/01 de antemano para que el bien transferido tenga que caer en TESRH/02
         productoService.save(nuevoBien("Ya estaba en RH", AREA_RH));
         Producto p = productoService.save(nuevoBien("Bien a transferir", AREA_SGM));
         assertEquals("SGM/01", p.getCodigo());
@@ -115,7 +115,7 @@ class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
 
         Producto transferido = productoRepo.findById(p.getId()).orElseThrow();
         assertEquals(AREA_RH, transferido.getArea());
-        assertEquals("RH/02", transferido.getCodigo());
+        assertEquals("TESRH/02", transferido.getCodigo());
     }
 
     @Test

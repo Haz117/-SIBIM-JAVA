@@ -74,10 +74,10 @@ class SessionManagerTest {
 
     @Test
     void secretario_accedeADireccionesDeSubArea() {
-        SessionManager.setCurrentUser(usuario(Rol.SECRETARIO, "Secretaria General Municipal"));
-        // Definido en Areas.java bajo Secretaria General Municipal
-        assertTrue(SessionManager.isAreaAccessible("Direccion de Recursos Humanos"));
-        assertTrue(SessionManager.isAreaAccessible("Direccion de Administracion"));
+        SessionManager.setCurrentUser(usuario(Rol.SECRETARIO, "Secretaría General Municipal"));
+        // Definido en Areas.java bajo Secretaría General Municipal
+        assertTrue(SessionManager.isAreaAccessible("Archivo Municipal"));
+        assertTrue(SessionManager.isAreaAccessible("Recursos Materiales y Patrimonio"));
     }
 
     @Test

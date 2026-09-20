@@ -554,7 +554,7 @@ public class ImportacionBienesDialog {
 
     // ── CSV parsing ───────────────────────────────────────────────────────
 
-    private static List<ParsedRow> parseCsvFile(File file, List<Categoria> categorias) throws Exception {
+    static List<ParsedRow> parseCsvFile(File file, List<Categoria> categorias) throws Exception {
         List<ParsedRow> result = new ArrayList<>();
         Set<String> areaNames  = Areas.getAllAreaNames();
         Map<String, String> catByNorm   = new LinkedHashMap<>();
@@ -737,7 +737,7 @@ public class ImportacionBienesDialog {
 
     // ── CSV line parser (handles quoted fields) ───────────────────────────
 
-    private static String[] parseCsvLine(String line) {
+    static String[] parseCsvLine(String line) {
         List<String> fields = new ArrayList<>();
         boolean inQuotes = false;
         StringBuilder current = new StringBuilder();
@@ -761,13 +761,13 @@ public class ImportacionBienesDialog {
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private static String col(String[] cols, Map<String, Integer> idx, String key) {
+    static String col(String[] cols, Map<String, Integer> idx, String key) {
         Integer i = idx.get(key);
         if (i == null || i >= cols.length) return "";
         return cols[i] == null ? "" : cols[i].trim();
     }
 
-    private static String normalize(String s) {
+    static String normalize(String s) {
         if (s == null) return "";
         String lower = s.toLowerCase();
         return Normalizer.normalize(lower, Normalizer.Form.NFD)
@@ -777,19 +777,19 @@ public class ImportacionBienesDialog {
             .trim();
     }
 
-    private static int parseIntSafe(String s, int def) {
+    static int parseIntSafe(String s, int def) {
         try { return Integer.parseInt(s.replaceAll("[^\\d-]", "")); }
         catch (Exception e) { return def; }
     }
 
-    private static BigDecimal parseBigDecimalSafe(String s, BigDecimal def) {
+    static BigDecimal parseBigDecimalSafe(String s, BigDecimal def) {
         try {
             String clean = s.replace("$", "").replace(",", "").trim();
             return new BigDecimal(clean);
         } catch (Exception e) { return def; }
     }
 
-    private static LocalDate parseDateSafe(String s) {
+    static LocalDate parseDateSafe(String s) {
         for (DateTimeFormatter fmt : DATE_FORMATS) {
             try { return LocalDate.parse(s.trim(), fmt); }
             catch (DateTimeParseException ignored) {}
@@ -813,8 +813,8 @@ public class ImportacionBienesDialog {
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(
                 new FileOutputStream(dest), java.nio.charset.StandardCharsets.UTF_8))) {
             pw.println(String.join(",", TEMPLATE_HEADERS));
-            pw.println("Laptop Dell XPS,,Equipo de Cómputo,Direccion de Tecnologias de la Informacion,Juan Pérez García,1,1,3,24999.00,27500.00,Dell,Dell,XPS 15 9530,SN-ABC123456,Sala de Servidores,Laptop i7 16GB RAM,2024-01-15");
-            pw.println("Silla Ejecutiva,,Mobiliario,Despacho de la Presidencia,María García López,2,1,5,3200.00,3500.00,OfficeMax,,,, Oficina Presidencia,,2024-02-01");
+            pw.println("Laptop Dell XPS,,Equipo de Cómputo,Dirección de Tecnologías de la Información,Juan Pérez García,1,1,3,24999.00,27500.00,Dell,Dell,XPS 15 9530,SN-ABC123456,Sala de Servidores,Laptop i7 16GB RAM,2024-01-15");
+            pw.println("Silla Ejecutiva,,Mobiliario,Despacho de Presidencia,María García López,2,1,5,3200.00,3500.00,OfficeMax,,,, Oficina Presidencia,,2024-02-01");
         }
     }
 }

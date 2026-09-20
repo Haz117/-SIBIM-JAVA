@@ -256,11 +256,7 @@ public final class HistorialConteosDialog {
                 javafx.application.Platform.runLater(() -> {
                     btnExport.setDisable(false);
                     btnExport.setText("PDF");
-                    try {
-                        java.awt.Desktop.getDesktop().open(pdf);
-                    } catch (Exception ex) {
-                        NotificacionUtil.exito(scene, "PDF generado: " + pdf.getAbsolutePath());
-                    }
+                    DialogUtil.showExportResultDialog(scene, pdf);
                 });
             } catch (Exception ex) {
                 log.error("No se pudo exportar el conteo {}", c.getId(), ex);

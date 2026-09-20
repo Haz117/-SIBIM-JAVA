@@ -148,7 +148,9 @@ public class AuthService {
         if (me != null) {
             try {
                 auditRepo.log("sesion", me.getId(), me.getNombre(), "logout", "Cierre de sesión");
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("No se pudo registrar el cierre de sesión de {} en la bitácora", me.getNombre(), e);
+            }
         }
         SessionManager.logout();
     }

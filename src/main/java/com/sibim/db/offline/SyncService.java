@@ -182,6 +182,12 @@ public final class SyncService {
             syncAuditLog(synced, failed);
         } catch (Exception e) {
             log.error("SyncService: fallo inesperado durante la sincronización", e);
+            Platform.runLater(() -> {
+                MainController mc = MainController.getInstance();
+                var scene = mc != null ? mc.getContentAreaScene() : null;
+                if (scene != null) NotificacionUtil.advertencia(scene,
+                    "No se pudo completar la sincronización — se reintentará automáticamente.");
+            });
             return;
         }
         purgeSyncedRows();

@@ -5,8 +5,8 @@
     Crea %APPDATA%\SIBIM\.env con las credenciales de conexion.
 
 .EXAMPLE
-    .\configurar-sibim.ps1              # modo interactivo (pide contrasena y clave)
-    .\configurar-sibim.ps1 -Silent      # usa variables de entorno SIBIM_DB_PASS y SIBIM_SUPABASE_KEY
+    .\configurar-sibim.ps1              # modo interactivo (pide contrasena y clave publica)
+    .\configurar-sibim.ps1 -Silent      # usa variables de entorno SIBIM_DB_PASS y SIBIM_SUPABASE_ANON_KEY
 #>
 param([switch]$Silent)
 
@@ -46,16 +46,16 @@ if ($Silent) {
                     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePass))
 }
 
-# ── Pedir Supabase Service Key ────────────────────────────────────────────────
+# ── Pedir Supabase public/anon key ────────────────────────────────────────────
 if ($Silent) {
-    $SupabaseKey = $env:SIBIM_SUPABASE_KEY
-    if (-not $SupabaseKey) { throw "Modo -Silent requiere variable de entorno SIBIM_SUPABASE_KEY" }
+    $SupabaseKey = $env:SIBIM_SUPABASE_ANON_KEY
+    if (-not $SupabaseKey) { throw "Modo -Silent requiere variable de entorno SIBIM_SUPABASE_ANON_KEY" }
 } else {
     Write-Host ""
-    Write-Host "  [2/2] Supabase Service Key (para fotos de bienes)"
-    Write-Host "  (Supabase Dashboard -> Settings -> API -> service_role -> Reveal)" -ForegroundColor DarkGray
+    Write-Host "  [2/2] Supabase anon/public key (para fotos de bienes)"
+    Write-Host "  (Supabase Dashboard -> Settings -> API -> anon public)" -ForegroundColor DarkGray
     Write-Host ""
-    $SecureKey  = Read-Host "  Service Key" -AsSecureString
+    $SecureKey  = Read-Host "  Anon public key" -AsSecureString
     $SupabaseKey = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
                     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureKey))
 }
@@ -76,7 +76,7 @@ DB_SSL_MODE=$DB_SSL_MODE
 
 # Supabase Storage (fotos de bienes)
 SUPABASE_URL=$SUPABASE_URL
-SUPABASE_SERVICE_KEY=$SupabaseKey
+SUPABASE_ANON_KEY=$SupabaseKey
 "@
 
 [System.IO.File]::WriteAllText($EnvFile, $content, [System.Text.Encoding]::UTF8)

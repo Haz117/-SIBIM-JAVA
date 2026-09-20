@@ -22,6 +22,7 @@
         <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Actualizar lista de actas desde la base de datos"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
@@ -31,7 +32,10 @@
         <Label fx:id="helpResumen" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
         </Label>
-        <Button fx:id="btnNueva" text="＋ Nueva Acta" onAction="#onNuevaActa" styleClass="btn-primary"/>
+        <Button fx:id="btnNueva" text="Nueva Acta" onAction="#onNuevaActa" styleClass="btn-primary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
+        </Button>
     </HBox>
 
     <VBox fx:id="resumenBox" spacing="12">
@@ -58,14 +62,14 @@
                 </StackPane>
                 <Label text="ACERCA DE ESTA FUNCIÓN" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
-            <Label text="Genera un acta formal con el inventario" styleClass="rich-stat-value" style="-fx-font-size: 13px;"/>
+            <Label text="Genera un acta formal con el inventario" styleClass="rich-stat-value, rich-stat-value-xs"/>
             <Label text="completo al momento de la generación" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
     </VBox>
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10">
+    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-blue">
         <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
@@ -84,7 +88,7 @@
             <TableColumn fx:id="colValor"     text="Valor Total" prefWidth="130"/>
         </columns>
         <placeholder>
-            <Label text="No hay actas generadas. Crea la primera con ＋ Nueva Acta (solo Admin)."
+            <Label text="No hay actas generadas. Crea la primera con &quot;Nueva Acta&quot; (solo Admin)."
                    styleClass="table-placeholder"/>
         </placeholder>
     </TableView>

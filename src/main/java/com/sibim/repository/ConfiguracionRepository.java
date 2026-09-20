@@ -1,12 +1,16 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ConfiguracionRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(ConfiguracionRepository.class);
 
     private static final Map<String, String> DEMO_VALUES = new LinkedHashMap<>();
     static {
@@ -42,7 +46,9 @@ public class ConfiguracionRepository {
                     }
                 }
             }
-        } catch (SQLException ignored) {}
+        } catch (SQLException e) {
+            log.warn("No se pudo leer la configuración '{}', usando valor por defecto", clave, e);
+        }
         return defaultValue;
     }
 

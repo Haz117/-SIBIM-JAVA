@@ -141,6 +141,7 @@ public class OrganigramaController {
                     NotificacionUtil.info(searchField.getScene(), "Organigrama actualizado");
             },
             e -> {
+                log.error("No se pudo cargar el organigrama", e);
                 spinner.setVisible(false); spinner.setManaged(false);
                 NotificacionUtil.errorConAccion(searchField.getScene(), "No se pudo cargar el organigrama", "Reintentar", () -> loadData(false));
             }

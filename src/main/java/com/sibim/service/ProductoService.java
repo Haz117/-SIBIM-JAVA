@@ -53,32 +53,10 @@ public class ProductoService {
     // ── Overloads legacy — delegan a los métodos con ProductoFiltro ───────────
 
     public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado, int limit, int offset) throws SQLException {
-        return getPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, null, null), limit, offset);
-    }
-
-    public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado, int limit, int offset,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return getPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg), limit, offset);
-    }
-
-    public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado,
             boolean soloSinEtiquetar, int limit, int offset,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
         return getPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg), limit, offset);
-    }
-
-    public int countFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
-        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, null, null));
-    }
-
-    public int countFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg));
     }
 
     public int countFiltrado(String busqueda, String categoriaId, String area,
@@ -94,12 +72,6 @@ public class ProductoService {
     public List<Producto> getAllFiltrado(String busqueda, String categoriaId, String area,
             String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
         return getAllFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, null, null));
-    }
-
-    public List<Producto> getAllFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return getAllFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg));
     }
 
     public List<String> getResguardantes() throws SQLException {
@@ -147,7 +119,9 @@ public class ProductoService {
                     prevCompra = existing.get().getPrecioCompra();
                     prevVenta  = existing.get().getPrecioVenta();
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("No se pudo leer el precio anterior de '{}' para el historial de precios", p.getId(), e);
+            }
         }
 
         Producto saved = productoRepo.save(p);

@@ -410,8 +410,6 @@ public class MovimientosController {
                 updateEmptyState(hasFilters);
                 if (btnEmptyLimpiar != null) { btnEmptyLimpiar.setVisible(hasFilters); btnEmptyLimpiar.setManaged(hasFilters); }
 
-                checkEstadoCambios(r.page());
-
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             }

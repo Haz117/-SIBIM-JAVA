@@ -333,6 +333,17 @@ public final class OfflineStore {
                 st.execute("ALTER TABLE " + table + " ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0");
             } catch (SQLException ignored) {}
         }
+        // M12 (2026): estado_fisico, numero_factura y codigo_conac — offline.db
+        // previos al inventario físico MLA se quedaron sin estas columnas, aunque
+        // offline.sql ya las incluye para instalaciones nuevas. Sin esta migración,
+        // SyncService.syncProductos/syncCategorias truena con "no such column" en
+        // cualquier PC que ya tuviera un offline.db de antes de ese cambio.
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN estado_fisico TEXT"); } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN numero_factura TEXT"); } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN estado_fisico TEXT"); } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN numero_factura TEXT"); } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE categories ADD COLUMN codigo_conac TEXT"); } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE category_outbox ADD COLUMN codigo_conac TEXT"); } catch (SQLException ignored) {}
     }
 
     private static void runSchema(Connection c) throws SQLException {
@@ -402,10 +413,48 @@ public final class OfflineStore {
     // a caching failure must never break the real (online) read it's
     // piggybacking on, so every exception here is swallowed and logged.
 
+    /** Runs {@code body} inside a single SQLite transaction instead of the
+     *  connection's default autocommit — for the cache*() write-through
+     *  methods below, which snapshot every row of a server read, autocommit
+     *  meant one fsync'd commit per row (2+ separate statements each): with
+     *  2500+ bienes that alone added several seconds to every Bienes/
+     *  Organigrama load. One commit for the whole batch instead. */
+    private static void inTransaction(SqlRunnable body) throws SQLException {
+        Connection db = conn();
+        db.setAutoCommit(false);
+        try {
+            body.run();
+            db.commit();
+        } catch (SQLException e) {
+            db.rollback();
+            throw e;
+        } finally {
+            db.setAutoCommit(true);
+        }
+    }
+
+    @FunctionalInterface
+    private interface SqlRunnable { void run() throws SQLException; }
+
+    /** Minimum time between two full write-throughs of the same list — every
+     *  screen that lists productos/categorías/movimientos (Bienes, Organigrama,
+     *  Dashboard...) triggers one of these on every load, so navigating
+     *  between two of them seconds apart re-wrote the exact same 2500+ rows
+     *  to SQLite twice for no benefit: the offline mirror only needs to be
+     *  "recent enough" for the rare mid-session disconnect, not perfectly
+     *  up to date on every screen switch. */
+    private static final long CACHE_THROTTLE_MS = 15_000;
+    private static volatile long lastCacheProductosAt   = 0;
+    private static volatile long lastCacheCategoriasAt  = 0;
+    private static volatile long lastCacheMovimientosAt = 0;
+
     public static synchronized void cacheProductos(List<Producto> serverProductos) {
         if (serverProductos == null || serverProductos.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        if (now - lastCacheProductosAt < CACHE_THROTTLE_MS) return;
         try {
-            for (Producto p : serverProductos) cacheProductoSnapshot(p);
+            inTransaction(() -> { for (Producto p : serverProductos) cacheProductoSnapshot(p); });
+            lastCacheProductosAt = now;
         } catch (SQLException e) {
             log.warn("OfflineStore: no se pudo refrescar el caché local de productos", e);
         }
@@ -413,8 +462,11 @@ public final class OfflineStore {
 
     public static synchronized void cacheCategorias(List<Categoria> serverCategorias) {
         if (serverCategorias == null || serverCategorias.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        if (now - lastCacheCategoriasAt < CACHE_THROTTLE_MS) return;
         try {
-            for (Categoria c : serverCategorias) cacheCategoriaSnapshot(c);
+            inTransaction(() -> { for (Categoria c : serverCategorias) cacheCategoriaSnapshot(c); });
+            lastCacheCategoriasAt = now;
         } catch (SQLException e) {
             log.warn("OfflineStore: no se pudo refrescar el caché local de categorías", e);
         }
@@ -422,8 +474,11 @@ public final class OfflineStore {
 
     public static synchronized void cacheMovimientos(List<Movimiento> serverMovimientos) {
         if (serverMovimientos == null || serverMovimientos.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        if (now - lastCacheMovimientosAt < CACHE_THROTTLE_MS) return;
         try {
-            for (Movimiento m : serverMovimientos) cacheMovimientoSnapshot(m);
+            inTransaction(() -> { for (Movimiento m : serverMovimientos) cacheMovimientoSnapshot(m); });
+            lastCacheMovimientosAt = now;
         } catch (SQLException e) {
             log.warn("OfflineStore: no se pudo refrescar el caché local de movimientos", e);
         }

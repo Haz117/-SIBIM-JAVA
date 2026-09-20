@@ -6,6 +6,7 @@ import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -29,6 +30,13 @@ class MovimientoRepositoryIntegrationTest extends IntegrationTestBase {
 
     private final MovimientoRepository repo = new MovimientoRepository();
     private final ProductoRepository productoRepo = new ProductoRepository();
+
+    @BeforeEach
+    void seedCategoria() throws SQLException {
+        try (Connection c = getConnection()) {
+            insertCategoria(c, CAT_ID, "Cat Movimiento");
+        }
+    }
 
     private void insertCategoria(Connection c, String id, String nombre) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
@@ -69,9 +77,6 @@ class MovimientoRepositoryIntegrationTest extends IntegrationTestBase {
 
     @Test
     void addMovimientoAtomicOnline_entrada_incrementsStock() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Cat Movimiento");
-        }
         String pid = UUID.randomUUID().toString();
         productoRepo.saveOnline(buildProducto(pid, 10));
 
@@ -95,9 +100,6 @@ class MovimientoRepositoryIntegrationTest extends IntegrationTestBase {
 
     @Test
     void addMovimientoAtomicOnline_salida_decrementsStock() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Cat Movimiento");
-        }
         String pid = UUID.randomUUID().toString();
         productoRepo.saveOnline(buildProducto(pid, 20));
 
@@ -110,9 +112,6 @@ class MovimientoRepositoryIntegrationTest extends IntegrationTestBase {
 
     @Test
     void findAll_returnsMovimientosForCurrentUser() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Cat Movimiento");
-        }
         String pid = UUID.randomUUID().toString();
         productoRepo.saveOnline(buildProducto(pid, 50));
 
@@ -126,9 +125,6 @@ class MovimientoRepositoryIntegrationTest extends IntegrationTestBase {
 
     @Test
     void findByProducto_returnsOnlyThatProductsMovements() throws SQLException {
-        try (Connection c = getConnection()) {
-            insertCategoria(c, CAT_ID, "Cat Movimiento");
-        }
         String pid1 = UUID.randomUUID().toString();
         String pid2 = UUID.randomUUID().toString();
         productoRepo.saveOnline(buildProducto(pid1, 30));

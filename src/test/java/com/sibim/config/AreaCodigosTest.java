@@ -39,12 +39,12 @@ class AreaCodigosTest {
     }
 
     @Test
-    void direccionDeBienesMunicipales_tienePrefijoDBM() {
-        assertEquals("DBM", AreaCodigos.prefijo("Direccion de Bienes Municipales"));
+    void recursosMaterialesYPatrimonio_tienePrefijoRMP() {
+        assertEquals("RMP", AreaCodigos.prefijo("Recursos Materiales y Patrimonio"));
     }
 
     @Test
     void tecnologiasDeLaInformacion_tienePrefijoTICS() {
-        assertEquals("TICS", AreaCodigos.prefijo("Direccion de Tecnologias de la Informacion"));
+        assertEquals("TICS", AreaCodigos.prefijo("Dirección de Tecnologías de la Información"));
     }
 }

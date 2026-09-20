@@ -27,6 +27,14 @@ public final class AppExecutor {
         POOL.submit(task);
     }
 
+    /** The shared pool itself, for callers that fan out several tasks and
+     *  join them (e.g. CompletableFuture.supplyAsync) instead of submitting
+     *  one at a time. Never shut this down from a caller — only Main.stop()
+     *  via {@link #shutdown()} owns its lifecycle. */
+    public static ExecutorService pool() {
+        return POOL;
+    }
+
     /** Call from Main.stop() to allow clean shutdown. Not strictly required
      *  since threads are daemon, but makes shutdown log cleaner. */
     public static void shutdown() {

@@ -5,20 +5,17 @@ echo  ================================================================
 echo   SIBIM Desktop - Sistema Integral de Bienes Municipales
 echo  ================================================================
 echo.
-REM Lanzador de PRODUCCION: solo ejecuta el .jar ya compilado.
-REM No usa Maven ni requiere el codigo fuente en esta maquina.
+REM Lanzador de PRODUCCION: ejecuta el app-image generado por jpackage.
+REM No usa Maven, Java ni requiere el codigo fuente en esta maquina.
 REM
 REM Para desplegar en una PC nueva del ayuntamiento, copia a esa PC
 REM UNICAMENTE estos 3 elementos (nunca el codigo fuente completo):
 REM   1. Este archivo (produccion.bat)
-REM   2. El archivo sibim-desktop-X.Y.Z.jar (generado con
-REM      "mvn package" una sola vez, en una maquina de desarrollo —
-REM      el shade plugin lo deja en target\ con este nombre, ya
-REM      autocontenido con todas las dependencias)
+REM   2. La carpeta "SIBIM Desktop" generada por jpackage
 REM   3. El archivo .env con las credenciales reales de esa instalacion
 REM
 REM Estructura esperada junto a este .bat:
-REM   .\sibim-desktop-X.Y.Z.jar
+REM   .\SIBIM Desktop\SIBIM Desktop.exe
 REM   .\.env
 
 REM Verificar Java
@@ -29,17 +26,15 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-set "SIBIM_JAR="
-for %%J in (sibim-desktop-*.jar) do set "SIBIM_JAR=%%J"
-if not defined SIBIM_JAR (
-    echo [ERROR] No se encontro un sibim-desktop-*.jar junto a este script.
-    echo Copia aqui el .jar generado con "mvn package" en la maquina de desarrollo
-    echo (queda en target\sibim-desktop-1.0.0.jar).
+set "SIBIM_EXE=SIBIM Desktop\SIBIM Desktop.exe"
+if not exist "%SIBIM_EXE%" (
+    echo [ERROR] No se encontro el app-image de SIBIM Desktop.
+    echo Copia junto a este script la carpeta "SIBIM Desktop" generada por jpackage.
     pause
     exit /b 1
 )
 
 echo Iniciando SIBIM Desktop...
 echo.
-java -jar "%SIBIM_JAR%"
+start "SIBIM Desktop" "%SIBIM_EXE%"
 pause

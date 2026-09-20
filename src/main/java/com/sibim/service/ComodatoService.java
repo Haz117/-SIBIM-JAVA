@@ -10,10 +10,12 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Comodato;
 import com.sibim.model.Producto;
 import com.sibim.repository.AuditLogRepository;
@@ -37,6 +39,7 @@ public class ComodatoService {
     private final PrestamoRepository      prestamoRepo;
     private final ConfiguracionRepository cfgRepo;
     private final AuditLogRepository      auditRepo;
+    private final ReporteService          reporteService = new ReporteService();
 
     public ComodatoService() {
         this(new ComodatoRepository(), new ProductoRepository(), new PrestamoRepository(),
@@ -162,7 +165,19 @@ public class ComodatoService {
 
             // ── Header ──
             DeviceRgb hColor = vencido ? new DeviceRgb(146, 64, 14) : COLOR_HEADER;
-            Table headerTable = new Table(1).useAllAvailableWidth();
+            Image headerLogo = reporteService.loadHeaderLogo();
+            Table headerTable;
+            if (headerLogo != null) {
+                headerTable = new Table(new float[]{1f, 4f}).useAllAvailableWidth();
+                com.itextpdf.layout.element.Cell logoCell = new com.itextpdf.layout.element.Cell()
+                    .add(headerLogo)
+                    .setBackgroundColor(ColorConstants.WHITE)
+                    .setPadding(6).setBorder(null)
+                    .setVerticalAlignment(VerticalAlignment.MIDDLE);
+                headerTable.addCell(logoCell);
+            } else {
+                headerTable = new Table(1).useAllAvailableWidth();
+            }
             com.itextpdf.layout.element.Cell hCell = new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("COMODATO EN PRÉSTAMO")
                     .setFont(bold).setFontSize(14).setFontColor(ColorConstants.WHITE)

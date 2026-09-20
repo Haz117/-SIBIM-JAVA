@@ -546,6 +546,8 @@
 .filter-bar-indigo:hover { -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 8, 0, 0, 2); }
 .filter-bar-blue   { -fx-border-color: #1D4ED8 #E2E8F0 #E2E8F0 #1D4ED8; }
 .filter-bar-blue:hover   { -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.10), 8, 0, 0, 2); }
+.filter-bar-emerald { -fx-border-color: #059669 #E2E8F0 #E2E8F0 #059669; }
+.filter-bar-emerald:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.10), 8, 0, 0, 2); }
 
 /* ═══════════════════════════════════════════════════════════════════
    STAT CARDS (Dashboard)
@@ -1470,20 +1472,9 @@
 .alert-ok-label { -fx-text-fill: #64748B; -fx-font-size: 12.5px; -fx-font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   EMPTY STATE  — placeholder con icono grande
+   EMPTY STATE — ver la regla combinada con .empty-state-title/.empty-
+   state-subtitle bajo "FEATURE 3: Empty states" más abajo en este archivo.
    ═══════════════════════════════════════════════════════════════════ */
-.empty-state-msg {
-    -fx-font-size: 14.5px;
-    -fx-text-fill: #64748B;
-    -fx-font-weight: 600;
-}
-.empty-state-hint {
-    -fx-font-size: 12px;
-    -fx-text-fill: #64748B;
-    -fx-wrap-text: true;
-    -fx-text-alignment: center;
-    -fx-padding: 0 40;
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    FORM VALIDATION  — estados visuales de campos
@@ -2349,8 +2340,11 @@
 /* Pagination page label */
 .pagination-lbl { -fx-font-size: 12px; -fx-text-fill: #475569; }
 
-/* Empty-state large icon (placeholder inside tables) */
-.empty-icon-lg { -fx-icon-size: 64; -fx-opacity: 0.45; }
+/* Empty-state large icon (placeholder inside tables) — kept as one rule with
+   .empty-state-icon (util/EmptyStateUtil.java) so the two empty-state code
+   paths (static FXML <placeholder> blocks vs. table.setPlaceholder() built
+   in Java) can never visually drift apart again. */
+.empty-icon-lg, .empty-state-icon { -fx-icon-size: 52; -fx-icon-color: #CBD5E1; }
 
 /* Pie chart empty state overlay */
 .pie-empty-state { -fx-min-height: 140; }
@@ -2750,11 +2744,15 @@
 .rich-stat-card .rich-stat-label { -fx-font-size: 10.5px; -fx-text-fill: #475569; -fx-font-weight: bold; }
 .rich-stat-card .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1E293B; }
 .rich-stat-card .rich-stat-value.rich-stat-value-sm { -fx-font-size: 18px; }
+/* Extra-small variant — a rich-stat-value repurposed as a short description
+   line (e.g. "Acerca de esta función" cards) instead of a big number. */
+.rich-stat-card .rich-stat-value.rich-stat-value-xs { -fx-font-size: 13px; }
 .rich-stat-card .rich-stat-hint  { -fx-font-size: 11px; -fx-text-fill: #475569; }
 /* Single-class fallbacks for sizing only */
 .rich-stat-label { -fx-font-size: 10.5px; -fx-font-weight: bold; }
 .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; }
 .rich-stat-value-sm { -fx-font-size: 18px; }
+.rich-stat-value-xs { -fx-font-size: 13px; }
 .rich-stat-hint  { -fx-font-size: 11px; }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4174,24 +4172,24 @@
 }
 
 /* ─── FEATURE 3: Empty states ─── */
+/* .empty-state-icon is defined once, together with .empty-icon-lg, near the
+   "Empty-state large icon" rule above. */
 .empty-state-box {
     -fx-padding: 48 24;
     -fx-alignment: center;
 }
-.empty-state-icon {
-    -fx-icon-size: 52;
-    -fx-icon-color: #CBD5E1;
-}
-.empty-state-title {
+.empty-state-title, .empty-state-msg {
     -fx-font-size: 16px;
     -fx-font-weight: 700;
     -fx-text-fill: #94A3B8;
 }
-.empty-state-subtitle {
+.empty-state-subtitle, .empty-state-hint {
     -fx-font-size: 13px;
     -fx-text-fill: #CBD5E1;
     -fx-text-alignment: center;
     -fx-alignment: center;
+    -fx-wrap-text: true;
+    -fx-padding: 0 40;
 }
 
 /* ─── FEATURE 4: Skeleton loading ─── */

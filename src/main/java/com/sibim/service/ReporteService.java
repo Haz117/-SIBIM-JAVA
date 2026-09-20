@@ -11,6 +11,8 @@ import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
@@ -78,6 +80,30 @@ public class ReporteService {
                 .warn("No se pudo leer logo_path de configuración: {}", e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Loads the municipal logo for a PDF header, sized to fit a small header
+     * cell, or null if none is configured / the file can't be read. Shared so
+     * PrestamoService/ComodatoService/ResguardoService/ActaService — each of
+     * which builds its own PDF acta/comprobante outside the ReporteXxxService
+     * hierarchy — don't each reimplement this loader (before this, only
+     * Préstamo actually loaded the logo; Comodato/Resguardo/Acta PDFs never
+     * showed it purely because nobody had factored this out).
+     */
+    protected Image loadHeaderLogo() {
+        String lp = logoPath();
+        if (lp == null) return null;
+        try {
+            Image img = new Image(ImageDataFactory.create(lp));
+            img.setMaxHeight(45).setMaxWidth(60).setAutoScale(false);
+            img.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
+            return img;
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(ReporteService.class)
+                .warn("No se pudo cargar el logo municipal '{}': {}", lp, e.getMessage());
+            return null;
+        }
     }
 
     protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(162, 35, 45); // guinda Pantone 1805 C
@@ -221,7 +247,7 @@ public class ReporteService {
     }
 
     public File exportDistribucionExcel() throws Exception {
-        List<Producto> productos = productoRepo.findAll();
+        List<Producto> productos = guardExportSize(productoRepo.findAll(), "bienes");
         Map<String, List<Producto>> porArea = productos.stream()
             .collect(Collectors.groupingBy(p -> p.getArea() != null ? p.getArea() : "Sin área"));
 
@@ -273,7 +299,7 @@ public class ReporteService {
     }
 
     public File exportDistribucionCsv() throws Exception {
-        List<Producto> productos = productoRepo.findAll();
+        List<Producto> productos = guardExportSize(productoRepo.findAll(), "bienes");
         Map<String, List<Producto>> porArea = productos.stream()
             .collect(Collectors.groupingBy(p -> p.getArea() != null ? p.getArea() : "Sin área"));
 
@@ -294,7 +320,7 @@ public class ReporteService {
     }
 
     public File exportAlertasCsv() throws Exception {
-        List<Producto> todos     = productoRepo.findAll();
+        List<Producto> todos     = guardExportSize(productoRepo.findAll(), "bienes");
         List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
         List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
         File file = tempFile("alertas", ".csv");
@@ -313,7 +339,7 @@ public class ReporteService {
     }
 
     public File exportAlertasPdf() throws Exception {
-        List<Producto> todos     = productoRepo.findAll();
+        List<Producto> todos     = guardExportSize(productoRepo.findAll(), "bienes");
         List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
         List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
         File file = tempFile("alertas", ".pdf");
@@ -349,7 +375,7 @@ public class ReporteService {
     }
 
     public File exportDistribucionPdf() throws Exception {
-        List<Producto> productos = productoRepo.findAll();
+        List<Producto> productos = guardExportSize(productoRepo.findAll(), "bienes");
         Map<String, List<Producto>> porArea = productos.stream()
             .collect(Collectors.groupingBy(p -> p.getArea() != null ? p.getArea() : "Sin área"));
         File file = tempFile("distribucion", ".pdf");
@@ -380,7 +406,7 @@ public class ReporteService {
     }
 
     public File exportAlertasExcel() throws Exception {
-        List<Producto> todos     = productoRepo.findAll();
+        List<Producto> todos     = guardExportSize(productoRepo.findAll(), "bienes");
         List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
         List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
         String[] headers = {"Nombre", "Codigo", "Stock Actual", "Stock Minimo", "Estado"};
@@ -834,7 +860,8 @@ public class ReporteService {
     // ─────────────────────────── BIENES DADOS DE BAJA ──────────────────────────
 
     private List<Producto> fetchBajas() throws Exception {
-        return productoRepo.findAll(true).stream().filter(Producto::isDadoDeBaja).toList();
+        List<Producto> bajas = productoRepo.findAll(true).stream().filter(Producto::isDadoDeBaja).toList();
+        return guardExportSize(bajas, "bienes dados de baja");
     }
 
     public File exportBajasPdf() throws Exception  { return exportBajasPdf(fetchBajas()); }

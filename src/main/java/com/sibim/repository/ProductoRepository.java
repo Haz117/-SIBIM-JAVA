@@ -141,40 +141,6 @@ public class ProductoRepository {
         return queryDynamic(BASE_SELECT + where + " ORDER BY p.nombre", params);
     }
 
-    // Legacy overloads — delegan a los métodos con ProductoFiltro
-
-    public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, int limit, int offset,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return findPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, false, desdeReg, hastaReg), limit, offset);
-    }
-
-    public List<Producto> findPaginated(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, boolean soloSinEtiquetar, int limit, int offset,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return findPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, soloSinEtiquetar, desdeReg, hastaReg), limit, offset);
-    }
-
-    public int countFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, false, desdeReg, hastaReg));
-    }
-
-    public int countFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            boolean incluirBaja, boolean soloSinEtiquetar, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, incluirBaja, soloSinEtiquetar, desdeReg, hastaReg));
-    }
-
-    public List<Producto> findAllFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
-            LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
-        return findAllFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, desdeReg, hastaReg));
-    }
-
     /** Marks the given product IDs as etiquetado = {@code valor} in one round-trip. */
     public void marcarEtiquetado(List<String> ids, boolean valor) throws SQLException {
         if (ids == null || ids.isEmpty()) return;

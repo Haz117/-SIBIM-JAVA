@@ -28,22 +28,21 @@ public final class DemoDataStore {
     private static final LinkedList<ConteoFisico> CONTEOS   = new LinkedList<>();
 
     // ── Constantes de área ────────────────────────────────────────────────────
-    // Referencian las constantes de Areas (sin acentos) en vez de repetir el
-    // texto con acentos: estas cadenas antes eran copias propias con
-    // ortografía "correcta" que nunca coincidían con Areas.SECRETARIAS/
-    // DIRECCIONES_* (que sí llevan los nombres oficiales sin acentos) — el
-    // organigrama agrupa por esos nombres exactos, así que cada producto
-    // sembrado aquí quedaba invisible en su sección de secretaría/dirección
-    // (solo "Despacho de la Presidencia" coincidía por casualidad).
-    private static final String SGM   = com.sibim.config.Areas.SECRETARIAS.get(0).nombre();                  // Secretaria General Municipal
-    private static final String RH    = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(0);       // Direccion de Recursos Humanos
-    private static final String ADM   = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(1);       // Direccion de Administracion
-    private static final String BM    = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(5);       // Direccion de Bienes Municipales
-    private static final String OBRAS = com.sibim.config.Areas.SECRETARIAS.get(2).nombre();                   // Secretaria de Obras Publicas y Desarrollo Urbano
-    private static final String PLAN  = com.sibim.config.Areas.SECRETARIAS.get(3).nombre();                   // Secretaria de Planeacion y Evaluacion
-    private static final String FIN   = com.sibim.config.Areas.SECRETARIAS.get(1).nombre();                   // Secretaria de Tesoreria Municipal
-    private static final String SEG   = com.sibim.config.Areas.SECRETARIAS.get(6).nombre();                   // Secretaria de Seguridad Publica Municipal
-    private static final String PRES  = com.sibim.config.Areas.PRESIDENCIA;                                   // Despacho de la Presidencia
+    // Referencian las constantes de Areas en vez de repetir el texto a mano:
+    // una copia propia del nombre se desincroniza en cuanto Areas.java cambia
+    // (pasó con la migración a los nombres reales del inventario MLA, que
+    // reordenó y renombró esta misma lista) — el organigrama agrupa por esos
+    // nombres exactos, así que cualquier copia suelta aquí vuelve a dejar los
+    // productos de demo invisibles en su sección de secretaría/dirección.
+    private static final String SGM   = com.sibim.config.Areas.SECRETARIAS.get(0).nombre();                        // Secretaría General Municipal
+    private static final String RH    = com.sibim.config.Areas.SECRETARIAS.get(1).direcciones().get(4);            // Tesorería — Recursos Humanos y Nómina
+    private static final String ADM   = com.sibim.config.Areas.SECRETARIAS.get(1).direcciones().get(1);            // Tesorería — Administración
+    private static final String BM    = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(3);            // Recursos Materiales y Patrimonio
+    private static final String OBRAS = com.sibim.config.Areas.SECRETARIAS.get(2).nombre();                        // Secretaría de Obras Públicas
+    private static final String PLAN  = com.sibim.config.Areas.SECRETARIAS.get(3).nombre();                        // Secretaría de Planeación
+    private static final String FIN   = com.sibim.config.Areas.SECRETARIAS.get(1).nombre();                        // Tesorería Municipal
+    private static final String SEG   = com.sibim.config.Areas.AUTONOMOS.get(5);                                   // Protección Civil y Bomberos
+    private static final String PRES  = com.sibim.config.Areas.PRESIDENCIA;                                        // Despacho de Presidencia
 
     // Hash BCrypt de "admin123456" (factor 12) — solo para demo; la autenticación
     // real usa DEMO_PASSWORDS abajo.

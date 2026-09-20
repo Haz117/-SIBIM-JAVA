@@ -12,6 +12,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +29,8 @@ import java.util.function.Consumer;
  *  new table/migration and "read/unread" state doesn't apply: everything
  *  shown here is a live, current condition, not a past event. */
 class NotificationCenter {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationCenter.class);
 
     private record Item(String icon, String colorClass, String text, String targetView) {}
 
@@ -84,28 +88,38 @@ class NotificationCenter {
                 int n = productoService.getAgotados().size();
                 if (n > 0) items.add(new Item("mdi2p-package-variant-closed", "danger",
                     n == 1 ? "1 bien agotado" : n + " bienes agotados", "alertas"));
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("No se pudo calcular la alerta de bienes agotados", e);
+            }
             try {
                 int n = productoService.getBajoStock().size();
                 if (n > 0) items.add(new Item("mdi2t-trending-down", "warning",
                     n == 1 ? "1 bien con stock bajo" : n + " bienes con stock bajo", "alertas"));
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("No se pudo calcular la alerta de bajo stock", e);
+            }
             try {
                 int n = productoService.getVencidosProximos(30).size();
                 if (n > 0) items.add(new Item("mdi2c-calendar-alert", "warning",
                     n == 1 ? "1 garantía por vencer en 30 días" : n + " garantías por vencer en 30 días",
                     "alertas"));
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("No se pudo calcular la alerta de garantías por vencer", e);
+            }
             try {
                 int n = prestamoService.countVencidos();
                 if (n > 0) items.add(new Item("mdi2c-clock-alert-outline", "danger",
                     n == 1 ? "1 préstamo vencido" : n + " préstamos vencidos", "prestamos"));
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("No se pudo calcular la alerta de préstamos vencidos", e);
+            }
             try {
                 int n = prestamoService.getProximosAVencer(3).size();
                 if (n > 0) items.add(new Item("mdi2c-clock-outline", "info",
                     n == 1 ? "1 préstamo vence en 3 días" : n + " préstamos vencen en 3 días", "prestamos"));
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("No se pudo calcular la alerta de préstamos próximos a vencer", e);
+            }
             return items;
         }, onLoaded, ex -> onLoaded.accept(List.of()));
     }

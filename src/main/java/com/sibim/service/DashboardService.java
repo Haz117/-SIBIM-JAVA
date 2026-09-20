@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Aggregates all data needed by the dashboard in a single service call.
@@ -36,40 +35,39 @@ public class DashboardService {
     public Resumen cargarResumen() throws SQLException {
         int anioActual   = java.time.LocalDate.now().getYear();
         int anioAnterior = anioActual - 1;
-        try (ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()) {
-            var fStats        = async(() -> productoRepo.getStats(),                  exec);
-            var fCatValores   = async(() -> productoRepo.getValorPorCategoria(),      exec);
-            var fAgotados     = async(() -> productoRepo.findAgotados(),              exec);
-            var fBajoStock    = async(() -> productoRepo.findBajoStock(),             exec);
-            var fProximasRev  = async(() -> productoRepo.findProximasRevisiones(30),  exec);
-            var fMovHoy       = async(() -> movimientoRepo.findToday(),               exec);
-            var fMovSemana    = async(() -> movimientoRepo.findLastNDays(7),          exec);
-            var fMovMensual      = async(() -> movimientoRepo.findMonthlyStats(6),       exec);
-            var fMovMensualValor = async(() -> movimientoRepo.findMonthlyValorStats(6),  exec);
-            var fByArea          = async(() -> productoRepo.countByArea(5),              exec);
-            var fMovsActual      = async(() -> movimientoRepo.countByAnio(anioActual),   exec);
-            var fMovsAnterior    = async(() -> movimientoRepo.countByAnio(anioAnterior), exec);
+        ExecutorService exec = com.sibim.util.AppExecutor.pool();
+        var fStats        = async(() -> productoRepo.getStats(),                  exec);
+        var fCatValores   = async(() -> productoRepo.getValorPorCategoria(),      exec);
+        var fAgotados     = async(() -> productoRepo.findAgotados(),              exec);
+        var fBajoStock    = async(() -> productoRepo.findBajoStock(),             exec);
+        var fProximasRev  = async(() -> productoRepo.findProximasRevisiones(30),  exec);
+        var fMovHoy       = async(() -> movimientoRepo.findToday(),               exec);
+        var fMovSemana    = async(() -> movimientoRepo.findLastNDays(7),          exec);
+        var fMovMensual      = async(() -> movimientoRepo.findMonthlyStats(6),       exec);
+        var fMovMensualValor = async(() -> movimientoRepo.findMonthlyValorStats(6),  exec);
+        var fByArea          = async(() -> productoRepo.countByArea(5),              exec);
+        var fMovsActual      = async(() -> movimientoRepo.countByAnio(anioActual),   exec);
+        var fMovsAnterior    = async(() -> movimientoRepo.countByAnio(anioAnterior), exec);
 
-            try {
-                CompletableFuture.allOf(
-                    fStats, fCatValores, fAgotados, fBajoStock, fProximasRev,
-                    fMovHoy, fMovSemana, fMovMensual, fMovMensualValor, fByArea,
-                    fMovsActual, fMovsAnterior).join();
-            } catch (CompletionException ce) {
-                Throwable cause = ce.getCause();
-                if (cause instanceof SQLException sql) throw sql;
-                throw new RuntimeException(cause);
-            }
-
-            var stats  = fStats.join();
-            var movHoy = fMovHoy.join();
-            log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
-                stats.total(), stats.categorias(), movHoy.size());
-            return new Resumen(stats, fCatValores.join(), fAgotados.join(),
-                               fBajoStock.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
-                               fMovMensual.join(), fMovMensualValor.join(),
-                               fByArea.join(), fMovsActual.join(), fMovsAnterior.join());
+        try {
+            CompletableFuture.allOf(
+                fStats, fCatValores, fAgotados, fBajoStock, fProximasRev,
+                fMovHoy, fMovSemana, fMovMensual, fMovMensualValor, fByArea,
+                fMovsActual, fMovsAnterior).join();
+        } catch (CompletionException ce) {
+            Throwable cause = ce.getCause();
+            if (cause instanceof SQLException sql) throw sql;
+            throw new RuntimeException(cause);
         }
+
+        var stats  = fStats.join();
+        var movHoy = fMovHoy.join();
+        log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
+            stats.total(), stats.categorias(), movHoy.size());
+        return new Resumen(stats, fCatValores.join(), fAgotados.join(),
+                           fBajoStock.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
+                           fMovMensual.join(), fMovMensualValor.join(),
+                           fByArea.join(), fMovsActual.join(), fMovsAnterior.join());
     }
 
     // Wraps a checked-exception supplier into a CompletableFuture.

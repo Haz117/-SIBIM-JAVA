@@ -23,7 +23,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
@@ -435,15 +434,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
                 prestamo -> {
                     NotificacionUtil.exito(scene, "Préstamo " + prestamo.getNumero() + " registrado");
                     loadData();
-                    DialogUtil.runAsync(
-                        () -> service.exportarPdf(prestamo),
-                        file -> {
-                            if (file == null) return;
-                            try { Desktop.getDesktop().open(file); }
-                            catch (Exception e) { NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath()); }
-                        },
-                        e -> log.warn("Error generando PDF del préstamo", e)
-                    );
+                    exportarPdfAsync(prestamo, scene);
                 },
                 e -> NotificacionUtil.error(scene, "No se pudo registrar el préstamo: "
                     + (e.getMessage() != null ? e.getMessage() : "Error"))
@@ -496,11 +487,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         if (rows.isEmpty()) { NotificacionUtil.advertencia(scene, "No hay préstamos para exportar"); return; }
         DialogUtil.runAsync(
             () -> service.exportarExcel(rows),
-            file -> {
-                if (file == null) return;
-                try { Desktop.getDesktop().open(file); }
-                catch (Exception e) { NotificacionUtil.advertencia(scene, "Excel: " + file.getAbsolutePath()); }
-            },
+            file -> DialogUtil.showExportResultDialog(scene, file),
             e -> NotificacionUtil.error(scene, "No se pudo exportar a Excel")
         );
     }

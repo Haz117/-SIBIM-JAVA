@@ -10,10 +10,12 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.ActaEntregaRecepcion;
 import com.sibim.model.Producto;
 import com.sibim.repository.ActaRepository;
@@ -36,6 +38,7 @@ public class ActaService {
     private final ActaRepository actaRepo;
     private final ProductoRepository productoRepo;
     private final ConfiguracionRepository cfgRepo;
+    private final ReporteService reporteService = new ReporteService();
 
     public ActaService() { this(new ActaRepository(), new ProductoRepository(), new ConfiguracionRepository()); }
     ActaService(ActaRepository actaRepo, ProductoRepository productoRepo, ConfiguracionRepository cfgRepo) {
@@ -107,7 +110,19 @@ public class ActaService {
             doc.setMargins(36, 36, 36, 36);
 
             // ── Header institucional ──
-            Table headerTable = new Table(1).useAllAvailableWidth();
+            Image headerLogo = reporteService.loadHeaderLogo();
+            Table headerTable;
+            if (headerLogo != null) {
+                headerTable = new Table(new float[]{1f, 4f}).useAllAvailableWidth();
+                com.itextpdf.layout.element.Cell logoCell = new com.itextpdf.layout.element.Cell()
+                    .add(headerLogo)
+                    .setBackgroundColor(ColorConstants.WHITE)
+                    .setPadding(6).setBorder(null)
+                    .setVerticalAlignment(VerticalAlignment.MIDDLE);
+                headerTable.addCell(logoCell);
+            } else {
+                headerTable = new Table(1).useAllAvailableWidth();
+            }
             com.itextpdf.layout.element.Cell hCell = new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("ACTA DE ENTREGA-RECEPCIÓN")
                     .setFont(bold).setFontSize(16).setFontColor(ColorConstants.WHITE)

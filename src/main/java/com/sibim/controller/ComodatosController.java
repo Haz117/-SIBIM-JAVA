@@ -21,7 +21,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
@@ -352,15 +351,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
                 comodato -> {
                     NotificacionUtil.exito(scene, "Comodato " + comodato.getNumero() + " registrado");
                     loadData();
-                    DialogUtil.runAsync(
-                        () -> service.exportarPdf(comodato),
-                        file -> {
-                            if (file == null) return;
-                            try { Desktop.getDesktop().open(file); }
-                            catch (Exception e) { NotificacionUtil.advertencia(scene, "PDF: " + file.getAbsolutePath()); }
-                        },
-                        e -> log.warn("Error generando PDF del comodato", e)
-                    );
+                    exportarPdfAsync(comodato, scene);
                 },
                 e -> NotificacionUtil.error(scene, "No se pudo registrar el comodato: "
                     + (e.getMessage() != null ? e.getMessage() : "Error"))

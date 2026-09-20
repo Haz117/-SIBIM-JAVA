@@ -77,15 +77,18 @@ public class BackupService {
     /** Replaces every row in every table with what's in {@code origen}.
      *  Runs inside a single transaction — any failure rolls back completely,
      *  never leaving the database half-restored.
-     *  @throws BackupEncryption.WrongPasswordException if {@code password}
-     *  doesn't match the one used to create an encrypted backup. Backups from
-     *  before encryption was added (plain JSON, no "SIBK" magic) are still
-     *  accepted as-is — {@code password} is ignored for those. */
+    *  @throws BackupEncryption.WrongPasswordException if {@code password}
+    *  doesn't match the one used to create an encrypted backup. Plain JSON
+    *  backups are rejected because they contain password hashes and complete
+    *  municipal inventory data. */
     @SuppressWarnings("unchecked")
     public void restore(File origen, char[] password) throws SQLException, IOException, BackupEncryption.WrongPasswordException {
         requireOnlineMode();
         byte[] raw = java.nio.file.Files.readAllBytes(origen.toPath());
-        byte[] json = BackupEncryption.isEncrypted(raw) ? BackupEncryption.decrypt(raw, password) : raw;
+        if (!BackupEncryption.isEncrypted(raw)) {
+            throw new IOException("El respaldo no está cifrado con AES-256-GCM y no puede restaurarse");
+        }
+        byte[] json = BackupEncryption.decrypt(raw, password);
         Map<String, Object> raiz = mapper.readValue(json, Map.class);
         Object tablasObj = raiz.get("tablas");
         if (!(tablasObj instanceof Map)) throw new IOException("Archivo de respaldo inválido: falta 'tablas'");

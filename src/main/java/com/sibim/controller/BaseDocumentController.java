@@ -16,7 +16,6 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.util.List;
 
@@ -174,13 +173,7 @@ public abstract class BaseDocumentController<T> {
     protected void exportarPdfAsync(T item, Scene scene) {
         DialogUtil.runAsync(
             () -> doExportPdf(item),
-            file -> {
-                if (file == null) return;
-                try { Desktop.getDesktop().open(file); }
-                catch (Exception e) {
-                    NotificacionUtil.advertencia(scene, "PDF generado: " + file.getAbsolutePath());
-                }
-            },
+            file -> DialogUtil.showExportResultDialog(scene, file),
             e -> NotificacionUtil.error(scene, "No se pudo generar el PDF")
         );
     }
