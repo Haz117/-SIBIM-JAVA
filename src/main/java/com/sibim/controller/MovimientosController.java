@@ -2,10 +2,8 @@ package com.sibim.controller;
 
 import com.sibim.controller.dialogs.MovimientoDetailDialog;
 import com.sibim.controller.dialogs.MovimientoDialogFactory;
-import com.sibim.controller.dialogs.MovimientoTimelineDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.model.Movimiento;
-import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.service.MovimientoService;

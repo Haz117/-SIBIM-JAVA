@@ -1,7 +1,6 @@
 package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
-import com.sibim.model.Producto;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.util.AnimationUtils;
@@ -12,8 +11,6 @@ import com.sibim.util.NotificacionUtil;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import org.slf4j.Logger;
-
-import java.util.Optional;
 
 class DashboardTablaRecienteSetup {
 

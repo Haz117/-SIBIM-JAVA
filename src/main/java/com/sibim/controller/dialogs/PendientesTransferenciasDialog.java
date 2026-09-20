@@ -4,7 +4,6 @@ import com.sibim.model.Movimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
-import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;

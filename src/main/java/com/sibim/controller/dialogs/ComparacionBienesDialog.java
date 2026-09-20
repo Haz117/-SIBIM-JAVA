@@ -93,7 +93,6 @@ public final class ComparacionBienesDialog {
         dlg.showAndWait();
     }
 
-    @SuppressWarnings("unchecked")
     private static TableCell<String[], String> diffCell(int colIndex) {
         return new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {

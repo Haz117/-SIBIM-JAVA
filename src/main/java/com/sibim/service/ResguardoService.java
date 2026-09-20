@@ -21,7 +21,6 @@ import com.sibim.model.ResguardoItem;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.ResguardoRepository;
-import com.sibim.session.SessionManager;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.QrUtils;
 
