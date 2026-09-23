@@ -1080,13 +1080,37 @@ public class ProductosController {
 
     @FXML
     private void onGuardarPreset() {
-        TextInputDialog dlg = new TextInputDialog();
-        dlg.setTitle("Guardar filtro");
-        dlg.setHeaderText("Nombre para este acceso rápido");
-        dlg.setContentText("Nombre:");
+        Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
+        dlg.setTitle("Guardar filtro");
+        ButtonType okType = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
+
+        HBox header = DialogUtil.gradientHeader("mdi2b-bookmark-plus-outline",
+            "Guardar filtro", "Acceso rápido a los filtros activos",
+            AppColors.INDIGO, AppColors.PRIMARY);
+
+        TextField tf = new TextField();
+        tf.setPromptText("Nombre del acceso rápido…");
+        Label lbl = new Label("Nombre:");
+        lbl.getStyleClass().add("field-label");
+        VBox form = new VBox(6, lbl, tf);
+        form.setPadding(new Insets(16));
+
+        dlg.getDialogPane().setContent(new VBox(0, header, form));
+        dlg.getDialogPane().setPrefWidth(400);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.showAndWait().map(String::trim).filter(n -> !n.isBlank())
+
+        Button btnOk = (Button) dlg.getDialogPane().lookupButton(okType);
+        btnOk.getStyleClass().add("btn-primary");
+        btnOk.setDisable(true);
+        tf.textProperty().addListener((obs, o, n) -> btnOk.setDisable(n.isBlank()));
+        Platform.runLater(tf::requestFocus);
+
+        dlg.showAndWait()
+           .filter(bt -> bt == okType)
+           .map(bt -> tf.getText().trim())
+           .filter(n -> !n.isBlank())
            .ifPresent(name -> presetPanel.saveCurrentAs(name, table.getScene()));
     }
 

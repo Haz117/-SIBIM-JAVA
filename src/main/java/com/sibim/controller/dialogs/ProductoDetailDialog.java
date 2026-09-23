@@ -6,6 +6,7 @@ import com.sibim.repository.PriceHistoryRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -613,11 +614,12 @@ public final class ProductoDetailDialog {
         Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
         dlg.setTitle("Agregar alerta de mantenimiento");
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        ButtonType okType = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
 
-        VBox form = new VBox(10);
-        form.setPadding(new Insets(16));
+        HBox header = DialogUtil.gradientHeader("mdi2w-wrench-clock",
+            "Agregar alerta de mantenimiento", p.getNombre(),
+            AppColors.TEAL, AppColors.TEAL_D);
 
         Label lblDesc = new Label("Descripción / tarea:");
         lblDesc.getStyleClass().add("dialog-field-label");
@@ -631,16 +633,21 @@ public final class ProductoDetailDialog {
         dpFecha.getStyleClass().add("form-field");
         dpFecha.setPrefWidth(Double.MAX_VALUE);
 
-        form.getChildren().addAll(lblDesc, tfDesc, lblFecha, dpFecha);
-        dlg.getDialogPane().setContent(form);
+        VBox form = new VBox(10, lblDesc, tfDesc, lblFecha, dpFecha);
+        form.setPadding(new Insets(16));
 
-        Button btnOk = (Button) dlg.getDialogPane().lookupButton(ButtonType.OK);
+        dlg.getDialogPane().setContent(new VBox(0, header, form));
+        dlg.getDialogPane().setPrefWidth(440);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        Button btnOk = (Button) dlg.getDialogPane().lookupButton(okType);
         btnOk.getStyleClass().add("btn-primary");
         btnOk.setDisable(true);
         tfDesc.textProperty().addListener((obs, ov, nv) -> btnOk.setDisable(nv.isBlank()));
+        javafx.application.Platform.runLater(tfDesc::requestFocus);
 
         dlg.showAndWait().ifPresent(bt -> {
-            if (bt == ButtonType.OK && !tfDesc.getText().isBlank() && dpFecha.getValue() != null) {
+            if (bt == okType && !tfDesc.getText().isBlank() && dpFecha.getValue() != null) {
                 String descripcion = tfDesc.getText().trim();
                 java.time.LocalDate fecha = dpFecha.getValue();
                 DialogUtil.runAsync(
