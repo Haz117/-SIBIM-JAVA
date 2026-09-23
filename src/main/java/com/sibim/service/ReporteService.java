@@ -17,8 +17,11 @@ import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.sibim.model.Comodato;
 import com.sibim.model.Movimiento;
+import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
+import com.sibim.model.Resguardo;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.FolioRepository;
 import com.sibim.repository.MovimientoRepository;
@@ -38,6 +41,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ReporteService {
+
+    private static volatile ReporteService INSTANCE;
+
+    public static ReporteService getInstance() {
+        if (INSTANCE == null) {
+            synchronized (ReporteService.class) {
+                if (INSTANCE == null) INSTANCE = new ReporteService();
+            }
+        }
+        return INSTANCE;
+    }
 
     private final ProductoRepository   productoRepo;
     private final MovimientoRepository movimientoRepo;
@@ -580,6 +594,135 @@ public class ReporteService {
         return exportMovimientosCsv(movimientos);
     }
 
+    // ───────────────────────── Resguardos ──────────────────────────────
+
+    public File exportResguardosExcel(List<Resguardo> resguardos) throws Exception {
+        String[] headers = {"Folio", "Resguardante", "Área", "Cargo", "Fecha", "Bienes", "Estado"};
+        File file = tempFile("resguardos", ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = createSheet(wb, "Resguardos");
+            writeHeader(sheet, headers, wb);
+            int row = 1;
+            for (Resguardo r : resguardos) {
+                Row rw = sheet.createRow(row++);
+                rw.createCell(0).setCellValue(r.getNumero());
+                rw.createCell(1).setCellValue(r.getResguardanteNombre() != null ? r.getResguardanteNombre() : "");
+                rw.createCell(2).setCellValue(r.getResguardanteArea() != null ? r.getResguardanteArea() : "");
+                rw.createCell(3).setCellValue(r.getResguardanteCargo() != null ? r.getResguardanteCargo() : "");
+                rw.createCell(4).setCellValue(r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate().format(FMT) : "");
+                rw.createCell(5).setCellValue(r.getItems().size());
+                rw.createCell(6).setCellValue(r.getEstado());
+            }
+            autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Resguardos de Bienes", null, null);
+            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
+        }
+        return file;
+    }
+
+    public File exportResguardosCsv(List<Resguardo> resguardos) throws Exception {
+        File file = tempFile("resguardos", ".csv");
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println("Folio,Resguardante,Área,Cargo,Fecha,Bienes,Estado");
+            for (Resguardo r : resguardos) {
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\"%n",
+                    esc(r.getNumero()), esc(r.getResguardanteNombre()),
+                    esc(r.getResguardanteArea()), esc(r.getResguardanteCargo()),
+                    r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate().format(FMT) : "",
+                    r.getItems().size(), esc(r.getEstado()));
+            }
+        }
+        return file;
+    }
+
+    // ───────────────────────── Comodatos ───────────────────────────────
+
+    public File exportComodatosExcel(List<Comodato> comodatos) throws Exception {
+        String[] headers = {"Folio", "Bien", "Código", "Entidad", "Contacto", "Fecha Inicio", "Fecha Fin", "Estado"};
+        File file = tempFile("comodatos", ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = createSheet(wb, "Comodatos");
+            writeHeader(sheet, headers, wb);
+            int row = 1;
+            for (Comodato c : comodatos) {
+                Row rw = sheet.createRow(row++);
+                rw.createCell(0).setCellValue(c.getNumero());
+                rw.createCell(1).setCellValue(c.getProductoNombre() != null ? c.getProductoNombre() : "");
+                rw.createCell(2).setCellValue(c.getProductoCodigo() != null ? c.getProductoCodigo() : "");
+                rw.createCell(3).setCellValue(c.getEntidadReceptora() != null ? c.getEntidadReceptora() : "");
+                rw.createCell(4).setCellValue(c.getContactoNombre() != null ? c.getContactoNombre() : "");
+                rw.createCell(5).setCellValue(c.getFechaInicio() != null ? c.getFechaInicio().format(FMT) : "");
+                rw.createCell(6).setCellValue(c.getFechaFin() != null ? c.getFechaFin().format(FMT) : "");
+                rw.createCell(7).setCellValue(c.getEstadoEfectivo());
+            }
+            autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Comodatos", null, null);
+            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
+        }
+        return file;
+    }
+
+    public File exportComodatosCsv(List<Comodato> comodatos) throws Exception {
+        File file = tempFile("comodatos", ".csv");
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println("Folio,Bien,Código,Entidad,Contacto,Fecha Inicio,Fecha Fin,Estado");
+            for (Comodato c : comodatos) {
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                    esc(c.getNumero()), esc(c.getProductoNombre()), esc(c.getProductoCodigo()),
+                    esc(c.getEntidadReceptora()), esc(c.getContactoNombre()),
+                    c.getFechaInicio() != null ? c.getFechaInicio().format(FMT) : "",
+                    c.getFechaFin() != null ? c.getFechaFin().format(FMT) : "",
+                    esc(c.getEstadoEfectivo()));
+            }
+        }
+        return file;
+    }
+
+    // ───────────────────────── Préstamos ───────────────────────────────
+
+    public File exportPrestamosExcel(List<Prestamo> prestamos) throws Exception {
+        String[] headers = {"Folio", "Bien", "Código", "Área Origen", "Área Destino",
+                            "Responsable", "Fecha Préstamo", "Devolución Prevista", "Estado"};
+        File file = tempFile("prestamos", ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = createSheet(wb, "Préstamos");
+            writeHeader(sheet, headers, wb);
+            int row = 1;
+            for (Prestamo p : prestamos) {
+                Row rw = sheet.createRow(row++);
+                rw.createCell(0).setCellValue(p.getNumero());
+                rw.createCell(1).setCellValue(p.getProductoNombre() != null ? p.getProductoNombre() : "");
+                rw.createCell(2).setCellValue(p.getProductoCodigo() != null ? p.getProductoCodigo() : "");
+                rw.createCell(3).setCellValue(p.getAreaOrigen() != null ? p.getAreaOrigen() : "");
+                rw.createCell(4).setCellValue(p.getAreaDestino() != null ? p.getAreaDestino() : "");
+                rw.createCell(5).setCellValue(p.getResponsableNombre() != null ? p.getResponsableNombre() : "");
+                rw.createCell(6).setCellValue(p.getFechaPrestamo() != null ? p.getFechaPrestamo().format(FMT) : "");
+                rw.createCell(7).setCellValue(p.getFechaDevolucionPrevista() != null ? p.getFechaDevolucionPrevista().format(FMT) : "");
+                rw.createCell(8).setCellValue(p.isVencidoCalc() ? Prestamo.ESTADO_VENCIDO : p.getEstado());
+            }
+            autosizeColumns(sheet, headers.length);
+            addExcelInfoSheet(wb, "Préstamos de Bienes", null, null);
+            try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
+        }
+        return file;
+    }
+
+    public File exportPrestamosCsv(List<Prestamo> prestamos) throws Exception {
+        File file = tempFile("prestamos", ".csv");
+        try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+            pw.println("Folio,Bien,Código,Área Origen,Área Destino,Responsable,Fecha Préstamo,Devolución Prevista,Estado");
+            for (Prestamo p : prestamos) {
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                    esc(p.getNumero()), esc(p.getProductoNombre()), esc(p.getProductoCodigo()),
+                    esc(p.getAreaOrigen()), esc(p.getAreaDestino()), esc(p.getResponsableNombre()),
+                    p.getFechaPrestamo() != null ? p.getFechaPrestamo().format(FMT) : "",
+                    p.getFechaDevolucionPrevista() != null ? p.getFechaDevolucionPrevista().format(FMT) : "",
+                    esc(p.isVencidoCalc() ? Prestamo.ESTADO_VENCIDO : p.getEstado()));
+            }
+        }
+        return file;
+    }
+
     // ───────────────────────────── Helpers ─────────────────────────────
 
     protected File tempFile(String prefix, String suffix) throws IOException {
@@ -904,6 +1047,18 @@ public class ReporteService {
             }
         }
         return escaped;
+    }
+
+    // ── Parque Vehicular V.6 ─────────────────────────────
+
+    public File exportParqueVehicularPdf(List<Producto> vehiculos) throws Exception {
+        return new ReporteParqueVehicularService().exportParqueVehicularPdf(vehiculos);
+    }
+
+    // ── Entrega-Recepción ANEXO V.4 ──────────────────────
+
+    public File exportEntregaRecepcionPdf(List<Producto> bienes) throws Exception {
+        return new ReporteEntregaRecepcionService().exportEntregaRecepcionPdf(bienes);
     }
 
     // ── Dashboard PDF export ──────────────────────────────

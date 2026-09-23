@@ -155,11 +155,14 @@ public class CategoriasController {
             if (isAdmin) {
                 MenuItem cmEditar   = new MenuItem("Editar");
                 cmEditar.setGraphic(new FontIcon("mdi2p-pencil"));
+                MenuItem cmFusionar = new MenuItem("Fusionar con…");
+                cmFusionar.setGraphic(new FontIcon("mdi2s-source-merge"));
                 MenuItem cmEliminar = new MenuItem("Eliminar");
                 cmEliminar.setGraphic(new FontIcon("mdi2d-delete-outline"));
                 cmEditar.setOnAction(e -> onEdit());
+                cmFusionar.setOnAction(e -> onFusionar());
                 cmEliminar.setOnAction(e -> onDelete());
-                cm.getItems().addAll(new SeparatorMenuItem(), cmEditar, new SeparatorMenuItem(), cmEliminar);
+                cm.getItems().addAll(new SeparatorMenuItem(), cmEditar, cmFusionar, new SeparatorMenuItem(), cmEliminar);
             }
             table.setContextMenu(cm);
         }
@@ -521,5 +524,76 @@ public class CategoriasController {
             },
             ex -> NotificacionUtil.error(table.getScene(), "No se pudo guardar la categoría")
         ));
+    }
+
+    private void onFusionar() {
+        Categoria source = table.getSelectionModel().getSelectedItem();
+        if (source == null) return;
+        List<Categoria> others = allData.stream()
+            .filter(c -> !c.getId().equals(source.getId()))
+            .toList();
+        if (others.isEmpty()) {
+            NotificacionUtil.advertencia(table.getScene(), "No hay otras categorías disponibles para fusionar");
+            return;
+        }
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        ButtonType okType = new ButtonType("Fusionar", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
+        dlg.getDialogPane().setPrefWidth(430);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("mdi2s-source-merge",
+            "Fusionar Categoría",
+            "Mueve todos los bienes a otra categoría y elimina \"" + source.getNombre() + "\"",
+            AppColors.WARNING, AppColors.WARNING_D);
+
+        GridPane form = DialogUtil.formGrid(130);
+        String origen = source.getNombre()
+            + (source.getTotalProductos() > 0 ? "  (" + source.getTotalProductos() + " bienes)" : "");
+        form.add(DialogUtil.fieldLabel("Categoría origen:"), 0, 0);
+        form.add(new Label(origen), 1, 0);
+
+        ComboBox<Categoria> targetCombo = new ComboBox<>(FXCollections.observableArrayList(others));
+        targetCombo.setMaxWidth(Double.MAX_VALUE);
+        targetCombo.setPromptText("Selecciona la categoría destino…");
+        targetCombo.getStyleClass().add("form-input");
+        targetCombo.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Categoria c) { return c == null ? "" : c.getNombre(); }
+            @Override public Categoria fromString(String s) { return null; }
+        });
+        form.add(DialogUtil.fieldLabel("Fusionar en *:"), 0, 1);
+        form.add(targetCombo, 1, 1);
+
+        Label warnLbl = new Label("\"" + source.getNombre() + "\" será eliminada. Esta acción no se puede deshacer.");
+        warnLbl.getStyleClass().add("muted-sm");
+        warnLbl.setWrapText(true);
+
+        VBox content = new VBox(12, header, form, warnLbl);
+        content.setPadding(new Insets(0, 16, 16, 16));
+        dlg.getDialogPane().setContent(content);
+
+        Button okBtn = (Button) dlg.getDialogPane().lookupButton(okType);
+        okBtn.getStyleClass().add("btn-danger");
+        okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+            if (targetCombo.getValue() == null) { AnimationUtils.shake(targetCombo); ev.consume(); }
+        });
+        Platform.runLater(targetCombo::requestFocus);
+
+        dlg.showAndWait().filter(bt -> bt == okType).ifPresent(bt -> {
+            Categoria target = targetCombo.getValue();
+            if (target == null) return;
+            DialogUtil.runAsync(
+                () -> { categoriaService.fusionar(source.getId(), target.getId()); return null; },
+                v -> {
+                    loadData();
+                    NotificacionUtil.exito(table.getScene(),
+                        "\"" + source.getNombre() + "\" fusionada en \"" + target.getNombre() + "\"");
+                },
+                e -> NotificacionUtil.error(table.getScene(), "No se pudo fusionar: "
+                    + (e.getMessage() != null ? e.getMessage() : "Error"))
+            );
+        });
     }
 }

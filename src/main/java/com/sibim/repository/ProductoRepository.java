@@ -191,6 +191,7 @@ public class ProductoRepository {
     public List<String> findDistinctMarcas()      { return findDistinctField("marca"); }
     public List<String> findDistinctModelos()     { return findDistinctField("modelo"); }
     public List<String> findDistinctProveedores() { return findDistinctField("proveedor"); }
+    public List<String> findDistinctUbicaciones() { return findDistinctField("ubicacion"); }
 
     private List<String> findDistinctField(String column) {
         if (DatabaseConfig.getLocalDataStore() != null) return List.of();

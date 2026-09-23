@@ -224,7 +224,7 @@
             <tooltip><Tooltip text="Exportar inventario filtrado a Excel (.xlsx)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
-        <Button text="Importar CSV" onAction="#onImportarCsv" styleClass="btn-import"
+        <Button text="Importar CSV / Excel" onAction="#onImportarCsv" styleClass="btn-import"
                 contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Importar bienes en lote desde un archivo CSV — descarga la plantilla desde el mismo diálogo" wrapText="true" maxWidth="250"/></tooltip>

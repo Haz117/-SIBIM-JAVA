@@ -30,7 +30,6 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
     @FXML private Label   lblStatValor;
     @FXML private VBox    statCardTotal;
     @FXML private VBox    statCardValor;
-    @FXML private TextField searchField;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colNumero;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colSaliente;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colEntrante;
@@ -73,8 +72,8 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
             btnNueva.setVisible(false); btnNueva.setManaged(false);
         }
 
-        if (searchField != null)
-            searchField.textProperty().addListener((obs, o, n) -> applyFilter(n));
+        setupDateFilterBar(null, null);
+        setupSearchListener();
 
         table.setOnKeyPressed(ev -> {
             if (ev.getCode() == KeyCode.ESCAPE) {
@@ -93,6 +92,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
             });
         }
 
+        restoreFilterPrefs();
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
@@ -102,7 +102,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
     @Override
     protected void onDataLoaded(List<ActaEntregaRecepcion> list) {
         allData = list;
-        applyFilter(searchField != null ? searchField.getText() : "");
+        applyFilter();
 
         BigDecimal valorTotal = list.stream()
             .map(ActaEntregaRecepcion::getValorTotal)
@@ -142,6 +142,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
         cm.getItems().addAll(miDetalle, miPdf);
+        addLoteExportItem(cm);
         return cm;
     }
 
@@ -156,17 +157,29 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private void applyFilter(String q) {
-        if (q == null || q.isBlank()) {
-            data.setAll(allData);
-        } else {
-            String lq = q.toLowerCase();
-            data.setAll(allData.stream().filter(a ->
-                (a.getNumero()       != null && a.getNumero().toLowerCase().contains(lq))
-                || (a.getAdminSaliente() != null && a.getAdminSaliente().toLowerCase().contains(lq))
-                || (a.getAdminEntrante() != null && a.getAdminEntrante().toLowerCase().contains(lq))
-            ).toList());
-        }
+    @Override
+    protected void applyFilter() {
+        String q = searchField != null ? searchField.getText() : "";
+        LocalDate desde = dpDesde != null ? dpDesde.getValue() : null;
+        LocalDate hasta = dpHasta != null ? dpHasta.getValue() : null;
+        List<ActaEntregaRecepcion> filtered = allData.stream()
+            .filter(a -> {
+                if (q == null || q.isBlank()) return true;
+                String lq = q.toLowerCase();
+                return (a.getNumero()       != null && a.getNumero().toLowerCase().contains(lq))
+                    || (a.getAdminSaliente() != null && a.getAdminSaliente().toLowerCase().contains(lq))
+                    || (a.getAdminEntrante() != null && a.getAdminEntrante().toLowerCase().contains(lq));
+            })
+            .filter(a -> {
+                LocalDate f = a.getFechaEntrega();
+                if (desde != null && (f == null || f.isBefore(desde))) return false;
+                if (hasta != null && (f == null || f.isAfter(hasta))) return false;
+                return true;
+            })
+            .toList();
+        data.setAll(filtered);
+        updateCount(filtered.size(), allData.size());
+        saveFilterPrefs(q, desde, hasta);
     }
 
     private void mostrarDetalle(ActaEntregaRecepcion a) {
@@ -182,6 +195,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
             "Entrega-Recepción · " + (a.getFechaEntrega() != null
                 ? FormatUtils.formatDate(a.getFechaEntrega()) : "—"),
             AppColors.INFO, AppColors.INFO_D);
+        DialogUtil.addCopyButton(header, a.getNumero());
 
         GridPane g = DialogUtil.formGrid(160);
         String[][] rows = {

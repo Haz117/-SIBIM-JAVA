@@ -11,6 +11,7 @@ import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -19,14 +20,100 @@ import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /** Dialog listing all bienes dados de baja, with search, detail on double-click,
- *  context menu, and per-row reactivation. */
+ *  context menu, and per-row reactivation. Also provides the baja-input dialog. */
 public final class ProductoBajasDialog {
 
     private ProductoBajasDialog() {}
+
+    public record BajaResult(
+        String motivo,
+        String tipoDestino,
+        String dictamen,
+        String numeroActa,
+        LocalDate fechaDictamen
+    ) {}
+
+    public static Optional<BajaResult> showBajaInputDialog(String nombreBien) {
+        Dialog<BajaResult> dlg = new Dialog<>();
+        dlg.setTitle("Dar de baja");
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader(
+            "mdi2d-delete-outline",
+            "Dar de baja",
+            "¿Dar de baja \"" + nombreBien + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
+            AppColors.WARNING_D, AppColors.WARNING_DD
+        );
+
+        TextField tfMotivo = new TextField();
+        tfMotivo.setPromptText("Motivo de la baja (obligatorio)");
+        tfMotivo.setPrefWidth(360);
+
+        ComboBox<String> cbDestino = new ComboBox<>();
+        cbDestino.getItems().addAll("", "Destrucción", "Donación", "Subasta",
+            "Transferencia a otro ente", "Otro");
+        cbDestino.setValue("");
+        cbDestino.setPrefWidth(360);
+        cbDestino.setPromptText("Tipo de destino (opcional)");
+
+        TextField tfDictamen = new TextField();
+        tfDictamen.setPromptText("Dictamen / Resolución (opcional)");
+        tfDictamen.setPrefWidth(360);
+
+        TextField tfNumeroActa = new TextField();
+        tfNumeroActa.setPromptText("No. de Acta (opcional)");
+        tfNumeroActa.setPrefWidth(360);
+
+        DatePicker dpFechaDictamen = new DatePicker();
+        dpFechaDictamen.setPromptText("Fecha del dictamen (opcional)");
+        dpFechaDictamen.setPrefWidth(360);
+
+        Node btnOk = dlg.getDialogPane().lookupButton(ButtonType.OK);
+        btnOk.setDisable(true);
+        tfMotivo.textProperty().addListener((obs, o, n) -> btnOk.setDisable(n == null || n.isBlank()));
+
+        VBox form = new VBox(10);
+        form.setPadding(new Insets(20, 24, 8, 24));
+        form.getChildren().addAll(
+            new Label("Motivo de la baja *"), tfMotivo,
+            new Label("Tipo de destino"),     cbDestino,
+            new Label("Dictamen / Resolución"), tfDictamen,
+            new Label("No. de Acta"),          tfNumeroActa,
+            new Label("Fecha del dictamen"),   dpFechaDictamen
+        );
+
+        dlg.getDialogPane().setContent(new VBox(header, form));
+        dlg.getDialogPane().setPrefWidth(440);
+
+        dlg.setResultConverter(bt -> {
+            if (bt != ButtonType.OK) return null;
+            String tipoDestino = switch (cbDestino.getValue() == null ? "" : cbDestino.getValue()) {
+                case "Destrucción"               -> "DESTRUCCION";
+                case "Donación"                  -> "DONACION";
+                case "Subasta"                   -> "SUBASTA";
+                case "Transferencia a otro ente" -> "TRANSFERENCIA_ENTE";
+                case "Otro"                      -> "OTRO";
+                default                          -> null;
+            };
+            return new BajaResult(
+                tfMotivo.getText().trim(),
+                tipoDestino,
+                tfDictamen.getText().isBlank()   ? null : tfDictamen.getText().trim(),
+                tfNumeroActa.getText().isBlank() ? null : tfNumeroActa.getText().trim(),
+                dpFechaDictamen.getValue()
+            );
+        });
+
+        return dlg.showAndWait();
+    }
 
     private static final ReporteService reporteService = new ReporteService();
 

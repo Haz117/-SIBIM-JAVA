@@ -6,6 +6,7 @@ import com.sibim.model.ResguardoItem;
 import com.sibim.model.Producto;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.service.ResguardoService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
@@ -27,6 +28,7 @@ import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.io.File;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,11 +50,11 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @FXML private TableColumn<Resguardo, String> colEstado;
     @FXML private Button     btnNuevo;
     @FXML private Button     btnCancelar;
-    @FXML private TextField  searchField;
 
-    private final ResguardoService  service      = new ResguardoService();
+    private final ResguardoService   service      = new ResguardoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
     private List<Resguardo> allData = new ArrayList<>();
+    private String statQuickFilter = null;
 
     // ── BaseDocumentController hooks ─────────────────────────────────────────
 
@@ -88,8 +90,12 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     protected void onInitialize() {
         boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
-        if (searchField != null)
-            searchField.textProperty().addListener((obs, o, n) -> applyFilter(n));
+        setupDateFilterBar(
+            () -> com.sibim.service.ReporteService.getInstance().exportResguardosExcel(exportTarget()),
+            () -> com.sibim.service.ReporteService.getInstance().exportResguardosCsv(exportTarget())
+        );
+        setupSearchListener();
+
         if (btnCancelar != null)
             btnCancelar.disableProperty().bind(
                 table.getSelectionModel().selectedItemProperty()
@@ -116,6 +122,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             });
         }
 
+        restoreFilterPrefs();
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
@@ -125,7 +132,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @Override
     protected void onDataLoaded(List<Resguardo> list) {
         allData = list;
-        applyFilter(searchField != null ? searchField.getText() : "");
+        applyFilter();
         long activos    = list.stream().filter(Resguardo::isActivo).count();
         long cancelados = list.stream().filter(r -> !r.isActivo()).count();
         long bienes     = list.stream().filter(Resguardo::isActivo)
@@ -136,6 +143,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         AnimationUtils.animateCount(lblStatBienes,     bienes,             700);
         AnimationUtils.staggeredFadeInUp(
             List.of(statCardTotal, statCardActivos, statCardCancelados, statCardBienes), 280, 55);
+        setupStatCardFilters();
     }
 
     @Override
@@ -146,6 +154,46 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @Override protected String emptyStateIcon()     { return "mdi2b-badge-account-outline"; }
     @Override protected String emptyStateTitle()    { return "Sin resguardos registrados"; }
     @Override protected String emptyStateSubtitle() { return "Asigna bienes a servidores públicos desde la sección Bienes"; }
+
+    @Override
+    protected boolean isFilterActive() {
+        return super.isFilterActive() || statQuickFilter != null;
+    }
+
+    @Override
+    protected void clearFilters() {
+        super.clearFilters();
+        statQuickFilter = null;
+        updateStatHighlight();
+    }
+
+    private void setupStatCardFilters() {
+        makeStatFilter(statCardTotal,      null);
+        makeStatFilter(statCardActivos,    Resguardo.ESTADO_ACTIVO);
+        makeStatFilter(statCardCancelados, Resguardo.ESTADO_CANCELADO);
+        updateStatHighlight();
+    }
+
+    private void makeStatFilter(VBox card, String estado) {
+        if (card == null) return;
+        card.getStyleClass().add("rich-stat-card-clickable");
+        card.setOnMouseClicked(e -> {
+            statQuickFilter = estado != null && estado.equals(statQuickFilter) ? null : estado;
+            updateStatHighlight();
+            applyFilter();
+        });
+    }
+
+    private void updateStatHighlight() {
+        for (VBox c : List.of(statCardTotal, statCardActivos, statCardCancelados, statCardBienes)) {
+            if (c != null) c.getStyleClass().remove("rich-stat-card-filter-active");
+        }
+        VBox active = statQuickFilter == null ? null
+            : Resguardo.ESTADO_ACTIVO.equals(statQuickFilter) ? statCardActivos
+            : Resguardo.ESTADO_CANCELADO.equals(statQuickFilter) ? statCardCancelados
+            : null;
+        if (active != null) active.getStyleClass().add("rich-stat-card-filter-active");
+    }
 
     @Override
     protected void onTableDoubleClick(Resguardo item) { mostrarDetalle(item); }
@@ -166,22 +214,36 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         miCancelar.setGraphic(new FontIcon("mdi2d-delete-circle-outline"));
         miCancelar.setOnAction(e -> onCancelar());
         cm.getItems().addAll(miDetalle, miPdf, new SeparatorMenuItem(), miCancelar);
+        addLoteExportItem(cm);
         return cm;
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private void applyFilter(String q) {
-        if (q == null || q.isBlank()) {
-            data.setAll(allData);
-        } else {
-            String lq = q.toLowerCase();
-            data.setAll(allData.stream().filter(r ->
-                r.getResguardanteNombre().toLowerCase().contains(lq)
-                || r.getNumero().toLowerCase().contains(lq)
-                || (r.getResguardanteArea() != null && r.getResguardanteArea().toLowerCase().contains(lq))
-            ).toList());
-        }
+    @Override
+    protected void applyFilter() {
+        String q = searchField != null ? searchField.getText() : "";
+        LocalDate desde = dpDesde != null ? dpDesde.getValue() : null;
+        LocalDate hasta = dpHasta != null ? dpHasta.getValue() : null;
+        List<Resguardo> filtered = allData.stream()
+            .filter(r -> statQuickFilter == null || statQuickFilter.equals(r.getEstado()))
+            .filter(r -> {
+                if (q == null || q.isBlank()) return true;
+                String lq = q.toLowerCase();
+                return r.getResguardanteNombre().toLowerCase().contains(lq)
+                    || r.getNumero().toLowerCase().contains(lq)
+                    || (r.getResguardanteArea() != null && r.getResguardanteArea().toLowerCase().contains(lq));
+            })
+            .filter(r -> {
+                LocalDate f = r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate() : null;
+                if (desde != null && (f == null || f.isBefore(desde))) return false;
+                if (hasta != null && (f == null || f.isAfter(hasta))) return false;
+                return true;
+            })
+            .toList();
+        data.setAll(filtered);
+        updateCount(filtered.size(), allData.size());
+        saveFilterPrefs(q, desde, hasta);
     }
 
     // ── FXML actions ─────────────────────────────────────────────────────────
@@ -408,6 +470,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             r.getResguardanteNombre() + (r.getResguardanteCargo() != null && !r.getResguardanteCargo().isBlank()
                 ? " · " + r.getResguardanteCargo() : ""),
             AppColors.PRIMARY, AppColors.PRIMARY_D);
+        DialogUtil.addCopyButton(header, r.getNumero());
 
         GridPane meta = DialogUtil.formGrid(140);
         String[][] infoRows = {
@@ -454,7 +517,21 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             itemsTable.setPlaceholder(new Label("Sin bienes registrados en este resguardo"));
         }
 
-        VBox content = new VBox(12, header, meta, lblBienes, itemsTable);
+        Label hintVer = new Label("Doble clic en un bien para verlo en el inventario");
+        hintVer.getStyleClass().add("table-count-label");
+
+        itemsTable.setOnMouseClicked(ev -> {
+            if (ev.getClickCount() == 2) {
+                ResguardoItem sel = itemsTable.getSelectionModel().getSelectedItem();
+                if (sel != null && sel.getProductoId() != null) {
+                    dialog.close();
+                    NavigationContext.setPendingProductId(sel.getProductoId());
+                    if (MainController.getInstance() != null) MainController.getInstance().navigateTo("productos");
+                }
+            }
+        });
+
+        VBox content = new VBox(12, header, meta, lblBienes, itemsTable, hintVer);
         content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
         AnimationUtils.staggeredFadeInUp(List.of(header, meta, itemsTable), 260, 65);

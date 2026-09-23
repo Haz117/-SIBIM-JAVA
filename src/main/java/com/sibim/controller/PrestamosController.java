@@ -6,6 +6,7 @@ import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.service.PrestamoService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
@@ -51,13 +52,12 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     @FXML private Button      btnDevolver;
     @FXML private Button      btnExportarExcel;
     @FXML private ComboBox<String>  estadoFilter;
-    @FXML private TextField         searchField;
     @FXML private ToggleButton      btnKanban;
     @FXML private HBox              kanbanBoard;
 
-    private final PrestamoService   service      = new PrestamoService();
+    private final PrestamoService    service      = new PrestamoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
-    private List<Prestamo> allData  = List.of();
+    private List<Prestamo> allData   = List.of();
     private boolean        kanbanMode = false;
 
     // ── BaseDocumentController hooks ─────────────────────────────────────────
@@ -109,6 +109,8 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             estadoFilter.getItems().addAll("Todos", "Activos", "Vencidos", "Devueltos");
             estadoFilter.setValue("Todos");
             estadoFilter.valueProperty().addListener((obs, o, n) -> applyFilter());
+            estadoFilter.valueProperty().addListener((obs, o, n) -> updateStatHighlight(n));
+            setupStatCardFilters();
         }
         boolean offline = DatabaseConfig.getLocalDataStore() != null;
         boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
@@ -120,10 +122,16 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
                         "Préstamos no está disponible en modo offline/demo — conéctate a internet para usarlo");
             });
         }
-        if (searchField != null)
-            searchField.textProperty().addListener((obs, o, n) -> applyFilter());
+        setupDateFilterBar(
+            () -> com.sibim.service.ReporteService.getInstance().exportPrestamosExcel(exportTarget()),
+            () -> com.sibim.service.ReporteService.getInstance().exportPrestamosCsv(exportTarget())
+        );
+        setupSearchListener();
 
         table.setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume(); return;
+            }
             Prestamo sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) return;
             switch (ev.getCode()) {
@@ -160,6 +168,9 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             });
         }
         if (kanbanBoard != null) { kanbanBoard.setVisible(false); kanbanBoard.setManaged(false); }
+
+        restoreFilterPrefs();
+        restoreEstadoFilter(estadoFilter);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
@@ -216,14 +227,56 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
         cm.getItems().addAll(miDev, new SeparatorMenuItem(), miPdf);
+        addLoteExportItem(cm);
         return cm;
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private void applyFilter() {
+    private void setupStatCardFilters() {
+        makeStatFilter(statCardActivos,   "Activos");
+        makeStatFilter(statCardVencidos,  "Vencidos");
+        makeStatFilter(statCardDevueltos, "Devueltos");
+        makeStatFilter(statCardTotal,     "Todos");
+    }
+
+    private void makeStatFilter(VBox card, String filterVal) {
+        if (card == null || estadoFilter == null) return;
+        card.getStyleClass().add("rich-stat-card-clickable");
+        card.setOnMouseClicked(e -> {
+            String cur = estadoFilter.getValue();
+            estadoFilter.setValue(filterVal.equals(cur) ? "Todos" : filterVal);
+        });
+    }
+
+    private void updateStatHighlight(String estado) {
+        for (VBox c : List.of(statCardActivos, statCardVencidos, statCardDevueltos, statCardTotal)) {
+            if (c != null) c.getStyleClass().remove("rich-stat-card-filter-active");
+        }
+        VBox active = switch (estado == null ? "Todos" : estado) {
+            case "Activos"   -> statCardActivos;
+            case "Vencidos"  -> statCardVencidos;
+            case "Devueltos" -> statCardDevueltos;
+            default          -> null;
+        };
+        if (active != null) active.getStyleClass().add("rich-stat-card-filter-active");
+    }
+
+    @Override protected boolean isFilterActive() {
+        return super.isFilterActive() || (estadoFilter != null && !"Todos".equals(estadoFilter.getValue()));
+    }
+
+    @Override protected void clearFilters() {
+        super.clearFilters();
+        if (estadoFilter != null) estadoFilter.setValue("Todos");
+    }
+
+    @Override
+    protected void applyFilter() {
         String q      = searchField != null ? searchField.getText() : "";
         String estado = estadoFilter != null ? estadoFilter.getValue() : "Todos";
+        LocalDate desde = dpDesde != null ? dpDesde.getValue() : null;
+        LocalDate hasta = dpHasta != null ? dpHasta.getValue() : null;
         List<Prestamo> filtered = allData.stream()
             .filter(p -> switch (estado == null ? "Todos" : estado) {
                 case "Activos"   -> Prestamo.ESTADO_ACTIVO.equals(p.getEstado());
@@ -238,8 +291,17 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
                     || (p.getNumero()           != null && p.getNumero().toLowerCase().contains(lq))
                     || (p.getResponsableNombre() != null && p.getResponsableNombre().toLowerCase().contains(lq))
                     || (p.getAreaDestino()      != null && p.getAreaDestino().toLowerCase().contains(lq));
-            }).toList();
+            })
+            .filter(p -> {
+                LocalDate f = p.getFechaPrestamo();
+                if (desde != null && (f == null || f.isBefore(desde))) return false;
+                if (hasta != null && (f == null || f.isAfter(hasta))) return false;
+                return true;
+            })
+            .toList();
         data.setAll(filtered);
+        updateCount(filtered.size(), allData.size());
+        saveFilterPrefs(q, estado, desde, hasta);
         if (kanbanMode) buildKanbanBoard(data);
     }
 
@@ -517,12 +579,24 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     private void mostrarDetalle(Prestamo p) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        ButtonType btnVerBien = new ButtonType("Ver en inventario", ButtonBar.ButtonData.LEFT);
+        dialog.getDialogPane().getButtonTypes().addAll(btnVerBien, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(460);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
+        javafx.scene.Node verBienNode = dialog.getDialogPane().lookupButton(btnVerBien);
+        if (verBienNode instanceof Button verBtn) {
+            verBtn.setGraphic(new FontIcon("mdi2c-cube-outline"));
+            verBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+                ev.consume();
+                dialog.close();
+                NavigationContext.setPendingProductId(p.getProductoId());
+                if (MainController.getInstance() != null) MainController.getInstance().navigateTo("productos");
+            });
+        }
 
         HBox header = DialogUtil.gradientHeader("mdi2s-swap-horizontal",
             "Detalle del Préstamo " + p.getNumero(), p.getProductoNombre(), "#166534", "#15803D");
+        DialogUtil.addCopyButton(header, p.getNumero());
 
         GridPane g = DialogUtil.formGrid(160);
         String[][] rows = {

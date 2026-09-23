@@ -81,7 +81,16 @@
                 </VBox>
             </HBox>
 
-            <Region prefHeight="16"/>
+            <!-- Global search button -->
+            <HBox styleClass="sidebar-search-box">
+                <padding><Insets top="0" right="18" bottom="8" left="10"/></padding>
+                <Button fx:id="btnGlobalSearch" text="Buscar…" onAction="#onGlobalSearch"
+                        styleClass="sidebar-search-btn" maxWidth="Infinity"
+                        contentDisplay="LEFT" graphicTextGap="8" HBox.hgrow="ALWAYS">
+                    <graphic><FontIcon iconLiteral="mdi2m-magnify" styleClass="nav-icon"/></graphic>
+                    <tooltip><Tooltip text="Búsqueda global — Ctrl+K"/></tooltip>
+                </Button>
+            </HBox>
 
             <!-- Scrollable nav sections -->
             <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="sidebar-scroll">

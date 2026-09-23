@@ -27,4 +27,16 @@ public class EmptyStateUtil {
             "Sin resultados para «" + query + "»",
             "Prueba con otro término de búsqueda");
     }
+
+    public static VBox buildNoResults(String query, Runnable onClear) {
+        String title = (query == null || query.isBlank())
+            ? "Sin resultados" : "Sin resultados para «" + query + "»";
+        VBox box = build("mdi2m-magnify-close", title, "Ningún registro coincide con el filtro activo");
+        javafx.scene.control.Button btn = new javafx.scene.control.Button("Limpiar filtros");
+        btn.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
+        btn.getStyleClass().add("btn-ghost");
+        btn.setOnAction(e -> onClear.run());
+        box.getChildren().add(btn);
+        return box;
+    }
 }

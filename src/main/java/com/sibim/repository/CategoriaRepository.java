@@ -134,6 +134,37 @@ public class CategoriaRepository {
         }
     }
 
+    public void fusionar(String sourceId, String targetId) throws SQLException {
+        requireAdmin();
+        String sourceName = findById(sourceId).map(Categoria::getNombre).orElse(sourceId);
+        String targetName = findById(targetId).map(Categoria::getNombre).orElse(targetId);
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) throw new UnsupportedOperationException("Fusión no disponible en modo offline");
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE products SET categoria_id = ? WHERE categoria_id = ?")) {
+                    ps.setString(1, targetId);
+                    ps.setString(2, sourceId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM categories WHERE id = ?")) {
+                    ps.setString(1, sourceId);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+        new AuditLogRepository().log("categoria", sourceId, sourceName, "fusionar",
+            "Fusionada en \"" + targetName + "\"");
+    }
+
     public boolean tieneProductos(String id) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) return local.tieneProductosEnCategoria(id);

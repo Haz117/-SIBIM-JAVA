@@ -93,7 +93,7 @@
     </VBox>
 
     <!-- ══ TOOLBAR ═══════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-indigo">
+    <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-indigo">
         <TextField fx:id="searchField" promptText="Buscar por resguardante, área o número…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"

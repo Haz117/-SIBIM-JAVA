@@ -69,7 +69,7 @@
     </VBox>
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-blue">
+    <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-blue">
         <TextField fx:id="searchField" promptText="Buscar por saliente, entrante o folio…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"

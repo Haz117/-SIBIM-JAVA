@@ -42,4 +42,10 @@ public class CategoriaService {
     public boolean tieneProductos(String id) throws SQLException {
         return categoriaRepo.tieneProductos(id);
     }
+
+    public void fusionar(String sourceId, String targetId) throws SQLException {
+        if (sourceId == null || targetId == null || sourceId.equals(targetId))
+            throw new IllegalArgumentException("Las categorías origen y destino deben ser distintas");
+        categoriaRepo.fusionar(sourceId, targetId);
+    }
 }

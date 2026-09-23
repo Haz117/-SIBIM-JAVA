@@ -165,6 +165,36 @@ public final class DialogUtil {
         return header;
     }
 
+    /**
+     * Appends a small clipboard-copy icon button to an existing gradient header.
+     * Clicking it copies {@code value} to the system clipboard and briefly swaps
+     * the icon to a checkmark so the user sees confirmation without a toast that
+     * would overlap the dialog.
+     */
+    public static void addCopyButton(HBox header, String value) {
+        FontIcon copyIcon  = new FontIcon("mdi2c-content-copy");
+        copyIcon.getStyleClass().add("dlg-header-icon");
+        copyIcon.setIconSize(16);
+        Button btn = new Button();
+        btn.setGraphic(copyIcon);
+        btn.setMinWidth(Button.USE_PREF_SIZE);
+        btn.getStyleClass().addAll("btn-ghost", "dlg-copy-folio-btn");
+        btn.setTooltip(new Tooltip("Copiar " + value));
+        btn.setOnAction(e -> {
+            javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
+            cc.putString(value);
+            javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
+            FontIcon ok = new FontIcon("mdi2c-check");
+            ok.getStyleClass().add("dlg-header-icon");
+            ok.setIconSize(16);
+            btn.setGraphic(ok);
+            PauseTransition reset = new PauseTransition(Duration.millis(1200));
+            reset.setOnFinished(ev -> btn.setGraphic(copyIcon));
+            reset.play();
+        });
+        header.getChildren().add(btn);
+    }
+
     /** Builds a message-style dialog (gradient header + wrapped body text) —
      *  a drop-in replacement for a plain {@link Alert}, which renders with a
      *  default JavaFX header (icon + bold text on a flat white background)

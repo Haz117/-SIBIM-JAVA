@@ -93,7 +93,7 @@
     </VBox>
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-purple">
+    <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-purple">
         <TextField fx:id="searchField" promptText="Buscar por bien, entidad, contacto o número…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <ComboBox fx:id="estadoFilter" prefWidth="140" promptText="Todos los estados"/>

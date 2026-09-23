@@ -34,7 +34,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public class AlertasController {
+public class AlertasController implements Refreshable {
 
     private static final Logger log = LoggerFactory.getLogger(AlertasController.class);
 
@@ -122,7 +122,7 @@ public class AlertasController {
 
     private final ProductoService productoService = new ProductoService();
     private final MovimientoService movimientoService = new MovimientoService();
-    private final ReporteService reporteService = new ReporteService();
+    private final ReporteService reporteService = ReporteService.getInstance();
     private final ComodatoService comodatoService = new ComodatoService();
 
     private List<Producto>  allAgotados      = List.of();
@@ -136,31 +136,17 @@ public class AlertasController {
     @FXML
     public void initialize() {
         setupColumns();
-        tableAgotados.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tableBajoStock.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tableGarantias.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tableAgotados.setPlaceholder(alertaOkNode("Sin bienes agotados"));
-        tableBajoStock.setPlaceholder(alertaOkNode("Sin bienes con bajo stock"));
-        tableGarantias.setPlaceholder(alertaOkNode("Sin garantías próximas a vencer"));
-        if (tableMantenimiento != null) {
-            tableMantenimiento.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-            tableMantenimiento.setPlaceholder(alertaOkNode("Sin revisiones en los próximos 30 días"));
-        }
-        if (btnResetColumns != null) {
-            Runnable r1 = com.sibim.util.DialogUtil.captureColumnReset(tableAgotados, null);
-            Runnable r2 = com.sibim.util.DialogUtil.captureColumnReset(tableBajoStock, null);
-            Runnable r3 = com.sibim.util.DialogUtil.captureColumnReset(tableGarantias, null);
-            Runnable r4 = tableMantenimiento != null
-                ? com.sibim.util.DialogUtil.captureColumnReset(tableMantenimiento, null) : null;
-            btnResetColumns.setOnAction(e -> { r1.run(); r2.run(); r3.run(); if (r4 != null) r4.run(); });
-        }
+        setupResizeAndPlaceholders();
+        setupColumnResetButton();
         loadData();
+
         java.util.List<javafx.scene.Node> fadeNodes = new java.util.ArrayList<>(java.util.List.of(
             statCardAgotados, statCardBajoStockSum, statCardGarantiasSum,
             sectionAgotados, sectionBajoStock, sectionGarantias));
         if (sectionMantenimiento != null) fadeNodes.add(sectionMantenimiento);
         AnimationUtils.staggeredFadeInUp(fadeNodes, 250, 60);
         javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+
         if (rootPane != null) {
             keyFilter = ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
@@ -174,32 +160,64 @@ public class AlertasController {
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
         autoRefresh.play();
 
-        // These buttons register real ENTRADA movements (via
-        // openMovimientoForm -> MovimientosController.showMovimientoDialog),
-        // the same write action "Nuevo Movimiento" gates in Movimientos —
-        // without this they were reachable by any logged-in user, including
-        // DIRECCION, who can't even see "Nuevo Movimiento" there.
+        // These buttons register real ENTRADA movements — same write gate as Movimientos
         boolean canWrite = SessionManager.isAdmin() || SessionManager.isSecretario();
-        if (btnReponerTodos != null) { btnReponerTodos.setVisible(canWrite); btnReponerTodos.setManaged(canWrite); }
-        if (btnReponerAgotado != null) { btnReponerAgotado.setVisible(canWrite); btnReponerAgotado.setManaged(canWrite); }
-        if (btnReponerBajoStock != null) { btnReponerBajoStock.setVisible(canWrite); btnReponerBajoStock.setManaged(canWrite); }
+        setupPermissions(canWrite);
+        setupSearchField();
+        setupTableInteractions(canWrite);
+        setupHelpBadgesSection();
+        setupCollapsibleSectionsAlertas();
 
+        sectionComodatos = buildComodatosSection();
+        if (rootPane != null) rootPane.getChildren().add(sectionComodatos);
+    }
+
+    private void setupResizeAndPlaceholders() {
+        tableAgotados.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableBajoStock.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableGarantias.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tableAgotados.setPlaceholder(alertaOkNode("Sin bienes agotados"));
+        tableBajoStock.setPlaceholder(alertaOkNode("Sin bienes con bajo stock"));
+        tableGarantias.setPlaceholder(alertaOkNode("Sin garantías próximas a vencer"));
+        if (tableMantenimiento != null) {
+            tableMantenimiento.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+            tableMantenimiento.setPlaceholder(alertaOkNode("Sin revisiones en los próximos 30 días"));
+        }
+    }
+
+    private void setupColumnResetButton() {
+        if (btnResetColumns == null) return;
+        Runnable r1 = com.sibim.util.DialogUtil.captureColumnReset(tableAgotados, null);
+        Runnable r2 = com.sibim.util.DialogUtil.captureColumnReset(tableBajoStock, null);
+        Runnable r3 = com.sibim.util.DialogUtil.captureColumnReset(tableGarantias, null);
+        Runnable r4 = tableMantenimiento != null
+            ? com.sibim.util.DialogUtil.captureColumnReset(tableMantenimiento, null) : null;
+        btnResetColumns.setOnAction(e -> { r1.run(); r2.run(); r3.run(); if (r4 != null) r4.run(); });
+    }
+
+    private void setupPermissions(boolean canWrite) {
+        if (btnReponerTodos     != null) { btnReponerTodos.setVisible(canWrite);     btnReponerTodos.setManaged(canWrite); }
+        if (btnReponerAgotado   != null) { btnReponerAgotado.setVisible(canWrite);   btnReponerAgotado.setManaged(canWrite); }
+        if (btnReponerBajoStock != null) { btnReponerBajoStock.setVisible(canWrite); btnReponerBajoStock.setManaged(canWrite); }
         tableAgotados.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
             if (btnReponerAgotado != null && canWrite) btnReponerAgotado.setDisable(s == null);
         });
         tableBajoStock.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
             if (btnReponerBajoStock != null && canWrite) btnReponerBajoStock.setDisable(s == null);
         });
+    }
 
-        if (searchField != null) {
-            if (btnClearSearch != null) {
-                searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
-            }
-            SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField, () -> applySearch(searchField.getText()));
-            SearchUtils.debounce(searchField, 260, q -> { STICKY.put("search", q != null ? q : ""); applySearch(q); });
-            String savedSearch = STICKY.get("search", "");
-            if (!savedSearch.isBlank()) searchField.setText(savedSearch);
-        }
+    private void setupSearchField() {
+        if (searchField == null) return;
+        if (btnClearSearch != null)
+            searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
+        SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField, () -> applySearch(searchField.getText()));
+        SearchUtils.debounce(searchField, 260, q -> { STICKY.put("search", q != null ? q : ""); applySearch(q); });
+        String savedSearch = STICKY.get("search", "");
+        if (!savedSearch.isBlank()) searchField.setText(savedSearch);
+    }
+
+    private void setupTableInteractions(boolean canWrite) {
         tableAgotados.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
                 Producto sel = tableAgotados.getSelectionModel().getSelectedItem();
@@ -236,22 +254,14 @@ public class AlertasController {
                 tableGarantias.getSelectionModel().clearSelection(); ev.consume();
             }
         });
-
         tableAgotados.setContextMenu(AlertasContextMenus.buildAgotados(
             tableAgotados, canWrite,
             sel -> AlertasDialogs.showProductoInfo(sel, true),
-            this::onReponerAgotado,
-            this::darDeBajaDesdeAlertas,
-            this::imprimirFicha));
-
+            this::onReponerAgotado, this::darDeBajaDesdeAlertas, this::imprimirFicha));
         tableBajoStock.setContextMenu(AlertasContextMenus.buildBajoStock(
             tableBajoStock,
             sel -> AlertasDialogs.showProductoInfo(sel, false),
-            this::onSolicitarBajoStock,
-            this::imprimirFicha));
-
-        // tableGarantias: same double-click / context-menu "ver detalle"
-        // pattern as the other two tables — it was the only one without it.
+            this::onSolicitarBajoStock, this::imprimirFicha));
         tableGarantias.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
                 Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
@@ -260,7 +270,6 @@ public class AlertasController {
         });
         tableGarantias.setContextMenu(AlertasContextMenus.buildGarantias(
             tableGarantias, AlertasDialogs::showGarantiaInfo, this::imprimirFicha));
-
         if (tableMantenimiento != null) {
             tableMantenimiento.setOnMouseClicked(e -> {
                 if (e.getClickCount() == 2) {
@@ -281,23 +290,22 @@ public class AlertasController {
                 sel -> ProductoDetailDialog.show(sel, tableAgotados.getScene(), movimientoService, log),
                 this::imprimirFicha));
         }
+    }
 
+    private void setupHelpBadgesSection() {
         for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias, helpMantenimiento, helpResumen }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
-
         if (btnToggleResumen != null && resumenBox != null)
             DialogUtil.makeCollapsible("alertas.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
+    }
 
-        setupCollapsibleSection("alertas.agotados.colapsado", headerAgotados, contentAgotados, chevronAgotados);
-        setupCollapsibleSection("alertas.bajostock.colapsado", headerBajoStock, contentBajoStock, chevronBajoStock);
-        setupCollapsibleSection("alertas.garantias.colapsado", headerGarantias, contentGarantias, chevronGarantias);
+    private void setupCollapsibleSectionsAlertas() {
+        setupCollapsibleSection("alertas.agotados.colapsado",      headerAgotados,      contentAgotados,      chevronAgotados);
+        setupCollapsibleSection("alertas.bajostock.colapsado",     headerBajoStock,     contentBajoStock,     chevronBajoStock);
+        setupCollapsibleSection("alertas.garantias.colapsado",     headerGarantias,     contentGarantias,     chevronGarantias);
         setupCollapsibleSection("alertas.mantenimiento.colapsado", headerMantenimiento, contentMantenimiento, chevronMantenimiento);
-
-        // Comodatos section is built programmatically and appended to rootPane
-        sectionComodatos = buildComodatosSection();
-        if (rootPane != null) rootPane.getChildren().add(sectionComodatos);
     }
 
     /** Lets the user collapse/expand one of the 4 alert sections by clicking
@@ -448,7 +456,11 @@ public class AlertasController {
     }
 
     @FXML private void onClearSearch() {
-        if (searchField != null) { searchField.clear(); searchField.requestFocus(); }
+        if (searchField != null) {
+            searchField.clear();
+            searchField.requestFocus();
+            STICKY.remove("search");
+        }
     }
 
     @FXML private void onRefresh() { loadData(true); }
@@ -645,17 +657,6 @@ public class AlertasController {
     private static final String PREF_COMODATOS_COLAPSADO = "alertas.comodatos.colapsado";
 
     private VBox buildComodatosSection() {
-        // Header
-        FontIcon headerIcon = new FontIcon("mdi2h-handshake-outline");
-        headerIcon.getStyleClass().add("alert-section-icon");
-
-        Label titleLbl = new Label("Comodatos Vencidos");
-        titleLbl.getStyleClass().add("alert-section-title-inv");
-        Label subtitleLbl = new Label("Comodatos cuya fecha límite ha sido superada sin devolución");
-        subtitleLbl.getStyleClass().add("alert-section-subtitle");
-        VBox titleBox = new VBox(1, titleLbl, subtitleLbl);
-        javafx.scene.layout.HBox.setHgrow(titleBox, javafx.scene.layout.Priority.ALWAYS);
-
         Label countBadge = new Label("0 comodatos");
         countBadge.getStyleClass().add("badge-count-inv");
         countBadge.setId("comodatosCountBadge");
@@ -663,11 +664,45 @@ public class AlertasController {
         FontIcon chevron = new FontIcon("mdi2c-chevron-up");
         chevron.getStyleClass().add("alert-section-chevron");
 
+        HBox header = buildComodatosHeader(countBadge, chevron);
+        TableView<Comodato> table = buildComodatosTable();
+
+        VBox content = new VBox(10, table);
+        content.setPadding(new javafx.geometry.Insets(14));
+        content.setId("contentComodatos");
+
+        boolean collapsed = STICKY.getBoolean(PREF_COMODATOS_COLAPSADO, false);
+        applySectionCollapsed(content, chevron, collapsed);
+        header.setCursor(javafx.scene.Cursor.HAND);
+        header.setOnMouseClicked(e -> {
+            boolean nowCollapsed = content.isVisible();
+            applySectionCollapsed(content, chevron, nowCollapsed);
+            STICKY.putBoolean(PREF_COMODATOS_COLAPSADO, nowCollapsed);
+        });
+
+        VBox section = new VBox(0, header, content);
+        section.getStyleClass().addAll("alert-section", "alert-warning");
+        section.setVisible(false);
+        section.setManaged(false);
+        return section;
+    }
+
+    private HBox buildComodatosHeader(Label countBadge, FontIcon chevron) {
+        FontIcon headerIcon = new FontIcon("mdi2h-handshake-outline");
+        headerIcon.getStyleClass().add("alert-section-icon");
+        Label titleLbl = new Label("Comodatos Vencidos");
+        titleLbl.getStyleClass().add("alert-section-title-inv");
+        Label subtitleLbl = new Label("Comodatos cuya fecha límite ha sido superada sin devolución");
+        subtitleLbl.getStyleClass().add("alert-section-subtitle");
+        VBox titleBox = new VBox(1, titleLbl, subtitleLbl);
+        javafx.scene.layout.HBox.setHgrow(titleBox, javafx.scene.layout.Priority.ALWAYS);
         HBox header = new HBox(12, headerIcon, titleBox, countBadge, chevron);
         header.getStyleClass().add("alert-header-warning");
         header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        return header;
+    }
 
-        // Table
+    private TableView<Comodato> buildComodatosTable() {
         TableView<Comodato> table = new TableView<>();
         table.setPrefHeight(185);
         table.getStyleClass().add("data-table");
@@ -704,26 +739,7 @@ public class AlertasController {
         });
 
         table.getColumns().addAll(colNombre, colEntidad, colFechaFin);
-
-        VBox content = new VBox(10, table);
-        content.setPadding(new javafx.geometry.Insets(14));
-        content.setId("contentComodatos");
-
-        // Collapsible behavior
-        boolean collapsed = STICKY.getBoolean(PREF_COMODATOS_COLAPSADO, false);
-        applySectionCollapsed(content, chevron, collapsed);
-        header.setCursor(javafx.scene.Cursor.HAND);
-        header.setOnMouseClicked(e -> {
-            boolean nowCollapsed = content.isVisible();
-            applySectionCollapsed(content, chevron, nowCollapsed);
-            STICKY.putBoolean(PREF_COMODATOS_COLAPSADO, nowCollapsed);
-        });
-
-        VBox section = new VBox(0, header, content);
-        section.getStyleClass().addAll("alert-section", "alert-warning");
-        section.setVisible(false);
-        section.setManaged(false);
-        return section;
+        return table;
     }
 
     @SuppressWarnings("unchecked")

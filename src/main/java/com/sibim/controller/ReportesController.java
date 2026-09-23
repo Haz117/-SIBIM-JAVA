@@ -52,7 +52,7 @@ public class ReportesController {
     private static final java.util.prefs.Preferences STICKY =
         java.util.prefs.Preferences.userRoot().node("sibim/filters/reportes");
 
-    private final ReporteService    reporteService  = new ReporteService();
+    private final ReporteService    reporteService  = ReporteService.getInstance();
     private final ProductoRepository productoRepo   = new ProductoRepository();
     private boolean updatingFromPreset = false;
 
@@ -62,8 +62,8 @@ public class ReportesController {
         spinner.setManaged(false);
         desdeField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         hastaField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
-        desdeField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
-        hastaField.valueProperty().addListener((o, a, b) -> { if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
+        desdeField.valueProperty().addListener((o, a, b) -> { applyDateRangeStyle(); if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
+        hastaField.valueProperty().addListener((o, a, b) -> { applyDateRangeStyle(); if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
         switch (STICKY.get("preset", "mes")) {
             case "hoy"    -> onReportHoy();
             case "semana" -> onReportSemana();
@@ -181,6 +181,24 @@ public class ReportesController {
     // ─── Auditoría consolidada ───
     @FXML private void onAuditoriaPdf(ActionEvent event) { exportar(event, () -> reporteService.exportAuditoriaPdf()); }
 
+    // ─── Parque Vehicular V.6 ───
+    @FXML private void onParqueVehicularPdf(ActionEvent event) {
+        exportar(event, () -> {
+            var vehiculos = productoRepo.findAll().stream()
+                .filter(p -> p.getMarca() != null && !p.getMarca().isBlank())
+                .toList();
+            return reporteService.exportParqueVehicularPdf(vehiculos);
+        });
+    }
+
+    // ─── Entrega-Recepción ANEXO V.4 ───
+    @FXML private void onEntregaRecepcionPdf(ActionEvent event) {
+        exportar(event, () -> {
+            var bienes = productoRepo.findAll();
+            return reporteService.exportEntregaRecepcionPdf(bienes);
+        });
+    }
+
     private void loadAreaChart() {
         if (areaChart == null) return;
         if (chartSpinner != null) { chartSpinner.setVisible(true); chartSpinner.setManaged(true); }
@@ -249,13 +267,26 @@ public class ReportesController {
     private LocalDate getDesde() { return desdeField.getValue(); }
     private LocalDate getHasta() { return hastaField.getValue(); }
 
+    private void applyDateRangeStyle() {
+        LocalDate desde = desdeField.getValue();
+        LocalDate hasta = hastaField.getValue();
+        boolean invalid = desde != null && hasta != null && desde.isAfter(hasta);
+        if (invalid) {
+            if (!hastaField.getStyleClass().contains("field-error")) hastaField.getStyleClass().add("field-error");
+            if (!desdeField.getStyleClass().contains("field-error")) desdeField.getStyleClass().add("field-error");
+        } else {
+            hastaField.getStyleClass().remove("field-error");
+            desdeField.getStyleClass().remove("field-error");
+        }
+    }
+
     private boolean validarFechas() {
         LocalDate desde = desdeField.getValue();
         LocalDate hasta  = hastaField.getValue();
         if (desde != null && hasta != null && desde.isAfter(hasta)) {
             NotificacionUtil.advertencia(spinner.getScene(),
                 "La fecha inicial debe ser anterior a la fecha final");
-            AnimationUtils.shake(desdeField);
+            AnimationUtils.shake(hastaField);
             return false;
         }
         return true;

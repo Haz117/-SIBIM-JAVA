@@ -71,6 +71,7 @@ public class MainController {
     @FXML private Button btnActas;
     @FXML private Button btnConfiguracion;
     @FXML private Button btnAuditoria;
+    @FXML private Button btnGlobalSearch;
     @FXML private Label alertBadge;
     @FXML private Label loanBadge;
     @FXML private Button btnNotificaciones;
@@ -140,7 +141,8 @@ public class MainController {
             logoTextBox, userInfoVBox, btnToggleSidebar,
             java.util.List.of(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
                 btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
-                btnResguardos, btnPrestamos, btnComodatos, btnActas, btnConfiguracion, btnAuditoria));
+                btnResguardos, btnPrestamos, btnComodatos, btnActas, btnConfiguracion, btnAuditoria,
+                btnGlobalSearch));
         statusBarManager = new MainStatusBarManager(
             offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
@@ -376,8 +378,7 @@ public class MainController {
             Node node = loader.load();
             com.sibim.util.AccessibilityUtils.applyAccessibleTextFromTooltips(node);
 
-            if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
-            if (currentController instanceof DashboardController dc) dc.stopAutoRefresh();
+            if (currentController instanceof Refreshable r) r.stopAutoRefresh();
             currentController = loader.getController();
 
             if (!contentArea.getChildren().isEmpty()) {
@@ -523,10 +524,8 @@ public class MainController {
     }
 
     private void showInactivityWarning() {
-        javafx.scene.control.ButtonType btnContinuar =
-            new javafx.scene.control.ButtonType("Continuar sesión", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
-        javafx.scene.control.ButtonType btnLogout =
-            new javafx.scene.control.ButtonType("Cerrar sesión", javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
+        var btnContinuar = new javafx.scene.control.ButtonType("Continuar sesión", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        var btnLogout    = new javafx.scene.control.ButtonType("Cerrar sesión",    javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
         Dialog<javafx.scene.control.ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
         dlg.setTitle("Sesión por expirar");
@@ -537,17 +536,9 @@ public class MainController {
 
         HBox header = DialogUtil.gradientHeader("mdi2t-timer-outline", "Sesión inactiva",
             "Tu sesión cerrará automáticamente por inactividad.", AppColors.WARNING_D, AppColors.WARNING_DD);
-
         Label lblCountdown = new Label("5:00");
         lblCountdown.getStyleClass().add("inactivity-countdown");
-
-        Label lblHint = new Label("Presiona \"Continuar sesión\" para seguir trabajando.");
-        lblHint.getStyleClass().add("muted-sm");
-        lblHint.setWrapText(true);
-
-        VBox body = new VBox(14, lblCountdown, lblHint);
-        body.setPadding(new Insets(24, 24, 20, 24));
-        body.setAlignment(javafx.geometry.Pos.CENTER);
+        VBox body = buildInactivityBody(lblCountdown);
 
         AnimationUtils.staggeredFadeInUp(java.util.List.of(header, body), 260, 70);
         dlg.getDialogPane().setContent(new VBox(header, body));
@@ -558,45 +549,50 @@ public class MainController {
             long mins = msLeft[0] / 60_000;
             long secs = (msLeft[0] % 60_000) / 1000;
             lblCountdown.setText(String.format("%d:%02d", mins, secs));
-            // Closing with no result here would make showAndWait() return
-            // Optional.empty(), skipping both branches below — the dialog
-            // would just vanish with the session left dangling (neither
-            // logged out nor extended) until the 1-min sessionGuard tick
-            // catches up. Set the same result "Cerrar sesión" would so the
-            // countdown reaching zero actually logs out, matching what the
-            // dialog tells the user will happen.
+            // Force logout result so countdown reaching zero actually logs out
+            // instead of leaving the session dangling (showAndWait returning empty).
             if (msLeft[0] == 0) { dlg.setResult(btnLogout); dlg.close(); }
         }));
         countdown.setCycleCount(Timeline.INDEFINITE);
         countdown.play();
         activeInactivityDialog = dlg;
 
-        dlg.showAndWait().ifPresent(r -> {
-            countdown.stop();
-            if (r == btnContinuar) {
-                lastActivityMs = System.currentTimeMillis();
-                inactivityWarned = false;
-                NotificacionUtil.info(contentArea.getScene(), "Sesión extendida — bienvenido de vuelta");
-            } else {
-                log.info("Usuario cerró sesión desde el aviso de inactividad");
-                auditRepo.log("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
-                    SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
-                    "logout", "Cierre de sesión desde aviso de inactividad");
-                // Same cleanup onLogout() does — without stopping sessionGuard
-                // and clearing instance, the old Timeline keeps ticking every
-                // minute after this, sees the same stale (>30 min) idle time
-                // forever, and forces MainApp.showLogin() again on whatever
-                // screen the user is on next (e.g. reloading the login form
-                // while they're mid-typing), which looks like "salir" did
-                // nothing useful.
-                stopTimers();
-                instance = null;
-                SessionManager.logout();
-                try { MainApp.showLogin(); } catch (Exception ex) { log.error("Error al cerrar sesión", ex); }
-            }
-        });
+        dlg.showAndWait().ifPresent(r -> handleInactivityResult(r, btnContinuar, countdown));
         countdown.stop();
         activeInactivityDialog = null;
+    }
+
+    private VBox buildInactivityBody(Label lblCountdown) {
+        Label lblHint = new Label("Presiona \"Continuar sesión\" para seguir trabajando.");
+        lblHint.getStyleClass().add("muted-sm");
+        lblHint.setWrapText(true);
+        VBox body = new VBox(14, lblCountdown, lblHint);
+        body.setPadding(new Insets(24, 24, 20, 24));
+        body.setAlignment(javafx.geometry.Pos.CENTER);
+        return body;
+    }
+
+    private void handleInactivityResult(javafx.scene.control.ButtonType r,
+                                        javafx.scene.control.ButtonType btnContinuar,
+                                        Timeline countdown) {
+        countdown.stop();
+        if (r == btnContinuar) {
+            lastActivityMs = System.currentTimeMillis();
+            inactivityWarned = false;
+            NotificacionUtil.info(contentArea.getScene(), "Sesión extendida — bienvenido de vuelta");
+        } else {
+            log.info("Usuario cerró sesión desde el aviso de inactividad");
+            auditRepo.log("sesion",
+                SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
+                SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
+                "logout", "Cierre de sesión desde aviso de inactividad");
+            // Stop timers + clear instance before showLogin() so the old sessionGuard
+            // timeline doesn't keep firing after the user is on the login screen.
+            stopTimers();
+            instance = null;
+            SessionManager.logout();
+            try { MainApp.showLogin(); } catch (Exception ex) { log.error("Error al cerrar sesión", ex); }
+        }
     }
 
     private void setupKeyboardShortcuts(javafx.scene.Scene scene) {
@@ -636,6 +632,9 @@ public class MainController {
             tf.selectAll();
         }
     }
+
+    @FXML
+    private void onGlobalSearch() { onCommandPalette(); }
 
     private void onCommandPalette() {
         javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();

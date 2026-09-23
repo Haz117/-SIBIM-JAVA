@@ -44,6 +44,7 @@ public class LoginController {
     private final AuthService authService = new AuthService();
     private int failedAttempts = 0;
     private javafx.animation.Timeline lockoutTimer = null;
+    private PauseTransition errorDismiss = null;
 
     @FXML
     public void initialize() {
@@ -237,17 +238,15 @@ public class LoginController {
 
     @FXML
     private void onForgotPassword() {
-        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
-        alert.setTitle("Restablecer contraseña");
-        alert.setHeaderText(null);
-        alert.setContentText(
+        var dialog = com.sibim.util.DialogUtil.styledMessage(
+            "mdi2l-lock-reset", "Restablecer contraseña", "Contacta al administrador del sistema",
+            "#1E40AF", "#1D4ED8",
             "Para restablecer tu contraseña, contacta al administrador del sistema.\n\n"
             + "El administrador puede cambiarte la contraseña desde\n"
-            + "Configuración → Usuarios → Cambiar contraseña.");
-        alert.getButtonTypes().setAll(javafx.scene.control.ButtonType.OK);
-        alert.getDialogPane().setPrefWidth(380);
-        if (MainApp.getPrimaryStage() != null) alert.initOwner(MainApp.getPrimaryStage());
-        alert.showAndWait();
+            + "Configuración → Usuarios → Cambiar contraseña.",
+            MainApp.getPrimaryStage());
+        dialog.getDialogPane().getButtonTypes().setAll(javafx.scene.control.ButtonType.OK);
+        dialog.showAndWait();
     }
 
     @FXML private void fillAdmin()     { fill("superusuario",    "admin123456"); }
@@ -263,17 +262,18 @@ public class LoginController {
     // Both call sites (handleLogin direct path + Task.succeeded/failed) run on
     // the FX application thread, so Platform.runLater() is never needed here.
     private void showError(String msg) {
+        if (errorDismiss != null) errorDismiss.stop();
         errorLabel.setText(msg);
         errorLabel.setVisible(true);
         errorLabel.setManaged(true);
         AnimationUtils.fadeIn(errorLabel, 200, 0);
         AnimationUtils.shake(passwordField);
-        PauseTransition dismiss = new PauseTransition(Duration.seconds(5));
-        dismiss.setOnFinished(e -> {
+        errorDismiss = new PauseTransition(Duration.seconds(5));
+        errorDismiss.setOnFinished(e -> {
             errorLabel.setVisible(false);
             errorLabel.setManaged(false);
         });
-        dismiss.play();
+        errorDismiss.play();
     }
 
     private void startLockout() {

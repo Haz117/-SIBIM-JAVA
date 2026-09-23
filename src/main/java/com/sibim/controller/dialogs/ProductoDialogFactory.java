@@ -24,6 +24,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -59,6 +61,7 @@ public final class ProductoDialogFactory {
         List<String> sugestMarcas      = acRepo.findDistinctMarcas();
         List<String> sugestModelos     = acRepo.findDistinctModelos();
         List<String> sugestProveedores = acRepo.findDistinctProveedores();
+        List<String> sugestUbicaciones = acRepo.findDistinctUbicaciones();
 
         Dialog<Producto> dialog = DialogUtil.create(520);
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
@@ -94,6 +97,7 @@ public final class ProductoDialogFactory {
         // enablement check after the availability result arrives — without this
         // the OK button stays enabled even when the hint shows "ya existe".
         Runnable[] checkOkRef = {null};
+        Button[] navNextRef = {null};
         javafx.animation.Timeline[] codigoDebounce = {null};
         fCodigo.textProperty().addListener((obs, old, val) -> {
             if (codigoDebounce[0] != null) codigoDebounce[0].stop();
@@ -282,6 +286,7 @@ public final class ProductoDialogFactory {
         TextField fUbicacion = new TextField(existing != null && existing.getUbicacion() != null ? existing.getUbicacion() : "");
         fUbicacion.setPromptText("Ubicación física");
         fUbicacion.getStyleClass().add("form-input");
+        AutocompleteUtil.attach(fUbicacion, sugestUbicaciones);
         TextField fResguardante = new TextField(existing != null && existing.getResguardante() != null ? existing.getResguardante() : "");
         fResguardante.setPromptText("Persona responsable del resguardo (nombre completo)");
         fResguardante.getStyleClass().add("form-input");
@@ -646,7 +651,47 @@ public final class ProductoDialogFactory {
         Tab tabPatrimonio = new Tab("Datos Patrimoniales", gridPatrimonio);
         tabPatrimonio.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
         tabs.getTabs().addAll(tabInfo, tabStock, tabPatrimonio);
-        tabs.getStyleClass().add("dlg-tabpane");
+        tabs.getStyleClass().addAll("dlg-tabpane", "dlg-stepper");
+
+        // ── Step indicator bar ─────────────────────────────────────────────
+        String[] stepTitles = {"Datos básicos", "Stock y Precios", "Patrimonio"};
+        VBox[] stepNodes = new VBox[3];
+        Region[] connectors = new Region[2];
+        HBox stepBar = new HBox(0);
+        stepBar.setAlignment(Pos.CENTER);
+        stepBar.getStyleClass().add("stepper-bar");
+        for (int si = 0; si < 3; si++) {
+            final int stepIdx = si;
+            StackPane circle = new StackPane();
+            circle.getStyleClass().add("stepper-circle");
+            Label numLbl = new Label(String.valueOf(si + 1));
+            numLbl.getStyleClass().add("stepper-num");
+            circle.getChildren().add(numLbl);
+            Label nameLbl = new Label(stepTitles[si]);
+            nameLbl.getStyleClass().add("stepper-label");
+            VBox step = new VBox(4, circle, nameLbl);
+            step.setAlignment(Pos.CENTER);
+            step.getStyleClass().add("stepper-step");
+            step.setOnMouseClicked(e -> tabs.getSelectionModel().select(stepIdx));
+            String[] stepTooltips = {
+                "Nombre, Código, Categoría, Área, Ubicación, Imagen",
+                "Stock, Precio unitario, Precio total, Fecha de vencimiento",
+                "Proveedor, Marca, Modelo, N° serie, Depreciación, Estado"
+            };
+            Tooltip.install(step, new Tooltip(stepTooltips[si]));
+            stepNodes[si] = step;
+            if (si < 2) {
+                Region conn = new Region();
+                conn.getStyleClass().add("stepper-connector");
+                conn.setMaxWidth(Double.MAX_VALUE);
+                HBox.setHgrow(conn, Priority.ALWAYS);
+                connectors[si] = conn;
+                stepBar.getChildren().addAll(step, conn);
+            } else {
+                stepBar.getChildren().add(step);
+            }
+        }
+        stepNodes[0].getStyleClass().add("stepper-step-active");
 
         Label lblFormError = new Label();
         lblFormError.getStyleClass().add("field-error-label");
@@ -719,6 +764,8 @@ public final class ProductoDialogFactory {
                     || fCat.getValue() == null || codigoError;
                 okBtn.setDisable(invalid);
                 btnGuardar.setDisable(invalid);
+                if (navNextRef[0] != null && tabs.getSelectionModel().getSelectedIndex() == 2)
+                    navNextRef[0].setDisable(invalid);
             };
             checkOk.run();
             checkOkRef[0] = checkOk;
@@ -740,11 +787,52 @@ public final class ProductoDialogFactory {
         tabsScroll.setMaxHeight(420);
         tabsScroll.getStyleClass().add("dlg-tabs-scroll");
 
+        // ── Stepper navigation buttons ─────────────────────────────────────
+        Button btnPrev = new Button("Anterior");
+        btnPrev.setGraphic(new FontIcon("mdi2c-chevron-left"));
+        btnPrev.getStyleClass().add("btn-secondary");
+        btnPrev.setVisible(false); btnPrev.setManaged(false);
+        btnPrev.setOnAction(e -> tabs.getSelectionModel().select(
+            tabs.getSelectionModel().getSelectedIndex() - 1));
+
+        Button btnNextNav = new Button("Siguiente");
+        btnNextNav.setGraphic(new FontIcon("mdi2c-chevron-right"));
+        btnNextNav.setGraphicTextGap(8);
+        btnNextNav.getStyleClass().addAll("btn-primary");
+        btnNextNav.setOnAction(e -> {
+            int idx = tabs.getSelectionModel().getSelectedIndex();
+            if (idx < 2) tabs.getSelectionModel().select(idx + 1);
+            else btnGuardar.fire();
+        });
+        navNextRef[0] = btnNextNav;
+
+        tabs.getSelectionModel().selectedIndexProperty().addListener((obs, ov, nv) -> {
+            int idx = nv.intValue();
+            for (int si = 0; si < stepNodes.length; si++) {
+                stepNodes[si].getStyleClass().removeAll("stepper-step-active", "stepper-step-done");
+                if (si < idx) stepNodes[si].getStyleClass().add("stepper-step-done");
+                else if (si == idx) stepNodes[si].getStyleClass().add("stepper-step-active");
+            }
+            for (int ci = 0; ci < connectors.length; ci++) {
+                connectors[ci].getStyleClass().remove("stepper-connector-done");
+                if (ci < idx) connectors[ci].getStyleClass().add("stepper-connector-done");
+            }
+            btnPrev.setVisible(idx > 0); btnPrev.setManaged(idx > 0);
+            boolean onLast = (idx == 2);
+            btnNextNav.setText(onLast ? submitLabel : "Siguiente");
+            btnNextNav.setGraphic(new FontIcon(onLast ? "mdi2c-check-circle-outline" : "mdi2c-chevron-right"));
+            btnNextNav.setDisable(onLast && btnGuardar.isDisable());
+        });
+
+        Region navSpacer = new Region();
+        HBox.setHgrow(navSpacer, Priority.ALWAYS);
+        HBox navBar = new HBox(10, btnPrev, navSpacer, btnNextNav);
+        navBar.getStyleClass().add("stepper-nav-bar");
+
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
-        VBox.setMargin(btnGuardar,   new Insets(4, 22, 16, 22));
-        VBox dialogContent = new VBox(0, dialogHeader, tabsScroll, lblFormError, btnGuardar);
+        VBox dialogContent = new VBox(0, dialogHeader, stepBar, tabsScroll, lblFormError, navBar);
         dialog.getDialogPane().setContent(dialogContent);
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(dialogHeader, tabs, btnGuardar), 280, 70);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(dialogHeader, stepBar, tabs), 280, 70);
 
         // ── Dirty tracking: warn before losing unsaved work ──
         // Listeners attached AFTER all initial setValue() calls so pre-filled

@@ -4,6 +4,7 @@ import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.repository.PriceHistoryRepository;
 import com.sibim.service.MovimientoService;
+import com.sibim.controller.dialogs.MovimientoTimelineDialog;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
@@ -94,8 +95,9 @@ public final class ProductoDetailDialog {
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Detalle del Bien");
 
-        ButtonType fichaBtn = new ButtonType("Imprimir ficha", ButtonBar.ButtonData.LEFT);
-        dialog.getDialogPane().getButtonTypes().addAll(fichaBtn, ButtonType.CLOSE);
+        ButtonType fichaBtn    = new ButtonType("Imprimir ficha",        ButtonBar.ButtonData.LEFT);
+        ButtonType timelineBtn = new ButtonType("Cadena de custodia",    ButtonBar.ButtonData.LEFT);
+        dialog.getDialogPane().getButtonTypes().addAll(fichaBtn, timelineBtn, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(560);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
@@ -106,10 +108,19 @@ public final class ProductoDetailDialog {
             DialogUtil.runAsyncWithProgress(
                 scene,
                 "Generando ficha técnica…",
-                () -> new ReporteService().exportFichaTecnica(p, movs),
+                () -> ReporteService.getInstance().exportFichaTecnica(p, movs),
                 file -> DialogUtil.showExportResultDialog(scene, file),
                 ex -> NotificacionUtil.error(scene, "No se pudo generar la ficha técnica")
             );
+        });
+
+        Button btnTimeline = (Button) dialog.getDialogPane().lookupButton(timelineBtn);
+        btnTimeline.getStyleClass().add("btn-secondary");
+        btnTimeline.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2h-history"));
+        btnTimeline.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            event.consume();
+            dialog.close();
+            MovimientoTimelineDialog.show(p, scene, new com.sibim.service.MovimientoService());
         });
 
         VBox root = new VBox(14);
@@ -619,7 +630,7 @@ public final class ProductoDetailDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2w-wrench-clock",
             "Agregar alerta de mantenimiento", p.getNombre(),
-            AppColors.TEAL, AppColors.TEAL_D);
+            AppColors.CYAN, AppColors.CYAN_D);
 
         Label lblDesc = new Label("Descripción / tarea:");
         lblDesc.getStyleClass().add("dialog-field-label");

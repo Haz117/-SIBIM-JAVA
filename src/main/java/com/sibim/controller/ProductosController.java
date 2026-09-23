@@ -803,50 +803,30 @@ public class ProductosController {
             NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para dar de baja");
             return;
         }
-        // Baja patrimonial (soft-delete), not a physical DELETE — the record
-        // and its full movement history stay in the database for auditoría;
-        // the bien just stops showing up in the active inventory. Requires a
-        // motivo since a baja is a formal administrative act.
-        BajaDialogResult resultado = showBajaDialog(seleccionado.getNombre());
+        // Baja patrimonial (soft-delete): record + audit trail stay in DB,
+        // the bien just stops appearing in active inventory.
+        ProductoBajasDialog.BajaResult resultado =
+            ProductoBajasDialog.showBajaInputDialog(seleccionado.getNombre()).orElse(null);
         if (resultado == null) return;
 
         String nombre = seleccionado.getNombre();
         String idBaja = seleccionado.getId();
-        final BajaDialogResult r = resultado;
+        final ProductoBajasDialog.BajaResult r = resultado;
         final Producto sel = seleccionado;
         Runnable doDelete = () -> DialogUtil.runAsync(
             () -> {
-                if (r.tipoDestino() != null) {
-                    productoService.darDeBaja(idBaja, r.motivo(),
-                        r.tipoDestino(), r.dictamen(), r.numeroActa(), r.fechaDictamen());
-                } else {
+                if (r.tipoDestino() != null)
+                    productoService.darDeBaja(idBaja, r.motivo(), r.tipoDestino(), r.dictamen(), r.numeroActa(), r.fechaDictamen());
+                else
                     productoService.darDeBaja(idBaja, r.motivo());
-                }
             },
             () -> {
                 loadData();
                 NotificacionUtil.exitoConAccionCountdown(table.getScene(),
-                    "Bien \"" + nombre + "\" dado de baja",
-                    "Deshacer",
-                    () -> DialogUtil.runAsync(
-                        () -> productoService.reactivar(idBaja),
-                        () -> { loadData(); NotificacionUtil.info(table.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
-                        e2 -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer la baja")
-                    )
-                );
-                // Populate baja fields from the dialog result so the acta
-                // reflects the data just saved without a second DB round-trip
-                sel.setFechaBaja(java.time.LocalDate.now());
-                sel.setMotivoBaja(r.motivo());
-                sel.setTipoDestinoBaja(r.tipoDestino());
-                sel.setDictamenBaja(r.dictamen());
-                sel.setNumeroActaBaja(r.numeroActa());
-                sel.setFechaDictamen(r.fechaDictamen());
-                DialogUtil.runAsync(
-                    () -> reporteService.exportActaBaja(sel),
-                    file -> DialogUtil.showExportResultDialog(table.getScene(), file),
-                    ex -> log.warn("No se pudo generar el acta de baja", ex)
-                );
+                    "Bien \"" + nombre + "\" dado de baja", "Deshacer",
+                    () -> undoBaja(idBaja, nombre));
+                populateBajaFields(sel, r);
+                exportActaBaja(sel);
             },
             e -> NotificacionUtil.error(table.getScene(),
                 e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo dar de baja el bien")
@@ -860,107 +840,33 @@ public class ProductosController {
         }
     }
 
-    /** Simple record to carry the baja dialog result. */
-    private record BajaDialogResult(
-        String motivo,
-        String tipoDestino,
-        String dictamen,
-        String numeroActa,
-        java.time.LocalDate fechaDictamen
-    ) {}
-
-    /**
-     * Shows the enhanced "Dar de baja" dialog with motivo (required) and
-     * optional committee/dictamen fields. Returns null if the user cancelled.
-     */
-    private BajaDialogResult showBajaDialog(String nombreBien) {
-        javafx.scene.control.Dialog<BajaDialogResult> dlg = new javafx.scene.control.Dialog<>();
-        dlg.setTitle("Dar de baja");
-        dlg.getDialogPane().getButtonTypes().addAll(
-            javafx.scene.control.ButtonType.OK,
-            javafx.scene.control.ButtonType.CANCEL
+    private void undoBaja(String idBaja, String nombre) {
+        DialogUtil.runAsync(
+            () -> productoService.reactivar(idBaja),
+            () -> { loadData(); NotificacionUtil.info(table.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
+            e  -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer la baja")
         );
-        DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        // Header
-        javafx.scene.layout.HBox header = DialogUtil.gradientHeader(
-            "mdi2d-delete-outline",
-            "Dar de baja",
-            "¿Dar de baja \"" + nombreBien + "\"?\nQuedará fuera del inventario activo, pero su historial se conserva.",
-            AppColors.WARNING_D, AppColors.WARNING_DD
-        );
-
-        // ── Form fields ───────────────────────────────────────────────
-        javafx.scene.control.TextField tfMotivo = new javafx.scene.control.TextField();
-        tfMotivo.setPromptText("Motivo de la baja (obligatorio)");
-        tfMotivo.setPrefWidth(360);
-
-        javafx.scene.control.ComboBox<String> cbDestino = new javafx.scene.control.ComboBox<>();
-        cbDestino.getItems().addAll("", "Destrucción", "Donación", "Subasta",
-            "Transferencia a otro ente", "Otro");
-        cbDestino.setValue("");
-        cbDestino.setPrefWidth(360);
-        cbDestino.setPromptText("Tipo de destino (opcional)");
-
-        javafx.scene.control.TextField tfDictamen = new javafx.scene.control.TextField();
-        tfDictamen.setPromptText("Dictamen / Resolución (opcional)");
-        tfDictamen.setPrefWidth(360);
-
-        javafx.scene.control.TextField tfNumeroActa = new javafx.scene.control.TextField();
-        tfNumeroActa.setPromptText("No. de Acta (opcional)");
-        tfNumeroActa.setPrefWidth(360);
-
-        javafx.scene.control.DatePicker dpFechaDictamen = new javafx.scene.control.DatePicker();
-        dpFechaDictamen.setPromptText("Fecha del dictamen (opcional)");
-        dpFechaDictamen.setPrefWidth(360);
-
-        // Disable OK if motivo is blank
-        javafx.scene.Node btnOk = dlg.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK);
-        btnOk.setDisable(true);
-        tfMotivo.textProperty().addListener((obs, o, n) ->
-            btnOk.setDisable(n == null || n.isBlank()));
-
-        // Layout
-        VBox form = new VBox(10);
-        form.setPadding(new javafx.geometry.Insets(20, 24, 8, 24));
-        form.getChildren().addAll(
-            new javafx.scene.control.Label("Motivo de la baja *"),
-            tfMotivo,
-            new javafx.scene.control.Label("Tipo de destino"),
-            cbDestino,
-            new javafx.scene.control.Label("Dictamen / Resolución"),
-            tfDictamen,
-            new javafx.scene.control.Label("No. de Acta"),
-            tfNumeroActa,
-            new javafx.scene.control.Label("Fecha del dictamen"),
-            dpFechaDictamen
-        );
-
-        dlg.getDialogPane().setContent(new VBox(header, form));
-        dlg.getDialogPane().setPrefWidth(440);
-
-        // Map OK to result
-        dlg.setResultConverter(bt -> {
-            if (bt != javafx.scene.control.ButtonType.OK) return null;
-            String motivo = tfMotivo.getText().trim();
-            String destLabel = cbDestino.getValue();
-            String tipoDestino = switch (destLabel == null ? "" : destLabel) {
-                case "Destrucción"             -> "DESTRUCCION";
-                case "Donación"                -> "DONACION";
-                case "Subasta"                 -> "SUBASTA";
-                case "Transferencia a otro ente" -> "TRANSFERENCIA_ENTE";
-                case "Otro"                    -> "OTRO";
-                default                        -> null;
-            };
-            String dictamen   = tfDictamen.getText().isBlank()   ? null : tfDictamen.getText().trim();
-            String numeroActa = tfNumeroActa.getText().isBlank() ? null : tfNumeroActa.getText().trim();
-            java.time.LocalDate fechaDictamen = dpFechaDictamen.getValue();
-            return new BajaDialogResult(motivo, tipoDestino, dictamen, numeroActa, fechaDictamen);
-        });
-
-        return dlg.showAndWait().orElse(null);
     }
+
+    private void exportActaBaja(Producto sel) {
+        DialogUtil.runAsync(
+            () -> reporteService.exportActaBaja(sel),
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+            ex   -> log.warn("No se pudo generar el acta de baja", ex)
+        );
+    }
+
+    private void populateBajaFields(Producto sel, ProductoBajasDialog.BajaResult r) {
+        // Pre-fill baja fields from dialog result so the acta PDF is generated
+        // immediately without a second DB round-trip.
+        sel.setFechaBaja(java.time.LocalDate.now());
+        sel.setMotivoBaja(r.motivo());
+        sel.setTipoDestinoBaja(r.tipoDestino());
+        sel.setDictamenBaja(r.dictamen());
+        sel.setNumeroActaBaja(r.numeroActa());
+        sel.setFechaDictamen(r.fechaDictamen());
+    }
+
 
     @FXML
     private void onExportCsv() {
@@ -975,45 +881,46 @@ public class ProductosController {
     @FXML
     private void onExportSeleccionCsv() {
         ProductosExporter.exportSeleccionCsv(table.getScene(),
-            List.copyOf(table.getSelectionModel().getSelectedItems()), reporteService, this::onExportSeleccionCsv);
+            getSelectedProductos(), reporteService, this::onExportSeleccionCsv);
     }
 
     @FXML
     private void onExportSeleccionExcel() {
         ProductosExporter.exportSeleccionExcel(table.getScene(),
-            List.copyOf(table.getSelectionModel().getSelectedItems()), reporteService, this::onExportSeleccionExcel);
+            getSelectedProductos(), reporteService, this::onExportSeleccionExcel);
     }
 
     // ── Bulk actions ─────────────────────────────────────────────────────────
 
+    private List<Producto> getSelectedProductos() {
+        return List.copyOf(table.getSelectionModel().getSelectedItems());
+    }
+
+    private void runBulkIfValid(java.util.function.Consumer<List<Producto>> action) {
+        List<Producto> sel = getSelectedProductos();
+        if (sel.size() < 2 || !canEdit) return;
+        action.accept(sel);
+    }
+
     @FXML
     private void onBulkCambiarArea() {
-        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
-        if (sel.size() < 2 || !canEdit) return;
-        ProductosBulkDialog.showCambiarArea(
+        runBulkIfValid(sel -> ProductosBulkDialog.showCambiarArea(
             sel, table.getScene(), productoService, table,
-            () -> { refreshing = true; loadData(); },
-            this::onBulkCambiarArea);
+            () -> { refreshing = true; loadData(); }, this::onBulkCambiarArea));
     }
 
     @FXML
     private void onBulkCambiarResguardante() {
-        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
-        if (sel.size() < 2 || !canEdit) return;
-        ProductosBulkDialog.showCambiarResguardante(
+        runBulkIfValid(sel -> ProductosBulkDialog.showCambiarResguardante(
             sel, table.getScene(), productoService, table,
-            () -> { refreshing = true; loadData(); },
-            this::onBulkCambiarResguardante);
+            () -> { refreshing = true; loadData(); }, this::onBulkCambiarResguardante));
     }
 
     @FXML
     private void onBulkMarcarEtiquetado() {
-        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
-        if (sel.size() < 2 || !canEdit) return;
-        ProductosBulkDialog.showMarcarEtiquetado(
+        runBulkIfValid(sel -> ProductosBulkDialog.showMarcarEtiquetado(
             sel, table.getScene(), productoService, table,
-            () -> { refreshing = true; loadData(); },
-            this::onBulkMarcarEtiquetado);
+            () -> { refreshing = true; loadData(); }, this::onBulkMarcarEtiquetado));
     }
 
     private void onCardSinEtiquetar() {
@@ -1028,7 +935,7 @@ public class ProductosController {
 
     @FXML
     private void onComparar() {
-        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        List<Producto> sel = getSelectedProductos();
         if (sel.size() != 2) {
             NotificacionUtil.advertencia(table.getScene(), "Selecciona exactamente 2 bienes para comparar");
             return;
@@ -1056,7 +963,7 @@ public class ProductosController {
 
     @FXML
     private void onBulkEtiquetasQr() {
-        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        List<Producto> sel = getSelectedProductos();
         if (sel.isEmpty()) return;
         exportarEtiquetasQr(sel);
     }
@@ -1067,7 +974,7 @@ public class ProductosController {
 
     @FXML
     private void onBulkEtiquetaFisica() {
-        List<Producto> sel = List.copyOf(table.getSelectionModel().getSelectedItems());
+        List<Producto> sel = getSelectedProductos();
         if (sel.isEmpty()) sel = List.copyOf(table.getItems());
         exportarEtiquetaFisica(sel);
     }
@@ -1187,15 +1094,12 @@ public class ProductosController {
                         })).play();
                 },
                 e -> {
-                    // Don't just show an error and drop everything the user
-                    // typed — reopen the same dialog pre-filled with what
-                    // they entered (p already has every field set) so a
-                    // failed save (BD caída, validación) doesn't force
-                    // re-typing the whole form from scratch.
+                    // Reopen pre-filled with what the user typed — same cats already
+                    // loaded, no extra DB round-trip on a failed save.
                     NotificacionUtil.error(table.getScene(),
                         (e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo guardar el bien")
                             + " — revisa los datos e inténtalo de nuevo");
-                    Platform.runLater(() -> showProductDialog(p));
+                    Platform.runLater(() -> openProductDialog(p, cats, existingFotos));
                 }
             ));
 

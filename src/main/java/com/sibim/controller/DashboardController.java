@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 
-public class DashboardController {
+public class DashboardController implements Refreshable {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
 
@@ -101,13 +101,15 @@ public class DashboardController {
 
     private final DashboardService dashboardService = new DashboardService();
     private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
-    private final com.sibim.service.ReporteService reporteService = new com.sibim.service.ReporteService();
+    private final com.sibim.service.ReporteService reporteService = com.sibim.service.ReporteService.getInstance();
     private final com.sibim.service.PrestamoService prestamoService = new com.sibim.service.PrestamoService();
     private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
     private final com.sibim.service.ComodatoService comodatoService = new com.sibim.service.ComodatoService();
 
     private static final String CARDS_CONFIG_KEY = "dashboard_cards_visibles";
     private static final java.util.Set<String> ALL_CARDS = java.util.Set.of(
+        "Total Bienes", "Movimientos hoy", "Bienes agotados", "Bajo stock", "Por área", "Actividad reciente");
+    private static final java.util.List<String> CARDS_ORDERED = java.util.List.of(
         "Total Bienes", "Movimientos hoy", "Bienes agotados", "Bajo stock", "Por área", "Actividad reciente");
 
     private List<Producto> lastAgotados  = List.of();
@@ -124,28 +126,10 @@ public class DashboardController {
         var user = SessionManager.getCurrentUser();
         if (user != null) lblUsuario.setText(user.getNombre());
         lblBienvenida.setText(getBienvenida());
-
-        // Load org name from configuracion (best-effort — fallback is the FXML default)
-        if (lblOrgBanner != null) {
-            com.sibim.util.DialogUtil.runAsync(
-                () -> {
-                    com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
-                    return cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan")
-                         + "  ·  Bienes Municipales";
-                },
-                txt -> { if (lblOrgBanner != null) lblOrgBanner.setText(txt); },
-                e -> {}
-            );
-        }
-
-        LocalDate hoy = LocalDate.now();
-        String[] meses = {"Enero","Febrero","Marzo","Abril","Mayo","Junio",
-                          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"};
-        if (lblFechaDia != null) lblFechaDia.setText(String.valueOf(hoy.getDayOfMonth()));
-        if (lblFechaMes != null) lblFechaMes.setText(meses[hoy.getMonthValue()-1] + " " + hoy.getYear());
+        loadOrgNameAsync();
+        setupDateBanner();
 
         new DashboardTablaRecienteSetup(tablaReciente, productoService, movimientoService, log).setup();
-
         chartBuilder = new DashboardChartBuilder(
             chartMovimientos, categoriaValorBox, pieEmptyState,
             chartTendencia, trendCard, lblTrendEmpty,
@@ -154,61 +138,74 @@ public class DashboardController {
             statusCardsRow, areasCard, areasBarBox, areasSectionHdr,
             () -> navigarA("Productos"), this::onVerBajoStock, this::onVerAgotados, () -> navigarA("Alertas"));
 
-        // JavaFX's default tooltip only appears after ~1s of hovering, which
-        // reads as "broken" on a small icon — same click-to-show behavior
-        // used for the "?" badges everywhere else in the app (DialogUtil).
+        setupHelpBadges();
+        applyCardVisibility();
+        setupPermissions();
+        setupSceneReadyListener();
+    }
+
+    private void loadOrgNameAsync() {
+        if (lblOrgBanner == null) return;
+        com.sibim.util.DialogUtil.runAsync(
+            () -> {
+                com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
+                return cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan")
+                     + "  ·  Bienes Municipales";
+            },
+            txt -> { if (lblOrgBanner != null) lblOrgBanner.setText(txt); },
+            e -> {}
+        );
+    }
+
+    private void setupDateBanner() {
+        LocalDate hoy = LocalDate.now();
+        String[] meses = {"Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"};
+        if (lblFechaDia != null) lblFechaDia.setText(String.valueOf(hoy.getDayOfMonth()));
+        if (lblFechaMes != null) lblFechaMes.setText(meses[hoy.getMonthValue()-1] + " " + hoy.getYear());
+    }
+
+    private void setupHelpBadges() {
         for (Label badge : new Label[]{ helpStats, helpTotalBienes, helpValorTotal,
                 helpMovimientosHoy, helpCategorias, helpHealth, helpAnalisis }) {
             if (badge != null) com.sibim.util.DialogUtil.enableClickToShowTooltip(badge);
         }
+    }
 
-        applyCardVisibility();
-
-        // Hide create-only cards for users without edit permissions
+    private void setupPermissions() {
         boolean canEdit = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (!canEdit) {
-            if (cardNuevoBien   != null) { cardNuevoBien.setVisible(false);   cardNuevoBien.setManaged(false); }
+            if (cardNuevoBien    != null) { cardNuevoBien.setVisible(false);    cardNuevoBien.setManaged(false); }
             if (cardNuevaEntrada != null) { cardNuevaEntrada.setVisible(false); cardNuevaEntrada.setManaged(false); }
         }
-
-        // Panel ejecutivo (depreciación patrimonial) es información financiera
-        // sensible — igual que Auditoría, solo para administradores.
         if (btnPanelEjecutivo != null) {
             boolean isAdmin = SessionManager.isAdmin();
             btnPanelEjecutivo.setVisible(isAdmin);
             btnPanelEjecutivo.setManaged(isAdmin);
         }
+    }
 
-        // Operaciones row starts invisible — fades in after async data loads
+    private void setupSceneReadyListener() {
         if (operacionesRow != null) operacionesRow.setOpacity(0);
-
-        // Defer data loading until the node is in a scene so that charts render
-        // correctly and don't get caught mid-animation during the page transition.
         sceneReadyListener = (obs, old, newScene) -> {
-            if (newScene != null) {
-                    statsGrid.sceneProperty().removeListener(sceneReadyListener);
-                    sceneReadyListener = null;
-                    // Reset scroll to top before animations so nodes rendered
-                    // during stagger don't pull the viewport down.
-                    javafx.application.Platform.runLater(() -> {
-                        if (rootScrollPane != null) rootScrollPane.setVvalue(0);
-                    });
-                    if (dashBanner != null && !dashBanner.getChildren().isEmpty())
-                        AnimationUtils.staggeredFadeInUp(dashBanner.getChildren(), 300, 70);
-                    AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(),          280,  45);
-                    if (quickActionsRow != null) AnimationUtils.staggeredFadeInUp(quickActionsRow.getChildren(), 260, 40);
-                    // chartsRow, activityCard, statusCardsRow stay invisible until data
-                    // arrives — they fade in from updateUI() on first load (skeleton effect).
-                    if (chartsRow      != null) chartsRow.setOpacity(0);
-                    if (activityCard   != null) activityCard.setOpacity(0);
-                    if (statusCardsRow != null) statusCardsRow.setOpacity(0);
-                    loadDataAsync();
-                    autoRefresh = new javafx.animation.Timeline(
-                        new javafx.animation.KeyFrame(javafx.util.Duration.minutes(10),
-                            e -> loadDataAsync()));
-                    autoRefresh.setCycleCount(javafx.animation.Timeline.INDEFINITE);
-                    autoRefresh.play();
-                }
+            if (newScene == null) return;
+            statsGrid.sceneProperty().removeListener(sceneReadyListener);
+            sceneReadyListener = null;
+            javafx.application.Platform.runLater(() -> {
+                if (rootScrollPane != null) rootScrollPane.setVvalue(0);
+            });
+            if (dashBanner != null && !dashBanner.getChildren().isEmpty())
+                AnimationUtils.staggeredFadeInUp(dashBanner.getChildren(), 300, 70);
+            AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(), 280, 45);
+            if (quickActionsRow != null) AnimationUtils.staggeredFadeInUp(quickActionsRow.getChildren(), 260, 40);
+            if (chartsRow      != null) chartsRow.setOpacity(0);
+            if (activityCard   != null) activityCard.setOpacity(0);
+            if (statusCardsRow != null) statusCardsRow.setOpacity(0);
+            loadDataAsync();
+            autoRefresh = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.minutes(10), e -> loadDataAsync()));
+            autoRefresh.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+            autoRefresh.play();
         };
         statsGrid.sceneProperty().addListener(sceneReadyListener);
     }
@@ -233,30 +230,52 @@ public class DashboardController {
     }
 
     private void updateUI(DashboardService.Resumen data) {
-        var stats = data.stats();
-
         lastAgotados  = data.agotados();
         lastBajoStock = data.bajoStock();
         lastResumen   = data;
 
+        updateStatCards(data);
+        updateAlertBanner(data);
+        chartBuilder.buildMovimientosChart(data.movSemana());
+        chartBuilder.buildCategoriaChart(data.catValores());
+        statusBuilder.buildStatusCards(data.stats());
+        chartBuilder.buildTrendChart(data.movMensual());
+        chartBuilder.buildValorChart(data.movMensualValor());
+        statusBuilder.buildAreasSection(data.byArea(), data.stats().total());
+        updateTrendIndicator(data);
+        updateNewBienesHint();
+        updateTableReciente(data);
+
+        if (chartsFirstLoad) {
+            chartsFirstLoad = false;
+            if (chartsRow      != null) AnimationUtils.fadeInUp(chartsRow,      350, 0);
+            if (activityCard   != null) AnimationUtils.fadeInUp(activityCard,   350, 80);
+            if (statusCardsRow != null) AnimationUtils.fadeInUp(statusCardsRow, 350, 40);
+        }
+        loadOperacionesAsync();
+    }
+
+    private void updateStatCards(DashboardService.Resumen data) {
+        var stats = data.stats();
         AnimationUtils.animateCount(lblTotalBienes,    stats.total(),              750);
         AnimationUtils.animateCount(lblMovimientosHoy, data.movHoy().size(),       580);
         AnimationUtils.animateCount(lblCategorias,     stats.categorias(),         580);
-        // Currency: animate double value, format each tick for precision on last frame
         AnimationUtils.animateCount(lblValorTotal,
             stats.valorTotal().longValue(), 850,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
-        // Subtle pop on stat cards after their numbers finish counting
-        javafx.animation.PauseTransition popDelay = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+        javafx.animation.PauseTransition popDelay =
+            new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
         popDelay.setOnFinished(ev -> statsGrid.getChildren().forEach(AnimationUtils::statCardPop));
         popDelay.play();
-
         if (lblStatsActualizacion != null) {
             lblStatsActualizacion.setText("Actualizado " +
                 com.sibim.util.FormatUtils.formatTime(java.time.LocalTime.now()));
             AnimationUtils.pulse(lblStatsActualizacion, 2);
         }
+    }
 
+    private void updateAlertBanner(DashboardService.Resumen data) {
+        var stats = data.stats();
         int proximasRevisiones = data.proximasRevisiones().size();
         boolean showAlert = stats.agotados() > 0 || stats.bajoStock() > 0 || proximasRevisiones > 0;
         if (showAlert && lblAlertBannerText != null) {
@@ -272,91 +291,70 @@ public class DashboardController {
         alertBanner.setVisible(showAlert);
         alertBanner.setManaged(showAlert);
         if (showAlert) AnimationUtils.springIn(alertBanner);
+    }
 
-        chartBuilder.buildMovimientosChart(data.movSemana());
-        chartBuilder.buildCategoriaChart(data.catValores());
-        statusBuilder.buildStatusCards(stats);
-        chartBuilder.buildTrendChart(data.movMensual());
-        chartBuilder.buildValorChart(data.movMensualValor());
-        statusBuilder.buildAreasSection(data.byArea(), stats.total());
+    private void updateTrendIndicator(DashboardService.Resumen data) {
+        if (lblMovimientosHoy == null || !(lblMovimientosHoy.getParent() instanceof VBox inner)) return;
+        inner.getChildren().removeIf(n -> n instanceof Label l && l.getStyleClass().contains("trend-lbl"));
+        long todayCount     = data.movHoy().size();
+        java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
+        long yesterdayCount = data.movSemana().stream()
+            .filter(m -> m.getCreadoEn().toLocalDate().equals(yesterday)).count();
+        String arrow; String cls;
+        if      (todayCount > yesterdayCount) { arrow = "▲"; cls = "trend-up"; }
+        else if (todayCount < yesterdayCount) { arrow = "▼"; cls = "trend-down"; }
+        else                                  { arrow = "—"; cls = "trend-eq"; }
+        long diff = Math.abs(todayCount - yesterdayCount);
+        String diffStr = diff == 0 ? "igual que ayer"
+            : (todayCount > yesterdayCount ? "+" : "-") + diff + " vs ayer";
+        Label trendLbl = new Label(arrow + " " + diffStr);
+        trendLbl.getStyleClass().addAll("trend-lbl", cls);
+        int afterValue = inner.getChildren().indexOf(lblMovimientosHoy) + 1;
+        inner.getChildren().add(Math.min(afterValue, inner.getChildren().size()), trendLbl);
 
-        // Trend indicator: today vs yesterday from movSemana data
-        if (lblMovimientosHoy != null && lblMovimientosHoy.getParent() instanceof VBox inner) {
-            inner.getChildren().removeIf(n -> n instanceof Label l && l.getStyleClass().contains("trend-lbl"));
-            long todayCount = data.movHoy().size();
-            java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
-            long yesterdayCount = data.movSemana().stream()
-                .filter(m -> m.getCreadoEn().toLocalDate().equals(yesterday))
-                .count();
-            String arrow; String cls;
-            if      (todayCount > yesterdayCount) { arrow = "▲"; cls = "trend-up"; }
-            else if (todayCount < yesterdayCount) { arrow = "▼"; cls = "trend-down"; }
-            else                                  { arrow = "—"; cls = "trend-eq"; }
-            long diff = Math.abs(todayCount - yesterdayCount);
-            String diffStr = diff == 0 ? "igual que ayer"
-                : (todayCount > yesterdayCount ? "+" : "-") + diff + " vs ayer";
-            Label trendLbl = new Label(arrow + " " + diffStr);
-            trendLbl.getStyleClass().addAll("trend-lbl", cls);
-            int afterValue = inner.getChildren().indexOf(lblMovimientosHoy) + 1;
-            inner.getChildren().add(Math.min(afterValue, inner.getChildren().size()), trendLbl);
-
-            // Year-over-year comparison hint
-            inner.getChildren().removeIf(n -> n instanceof Label l && l.getStyleClass().contains("muted-sm")
-                && l.getText() != null && l.getText().contains("año pasado"));
-            long movsActual   = data.movsAnioActual();
-            long movsAnterior = data.movsAnioAnterior();
-            if (movsAnterior > 0) {
-                long yoyDiff = movsActual - movsAnterior;
-                String yoyStr = (yoyDiff >= 0 ? "+" : "") + yoyDiff + " vs año pasado";
-                Label yoyLbl = new Label(yoyStr);
-                yoyLbl.getStyleClass().add("muted-sm");
-                inner.getChildren().add(yoyLbl);
-            }
+        inner.getChildren().removeIf(n -> n instanceof Label l && l.getStyleClass().contains("muted-sm")
+            && l.getText() != null && l.getText().contains("año pasado"));
+        long movsActual   = data.movsAnioActual();
+        long movsAnterior = data.movsAnioAnterior();
+        if (movsAnterior > 0) {
+            long yoyDiff = movsActual - movsAnterior;
+            Label yoyLbl = new Label((yoyDiff >= 0 ? "+" : "") + yoyDiff + " vs año pasado");
+            yoyLbl.getStyleClass().add("muted-sm");
+            inner.getChildren().add(yoyLbl);
         }
+    }
 
-        // New bienes this year hint below total bienes card
-        if (lblTotalBienes != null && lblTotalBienes.getParent() instanceof VBox bienesInner) {
-            bienesInner.getChildren().removeIf(n -> n instanceof Label l
-                && l.getText() != null && l.getText().contains("este año"));
-            int anioActual = java.time.LocalDate.now().getYear();
-            com.sibim.util.DialogUtil.runAsync(
-                () -> new com.sibim.repository.ProductoRepository().countNuevosEnAnio(anioActual),
-                nuevos -> {
-                    if (nuevos > 0) {
-                        Label nuevosLbl = new Label("+" + nuevos + " registrados este año");
-                        nuevosLbl.getStyleClass().add("muted-sm");
-                        bienesInner.getChildren().add(nuevosLbl);
-                    }
-                },
-                ex -> {}
-            );
-        }
+    private void updateNewBienesHint() {
+        if (lblTotalBienes == null || !(lblTotalBienes.getParent() instanceof VBox bienesInner)) return;
+        bienesInner.getChildren().removeIf(n -> n instanceof Label l
+            && l.getText() != null && l.getText().contains("este año"));
+        int anioActual = java.time.LocalDate.now().getYear();
+        com.sibim.util.DialogUtil.runAsync(
+            () -> new com.sibim.repository.ProductoRepository().countNuevosEnAnio(anioActual),
+            nuevos -> {
+                if (nuevos > 0) {
+                    Label nuevosLbl = new Label("+" + nuevos + " registrados este año");
+                    nuevosLbl.getStyleClass().add("muted-sm");
+                    bienesInner.getChildren().add(nuevosLbl);
+                }
+            },
+            ex -> {}
+        );
+    }
 
-        // First-load skeleton fade-in — charts were kept at opacity 0 until data arrives
-        if (chartsFirstLoad) {
-            chartsFirstLoad = false;
-            if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,    350, 0);
-            if (activityCard != null) AnimationUtils.fadeInUp(activityCard, 350, 80);
-            if (statusCardsRow != null) AnimationUtils.fadeInUp(statusCardsRow, 350, 40);
-        }
-
-        loadOperacionesAsync();
-
-        if (tablaReciente != null) {
-            List<Movimiento> ultimos = data.movSemana().stream()
-                .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
-                .limit(8)
-                .toList();
-            tablaReciente.getItems().setAll(ultimos);
-            AnimationUtils.staggerTableRows(tablaReciente);
-
-            if (lblCountReciente != null) {
-                int n = ultimos.size();
-                lblCountReciente.setVisible(n > 0);
-                lblCountReciente.setManaged(n > 0);
-                if (n > 0) AnimationUtils.animateCount(lblCountReciente, n, 380);
-                else       lblCountReciente.setText("");
-            }
+    private void updateTableReciente(DashboardService.Resumen data) {
+        if (tablaReciente == null) return;
+        List<Movimiento> ultimos = data.movSemana().stream()
+            .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
+            .limit(8).toList();
+        tablaReciente.getItems().setAll(ultimos);
+        AnimationUtils.staggerTableRows(tablaReciente);
+        if (lblCountReciente != null) {
+            int n = ultimos.size();
+            lblCountReciente.setVisible(n > 0);
+            lblCountReciente.setManaged(n > 0);
+            if (n > 0) AnimationUtils.animateCount(lblCountReciente, n, 380);
+            else       lblCountReciente.setText("");
         }
     }
 
@@ -429,32 +427,13 @@ public class DashboardController {
                 final long cVig = comodatosVigentes;
                 final long cVen = comodatosVencidos;
                 javafx.application.Platform.runLater(() -> {
-                    if (lblPrestamosVencidos != null)
-                        AnimationUtils.animateCount(lblPrestamosVencidos, vencidos, 700);
-                    if (lblPrestamosActivos != null)
-                        AnimationUtils.animateCount(lblPrestamosActivos, activos, 700);
-                    if (lblResguardosActivos != null)
-                        AnimationUtils.animateCount(lblResguardosActivos, resguardos, 700);
-                    if (cardPrestamosVencidos != null) {
-                        if (vencidos > 0) {
-                            cardPrestamosVencidos.getStyleClass().removeAll("dash-stat-urgent");
-                            cardPrestamosVencidos.getStyleClass().add("dash-stat-urgent");
-                        } else {
-                            cardPrestamosVencidos.getStyleClass().remove("dash-stat-urgent");
-                        }
-                    }
-                    if (lblComodatosVigentes != null)
-                        AnimationUtils.animateCount(lblComodatosVigentes, cVig, 700);
-                    if (lblComodatosVencidos != null)
-                        AnimationUtils.animateCount(lblComodatosVencidos, cVen, 700);
-                    if (cardComodatosVencidos != null) {
-                        if (cVen > 0) {
-                            cardComodatosVencidos.getStyleClass().removeAll("dash-stat-urgent");
-                            cardComodatosVencidos.getStyleClass().add("dash-stat-urgent");
-                        } else {
-                            cardComodatosVencidos.getStyleClass().remove("dash-stat-urgent");
-                        }
-                    }
+                    if (lblPrestamosVencidos != null) AnimationUtils.animateCount(lblPrestamosVencidos, vencidos,   700);
+                    if (lblPrestamosActivos  != null) AnimationUtils.animateCount(lblPrestamosActivos,  activos,    700);
+                    if (lblResguardosActivos != null) AnimationUtils.animateCount(lblResguardosActivos, resguardos, 700);
+                    if (lblComodatosVigentes != null) AnimationUtils.animateCount(lblComodatosVigentes, cVig,       700);
+                    if (lblComodatosVencidos != null) AnimationUtils.animateCount(lblComodatosVencidos, cVen,       700);
+                    applyUrgentStyle(cardPrestamosVencidos, vencidos > 0);
+                    applyUrgentStyle(cardComodatosVencidos, cVen     > 0);
                     if (operacionesRow != null && operacionesRow.getOpacity() < 1)
                         AnimationUtils.fadeInUp(operacionesRow, 350, 0);
                 });
@@ -462,6 +441,16 @@ public class DashboardController {
                 log.warn("No se pudieron cargar los contadores de operaciones del dashboard", e);
             }
         });
+    }
+
+    private static void applyUrgentStyle(VBox card, boolean urgent) {
+        if (card == null) return;
+        if (urgent) {
+            card.getStyleClass().removeAll("dash-stat-urgent");
+            card.getStyleClass().add("dash-stat-urgent");
+        } else {
+            card.getStyleClass().remove("dash-stat-urgent");
+        }
     }
 
     @FXML private void onVerPrestamos()         { navigarA("Prestamos"); }
@@ -575,7 +564,7 @@ public class DashboardController {
         VBox checks = new VBox(10);
         checks.setPadding(new javafx.geometry.Insets(14));
         java.util.Map<String, CheckBox> checkMap = new java.util.LinkedHashMap<>();
-        for (String name : new String[]{"Total Bienes","Movimientos hoy","Bienes agotados","Bajo stock","Por área","Actividad reciente"}) {
+        for (String name : CARDS_ORDERED) {
             CheckBox cb = new CheckBox(name);
             cb.setSelected(visible.contains(name));
             checkMap.put(name, cb);

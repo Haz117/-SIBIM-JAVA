@@ -323,6 +323,53 @@
                 <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             </Button>
         </VBox>
+
+        <!-- ── Parque Vehicular V.6 — blue ── -->
+        <VBox styleClass="report-card" spacing="10"
+              GridPane.columnIndex="0" GridPane.rowIndex="4">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <StackPane styleClass="report-icon-badge, report-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2c-car-outline" styleClass="report-icon"/>
+                </StackPane>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Parque Vehicular (V.6)" styleClass="report-title"/>
+                    <Label text="Ficha por vehículo · componentes · condición"
+                           styleClass="report-card-tag report-card-tag-indigo"/>
+                </VBox>
+            </HBox>
+            <Label text="Formato oficial V.6: una tarjeta por vehículo con datos de identificación, condición y lista de verificación de componentes. Solo incluye bienes con marca registrada."
+                   styleClass="report-desc" wrapText="true"/>
+            <Button text="Exportar PDF" onAction="#onParqueVehicularPdf"
+                    styleClass="report-export-btn, report-export-indigo"
+                    contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            </Button>
+        </VBox>
+
+        <!-- ── Entrega-Recepción ANEXO V.4 — guinda ── -->
+        <VBox styleClass="report-card" spacing="10"
+              GridPane.columnIndex="1" GridPane.rowIndex="4">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <StackPane styleClass="report-icon-badge, report-icon-badge-red">
+                    <FontIcon iconLiteral="mdi2c-clipboard-text-outline" styleClass="report-icon"/>
+                </StackPane>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Entrega-Recepción (ANEXO V.4)" styleClass="report-title"/>
+                    <Label text="Inventario patrimonial · depreciación · valor en libros"
+                           styleClass="report-card-tag report-card-tag-red"/>
+                </VBox>
+            </HBox>
+            <Label text="Formato oficial ANEXO V.4: tabla horizontal con todos los bienes, resguardante, valor de adquisición, depreciación acumulada, valor en libros y condición. Para actos formales de entrega-recepción."
+                   styleClass="report-desc" wrapText="true"/>
+            <Button text="Exportar PDF" onAction="#onEntregaRecepcionPdf"
+                    styleClass="report-export-btn, report-export-red"
+                    contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            </Button>
+        </VBox>
+
     </GridPane>
 
 </VBox>

@@ -5,6 +5,7 @@ import com.sibim.model.Comodato;
 import com.sibim.model.Producto;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.service.ComodatoService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
@@ -47,9 +48,8 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
     @FXML private TableColumn<Comodato, String> colEstado;
     @FXML private Button         btnNuevo;
     @FXML private ComboBox<String> estadoFilter;
-    @FXML private TextField        searchField;
 
-    private final ComodatoService   service      = new ComodatoService();
+    private final ComodatoService    service      = new ComodatoService();
     private final ProductoRepository productoRepo = new ProductoRepository();
     private List<Comodato> allData = List.of();
 
@@ -116,12 +116,17 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             estadoFilter.getItems().addAll("Todos", "Vigentes", "Vencidos", "Concluidos", "Rescindidos");
             estadoFilter.setValue("Todos");
             estadoFilter.valueProperty().addListener((obs, o, n) -> applyFilter());
+            estadoFilter.valueProperty().addListener((obs, o, n) -> updateStatHighlight(n));
+            setupStatCardFilters();
         }
         boolean offline = DatabaseConfig.getLocalDataStore() != null;
         boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
-        if (searchField != null)
-            searchField.textProperty().addListener((obs, o, n) -> applyFilter());
+        setupDateFilterBar(
+            () -> com.sibim.service.ReporteService.getInstance().exportComodatosExcel(exportTarget()),
+            () -> com.sibim.service.ReporteService.getInstance().exportComodatosCsv(exportTarget())
+        );
+        setupSearchListener();
 
         table.setOnKeyPressed(ev -> {
             if (ev.getCode() == KeyCode.ESCAPE) {
@@ -140,6 +145,8 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             });
         }
 
+        restoreFilterPrefs();
+        restoreEstadoFilter(estadoFilter);
         Platform.runLater(() -> {
             if (searchField != null) searchField.requestFocus();
             if (offline && rootPane.getScene() != null)
@@ -194,14 +201,56 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
         cm.getItems().addAll(miConcluir, miRescindir, new SeparatorMenuItem(), miPdf);
+        addLoteExportItem(cm);
         return cm;
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private void applyFilter() {
+    private void setupStatCardFilters() {
+        makeStatFilter(statCardVigentes,   "Vigentes");
+        makeStatFilter(statCardVencidos,   "Vencidos");
+        makeStatFilter(statCardConcluidos, "Concluidos");
+        makeStatFilter(statCardTotal,      "Todos");
+    }
+
+    private void makeStatFilter(VBox card, String filterVal) {
+        if (card == null || estadoFilter == null) return;
+        card.getStyleClass().add("rich-stat-card-clickable");
+        card.setOnMouseClicked(e -> {
+            String cur = estadoFilter.getValue();
+            estadoFilter.setValue(filterVal.equals(cur) ? "Todos" : filterVal);
+        });
+    }
+
+    private void updateStatHighlight(String estado) {
+        for (VBox c : List.of(statCardVigentes, statCardVencidos, statCardConcluidos, statCardTotal)) {
+            if (c != null) c.getStyleClass().remove("rich-stat-card-filter-active");
+        }
+        VBox active = switch (estado == null ? "Todos" : estado) {
+            case "Vigentes"   -> statCardVigentes;
+            case "Vencidos"   -> statCardVencidos;
+            case "Concluidos" -> statCardConcluidos;
+            default           -> null;
+        };
+        if (active != null) active.getStyleClass().add("rich-stat-card-filter-active");
+    }
+
+    @Override protected boolean isFilterActive() {
+        return super.isFilterActive() || (estadoFilter != null && !"Todos".equals(estadoFilter.getValue()));
+    }
+
+    @Override protected void clearFilters() {
+        super.clearFilters();
+        if (estadoFilter != null) estadoFilter.setValue("Todos");
+    }
+
+    @Override
+    protected void applyFilter() {
         String q      = searchField != null ? searchField.getText() : "";
         String estado = estadoFilter != null ? estadoFilter.getValue() : "Todos";
+        LocalDate desde = dpDesde != null ? dpDesde.getValue() : null;
+        LocalDate hasta = dpHasta != null ? dpHasta.getValue() : null;
         List<Comodato> filtered = allData.stream()
             .filter(c -> switch (estado == null ? "Todos" : estado) {
                 case "Vigentes"    -> Comodato.ESTADO_VIGENTE.equals(c.getEstado()) && !c.isVencido();
@@ -217,8 +266,17 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
                     || (c.getNumero()          != null && c.getNumero().toLowerCase().contains(lq))
                     || (c.getEntidadReceptora() != null && c.getEntidadReceptora().toLowerCase().contains(lq))
                     || (c.getContactoNombre()  != null && c.getContactoNombre().toLowerCase().contains(lq));
-            }).toList();
+            })
+            .filter(c -> {
+                LocalDate f = c.getFechaInicio();
+                if (desde != null && (f == null || f.isBefore(desde))) return false;
+                if (hasta != null && (f == null || f.isAfter(hasta))) return false;
+                return true;
+            })
+            .toList();
         data.setAll(filtered);
+        updateCount(filtered.size(), allData.size());
+        saveFilterPrefs(q, estado, desde, hasta);
     }
 
     // ── FXML actions ─────────────────────────────────────────────────────────
@@ -469,12 +527,24 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
     private void mostrarDetalle(Comodato c) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        ButtonType btnVerBien = new ButtonType("Ver en inventario", ButtonBar.ButtonData.LEFT);
+        dialog.getDialogPane().getButtonTypes().addAll(btnVerBien, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(480);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
+        javafx.scene.Node verBienNode = dialog.getDialogPane().lookupButton(btnVerBien);
+        if (verBienNode instanceof Button verBtn) {
+            verBtn.setGraphic(new FontIcon("mdi2c-cube-outline"));
+            verBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+                ev.consume();
+                dialog.close();
+                NavigationContext.setPendingProductId(c.getProductoId());
+                if (MainController.getInstance() != null) MainController.getInstance().navigateTo("productos");
+            });
+        }
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
             "Comodato " + c.getNumero(), c.getProductoNombre(), "#4C1D95", "#6D28D9");
+        DialogUtil.addCopyButton(header, c.getNumero());
 
         GridPane g = DialogUtil.formGrid(170);
         String estado = c.getEstadoEfectivo();
