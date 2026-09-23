@@ -43,6 +43,9 @@ packaging/dist/
 *.webp
 *.pdf
 
+# Excepción: documentos de referencia oficial del proyecto
+!documentos/**
+
 # ── Archivos temporales del editor ────────────────────────────────
 *.tmp
 *.tmp.*
