@@ -205,8 +205,13 @@ public class ConfiguracionController {
                     if (userSearchField != null) { userSearchField.requestFocus(); userSearchField.selectAll(); }
                     ev.consume(); return;
                 }
+                if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
+                    onNuevoUsuario(); ev.consume(); return;
+                }
                 if (usersTable.getSelectionModel().getSelectedItem() == null) return;
-                if (ev.getCode() == javafx.scene.input.KeyCode.DELETE) {
+                if (ev.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                    onEditUsuario(); ev.consume();
+                } else if (ev.getCode() == javafx.scene.input.KeyCode.DELETE) {
                     onDeleteUsuario(); ev.consume();
                 } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()) {
                     onEditUsuario(); ev.consume();

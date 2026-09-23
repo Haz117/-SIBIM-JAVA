@@ -10,7 +10,9 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
+import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -18,6 +20,7 @@ import com.sibim.util.SearchUtils;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.util.Duration;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -226,7 +229,10 @@ public class AlertasController {
             }
         });
         tableGarantias.setOnKeyPressed(ev -> {
-            if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
+            if (ev.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
+                AlertasDialogs.showGarantiaInfo(sel); ev.consume();
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 tableGarantias.getSelectionModel().clearSelection(); ev.consume();
             }
         });
@@ -254,6 +260,27 @@ public class AlertasController {
         });
         tableGarantias.setContextMenu(AlertasContextMenus.buildGarantias(
             tableGarantias, AlertasDialogs::showGarantiaInfo, this::imprimirFicha));
+
+        if (tableMantenimiento != null) {
+            tableMantenimiento.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2) {
+                    Producto sel = tableMantenimiento.getSelectionModel().getSelectedItem();
+                    if (sel != null) ProductoDetailDialog.show(sel, tableAgotados.getScene(), movimientoService, log);
+                }
+            });
+            tableMantenimiento.setOnKeyPressed(ev -> {
+                Producto sel = tableMantenimiento.getSelectionModel().getSelectedItem();
+                if (ev.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
+                    ProductoDetailDialog.show(sel, tableAgotados.getScene(), movimientoService, log); ev.consume();
+                } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                    tableMantenimiento.getSelectionModel().clearSelection(); ev.consume();
+                }
+            });
+            tableMantenimiento.setContextMenu(AlertasContextMenus.buildGarantias(
+                tableMantenimiento,
+                sel -> ProductoDetailDialog.show(sel, tableAgotados.getScene(), movimientoService, log),
+                this::imprimirFicha));
+        }
 
         for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias, helpMantenimiento, helpResumen }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
@@ -473,17 +500,35 @@ public class AlertasController {
     private void darDeBajaDesdeAlertas(Producto p) {
         if (!(SessionManager.isAdmin() || SessionManager.isSecretario())) return;
 
-        TextInputDialog dlg = new TextInputDialog();
+        Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
         dlg.setTitle("Dar de baja");
-        dlg.setHeaderText("Dar de baja: " + p.getNombre());
-        dlg.setContentText("Motivo:");
-        dlg.getEditor().setPromptText("Ej. Pérdida total, robo, deterioro irreparable…");
+        ButtonType okType = new ButtonType("Dar de baja", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
 
-        Optional<String> result = dlg.showAndWait();
-        if (result.isEmpty() || result.get().isBlank()) return;
-        String motivo = result.get().trim();
+        HBox header = DialogUtil.gradientHeader("mdi2a-archive-arrow-down-outline",
+            "Dar de baja", p.getNombre(), AppColors.DANGER, AppColors.DANGER_D);
+
+        TextField motivoField = new TextField();
+        motivoField.setPromptText("Ej. Pérdida total, robo, deterioro irreparable…");
+        Label lbl = new Label("Motivo:");
+        lbl.getStyleClass().add("field-label");
+        VBox form = new VBox(6, lbl, motivoField);
+        form.setPadding(new Insets(16));
+
+        dlg.getDialogPane().setContent(new VBox(0, header, form));
+        dlg.getDialogPane().setPrefWidth(460);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+
+        Button okBtn = (Button) dlg.getDialogPane().lookupButton(okType);
+        okBtn.getStyleClass().add("btn-danger");
+        okBtn.setDisable(true);
+        motivoField.textProperty().addListener((obs, o, n) -> okBtn.setDisable(n.isBlank()));
+        javafx.application.Platform.runLater(motivoField::requestFocus);
+
+        Optional<ButtonType> result = dlg.showAndWait();
+        if (result.isEmpty() || result.get() != okType || motivoField.getText().isBlank()) return;
+        String motivo = motivoField.getText().trim();
 
         AppExecutor.submit(() -> {
             try {
