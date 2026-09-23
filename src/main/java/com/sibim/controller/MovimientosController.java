@@ -11,6 +11,7 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -27,6 +28,7 @@ import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.util.Duration;
+import javafx.geometry.Insets;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -542,15 +544,36 @@ public class MovimientosController {
     private void promptJumpToPage() {
         int totalPages = (int) Math.ceil((double) totalFiltered / Math.max(1, pageSize));
         if (totalPages <= 1) return;
-        javafx.scene.control.TextInputDialog dlg = new javafx.scene.control.TextInputDialog(String.valueOf(currentPage + 1));
-        dlg.setTitle("Ir a página");
-        dlg.setHeaderText(null);
-        dlg.setContentText("Página (1 – " + totalPages + "):");
+
+        Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
+        dlg.setTitle("Ir a página");
+        ButtonType okType = new ButtonType("Ir", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
+
+        HBox header = DialogUtil.gradientHeader("mdi2b-book-open-page-variant-outline",
+            "Ir a página", "1 – " + totalPages,
+            AppColors.INFO, AppColors.INFO_D);
+
+        TextField tf = new TextField(String.valueOf(currentPage + 1));
+        tf.setPrefWidth(80);
+        tf.selectAll();
+        VBox form = new VBox(6, new Label("Página (1 – " + totalPages + "):"), tf);
+        form.setPadding(new Insets(14));
+
+        dlg.getDialogPane().setContent(new VBox(0, header, form));
+        dlg.getDialogPane().setPrefWidth(300);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
-        dlg.showAndWait().ifPresent(txt -> {
+
+        Button okBtn = (Button) dlg.getDialogPane().lookupButton(okType);
+        okBtn.getStyleClass().add("btn-primary");
+        Platform.runLater(() -> { tf.requestFocus(); tf.selectAll(); });
+
+        tf.setOnAction(e -> okBtn.fire());
+
+        dlg.showAndWait().filter(bt -> bt == okType).ifPresent(bt -> {
             try {
-                int page = Integer.parseInt(txt.trim()) - 1;
+                int page = Integer.parseInt(tf.getText().trim()) - 1;
                 if (page >= 0 && page < totalPages) { currentPage = page; loadPage(); }
             } catch (NumberFormatException ignored) {}
         });

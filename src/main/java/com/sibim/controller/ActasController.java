@@ -77,6 +77,9 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
             searchField.textProperty().addListener((obs, o, n) -> applyFilter(n));
 
         table.setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume(); return;
+            }
             ActaEntregaRecepcion sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) return;
             if (ev.getCode() == KeyCode.ENTER) { mostrarDetalle(sel); ev.consume(); }

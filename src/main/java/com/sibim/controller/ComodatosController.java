@@ -124,6 +124,9 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
         table.setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume(); return;
+            }
             Comodato sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) return;
             if (ev.getCode() == KeyCode.ENTER) { mostrarDetalle(sel); ev.consume(); }

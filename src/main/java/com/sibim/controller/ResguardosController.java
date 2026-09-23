@@ -96,6 +96,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
                     .map(r -> r == null || !r.isActivo()).orElse(true));
 
         table.setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.ESCAPE) {
+                table.getSelectionModel().clearSelection(); ev.consume(); return;
+            }
             Resguardo sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) return;
             switch (ev.getCode()) {
