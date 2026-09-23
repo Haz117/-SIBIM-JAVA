@@ -650,6 +650,7 @@ public class OrganigramaController {
         ButtonType btnVerInventario = new ButtonType("Ver en Inventario →", ButtonBar.ButtonData.OTHER);
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
+        dialog.setTitle(areaName);
         dialog.getDialogPane().getButtonTypes().addAll(btnVerInventario, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(680);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
@@ -730,7 +731,10 @@ public class OrganigramaController {
             }
         });
         tbl.setOnKeyPressed(e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            Producto sel = tbl.getSelectionModel().getSelectedItem();
+            if (e.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
+                ProductoDetailDialog.show(sel, searchField.getScene(), movimientoService, log); e.consume();
+            } else if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 tbl.getSelectionModel().clearSelection(); e.consume();
             }
         });
@@ -784,21 +788,24 @@ public class OrganigramaController {
     // generic-array-creation warning — inescapable with this API, not a real risk here.
     @SuppressWarnings("unchecked")
     private void showResguardosAreaDialog(String areaName, List<com.sibim.model.Resguardo> resguardos) {
+        ButtonType btnVerResguardos = new ButtonType("Ver en Resguardos →", ButtonBar.ButtonData.OTHER);
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Resguardos activos — " + areaName);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnVerResguardos, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(620);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = new HBox(10);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(0, 0, 8, 0));
-        FontIcon ico = new FontIcon("mdi2c-clipboard-account-outline");
-        ico.setIconSize(20); ico.getStyleClass().add("page-icon-emoji");
-        Label title = new Label(resguardos.size() + " resguardo(s) activo(s) en " + areaName);
-        title.getStyleClass().add("page-title");
-        header.getChildren().addAll(ico, title);
+        javafx.scene.Node verRsgBtn = dialog.getDialogPane().lookupButton(btnVerResguardos);
+        if (verRsgBtn != null) {
+            verRsgBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+                if (MainController.getInstance() != null) MainController.getInstance().navigateTo("resguardos");
+            });
+        }
+
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-account-outline", areaName,
+            resguardos.size() + (resguardos.size() == 1 ? " resguardo activo" : " resguardos activos"),
+            AppColors.INDIGO, AppColors.PURPLE);
 
         javafx.scene.control.TableView<com.sibim.model.Resguardo> tbl = new javafx.scene.control.TableView<>();
         tbl.getStyleClass().add("data-table");
@@ -826,9 +833,17 @@ public class OrganigramaController {
         tbl.getColumns().addAll(cFolio, cResguardante, cFecha, cItems);
         tbl.getItems().setAll(resguardos);
         tbl.setColumnResizePolicy(javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tbl.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                if (MainController.getInstance() != null) MainController.getInstance().navigateTo("resguardos");
+                dialog.close();
+                e.consume();
+            }
+        });
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
         VBox content = new VBox(8, header, tbl);
-        content.setPadding(new Insets(4, 0, 0, 0));
+        content.setPadding(new Insets(0, 0, 0, 0));
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
     }

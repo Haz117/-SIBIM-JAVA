@@ -21,6 +21,8 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -32,12 +34,17 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
     @FXML private Label   lblStatTotal;
     @FXML private Label   lblStatActivos;
+    @FXML private Label   lblStatCancelados;
+    @FXML private Label   lblStatBienes;
     @FXML private VBox    statCardTotal;
     @FXML private VBox    statCardActivos;
+    @FXML private VBox    statCardCancelados;
+    @FXML private VBox    statCardBienes;
     @FXML private TableColumn<Resguardo, String> colNumero;
     @FXML private TableColumn<Resguardo, String> colResguardante;
     @FXML private TableColumn<Resguardo, String> colArea;
     @FXML private TableColumn<Resguardo, String> colFecha;
+    @FXML private TableColumn<Resguardo, String> colBienes;
     @FXML private TableColumn<Resguardo, String> colEstado;
     @FXML private Button     btnNuevo;
     @FXML private Button     btnCancelar;
@@ -72,6 +79,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             }
         });
         colEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
+
+        colBienes.setCellValueFactory(c -> new SimpleStringProperty(
+            String.valueOf(c.getValue().getItems().size())));
     }
 
     @Override
@@ -82,7 +92,27 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             searchField.textProperty().addListener((obs, o, n) -> applyFilter(n));
         if (btnCancelar != null)
             btnCancelar.disableProperty().bind(
-                table.getSelectionModel().selectedItemProperty().isNull());
+                table.getSelectionModel().selectedItemProperty()
+                    .map(r -> r == null || !r.isActivo()).orElse(true));
+
+        table.setOnKeyPressed(ev -> {
+            Resguardo sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            switch (ev.getCode()) {
+                case ENTER  -> { mostrarDetalle(sel); ev.consume(); }
+                case DELETE -> { onCancelar(); ev.consume(); }
+                default     -> {}
+            }
+        });
+
+        if (rootPane != null && canCreate) {
+            rootPane.addEventFilter(KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == KeyCode.N && ev.isControlDown()) {
+                    onNuevoResguardo(); ev.consume();
+                }
+            });
+        }
+
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
@@ -93,9 +123,16 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     protected void onDataLoaded(List<Resguardo> list) {
         allData = list;
         applyFilter(searchField != null ? searchField.getText() : "");
-        AnimationUtils.animateCount(lblStatTotal,   (long) list.size(),                         700);
-        AnimationUtils.animateCount(lblStatActivos, list.stream().filter(Resguardo::isActivo).count(), 700);
-        AnimationUtils.staggeredFadeInUp(List.of(statCardTotal, statCardActivos), 280, 60);
+        long activos    = list.stream().filter(Resguardo::isActivo).count();
+        long cancelados = list.stream().filter(r -> !r.isActivo()).count();
+        long bienes     = list.stream().filter(Resguardo::isActivo)
+                              .mapToLong(r -> r.getItems().size()).sum();
+        AnimationUtils.animateCount(lblStatTotal,      (long) list.size(), 700);
+        AnimationUtils.animateCount(lblStatActivos,    activos,            700);
+        AnimationUtils.animateCount(lblStatCancelados, cancelados,         700);
+        AnimationUtils.animateCount(lblStatBienes,     bienes,             700);
+        AnimationUtils.staggeredFadeInUp(
+            List.of(statCardTotal, statCardActivos, statCardCancelados, statCardBienes), 280, 55);
     }
 
     @Override
@@ -108,11 +145,25 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @Override protected String emptyStateSubtitle() { return "Asigna bienes a servidores públicos desde la sección Bienes"; }
 
     @Override
-    protected void addContextMenuItems(ContextMenu cm) {
-        MenuItem miCancelar = new MenuItem("Cancelar resguardo");
-        miCancelar.setGraphic(new FontIcon("mdi2c-cancel"));
+    protected void onTableDoubleClick(Resguardo item) { mostrarDetalle(item); }
+
+    @Override
+    protected ContextMenu buildContextMenu() {
+        ContextMenu cm = new ContextMenu();
+        MenuItem miDetalle = new MenuItem("Ver detalle");
+        miDetalle.setGraphic(new FontIcon("mdi2e-eye-outline"));
+        miDetalle.setOnAction(e -> {
+            Resguardo sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) mostrarDetalle(sel);
+        });
+        MenuItem miPdf = new MenuItem("Exportar PDF");
+        miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
+        miPdf.setOnAction(e -> onExportarPdf());
+        MenuItem miCancelar = new MenuItem("Dar de baja");
+        miCancelar.setGraphic(new FontIcon("mdi2d-delete-circle-outline"));
         miCancelar.setOnAction(e -> onCancelar());
-        cm.getItems().addAll(new SeparatorMenuItem(), miCancelar);
+        cm.getItems().addAll(miDetalle, miPdf, new SeparatorMenuItem(), miCancelar);
+        return cm;
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
@@ -339,6 +390,72 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
                     + (e.getMessage() != null ? e.getMessage() : "Error desconocido"))
             )
         );
+    }
+
+    private void mostrarDetalle(Resguardo r) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
+        dialog.setTitle("Resguardo " + r.getNumero());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(620);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+
+        HBox header = DialogUtil.gradientHeader("mdi2b-badge-account-outline",
+            "Resguardo " + r.getNumero(),
+            r.getResguardanteNombre() + (r.getResguardanteCargo() != null && !r.getResguardanteCargo().isBlank()
+                ? " · " + r.getResguardanteCargo() : ""),
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
+
+        GridPane meta = DialogUtil.formGrid(140);
+        String[][] infoRows = {
+            {"Área:",          r.getResguardanteArea()  != null ? r.getResguardanteArea()  : "—"},
+            {"Fecha:",         r.getCreadoEn()          != null ? FormatUtils.formatDate(r.getCreadoEn().toLocalDate()) : "—"},
+            {"Registrado por:",r.getCreadoPorNombre()   != null ? r.getCreadoPorNombre()   : "—"},
+            {"Estado:",        r.getEstado()},
+            {"Observaciones:", r.getObservaciones()     != null && !r.getObservaciones().isBlank()
+                ? r.getObservaciones() : "—"},
+        };
+        int i = 0;
+        for (String[] row : infoRows) {
+            Label k = new Label(row[0]); k.getStyleClass().add("dlg-detail-label"); k.setMinWidth(135);
+            Label v = new Label(row[1]); v.getStyleClass().add("dlg-detail-value"); v.setWrapText(true);
+            meta.add(k, 0, i); meta.add(v, 1, i++);
+        }
+
+        Label lblBienes = new Label("BIENES EN RESGUARDO");
+        lblBienes.getStyleClass().add("dash-section-label");
+
+        ObservableList<ResguardoItem> items = FXCollections.observableArrayList(r.getItems());
+        TableView<ResguardoItem> itemsTable = new TableView<>(items);
+        itemsTable.setPrefHeight(180);
+        itemsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        itemsTable.getStyleClass().add("data-table");
+
+        TableColumn<ResguardoItem, String> cNombre = new TableColumn<>("Bien");
+        cNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
+        TableColumn<ResguardoItem, String> cCodigo = new TableColumn<>("Código");
+        cCodigo.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getProductoCodigo() != null ? c.getValue().getProductoCodigo() : "—"));
+        cCodigo.setMaxWidth(110);
+        TableColumn<ResguardoItem, String> cArea = new TableColumn<>("Área");
+        cArea.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
+        TableColumn<ResguardoItem, String> cValor = new TableColumn<>("Valor");
+        cValor.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getValorUnitario() != null
+                ? FormatUtils.formatCurrency(c.getValue().getValorUnitario()) : "—"));
+        cValor.setMaxWidth(110);
+        itemsTable.getColumns().addAll(cNombre, cCodigo, cArea, cValor);
+
+        if (items.isEmpty()) {
+            itemsTable.setPlaceholder(new Label("Sin bienes registrados en este resguardo"));
+        }
+
+        VBox content = new VBox(12, header, meta, lblBienes, itemsTable);
+        content.setPadding(new Insets(0, 16, 16, 16));
+        dialog.getDialogPane().setContent(content);
+        AnimationUtils.staggeredFadeInUp(List.of(header, meta, itemsTable), 260, 65);
+        dialog.showAndWait();
     }
 
     @FXML

@@ -60,10 +60,34 @@
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
                     <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="RESGUARDOS ACTIVOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="ACTIVOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatActivos" text="—" styleClass="rich-stat-value"/>
             <Label text="resguardos vigentes" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardCancelados" styleClass="rich-stat-card, rich-stat-amber"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <FontIcon iconLiteral="mdi2c-cancel" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="CANCELADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatCancelados" text="—" styleClass="rich-stat-value"/>
+            <Label text="resguardos dados de baja" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardBienes" styleClass="rich-stat-card, rich-stat-slate"
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
+                    <FontIcon iconLiteral="mdi2p-package-variant-closed" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="BIENES RESGUARDADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Label fx:id="lblStatBienes" text="—" styleClass="rich-stat-value"/>
+            <Label text="ítems bajo custodia activa" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
     </VBox>
@@ -76,9 +100,10 @@
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
         </Button>
-        <Button fx:id="btnCancelar" text="Cancelar" onAction="#onCancelar"
+        <Button fx:id="btnCancelar" text="Dar de baja" onAction="#onCancelar"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2c-cancel" styleClass="btn-icon"/></graphic>
+            <graphic><FontIcon iconLiteral="mdi2d-delete-circle-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Cancelar el resguardo seleccionado (Delete)"/></tooltip>
         </Button>
     </HBox>
 
@@ -86,9 +111,10 @@
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table">
         <columns>
             <TableColumn fx:id="colNumero"       text="Folio"        prefWidth="110"/>
-            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="200" maxWidth="260"/>
-            <TableColumn fx:id="colArea"         text="Área"         prefWidth="220" maxWidth="260"/>
-            <TableColumn fx:id="colFecha"        text="Fecha"        prefWidth="100"/>
+            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="190" maxWidth="260"/>
+            <TableColumn fx:id="colArea"         text="Área"         prefWidth="200" maxWidth="260"/>
+            <TableColumn fx:id="colFecha"        text="Fecha"        prefWidth="95"/>
+            <TableColumn fx:id="colBienes"       text="Bienes"       prefWidth="65"/>
             <TableColumn fx:id="colEstado"       text="Estado"       prefWidth="90"/>
         </columns>
         <placeholder>

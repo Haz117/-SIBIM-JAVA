@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.db.offline.SyncService;
 import com.sibim.db.offline.SyncService.OutboxEntry;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
@@ -41,6 +42,13 @@ public final class OutboxErrorsDialog {
         limpiarBtn.getStyleClass().add("btn-danger");
         limpiarBtn.setGraphic(new FontIcon("mdi2d-delete-sweep-outline"));
 
+        HBox header = DialogUtil.gradientHeader("mdi2s-sync-alert",
+            "Errores de sincronización offline",
+            entries.isEmpty()
+                ? "Todos los cambios offline se sincronizaron correctamente"
+                : entries.size() + " cambio(s) descartados permanentemente — no llegaron al servidor",
+            AppColors.WARNING, AppColors.WARNING_D);
+
         VBox content = new VBox(12);
         content.setPadding(new Insets(4, 0, 4, 0));
 
@@ -50,15 +58,16 @@ public final class OutboxErrorsDialog {
                     "Sin errores de sincronización",
                     "Todos los cambios offline se sincronizaron correctamente"));
         } else {
-            Label hint = new Label(entries.size() + " cambio(s) fueron descartados permanentemente — "
-                + "no llegaron al servidor. Revisa el error de cada fila antes de limpiarlos.");
+            Label hint = new Label("Revisa el error de cada fila antes de limpiar — "
+                + "una vez limpiados no se podrán recuperar.");
             hint.getStyleClass().add("muted-sm");
             hint.setWrapText(true);
             content.getChildren().add(hint);
             content.getChildren().add(buildTable(entries));
         }
 
-        dialog.getDialogPane().setContent(content);
+        VBox root = new VBox(0, header, content);
+        dialog.getDialogPane().setContent(root);
         dialog.getDialogPane().setPrefWidth(720);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
         if (!entries.isEmpty()) AnimationUtils.fadeInUp(content, 250, 0);

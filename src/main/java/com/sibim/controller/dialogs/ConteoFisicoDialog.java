@@ -145,7 +145,7 @@ public final class ConteoFisicoDialog {
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2m-magnify-scan", "Alcance del conteo",
-            "Selecciona qué bienes incluir en este levantamiento", "#0891B2", "#0E7490");
+            "Selecciona qué bienes incluir en este levantamiento", AppColors.CYAN, AppColors.CYAN_D);
 
         RadioButton rbTodo = new RadioButton("Todo el inventario (" + todos.size() + " bienes)");
         RadioButton rbArea = new RadioButton("Por área");

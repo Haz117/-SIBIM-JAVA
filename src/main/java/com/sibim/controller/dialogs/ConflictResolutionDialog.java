@@ -3,6 +3,8 @@ package com.sibim.controller.dialogs;
 import com.sibim.db.offline.ConflictoInfo;
 import com.sibim.db.offline.SyncService;
 import com.sibim.model.Producto;
+import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -35,10 +37,6 @@ public final class ConflictResolutionDialog {
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Conflictos de sincronización");
         int n = conflictos.size();
-        dialog.setHeaderText(
-            (n == 1 ? "1 bien fue modificado" : n + " bienes fueron modificados")
-            + " en otro equipo mientras estabas sin conexión.\n"
-            + "Elige qué versión conservar para cada uno.");
 
         // Single button on purpose — see the note on showAndWait() below for why
         // there's no Cancel: every row already has a safe default selected
@@ -51,27 +49,34 @@ public final class ConflictResolutionDialog {
         ButtonType aplicarType = new ButtonType("Aplicar decisiones", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().add(aplicarType);
 
+        HBox header = DialogUtil.gradientHeader("mdi2s-sync-alert",
+            "Conflictos de sincronización",
+            (n == 1 ? "1 bien fue modificado" : n + " bienes fueron modificados")
+                + " en otro equipo mientras estabas sin conexión — elige qué versión conservar",
+            AppColors.WARNING, AppColors.WARNING_D);
+
         // outboxId → ToggleGroup with selected toggle's userData = "SERVER" | "MINE"
         Map<Integer, ToggleGroup> decisions = new LinkedHashMap<>();
 
-        VBox content = new VBox(12);
-        content.setPadding(new Insets(4, 0, 4, 0));
+        VBox cardsBox = new VBox(12);
+        cardsBox.setPadding(new Insets(4, 0, 4, 0));
         List<Node> cards = new java.util.ArrayList<>();
         for (ConflictoInfo c : conflictos) {
             VBox card = buildCard(c, decisions);
             cards.add(card);
-            content.getChildren().add(card);
+            cardsBox.getChildren().add(card);
         }
 
-        ScrollPane scroll = new ScrollPane(content);
+        ScrollPane scroll = new ScrollPane(cardsBox);
         scroll.setFitToWidth(true);
-        scroll.setPrefSize(660, 380);
+        scroll.setPrefSize(660, 340);
         scroll.getStyleClass().add("conflict-scroll");
 
-        dialog.getDialogPane().setContent(scroll);
+        VBox root = new VBox(0, header, scroll);
+        dialog.getDialogPane().setContent(root);
         dialog.getDialogPane().setPrefWidth(700);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
-        com.sibim.util.AnimationUtils.staggeredFadeInUp(cards, 220, 50);
+        AnimationUtils.staggeredFadeInUp(cards, 220, 50);
 
         // Deliberately unconditional: apply the current selections regardless
         // of how the dialog closed (the button, Escape, or the window's own

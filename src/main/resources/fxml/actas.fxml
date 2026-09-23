@@ -53,24 +53,25 @@
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
             <Label text="documentos de entrega-recepción" styleClass="rich-stat-hint"/>
         </VBox>
-        <VBox styleClass="rich-stat-card, rich-stat-teal"
+        <VBox fx:id="statCardValor" styleClass="rich-stat-card, rich-stat-teal"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
-                    <FontIcon iconLiteral="mdi2i-information-outline" styleClass="rich-stat-icon"/>
+                    <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="ACERCA DE ESTA FUNCIÓN" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="VALOR TOTAL DOCUMENTADO" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
-            <Label text="Genera un acta formal con el inventario" styleClass="rich-stat-value, rich-stat-value-xs"/>
-            <Label text="completo al momento de la generación" styleClass="rich-stat-hint"/>
+            <Label fx:id="lblStatValor" text="—" styleClass="rich-stat-value"/>
+            <Label text="suma de bienes en todas las actas" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
     </VBox>
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-blue">
-        <Region HBox.hgrow="ALWAYS"/>
+        <TextField fx:id="searchField" promptText="Buscar por saliente, entrante o folio…"
+                   styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>

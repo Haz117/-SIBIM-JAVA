@@ -23,6 +23,9 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
@@ -119,6 +122,25 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         }
         if (searchField != null)
             searchField.textProperty().addListener((obs, o, n) -> applyFilter());
+
+        table.setOnKeyPressed(ev -> {
+            Prestamo sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            switch (ev.getCode()) {
+                case ENTER  -> { mostrarDetalle(sel); ev.consume(); }
+                case DELETE -> { onDevolver(); ev.consume(); }
+                default     -> {}
+            }
+        });
+
+        if (rootPane != null && canCreate) {
+            rootPane.addEventFilter(KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == KeyCode.N && ev.isControlDown()) {
+                    onNuevoPrestamo(); ev.consume();
+                }
+            });
+        }
+
         if (btnKanban != null) {
             btnKanban.selectedProperty().addListener((obs, ov, nv) -> {
                 kanbanMode = nv;

@@ -21,6 +21,9 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
@@ -119,6 +122,21 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         if (searchField != null)
             searchField.textProperty().addListener((obs, o, n) -> applyFilter());
+
+        table.setOnKeyPressed(ev -> {
+            Comodato sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            if (ev.getCode() == KeyCode.ENTER) { mostrarDetalle(sel); ev.consume(); }
+        });
+
+        if (rootPane != null && canCreate) {
+            rootPane.addEventFilter(KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == KeyCode.N && ev.isControlDown()) {
+                    onNuevoComodato(); ev.consume();
+                }
+            });
+        }
+
         Platform.runLater(() -> {
             if (searchField != null) searchField.requestFocus();
             if (offline && rootPane.getScene() != null)
