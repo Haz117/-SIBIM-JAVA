@@ -530,13 +530,21 @@ public class AlertasController {
         if (result.isEmpty() || result.get() != okType || motivoField.getText().isBlank()) return;
         String motivo = motivoField.getText().trim();
 
+        final String nombre = p.getNombre();
         AppExecutor.submit(() -> {
             try {
                 productoService.darDeBaja(p.getId(), motivo);
                 Platform.runLater(() -> {
-                    if (tableAgotados.getScene() != null)
-                        NotificacionUtil.exito(tableAgotados.getScene(), "Bien dado de baja correctamente");
                     loadData();
+                    if (tableAgotados.getScene() != null)
+                        NotificacionUtil.exitoConAccionCountdown(tableAgotados.getScene(),
+                            "\"" + nombre + "\" dado de baja",
+                            "Deshacer",
+                            () -> DialogUtil.runAsync(
+                                () -> productoService.reactivar(p.getId()),
+                                () -> { loadData(); NotificacionUtil.info(tableAgotados.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
+                                e2 -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo deshacer la baja")
+                            ));
                 });
             } catch (Exception ex) {
                 log.error("Error al dar de baja desde Alertas: {}", ex.getMessage(), ex);

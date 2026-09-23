@@ -7,6 +7,7 @@ import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
+import com.sibim.util.AutocompleteUtil;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -52,6 +53,13 @@ public final class ProductoDialogFactory {
                                            Map<String, Image> thumbnailCache, Logger log,
                                            List<String> existingFotos) {
         boolean isNewProduct = existing == null || existing.getId() == null;
+
+        // Load autocomplete suggestions (fast queries; best-effort)
+        ProductoRepository acRepo = new ProductoRepository();
+        List<String> sugestMarcas      = acRepo.findDistinctMarcas();
+        List<String> sugestModelos     = acRepo.findDistinctModelos();
+        List<String> sugestProveedores = acRepo.findDistinctProveedores();
+
         Dialog<Producto> dialog = DialogUtil.create(520);
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
 
@@ -267,6 +275,10 @@ public final class ProductoDialogFactory {
         TextField fNumeroSerie = new TextField(existing != null && existing.getNumeroSerie() != null ? existing.getNumeroSerie() : "");
         fNumeroSerie.setPromptText("Número de serie o placa");
         fNumeroSerie.getStyleClass().add("form-input");
+
+        AutocompleteUtil.attach(fProveedor, sugestProveedores);
+        AutocompleteUtil.attach(fMarca,     sugestMarcas);
+        AutocompleteUtil.attach(fModelo,    sugestModelos);
         TextField fUbicacion = new TextField(existing != null && existing.getUbicacion() != null ? existing.getUbicacion() : "");
         fUbicacion.setPromptText("Ubicación física");
         fUbicacion.getStyleClass().add("form-input");

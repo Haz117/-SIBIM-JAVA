@@ -188,6 +188,23 @@ public class ProductoRepository {
         return result;
     }
 
+    public List<String> findDistinctMarcas()      { return findDistinctField("marca"); }
+    public List<String> findDistinctModelos()     { return findDistinctField("modelo"); }
+    public List<String> findDistinctProveedores() { return findDistinctField("proveedor"); }
+
+    private List<String> findDistinctField(String column) {
+        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        String sql = "SELECT DISTINCT " + column + " FROM products WHERE fecha_baja IS NULL AND "
+            + column + " IS NOT NULL AND " + column + " <> '' ORDER BY 1 LIMIT 120";
+        List<String> result = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) result.add(rs.getString(1));
+        } catch (Exception e) { /* best-effort — autocomplete isn't critical */ }
+        return result;
+    }
+
     /** Aggregate stats for the Bienes stat cards — one round-trip, full inventory. */
     public InventarioStats findStats() throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
