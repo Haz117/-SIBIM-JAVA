@@ -12,7 +12,6 @@ import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
-import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -23,7 +22,6 @@ import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -56,14 +54,14 @@ public class MovimientosController {
     @FXML private DatePicker hastaFilter;
     @FXML private TableView<Movimiento> table;
     @FXML private Button btnResetColumns;
-    @FXML private TableColumn<Movimiento, String> colProducto;
-    @FXML private TableColumn<Movimiento, String> colTipo;
+    @FXML private TableColumn<Movimiento, String>  colProducto;
+    @FXML private TableColumn<Movimiento, String>  colTipo;
     @FXML private TableColumn<Movimiento, Integer> colCantidad;
-    @FXML private TableColumn<Movimiento, String> colStock;
-    @FXML private TableColumn<Movimiento, String> colMotivo;
-    @FXML private TableColumn<Movimiento, String> colUsuario;
-    @FXML private TableColumn<Movimiento, String> colFecha;
-    @FXML private TableColumn<Movimiento, String> colEstado;
+    @FXML private TableColumn<Movimiento, String>  colStock;
+    @FXML private TableColumn<Movimiento, String>  colMotivo;
+    @FXML private TableColumn<Movimiento, String>  colUsuario;
+    @FXML private TableColumn<Movimiento, String>  colFecha;
+    @FXML private TableColumn<Movimiento, String>  colEstado;
     @FXML private Label lblTotal;
     @FXML private ProgressIndicator spinner;
     @FXML private Button btnNuevo;
@@ -97,47 +95,83 @@ public class MovimientosController {
     @FXML private ComboBox<String> categoriaFilter;
 
     private final MovimientoService movimientoService = new MovimientoService();
-    private final ProductoService productoService = new ProductoService();
-    private final ReporteService reporteService = new ReporteService();
-    private final PendientesDialog pendientesDialog =
+    private final ProductoService   productoService   = new ProductoService();
+    private final ReporteService    reporteService    = new ReporteService();
+    private final PendientesDialog  pendientesDialog  =
         new PendientesDialog(movimientoService, () -> { loadData(); loadPendientesCount(); });
+
+    private MovimientosDataLoader dataLoader;
 
     private ObservableList<Movimiento> filteredData = FXCollections.observableArrayList();
     private int currentPage = 0;
-    private int pageSize = 25;
+    private int pageSize    = 25;
     private int totalFiltered = 0;
     private ToggleGroup tipoChipGroup;
-    private String pendingHighlightId;
-    private Label emptyStateMsg;
-    private Label emptyStateHint;
-    private Button btnEmptyLimpiar;
+    private String  pendingHighlightId;
+    private Label   emptyStateMsg;
+    private Label   emptyStateHint;
+    private Button  btnEmptyLimpiar;
     private boolean refreshing = false;
     private final AtomicBoolean loading = new AtomicBoolean(false);
-    private VBox emptyStatePlaceholder;
+    private VBox     emptyStatePlaceholder;
     private Timeline skeletonPulse;
 
     @FXML
     public void initialize() {
+        dataLoader = new MovimientosDataLoader(movimientoService);
+
         if (btnToggleFiltros != null && filterBar != null)
             DialogUtil.makeCollapsible("movimientos.filtros.colapsado", btnToggleFiltros, filterBar);
         if (btnToggleResumen != null && resumenBox != null)
             DialogUtil.makeCollapsible("movimientos.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
+
         setupTable();
         setupFilters();
         setupTipoChips();
         setupPagination();
-        if (helpAjustes   != null) DialogUtil.enableClickToShowTooltip(helpAjustes);
-        if (helpTotalMov  != null) DialogUtil.enableClickToShowTooltip(helpTotalMov);
-        if (helpEntradas  != null) DialogUtil.enableClickToShowTooltip(helpEntradas);
-        if (helpSalidas   != null) DialogUtil.enableClickToShowTooltip(helpSalidas);
-        if (helpResumen   != null) DialogUtil.enableClickToShowTooltip(helpResumen);
-        if (helpTipoChips != null) DialogUtil.enableClickToShowTooltip(helpTipoChips);
-        if (helpFechaMov  != null) DialogUtil.enableClickToShowTooltip(helpFechaMov);
+        setupHelpBadges();
+        setupPermissions();
+        setupKeyboardShortcuts();
+        setupSelectionListener();
+        restoreStickyFilters();
 
+        if (com.sibim.session.NavigationContext.consumePendingNuevoMovimiento())
+            Platform.runLater(this::onNuevoMovimiento);
+
+        loadData();
+        AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
+        if (lblPage != null) {
+            lblPage.getStyleClass().add("page-label-jump");
+            lblPage.setOnMouseClicked(e -> { if (e.getClickCount() == 2) promptJumpToPage(); });
+        }
+        Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+    }
+
+    // ── Setup helpers ──────────────────────────────────────────────────────────
+
+    private void setupHelpBadges() {
+        for (Label badge : new Label[]{ helpAjustes, helpTotalMov, helpEntradas,
+                helpSalidas, helpResumen, helpTipoChips, helpFechaMov }) {
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
+        }
+    }
+
+    private void setupPermissions() {
         boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
         btnNuevo.setVisible(canCreate);
         btnNuevo.setManaged(canCreate);
+        if (SessionManager.isAdmin()) {
+            if (btnPendientes != null) { btnPendientes.setVisible(true); btnPendientes.setManaged(true); }
+            loadPendientesCount();
+        } else {
+            if (btnPendientes != null) { btnPendientes.setVisible(false); btnPendientes.setManaged(false); }
+        }
+    }
+
+    private void setupKeyboardShortcuts() {
+        boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
         if (rootPane != null && canCreate) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
@@ -152,38 +186,12 @@ public class MovimientosController {
                     ev.consume();
                 } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
                         && table.getSelectionModel().getSelectedItem() != null) {
-                    MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(), table.getScene(), movimientoService, this::loadData); ev.consume();
+                    MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(),
+                        table.getScene(), movimientoService, this::loadData);
+                    ev.consume();
                 }
             });
         }
-
-        // Enable multi-select on table
-        table.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
-
-        // Selection → enable/disable delete + export-seleccion buttons
-        table.getSelectionModel().getSelectedItems().addListener(
-            (javafx.collections.ListChangeListener<com.sibim.model.Movimiento>) change -> {
-                int n = table.getSelectionModel().getSelectedItems().size();
-                boolean hasSelection = n > 0;
-                if (btnDelete           != null) btnDelete.setDisable(!hasSelection);
-                if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(!hasSelection);
-                if (lblSeleccionados     != null) {
-                    lblSeleccionados.setText(hasSelection ? n + " seleccionado(s)" : "");
-                    lblSeleccionados.setVisible(hasSelection);
-                    lblSeleccionados.setManaged(hasSelection);
-                }
-            });
-
-        // Initial disabled state + tooltips on selection-dependent buttons
-        if (btnDelete            != null) {
-            btnDelete.setDisable(true);
-            javafx.scene.control.Tooltip.install(btnDelete, new javafx.scene.control.Tooltip("Selecciona un movimiento para eliminarlo"));
-        }
-        if (btnExportarSeleccion != null) {
-            btnExportarSeleccion.setDisable(true);
-            javafx.scene.control.Tooltip.install(btnExportarSeleccion, new javafx.scene.control.Tooltip("Selecciona uno o más movimientos para exportarlos"));
-        }
-
         table.setOnKeyPressed(ev -> {
             Movimiento sel = table.getSelectionModel().getSelectedItem();
             if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
@@ -194,33 +202,57 @@ public class MovimientosController {
                 onDelete(); ev.consume();
             }
         });
-
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
-                MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(), table.getScene(), movimientoService, this::loadData);
+                MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(),
+                    table.getScene(), movimientoService, this::loadData);
         });
-
         boolean canDelete = SessionManager.isAdmin() || SessionManager.isSecretario();
         table.setContextMenu(MovimientosContextMenu.build(
             table, canDelete, movimientoService, this::onDelete, this::loadData));
-
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         }
-        if (searchField != null) com.sibim.util.SearchUtils.setupSearchHistory(
+        if (searchField != null) SearchUtils.setupSearchHistory(
             "sibim/search-history/movimientos", searchField, () -> { currentPage = 0; loadData(); });
-        // Restore sticky filters from previous session
+    }
+
+    private void setupSelectionListener() {
+        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        table.getSelectionModel().getSelectedItems().addListener(
+            (javafx.collections.ListChangeListener<Movimiento>) change -> {
+                int n = table.getSelectionModel().getSelectedItems().size();
+                boolean hasSelection = n > 0;
+                if (btnDelete            != null) btnDelete.setDisable(!hasSelection);
+                if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(!hasSelection);
+                if (lblSeleccionados     != null) {
+                    lblSeleccionados.setText(hasSelection ? n + " seleccionado(s)" : "");
+                    lblSeleccionados.setVisible(hasSelection);
+                    lblSeleccionados.setManaged(hasSelection);
+                }
+            });
+        if (btnDelete != null) {
+            btnDelete.setDisable(true);
+            Tooltip.install(btnDelete, new Tooltip("Selecciona un movimiento para eliminarlo"));
+        }
+        if (btnExportarSeleccion != null) {
+            btnExportarSeleccion.setDisable(true);
+            Tooltip.install(btnExportarSeleccion, new Tooltip("Selecciona uno o más movimientos para exportarlos"));
+        }
+    }
+
+    private void restoreStickyFilters() {
         String savedSearch = STICKY.get("search", "");
         if (!savedSearch.isBlank() && searchField != null) searchField.setText(savedSearch);
         String savedDesde = STICKY.get("desde", "");
         String savedHasta = STICKY.get("hasta", "");
         if (!savedDesde.isBlank() && desdeFilter != null)
-            try { desdeFilter.setValue(java.time.LocalDate.parse(savedDesde)); } catch (Exception ignored) {
+            try { desdeFilter.setValue(LocalDate.parse(savedDesde)); } catch (Exception ignored) {
                 log.debug("Could not restore sticky 'desde' date filter value '{}'", savedDesde, ignored);
             }
         if (!savedHasta.isBlank() && hastaFilter != null)
-            try { hastaFilter.setValue(java.time.LocalDate.parse(savedHasta)); } catch (Exception ignored) {
+            try { hastaFilter.setValue(LocalDate.parse(savedHasta)); } catch (Exception ignored) {
                 log.debug("Could not restore sticky 'hasta' date filter value '{}'", savedHasta, ignored);
             }
         String savedCategoria = STICKY.get("categoria", "");
@@ -230,23 +262,6 @@ public class MovimientosController {
             tipoChipGroup.getToggles().stream()
                 .filter(t -> savedTipo.equals(((ToggleButton) t).getText()))
                 .findFirst().ifPresent(t -> t.setSelected(true));
-        if (SessionManager.isAdmin()) {
-            if (btnPendientes != null) { btnPendientes.setVisible(true); btnPendientes.setManaged(true); }
-            loadPendientesCount();
-        } else {
-            if (btnPendientes != null) { btnPendientes.setVisible(false); btnPendientes.setManaged(false); }
-        }
-        if (com.sibim.session.NavigationContext.consumePendingNuevoMovimiento()) {
-            Platform.runLater(this::onNuevoMovimiento);
-        }
-        loadData();
-        AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
-        if (lblPage != null) {
-            lblPage.getStyleClass().add("page-label-jump");
-            lblPage.setOnMouseClicked(e -> { if (e.getClickCount() == 2) promptJumpToPage(); });
-        }
-        Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
     }
 
     private void setupTable() {
@@ -265,7 +280,6 @@ public class MovimientosController {
         colFecha.setSortType(TableColumn.SortType.DESCENDING);
         table.getSortOrder().add(colFecha);
 
-        // Smart empty state
         FontIcon emptyIcon = new FontIcon("mdi2s-swap-vertical");
         emptyIcon.setIconSize(52);
         emptyIcon.getStyleClass().add("empty-icon-lg");
@@ -273,32 +287,18 @@ public class MovimientosController {
         emptyStateMsg.getStyleClass().add("empty-state-msg");
         btnEmptyLimpiar = new Button("Limpiar filtros");
         btnEmptyLimpiar.getStyleClass().add("btn-secondary");
-        btnEmptyLimpiar.setOnAction(e -> {
-            searchField.clear();
-            desdeFilter.setValue(null);
-            hastaFilter.setValue(null);
-            if (categoriaFilter != null) categoriaFilter.setValue(null);
-            setActivePreset(null);
-            if (tipoChipGroup != null)
-                tipoChipGroup.getToggles().stream()
-                    .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
-                    .findFirst().ifPresent(t -> t.setSelected(true));
-            STICKY.put("search", ""); STICKY.put("desde", ""); STICKY.put("hasta", "");
-            STICKY.put("categoria", ""); STICKY.put("tipo", "Todos");
-            currentPage = 0;
-            applyFilters();
-        });
+        btnEmptyLimpiar.setOnAction(e -> onClearFilters());
         btnEmptyLimpiar.setVisible(false); btnEmptyLimpiar.setManaged(false);
         boolean canAddMov = SessionManager.isAdmin() || SessionManager.isSecretario();
         emptyStateHint = new Label(canAddMov ? "Presiona Ctrl+N para registrar el primer movimiento" : "");
         emptyStateHint.getStyleClass().add("empty-state-hint");
-        javafx.scene.layout.VBox emptyState = new javafx.scene.layout.VBox(12, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
+        VBox emptyState = new VBox(12, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
         emptyState.setAlignment(javafx.geometry.Pos.CENTER);
         emptyState.getStyleClass().add("empty-state-pane");
         emptyState.setMaxWidth(380);
-        emptyState.setPadding(new javafx.geometry.Insets(32, 24, 32, 24));
+        emptyState.setPadding(new Insets(32, 24, 32, 24));
         emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
-            if (isVisible && !wasVisible) com.sibim.util.AnimationUtils.springIn(emptyState);
+            if (isVisible && !wasVisible) AnimationUtils.springIn(emptyState);
             else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
         });
         emptyStatePlaceholder = emptyState;
@@ -347,18 +347,11 @@ public class MovimientosController {
             public Integer fromString(String s) { return "Todos".equals(s) ? Integer.MAX_VALUE : Integer.parseInt(s); }
         });
         pageSizeBox.setValue(25);
-        pageSizeBox.setOnAction(e -> {
-            pageSize = pageSizeBox.getValue();
-            currentPage = 0;
-            loadPage();
-        });
+        pageSizeBox.setOnAction(e -> { pageSize = pageSizeBox.getValue(); currentPage = 0; loadPage(); });
     }
 
-    // ── Data loading ──────────────────────────────────────────────────────────
+    // ── Data loading ───────────────────────────────────────────────────────────
 
-    /** Loads the first page + stats + categoria options.  Called on initial
-     *  load and whenever the date range changes (which affects which categories
-     *  are in use). */
     private void loadData() {
         if (!loading.compareAndSet(false, true)) {
             refreshing = true;
@@ -367,36 +360,20 @@ public class MovimientosController {
         skeletonPulse = AnimationUtils.buildSkeletonPlaceholder(table, 7);
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
 
-        LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
-        LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
-        String query      = searchField != null ? searchField.getText() : "";
+        LocalDate desde   = desdeFilter    != null ? desdeFilter.getValue()    : null;
+        LocalDate hasta   = hastaFilter    != null ? hastaFilter.getValue()    : null;
+        String query      = searchField    != null ? searchField.getText()     : "";
         String tipo       = getSelectedTipoLabel();
         String categoria  = categoriaFilter != null ? categoriaFilter.getValue() : null;
-        int    limit      = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
-        int    offset     = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
+        int limit  = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
+        int offset = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
 
-        record LoadResult(
-            List<String> categorias,
-            List<Movimiento> page,
-            int count,
-            MovimientoRepository.MovimientoStats stats) {}
-
-        Task<LoadResult> task = new Task<>() {
-            @Override protected LoadResult call() throws Exception {
-                List<String> cats  = movimientoService.getCategorias(desde, hasta);
-                List<Movimiento> p = movimientoService.getPaginated(
-                    desde, hasta, query, tipo, categoria, limit, offset);
-                int cnt = movimientoService.countFiltrado(desde, hasta, query, tipo, categoria);
-                MovimientoRepository.MovimientoStats st = movimientoService.getStats(desde, hasta);
-                return new LoadResult(cats, p, cnt, st);
-            }
-            @Override protected void succeeded() {
+        dataLoader.loadData(desde, hasta, query, tipo, categoria, limit, offset,
+            r -> {
                 loading.set(false);
                 if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
                 table.setPlaceholder(emptyStatePlaceholder);
-                LoadResult r = getValue();
 
-                // Populate categoria filter — preserve selection if still valid
                 if (categoriaFilter != null) {
                     String prev = categoriaFilter.getValue();
                     categoriaFilter.getItems().setAll(new java.util.ArrayList<>());
@@ -415,62 +392,46 @@ public class MovimientosController {
                 boolean hasFilters = hasActiveFilters();
                 updateEmptyState(hasFilters);
                 if (btnEmptyLimpiar != null) { btnEmptyLimpiar.setVisible(hasFilters); btnEmptyLimpiar.setManaged(hasFilters); }
-
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
-            }
-            @Override protected void failed() {
+            },
+            err -> {
                 loading.set(false);
                 if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
                 table.setPlaceholder(emptyStatePlaceholder);
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los movimientos");
             }
-        };
-        AppExecutor.submit(task);
+        );
     }
 
-    /** Loads only the current page (no categoria refresh, no stats reload).
-     *  Called for prev/next page navigation and page-size changes. */
     private void loadPage() {
-        LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
-        LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
-        String query     = searchField != null ? searchField.getText() : "";
-        String tipo      = getSelectedTipoLabel();
-        String categoria = categoriaFilter != null ? categoriaFilter.getValue() : null;
-        int    limit     = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
-        int    offset    = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
-        // Persist sticky filters
+        LocalDate desde   = desdeFilter    != null ? desdeFilter.getValue()    : null;
+        LocalDate hasta   = hastaFilter    != null ? hastaFilter.getValue()    : null;
+        String query      = searchField    != null ? searchField.getText()     : "";
+        String tipo       = getSelectedTipoLabel();
+        String categoria  = categoriaFilter != null ? categoriaFilter.getValue() : null;
+        int limit  = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
+        int offset = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
+
         STICKY.put("search",    searchField    != null && searchField.getText() != null ? searchField.getText() : "");
-        STICKY.put("desde",     desde          != null ? desde.toString()   : "");
-        STICKY.put("hasta",     hasta          != null ? hasta.toString()   : "");
-        STICKY.put("categoria", categoria      != null ? categoria          : "");
-        STICKY.put("tipo",      tipo           != null ? tipo               : "Todos");
+        STICKY.put("desde",     desde          != null ? desde.toString()    : "");
+        STICKY.put("hasta",     hasta          != null ? hasta.toString()    : "");
+        STICKY.put("categoria", categoria      != null ? categoria           : "");
+        STICKY.put("tipo",      tipo           != null ? tipo                : "Todos");
 
-        record PageResult(List<Movimiento> page, int count) {}
-
-        AppExecutor.submit(new Task<PageResult>() {
-            @Override protected PageResult call() throws Exception {
-                List<Movimiento> p = movimientoService.getPaginated(
-                    desde, hasta, query, tipo, categoria, limit, offset);
-                int cnt = movimientoService.countFiltrado(desde, hasta, query, tipo, categoria);
-                return new PageResult(p, cnt);
-            }
-            @Override protected void succeeded() {
-                PageResult r = getValue();
+        dataLoader.loadPage(desde, hasta, query, tipo, categoria, limit, offset,
+            r -> {
                 totalFiltered = r.count();
                 filteredData.setAll(r.page());
                 AnimationUtils.staggerTableRows(table);
                 updateTablePage();
-
                 boolean hasFilters = hasActiveFilters();
                 updateEmptyState(hasFilters);
                 if (btnEmptyLimpiar != null) { btnEmptyLimpiar.setVisible(hasFilters); btnEmptyLimpiar.setManaged(hasFilters); }
-            }
-            @Override protected void failed() {
-                NotificacionUtil.error(table.getScene(), "No se pudo cargar la página");
-            }
-        });
+            },
+            err -> NotificacionUtil.error(table.getScene(), "No se pudo cargar la página")
+        );
     }
 
     private String getSelectedTipoLabel() {
@@ -480,10 +441,10 @@ public class MovimientosController {
     }
 
     private boolean hasActiveFilters() {
-        String query    = searchField != null ? searchField.getText() : "";
+        String query    = searchField    != null ? searchField.getText()      : "";
         String tipo     = getSelectedTipoLabel();
-        LocalDate desde = desdeFilter != null ? desdeFilter.getValue() : null;
-        LocalDate hasta = hastaFilter != null ? hastaFilter.getValue() : null;
+        LocalDate desde = desdeFilter    != null ? desdeFilter.getValue()     : null;
+        LocalDate hasta = hastaFilter    != null ? hastaFilter.getValue()     : null;
         String cat      = categoriaFilter != null ? categoriaFilter.getValue() : null;
         return !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null || cat != null;
     }
@@ -503,8 +464,8 @@ public class MovimientosController {
     private void applyFilters() {
         if (table == null) return;
         if (desdeFilter != null && hastaFilter != null
-            && desdeFilter.getValue() != null && hastaFilter.getValue() != null
-            && desdeFilter.getValue().isAfter(hastaFilter.getValue())) {
+                && desdeFilter.getValue() != null && hastaFilter.getValue() != null
+                && desdeFilter.getValue().isAfter(hastaFilter.getValue())) {
             NotificacionUtil.advertencia(table.getScene(), "La fecha inicial debe ser anterior a la fecha final");
             return;
         }
@@ -517,7 +478,8 @@ public class MovimientosController {
         if (lblStatEntradas != null) AnimationUtils.animateCount(lblStatEntradas, stats.entradas(), 540);
         if (lblStatSalidas  != null) AnimationUtils.animateCount(lblStatSalidas,  stats.salidas(),  540);
         if (lblStatAjustes  != null) AnimationUtils.animateCount(lblStatAjustes,  stats.ajustes(),  540);
-        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
+        javafx.animation.PauseTransition pop =
+            new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
         pop.setOnFinished(e -> {
             if (statCardTotal   != null) AnimationUtils.statCardPop(statCardTotal);
             if (statCardEntrada != null) AnimationUtils.statCardPop(statCardEntrada);
@@ -532,17 +494,10 @@ public class MovimientosController {
             lblTotal, lblPage, btnPrev, btnNext, "movimiento", "movimientos");
     }
 
-    /** Checks whether any pending-transfer movements in the current page have
-     *  since changed estado (approved/rejected) and refreshes if so.
-     *  With pagination we only see the current page — state changes are caught
-     *  when the matching page is visible, which is acceptable. */
-    private void checkEstadoCambios(List<Movimiento> page) {
-        // No-op for now: the service's aprobar/rechazar workflow already
-        // calls loadData() in its callback, which re-fetches fresh data.
-    }
+    // ── FXML handlers ──────────────────────────────────────────────────────────
 
-    @FXML private void onPrev() { if (currentPage > 0) { currentPage--; loadPage(); } }
-    @FXML private void onNext() { currentPage++; loadPage(); }
+    @FXML private void onPrev()    { if (currentPage > 0) { currentPage--; loadPage(); } }
+    @FXML private void onNext()    { currentPage++; loadPage(); }
     @FXML private void onRefresh() { loadData(); if (SessionManager.isAdmin()) loadPendientesCount(); }
 
     private void promptJumpToPage() {
@@ -556,8 +511,7 @@ public class MovimientosController {
         dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
 
         HBox header = DialogUtil.gradientHeader("mdi2b-book-open-page-variant-outline",
-            "Ir a página", "1 – " + totalPages,
-            AppColors.INFO, AppColors.INFO_D);
+            "Ir a página", "1 – " + totalPages, AppColors.INFO, AppColors.INFO_D);
 
         TextField tf = new TextField(String.valueOf(currentPage + 1));
         tf.setPrefWidth(80);
@@ -572,7 +526,6 @@ public class MovimientosController {
         Button okBtn = (Button) dlg.getDialogPane().lookupButton(okType);
         okBtn.getStyleClass().add("btn-primary");
         Platform.runLater(() -> { tf.requestFocus(); tf.selectAll(); });
-
         tf.setOnAction(e -> okBtn.fire());
 
         dlg.showAndWait().filter(bt -> bt == okType).ifPresent(bt -> {
@@ -580,7 +533,7 @@ public class MovimientosController {
                 int page = Integer.parseInt(tf.getText().trim()) - 1;
                 if (page >= 0 && page < totalPages) { currentPage = page; loadPage(); }
             } catch (NumberFormatException ignored) {
-                log.debug("Non-numeric page input '{}' in jump-to-page dialog", txt.trim(), ignored);
+                log.debug("Non-numeric page input '{}' in jump-to-page dialog", tf.getText(), ignored);
             }
         });
     }
@@ -599,9 +552,7 @@ public class MovimientosController {
             () -> movimientoService.getPendientesTransferencias().size(),
             count -> {
                 if (btnPendientes == null) return;
-                btnPendientes.setText(count > 0
-                    ? "Pendientes (" + count + ")"
-                    : "Pendientes");
+                btnPendientes.setText(count > 0 ? "Pendientes (" + count + ")" : "Pendientes");
                 btnPendientes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
                 btnPendientes.getStyleClass().add(count > 0 ? "btn-warning-outline" : "btn-secondary");
             },
@@ -641,8 +592,7 @@ public class MovimientosController {
         }
     }
 
-    @FXML
-    private void onNuevoMovimiento() { showMovimientoDialog(null, null); }
+    @FXML private void onNuevoMovimiento() { showMovimientoDialog(null, null); }
 
     @FXML
     private void onDelete() {
@@ -671,6 +621,23 @@ public class MovimientosController {
     }
 
     @FXML
+    private void onClearFilters() {
+        if (searchField    != null) searchField.clear();
+        if (desdeFilter    != null) desdeFilter.setValue(null);
+        if (hastaFilter    != null) hastaFilter.setValue(null);
+        if (categoriaFilter != null) categoriaFilter.setValue(null);
+        setActivePreset(null);
+        if (tipoChipGroup != null)
+            tipoChipGroup.getToggles().stream()
+                .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
+                .findFirst().ifPresent(t -> t.setSelected(true));
+        STICKY.put("search", ""); STICKY.put("desde", ""); STICKY.put("hasta", "");
+        STICKY.put("categoria", ""); STICKY.put("tipo", "Todos");
+        currentPage = 0;
+        loadData();
+    }
+
+    @FXML
     private void onExportCsv() {
         DialogUtil.runAsync(
             () -> reporteService.exportMovimientosCsv(
@@ -690,23 +657,6 @@ public class MovimientosController {
             file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             e -> NotificacionUtil.error(table.getScene(), "No se pudo exportar el Excel")
         );
-    }
-
-    @FXML
-    private void onClearFilters() {
-        if (searchField != null) searchField.clear();
-        if (desdeFilter != null) desdeFilter.setValue(null);
-        if (hastaFilter != null) hastaFilter.setValue(null);
-        if (categoriaFilter != null) categoriaFilter.setValue(null);
-        setActivePreset(null);
-        if (tipoChipGroup != null)
-            tipoChipGroup.getToggles().stream()
-                .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
-                .findFirst().ifPresent(t -> t.setSelected(true));
-        STICKY.put("search", ""); STICKY.put("desde", ""); STICKY.put("hasta", "");
-        STICKY.put("categoria", ""); STICKY.put("tipo", "Todos");
-        currentPage = 0;
-        loadData();
     }
 
     @FXML
@@ -735,7 +685,8 @@ public class MovimientosController {
         showMovimientoDialog(preProductoId, preTipo, null);
     }
 
-    private void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo, MovimientoDialogFactory.Result retryFrom) {
+    private void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo,
+                                       MovimientoDialogFactory.Result retryFrom) {
         DialogUtil.runAsync(
             () -> productoService.getAll(),
             productos -> MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r ->
@@ -759,8 +710,7 @@ public class MovimientosController {
                                 else
                                     NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
                             }
-
-                            if (statCardTotal != null) AnimationUtils.statCardPop(statCardTotal);
+                            if (statCardTotal   != null) AnimationUtils.statCardPop(statCardTotal);
                             VBox targetCard = switch (m.getTipo()) {
                                 case ENTRADA -> statCardEntrada;
                                 case SALIDA  -> statCardSalida;
@@ -772,7 +722,8 @@ public class MovimientosController {
                     e -> {
                         if (table != null && table.getScene() != null)
                             NotificacionUtil.error(table.getScene(),
-                                (e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo registrar el movimiento")
+                                (e instanceof MovimientoService.ValidationException
+                                    ? e.getMessage() : "No se pudo registrar el movimiento")
                                     + " — revisa los datos e inténtalo de nuevo");
                         Platform.runLater(() -> showMovimientoDialog(preProductoId, preTipo, r));
                     }
@@ -780,7 +731,8 @@ public class MovimientosController {
             e -> {
                 log.error("Error al abrir el formulario de movimiento", e);
                 if (table != null && table.getScene() != null)
-                    NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
+                    NotificacionUtil.error(table.getScene(),
+                        "Error al abrir el formulario. Verifica la conexión a la base de datos.");
             }
         );
     }
