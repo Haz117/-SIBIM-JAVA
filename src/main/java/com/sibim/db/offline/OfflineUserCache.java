@@ -2,6 +2,8 @@ package com.sibim.db.offline;
 
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -25,6 +27,8 @@ import java.util.Optional;
  * so callers (AuthService, tests) can reference it from one place.
  */
 public final class OfflineUserCache {
+
+    private static final Logger log = LoggerFactory.getLogger(OfflineUserCache.class);
 
     /** Credentials cached for longer than this many days are rejected —
      *  the user must re-authenticate online to refresh the local copy.
@@ -95,7 +99,9 @@ public final class OfflineUserCache {
                         if (cachedAt.isBefore(LocalDateTime.now().minusDays(OFFLINE_CACHE_TTL_DAYS))) {
                             return Optional.empty(); // caché caducado
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                        log.debug("Could not parse cached_at timestamp '{}' for user '{}'", cachedAtStr, username, ignored);
+                    }
                 }
                 Usuario u = new Usuario();
                 u.setId(rs.getString("id"));
@@ -105,7 +111,10 @@ public final class OfflineUserCache {
                 u.setRol(Rol.fromCodigo(rs.getString("rol")));
                 u.setArea(rs.getString("area"));
                 u.setDebeCambiarPassword(rs.getInt("debe_cambiar_password") != 0);
-                try { u.setActivo(rs.getInt("activo") != 0); } catch (Exception ignored) { u.setActivo(true); }
+                try { u.setActivo(rs.getInt("activo") != 0); } catch (Exception ignored) {
+                    log.debug("activo column missing in users_cache for user '{}', defaulting to true", username, ignored);
+                    u.setActivo(true);
+                }
                 return Optional.of(u);
             }
         }

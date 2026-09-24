@@ -118,9 +118,13 @@ public class AuditoriaController {
         String desdeStr = STICKY.get("desde", "");
         String hastaStr = STICKY.get("hasta", "");
         if (!desdeStr.isBlank() && desdeField != null)
-            try { desdeField.setValue(LocalDate.parse(desdeStr)); } catch (Exception ignored) {}
+            try { desdeField.setValue(LocalDate.parse(desdeStr)); } catch (Exception ignored) {
+                log.debug("Could not restore sticky 'desde' date filter value '{}'", desdeStr, ignored);
+            }
         if (!hastaStr.isBlank() && hastaField != null)
-            try { hastaField.setValue(LocalDate.parse(hastaStr)); } catch (Exception ignored) {}
+            try { hastaField.setValue(LocalDate.parse(hastaStr)); } catch (Exception ignored) {
+                log.debug("Could not restore sticky 'hasta' date filter value '{}'", hastaStr, ignored);
+            }
 
         if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
         updateExportButtons();
@@ -247,6 +251,7 @@ public class AuditoriaController {
                         usuarioFilter.getSelectionModel().selectFirst();
                 });
             } catch (Exception ignored) {
+                log.debug("Could not load user filter options in AuditoriaController", ignored);
             }
         });
     }

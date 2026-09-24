@@ -156,7 +156,9 @@ public final class OfflineStore {
                     if (checkpointExecutor != null) checkpointExecutor.shutdownNow();
                     try {
                         if (conn != null && !conn.isClosed()) conn.close();
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                        log.debug("Could not close offline DB connection during shutdown", ignored);
+                    }
                     try {
                         OfflineEncryption.encryptFrom(fWork, fEnc, fKey);
                     } catch (IOException e) {
@@ -217,7 +219,9 @@ public final class OfflineStore {
         } catch (Exception e) {
             log.warn("offline.db: no se pudo guardar el checkpoint periódico", e);
         } finally {
-            try { Files.deleteIfExists(snapshot); } catch (IOException ignored) {}
+            try { Files.deleteIfExists(snapshot); } catch (IOException ignored) {
+                log.debug("Could not delete checkpoint snapshot file", ignored);
+            }
         }
     }
 
@@ -237,14 +241,20 @@ public final class OfflineStore {
         // M1 (2025): server_snapshot_at for offline conflict detection
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE product_outbox ADD COLUMN server_snapshot_at TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M1b (2026): preserve pending transfer state in the local mirror.
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE movements ADD COLUMN estado TEXT NOT NULL DEFAULT 'APROBADO'");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE movement_outbox ADD COLUMN estado TEXT NOT NULL DEFAULT 'APROBADO'");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M2 (2025): conteo físico offline outbox
         try (Statement st = c.createStatement()) {
             st.execute("""
@@ -261,7 +271,9 @@ public final class OfflineStore {
                     area TEXT, stock_sistema INTEGER NOT NULL, stock_contado INTEGER NOT NULL,
                     ajustado INTEGER NOT NULL DEFAULT 0,
                     estado_conteo TEXT DEFAULT 'ENCONTRADO', nota TEXT)""");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M3 (2025): audit log offline outbox
         try (Statement st = c.createStatement()) {
             st.execute("""
@@ -271,56 +283,92 @@ public final class OfflineStore {
                     accion TEXT NOT NULL, detalle TEXT, usuario_id TEXT,
                     usuario_nombre TEXT NOT NULL, created_at TEXT NOT NULL,
                     status TEXT NOT NULL DEFAULT 'PENDING', error TEXT)""");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M4 (2026): cached_at para caducidad del caché de credenciales offline (30 días).
         // Columna nullable — filas previas quedan con NULL, que findCachedUserByUsername
         // trata como "expirado", forzando re-autenticación online la primera vez.
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE users_cache ADD COLUMN cached_at TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M5: factura_url para foto de factura
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE products ADD COLUMN factura_url TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE product_outbox ADD COLUMN factura_url TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M6: numero_serie, marca, modelo
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN numero_serie TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN marca TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN modelo TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN numero_serie TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN marca TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN modelo TEXT"); } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN numero_serie TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN marca TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN modelo TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN numero_serie TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN marca TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN modelo TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M8 (2026): etiquetado y fotos_urls
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE products ADD COLUMN etiquetado INTEGER NOT NULL DEFAULT 0");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE products ADD COLUMN fotos_urls TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE product_outbox ADD COLUMN etiquetado INTEGER DEFAULT 0");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE product_outbox ADD COLUMN fotos_urls TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M9 (2026): producto_codigo, estado_conteo, nota en conteo_items_outbox
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE conteo_items_outbox ADD COLUMN producto_codigo TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE conteo_items_outbox ADD COLUMN estado_conteo TEXT DEFAULT 'ENCONTRADO'");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE conteo_items_outbox ADD COLUMN nota TEXT");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M10 (2026): activo para users_cache — offline.db previos a este campo
         // en offline.sql se quedaron sin la columna; sin esta migración, cacheUser()
         // falla al reautenticar offline a cualquier usuario existente.
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE users_cache ADD COLUMN activo INTEGER NOT NULL DEFAULT 1");
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M11 (2026): retry_count en las tablas outbox — sin esto, una fila que
         // sigue fallando (p.ej. un movimiento que ya no cabe en el stock del
         // servidor) se reencola como PENDING en cada tick para siempre y la app
@@ -331,19 +379,33 @@ public final class OfflineStore {
                 "conteo_outbox", "audit_log_outbox"}) {
             try (Statement st = c.createStatement()) {
                 st.execute("ALTER TABLE " + table + " ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0");
-            } catch (SQLException ignored) {}
+            } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         }
         // M12 (2026): estado_fisico, numero_factura y codigo_conac — offline.db
         // previos al inventario físico MLA se quedaron sin estas columnas, aunque
         // offline.sql ya las incluye para instalaciones nuevas. Sin esta migración,
         // SyncService.syncProductos/syncCategorias truena con "no such column" en
         // cualquier PC que ya tuviera un offline.db de antes de ese cambio.
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN estado_fisico TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN numero_factura TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN estado_fisico TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN numero_factura TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE categories ADD COLUMN codigo_conac TEXT"); } catch (SQLException ignored) {}
-        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE category_outbox ADD COLUMN codigo_conac TEXT"); } catch (SQLException ignored) {}
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN estado_fisico TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE products ADD COLUMN numero_factura TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN estado_fisico TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE product_outbox ADD COLUMN numero_factura TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE categories ADD COLUMN codigo_conac TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        try (Statement st = c.createStatement()) { st.execute("ALTER TABLE category_outbox ADD COLUMN codigo_conac TEXT"); } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
     }
 
     private static void runSchema(Connection c) throws SQLException {
@@ -1262,6 +1324,7 @@ public final class OfflineStore {
             ps.executeUpdate();
         } catch (SQLException e) {
             // Non-blocking: mirror AuditLogRepository.log() behaviour
+            log.warn("Could not write audit log entry to offline store", e);
         }
     }
 

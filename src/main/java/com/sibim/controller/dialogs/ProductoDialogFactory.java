@@ -2,37 +2,25 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
-import com.sibim.model.enums.UnidadMedida;
 import com.sibim.repository.ProductoRepository;
-import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
-import com.sibim.util.AutocompleteUtil;
-import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ImageUtils;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,12 +29,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Builds and drives the "Nuevo/Editar Bien" dialog. Extracted out of
- *  ProductosController (which had grown a ~300-line inline dialog method) so
- *  the controller only deals with the table/filters/persistence and this
- *  class only deals with the form. Returns the validated {@link Producto}
- *  (with its photo already resized/saved to disk) on OK, or empty on cancel —
- *  persistence (service.save + list/stat refresh) stays the controller's job. */
+/** Builds and drives the "Nuevo/Editar Bien" dialog.  The form fields for
+ *  each tab live in {@link ProductoTabInfoFields}, {@link ProductoTabStockFields},
+ *  and {@link ProductoTabPatrimonioFields}; this class only orchestrates the
+ *  dialog shell, stepper, dirty-tracking, validation, and result conversion.
+ *  Returns the validated {@link Producto} on OK, or empty on cancel — persistence
+ *  stays the controller's job. */
 public final class ProductoDialogFactory {
 
     private ProductoDialogFactory() {}
@@ -76,615 +64,36 @@ public final class ProductoDialogFactory {
 
         Node okBtn = DialogUtil.getOkButton(dialog.getDialogPane());
 
-        // ── Tab: Información General ──
-        GridPane gridInfo = DialogUtil.formGrid(120);
-
-        TextField fNombre = new TextField(existing != null ? existing.getNombre() : "");
-        fNombre.setPromptText("Nombre descriptivo del bien");
-        fNombre.getStyleClass().add("form-input");
-        TextField fCodigo = new TextField(existing != null ? existing.getCodigo() : "");
-        fCodigo.getStyleClass().add("form-input");
-        fCodigo.setPromptText("Código único de inventario");
-        // For new products, enable/disable is set dynamically below once fArea is declared
-
-        // Inline código uniqueness check — debounced 280ms
-        ProductoRepository codigoRepo = new ProductoRepository();
-        String existingId = existing != null ? existing.getId() : null;
-        Label lblCodigoHint = new Label();
-        lblCodigoHint.getStyleClass().add("field-hint");
-        lblCodigoHint.setVisible(false); lblCodigoHint.setManaged(false);
-        // Used below (inside the async debounce callback) to re-run the OK
-        // enablement check after the availability result arrives — without this
-        // the OK button stays enabled even when the hint shows "ya existe".
-        Runnable[] checkOkRef = {null};
-        Button[] navNextRef = {null};
-        javafx.animation.Timeline[] codigoDebounce = {null};
-        fCodigo.textProperty().addListener((obs, old, val) -> {
-            if (codigoDebounce[0] != null) codigoDebounce[0].stop();
-            lblCodigoHint.setVisible(false); lblCodigoHint.setManaged(false);
-            if (val.isBlank()) return;
-            codigoDebounce[0] = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
-                javafx.util.Duration.millis(280), e -> AppExecutor.submit(() -> {
-                    try {
-                        boolean exists = codigoRepo.existsByCodigo(val.trim(), existingId);
-                        Platform.runLater(() -> {
-                            lblCodigoHint.setText(exists ? "✕  Este código ya existe" : "✓  Disponible");
-                            lblCodigoHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
-                            lblCodigoHint.getStyleClass().add(exists ? "field-hint-error" : "field-hint-ok");
-                            lblCodigoHint.setVisible(true); lblCodigoHint.setManaged(true);
-                            if (exists) fCodigo.getStyleClass().add("field-error");
-                            else fCodigo.getStyleClass().remove("field-error");
-                            if (checkOkRef[0] != null) checkOkRef[0].run();
-                        });
-                    } catch (Exception ignored) { log.debug("Código availability check failed", ignored); }
-                })));
-            codigoDebounce[0].play();
-        });
-        TextArea fDesc = new TextArea(existing != null && existing.getDescripcion() != null ? existing.getDescripcion() : "");
-        fDesc.setPrefRowCount(2); fDesc.setPromptText("Descripción opcional");
-        fDesc.getStyleClass().add("form-input");
-        javafx.collections.ObservableList<Categoria> allCats = FXCollections.observableArrayList(cats);
-        ComboBox<Categoria> fCat = new ComboBox<>(allCats);
-        fCat.setMaxWidth(Double.MAX_VALUE);
-        fCat.setPromptText("Buscar categoría…");
-        fCat.setEditable(true);
-        fCat.getStyleClass().add("form-input");
-        fCat.setConverter(new javafx.util.StringConverter<>() {
-            public String toString(Categoria c) { return c == null ? "" : c.getNombre(); }
-            public Categoria fromString(String s) {
-                if (s == null || s.isBlank()) return null;
-                return cats.stream()
-                    .filter(c -> c.getNombre().equalsIgnoreCase(s.trim()))
-                    .findFirst().orElse(null);
-            }
-        });
-        if (existing != null) cats.stream()
-            .filter(c -> c.getId().equals(existing.getCategoriaId())).findFirst().ifPresent(fCat::setValue);
-
-        // Autocomplete: filter dropdown as user types
-        boolean[] catSelecting = {false};
-        fCat.valueProperty().addListener((obs, old, val) -> {
-            catSelecting[0] = true;
-            if (val != null) fCat.setItems(allCats);
-            Platform.runLater(() -> catSelecting[0] = false);
-        });
-        fCat.getEditor().textProperty().addListener((obs, old, val) -> {
-            if (catSelecting[0]) return;
-            String lower = val == null ? "" : val.toLowerCase();
-            if (lower.isBlank()) { fCat.setItems(allCats); return; }
-            List<Categoria> filtered = cats.stream()
-                .filter(c -> c.getNombre().toLowerCase().contains(lower))
-                .toList();
-            fCat.setItems(FXCollections.observableArrayList(filtered));
-            if (!filtered.isEmpty() && !fCat.isShowing()) fCat.show();
-        });
-
-        List<String> areaNames = new java.util.ArrayList<>(com.sibim.config.Areas.getAllAreaNames());
-        ComboBox<String> fArea = new ComboBox<>(FXCollections.observableArrayList(areaNames));
-        fArea.setMaxWidth(Double.MAX_VALUE);
-        fArea.setPromptText("Área responsable");
-        var sessionUser = SessionManager.getCurrentUser();
-        fArea.setValue(existing != null ? existing.getArea()
-            : sessionUser != null ? sessionUser.getArea() : null);
-        if (SessionManager.isDireccion()) fArea.setDisable(true);
-        fArea.getStyleClass().add("form-input");
-
-        // For new products: disable código when the area has an auto-prefix;
-        // enable it (and require manual entry) when the area has no prefix.
-        if (isNewProduct) {
-            Runnable syncCodigo = () -> {
-                String a = fArea.getValue();
-                if (a == null || a.isBlank()) {
-                    fCodigo.setDisable(true);
-                    fCodigo.setPromptText("Selecciona un área primero");
-                    fCodigo.clear();
-                } else if (com.sibim.config.AreaCodigos.tienePrefijo(a)) {
-                    fCodigo.setDisable(true);
-                    fCodigo.setPromptText("Se asignará automáticamente según el área");
-                    fCodigo.clear();
-                } else {
-                    fCodigo.setDisable(false);
-                    fCodigo.setPromptText("Código único de inventario");
-                }
-            };
-            syncCodigo.run();
-            fArea.valueProperty().addListener((o, a, b) -> syncCodigo.run());
-        }
-
-        // ── Inline blur-validation hints for required fields ──────────────
-        Label lblNombreHint = new Label("Campo requerido");
-        lblNombreHint.getStyleClass().addAll("field-hint", "field-hint-error");
-        lblNombreHint.setVisible(false); lblNombreHint.setManaged(false);
-
-        Label lblNombreWarn = new Label();
-        lblNombreWarn.getStyleClass().addAll("field-hint", "field-hint-warn");
-        lblNombreWarn.setVisible(false); lblNombreWarn.setManaged(false);
-
-        Label lblCatHint = new Label("Selecciona una categoría");
-        lblCatHint.getStyleClass().addAll("field-hint", "field-hint-error");
-        lblCatHint.setVisible(false); lblCatHint.setManaged(false);
-
-        Label lblAreaHint = new Label("Campo requerido");
-        lblAreaHint.getStyleClass().addAll("field-hint", "field-hint-error");
-        lblAreaHint.setVisible(false); lblAreaHint.setManaged(false);
-
-        fNombre.focusedProperty().addListener((obs, was, now) -> {
-            if (!now) {
-                String typed = fNombre.getText().trim();
-                boolean empty = typed.isBlank();
-                lblNombreHint.setVisible(empty); lblNombreHint.setManaged(empty);
-                if (empty) { fNombre.getStyleClass().add("field-error"); return; }
-                lblNombreWarn.setVisible(false); lblNombreWarn.setManaged(false);
-                if (typed.length() < 4) return;
-                String typedLow = typed.toLowerCase();
-                AppExecutor.submit(() -> {
-                    try {
-                        List<Producto> all = codigoRepo.findAll();
-                        List<String> hits = all.stream()
-                            .filter(p -> existingId == null || !existingId.equals(p.getId()))
-                            .map(p -> p.getNombre())
-                            .filter(n -> {
-                                String nl = n.toLowerCase();
-                                return !nl.equals(typedLow)
-                                    && (nl.contains(typedLow) || typedLow.contains(nl)
-                                        || diceSimilarity(nl, typedLow) >= 0.65);
-                            })
-                            .limit(2)
-                            .toList();
-                        Platform.runLater(() -> {
-                            if (!hits.isEmpty() && !fNombre.getText().trim().isBlank()) {
-                                lblNombreWarn.setText("⚠  Nombre similar a: " + hits.get(0)
-                                    + (hits.size() > 1 ? " y otros" : ""));
-                                lblNombreWarn.setVisible(true); lblNombreWarn.setManaged(true);
-                            }
-                        });
-                    } catch (Exception ignored) {}
-                });
-            }
-        });
-        fNombre.textProperty().addListener((o, a, b) -> { lblNombreWarn.setVisible(false); lblNombreWarn.setManaged(false); });
-        fCodigo.focusedProperty().addListener((obs, was, now) -> {
-            if (!now && fCodigo.getText().isBlank()) {
-                lblCodigoHint.setText("Campo requerido");
-                lblCodigoHint.getStyleClass().removeAll("field-hint-ok");
-                lblCodigoHint.getStyleClass().add("field-hint-error");
-                lblCodigoHint.setVisible(true); lblCodigoHint.setManaged(true);
-                fCodigo.getStyleClass().add("field-error");
-            }
-        });
-        fCat.focusedProperty().addListener((obs, was, now) -> {
-            if (!now) {
-                boolean empty = fCat.getValue() == null;
-                lblCatHint.setVisible(empty); lblCatHint.setManaged(empty);
-                if (empty) fCat.getStyleClass().add("field-error");
-            }
-        });
-        fArea.focusedProperty().addListener((obs, was, now) -> {
-            if (!now && !fArea.isDisabled()) {
-                boolean empty = fArea.getValue() == null || fArea.getValue().isBlank();
-                lblAreaHint.setVisible(empty); lblAreaHint.setManaged(empty);
-                if (empty) fArea.getStyleClass().add("field-error");
-            }
-        });
-
-        TextField fProveedor = new TextField(existing != null && existing.getProveedor() != null ? existing.getProveedor() : "");
-        fProveedor.setPromptText("Nombre del proveedor");
-        fProveedor.getStyleClass().add("form-input");
-        TextField fMarca = new TextField(existing != null && existing.getMarca() != null ? existing.getMarca() : "");
-        fMarca.setPromptText("Ej. HP, Dell, Brother…");
-        fMarca.getStyleClass().add("form-input");
-        TextField fModelo = new TextField(existing != null && existing.getModelo() != null ? existing.getModelo() : "");
-        fModelo.setPromptText("Modelo del bien");
-        fModelo.getStyleClass().add("form-input");
-        TextField fNumeroSerie = new TextField(existing != null && existing.getNumeroSerie() != null ? existing.getNumeroSerie() : "");
-        fNumeroSerie.setPromptText("Número de serie o placa");
-        fNumeroSerie.getStyleClass().add("form-input");
-
-        AutocompleteUtil.attach(fProveedor, sugestProveedores);
-        AutocompleteUtil.attach(fMarca,     sugestMarcas);
-        AutocompleteUtil.attach(fModelo,    sugestModelos);
-        TextField fUbicacion = new TextField(existing != null && existing.getUbicacion() != null ? existing.getUbicacion() : "");
-        fUbicacion.setPromptText("Ubicación física");
-        fUbicacion.getStyleClass().add("form-input");
-        AutocompleteUtil.attach(fUbicacion, sugestUbicaciones);
-        TextField fResguardante = new TextField(existing != null && existing.getResguardante() != null ? existing.getResguardante() : "");
-        fResguardante.setPromptText("Persona responsable del resguardo (nombre completo)");
-        fResguardante.getStyleClass().add("form-input");
-
-        // ── Multi-foto gallery ──
-        List<String> fotosHolder = new java.util.ArrayList<>(existingFotos != null ? existingFotos : new java.util.ArrayList<>());
-        // Si existingFotos viene vacío pero existing tiene foto_url, añadirla como primera foto
-        if (fotosHolder.isEmpty() && existing != null && existing.getFotoUrl() != null && !existing.getFotoUrl().isBlank()) {
-            fotosHolder.add(existing.getFotoUrl());
-        }
-
-        FlowPane galleryPane = new FlowPane(8, 8);
-        galleryPane.setAlignment(Pos.CENTER_LEFT);
-
-        // markDirty is defined later but gallery needs it — use a holder (reuse markDirtyRef defined below)
+        // markDirtyRef declared before tabs because InfoTab's gallery/factura
+        // buttons need to call it through the ref at construction time.
         Runnable[] markDirtyRef = {null};
+        // checkOkRef is filled in after checkOk is created below; passed into
+        // InfoTab so the async código-debounce callback can re-run enablement.
+        Runnable[] checkOkRef = {null};
 
-        Runnable[] rebuildGallery = {null};
-        rebuildGallery[0] = () -> {
-            galleryPane.getChildren().clear();
-            for (int idx = 0; idx < fotosHolder.size(); idx++) {
-                final int i = idx;
-                final String url = fotosHolder.get(i);
-                ImageView iv = new ImageView();
-                iv.setFitWidth(110); iv.setFitHeight(80);
-                iv.setPreserveRatio(true);
-                try {
-                    String imgUrl = com.sibim.util.SupabaseStorage.isRemoteUrl(url)
-                        ? url
-                        : java.nio.file.Path.of(url).toUri().toString();
-                    Image img = new Image(imgUrl, 110, 80, true, true, true);
-                    iv.setImage(img);
-                } catch (Exception ex) {
-                    iv.setImage(null);
-                }
-                Button btnDel = new Button("×");
-                btnDel.getStyleClass().add("btn-secondary");
-                btnDel.setMinSize(20, 20); btnDel.setMaxSize(20, 20);
-                btnDel.setOnAction(ev -> { fotosHolder.remove(i); rebuildGallery[0].run(); if (markDirtyRef[0] != null) markDirtyRef[0].run(); });
-                StackPane cell = new StackPane(iv, btnDel);
-                StackPane.setAlignment(btnDel, Pos.TOP_RIGHT);
-                cell.getStyleClass().add("dlg-img-box");
-                cell.setPrefSize(110, 80);
-                if (i == 0) {
-                    Label badge = new Label("Principal");
-                    badge.getStyleClass().addAll("muted-sm");
-                    StackPane.setAlignment(badge, Pos.BOTTOM_LEFT);
-                    cell.getChildren().add(badge);
-                }
-                galleryPane.getChildren().add(cell);
-            }
-        };
-        rebuildGallery[0].run();
+        // ── Build tab field objects ──────────────────────────────────────────
+        var infoTab = new ProductoTabInfoFields(existing, isNewProduct,
+            existing != null ? existing.getId() : null,
+            cats, log, dialog, markDirtyRef, checkOkRef, thumbnailCache, existingFotos, acRepo);
 
-        Button btnAgregarFoto = new Button("Agregar foto");
-        btnAgregarFoto.setGraphic(new FontIcon("mdi2c-camera-plus-outline"));
-        btnAgregarFoto.getStyleClass().add("btn-secondary");
-        btnAgregarFoto.setOnAction(ev -> {
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle("Seleccionar imagen del bien");
-            chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Imágenes", "*.png","*.jpg","*.jpeg","*.gif","*.bmp","*.webp"));
-            java.util.List<File> files = chooser.showOpenMultipleDialog(dialog.getOwner());
-            if (files != null) {
-                for (File file : files) {
-                    if (ImageUtils.exceedsMaxSize(file)) {
-                        Dialog<ButtonType> tooBig = DialogUtil.styledMessage(
-                            "mdi2a-alert-circle-outline", "Imagen demasiado pesada",
-                            "Elige un archivo más pequeño",
-                            AppColors.WARNING, AppColors.WARNING_D,
-                            "La imagen '" + file.getName() + "' pesa " + (file.length() / (1024 * 1024))
-                            + " MB — máximo " + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.",
-                            dialog.getOwner());
-                        tooBig.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
-                        DialogUtil.styleButton(tooBig.getDialogPane(), ButtonType.OK, AppColors.WARNING);
-                        tooBig.showAndWait();
-                        continue;
-                    }
-                    fotosHolder.add(file.getAbsolutePath());
-                }
-                rebuildGallery[0].run();
-                if (markDirtyRef[0] != null) markDirtyRef[0].run();
-            }
-        });
+        var stockTab = new ProductoTabStockFields(existing);
 
-        Label lblGalleryHint = new Label("La primera foto es la imagen principal del bien en la tabla.");
-        lblGalleryHint.getStyleClass().add("muted-sm");
+        var patrimonioTab = new ProductoTabPatrimonioFields(existing,
+            sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones);
 
-        VBox imgSection = new VBox(6, galleryPane, btnAgregarFoto, lblGalleryHint);
-
-        // ── Factura picker ──
-        String[] facturaHolder = { existing != null ? existing.getFacturaUrl() : null };
-
-        FontIcon docIcon = new FontIcon("mdi2f-file-document-outline");
-        docIcon.setIconSize(28);
-        Label factPlaceholder = new Label("Sin factura", docIcon);
-        factPlaceholder.setContentDisplay(javafx.scene.control.ContentDisplay.TOP);
-        factPlaceholder.getStyleClass().add("dlg-img-placeholder");
-        factPlaceholder.setAlignment(Pos.CENTER);
-
-        ImageView factPreview = new ImageView();
-        factPreview.setFitWidth(150); factPreview.setFitHeight(112);
-        factPreview.setPreserveRatio(true);
-
-        StackPane factBox = new StackPane(factPlaceholder, factPreview);
-        factBox.setPrefSize(150, 112);
-        factBox.getStyleClass().add("dlg-img-box");
-
-        Runnable loadFact = () -> {
-            if (facturaHolder[0] != null && !facturaHolder[0].isBlank()) {
-                try {
-                    String fu = facturaHolder[0];
-                    String factImgUrl = com.sibim.util.SupabaseStorage.isRemoteUrl(fu) ? fu : Path.of(fu).toUri().toString();
-                    Image img = new Image(factImgUrl, 150, 112, true, true, true);
-                    factPreview.setImage(img);
-                    factPlaceholder.setVisible(false);
-                } catch (Exception ex) {
-                    factPlaceholder.setVisible(true);
-                }
-            } else {
-                factPreview.setImage(null);
-                factPlaceholder.setVisible(true);
-            }
-        };
-        loadFact.run();
-
-        Button btnSelFact    = new Button("Seleccionar");
-        btnSelFact.setGraphic(new FontIcon("mdi2f-file-document-outline"));
-        Button btnQuitarFact = new Button("Quitar");
-        btnQuitarFact.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
-        btnSelFact.getStyleClass().add("btn-secondary");
-        btnQuitarFact.getStyleClass().add("btn-secondary");
-        btnQuitarFact.setDisable(facturaHolder[0] == null || facturaHolder[0].isBlank());
-
-        // markDirtyRef declared above in multi-foto gallery section — shared reference
-        btnSelFact.setOnAction(ev -> {
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle("Seleccionar foto de factura");
-            chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Imágenes", "*.png","*.jpg","*.jpeg","*.gif","*.bmp","*.webp"));
-            File file = chooser.showOpenDialog(dialog.getOwner());
-            if (file != null) {
-                if (ImageUtils.exceedsMaxSize(file)) {
-                    Dialog<ButtonType> tooBig = DialogUtil.styledMessage(
-                        "mdi2a-alert-circle-outline", "Imagen demasiado pesada",
-                        "Elige un archivo más pequeño",
-                        "#D97706", "#B45309",
-                        "La imagen pesa " + (file.length() / (1024 * 1024)) + " MB — el máximo permitido es "
-                        + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.",
-                        dialog.getOwner());
-                    tooBig.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
-                    DialogUtil.styleButton(tooBig.getDialogPane(), ButtonType.OK, "#D97706");
-                    tooBig.showAndWait();
-                    return;
-                }
-                facturaHolder[0] = file.getAbsolutePath();
-                loadFact.run();
-                btnQuitarFact.setDisable(false);
-                if (markDirtyRef[0] != null) markDirtyRef[0].run();
-            }
-        });
-        btnQuitarFact.setOnAction(ev -> {
-            facturaHolder[0] = null;
-            loadFact.run();
-            btnQuitarFact.setDisable(true);
-            if (markDirtyRef[0] != null) markDirtyRef[0].run();
-        });
-
-        VBox factSection = new VBox(6, factBox, new HBox(6, btnSelFact, btnQuitarFact));
-
-        VBox codigoBox = new VBox(2, fCodigo, lblCodigoHint);
-        int r = 0;
-        // Required fields first, optional image below a visual divider
-        Label lblInfoReq = new Label("* Campos obligatorios");
-        lblInfoReq.getStyleClass().addAll("muted-sm");
-        gridInfo.add(DialogUtil.fieldLabel("Nombre *"),    0, r); gridInfo.add(new VBox(2, fNombre, lblNombreHint, lblNombreWarn), 1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Código *"),    0, r); gridInfo.add(codigoBox,  1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Categoría *"), 0, r); gridInfo.add(new VBox(2, fCat, lblCatHint), 1, r++);
-        gridInfo.add(DialogUtil.fieldLabelWithHelp("Área *",
-            "Secretaría o Dirección responsable del bien.\n" +
-            "Solo los usuarios de esa área podrán gestionarlo.\n" +
-            "Para DIRECCIÓN el área se fija automáticamente."),
-                                                             0, r); gridInfo.add(new VBox(2, fArea, lblAreaHint), 1, r++);
-        gridInfo.add(new Separator(), 0, r, 2, 1); r++;
-        gridInfo.add(DialogUtil.fieldLabel("Descripción"), 0, r); gridInfo.add(fDesc,      1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Imagen"),      0, r); gridInfo.add(imgSection, 1, r++);
-        gridInfo.add(DialogUtil.fieldLabel("Foto factura"), 0, r); gridInfo.add(factSection, 1, r++);
-        gridInfo.add(lblInfoReq,                           1, r);
-
-        // ── Tab: Stock & Precios ──
-        GridPane gridStock = DialogUtil.formGrid(140);
-
-        Spinner<Integer> fStock    = new Spinner<>(0, 999_999, existing != null ? existing.getStockActual() : 0);
-        fStock.setEditable(true); fStock.setMaxWidth(Double.MAX_VALUE);
-        fStock.getStyleClass().add("form-input");
-        DialogUtil.commitOnFocusLoss(fStock);
-        Spinner<Integer> fStockMin = new Spinner<>(0, 999_999, existing != null ? existing.getStockMinimo() : 0);
-        fStockMin.setEditable(true); fStockMin.setMaxWidth(Double.MAX_VALUE);
-        fStockMin.getStyleClass().add("form-input");
-        DialogUtil.commitOnFocusLoss(fStockMin);
-        Spinner<Integer> fStockMax = new Spinner<>(0, 999_999, existing != null ? existing.getStockMaximo() : 100);
-        fStockMax.setEditable(true); fStockMax.setMaxWidth(Double.MAX_VALUE);
-        fStockMax.getStyleClass().add("form-input");
-        DialogUtil.commitOnFocusLoss(fStockMax);
-        ComboBox<UnidadMedida> fUnidad = new ComboBox<>(
-            FXCollections.observableArrayList(UnidadMedida.values()));
-        fUnidad.setValue(existing != null ? existing.getUnidad() : UnidadMedida.PIEZA);
-        fUnidad.setMaxWidth(Double.MAX_VALUE);
-        fUnidad.getStyleClass().add("form-input");
-        TextField fPrecioC = new TextField(existing != null && existing.getPrecioCompra() != null
-            ? existing.getPrecioCompra().toPlainString() : "0");
-        fPrecioC.setPromptText("0.00");
-        fPrecioC.getStyleClass().add("form-input");
-        Label lblPrecioCHint = new Label();
-        lblPrecioCHint.getStyleClass().add("field-hint");
-        lblPrecioCHint.setVisible(false); lblPrecioCHint.setManaged(false);
-        fPrecioC.textProperty().addListener((obs, old, val) -> {
-            try { new BigDecimal(val.trim());
-                lblPrecioCHint.setVisible(false); lblPrecioCHint.setManaged(false);
-                fPrecioC.getStyleClass().remove("field-error");
-            } catch (Exception ex) {
-                lblPrecioCHint.setText("Formato inválido — usa números (ej. 1500.00)");
-                lblPrecioCHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
-                lblPrecioCHint.getStyleClass().add("field-hint-error");
-                lblPrecioCHint.setVisible(true); lblPrecioCHint.setManaged(true);
-                fPrecioC.getStyleClass().add("field-error");
-            }
-        });
-
-        TextField fPrecioV = new TextField(existing != null && existing.getPrecioVenta() != null
-            ? existing.getPrecioVenta().toPlainString() : "0");
-        fPrecioV.setPromptText("0.00");
-        fPrecioV.getStyleClass().add("form-input");
-        Label lblPrecioVHint = new Label();
-        lblPrecioVHint.getStyleClass().add("field-hint");
-        lblPrecioVHint.setVisible(false); lblPrecioVHint.setManaged(false);
-        fPrecioV.textProperty().addListener((obs, old, val) -> {
-            try { new BigDecimal(val.trim());
-                lblPrecioVHint.setVisible(false); lblPrecioVHint.setManaged(false);
-                fPrecioV.getStyleClass().remove("field-error");
-            } catch (Exception ex) {
-                lblPrecioVHint.setText("Formato inválido — usa números (ej. 1500.00)");
-                lblPrecioVHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
-                lblPrecioVHint.getStyleClass().add("field-hint-error");
-                lblPrecioVHint.setVisible(true); lblPrecioVHint.setManaged(true);
-                fPrecioV.getStyleClass().add("field-error");
-            }
-        });
-        DatePicker fVenc = new DatePicker(existing != null ? existing.getFechaVencimiento() : null);
-        fVenc.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
-        fVenc.setMaxWidth(Double.MAX_VALUE);
-        fVenc.getStyleClass().add("form-input");
-
-        // ── Depreciación (línea recta) ──
-        DatePicker fFechaAdq = new DatePicker(existing != null ? existing.getFechaAdquisicion() : null);
-        fFechaAdq.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
-        fFechaAdq.setPromptText("Fecha de adquisición");
-        fFechaAdq.setMaxWidth(Double.MAX_VALUE);
-        fFechaAdq.getStyleClass().add("form-input");
-
-        Spinner<Integer> fVidaUtil = new Spinner<>(1, 100,
-            existing != null && existing.getVidaUtilAnios() != null ? existing.getVidaUtilAnios() : 5);
-        fVidaUtil.setEditable(true);
-        fVidaUtil.setMaxWidth(Double.MAX_VALUE);
-        fVidaUtil.getStyleClass().add("form-input");
-        DialogUtil.commitOnFocusLoss(fVidaUtil);
-
-        TextField fValorResidual = new TextField(
-            existing != null && existing.getValorResidual() != null
-                ? existing.getValorResidual().toPlainString() : "0");
-        fValorResidual.setPromptText("0.00");
-        fValorResidual.setMaxWidth(Double.MAX_VALUE);
-        fValorResidual.getStyleClass().add("form-input");
-
-        int rs = 0;
-        gridStock.add(DialogUtil.fieldLabel("Stock Actual"),    0, rs); gridStock.add(fStock,    1, rs++);
-        gridStock.add(DialogUtil.fieldLabelWithHelp("Stock Mínimo",
-            "Cuando el stock baje de este número se generará\nuna alerta automática en el módulo de Alertas."),
-                                                              0, rs); gridStock.add(fStockMin, 1, rs++);
-        gridStock.add(DialogUtil.fieldLabelWithHelp("Stock Máximo",
-            "Límite de referencia para sobre-stock.\n" +
-            "No bloquea entradas; sirve para reportes y alertas de exceso."),
-                                                              0, rs); gridStock.add(fStockMax, 1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Unidad"),          0, rs); gridStock.add(fUnidad,   1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Precio Compra"),   0, rs); gridStock.add(new VBox(2, fPrecioC, lblPrecioCHint), 1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Precio Venta"),    0, rs); gridStock.add(new VBox(2, fPrecioV, lblPrecioVHint), 1, rs++);
-        gridStock.add(DialogUtil.fieldLabel("Fecha Venc."),     0, rs); gridStock.add(fVenc,     1, rs++);
-
-        // ── Tab: Datos Patrimoniales ──
-        GridPane gridPatrimonio = DialogUtil.formGrid(140);
-        int rp = 0;
-        ComboBox<String> fEstadoFisico = new ComboBox<>(
-            FXCollections.observableArrayList("", "BUENO", "REGULAR", "MALO", "DEFICIENTE"));
-        fEstadoFisico.setValue(existing != null && existing.getEstadoFisico() != null ? existing.getEstadoFisico() : "");
-        fEstadoFisico.setMaxWidth(Double.MAX_VALUE);
-        fEstadoFisico.getStyleClass().add("form-input");
-
-        TextField fNumeroFactura = new TextField(existing != null && existing.getNumeroFactura() != null ? existing.getNumeroFactura() : "");
-        fNumeroFactura.setPromptText("Ej. B3623, F-MR-003343");
-        fNumeroFactura.getStyleClass().add("form-input");
-
-        gridPatrimonio.add(DialogUtil.fieldLabel("Proveedor"),     0, rp); gridPatrimonio.add(fProveedor,    1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabel("Marca"),         0, rp); gridPatrimonio.add(fMarca,        1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabel("Modelo"),        0, rp); gridPatrimonio.add(fModelo,       1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); gridPatrimonio.add(fNumeroSerie,  1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabel("Ubicación"),     0, rp); gridPatrimonio.add(fUbicacion,    1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Resguardante",
-            "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
-                                                                  0, rp); gridPatrimonio.add(fResguardante, 1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Estado físico",
-            "Condición actual del bien según el último levantamiento físico.\nBUENO = sin daños; REGULAR = desgaste menor; MALO = requiere reparación; DEFICIENTE = fuera de uso."),
-                                                                  0, rp); gridPatrimonio.add(fEstadoFisico, 1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("N° Factura",
-            "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
-                                                                  0, rp); gridPatrimonio.add(fNumeroFactura, 1, rp++);
-        Separator sepEtiq = new Separator();
-        gridPatrimonio.add(sepEtiq, 0, rp, 2, 1); rp++;
-        CheckBox fEtiquetado = new CheckBox("Bien etiquetado (tiene etiqueta física/QR)");
-        fEtiquetado.setSelected(existing != null && existing.isEtiquetado());
-        fEtiquetado.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("Etiquetado"), 0, rp);
-        gridPatrimonio.add(fEtiquetado, 1, rp++);
-        gridPatrimonio.add(new Separator(), 0, rp, 2, 1); rp++;
-        Label lblDepSection = new Label("Depreciación (línea recta)");
-        lblDepSection.getStyleClass().add("dialog-field-label");
-        gridPatrimonio.add(lblDepSection, 0, rp, 2, 1); rp++;
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Fecha adquisición",
-            "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
-                                                                  0, rp); gridPatrimonio.add(fFechaAdq,      1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
-            "Número de años en que el bien se deprecia completamente\n(SAT México: equipos de cómputo 3 años, vehículos 4, mobiliario 10)."),
-                                                                  0, rp); gridPatrimonio.add(fVidaUtil,      1, rp++);
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Valor residual",
-            "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
-                                                                  0, rp); gridPatrimonio.add(fValorResidual, 1, rp++);
-        // ── Mantenimiento ──
-        gridPatrimonio.add(new Separator(), 0, rp, 2, 1); rp++;
-        Label lblMantSection = new Label("Mantenimiento");
-        lblMantSection.getStyleClass().add("dialog-field-label");
-        gridPatrimonio.add(lblMantSection, 0, rp, 2, 1); rp++;
-        javafx.scene.control.DatePicker fProximaRevision = new javafx.scene.control.DatePicker(
-            existing != null ? existing.getProximaRevision() : null);
-        fProximaRevision.setPromptText("dd/MM/yyyy");
-        fProximaRevision.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Próxima revisión",
-            "Fecha programada para la próxima revisión o mantenimiento preventivo del bien."),
-            0, rp); gridPatrimonio.add(fProximaRevision, 1, rp++);
-        TextArea fNotasMant = new TextArea(existing != null && existing.getNotasMantenimiento() != null ? existing.getNotasMantenimiento() : "");
-        fNotasMant.setPromptText("Notas sobre el mantenimiento, historial, etc.");
-        fNotasMant.setWrapText(true);
-        fNotasMant.setPrefRowCount(3);
-        fNotasMant.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("Notas de mantenimiento"), 0, rp); gridPatrimonio.add(fNotasMant, 1, rp++);
-        // ── Campos de formatos oficiales ──
-        gridPatrimonio.add(new Separator(), 0, rp, 2, 1); rp++;
-        Label lblFormOficial = new Label("Datos para formatos oficiales");
-        lblFormOficial.getStyleClass().add("dialog-field-label");
-        gridPatrimonio.add(lblFormOficial, 0, rp, 2, 1); rp++;
-        TextField fClaveArm = new TextField(existing != null && existing.getClaveArmonizada() != null ? existing.getClaveArmonizada() : "");
-        fClaveArm.setPromptText("Ej. 1.2.4.4.541.3");
-        fClaveArm.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Clave Armonizada",
-            "Clave LGCG del bien (Ej. 1.2.4.4.541.3.003).\nAparece en ANEXO V.4 e Inventario de Parque Vehicular."),
-            0, rp); gridPatrimonio.add(fClaveArm, 1, rp++);
-        TextField fColor = new TextField(existing != null && existing.getColor() != null ? existing.getColor() : "");
-        fColor.setPromptText("Ej. ACERO INOXIDABLE PLATA, BLANCO, GRIS");
-        fColor.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); gridPatrimonio.add(fColor, 1, rp++);
-        TextField fTipoBien = new TextField(existing != null && existing.getTipoBien() != null ? existing.getTipoBien() : "");
-        fTipoBien.setPromptText("Ej. 3/2 ton, Camioneta, Oficina");
-        fTipoBien.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); gridPatrimonio.add(fTipoBien, 1, rp++);
-        TextField fNoMotor = new TextField(existing != null && existing.getNoMotor() != null ? existing.getNoMotor() : "");
-        fNoMotor.setPromptText("Número de motor (vehículos)");
-        fNoMotor.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("N° de Motor"), 0, rp); gridPatrimonio.add(fNoMotor, 1, rp++);
-        TextField fNoTarjeta = new TextField(existing != null && existing.getNoTarjetaCirculacion() != null ? existing.getNoTarjetaCirculacion() : "");
-        fNoTarjeta.setPromptText("Número de tarjeta de circulación");
-        fNoTarjeta.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("N° Tarjeta Circ."), 0, rp); gridPatrimonio.add(fNoTarjeta, 1, rp++);
-        TextField fNoPoliza = new TextField(existing != null && existing.getNoPolizaSeguro() != null ? existing.getNoPolizaSeguro() : "");
-        fNoPoliza.setPromptText("Número de póliza de seguro");
-        fNoPoliza.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("N° Póliza Seguro"), 0, rp); gridPatrimonio.add(fNoPoliza, 1, rp);
-
-        // ── TabPane ──
+        // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        Tab tabInfo       = new Tab("Información General", gridInfo);
+        Tab tabInfo       = new Tab("Información General", infoTab.grid);
         tabInfo.setGraphic(new FontIcon("mdi2i-information-outline"));
-        Tab tabStock      = new Tab("Stock y Precios", gridStock);
+        Tab tabStock      = new Tab("Stock y Precios", stockTab.grid);
         tabStock.setGraphic(new FontIcon("mdi2c-chart-bar"));
-        Tab tabPatrimonio = new Tab("Datos Patrimoniales", gridPatrimonio);
+        Tab tabPatrimonio = new Tab("Datos Patrimoniales", patrimonioTab.grid);
         tabPatrimonio.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
         tabs.getTabs().addAll(tabInfo, tabStock, tabPatrimonio);
         tabs.getStyleClass().addAll("dlg-tabpane", "dlg-stepper");
 
-        // ── Step indicator bar ─────────────────────────────────────────────
+        // ── Step indicator bar ───────────────────────────────────────────────
         String[] stepTitles = {"Datos básicos", "Stock y Precios", "Patrimonio"};
         VBox[] stepNodes = new VBox[3];
         Region[] connectors = new Region[2];
@@ -693,7 +102,7 @@ public final class ProductoDialogFactory {
         stepBar.getStyleClass().add("stepper-bar");
         for (int si = 0; si < 3; si++) {
             final int stepIdx = si;
-            StackPane circle = new StackPane();
+            javafx.scene.layout.StackPane circle = new javafx.scene.layout.StackPane();
             circle.getStyleClass().add("stepper-circle");
             Label numLbl = new Label(String.valueOf(si + 1));
             numLbl.getStyleClass().add("stepper-num");
@@ -742,57 +151,57 @@ public final class ProductoDialogFactory {
         btnGuardar.setMaxWidth(Double.MAX_VALUE);
         btnGuardar.setDisable(true);
         btnGuardar.setOnAction(e -> {
-            // Validate inline so we can keep the dialog open on errors without
-            // triggering setOnCloseRequest (which would show "Descartar cambios").
             boolean inv = false;
-            if (fNombre.getText().isBlank()) { fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
-            boolean codigoManual = !isNewProduct || (fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(fArea.getValue()));
-            if (codigoManual && fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
-            if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
-            if (fCat.getValue() == null) { fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
-            String pcText = fPrecioC.getText().trim(), pvText = fPrecioV.getText().trim();
-            try { var bd = new java.math.BigDecimal(pcText); if (bd.signum() < 0) throw new NumberFormatException(); fPrecioC.getStyleClass().remove("field-error"); }
-            catch (Exception ex) { fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
-            try { var bd = new java.math.BigDecimal(pvText); if (bd.signum() < 0) throw new NumberFormatException(); fPrecioV.getStyleClass().remove("field-error"); }
-            catch (Exception ex) { fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
-            if (fStockMin.getValue() > fStockMax.getValue()) { fStockMin.getStyleClass().add("field-error"); fStockMax.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
+            if (infoTab.fNombre.getText().isBlank()) { infoTab.fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            boolean codigoManual = !isNewProduct || (infoTab.fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
+            if (codigoManual && infoTab.fCodigo.getText().isBlank()) { infoTab.fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            if (infoTab.fArea.getValue() == null || infoTab.fArea.getValue().isBlank()) { infoTab.fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            if (infoTab.fCat.getValue() == null) { infoTab.fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
+            String pcText = stockTab.fPrecioC.getText().trim(), pvText = stockTab.fPrecioV.getText().trim();
+            try { var bd = new java.math.BigDecimal(pcText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioC.getStyleClass().remove("field-error"); }
+            catch (Exception ex) { stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
+            try { var bd = new java.math.BigDecimal(pvText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioV.getStyleClass().remove("field-error"); }
+            catch (Exception ex) { stockTab.fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
+            if (stockTab.fStockMin.getValue() > stockTab.fStockMax.getValue()) { stockTab.fStockMin.getStyleClass().add("field-error"); stockTab.fStockMax.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
             if (inv) {
                 lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos y no negativos (ej. 1500.00), y el Stock Mínimo no puede superar al Stock Máximo.");
                 lblFormError.setVisible(true); lblFormError.setManaged(true);
                 AnimationUtils.shake(lblFormError);
-                return; // keep dialog open — do NOT fire okBtn
+                return;
             }
             savingNow[0] = true;
             if (okBtn instanceof Button b) b.fire();
         });
 
         Runnable hideFormError = () -> { lblFormError.setVisible(false); lblFormError.setManaged(false); };
-        fNombre.textProperty().addListener((o, a, b) -> {
-            if (!b.isBlank()) { fNombre.getStyleClass().remove("field-error"); lblNombreHint.setVisible(false); lblNombreHint.setManaged(false); }
+        infoTab.fNombre.textProperty().addListener((o, a, b) -> {
+            if (!b.isBlank()) { infoTab.fNombre.getStyleClass().remove("field-error"); infoTab.lblNombreHint.setVisible(false); infoTab.lblNombreHint.setManaged(false); }
             hideFormError.run();
         });
-        fCodigo.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) fCodigo.getStyleClass().remove("field-error"); hideFormError.run(); });
-        fArea.valueProperty().addListener((o, a, b) -> {
-            if (b != null && !b.isBlank()) { fArea.getStyleClass().remove("field-error"); lblAreaHint.setVisible(false); lblAreaHint.setManaged(false); }
+        infoTab.fCodigo.textProperty().addListener((o, a, b) -> { if (!b.isBlank()) infoTab.fCodigo.getStyleClass().remove("field-error"); hideFormError.run(); });
+        infoTab.fArea.valueProperty().addListener((o, a, b) -> {
+            if (b != null && !b.isBlank()) { infoTab.fArea.getStyleClass().remove("field-error"); infoTab.lblAreaHint.setVisible(false); infoTab.lblAreaHint.setManaged(false); }
             hideFormError.run();
         });
-        fCat.valueProperty().addListener((o, a, b) -> {
-            if (b != null) { fCat.getStyleClass().remove("field-error"); lblCatHint.setVisible(false); lblCatHint.setManaged(false); }
+        infoTab.fCat.valueProperty().addListener((o, a, b) -> {
+            if (b != null) { infoTab.fCat.getStyleClass().remove("field-error"); infoTab.lblCatHint.setVisible(false); infoTab.lblCatHint.setManaged(false); }
             hideFormError.run();
         });
-        fPrecioC.textProperty().addListener((o, a, b) -> { fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
-        fPrecioV.textProperty().addListener((o, a, b) -> { fPrecioV.getStyleClass().remove("field-error"); hideFormError.run(); });
-        fStockMin.valueProperty().addListener((o, a, b) -> { fStockMin.getStyleClass().remove("field-error"); fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
-        fStockMax.valueProperty().addListener((o, a, b) -> { fStockMin.getStyleClass().remove("field-error"); fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
+        stockTab.fPrecioC.textProperty().addListener((o, a, b) -> { stockTab.fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
+        stockTab.fPrecioV.textProperty().addListener((o, a, b) -> { stockTab.fPrecioV.getStyleClass().remove("field-error"); hideFormError.run(); });
+        stockTab.fStockMin.valueProperty().addListener((o, a, b) -> { stockTab.fStockMin.getStyleClass().remove("field-error"); stockTab.fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
+        stockTab.fStockMax.valueProperty().addListener((o, a, b) -> { stockTab.fStockMin.getStyleClass().remove("field-error"); stockTab.fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
 
+        // ── checkOk ──────────────────────────────────────────────────────────
+        Button[] navNextRef = {null};
         if (okBtn != null) {
             Runnable checkOk = () -> {
-                boolean needsCodigo = !isNewProduct || (fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(fArea.getValue()));
-                boolean codigoError = needsCodigo && lblCodigoHint.getStyleClass().contains("field-hint-error");
-                boolean codigoBlank = needsCodigo && fCodigo.getText().isBlank();
-                boolean invalid = fNombre.getText().isBlank() || codigoBlank
-                    || fArea.getValue() == null || fArea.getValue().isBlank()
-                    || fCat.getValue() == null || codigoError;
+                boolean needsCodigo = !isNewProduct || (infoTab.fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
+                boolean codigoError = needsCodigo && infoTab.lblCodigoHint.getStyleClass().contains("field-hint-error");
+                boolean codigoBlank = needsCodigo && infoTab.fCodigo.getText().isBlank();
+                boolean invalid = infoTab.fNombre.getText().isBlank() || codigoBlank
+                    || infoTab.fArea.getValue() == null || infoTab.fArea.getValue().isBlank()
+                    || infoTab.fCat.getValue() == null || codigoError;
                 okBtn.setDisable(invalid);
                 btnGuardar.setDisable(invalid);
                 if (navNextRef[0] != null && tabs.getSelectionModel().getSelectedIndex() == 2)
@@ -800,25 +209,18 @@ public final class ProductoDialogFactory {
             };
             checkOk.run();
             checkOkRef[0] = checkOk;
-            fNombre.textProperty().addListener((o, a, b) -> checkOk.run());
-            fCodigo.textProperty().addListener((o, a, b) -> checkOk.run());
-            fArea.valueProperty().addListener((o, a, b) -> checkOk.run());
-            fCat.valueProperty().addListener((o, a, b) -> checkOk.run());
+            infoTab.fNombre.textProperty().addListener((o, a, b) -> checkOk.run());
+            infoTab.fCodigo.textProperty().addListener((o, a, b) -> checkOk.run());
+            infoTab.fArea.valueProperty().addListener((o, a, b)  -> checkOk.run());
+            infoTab.fCat.valueProperty().addListener((o, a, b)   -> checkOk.run());
         }
 
-        // The "Stock y Precios" tab (stock, precios, depreciación) is tall
-        // enough on its own that the dialog used to grow past the window's
-        // visible height with nothing bounding it — wrapping the tabs in a
-        // scroll pane caps the dialog at a sane height and scrolls the tab
-        // content instead, while the submit button stays pinned below it
-        // (not inside the scroll) so it's always reachable without scrolling
-        // all the way down.
         ScrollPane tabsScroll = new ScrollPane(tabs);
         tabsScroll.setFitToWidth(true);
         tabsScroll.setMaxHeight(420);
         tabsScroll.getStyleClass().add("dlg-tabs-scroll");
 
-        // ── Stepper navigation buttons ─────────────────────────────────────
+        // ── Stepper navigation buttons ───────────────────────────────────────
         Button btnPrev = new Button("Anterior");
         btnPrev.setGraphic(new FontIcon("mdi2c-chevron-left"));
         btnPrev.getStyleClass().add("btn-secondary");
@@ -865,44 +267,13 @@ public final class ProductoDialogFactory {
         dialog.getDialogPane().setContent(dialogContent);
         AnimationUtils.staggeredFadeInUp(java.util.List.of(dialogHeader, stepBar, tabs), 280, 70);
 
-        // ── Dirty tracking: warn before losing unsaved work ──
-        // Listeners attached AFTER all initial setValue() calls so pre-filled
-        // values on edit don't immediately mark the form dirty.
+        // ── Dirty tracking ───────────────────────────────────────────────────
         boolean[] dirty = {false};
         Runnable markDirty = () -> dirty[0] = true;
         markDirtyRef[0] = markDirty;
-        fNombre.textProperty().addListener((o, a, b) -> markDirty.run());
-        fCodigo.textProperty().addListener((o, a, b) -> markDirty.run());
-        fDesc.textProperty().addListener((o, a, b) -> markDirty.run());
-        fCat.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fArea.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fProveedor.textProperty().addListener((o, a, b) -> markDirty.run());
-        fMarca.textProperty().addListener((o, a, b) -> markDirty.run());
-        fModelo.textProperty().addListener((o, a, b) -> markDirty.run());
-        fNumeroSerie.textProperty().addListener((o, a, b) -> markDirty.run());
-        fUbicacion.textProperty().addListener((o, a, b) -> markDirty.run());
-        fResguardante.textProperty().addListener((o, a, b) -> markDirty.run());
-        fStock.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fStockMin.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fStockMax.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fUnidad.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fPrecioC.textProperty().addListener((o, a, b) -> markDirty.run());
-        fPrecioV.textProperty().addListener((o, a, b) -> markDirty.run());
-        fVenc.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fFechaAdq.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fVidaUtil.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fValorResidual.textProperty().addListener((o, a, b) -> markDirty.run());
-        fEtiquetado.selectedProperty().addListener((o, a, b) -> markDirty.run());
-        fProximaRevision.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fNotasMant.textProperty().addListener((o, a, b) -> markDirty.run());
-        fEstadoFisico.valueProperty().addListener((o, a, b) -> markDirty.run());
-        fNumeroFactura.textProperty().addListener((o, a, b) -> markDirty.run());
-        fClaveArm.textProperty().addListener((o, a, b) -> markDirty.run());
-        fColor.textProperty().addListener((o, a, b) -> markDirty.run());
-        fTipoBien.textProperty().addListener((o, a, b) -> markDirty.run());
-        fNoMotor.textProperty().addListener((o, a, b) -> markDirty.run());
-        fNoTarjeta.textProperty().addListener((o, a, b) -> markDirty.run());
-        fNoPoliza.textProperty().addListener((o, a, b) -> markDirty.run());
+        infoTab.wireDirty(markDirty);
+        stockTab.wireDirty(markDirty);
+        patrimonioTab.wireDirty(markDirty);
 
         javafx.scene.Node cancelBtn = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         if (cancelBtn != null) {
@@ -918,9 +289,6 @@ public final class ProductoDialogFactory {
                 e.consume();
         });
 
-        // Enter in any non-TextArea, non-ComboBox field confirms the dialog —
-        // mirrors what clicking "Guardar" does, so keyboard-only users don't
-        // have to reach for the mouse after filling the last tab field.
         dialogContent.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() != javafx.scene.input.KeyCode.ENTER || e.isAltDown()) return;
             javafx.scene.Node t = (javafx.scene.Node) e.getTarget();
@@ -930,50 +298,47 @@ public final class ProductoDialogFactory {
             }
             if (okBtn instanceof Button b && !b.isDisabled()) { b.fire(); e.consume(); }
         });
-        Platform.runLater(() -> fNombre.requestFocus());
+        Platform.runLater(() -> infoTab.fNombre.requestFocus());
+
+        // ── Result converter ─────────────────────────────────────────────────
         dialog.setResultConverter(btn -> {
             if (btn != ButtonType.OK) return null;
             boolean invalid = false;
             Node firstErrField = null;
-            if (fNombre.getText().isBlank()) { fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fNombre; invalid = true; }
-            else fNombre.getStyleClass().remove("field-error");
-            boolean codigoManual = !isNewProduct || (fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(fArea.getValue()));
-            if (codigoManual && fCodigo.getText().isBlank()) { fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fCodigo; invalid = true; }
-            else fCodigo.getStyleClass().remove("field-error");
-            if (fArea.getValue() == null || fArea.getValue().isBlank()) { fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fArea; invalid = true; }
-            else fArea.getStyleClass().remove("field-error");
-            if (fCat.getValue() == null) { fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = fCat; invalid = true; }
-            else fCat.getStyleClass().remove("field-error");
+            if (infoTab.fNombre.getText().isBlank()) { infoTab.fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fNombre; invalid = true; }
+            else infoTab.fNombre.getStyleClass().remove("field-error");
+            boolean codigoManual = !isNewProduct || (infoTab.fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
+            if (codigoManual && infoTab.fCodigo.getText().isBlank()) { infoTab.fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fCodigo; invalid = true; }
+            else infoTab.fCodigo.getStyleClass().remove("field-error");
+            if (infoTab.fArea.getValue() == null || infoTab.fArea.getValue().isBlank()) { infoTab.fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fArea; invalid = true; }
+            else infoTab.fArea.getStyleClass().remove("field-error");
+            if (infoTab.fCat.getValue() == null) { infoTab.fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fCat; invalid = true; }
+            else infoTab.fCat.getStyleClass().remove("field-error");
 
             BigDecimal precioCompra = null, precioVenta = null;
             try {
-                precioCompra = new BigDecimal(fPrecioC.getText().trim());
+                precioCompra = new BigDecimal(stockTab.fPrecioC.getText().trim());
                 if (precioCompra.signum() < 0) throw new NumberFormatException("negativo");
-                fPrecioC.getStyleClass().remove("field-error");
+                stockTab.fPrecioC.getStyleClass().remove("field-error");
             } catch (Exception ex) {
-                fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
+                stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
             }
             try {
-                precioVenta = new BigDecimal(fPrecioV.getText().trim());
+                precioVenta = new BigDecimal(stockTab.fPrecioV.getText().trim());
                 if (precioVenta.signum() < 0) throw new NumberFormatException("negativo");
-                fPrecioV.getStyleClass().remove("field-error");
+                stockTab.fPrecioV.getStyleClass().remove("field-error");
             } catch (Exception ex) {
-                fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
+                stockTab.fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
             }
 
-            // Cross-field: nothing else validates stockMinimo/stockMaximo
-            // against each other, so without this a saved product could
-            // have a minimum above its maximum — silently degrading the
-            // BAJO_STOCK alert logic (ProductoUtils.computeEstado) that
-            // depends on stockMinimo being a meaningful floor.
-            if (fStockMin.getValue() > fStockMax.getValue()) {
-                fStockMin.getStyleClass().add("field-error");
-                fStockMax.getStyleClass().add("field-error");
+            if (stockTab.fStockMin.getValue() > stockTab.fStockMax.getValue()) {
+                stockTab.fStockMin.getStyleClass().add("field-error");
+                stockTab.fStockMax.getStyleClass().add("field-error");
                 tabs.getSelectionModel().select(1);
                 invalid = true;
             } else {
-                fStockMin.getStyleClass().remove("field-error");
-                fStockMax.getStyleClass().remove("field-error");
+                stockTab.fStockMin.getStyleClass().remove("field-error");
+                stockTab.fStockMax.getStyleClass().remove("field-error");
             }
 
             if (invalid) {
@@ -985,69 +350,66 @@ public final class ProductoDialogFactory {
                 return null;
             }
 
-            DialogUtil.commitSpinner(fStock);
-            DialogUtil.commitSpinner(fStockMin);
-            DialogUtil.commitSpinner(fStockMax);
+            DialogUtil.commitSpinner(stockTab.fStock);
+            DialogUtil.commitSpinner(stockTab.fStockMin);
+            DialogUtil.commitSpinner(stockTab.fStockMax);
 
             Producto p = isNewProduct ? new Producto() : existing;
-            // For new products p.getId() is null (service assigns the real UUID on save).
-            // Photos need a unique name now; use a stable placeholder that travels with
-            // the product so local and storage paths are consistent within this session.
             String photoId = p.getId() != null ? p.getId() : UUID.randomUUID().toString();
-            p.setNombre(fNombre.getText().trim());
-            p.setCodigo(fCodigo.getText().trim());
-            p.setDescripcion(fDesc.getText().trim());
-            if (fCat.getValue() != null) {
-                p.setCategoriaId(fCat.getValue().getId());
-                p.setCategoriaNombre(fCat.getValue().getNombre());
-                p.setCategoriaColor(fCat.getValue().getColor());
+            p.setNombre(infoTab.fNombre.getText().trim());
+            p.setCodigo(infoTab.fCodigo.getText().trim());
+            p.setDescripcion(infoTab.fDesc.getText().trim());
+            if (infoTab.fCat.getValue() != null) {
+                p.setCategoriaId(infoTab.fCat.getValue().getId());
+                p.setCategoriaNombre(infoTab.fCat.getValue().getNombre());
+                p.setCategoriaColor(infoTab.fCat.getValue().getColor());
             }
             p.setPrecioCompra(precioCompra);
             p.setPrecioVenta(precioVenta);
-            p.setStockActual(fStock.getValue());
-            p.setStockMinimo(fStockMin.getValue());
-            p.setStockMaximo(fStockMax.getValue());
-            p.setUnidad(fUnidad.getValue());
-            p.setProveedor(fProveedor.getText().trim());
-            p.setMarca(fMarca.getText().trim().isEmpty() ? null : fMarca.getText().trim());
-            p.setModelo(fModelo.getText().trim().isEmpty() ? null : fModelo.getText().trim());
-            p.setNumeroSerie(fNumeroSerie.getText().trim().isEmpty() ? null : fNumeroSerie.getText().trim());
-            p.setUbicacion(fUbicacion.getText().trim());
-            p.setResguardante(fResguardante.getText().trim());
-            p.setFechaVencimiento(fVenc.getValue());
-            p.setFechaAdquisicion(fFechaAdq.getValue());
-            p.setVidaUtilAnios(fVidaUtil.getValue());
+            p.setStockActual(stockTab.fStock.getValue());
+            p.setStockMinimo(stockTab.fStockMin.getValue());
+            p.setStockMaximo(stockTab.fStockMax.getValue());
+            p.setUnidad(stockTab.fUnidad.getValue());
+            p.setProveedor(patrimonioTab.fProveedor.getText().trim());
+            p.setMarca(patrimonioTab.fMarca.getText().trim().isEmpty() ? null : patrimonioTab.fMarca.getText().trim());
+            p.setModelo(patrimonioTab.fModelo.getText().trim().isEmpty() ? null : patrimonioTab.fModelo.getText().trim());
+            p.setNumeroSerie(patrimonioTab.fNumeroSerie.getText().trim().isEmpty() ? null : patrimonioTab.fNumeroSerie.getText().trim());
+            p.setUbicacion(patrimonioTab.fUbicacion.getText().trim());
+            p.setResguardante(patrimonioTab.fResguardante.getText().trim());
+            p.setFechaVencimiento(stockTab.fVenc.getValue());
+            p.setFechaAdquisicion(patrimonioTab.fFechaAdq.getValue());
+            p.setVidaUtilAnios(patrimonioTab.fVidaUtil.getValue());
             try {
-                String vrText = fValorResidual.getText().trim().replace(",", ".");
+                String vrText = patrimonioTab.fValorResidual.getText().trim().replace(",", ".");
                 p.setValorResidual(vrText.isEmpty() ? BigDecimal.ZERO : new BigDecimal(vrText));
             } catch (NumberFormatException ignored) {
                 p.setValorResidual(BigDecimal.ZERO);
             }
-            p.setArea(fArea.getValue());
-            p.setEtiquetado(fEtiquetado.isSelected());
-            p.setProximaRevision(fProximaRevision.getValue());
-            String notasMantTxt = fNotasMant.getText().trim();
+            p.setArea(infoTab.fArea.getValue());
+            p.setEtiquetado(patrimonioTab.fEtiquetado.isSelected());
+            p.setProximaRevision(patrimonioTab.fProximaRevision.getValue());
+            String notasMantTxt = patrimonioTab.fNotasMant.getText().trim();
             p.setNotasMantenimiento(notasMantTxt.isEmpty() ? null : notasMantTxt);
-            String estadoFisicoVal = fEstadoFisico.getValue();
+            String estadoFisicoVal = patrimonioTab.fEstadoFisico.getValue();
             p.setEstadoFisico(estadoFisicoVal == null || estadoFisicoVal.isBlank() ? null : estadoFisicoVal);
-            String numFactTxt = fNumeroFactura.getText().trim();
+            String numFactTxt = patrimonioTab.fNumeroFactura.getText().trim();
             p.setNumeroFactura(numFactTxt.isEmpty() ? null : numFactTxt);
-            p.setClaveArmonizada(fClaveArm.getText().trim().isEmpty() ? null : fClaveArm.getText().trim());
-            p.setColor(fColor.getText().trim().isEmpty() ? null : fColor.getText().trim());
-            p.setTipoBien(fTipoBien.getText().trim().isEmpty() ? null : fTipoBien.getText().trim());
-            p.setNoMotor(fNoMotor.getText().trim().isEmpty() ? null : fNoMotor.getText().trim());
-            p.setNoTarjetaCirculacion(fNoTarjeta.getText().trim().isEmpty() ? null : fNoTarjeta.getText().trim());
-            p.setNoPolizaSeguro(fNoPoliza.getText().trim().isEmpty() ? null : fNoPoliza.getText().trim());
-            dirty[0] = false; // clear so setOnCloseRequest doesn't prompt after a successful save
-            // Procesar y guardar fotos
-            List<String> savedFotos = new java.util.ArrayList<>();
+            p.setClaveArmonizada(patrimonioTab.fClaveArm.getText().trim().isEmpty() ? null : patrimonioTab.fClaveArm.getText().trim());
+            p.setColor(patrimonioTab.fColor.getText().trim().isEmpty() ? null : patrimonioTab.fColor.getText().trim());
+            p.setTipoBien(patrimonioTab.fTipoBien.getText().trim().isEmpty() ? null : patrimonioTab.fTipoBien.getText().trim());
+            p.setNoMotor(patrimonioTab.fNoMotor.getText().trim().isEmpty() ? null : patrimonioTab.fNoMotor.getText().trim());
+            p.setNoTarjetaCirculacion(patrimonioTab.fNoTarjeta.getText().trim().isEmpty() ? null : patrimonioTab.fNoTarjeta.getText().trim());
+            p.setNoPolizaSeguro(patrimonioTab.fNoPoliza.getText().trim().isEmpty() ? null : patrimonioTab.fNoPoliza.getText().trim());
+            dirty[0] = false;
+
+            // ── Process and save photos ──────────────────────────────────────
+            java.util.List<String> savedFotos = new java.util.ArrayList<>();
             Path imgDir = imgDir();
             boolean useStorage = com.sibim.util.SupabaseStorage.isAvailable();
             try {
                 if (!useStorage) Files.createDirectories(imgDir);
-                for (String rawUrl : fotosHolder) {
+                for (String rawUrl : infoTab.fotosHolder) {
                     try {
-                        // Ya es URL remota — conservar sin resubir
                         if (com.sibim.util.SupabaseStorage.isRemoteUrl(rawUrl)) {
                             savedFotos.add(rawUrl);
                             continue;
@@ -1061,7 +423,6 @@ public final class ProductoDialogFactory {
                                 String uploadedUrl = com.sibim.util.SupabaseStorage.upload(tmp, remoteName);
                                 savedFotos.add(uploadedUrl);
                             } catch (Exception uploadEx) {
-                                // Fallback: save locally so the photo is never lost
                                 log.warn("Upload a Storage falló para '{}', guardando local: {}", p.getNombre(), uploadEx.getMessage());
                                 Files.createDirectories(imgDir);
                                 Path dest = imgDir.resolve(remoteName);
@@ -1085,8 +446,9 @@ public final class ProductoDialogFactory {
             }
             p.setFotosUrls(savedFotos);
             p.setFotoUrl(savedFotos.isEmpty() ? null : savedFotos.get(0));
-            // Factura
-            String factUrlFinal = facturaHolder[0];
+
+            // ── Process factura ──────────────────────────────────────────────
+            String factUrlFinal = infoTab.facturaHolder[0];
             if (factUrlFinal != null && !factUrlFinal.isBlank()) {
                 if (!com.sibim.util.SupabaseStorage.isRemoteUrl(factUrlFinal)) {
                     try {
@@ -1126,7 +488,9 @@ public final class ProductoDialogFactory {
         return ImageUtils.storageDir();
     }
 
-    private static double diceSimilarity(String a, String b) {
+    /** Dice-coefficient bigram similarity. Package-private so
+     *  {@link ProductoTabInfoFields} can use it for the name-duplicate warning. */
+    static double diceSimilarity(String a, String b) {
         if (a.equals(b)) return 1.0;
         if (a.length() < 2 || b.length() < 2) return 0.0;
         java.util.Set<String> bigrams = new java.util.HashSet<>();

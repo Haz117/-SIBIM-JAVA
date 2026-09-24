@@ -111,10 +111,14 @@ public final class ConteoFisicoDialog {
                 String nota = "";
                 if (parts.length > 2 && !parts[2].isBlank()) {
                     try { nota = new String(Base64.getDecoder().decode(parts[2]), StandardCharsets.UTF_8); }
-                    catch (Exception ignored) {}
+                    catch (Exception ignored) {
+                        log.debug("Could not decode Base64 nota for conteo draft entry", ignored);
+                    }
                 }
                 map.put(id, new DraftValues(count, estado, nota));
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+                log.debug("Malformed conteo draft entry '{}', skipping", id, ignored);
+            }
         }
         return map;
     }

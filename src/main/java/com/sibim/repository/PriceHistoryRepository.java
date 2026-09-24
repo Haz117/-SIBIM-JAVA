@@ -39,7 +39,7 @@ public class PriceHistoryRepository {
             ps.setString(6, usuarioNombre);
             ps.executeUpdate();
         } catch (Exception e) {
-            log.warn("No se pudo guardar historial de precio para producto {}: {}", productoId, e.getMessage());
+            log.warn("No se pudo guardar historial de precio para producto {}", productoId, e);
         }
     }
 
@@ -67,7 +67,7 @@ public class PriceHistoryRepository {
                 }
             }
         } catch (Exception e) {
-            log.warn("No se pudo cargar historial de precios para producto {}: {}", productoId, e.getMessage());
+            log.warn("No se pudo cargar historial de precios para producto {}", productoId, e);
         }
         return list;
     }

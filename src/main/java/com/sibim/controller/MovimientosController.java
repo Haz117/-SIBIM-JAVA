@@ -216,9 +216,13 @@ public class MovimientosController {
         String savedDesde = STICKY.get("desde", "");
         String savedHasta = STICKY.get("hasta", "");
         if (!savedDesde.isBlank() && desdeFilter != null)
-            try { desdeFilter.setValue(java.time.LocalDate.parse(savedDesde)); } catch (Exception ignored) {}
+            try { desdeFilter.setValue(java.time.LocalDate.parse(savedDesde)); } catch (Exception ignored) {
+                log.debug("Could not restore sticky 'desde' date filter value '{}'", savedDesde, ignored);
+            }
         if (!savedHasta.isBlank() && hastaFilter != null)
-            try { hastaFilter.setValue(java.time.LocalDate.parse(savedHasta)); } catch (Exception ignored) {}
+            try { hastaFilter.setValue(java.time.LocalDate.parse(savedHasta)); } catch (Exception ignored) {
+                log.debug("Could not restore sticky 'hasta' date filter value '{}'", savedHasta, ignored);
+            }
         String savedCategoria = STICKY.get("categoria", "");
         if (!savedCategoria.isBlank() && categoriaFilter != null) categoriaFilter.setValue(savedCategoria);
         String savedTipo = STICKY.get("tipo", "Todos");
@@ -575,7 +579,9 @@ public class MovimientosController {
             try {
                 int page = Integer.parseInt(tf.getText().trim()) - 1;
                 if (page >= 0 && page < totalPages) { currentPage = page; loadPage(); }
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+                log.debug("Non-numeric page input '{}' in jump-to-page dialog", txt.trim(), ignored);
+            }
         });
     }
 

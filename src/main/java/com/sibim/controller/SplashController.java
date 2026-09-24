@@ -347,7 +347,9 @@ public class SplashController {
                         lblOrg.setText(org + "  ·  " + mun);
                         if (!logoPath.isBlank()) applyLogoIfExists(logoPath);
                     });
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                    log.debug("Could not load org name/logo from ConfiguracionRepository during startup", ignored);
+                }
             }
         } catch (Exception e) {
             log.warn("No se pudo conectar a la base de datos: {}", e.getMessage());
@@ -473,7 +475,9 @@ public class SplashController {
             if (url != null && "file".equals(url.getProtocol())) {
                 return "filesystem:" + Paths.get(url.toURI()).toString();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            log.debug("Could not resolve migrations location via URI, falling back to classpath", ignored);
+        }
         return "classpath:db/migration";
     }
 

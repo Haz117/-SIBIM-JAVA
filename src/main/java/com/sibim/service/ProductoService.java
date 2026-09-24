@@ -166,7 +166,9 @@ public class ProductoService {
             String codigo = p.getCodigo();
             if (codigo == null || !codigo.startsWith(prefijo + "/")) continue;
             try { usados.add(Integer.parseInt(codigo.substring(prefijo.length() + 1))); }
-            catch (NumberFormatException ignored) {}
+            catch (NumberFormatException ignored) {
+                log.debug("Non-numeric suffix in código '{}' for área '{}', skipping", codigo, area);
+            }
         }
         int numero = 1;
         while (usados.contains(numero)) numero++;

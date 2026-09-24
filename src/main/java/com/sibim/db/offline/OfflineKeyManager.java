@@ -1,5 +1,7 @@
 package com.sibim.db.offline;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.io.BufferedReader;
@@ -9,6 +11,8 @@ import java.security.spec.KeySpec;
 import java.util.HexFormat;
 
 class OfflineKeyManager {
+
+    private static final Logger log = LoggerFactory.getLogger(OfflineKeyManager.class);
 
     // Fixed salt — changing this invalidates all existing encrypted DBs
     private static final byte[] SALT =
@@ -75,7 +79,9 @@ class OfflineKeyManager {
                     .orElse(null);
                 if (guid != null) return guid;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            log.debug("Could not read MachineGuid from registry, falling back to hostname", ignored);
+        }
         return machineId();
     }
 

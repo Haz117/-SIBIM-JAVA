@@ -82,7 +82,9 @@ public final class TrayService {
         java.awt.EventQueue.invokeLater(() -> {
             if (trayIcon != null && SystemTray.isSupported()) {
                 try { SystemTray.getSystemTray().remove(trayIcon); }
-                catch (Exception ignored) {}
+                catch (Exception ignored) {
+                    log.debug("Could not remove tray icon from system tray", ignored);
+                }
                 trayIcon = null;
             }
         });

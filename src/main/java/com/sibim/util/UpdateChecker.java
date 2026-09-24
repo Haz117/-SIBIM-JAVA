@@ -102,7 +102,9 @@ public class UpdateChecker {
         String[] parts = v.split("[.\\-]", 4);
         int[] result = new int[3];
         for (int i = 0; i < 3 && i < parts.length; i++) {
-            try { result[i] = Integer.parseInt(parts[i]); } catch (NumberFormatException ignored) {}
+            try { result[i] = Integer.parseInt(parts[i]); } catch (NumberFormatException ignored) {
+                log.debug("Non-numeric semver component '{}' in version string '{}'", parts[i], v, ignored);
+            }
         }
         return result;
     }

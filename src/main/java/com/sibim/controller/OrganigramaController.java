@@ -124,7 +124,9 @@ public class OrganigramaController {
                         .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado())
                             && r.getResguardanteArea() != null && !r.getResguardanteArea().isBlank())
                         .forEach(r -> rsgPorArea.computeIfAbsent(r.getResguardanteArea(), k -> new java.util.ArrayList<>()).add(r));
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                    log.debug("Could not load resguardos for organigrama", ignored);
+                }
                 return new Object[]{ porArea, rsgPorArea };
             },
             result -> {

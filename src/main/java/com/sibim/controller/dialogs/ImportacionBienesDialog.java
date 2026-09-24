@@ -20,6 +20,8 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -31,6 +33,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ImportacionBienesDialog {
+
+    private static final Logger log = LoggerFactory.getLogger(ImportacionBienesDialog.class);
 
     private static final String[] TEMPLATE_HEADERS = {
         "Nombre", "Codigo", "Categoria", "Area", "Resguardante",
@@ -792,7 +796,9 @@ public class ImportacionBienesDialog {
     static LocalDate parseDateSafe(String s) {
         for (DateTimeFormatter fmt : DATE_FORMATS) {
             try { return LocalDate.parse(s.trim(), fmt); }
-            catch (DateTimeParseException ignored) {}
+            catch (DateTimeParseException ignored) {
+                log.debug("Date '{}' did not match format {}", s.trim(), fmt, ignored);
+            }
         }
         return null;
     }

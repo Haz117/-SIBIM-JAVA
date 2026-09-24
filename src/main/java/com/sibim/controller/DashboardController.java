@@ -581,7 +581,9 @@ public class DashboardController implements Refreshable {
             checkMap.forEach((name, cb) -> { if (cb.isSelected()) selected.add(name); });
             String value = String.join(",", selected);
             com.sibim.util.AppExecutor.submit(() -> {
-                try { configRepo.set(CARDS_CONFIG_KEY, value); } catch (Exception ignored) {}
+                try { configRepo.set(CARDS_CONFIG_KEY, value); } catch (Exception ignored) {
+                    log.debug("Could not persist dashboard card visibility config", ignored);
+                }
             });
             applyCardVisibilitySet(selected);
         });
