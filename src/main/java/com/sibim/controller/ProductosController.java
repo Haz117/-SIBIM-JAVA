@@ -23,21 +23,14 @@ import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
-import org.kordamp.ikonli.javafx.FontIcon;
 import com.sibim.util.NotificacionUtil;
-import com.sibim.util.PaginationUtils;
 import com.sibim.util.SearchUtils;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
-import javafx.util.Duration;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.layout.FlowPane;
@@ -171,7 +164,8 @@ public class ProductosController {
     private Label emptyStateHint;
     private Button btnEmptyLimpiar;
     private VBox emptyStatePlaceholder;
-    private javafx.animation.Timeline skeletonPulse;
+    private ProductosDataLoader dataLoader;
+    private ProductosTableManager tableManager;
 
     @FXML
     public void initialize() {
@@ -181,6 +175,8 @@ public class ProductosController {
         if (btnToggleResumen != null && resumenBox != null)
             DialogUtil.makeCollapsible("bienes.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
+        bulkBarManager = new ProductosBulkBar(bulkBar, lblBulkCount, btnBulkArea,
+            btnBulkResguardante, btnBulkMarcarEtiquetado, btnComparar, () -> canEdit);
         setupTable();
         setupFilters();
         setupStatusChips();
@@ -192,8 +188,6 @@ public class ProductosController {
             searchField, categoriaFilter, areaFilter, resguardanteFilter,
             this::applyFilters, this::onCardSinEtiquetar
         );
-        bulkBarManager = new ProductosBulkBar(bulkBar, lblBulkCount, btnBulkArea,
-            btnBulkResguardante, btnBulkMarcarEtiquetado, btnComparar, () -> canEdit);
         presetPanel = new FilterPresetPanel(presetsBar, presetsHeader, categoriaFilter,
             searchField, areaFilter, resguardanteFilter, estadoChipGroup, this::applyFilters);
         presetPanel.load();
@@ -265,137 +259,26 @@ public class ProductosController {
     // ── Table setup ──────────────────────────────────────────────────────────
 
     private void setupTable() {
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        ProductosColumnSetup.configureFoto(colFoto, table, THUMBNAIL_CACHE, log);
-        ProductosColumnSetup.configureNombre(colNombre);
-        ProductosColumnSetup.configureCodigo(colCodigo);
-        ProductosColumnSetup.configureCategoria(colCategoria, CAT_ICON);
-        ProductosColumnSetup.configureArea(colArea);
-        ProductosColumnSetup.configureStockYValor(colStock, colValor);
-        ProductosColumnSetup.configureStockMinMax(colStockMin, colStockMax, this::saveStockThresholds);
-        ProductosColumnSetup.configureEstado(colEstado);
-        ProductosColumnSetup.configureRowFactory(table, () -> pendingHighlightId);
-        setupTableListeners();
-        table.setContextMenu(ProductosContextMenu.build(
-            table, canEdit, reporteService, movimientoService, log,
-            this::showProductDetail, this::showMovimientoTimeline, this::exportarEtiquetasQr,
-            this::exportarEtiquetaFisica, this::onEdit, this::onDelete));
-        setupEmptyState();
-        setupPagination();
-        // Clic derecho en encabezado → toggle columnas secundarias
-        DialogUtil.setupColumnVisibilityMenu("bienes.cols", table,
-            List.of(colFoto, colNombre, colStock, colEstado));
-    }
-
-    private void setupTableListeners() {
-        // Ctrl/Shift-click to pick several rows for "Exportar seleccionados" —
-        // Editar/Dar de baja stay single-item actions (see the listener below).
-        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-
-        // Selection → enable/disable action buttons
-        table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<Producto>) c -> {
-            int n = table.getSelectionModel().getSelectedItems().size();
-            if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(n != 1);
-            if (btnQr        != null) btnQr.setDisable(n != 1);
-            if (btnEditar   != null && canEdit) btnEditar.setDisable(n != 1);
-            if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
-            if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
-            updateSelectionLabel(lblSeleccionados, n);
-            bulkBarManager.update(n);
-        });
-        if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(true);
-        if (btnQr        != null) btnQr.setDisable(true);
-        if (btnEditar   != null && canEdit) btnEditar.setDisable(true);
-        if (btnEliminar != null && canEdit) btnEliminar.setDisable(true);
-        if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(true);
-
-        // JavaFX doesn't show tooltips on disabled nodes by default —
-        // Tooltip.install() uses a separate mechanism that works regardless.
-        if (btnEditar        != null && canEdit) Tooltip.install(btnEditar,        new Tooltip("Selecciona un bien para editarlo"));
-        if (btnEliminar      != null && canEdit) Tooltip.install(btnEliminar,      new Tooltip("Selecciona un bien para darlo de baja"));
-        if (btnMovimiento    != null && canEdit) Tooltip.install(btnMovimiento,    new Tooltip("Selecciona un bien para registrar un movimiento"));
-        if (btnExportarSeleccion != null)        Tooltip.install(btnExportarSeleccion, new Tooltip("Selecciona uno o más bienes para exportarlos"));
-
-        // Delete key on table — only when exactly one row is selected, same
-        // as the "Dar de baja" button (a formal baja needs a motivo per bien,
-        // it doesn't make sense as a bulk action from a bare Delete keypress).
-        table.setOnKeyPressed(ev -> {
-            if (ev.getCode() == javafx.scene.input.KeyCode.DELETE
-                    && canEdit && table.getSelectionModel().getSelectedItems().size() == 1) {
-                onDelete(); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
-                table.getSelectionModel().clearSelection(); ev.consume();
-            }
-        });
-
-        // Double-click: edit if allowed, otherwise show detail
-        table.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null) {
-                if (canEdit) onEdit();
-                else showProductDetail(table.getSelectionModel().getSelectedItem());
-            }
-        });
-    }
-
-    private void setupEmptyState() {
-        // Smart empty state (set programmatically so we can update the message)
-        FontIcon emptyIcon = new FontIcon("mdi2p-package-variant");
-        emptyIcon.setIconSize(52);
-        emptyIcon.getStyleClass().add("empty-icon-lg");
-        emptyStateMsg = new Label("No hay bienes registrados en el sistema");
-        emptyStateMsg.getStyleClass().add("empty-state-msg");
-        btnEmptyLimpiar = new Button("Limpiar filtros");
-        btnEmptyLimpiar.getStyleClass().add("btn-secondary");
-        btnEmptyLimpiar.setOnAction(e -> onClearFilters());
-        btnEmptyLimpiar.setVisible(false); btnEmptyLimpiar.setManaged(false);
-        emptyStateHint = new Label(canEdit ? "Presiona Ctrl+N para agregar el primer bien" : "");
-        emptyStateHint.getStyleClass().add("empty-state-hint");
-        VBox emptyState = new VBox(12, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
-        emptyState.setAlignment(Pos.CENTER);
-        emptyState.getStyleClass().add("empty-state-pane");
-        emptyState.setMaxWidth(380);
-        emptyState.setPadding(new Insets(32, 24, 32, 24));
-        // Spring-in when placeholder becomes visible; reset transforms when hidden
-        emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
-            if (isVisible && !wasVisible) AnimationUtils.springIn(emptyState);
-            else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
-        });
-        emptyStatePlaceholder = emptyState;
-        table.setPlaceholder(emptyState);
-    }
-
-    private VBox buildSkeletonPlaceholder() {
-        VBox box = new VBox(4);
-        box.setPadding(new Insets(8));
-        for (int i = 0; i < 7; i++) {
-            Label bar = new Label();
-            bar.getStyleClass().add("skeleton");
-            bar.setPrefHeight(44);
-            bar.setMaxWidth(Double.MAX_VALUE);
-            box.getChildren().add(bar);
-        }
-        skeletonPulse = new Timeline(
-            new KeyFrame(Duration.millis(0),   new KeyValue(box.opacityProperty(), 0.7)),
-            new KeyFrame(Duration.millis(800),  new KeyValue(box.opacityProperty(), 0.4)),
-            new KeyFrame(Duration.millis(1600), new KeyValue(box.opacityProperty(), 0.7))
-        );
-        skeletonPulse.setCycleCount(Timeline.INDEFINITE);
-        skeletonPulse.play();
-        return box;
-    }
-
-    private void setupPagination() {
-        pageSizeBox.setItems(FXCollections.observableArrayList(25, 50, 100, 250, 500, Integer.MAX_VALUE));
-        pageSizeBox.setConverter(new javafx.util.StringConverter<>() {
-            public String toString(Integer n)   { return n == null ? "" : n == Integer.MAX_VALUE ? "Todos" : String.valueOf(n); }
-            public Integer fromString(String s) { return "Todos".equals(s) ? Integer.MAX_VALUE : Integer.parseInt(s); }
-        });
-        pageSizeBox.setValue(25);
-        pageSizeBox.setOnAction(e -> {
-            pageSize = pageSizeBox.getValue();
-            currentPage = 0;
-            loadPage();
-        });
+        tableManager = new ProductosTableManager(
+            table, colFoto, colNombre, colCodigo, colCategoria, colArea,
+            colStock, colStockMin, colStockMax, colValor, colEstado,
+            pageSizeBox, lblTotal, lblPage, btnPrev, btnNext, lblSeleccionados,
+            btnMovimiento, btnQr, btnEditar, btnEliminar, btnExportarSeleccion,
+            THUMBNAIL_CACHE, CAT_ICON, log, canEdit, () -> canEdit,
+            this::onEdit, this::onDelete,
+            this::showProductDetail, this::showMovimientoTimeline,
+            this::exportarEtiquetasQr, this::exportarEtiquetaFisica,
+            this::saveStockThresholds,
+            () -> pendingHighlightId, bulkBarManager,
+            () -> { pageSize = pageSizeBox.getValue(); currentPage = 0; loadPage(); },
+            reporteService, movimientoService);
+        tableManager.setOnClearFilters(this::onClearFilters);
+        tableManager.setup();
+        // expose empty-state refs set up inside TableManager
+        emptyStateMsg         = tableManager.emptyStateMsg;
+        emptyStateHint        = tableManager.emptyStateHint;
+        btnEmptyLimpiar       = tableManager.btnEmptyLimpiar;
+        emptyStatePlaceholder = tableManager.emptyStatePlaceholder;
     }
 
     // ── Filters & chips ──────────────────────────────────────────────────────
@@ -475,52 +358,30 @@ public class ProductosController {
     // ── Data loading ─────────────────────────────────────────────────────────
 
     private void loadData() {
-        if (!loading.compareAndSet(false, true)) {
-            // Ya hay una carga en curso — sólo marcamos refreshing para que
-            // la tarea activa muestre el toast "Lista actualizada" al terminar.
-            refreshing = true;
-            return;
-        }
-        table.setPlaceholder(buildSkeletonPlaceholder());
+        if (!loading.compareAndSet(false, true)) { refreshing = true; return; }
+        if (dataLoader == null) dataLoader = new ProductosDataLoader(productoService);
+        table.setPlaceholder(tableManager.buildSkeletonPlaceholder());
         spinner.setVisible(true); spinner.setManaged(true);
 
         ProductosFilterState snap = snapshotFilters();
-        String busqueda     = snap.busqueda();
-        String catId        = snap.catId();
-        String area         = snap.area();
-        String resguardante = snap.resguardante();
-        EstadoProducto estado = snap.estado();
-        java.time.LocalDate desdeReg = snap.desdeReg();
-        java.time.LocalDate hastaReg = snap.hastaReg();
-
-        Task<Void> task = new Task<>() {
-            private List<Producto> pageData;
-            private int count;
-            private com.sibim.repository.ProductoRepository.InventarioStats stats;
-            private List<String> resguardantes;
-
-            @Override protected Void call() throws Exception {
-                resguardantes = productoService.getResguardantes();
-                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, filterSinEtiquetar, desdeReg, hastaReg);
-                pageData = productoService.getPaginated(busqueda, catId, area, resguardante, estado,
-                    filterSinEtiquetar, pageSize, currentPage * pageSize, desdeReg, hastaReg);
-                stats = productoService.getStats();
-                return null;
-            }
-
-            @Override protected void succeeded() {
+        dataLoader.loadData(
+            snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
+            snap.estado(), snap.soloSinEtiquetar(),
+            snap.pageSize(), snap.offset(),
+            snap.desdeReg(), snap.hastaReg(),
+            result -> {
                 loading.set(false);
-                if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
+                if (tableManager.skeletonPulse != null) { tableManager.skeletonPulse.stop(); tableManager.skeletonPulse = null; }
                 table.setPlaceholder(emptyStatePlaceholder);
-                refreshResguardanteOptions(resguardantes);
-                totalFiltered = count;
-                filteredData.setAll(pageData);
+                refreshResguardanteOptions(result.resguardantes());
+                totalFiltered = result.count();
+                filteredData.setAll(result.pageData());
                 updateTablePage();
-                chipsManager.refresh(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
-                updateStats(stats);
+                chipsManager.refresh(snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
+                    snap.estado(), snap.desdeReg(), snap.hastaReg());
+                updateStats(result.stats());
                 spinner.setVisible(false); spinner.setManaged(false);
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
-                // Highlight a product selected via the search palette (Ctrl+K)
                 String pendingId = NavigationContext.consumePendingProductId();
                 if (pendingId != null) {
                     final String id = pendingId;
@@ -535,66 +396,48 @@ public class ProductosController {
                         }
                     });
                 }
-            }
-
-            @Override protected void failed() {
+            },
+            ex -> {
                 loading.set(false);
-                if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
+                if (tableManager.skeletonPulse != null) { tableManager.skeletonPulse.stop(); tableManager.skeletonPulse = null; }
                 table.setPlaceholder(emptyStatePlaceholder);
                 spinner.setVisible(false); spinner.setManaged(false);
                 NotificacionUtil.errorConAccion(table.getScene(),
                     "No se pudo cargar los bienes. Verifica la conexión.", "Reintentar", () -> loadData());
-            }
-        };
-        com.sibim.util.AppExecutor.submit(task);
+            });
     }
 
     /** Loads a single page in the background using current filter state. */
     private void loadPage() {
         if (!loading.compareAndSet(false, true)) { refreshing = true; return; }
+        if (dataLoader == null) dataLoader = new ProductosDataLoader(productoService);
         spinner.setVisible(true); spinner.setManaged(true);
 
         ProductosFilterState snap = snapshotFilters();
-        String busqueda     = snap.busqueda();
-        String catId        = snap.catId();
-        String area         = snap.area();
-        String resguardante = snap.resguardante();
-        EstadoProducto estado = snap.estado();
-        java.time.LocalDate desdeReg = snap.desdeReg();
-        java.time.LocalDate hastaReg = snap.hastaReg();
-        int offset = snap.offset();
-        // Persist sticky filters
         STICKY.put("search", searchField.getText() != null ? searchField.getText() : "");
-        STICKY.put("area", area != null ? area : "");
+        STICKY.put("area", snap.area() != null ? snap.area() : "");
 
-        Task<Void> task = new Task<>() {
-            List<Producto> page;
-            int count;
-
-            @Override protected Void call() throws Exception {
-                page = productoService.getPaginated(busqueda, catId, area, resguardante, estado, filterSinEtiquetar, pageSize, offset, desdeReg, hastaReg);
-                count = productoService.countFiltrado(busqueda, catId, area, resguardante, estado, filterSinEtiquetar, desdeReg, hastaReg);
-                return null;
-            }
-
-            @Override protected void succeeded() {
+        dataLoader.loadPage(
+            snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
+            snap.estado(), snap.soloSinEtiquetar(),
+            snap.pageSize(), snap.offset(),
+            snap.desdeReg(), snap.hastaReg(),
+            result -> {
                 loading.set(false);
-                totalFiltered = count;
-                filteredData.setAll(page);
+                totalFiltered = result.count();
+                filteredData.setAll(result.page());
                 updateTablePage();
-                chipsManager.refresh(busqueda, catId, area, resguardante, estado, desdeReg, hastaReg);
+                chipsManager.refresh(snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
+                    snap.estado(), snap.desdeReg(), snap.hastaReg());
                 spinner.setVisible(false); spinner.setManaged(false);
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
-            }
-
-            @Override protected void failed() {
+            },
+            ex -> {
                 loading.set(false);
                 spinner.setVisible(false); spinner.setManaged(false);
                 NotificacionUtil.errorConAccion(table.getScene(),
                     "No se pudo cargar los bienes. Verifica la conexión.", "Reintentar", () -> loadPage());
-            }
-        };
-        com.sibim.util.AppExecutor.submit(task);
+            });
     }
 
     private void refreshResguardanteOptions(List<String> options) {
@@ -647,8 +490,7 @@ public class ProductosController {
     }
 
     private void updateTablePage() {
-        PaginationUtils.updatePageServer(table, filteredData, currentPage, pageSize, totalFiltered,
-            lblTotal, lblPage, btnPrev, btnNext, "resultado", "resultados");
+        tableManager.updateTablePage(filteredData, currentPage, pageSize, totalFiltered);
     }
 
     // ── FXML action handlers ─────────────────────────────────────────────────
@@ -1106,18 +948,6 @@ public class ProductosController {
         } catch (Exception e) {
             log.error("Error al abrir el formulario de bien", e);
             NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
-        }
-    }
-
-    private static void updateSelectionLabel(Label lbl, int n) {
-        if (lbl == null) return;
-        if (n > 0) {
-            lbl.setText("· " + n + (n == 1 ? " seleccionado" : " seleccionados"));
-            lbl.setVisible(true);
-            lbl.setManaged(true);
-        } else {
-            lbl.setVisible(false);
-            lbl.setManaged(false);
         }
     }
 
