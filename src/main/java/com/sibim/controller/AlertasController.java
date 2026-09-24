@@ -45,8 +45,8 @@ public class AlertasController implements Refreshable {
     @FXML private Label lblAgotadosCount;
 
     @FXML private TableView<Producto> tableBajoStock;
-    @FXML private TableColumn<Producto, String> colBsNombre;
-    @FXML private TableColumn<Producto, String> colBsCodigo;
+    @FXML private TableColumn<Producto, String>  colBsNombre;
+    @FXML private TableColumn<Producto, String>  colBsCodigo;
     @FXML private TableColumn<Producto, Integer> colBsStock;
     @FXML private TableColumn<Producto, Integer> colBsMin;
     @FXML private Label lblBajoStockCount;
@@ -88,7 +88,6 @@ public class AlertasController implements Refreshable {
     @FXML private VBox resumenBox;
     @FXML private Button btnToggleResumen;
 
-    // ── Collapsible section headers ───────────────────────────────────
     @FXML private HBox headerAgotados;
     @FXML private HBox headerBajoStock;
     @FXML private HBox headerGarantias;
@@ -102,10 +101,6 @@ public class AlertasController implements Refreshable {
     @FXML private FontIcon chevronGarantias;
     @FXML private FontIcon chevronMantenimiento;
 
-    // ── Comodatos vencidos section (built in Java, inserted into rootPane) ──
-    private VBox sectionComodatos;
-
-    // ── Resumen rápido (stat cards al tope) ──────────────────────────
     @FXML private VBox    statCardAgotados;
     @FXML private VBox    statCardBajoStockSum;
     @FXML private VBox    statCardGarantiasSum;
@@ -120,24 +115,41 @@ public class AlertasController implements Refreshable {
     private static final java.util.prefs.Preferences STICKY =
         java.util.prefs.Preferences.userRoot().node("sibim/filters/alertas");
 
-    private final ProductoService productoService = new ProductoService();
+    private final ProductoService  productoService  = new ProductoService();
     private final MovimientoService movimientoService = new MovimientoService();
-    private final ReporteService reporteService = ReporteService.getInstance();
-    private final ComodatoService comodatoService = new ComodatoService();
+    private final ReporteService   reporteService   = ReporteService.getInstance();
+    private final ComodatoService  comodatoService  = new ComodatoService();
 
-    private List<Producto>  allAgotados      = List.of();
-    private List<Producto>  allBajoStock     = List.of();
-    private List<Producto>  allGarantias     = List.of();
-    private List<Producto>  allMantenimiento = List.of();
-    private List<Comodato>  allComodatosVencidos = List.of();
+    private AlertasDataLoader dataLoader;
+
+    private List<Producto> allAgotados          = List.of();
+    private List<Producto> allBajoStock         = List.of();
+    private List<Producto> allGarantias         = List.of();
+    private List<Producto> allMantenimiento     = List.of();
+    private List<Comodato> allComodatosVencidos = List.of();
+
+    private VBox     sectionComodatos;
     private Timeline autoRefresh;
     private javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter;
 
     @FXML
     public void initialize() {
+        dataLoader = new AlertasDataLoader(productoService, comodatoService);
+
         setupColumns();
         setupResizeAndPlaceholders();
         setupColumnResetButton();
+        setupHelpBadges();
+        setupCollapsibleSections();
+
+        boolean canWrite = SessionManager.isAdmin() || SessionManager.isSecretario();
+        setupPermissions(canWrite);
+        setupSearchField();
+        setupTableInteractions(canWrite);
+
+        sectionComodatos = AlertasComodatosSection.build(STICKY, () -> alertaOkNode("Sin comodatos vencidos"));
+        if (rootPane != null) rootPane.getChildren().add(sectionComodatos);
+
         loadData();
 
         java.util.List<javafx.scene.Node> fadeNodes = new java.util.ArrayList<>(java.util.List.of(
@@ -145,7 +157,7 @@ public class AlertasController implements Refreshable {
             sectionAgotados, sectionBajoStock, sectionGarantias));
         if (sectionMantenimiento != null) fadeNodes.add(sectionMantenimiento);
         AnimationUtils.staggeredFadeInUp(fadeNodes, 250, 60);
-        javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+        Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
 
         if (rootPane != null) {
             keyFilter = ev -> {
@@ -159,18 +171,9 @@ public class AlertasController implements Refreshable {
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
         autoRefresh.play();
-
-        // These buttons register real ENTRADA movements — same write gate as Movimientos
-        boolean canWrite = SessionManager.isAdmin() || SessionManager.isSecretario();
-        setupPermissions(canWrite);
-        setupSearchField();
-        setupTableInteractions(canWrite);
-        setupHelpBadgesSection();
-        setupCollapsibleSectionsAlertas();
-
-        sectionComodatos = buildComodatosSection();
-        if (rootPane != null) rootPane.getChildren().add(sectionComodatos);
     }
+
+    // ── Setup helpers ──────────────────────────────────────────────────────────
 
     private void setupResizeAndPlaceholders() {
         tableAgotados.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -187,12 +190,42 @@ public class AlertasController implements Refreshable {
 
     private void setupColumnResetButton() {
         if (btnResetColumns == null) return;
-        Runnable r1 = com.sibim.util.DialogUtil.captureColumnReset(tableAgotados, null);
-        Runnable r2 = com.sibim.util.DialogUtil.captureColumnReset(tableBajoStock, null);
-        Runnable r3 = com.sibim.util.DialogUtil.captureColumnReset(tableGarantias, null);
+        Runnable r1 = DialogUtil.captureColumnReset(tableAgotados, null);
+        Runnable r2 = DialogUtil.captureColumnReset(tableBajoStock, null);
+        Runnable r3 = DialogUtil.captureColumnReset(tableGarantias, null);
         Runnable r4 = tableMantenimiento != null
-            ? com.sibim.util.DialogUtil.captureColumnReset(tableMantenimiento, null) : null;
+            ? DialogUtil.captureColumnReset(tableMantenimiento, null) : null;
         btnResetColumns.setOnAction(e -> { r1.run(); r2.run(); r3.run(); if (r4 != null) r4.run(); });
+    }
+
+    private void setupHelpBadges() {
+        for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias, helpMantenimiento, helpResumen }) {
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
+        }
+        if (btnToggleResumen != null && resumenBox != null)
+            DialogUtil.makeCollapsible("alertas.resumen.colapsado", btnToggleResumen, resumenBox,
+                "Mostrar resumen", "Ocultar resumen");
+    }
+
+    private void setupCollapsibleSections() {
+        setupCollapsibleSection("alertas.agotados.colapsado",      headerAgotados,      contentAgotados,      chevronAgotados);
+        setupCollapsibleSection("alertas.bajostock.colapsado",     headerBajoStock,     contentBajoStock,     chevronBajoStock);
+        setupCollapsibleSection("alertas.garantias.colapsado",     headerGarantias,     contentGarantias,     chevronGarantias);
+        setupCollapsibleSection("alertas.mantenimiento.colapsado", headerMantenimiento, contentMantenimiento, chevronMantenimiento);
+    }
+
+    /** Lets the user collapse/expand one of the 4 alert sections by clicking
+     *  its colored header bar — state is remembered per section across restarts. */
+    private void setupCollapsibleSection(String prefKey, HBox header, VBox content, FontIcon chevron) {
+        if (header == null || content == null || chevron == null) return;
+        boolean collapsed = STICKY.getBoolean(prefKey, false);
+        AlertasComodatosSection.applyCollapsed(content, chevron, collapsed);
+        header.setCursor(javafx.scene.Cursor.HAND);
+        header.setOnMouseClicked(e -> {
+            boolean nowCollapsed = content.isVisible();
+            AlertasComodatosSection.applyCollapsed(content, chevron, nowCollapsed);
+            STICKY.putBoolean(prefKey, nowCollapsed);
+        });
     }
 
     private void setupPermissions(boolean canWrite) {
@@ -211,7 +244,8 @@ public class AlertasController implements Refreshable {
         if (searchField == null) return;
         if (btnClearSearch != null)
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
-        SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField, () -> applySearch(searchField.getText()));
+        SearchUtils.setupSearchHistory("sibim/search-history/alertas", searchField,
+            () -> applySearch(searchField.getText()));
         SearchUtils.debounce(searchField, 260, q -> { STICKY.put("search", q != null ? q : ""); applySearch(q); });
         String savedSearch = STICKY.get("search", "");
         if (!savedSearch.isBlank()) searchField.setText(savedSearch);
@@ -274,7 +308,8 @@ public class AlertasController implements Refreshable {
             tableMantenimiento.setOnMouseClicked(e -> {
                 if (e.getClickCount() == 2) {
                     Producto sel = tableMantenimiento.getSelectionModel().getSelectedItem();
-                    if (sel != null) ProductoDetailDialog.show(sel, tableAgotados.getScene(), movimientoService, log);
+                    if (sel != null)
+                        ProductoDetailDialog.show(sel, tableAgotados.getScene(), movimientoService, log);
                 }
             });
             tableMantenimiento.setOnKeyPressed(ev -> {
@@ -292,46 +327,6 @@ public class AlertasController implements Refreshable {
         }
     }
 
-    private void setupHelpBadgesSection() {
-        for (Label badge : new Label[]{ helpAgotados, helpBajoStock, helpGarantias, helpMantenimiento, helpResumen }) {
-            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
-        }
-        if (btnToggleResumen != null && resumenBox != null)
-            DialogUtil.makeCollapsible("alertas.resumen.colapsado", btnToggleResumen, resumenBox,
-                "Mostrar resumen", "Ocultar resumen");
-    }
-
-    private void setupCollapsibleSectionsAlertas() {
-        setupCollapsibleSection("alertas.agotados.colapsado",      headerAgotados,      contentAgotados,      chevronAgotados);
-        setupCollapsibleSection("alertas.bajostock.colapsado",     headerBajoStock,     contentBajoStock,     chevronBajoStock);
-        setupCollapsibleSection("alertas.garantias.colapsado",     headerGarantias,     contentGarantias,     chevronGarantias);
-        setupCollapsibleSection("alertas.mantenimiento.colapsado", headerMantenimiento, contentMantenimiento, chevronMantenimiento);
-    }
-
-    /** Lets the user collapse/expand one of the 4 alert sections by clicking
-     *  its colored header bar — this page stacks all 4 with no way to skip
-     *  past the ones you don't care about, so a long list in "Agotados"
-     *  pushes "Garantías"/"Mantenimiento" far down the scroll. State is
-     *  remembered per section across restarts, same as the other
-     *  collapsible sections in the app (see DialogUtil.makeCollapsible). */
-    private void setupCollapsibleSection(String prefKey, HBox header, VBox content, FontIcon chevron) {
-        if (header == null || content == null || chevron == null) return;
-        boolean collapsed = STICKY.getBoolean(prefKey, false);
-        applySectionCollapsed(content, chevron, collapsed);
-        header.setCursor(javafx.scene.Cursor.HAND);
-        header.setOnMouseClicked(e -> {
-            boolean nowCollapsed = content.isVisible();
-            applySectionCollapsed(content, chevron, nowCollapsed);
-            STICKY.putBoolean(prefKey, nowCollapsed);
-        });
-    }
-
-    private static void applySectionCollapsed(VBox content, FontIcon chevron, boolean collapsed) {
-        content.setVisible(!collapsed);
-        content.setManaged(!collapsed);
-        chevron.setIconLiteral(collapsed ? "mdi2c-chevron-down" : "mdi2c-chevron-up");
-    }
-
     private void setupColumns() {
         AlertasColumnSetup.configureAgotados(colAgNombre, colAgCodigo, colAgArea);
         AlertasColumnSetup.configureBajoStock(colBsNombre, colBsCodigo, colBsStock, colBsMin);
@@ -339,30 +334,23 @@ public class AlertasController implements Refreshable {
         AlertasColumnSetup.configureGarantias(colGaNombre, colGaCodigo, colGaFecha, colGaDias);
     }
 
-    private record AlertasData(List<Producto> agotados, List<Producto> bajoStock, List<Producto> garantias, List<Producto> mantenimiento, List<Comodato> comodatosVencidos) {}
+    // ── Data loading ───────────────────────────────────────────────────────────
 
     private void loadData() { loadData(false); }
 
     private void loadData(boolean showToast) {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
-        DialogUtil.runAsync(
-            () -> {
-                comodatoService.actualizarVencidos();
-                return new AlertasData(
-                    productoService.getAgotados(),
-                    productoService.getBajoStock(),
-                    productoService.getVencidosProximos(30),
-                    productoService.getProximasRevisiones(30),
-                    comodatoService.getVencidos());
-            },
+        dataLoader.load(
             data -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
-                allAgotados           = data.agotados();
-                allBajoStock          = data.bajoStock();
-                allGarantias          = data.garantias();
-                allMantenimiento      = data.mantenimiento();
-                allComodatosVencidos  = data.comodatosVencidos();
-                updateComodatosSection();
+                allAgotados          = data.agotados();
+                allBajoStock         = data.bajoStock();
+                allGarantias         = data.garantias();
+                allMantenimiento     = data.mantenimiento();
+                allComodatosVencidos = data.comodatosVencidos();
+
+                AlertasComodatosSection.update(sectionComodatos, allComodatosVencidos);
+
                 if (tableMantenimiento != null) {
                     tableMantenimiento.getItems().setAll(allMantenimiento);
                     if (lblMantenimientoCount != null)
@@ -372,20 +360,18 @@ public class AlertasController implements Refreshable {
                         sectionMantenimiento.setManaged(!allMantenimiento.isEmpty());
                     }
                 }
-                final List<Producto> _ag = data.agotados(), _bs = data.bajoStock(), _ga = data.garantias();
-                AppExecutor.submit(() -> new EmailService().enviarAlertas(_ag, _bs, _ga));
-                // Solo avisa por la bandeja del sistema si el usuario no está viendo
-                // la app ahora mismo — si la ventana está enfocada, ya está viendo
-                // esta misma cifra en la sección "Agotados" de esta pantalla.
+
+                final List<Producto> ag = data.agotados(), bs = data.bajoStock(), ga = data.garantias();
+                AppExecutor.submit(() -> new EmailService().enviarAlertas(ag, bs, ga));
                 javafx.stage.Stage primary = com.sibim.MainApp.getPrimaryStage();
                 boolean appEnFoco = primary != null && primary.isFocused() && !primary.isIconified();
                 if (!allAgotados.isEmpty() && !appEnFoco)
                     com.sibim.service.TrayService.notify("Alerta de inventario",
                         allAgotados.size() + " bien(es) agotado(s)");
+
                 updateSumCards();
                 if (btnReponerTodos != null) btnReponerTodos.setDisable(data.agotados().isEmpty());
-                String query = searchField != null ? searchField.getText() : "";
-                applySearch(query);
+                applySearch(searchField != null ? searchField.getText() : "");
                 if (lblActualizado != null)
                     lblActualizado.setText("Actualizado " +
                         com.sibim.util.FormatUtils.formatTime(java.time.LocalTime.now()));
@@ -425,13 +411,14 @@ public class AlertasController implements Refreshable {
         AnimationUtils.staggerTableRows(tableAgotados);
         AnimationUtils.staggerTableRows(tableBajoStock);
         AnimationUtils.staggerTableRows(tableGarantias);
-        long cntAg = filtAgotados.size(),  cntBs = filtBajoStock.size(), cntGa = filtGarantias.size();
+        long cntAg = filtAgotados.size(), cntBs = filtBajoStock.size(), cntGa = filtGarantias.size();
         boolean noFilter = q.isBlank();
         long totAg = allAgotados.size(), totBs = allBajoStock.size(), totGa = allGarantias.size();
         AnimationUtils.animateCount(lblAgotadosCount,  cntAg, 480, v -> v + (noFilter ? " bienes" : " / " + totAg));
         AnimationUtils.animateCount(lblBajoStockCount, cntBs, 480, v -> v + (noFilter ? " bienes" : " / " + totBs));
         AnimationUtils.animateCount(lblGarantiasCount, cntGa, 480, v -> v + (noFilter ? " bienes" : " / " + totGa));
-        javafx.animation.PauseTransition sectionPop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(510));
+        javafx.animation.PauseTransition sectionPop =
+            new javafx.animation.PauseTransition(javafx.util.Duration.millis(510));
         sectionPop.setOnFinished(e -> {
             if (sectionAgotados  != null && !allAgotados.isEmpty())  AnimationUtils.statCardPop(sectionAgotados);
             if (sectionBajoStock != null && !allBajoStock.isEmpty()) AnimationUtils.statCardPop(sectionBajoStock);
@@ -455,12 +442,50 @@ public class AlertasController implements Refreshable {
             .toList();
     }
 
-    @FXML private void onClearSearch() {
-        if (searchField != null) {
-            searchField.clear();
-            searchField.requestFocus();
-            STICKY.remove("search");
+    private void updateSumCards() {
+        int nAg = allAgotados.size(), nBs = allBajoStock.size(), nGa = allGarantias.size();
+        int total = nAg + nBs + nGa;
+        double denom = total > 0 ? total : 1.0;
+        AnimationUtils.animateCount(lblSumAgotados,  nAg, 600);
+        AnimationUtils.animateCount(lblSumBajoStock, nBs, 600);
+        AnimationUtils.animateCount(lblSumGarantias, nGa, 600);
+        animateProgressBar(pbAgotados,  nAg / denom);
+        animateProgressBar(pbBajoStock, nBs / denom);
+        animateProgressBar(pbGarantias, nGa / denom);
+        if (lblSumGarantiasDetalle != null) {
+            long vencidas = allGarantias.stream()
+                .filter(p -> p.getFechaVencimiento() != null
+                    && p.getFechaVencimiento().isBefore(LocalDate.now()))
+                .count();
+            lblSumGarantiasDetalle.setText(
+                vencidas + (vencidas == 1 ? " vencida" : " vencidas")
+                + " · " + (nGa - vencidas) + " próximas");
         }
+        javafx.animation.PauseTransition pop =
+            new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
+        pop.setOnFinished(e -> {
+            if (statCardAgotados     != null && nAg > 0) AnimationUtils.statCardPop(statCardAgotados);
+            if (statCardBajoStockSum != null && nBs > 0) AnimationUtils.statCardPop(statCardBajoStockSum);
+            if (statCardGarantiasSum != null && nGa > 0) AnimationUtils.statCardPop(statCardGarantiasSum);
+        });
+        pop.play();
+    }
+
+    private static void animateProgressBar(javafx.scene.control.ProgressBar pb, double target) {
+        if (pb == null) return;
+        javafx.animation.Timeline tl = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                new javafx.animation.KeyValue(pb.progressProperty(), pb.getProgress())),
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(700),
+                new javafx.animation.KeyValue(pb.progressProperty(), target,
+                    javafx.animation.Interpolator.EASE_BOTH)));
+        tl.play();
+    }
+
+    // ── FXML handlers ──────────────────────────────────────────────────────────
+
+    @FXML private void onClearSearch() {
+        if (searchField != null) { searchField.clear(); searchField.requestFocus(); STICKY.remove("search"); }
     }
 
     @FXML private void onRefresh() { loadData(true); }
@@ -477,14 +502,14 @@ public class AlertasController implements Refreshable {
     private void exportar(String label, java.util.concurrent.Callable<java.io.File> task) {
         if (sinAlertas()) return;
         javafx.scene.Scene scene = tableAgotados.getScene();
-        DialogUtil.runAsyncWithProgress(scene, label,
-            task,
+        DialogUtil.runAsyncWithProgress(scene, label, task,
             file -> DialogUtil.showExportResultDialog(scene, file),
             ex -> NotificacionUtil.error(scene, "No se pudo exportar"));
     }
 
     @FXML private void onExportarPdf()   { exportar("Generando PDF…",   reporteService::exportAlertasPdf); }
     @FXML private void onExportarExcel() { exportar("Generando Excel…", reporteService::exportAlertasExcel); }
+    @FXML private void onExportarCsv()   { exportar("Generando CSV…",   reporteService::exportAlertasCsv); }
 
     @FXML
     private void onReponerTodosAgotados() {
@@ -536,7 +561,7 @@ public class AlertasController implements Refreshable {
         okBtn.getStyleClass().add("btn-danger");
         okBtn.setDisable(true);
         motivoField.textProperty().addListener((obs, o, n) -> okBtn.setDisable(n.isBlank()));
-        javafx.application.Platform.runLater(motivoField::requestFocus);
+        Platform.runLater(motivoField::requestFocus);
 
         Optional<ButtonType> result = dlg.showAndWait();
         if (result.isEmpty() || result.get() != okType || motivoField.getText().isBlank()) return;
@@ -550,13 +575,13 @@ public class AlertasController implements Refreshable {
                     loadData();
                     if (tableAgotados.getScene() != null)
                         NotificacionUtil.exitoConAccionCountdown(tableAgotados.getScene(),
-                            "\"" + nombre + "\" dado de baja",
-                            "Deshacer",
+                            "\"" + nombre + "\" dado de baja", "Deshacer",
                             () -> DialogUtil.runAsync(
                                 () -> productoService.reactivar(p.getId()),
-                                () -> { loadData(); NotificacionUtil.info(tableAgotados.getScene(), "\"" + nombre + "\" reactivado al inventario"); },
-                                e2 -> NotificacionUtil.error(tableAgotados.getScene(), "No se pudo deshacer la baja")
-                            ));
+                                () -> { loadData(); NotificacionUtil.info(tableAgotados.getScene(),
+                                    "\"" + nombre + "\" reactivado al inventario"); },
+                                e2 -> NotificacionUtil.error(tableAgotados.getScene(),
+                                    "No se pudo deshacer la baja")));
                 });
             } catch (Exception ex) {
                 log.error("Error al dar de baja desde Alertas: {}", ex.getMessage(), ex);
@@ -570,11 +595,9 @@ public class AlertasController implements Refreshable {
     }
 
     /** Navigates to Movimientos and opens the form there (pre-filled with
-     *  this producto/tipo) instead of using a bare {@code new
-     *  MovimientosController()} — that instance never went through FXML
-     *  injection, so its @FXML fields (table, etc.) were all null, silently
-     *  breaking the dialog's own success/error feedback and racing this
-     *  screen's loadData() against the movement's async save. */
+     *  this producto/tipo) instead of using a bare new MovimientosController()
+     *  — that instance never went through FXML injection, so its @FXML fields
+     *  were all null, silently breaking the dialog's own success/error feedback. */
     private void openMovimientoForm(String productoId, TipoMovimiento tipo) {
         MainController main = MainController.getInstance();
         if (main == null) {
@@ -583,9 +606,8 @@ public class AlertasController implements Refreshable {
         }
         try {
             main.navigateTo("movimientos");
-            if (main.getCurrentController() instanceof MovimientosController ctrl) {
+            if (main.getCurrentController() instanceof MovimientosController ctrl)
                 ctrl.showMovimientoDialog(productoId, tipo);
-            }
         } catch (Exception e) {
             log.error("Error al abrir el formulario de movimiento desde Alertas", e);
             if (tableAgotados.getScene() != null)
@@ -604,169 +626,7 @@ public class AlertasController implements Refreshable {
         );
     }
 
-    @FXML private void onExportarCsv() { exportar("Generando CSV…", reporteService::exportAlertasCsv); }
-
-    private void updateSumCards() {
-        int nAg = allAgotados.size(), nBs = allBajoStock.size(), nGa = allGarantias.size();
-        int total = nAg + nBs + nGa;
-        double denom = total > 0 ? total : 1.0;
-
-        AnimationUtils.animateCount(lblSumAgotados,  nAg, 600);
-        AnimationUtils.animateCount(lblSumBajoStock, nBs, 600);
-        AnimationUtils.animateCount(lblSumGarantias, nGa, 600);
-
-        animateProgressBar(pbAgotados,  nAg / denom);
-        animateProgressBar(pbBajoStock, nBs / denom);
-        animateProgressBar(pbGarantias, nGa / denom);
-
-        if (lblSumGarantiasDetalle != null) {
-            long vencidas = allGarantias.stream()
-                .filter(p -> p.getFechaVencimiento() != null
-                    && p.getFechaVencimiento().isBefore(LocalDate.now()))
-                .count();
-            long proximas = nGa - vencidas;
-            lblSumGarantiasDetalle.setText(
-                vencidas + (vencidas == 1 ? " vencida" : " vencidas")
-                + " · " + proximas + " próximas");
-        }
-
-        javafx.animation.PauseTransition pop =
-            new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
-        pop.setOnFinished(e -> {
-            if (statCardAgotados     != null && nAg > 0) AnimationUtils.statCardPop(statCardAgotados);
-            if (statCardBajoStockSum != null && nBs > 0) AnimationUtils.statCardPop(statCardBajoStockSum);
-            if (statCardGarantiasSum != null && nGa > 0) AnimationUtils.statCardPop(statCardGarantiasSum);
-        });
-        pop.play();
-    }
-
-    private static void animateProgressBar(
-            javafx.scene.control.ProgressBar pb, double target) {
-        if (pb == null) return;
-        javafx.animation.Timeline tl = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                new javafx.animation.KeyValue(pb.progressProperty(), pb.getProgress())),
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(700),
-                new javafx.animation.KeyValue(pb.progressProperty(), target,
-                    javafx.animation.Interpolator.EASE_BOTH)));
-        tl.play();
-    }
-
-    // ── Comodatos vencidos ──────────────────────────────────────────────
-
-    private static final String PREF_COMODATOS_COLAPSADO = "alertas.comodatos.colapsado";
-
-    private VBox buildComodatosSection() {
-        Label countBadge = new Label("0 comodatos");
-        countBadge.getStyleClass().add("badge-count-inv");
-        countBadge.setId("comodatosCountBadge");
-
-        FontIcon chevron = new FontIcon("mdi2c-chevron-up");
-        chevron.getStyleClass().add("alert-section-chevron");
-
-        HBox header = buildComodatosHeader(countBadge, chevron);
-        TableView<Comodato> table = buildComodatosTable();
-
-        VBox content = new VBox(10, table);
-        content.setPadding(new javafx.geometry.Insets(14));
-        content.setId("contentComodatos");
-
-        boolean collapsed = STICKY.getBoolean(PREF_COMODATOS_COLAPSADO, false);
-        applySectionCollapsed(content, chevron, collapsed);
-        header.setCursor(javafx.scene.Cursor.HAND);
-        header.setOnMouseClicked(e -> {
-            boolean nowCollapsed = content.isVisible();
-            applySectionCollapsed(content, chevron, nowCollapsed);
-            STICKY.putBoolean(PREF_COMODATOS_COLAPSADO, nowCollapsed);
-        });
-
-        VBox section = new VBox(0, header, content);
-        section.getStyleClass().addAll("alert-section", "alert-warning");
-        section.setVisible(false);
-        section.setManaged(false);
-        return section;
-    }
-
-    private HBox buildComodatosHeader(Label countBadge, FontIcon chevron) {
-        FontIcon headerIcon = new FontIcon("mdi2h-handshake-outline");
-        headerIcon.getStyleClass().add("alert-section-icon");
-        Label titleLbl = new Label("Comodatos Vencidos");
-        titleLbl.getStyleClass().add("alert-section-title-inv");
-        Label subtitleLbl = new Label("Comodatos cuya fecha límite ha sido superada sin devolución");
-        subtitleLbl.getStyleClass().add("alert-section-subtitle");
-        VBox titleBox = new VBox(1, titleLbl, subtitleLbl);
-        javafx.scene.layout.HBox.setHgrow(titleBox, javafx.scene.layout.Priority.ALWAYS);
-        HBox header = new HBox(12, headerIcon, titleBox, countBadge, chevron);
-        header.getStyleClass().add("alert-header-warning");
-        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        return header;
-    }
-
-    private TableView<Comodato> buildComodatosTable() {
-        TableView<Comodato> table = new TableView<>();
-        table.setPrefHeight(185);
-        table.getStyleClass().add("data-table");
-        table.setTableMenuButtonVisible(true);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        table.setId("tableComodatos");
-        table.setPlaceholder(alertaOkNode("Sin comodatos vencidos"));
-
-        TableColumn<Comodato, String> colNombre = new TableColumn<>("Bien");
-        colNombre.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            c.getValue().getProductoNombre()));
-        colNombre.setPrefWidth(220);
-
-        TableColumn<Comodato, String> colEntidad = new TableColumn<>("Entidad Receptora");
-        colEntidad.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            c.getValue().getEntidadReceptora()));
-        colEntidad.setPrefWidth(200);
-
-        TableColumn<Comodato, String> colFechaFin = new TableColumn<>("Fecha Fin");
-        colFechaFin.setCellValueFactory(c -> {
-            java.time.LocalDate ff = c.getValue().getFechaFin();
-            return new javafx.beans.property.SimpleStringProperty(
-                ff != null ? ff.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "—");
-        });
-        colFechaFin.setPrefWidth(120);
-        colFechaFin.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(String v, boolean empty) {
-                super.updateItem(v, empty);
-                getStyleClass().removeAll("stock-low");
-                if (empty || v == null) { setText(null); return; }
-                setText(v);
-                getStyleClass().add("stock-low");
-            }
-        });
-
-        table.getColumns().addAll(colNombre, colEntidad, colFechaFin);
-        return table;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void updateComodatosSection() {
-        if (sectionComodatos == null) return;
-        boolean hasVencidos = !allComodatosVencidos.isEmpty();
-        sectionComodatos.setVisible(hasVencidos);
-        sectionComodatos.setManaged(hasVencidos);
-        if (!hasVencidos) return;
-
-        // Update count badge
-        sectionComodatos.lookupAll("#comodatosCountBadge").forEach(n -> {
-            if (n instanceof Label lbl)
-                lbl.setText(allComodatosVencidos.size() + " comodato"
-                    + (allComodatosVencidos.size() == 1 ? "" : "s"));
-        });
-
-        // Update table
-        sectionComodatos.lookupAll("#tableComodatos").forEach(n -> {
-            if (n instanceof TableView<?> tv)
-                ((TableView<Comodato>) tv).getItems().setAll(allComodatosVencidos);
-        });
-
-        AnimationUtils.statCardPop(sectionComodatos);
-    }
-
-    /** Stops the auto-refresh timer and cleans up listeners. Must be called before this controller's view is discarded. */
+    /** Stops the auto-refresh timer and cleans up listeners before the view is discarded. */
     public void stopAutoRefresh() {
         if (autoRefresh != null) autoRefresh.stop();
         if (keyFilter != null && rootPane != null) {
@@ -774,6 +634,8 @@ public class AlertasController implements Refreshable {
             keyFilter = null;
         }
     }
+
+    // ── Static UI node builders ────────────────────────────────────────────────
 
     private static javafx.scene.Node searchEmptyNode(String q) {
         FontIcon icon = new FontIcon("mdi2m-magnify-close");
@@ -783,7 +645,7 @@ public class AlertasController implements Refreshable {
         lbl.getStyleClass().add("empty-state-msg");
         Label hint = new Label("Prueba con otro término de búsqueda");
         hint.getStyleClass().add("empty-state-hint");
-        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(8, icon, lbl, hint);
+        VBox box = new VBox(8, icon, lbl, hint);
         box.setAlignment(javafx.geometry.Pos.CENTER);
         box.getStyleClass().add("empty-state-pane");
         return box;
@@ -795,9 +657,9 @@ public class AlertasController implements Refreshable {
         icon.getStyleClass().add("alert-ok-icon");
         Label lbl = new Label(msg);
         lbl.getStyleClass().add("alert-ok-label");
-        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(10, icon, lbl);
+        VBox box = new VBox(10, icon, lbl);
         box.setAlignment(javafx.geometry.Pos.CENTER);
-        box.setPadding(new javafx.geometry.Insets(24));
+        box.setPadding(new Insets(24));
         return box;
     }
 }
