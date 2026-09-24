@@ -56,7 +56,7 @@ public class ReporteParqueVehicularService extends ReporteService {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         DeviceRgb muted   = new DeviceRgb(107, 114, 128);
-        DeviceRgb labelBg = new DeviceRgb(245, 247, 250);
+        DeviceRgb labelBg = new DeviceRgb(252, 240, 241);
 
         // ── Encabezado del formulario ──────────────────────────────────
         Image logoImg = loadHeaderLogo();
@@ -94,14 +94,14 @@ public class ReporteParqueVehicularService extends ReporteService {
         Table dataTable = new Table(new float[]{1.3f, 1.7f, 1.5f, 1.5f})
             .useAllAvailableWidth().setMarginBottom(10);
 
-        addVRow(dataTable, "Marca:",               v(p.getMarca()),          "Unidad Administrativa:", v(p.getArea()),          bold, reg, muted, labelBg);
-        addVRow(dataTable, "Tipo:",                "_______________",         "Factura:",               v(p.getNumeroFactura()), bold, reg, muted, labelBg);
-        addVRow(dataTable, "Modelo:",              v(p.getModelo()),          "No. Tarjeta Circulación:", "_______________",     bold, reg, muted, labelBg);
-        addVRow(dataTable, "No. De Serie:",        v(p.getNumeroSerie()),     "No. Póliza de Seguro:", "_______________",        bold, reg, muted, labelBg);
-        addVRow(dataTable, "No. De Motor:",        "_______________",         "Condiciones del Bien:", v(p.getEstadoFisico()),   bold, reg, muted, labelBg);
-        addVRow(dataTable, "Color:",               "_______________",         "No. De Resguardo:",     "_______________",        bold, reg, muted, labelBg);
-        addVRow(dataTable, "No. De Inventario:",   v(p.getCodigo()),          "", "",                                           bold, reg, muted, labelBg);
-        addVRow(dataTable, "Clave Armonizada:",    v(p.getCategoriaNombre()), "", "",                                           bold, reg, muted, labelBg);
+        addVRow(dataTable, "Marca:",               v(p.getMarca()),               "Unidad Administrativa:", v(p.getArea()),                  bold, reg, muted, labelBg);
+        addVRow(dataTable, "Tipo:",                v(p.getTipoBien()),             "Factura:",               v(p.getNumeroFactura()),          bold, reg, muted, labelBg);
+        addVRow(dataTable, "Modelo:",              v(p.getModelo()),               "No. Tarjeta Circulación:", v(p.getNoTarjetaCirculacion()), bold, reg, muted, labelBg);
+        addVRow(dataTable, "No. De Serie:",        v(p.getNumeroSerie()),          "No. Póliza de Seguro:", v(p.getNoPolizaSeguro()),          bold, reg, muted, labelBg);
+        addVRow(dataTable, "No. De Motor:",        v(p.getNoMotor()),              "Condiciones del Bien:", v(p.getEstadoFisico()),            bold, reg, muted, labelBg);
+        addVRow(dataTable, "Color:",               v(p.getColor()),                "No. De Resguardo:",     "_______________",                 bold, reg, muted, labelBg);
+        addVRow(dataTable, "No. De Inventario:",   v(p.getCodigo()),               "", "",                                                    bold, reg, muted, labelBg);
+        addVRow(dataTable, "Clave Armonizada:",    v(p.getClaveArmonizada()),      "", "",                                                    bold, reg, muted, labelBg);
         doc.add(dataTable);
 
         // ── Fotografía + checklist de componentes (tabla de 2 columnas) ──

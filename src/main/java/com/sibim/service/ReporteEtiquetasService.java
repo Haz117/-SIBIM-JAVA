@@ -152,30 +152,28 @@ public class ReporteEtiquetasService extends ReporteService {
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
                 inner.addCell(hdr);
 
-                // Etiqueta izquierda: DEPARTAMENTO
+                // Fila 1: DEPARTAMENTO (label izq) | DESCRIPCIÓN DEL BIEN Y No. DE INVENTARIO (label der)
                 inner.addCell(labelCell("DEPARTAMENTO", bold, labelBg, labelFg, borderClr));
-                // Contenido derecho: nombre del bien
+                inner.addCell(labelCell("DESCRIPCIÓN DEL BIEN Y No. DE INVENTARIO",
+                    bold, labelBg, labelFg, borderClr));
+
+                // Fila 2: valor área (izq) | nombre del bien + marca (der)
+                String areaTxt = p.getArea() != null && !p.getArea().isBlank()
+                    ? p.getArea().toUpperCase() : "SIN ÁREA";
+                inner.addCell(valueCell(areaTxt, reg, lightBg, grayFg, borderClr, 6.5f));
+
                 String nombreBien = p.getNombre() != null ? p.getNombre().toUpperCase() : "—";
-                String descBien   = p.getDescripcion() != null && !p.getDescripcion().isBlank()
-                    ? p.getDescripcion().toUpperCase() : null;
+                String marcaBien  = p.getMarca() != null && !p.getMarca().isBlank()
+                    ? p.getMarca().toUpperCase() : null;
                 com.itextpdf.layout.element.Cell cNombre =
                     new com.itextpdf.layout.element.Cell()
                         .setBorder(new com.itextpdf.layout.borders.SolidBorder(borderClr, 0.4f))
                         .setPadding(5);
                 cNombre.add(new Paragraph(nombreBien).setFont(bold).setFontSize(7.5f).setFontColor(grayFg));
-                if (descBien != null)
-                    cNombre.add(new Paragraph(descBien).setFont(reg).setFontSize(6.5f)
+                if (marcaBien != null)
+                    cNombre.add(new Paragraph(marcaBien).setFont(reg).setFontSize(6.5f)
                         .setFontColor(new DeviceRgb(107, 114, 128)));
                 inner.addCell(cNombre);
-
-                // Área izquierda: valor departamento
-                String areaTxt = p.getArea() != null && !p.getArea().isBlank()
-                    ? p.getArea().toUpperCase() : "SIN ÁREA";
-                inner.addCell(valueCell(areaTxt, reg, lightBg, grayFg, borderClr, 6.5f));
-
-                // Descripción del bien + No. inventario (label derecha encabezado)
-                inner.addCell(labelCell("DESCRIPCIÓN DEL BIEN Y No. DE INVENTARIO",
-                    bold, labelBg, labelFg, borderClr));
 
                 // Fila RESGUARDO
                 inner.addCell(labelCell("RESGUARDO", bold, labelBg, labelFg, borderClr));

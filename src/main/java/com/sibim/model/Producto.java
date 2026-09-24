@@ -233,6 +233,27 @@ public class Producto {
     public String getNotasMantenimiento() { return notasMantenimiento; }
     public void setNotasMantenimiento(String notasMantenimiento) { this.notasMantenimiento = notasMantenimiento; }
 
+    // ── Campos patrimoniales de formatos oficiales ────────────────────────
+    private String claveArmonizada;  // clave LGCG ej. "1.2.4.4.541.3"
+    private String color;            // color/material del bien (columna COLOR en resguardo)
+    private String noMotor;          // número de motor (vehículos)
+    private String tipoBien;         // tipo de bien / tipo de vehículo (3/2 ton, etc.)
+    private String noTarjetaCirculacion;
+    private String noPolizaSeguro;
+
+    public String getClaveArmonizada() { return claveArmonizada; }
+    public void setClaveArmonizada(String claveArmonizada) { this.claveArmonizada = claveArmonizada; }
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
+    public String getNoMotor() { return noMotor; }
+    public void setNoMotor(String noMotor) { this.noMotor = noMotor; }
+    public String getTipoBien() { return tipoBien; }
+    public void setTipoBien(String tipoBien) { this.tipoBien = tipoBien; }
+    public String getNoTarjetaCirculacion() { return noTarjetaCirculacion; }
+    public void setNoTarjetaCirculacion(String v) { this.noTarjetaCirculacion = v; }
+    public String getNoPolizaSeguro() { return noPolizaSeguro; }
+    public void setNoPolizaSeguro(String v) { this.noPolizaSeguro = v; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

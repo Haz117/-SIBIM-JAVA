@@ -53,7 +53,7 @@ public class ReporteEntregaRecepcionService extends ReporteService {
                     : null;
 
                 addRow(table, p.getCodigo(),                                    alt);
-                addRow(table, p.getCategoriaNombre(),                           alt);
+                addRow(table, p.getClaveArmonizada(),                           alt);
                 addRow(table, "",                                                alt); // No. resguardo — no está en modelo
                 addRow(table, p.getResguardante(),                              alt);
                 addRow(table, p.getArea(),                                      alt);

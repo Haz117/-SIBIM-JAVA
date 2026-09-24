@@ -380,8 +380,9 @@ public class ProductoRepository {
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
                 fecha_adquisicion, vida_util_anios, valor_residual, etiquetado,
                 proxima_revision, notas_mantenimiento, estado_fisico, numero_factura,
+                clave_armonizada, color, no_motor, tipo_bien, no_tarjeta_circulacion, no_poliza_seguro,
                 created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -411,6 +412,12 @@ public class ProductoRepository {
                 notas_mantenimiento = EXCLUDED.notas_mantenimiento,
                 estado_fisico = EXCLUDED.estado_fisico,
                 numero_factura = EXCLUDED.numero_factura,
+                clave_armonizada = EXCLUDED.clave_armonizada,
+                color = EXCLUDED.color,
+                no_motor = EXCLUDED.no_motor,
+                tipo_bien = EXCLUDED.tipo_bien,
+                no_tarjeta_circulacion = EXCLUDED.no_tarjeta_circulacion,
+                no_poliza_seguro = EXCLUDED.no_poliza_seguro,
                 updated_at = NOW()
             """;
         try (Connection conn = DatabaseConfig.getConnection();
@@ -445,8 +452,14 @@ public class ProductoRepository {
             ps.setString(27, p.getNotasMantenimiento());
             ps.setString(28, p.getEstadoFisico());
             ps.setString(29, p.getNumeroFactura());
-            ps.setTimestamp(30, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(31, Timestamp.valueOf(now));
+            ps.setString(30, p.getClaveArmonizada());
+            ps.setString(31, p.getColor());
+            ps.setString(32, p.getNoMotor());
+            ps.setString(33, p.getTipoBien());
+            ps.setString(34, p.getNoTarjetaCirculacion());
+            ps.setString(35, p.getNoPolizaSeguro());
+            ps.setTimestamp(36, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
+            ps.setTimestamp(37, Timestamp.valueOf(now));
             ps.executeUpdate();
         }
         return p;
@@ -1052,6 +1065,16 @@ public class ProductoRepository {
             p.setNumeroFactura(rs.getString("numero_factura"));
         } catch (SQLException ignored) {
             // Columns may not exist yet (migration not run) — ignore gracefully
+        }
+        try {
+            p.setClaveArmonizada(rs.getString("clave_armonizada"));
+            p.setColor(rs.getString("color"));
+            p.setNoMotor(rs.getString("no_motor"));
+            p.setTipoBien(rs.getString("tipo_bien"));
+            p.setNoTarjetaCirculacion(rs.getString("no_tarjeta_circulacion"));
+            p.setNoPolizaSeguro(rs.getString("no_poliza_seguro"));
+        } catch (SQLException ignored) {
+            // Columns added in V19 — ignore gracefully on older schemas
         }
         return p;
     }

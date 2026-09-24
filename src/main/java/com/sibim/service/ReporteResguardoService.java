@@ -46,6 +46,8 @@ public class ReporteResguardoService extends ReporteService {
     private static final DeviceRgb GREEN_100     = new DeviceRgb(220, 252, 231);
     private static final DeviceRgb GREEN_800     = new DeviceRgb(22,  101, 52);
     private static final DeviceRgb ROW_ALT       = new DeviceRgb(249, 250, 251);
+    private static final DeviceRgb GOLD         = new DeviceRgb(196, 165, 93);
+    private static final DeviceRgb GUINDA_LIGHT = new DeviceRgb(252, 240, 241);
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -164,14 +166,22 @@ public class ReporteResguardoService extends ReporteService {
         t.addCell(right);
 
         doc.add(t);
+        doc.add(new Table(new float[]{1f}).useAllAvailableWidth()
+            .addCell(new Cell().setHeight(3f).setBackgroundColor(GOLD).setBorder(Border.NO_BORDER)));
     }
 
     // ── Sección 2: Información general ──────────────────────────────────────
 
     private void seccionInfoGeneral(Document doc, PdfFont bold, PdfFont reg,
                                     Resguardo r, String fechaStr, boolean pendiente, String numero) {
-        doc.add(para("INFORMACION GENERAL DEL RESGUARDO " + numero, bold, 8.5f)
-            .setFontColor(GRAY_700).setMarginTop(8).setMarginBottom(3));
+        doc.add(new Table(UnitValue.createPercentArray(new float[]{1f})).useAllAvailableWidth()
+            .setMarginTop(10).setMarginBottom(4)
+            .addCell(new Cell()
+                .add(para("INFORMACIÓN GENERAL DEL RESGUARDO " + numero, bold, 8f).setFontColor(PURPLE))
+                .setBackgroundColor(GUINDA_LIGHT)
+                .setBorderLeft(new SolidBorder(PURPLE, 3f))
+                .setBorderTop(Border.NO_BORDER).setBorderRight(Border.NO_BORDER).setBorderBottom(Border.NO_BORDER)
+                .setPadding(6).setPaddingLeft(10)));
 
         Table t = new Table(UnitValue.createPercentArray(new float[]{4f, 1.3f})).useAllAvailableWidth();
 
@@ -192,8 +202,8 @@ public class ReporteResguardoService extends ReporteService {
             {"UBICACION",   ubicacion},
         };
         for (String[] fila : filas) {
-            fields.addCell(cell().add(para(fila[0], bold, 8))
-                .setBackgroundColor(GRAY_100).setBorder(brd(GRAY_300)).setPadding(5));
+            fields.addCell(cell().add(para(fila[0], bold, 8).setFontColor(PURPLE))
+                .setBackgroundColor(GUINDA_LIGHT).setBorder(brd(GRAY_300)).setPadding(5));
             fields.addCell(cell().add(para(fila[1], reg, 8))
                 .setBorder(brd(GRAY_300)).setPadding(5));
         }
@@ -220,13 +230,18 @@ public class ReporteResguardoService extends ReporteService {
 
     private void seccionBienes(Document doc, PdfFont bold, PdfFont reg,
                                Resguardo r, List<Producto> extra, String fechaResguardo) {
-        doc.add(para("LISTA DE BIENES ASIGNADOS", bold, 8.5f)
-            .setFontColor(GRAY_700).setTextAlignment(TextAlignment.CENTER).setMarginTop(10).setMarginBottom(3));
+        doc.add(new Table(UnitValue.createPercentArray(new float[]{1f})).useAllAvailableWidth()
+            .setMarginTop(10).setMarginBottom(4)
+            .addCell(new Cell()
+                .add(para("LISTA DE BIENES ASIGNADOS", bold, 8f).setFontColor(PURPLE).setTextAlignment(TextAlignment.CENTER))
+                .setBackgroundColor(GUINDA_LIGHT)
+                .setBorder(new SolidBorder(GRAY_300, 0.5f))
+                .setPadding(6)));
 
         float[] cw = {0.4f, 1.5f, 3.2f, 1.1f, 1f, 1f};
         Table t = new Table(UnitValue.createPercentArray(cw)).useAllAvailableWidth();
 
-        String[] hdrs = {"NO.", "INVENTARIO", "CONCEPTO", "TIPO BIEN", "ASIGNACION", "CARACTERISTICAS"};
+        String[] hdrs = {"NO.", "INVENTARIO", "CONCEPTO", "TIPO BIEN", "ASIGNACION", "COLOR"};
         for (String h : hdrs) {
             t.addHeaderCell(cell()
                 .add(para(h, bold, 8).setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.CENTER))
@@ -244,13 +259,15 @@ public class ReporteResguardoService extends ReporteService {
             if (item.getDescripcion() != null && !item.getDescripcion().isBlank())
                 concepto += " - " + upper(item.getDescripcion());
 
-            String tipoBien    = p != null && p.getCategoriaNombre() != null ? upper(p.getCategoriaNombre()) : "MUEBLE";
-            String asignacion  = p != null && p.getFechaAdquisicion() != null
+            String tipoBien   = p != null && p.getCategoriaNombre() != null ? upper(p.getCategoriaNombre()) : "MUEBLES";
+            String asignacion = p != null && p.getFechaAdquisicion() != null
                 ? p.getFechaAdquisicion().format(DATE_FMT) : fechaResguardo;
-            String caracterist = "—";
-            if (p != null) {
+            String colorVal   = "—";
+            if (p != null && p.getColor() != null && !p.getColor().isBlank()) {
+                colorVal = upper(p.getColor());
+            } else if (p != null) {
                 String m = join(" ", p.getMarca(), p.getModelo());
-                if (!m.isBlank()) caracterist = upper(m);
+                if (!m.isBlank()) colorVal = upper(m);
             }
 
             String[] vals = {
@@ -259,7 +276,7 @@ public class ReporteResguardoService extends ReporteService {
                 concepto,
                 tipoBien,
                 asignacion,
-                caracterist
+                colorVal
             };
             for (String v : vals) {
                 t.addCell(cell().add(para(v, reg, 7.5f))

@@ -639,7 +639,38 @@ public final class ProductoDialogFactory {
         fNotasMant.setWrapText(true);
         fNotasMant.setPrefRowCount(3);
         fNotasMant.getStyleClass().add("form-input");
-        gridPatrimonio.add(DialogUtil.fieldLabel("Notas de mantenimiento"), 0, rp); gridPatrimonio.add(fNotasMant, 1, rp);
+        gridPatrimonio.add(DialogUtil.fieldLabel("Notas de mantenimiento"), 0, rp); gridPatrimonio.add(fNotasMant, 1, rp++);
+        // ── Campos de formatos oficiales ──
+        gridPatrimonio.add(new Separator(), 0, rp, 2, 1); rp++;
+        Label lblFormOficial = new Label("Datos para formatos oficiales");
+        lblFormOficial.getStyleClass().add("dialog-field-label");
+        gridPatrimonio.add(lblFormOficial, 0, rp, 2, 1); rp++;
+        TextField fClaveArm = new TextField(existing != null && existing.getClaveArmonizada() != null ? existing.getClaveArmonizada() : "");
+        fClaveArm.setPromptText("Ej. 1.2.4.4.541.3");
+        fClaveArm.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabelWithHelp("Clave Armonizada",
+            "Clave LGCG del bien (Ej. 1.2.4.4.541.3.003).\nAparece en ANEXO V.4 e Inventario de Parque Vehicular."),
+            0, rp); gridPatrimonio.add(fClaveArm, 1, rp++);
+        TextField fColor = new TextField(existing != null && existing.getColor() != null ? existing.getColor() : "");
+        fColor.setPromptText("Ej. ACERO INOXIDABLE PLATA, BLANCO, GRIS");
+        fColor.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); gridPatrimonio.add(fColor, 1, rp++);
+        TextField fTipoBien = new TextField(existing != null && existing.getTipoBien() != null ? existing.getTipoBien() : "");
+        fTipoBien.setPromptText("Ej. 3/2 ton, Camioneta, Oficina");
+        fTipoBien.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); gridPatrimonio.add(fTipoBien, 1, rp++);
+        TextField fNoMotor = new TextField(existing != null && existing.getNoMotor() != null ? existing.getNoMotor() : "");
+        fNoMotor.setPromptText("Número de motor (vehículos)");
+        fNoMotor.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabel("N° de Motor"), 0, rp); gridPatrimonio.add(fNoMotor, 1, rp++);
+        TextField fNoTarjeta = new TextField(existing != null && existing.getNoTarjetaCirculacion() != null ? existing.getNoTarjetaCirculacion() : "");
+        fNoTarjeta.setPromptText("Número de tarjeta de circulación");
+        fNoTarjeta.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabel("N° Tarjeta Circ."), 0, rp); gridPatrimonio.add(fNoTarjeta, 1, rp++);
+        TextField fNoPoliza = new TextField(existing != null && existing.getNoPolizaSeguro() != null ? existing.getNoPolizaSeguro() : "");
+        fNoPoliza.setPromptText("Número de póliza de seguro");
+        fNoPoliza.getStyleClass().add("form-input");
+        gridPatrimonio.add(DialogUtil.fieldLabel("N° Póliza Seguro"), 0, rp); gridPatrimonio.add(fNoPoliza, 1, rp);
 
         // ── TabPane ──
         TabPane tabs = new TabPane();
@@ -866,6 +897,12 @@ public final class ProductoDialogFactory {
         fNotasMant.textProperty().addListener((o, a, b) -> markDirty.run());
         fEstadoFisico.valueProperty().addListener((o, a, b) -> markDirty.run());
         fNumeroFactura.textProperty().addListener((o, a, b) -> markDirty.run());
+        fClaveArm.textProperty().addListener((o, a, b) -> markDirty.run());
+        fColor.textProperty().addListener((o, a, b) -> markDirty.run());
+        fTipoBien.textProperty().addListener((o, a, b) -> markDirty.run());
+        fNoMotor.textProperty().addListener((o, a, b) -> markDirty.run());
+        fNoTarjeta.textProperty().addListener((o, a, b) -> markDirty.run());
+        fNoPoliza.textProperty().addListener((o, a, b) -> markDirty.run());
 
         javafx.scene.Node cancelBtn = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         if (cancelBtn != null) {
@@ -995,6 +1032,12 @@ public final class ProductoDialogFactory {
             p.setEstadoFisico(estadoFisicoVal == null || estadoFisicoVal.isBlank() ? null : estadoFisicoVal);
             String numFactTxt = fNumeroFactura.getText().trim();
             p.setNumeroFactura(numFactTxt.isEmpty() ? null : numFactTxt);
+            p.setClaveArmonizada(fClaveArm.getText().trim().isEmpty() ? null : fClaveArm.getText().trim());
+            p.setColor(fColor.getText().trim().isEmpty() ? null : fColor.getText().trim());
+            p.setTipoBien(fTipoBien.getText().trim().isEmpty() ? null : fTipoBien.getText().trim());
+            p.setNoMotor(fNoMotor.getText().trim().isEmpty() ? null : fNoMotor.getText().trim());
+            p.setNoTarjetaCirculacion(fNoTarjeta.getText().trim().isEmpty() ? null : fNoTarjeta.getText().trim());
+            p.setNoPolizaSeguro(fNoPoliza.getText().trim().isEmpty() ? null : fNoPoliza.getText().trim());
             dirty[0] = false; // clear so setOnCloseRequest doesn't prompt after a successful save
             // Procesar y guardar fotos
             List<String> savedFotos = new java.util.ArrayList<>();

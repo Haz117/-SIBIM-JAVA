@@ -1049,6 +1049,12 @@ public class ReporteService {
         return escaped;
     }
 
+    // ── Resguardo de Bienes Muebles (formato pág. 3) ─────
+    public File exportBienesMueblesPdf(List<Producto> bienes, String resguardante,
+                                        String cargo, String area, String numero) throws Exception {
+        return new ReporteBienesMueblesService().exportBienesMueblesPdf(bienes, resguardante, cargo, area, numero);
+    }
+
     // ── Parque Vehicular V.6 ─────────────────────────────
 
     public File exportParqueVehicularPdf(List<Producto> vehiculos) throws Exception {
