@@ -20,14 +20,14 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Alertas** — resumen rápido con 3 tarjetas animadas (Agotados / Bajo Stock / Garantías) con barras de proporción; detalle de garantías vencidas vs. próximas; exportable a PDF, Excel y CSV directamente desde la pantalla de alertas (Ctrl+F para filtrar, atajos de teclado en todos los módulos)
 - **Dashboard** — 4 mini-tarjetas de estado (Activos / Bajo Stock / Agotados / Vencidos) con `ProgressBar` codificada por color, gráfica de movimientos semanal, gráfica por categoría y barras de distribución de las 5 áreas con más bienes
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área); el encabezado de todos los documentos PDF y Excel usa el nombre del ayuntamiento configurado en Configuración
-- **Organigrama** — 4 tarjetas de resumen (áreas, bienes distribuidos, área con más bienes, valor patrimonial total); barras horizontales animadas con las top-5 áreas; valor patrimonial y alertas de stock por área; salto directo al Inventario filtrado por esa área
+- **Organigrama** — 4 tarjetas de resumen (áreas, bienes distribuidos, área con más bienes, valor patrimonial total); barras horizontales animadas con las top-5 áreas; **tres modos de vista**: árbol jerárquico por secretaría/dirección, tabla de resumen y tarjetas por área (toggle en la barra de herramientas); las **tarjetas de área** muestran valor patrimonial, stock total, bienes agotados y en bajo stock — con borde de acento ámbar (1–2 alertas) o rojo (3 o más); clic en el botón de área abre un diálogo con tabs de **Bienes**, **Préstamos activos**, **Comodatos** y **Actas de entrega**, con exportación a PDF; salto directo al Inventario filtrado por esa área
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real; activar/desactivar cuentas (desactivar bloquea el acceso tanto online como en modo offline); la eliminación de un usuario con bienes/movimientos relacionados ofrece desactivar la cuenta como alternativa a borrar
 - **Configuración institucional** — nombre del ayuntamiento, municipio, área responsable y correo de contacto editables desde Configuración (solo Admin); todos los reportes PDF/Excel usan automáticamente estos datos
 - **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo; contadores animados de 0 al valor real; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press; animación de transferencia con flecha que se estira al disparar y chip de destino que entra desde la derecha con rebote; efecto shake en errores de validación
 - **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
 - **Notificaciones toast** en tiempo real
 - **Recuperación de formularios** — si falla el guardado (BD caída, validación), el diálogo se reabre con los datos ya capturados en vez de perderlos
-- **Accesibilidad** — texto accesible automático para lectores de pantalla en botones de solo-ícono (toma el texto del tooltip); tamaño de texto ajustable (Normal / Grande / Extra grande) y densidad de filas de tabla (Compacto / Normal / Cómodo), ambos en la barra de estado; interruptor para desactivar animaciones en equipos de gama baja (Configuración → Accesibilidad y rendimiento)
+- **Accesibilidad** — texto accesible automático para lectores de pantalla en botones de solo-ícono (toma el texto del tooltip); tamaño de texto ajustable (Normal / Grande / Extra grande) y densidad de filas de tabla (Compacto / Normal / Cómodo), ambos en la barra de estado; interruptor para desactivar animaciones en equipos de gama baja (Configuración → Accesibilidad y rendimiento); el **tutorial de bienvenida** incluye botón de cierre (×), puntos de navegación con etiqueta de paso, y todos los botones tienen texto accesible para lectores de pantalla
 - **Columnas de tabla restaurables** — en las tablas con menú de columnas (Auditoría, Categorías, Movimientos, Depreciación, Alertas), un botón junto a "Actualizar" regresa el orden, ancho y visibilidad de las columnas a como estaban originalmente, sin tener que recordar qué se cambió
 
 ---
@@ -37,7 +37,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Capa | Tecnología |
 |---|---|
 | Lenguaje | Java 21 |
-| UI | JavaFX 21 + FXML + CSS + AtlantaFX |
+| UI | JavaFX 21 + FXML + CSS + AtlantaFX (PrimerLight) |
 | Base de datos principal | PostgreSQL (gestionado por Flyway) |
 | Base de datos offline | SQLite 3.46 (`~/.sibim/offline.db`) |
 | Conexión BD | HikariCP (pool 10 conexiones, 8 s timeout) |
@@ -204,12 +204,12 @@ SIBIM-Java/
 │   │   │   │   │                  # por tipo de export (Depreciación, Bajas, Dashboard, Auditoría)
 │   │   │   ├── db/
 │   │   │   │   └── offline/       # OfflineStore (SQLite), SyncService, outbox
-│   │   │   ├── util/              # Notificaciones, diálogos, animaciones, formato
+│   │   │   ├── util/              # NotificacionUtil, DialogUtil (badges, dialogs), AnimationUtils, EmptyStateUtil, FormatUtils
 │   │   │   ├── session/           # SessionManager (usuario activo, áreas accesibles)
 │   │   │   └── config/            # Áreas del organigrama y configuración de BD
 │   │   └── resources/
 │   │       ├── fxml/              # 16 vistas de la interfaz
-│   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles)
+│   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
 │   │       ├── db/migration/      # Migraciones Flyway V1–V18, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
@@ -241,7 +241,7 @@ SIBIM-Java/
 | Movimientos | Entradas / salidas / ajustes / transferencias; flujo de aprobación para transferencias de usuarios no-Admin (PENDIENTE hasta que un Admin las autorice o rechace desde el panel "⏳ Pendientes") |
 | Alertas | 3 tarjetas resumen animadas (Agotados / Bajo Stock / Garantías) con proporciones relativas y desglose vencidas/próximas; búsqueda en tiempo real (Ctrl+F); export a PDF, Excel y CSV; reposición de stock con guardia por rol |
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches) |
-| Organigrama | 4 tarjetas (áreas, bienes, top área, valor patrimonial); barras animadas top-5 áreas; alertas de stock por área; acceso directo al Inventario filtrado por área |
+| Organigrama | 4 tarjetas de resumen; barras animadas top-5 áreas; vista árbol / tabla / tarjetas (toggle); tarjetas con borde de acento por nivel de alertas; diálogo por área con tabs Bienes / Préstamos / Comodatos / Actas; acceso directo al Inventario filtrado por área |
 | Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV); encabezado institucional configurable |
 | Depreciación | Tarjetas de valor compra/actual/% promedio/totalmente depreciados; distribución en 4 rangos como barras animadas; columna visual `ProgressBar` en la tabla; gráfica de proyección a 10 años; export PDF/Excel/fichas en lote |
 | Auditoría | Registro de acciones de todo el sistema (bienes, movimientos, usuarios, resguardos, préstamos, actas, configuración, inicios de sesión); filtros por entidad/acción/usuario con presets de fecha; tarjetas de resumen; export PDF/Excel/CSV (solo Admin) |
