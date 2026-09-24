@@ -1,6 +1,8 @@
 package com.sibim.controller;
 
 import com.sibim.config.Areas;
+import com.sibim.model.Comodato;
+import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.model.Resguardo;
 import com.sibim.model.enums.EstadoProducto;
@@ -27,22 +29,34 @@ class OrganigramaTreeBuilder {
         void show(String areaName, List<Producto> prods, boolean soloAlertasOnly);
     }
 
-    private final Map<String, List<Producto>> productosPorArea;
+    private final Map<String, List<Producto>>  productosPorArea;
     private final Map<String, List<Resguardo>> resguardosPorArea;
+    private final Map<String, List<Prestamo>>  prestamosPorArea;
+    private final Map<String, List<Comodato>>  comodatosPorArea;
     private final boolean soloAlertas;
     private final AreaDialogHandler onAreaClick;
     private final BiConsumer<String, List<Resguardo>> onRsgClick;
+    private final BiConsumer<String, List<Prestamo>>  onPrestClick;
+    private final BiConsumer<String, List<Comodato>>  onComodClick;
 
     OrganigramaTreeBuilder(Map<String, List<Producto>> productosPorArea,
                            Map<String, List<Resguardo>> resguardosPorArea,
                            boolean soloAlertas,
+                           Map<String, List<Prestamo>> prestamosPorArea,
+                           Map<String, List<Comodato>> comodatosPorArea,
                            AreaDialogHandler onAreaClick,
-                           BiConsumer<String, List<Resguardo>> onRsgClick) {
+                           BiConsumer<String, List<Resguardo>> onRsgClick,
+                           BiConsumer<String, List<Prestamo>> onPrestClick,
+                           BiConsumer<String, List<Comodato>> onComodClick) {
         this.productosPorArea  = productosPorArea;
         this.resguardosPorArea = resguardosPorArea;
         this.soloAlertas       = soloAlertas;
+        this.prestamosPorArea  = prestamosPorArea;
+        this.comodatosPorArea  = comodatosPorArea;
         this.onAreaClick       = onAreaClick;
         this.onRsgClick        = onRsgClick;
+        this.onPrestClick      = onPrestClick;
+        this.onComodClick      = onComodClick;
     }
 
     void build(VBox orgTree, String filter) {
@@ -165,6 +179,36 @@ class OrganigramaTreeBuilder {
             header.getChildren().add(rsgDot);
         }
 
+        List<Prestamo> prestArea = new ArrayList<>(prestamosPorArea.getOrDefault(parentName, List.of()));
+        for (String child : children) prestArea.addAll(prestamosPorArea.getOrDefault(child, List.of()));
+        if (!prestArea.isEmpty()) {
+            FontIcon prestIcon = new FontIcon("mdi2c-clipboard-arrow-right-outline");
+            prestIcon.setIconSize(12);
+            Label prestDot = new Label(" " + prestArea.size());
+            prestDot.setGraphic(prestIcon);
+            prestDot.setContentDisplay(ContentDisplay.LEFT);
+            prestDot.getStyleClass().addAll("org-prestamo-badge", "org-alert-badge-clickable");
+            final List<Prestamo> prestFinal = List.copyOf(prestArea);
+            prestDot.setOnMouseClicked(e -> { e.consume(); onPrestClick.accept(parentName, prestFinal); });
+            Tooltip.install(prestDot, new Tooltip(prestArea.size() + " préstamo(s) activo(s) en esta área — clic para verlos"));
+            header.getChildren().add(prestDot);
+        }
+
+        List<Comodato> comodArea = new ArrayList<>(comodatosPorArea.getOrDefault(parentName, List.of()));
+        for (String child : children) comodArea.addAll(comodatosPorArea.getOrDefault(child, List.of()));
+        if (!comodArea.isEmpty()) {
+            FontIcon comodIcon = new FontIcon("mdi2h-handshake-outline");
+            comodIcon.setIconSize(12);
+            Label comodDot = new Label(" " + comodArea.size());
+            comodDot.setGraphic(comodIcon);
+            comodDot.setContentDisplay(ContentDisplay.LEFT);
+            comodDot.getStyleClass().addAll("org-comodato-badge", "org-alert-badge-clickable");
+            final List<Comodato> comodFinal = List.copyOf(comodArea);
+            comodDot.setOnMouseClicked(e -> { e.consume(); onComodClick.accept(parentName, comodFinal); });
+            Tooltip.install(comodDot, new Tooltip(comodArea.size() + " comodato(s) activo(s) en esta área — clic para verlos"));
+            header.getChildren().add(comodDot);
+        }
+
         if (!SessionManager.isAdmin()
                 && SessionManager.getCurrentUser().getArea() != null
                 && SessionManager.getCurrentUser().getArea().equals(parentName)) {
@@ -238,6 +282,49 @@ class OrganigramaTreeBuilder {
                 Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) agotado(s) o bajo stock en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(alertDot);
             }
+
+            List<Resguardo> rsgChild = resguardosPorArea.getOrDefault(child, List.of());
+            if (!rsgChild.isEmpty()) {
+                FontIcon rsgIcon = new FontIcon("mdi2c-clipboard-account-outline");
+                rsgIcon.setIconSize(12);
+                Label rsgDot = new Label(" " + rsgChild.size());
+                rsgDot.setGraphic(rsgIcon);
+                rsgDot.setContentDisplay(ContentDisplay.LEFT);
+                rsgDot.getStyleClass().addAll("org-resguardo-badge", "org-alert-badge-clickable");
+                final List<Resguardo> rsgChildFinal = List.copyOf(rsgChild);
+                rsgDot.setOnMouseClicked(e -> { e.consume(); onRsgClick.accept(child, rsgChildFinal); });
+                Tooltip.install(rsgDot, new Tooltip(rsgChild.size() + " resguardo(s) activo(s) en " + child + " — clic para verlos"));
+                childHeader.getChildren().add(rsgDot);
+            }
+
+            List<Prestamo> prestChild = prestamosPorArea.getOrDefault(child, List.of());
+            if (!prestChild.isEmpty()) {
+                FontIcon prestIcon = new FontIcon("mdi2c-clipboard-arrow-right-outline");
+                prestIcon.setIconSize(12);
+                Label prestDot = new Label(" " + prestChild.size());
+                prestDot.setGraphic(prestIcon);
+                prestDot.setContentDisplay(ContentDisplay.LEFT);
+                prestDot.getStyleClass().addAll("org-prestamo-badge", "org-alert-badge-clickable");
+                final List<Prestamo> prestChildFinal = List.copyOf(prestChild);
+                prestDot.setOnMouseClicked(e -> { e.consume(); onPrestClick.accept(child, prestChildFinal); });
+                Tooltip.install(prestDot, new Tooltip(prestChild.size() + " préstamo(s) activo(s) en " + child + " — clic para verlos"));
+                childHeader.getChildren().add(prestDot);
+            }
+
+            List<Comodato> comodChild = comodatosPorArea.getOrDefault(child, List.of());
+            if (!comodChild.isEmpty()) {
+                FontIcon comodIcon = new FontIcon("mdi2h-handshake-outline");
+                comodIcon.setIconSize(12);
+                Label comodDot = new Label(" " + comodChild.size());
+                comodDot.setGraphic(comodIcon);
+                comodDot.setContentDisplay(ContentDisplay.LEFT);
+                comodDot.getStyleClass().addAll("org-comodato-badge", "org-alert-badge-clickable");
+                final List<Comodato> comodChildFinal = List.copyOf(comodChild);
+                comodDot.setOnMouseClicked(e -> { e.consume(); onComodClick.accept(child, comodChildFinal); });
+                Tooltip.install(comodDot, new Tooltip(comodChild.size() + " comodato(s) activo(s) en " + child + " — clic para verlos"));
+                childHeader.getChildren().add(comodDot);
+            }
+
             if (isMyArea) {
                 Label badge = new Label("Tu área");
                 badge.getStyleClass().add("org-my-area-badge");

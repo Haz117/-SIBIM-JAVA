@@ -27,7 +27,7 @@ class AlertasDataLoader {
         this.comodatoService = comodatoService;
     }
 
-    void load(Consumer<AlertasResult> onSuccess, Consumer<Throwable> onError) {
+    void load(Consumer<AlertasResult> onSuccess, Consumer<Exception> onError) {
         DialogUtil.runAsync(
             () -> {
                 comodatoService.actualizarVencidos();

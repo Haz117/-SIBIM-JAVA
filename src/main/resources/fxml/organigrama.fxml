@@ -151,6 +151,12 @@
         </ToggleButton>
         <Label text="Expande cada sección para ver los bienes asignados"
                styleClass="muted-sm"/>
+        <Separator orientation="VERTICAL"/>
+        <ToggleButton fx:id="btnToggleVista" styleClass="btn-secondary btn-sm"
+                      onAction="#onToggleVista" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2v-view-grid-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Alternar entre vista de árbol y vista de tarjetas"/></tooltip>
+        </ToggleButton>
         <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary btn-sm">
             <tooltip><Tooltip text="Expande todas las secciones visibles"/></tooltip>
         </Button>

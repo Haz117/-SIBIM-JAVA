@@ -1650,6 +1650,43 @@
     -fx-background-color: #FEE2E2;
     -fx-border-color: #DC2626;
 }
+.org-prestamo-badge {
+    -fx-background-color: derive(#3b82f6, 85%);
+    -fx-text-fill: #1d4ed8;
+    -fx-border-color: derive(#3b82f6, 40%);
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 11px;
+    -fx-padding: 1 7 1 5;
+    -fx-font-weight: 600;
+}
+.org-comodato-badge {
+    -fx-background-color: derive(#f59e0b, 85%);
+    -fx-text-fill: #92400e;
+    -fx-border-color: derive(#f59e0b, 20%);
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 11px;
+    -fx-padding: 1 7 1 5;
+    -fx-font-weight: 600;
+}
+.org-card-view-card {
+    -fx-background-color: -fx-card-bg;
+    -fx-border-color: -fx-border-subtle;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 8, 0, 0, 2);
+    -fx-padding: 16;
+    -fx-cursor: hand;
+    -fx-pref-width: 320;
+    -fx-min-width: 280;
+    -fx-max-width: 360;
+}
+.org-card-view-card:hover {
+    -fx-border-color: -fx-accent;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.13), 12, 0, 0, 3);
+}
 .org-product-code {
     -fx-text-fill: #7C3AED;
     -fx-font-family: monospace;
