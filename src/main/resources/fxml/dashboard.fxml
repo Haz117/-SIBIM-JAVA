@@ -140,15 +140,9 @@
             <graphic><FontIcon iconLiteral="mdi2c-chart-donut" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Panel ejecutivo: depreciación patrimonial y proyección de bajas"/></tooltip>
         </Button>
-        <Button onAction="#onPersonalizarDashboard" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
-            <graphic><FontIcon iconLiteral="mdi2t-tune-vertical" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Personalizar tarjetas visibles"/></tooltip>
-        </Button>
     </HBox>
 
-    <!-- Stats grid — 1×4: solo cifras que no se repiten en ningún otro
-         lado del dashboard (bajo-stock/agotados viven únicamente en el
-         health bar de abajo, para no mostrar el mismo número dos veces) -->
+    <!-- Stats grid — 1×4 -->
     <GridPane fx:id="statsGrid" hgap="14" vgap="14">
         <columnConstraints>
             <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
@@ -243,86 +237,28 @@
     </GridPane>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECCIÓN: OPERACIONES ACTIVAS
+         SECCIÓN: ACTIVIDAD RECIENTE
          ══════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
-        <Label text="OPERACIONES ACTIVAS" styleClass="dash-section-label"/>
-    </HBox>
-    <HBox fx:id="operacionesRow" spacing="14">
-        <VBox fx:id="cardPrestamosVencidos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
-              onMouseClicked="#onVerPrestamosVencidos" HBox.hgrow="ALWAYS">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
-            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
-                <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
-            </StackPane>
-            <VBox spacing="5">
-                <Label text="PRÉSTAMOS VENCIDOS" styleClass="rich-stat-label"/>
-                <Label fx:id="lblPrestamosVencidos" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver préstamos →" styleClass="rich-stat-hint"/>
-            </VBox>
-        </VBox>
-        <VBox fx:id="cardPrestamosActivos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
-              onMouseClicked="#onVerPrestamos" HBox.hgrow="ALWAYS">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
-            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
-                <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="rich-stat-icon"/>
-            </StackPane>
-            <VBox spacing="5">
-                <Label text="PRÉSTAMOS ACTIVOS" styleClass="rich-stat-label"/>
-                <Label fx:id="lblPrestamosActivos" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver préstamos →" styleClass="rich-stat-hint"/>
-            </VBox>
-        </VBox>
-        <VBox fx:id="cardResguardosActivos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
-              onMouseClicked="#onVerResguardos" HBox.hgrow="ALWAYS">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
-            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
-                <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="rich-stat-icon"/>
-            </StackPane>
-            <VBox spacing="5">
-                <Label text="RESGUARDOS ACTIVOS" styleClass="rich-stat-label"/>
-                <Label fx:id="lblResguardosActivos" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver resguardos →" styleClass="rich-stat-hint"/>
-            </VBox>
-        </VBox>
-        <VBox fx:id="cardComodatosVigentes" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
-              onMouseClicked="#onVerComodatos" HBox.hgrow="ALWAYS">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
-            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
-                <FontIcon iconLiteral="mdi2h-handshake-outline" styleClass="rich-stat-icon"/>
-            </StackPane>
-            <VBox spacing="5">
-                <Label text="COMODATOS VIGENTES" styleClass="rich-stat-label"/>
-                <Label fx:id="lblComodatosVigentes" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver comodatos →" styleClass="rich-stat-hint"/>
-            </VBox>
-        </VBox>
-        <VBox fx:id="cardComodatosVencidos" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
-              onMouseClicked="#onVerComodatos" HBox.hgrow="ALWAYS">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
-            <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
-                <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
-            </StackPane>
-            <VBox spacing="5">
-                <Label text="COMODATOS VENCIDOS" styleClass="rich-stat-label"/>
-                <Label fx:id="lblComodatosVencidos" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver comodatos →" styleClass="rich-stat-hint"/>
-            </VBox>
-        </VBox>
+        <Label text="ACTIVIDAD RECIENTE" styleClass="dash-section-label"/>
+        <Label fx:id="lblCountReciente" text="" styleClass="dash-activity-badge"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Ver todos →" onAction="#onVerMovimientos"
+                styleClass="btn-secondary btn-sm"/>
     </HBox>
 
-    <!-- ══════════════════════════════════════════════════════════
-         ESTADO DEL INVENTARIO (4 mini-cards con barra de progreso)
-         ══════════════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="ESTADO DEL INVENTARIO" styleClass="dash-section-label"/>
-        <Label fx:id="helpHealth" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Distribución de todos los bienes activos por estado de stock. Haz clic en Bajo Stock o Agotados para ver cuáles son." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
-    </HBox>
-    <HBox fx:id="statusCardsRow" spacing="14" visible="false" managed="false"/>
+    <VBox fx:id="activityCard" styleClass="card" spacing="0">
+        <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table recent-table">
+            <placeholder>
+                <VBox alignment="CENTER" spacing="8">
+                    <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>
+                    <Label text="Sin movimientos recientes" styleClass="empty-state-msg"/>
+                    <Label text="Los movimientos registrados aparecerán aquí" styleClass="empty-state-hint"/>
+                </VBox>
+            </placeholder>
+        </TableView>
+    </VBox>
 
     <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: ANÁLISIS DE INVENTARIO
@@ -366,89 +302,6 @@
             </StackPane>
         </VBox>
     </HBox>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECCIÓN: DISTRIBUCIÓN POR ÁREA
-         ══════════════════════════════════════════════════════════ -->
-    <HBox fx:id="areasSectionHdr" alignment="CENTER_LEFT" spacing="10" visible="false" managed="false">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="DISTRIBUCIÓN POR ÁREA" styleClass="dash-section-label"/>
-        <Label text="Top 5 áreas · bienes activos" styleClass="dash-section-badge"/>
-    </HBox>
-    <VBox fx:id="areasCard" styleClass="card" spacing="14" visible="false" managed="false">
-        <padding><Insets top="18" right="20" bottom="18" left="20"/></padding>
-        <VBox fx:id="areasBarBox" spacing="12"/>
-    </VBox>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECCIÓN: TENDENCIA MENSUAL
-         ══════════════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="TENDENCIA MENSUAL" styleClass="dash-section-label"/>
-        <Label text="Últimos 6 meses" styleClass="dash-section-badge"/>
-    </HBox>
-
-    <VBox fx:id="trendCard" styleClass="card" spacing="10">
-        <padding><Insets top="18" right="18" bottom="14" left="18"/></padding>
-        <HBox alignment="CENTER_LEFT" spacing="8">
-            <FontIcon iconLiteral="mdi2t-trending-up" styleClass="card-icon-indigo"/>
-            <Label text="Entradas vs. Salidas" styleClass="card-title" HBox.hgrow="ALWAYS"/>
-            <Label fx:id="lblTrendEmpty" text="Sin datos suficientes para mostrar tendencia"
-                   styleClass="muted" visible="false" managed="false"/>
-        </HBox>
-        <AreaChart fx:id="chartTendencia" prefHeight="210" animated="false">
-            <xAxis><CategoryAxis/></xAxis>
-            <yAxis><NumberAxis minorTickCount="1"/></yAxis>
-        </AreaChart>
-    </VBox>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECCIÓN: VALOR PATRIMONIAL MENSUAL
-         ══════════════════════════════════════════════════════════ -->
-    <HBox fx:id="valorSectionHdr" alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="VALOR PATRIMONIAL" styleClass="dash-section-label"/>
-        <Label text="Últimos 6 meses · MXN" styleClass="dash-section-badge"/>
-    </HBox>
-    <VBox fx:id="valorCard" styleClass="card" spacing="10">
-        <padding><Insets top="18" right="18" bottom="14" left="18"/></padding>
-        <HBox alignment="CENTER_LEFT" spacing="8">
-            <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="card-icon-emerald"/>
-            <Label text="Entradas vs. Salidas (MXN)" styleClass="card-title" HBox.hgrow="ALWAYS"/>
-            <Label fx:id="lblValorEmpty" text="Sin datos de precio en movimientos"
-                   styleClass="muted" visible="false" managed="false"/>
-        </HBox>
-        <BarChart fx:id="chartValor" prefHeight="210" animated="false">
-            <xAxis><CategoryAxis/></xAxis>
-            <yAxis><NumberAxis minorTickCount="1"/></yAxis>
-        </BarChart>
-    </VBox>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECCIÓN: ACTIVIDAD RECIENTE
-         ══════════════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="ACTIVIDAD RECIENTE" styleClass="dash-section-label"/>
-        <Label fx:id="lblCountReciente" text="" styleClass="dash-activity-badge"/>
-        <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Ver todos →" onAction="#onVerMovimientos"
-                styleClass="btn-secondary btn-sm"/>
-    </HBox>
-
-    <!-- Recent activity table inside a card -->
-    <VBox fx:id="activityCard" styleClass="card" spacing="0">
-        <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table recent-table">
-            <placeholder>
-                <VBox alignment="CENTER" spacing="8">
-                    <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>
-                    <Label text="Sin movimientos recientes" styleClass="empty-state-msg"/>
-                    <Label text="Los movimientos registrados aparecerán aquí" styleClass="empty-state-hint"/>
-                </VBox>
-            </placeholder>
-        </TableView>
-    </VBox>
 
 </VBox>
 </ScrollPane>

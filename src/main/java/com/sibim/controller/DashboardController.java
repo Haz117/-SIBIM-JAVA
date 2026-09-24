@@ -53,20 +53,12 @@ public class DashboardController implements Refreshable {
     @FXML private Label helpValorTotal;
     @FXML private Label helpMovimientosHoy;
     @FXML private Label helpCategorias;
-    @FXML private Label helpHealth;
     @FXML private Label helpAnalisis;
 
     // ── Charts ───────────────────────────────────────────────────────
     @FXML private LineChart<String, Number>  chartMovimientos;
     @FXML private VBox                       categoriaValorBox;
     @FXML private VBox                       pieEmptyState;
-    @FXML private AreaChart<String, Number>  chartTendencia;
-    @FXML private VBox                       trendCard;
-    @FXML private Label                      lblTrendEmpty;
-    @FXML private javafx.scene.chart.BarChart<String, Number> chartValor;
-    @FXML private VBox                       valorCard;
-    @FXML private HBox                       valorSectionHdr;
-    @FXML private Label                      lblValorEmpty;
 
     // ── Layout ───────────────────────────────────────────────────────
     @FXML private javafx.scene.control.ScrollPane rootScrollPane;
@@ -79,38 +71,10 @@ public class DashboardController implements Refreshable {
     @FXML private HBox  quickActionsRow;
     @FXML private VBox  cardNuevoBien;
     @FXML private VBox  cardNuevaEntrada;
-    @FXML private HBox  statusCardsRow;
-    @FXML private VBox  areasCard;
-    @FXML private VBox  areasBarBox;
-    @FXML private HBox  areasSectionHdr;
-
-    // ── Operaciones cards ─────────────────────────────────────────────
-    @FXML private Label lblPrestamosVencidos;
-    @FXML private Label lblPrestamosActivos;
-    @FXML private Label lblResguardosActivos;
-    @FXML private VBox  cardPrestamosVencidos;
-    @FXML private VBox  cardPrestamosActivos;
-    @FXML private VBox  cardResguardosActivos;
-    @FXML private HBox  operacionesRow;
-
-    // ── Comodatos cards ───────────────────────────────────────────────
-    @FXML private Label lblComodatosVigentes;
-    @FXML private Label lblComodatosVencidos;
-    @FXML private VBox  cardComodatosVigentes;
-    @FXML private VBox  cardComodatosVencidos;
 
     private final DashboardService dashboardService = new DashboardService();
     private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
     private final com.sibim.service.ReporteService reporteService = com.sibim.service.ReporteService.getInstance();
-    private final com.sibim.service.PrestamoService prestamoService = new com.sibim.service.PrestamoService();
-    private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
-    private final com.sibim.service.ComodatoService comodatoService = new com.sibim.service.ComodatoService();
-
-    private static final String CARDS_CONFIG_KEY = "dashboard_cards_visibles";
-    private static final java.util.Set<String> ALL_CARDS = java.util.Set.of(
-        "Total Bienes", "Movimientos hoy", "Bienes agotados", "Bajo stock", "Por área", "Actividad reciente");
-    private static final java.util.List<String> CARDS_ORDERED = java.util.List.of(
-        "Total Bienes", "Movimientos hoy", "Bienes agotados", "Bajo stock", "Por área", "Actividad reciente");
 
     private List<Producto> lastAgotados  = List.of();
     private List<Producto> lastBajoStock = List.of();
@@ -119,7 +83,6 @@ public class DashboardController implements Refreshable {
     private javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneReadyListener;
     private boolean chartsFirstLoad = true;
     private DashboardChartBuilder chartBuilder;
-    private DashboardStatusSectionBuilder statusBuilder;
 
     @FXML
     public void initialize() {
@@ -131,15 +94,9 @@ public class DashboardController implements Refreshable {
 
         new DashboardTablaRecienteSetup(tablaReciente, productoService, movimientoService, log).setup();
         chartBuilder = new DashboardChartBuilder(
-            chartMovimientos, categoriaValorBox, pieEmptyState,
-            chartTendencia, trendCard, lblTrendEmpty,
-            chartValor, valorCard, lblValorEmpty, this::navigarA);
-        statusBuilder = new DashboardStatusSectionBuilder(
-            statusCardsRow, areasCard, areasBarBox, areasSectionHdr,
-            () -> navigarA("Productos"), this::onVerBajoStock, this::onVerAgotados, () -> navigarA("Alertas"));
+            chartMovimientos, categoriaValorBox, pieEmptyState, this::navigarA);
 
         setupHelpBadges();
-        applyCardVisibility();
         setupPermissions();
         setupSceneReadyListener();
     }
@@ -167,7 +124,7 @@ public class DashboardController implements Refreshable {
 
     private void setupHelpBadges() {
         for (Label badge : new Label[]{ helpStats, helpTotalBienes, helpValorTotal,
-                helpMovimientosHoy, helpCategorias, helpHealth, helpAnalisis }) {
+                helpMovimientosHoy, helpCategorias, helpAnalisis }) {
             if (badge != null) com.sibim.util.DialogUtil.enableClickToShowTooltip(badge);
         }
     }
@@ -186,7 +143,6 @@ public class DashboardController implements Refreshable {
     }
 
     private void setupSceneReadyListener() {
-        if (operacionesRow != null) operacionesRow.setOpacity(0);
         sceneReadyListener = (obs, old, newScene) -> {
             if (newScene == null) return;
             statsGrid.sceneProperty().removeListener(sceneReadyListener);
@@ -200,7 +156,6 @@ public class DashboardController implements Refreshable {
             if (quickActionsRow != null) AnimationUtils.staggeredFadeInUp(quickActionsRow.getChildren(), 260, 40);
             if (chartsRow      != null) chartsRow.setOpacity(0);
             if (activityCard   != null) activityCard.setOpacity(0);
-            if (statusCardsRow != null) statusCardsRow.setOpacity(0);
             loadDataAsync();
             autoRefresh = new javafx.animation.Timeline(
                 new javafx.animation.KeyFrame(javafx.util.Duration.minutes(10), e -> loadDataAsync()));
@@ -238,21 +193,15 @@ public class DashboardController implements Refreshable {
         updateAlertBanner(data);
         chartBuilder.buildMovimientosChart(data.movSemana());
         chartBuilder.buildCategoriaChart(data.catValores());
-        statusBuilder.buildStatusCards(data.stats());
-        chartBuilder.buildTrendChart(data.movMensual());
-        chartBuilder.buildValorChart(data.movMensualValor());
-        statusBuilder.buildAreasSection(data.byArea(), data.stats().total());
         updateTrendIndicator(data);
         updateNewBienesHint();
         updateTableReciente(data);
 
         if (chartsFirstLoad) {
             chartsFirstLoad = false;
-            if (chartsRow      != null) AnimationUtils.fadeInUp(chartsRow,      350, 0);
-            if (activityCard   != null) AnimationUtils.fadeInUp(activityCard,   350, 80);
-            if (statusCardsRow != null) AnimationUtils.fadeInUp(statusCardsRow, 350, 40);
+            if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,    350, 0);
+            if (activityCard != null) AnimationUtils.fadeInUp(activityCard, 350, 80);
         }
-        loadOperacionesAsync();
     }
 
     private void updateStatCards(DashboardService.Resumen data) {
@@ -390,7 +339,6 @@ public class DashboardController implements Refreshable {
         String btnId = "#btn" + vista.substring(0, 1).toUpperCase() + vista.substring(1);
         javafx.scene.Node btn = scene.lookup(btnId);
         if (btn instanceof Button b) {
-            // Short delay lets the :pressed CSS feedback render before the screen switches.
             javafx.animation.PauseTransition delay =
                 new javafx.animation.PauseTransition(javafx.util.Duration.millis(80));
             delay.setOnFinished(ev -> b.fire());
@@ -405,58 +353,6 @@ public class DashboardController implements Refreshable {
     @FXML private void onVerReportes()     { navigarA("Reportes"); }
     @FXML private void onVerCategorias()   { navigarA("Categorias"); }
     @FXML private void onVerAlertas()      { navigarA("Alertas"); }
-
-    // ── Operaciones ──────────────────────────────────────────────────
-
-    private void loadOperacionesAsync() {
-        com.sibim.util.AppExecutor.submit(() -> {
-            try {
-                long vencidos   = prestamoService.countVencidos();
-                long activos    = prestamoService.countActivos();
-                long resguardos = resguardoService.countActivos();
-                long comodatosVigentes;
-                long comodatosVencidos;
-                try {
-                    comodatoService.actualizarVencidos();
-                    comodatosVigentes = comodatoService.getVigentes().size();
-                    comodatosVencidos = comodatoService.getVencidos().size();
-                } catch (Exception ex) {
-                    comodatosVigentes = 0;
-                    comodatosVencidos = 0;
-                }
-                final long cVig = comodatosVigentes;
-                final long cVen = comodatosVencidos;
-                javafx.application.Platform.runLater(() -> {
-                    if (lblPrestamosVencidos != null) AnimationUtils.animateCount(lblPrestamosVencidos, vencidos,   700);
-                    if (lblPrestamosActivos  != null) AnimationUtils.animateCount(lblPrestamosActivos,  activos,    700);
-                    if (lblResguardosActivos != null) AnimationUtils.animateCount(lblResguardosActivos, resguardos, 700);
-                    if (lblComodatosVigentes != null) AnimationUtils.animateCount(lblComodatosVigentes, cVig,       700);
-                    if (lblComodatosVencidos != null) AnimationUtils.animateCount(lblComodatosVencidos, cVen,       700);
-                    applyUrgentStyle(cardPrestamosVencidos, vencidos > 0);
-                    applyUrgentStyle(cardComodatosVencidos, cVen     > 0);
-                    if (operacionesRow != null && operacionesRow.getOpacity() < 1)
-                        AnimationUtils.fadeInUp(operacionesRow, 350, 0);
-                });
-            } catch (Exception e) {
-                log.warn("No se pudieron cargar los contadores de operaciones del dashboard", e);
-            }
-        });
-    }
-
-    private static void applyUrgentStyle(VBox card, boolean urgent) {
-        if (card == null) return;
-        if (urgent) {
-            card.getStyleClass().removeAll("dash-stat-urgent");
-            card.getStyleClass().add("dash-stat-urgent");
-        } else {
-            card.getStyleClass().remove("dash-stat-urgent");
-        }
-    }
-
-    @FXML private void onVerPrestamos()         { navigarA("Prestamos"); }
-    @FXML private void onVerPrestamosVencidos() { navigarA("Prestamos"); }
-    @FXML private void onVerResguardos()        { navigarA("Resguardos"); }
-    @FXML private void onVerComodatos()         { navigarA("Comodatos"); }
 
     @FXML
     private void onVerAgotados() {
@@ -546,78 +442,6 @@ public class DashboardController implements Refreshable {
         if (hour < 12) return "Buenos días,";
         if (hour < 19) return "Buenas tardes,";
         return "Buenas noches,";
-    }
-
-    @FXML
-    public void onPersonalizarDashboard() {
-        java.util.Set<String> visible = loadVisibleCards();
-
-        Dialog<ButtonType> dlg = new Dialog<>();
-        com.sibim.util.DialogUtil.applyOwner(dlg);
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        dlg.getDialogPane().setPrefWidth(360);
-        com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        HBox header = com.sibim.util.DialogUtil.gradientHeader("mdi2t-tune-vertical",
-            "Personalizar dashboard", "Elige qué secciones mostrar", AppColors.PRIMARY_D, AppColors.INDIGO);
-
-        VBox checks = new VBox(10);
-        checks.setPadding(new javafx.geometry.Insets(14));
-        java.util.Map<String, CheckBox> checkMap = new java.util.LinkedHashMap<>();
-        for (String name : CARDS_ORDERED) {
-            CheckBox cb = new CheckBox(name);
-            cb.setSelected(visible.contains(name));
-            checkMap.put(name, cb);
-            checks.getChildren().add(cb);
-        }
-
-        dlg.getDialogPane().setContent(new VBox(0, header, checks));
-        Button okBtn = (Button) dlg.getDialogPane().lookupButton(ButtonType.OK);
-        okBtn.getStyleClass().add("btn-primary");
-
-        dlg.showAndWait().ifPresent(bt -> {
-            if (bt != ButtonType.OK) return;
-            java.util.Set<String> selected = new java.util.LinkedHashSet<>();
-            checkMap.forEach((name, cb) -> { if (cb.isSelected()) selected.add(name); });
-            String value = String.join(",", selected);
-            com.sibim.util.AppExecutor.submit(() -> {
-                try { configRepo.set(CARDS_CONFIG_KEY, value); } catch (Exception ignored) {
-                    log.debug("Could not persist dashboard card visibility config", ignored);
-                }
-            });
-            applyCardVisibilitySet(selected);
-        });
-    }
-
-    private java.util.Set<String> loadVisibleCards() {
-        String raw = configRepo.get(CARDS_CONFIG_KEY, "");
-        if (raw.isBlank()) return new java.util.HashSet<>(ALL_CARDS);
-        java.util.Set<String> result = new java.util.LinkedHashSet<>();
-        for (String s : raw.split(",")) { String t = s.trim(); if (!t.isBlank()) result.add(t); }
-        return result;
-    }
-
-    private void applyCardVisibility() { applyCardVisibilitySet(loadVisibleCards()); }
-
-    private void applyCardVisibilitySet(java.util.Set<String> visible) {
-        boolean showStats = visible.contains("Total Bienes") || visible.contains("Movimientos hoy");
-        setCardVisible(statsGrid, showStats);
-        boolean showHealth = visible.contains("Bienes agotados") || visible.contains("Bajo stock");
-        setCardVisible(statusCardsRow, showHealth);
-        boolean showCharts = visible.contains("Por área");
-        setCardVisible(chartsRow, showCharts);
-        setCardVisible(areasCard, showCharts);
-        setCardVisible(areasSectionHdr, showCharts);
-        setCardVisible(trendCard, showCharts);
-        setCardVisible(valorCard, showCharts);
-        setCardVisible(valorSectionHdr, showCharts);
-        setCardVisible(activityCard, visible.contains("Actividad reciente"));
-    }
-
-    private static void setCardVisible(javafx.scene.Node node, boolean show) {
-        if (node == null) return;
-        node.setVisible(show);
-        node.setManaged(show);
     }
 
     @FXML
