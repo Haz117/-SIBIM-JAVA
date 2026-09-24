@@ -36,7 +36,9 @@ public class OrganigramaController {
     @FXML private TextField    searchField;
     @FXML private Button       btnClearSearch;
     @FXML private ToggleButton btnSoloAlertas;
-    @FXML private ToggleButton btnToggleVista;
+    @FXML private ToggleButton btnVistaArbol;
+    @FXML private ToggleButton btnVistaCards;
+    @FXML private ToggleButton btnVistaTabla;
     @FXML private VBox         orgTree;
     @FXML private ProgressIndicator spinner;
     @FXML private Label lblStatAreas;
@@ -76,21 +78,36 @@ public class OrganigramaController {
     private Map<String, List<Prestamo>>                  prestamosPorArea  = new HashMap<>();
     private Map<String, List<Comodato>>                  comodatosPorArea  = new HashMap<>();
     private boolean soloAlertas = false;
-    private boolean vistaCards  = false;
+
+    private enum ViewMode { ARBOL, CARDS, TABLA }
+    private ViewMode viewMode = ViewMode.ARBOL;
 
     @FXML private void onRefresh() { loadData(true); }
 
     @FXML private void onToggleSoloAlertas() {
         soloAlertas = btnSoloAlertas != null && btnSoloAlertas.isSelected();
         STICKY.putBoolean("soloAlertas", soloAlertas);
-        buildTree(searchField.getText() != null ? searchField.getText() : "");
+        rebuildCurrentView();
     }
 
-    @FXML private void onToggleVista() {
-        vistaCards = btnToggleVista != null && btnToggleVista.isSelected();
+    @FXML private void onVistaArbol()  { setViewMode(ViewMode.ARBOL);  rebuildCurrentView(); }
+    @FXML private void onVistaCards()  { setViewMode(ViewMode.CARDS);  rebuildCurrentView(); }
+    @FXML private void onVistaTabla()  { setViewMode(ViewMode.TABLA);  rebuildCurrentView(); }
+
+    private void setViewMode(ViewMode m) {
+        viewMode = m;
+        if (btnVistaArbol  != null) btnVistaArbol.setSelected(m == ViewMode.ARBOL);
+        if (btnVistaCards  != null) btnVistaCards.setSelected(m == ViewMode.CARDS);
+        if (btnVistaTabla  != null) btnVistaTabla.setSelected(m == ViewMode.TABLA);
+    }
+
+    private void rebuildCurrentView() {
         String filter = searchField.getText() != null ? searchField.getText() : "";
-        if (vistaCards) buildCardView(filter);
-        else buildTree(filter);
+        switch (viewMode) {
+            case CARDS -> buildCardView(filter);
+            case TABLA -> buildTableView(filter);
+            default    -> buildTree(filter);
+        }
     }
 
     @FXML
@@ -110,7 +127,7 @@ public class OrganigramaController {
         soloAlertas = STICKY.getBoolean("soloAlertas", false);
         if (btnSoloAlertas != null) btnSoloAlertas.setSelected(soloAlertas);
 
-        SearchUtils.debounce(searchField, 280, q -> { STICKY.put("search", q == null ? "" : q); buildTree(q); });
+        SearchUtils.debounce(searchField, 280, q -> { STICKY.put("search", q == null ? "" : q); rebuildCurrentView(); });
         if (btnClearSearch != null) {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); STICKY.put("search", ""); searchField.requestFocus(); });
@@ -141,9 +158,7 @@ public class OrganigramaController {
                 prestamosPorArea  = data.prestamosPorArea();
                 comodatosPorArea  = data.comodatosPorArea();
                 spinner.setVisible(false); spinner.setManaged(false);
-                String filter = searchField.getText() != null ? searchField.getText() : "";
-                if (vistaCards) buildCardView(filter);
-                else buildTree(filter);
+                rebuildCurrentView();
                 updateStats();
                 if (showSuccessToast)
                     NotificacionUtil.info(searchField.getScene(), "Organigrama actualizado");
@@ -191,8 +206,15 @@ public class OrganigramaController {
                         || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(q))))
                 continue;
 
+            long alertas = areaProds.stream()
+                .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.AGOTADO
+                          || p.getEstado() == com.sibim.model.enums.EstadoProducto.BAJO_STOCK)
+                .count();
+
             VBox card = new VBox(8);
             card.getStyleClass().add("org-card-view-card");
+            if (alertas >= 3) card.getStyleClass().add("org-card-danger");
+            else if (alertas > 0) card.getStyleClass().add("org-card-warning");
             card.setOnMouseClicked(e -> dialogs.showAreaProductsDialog(areaName, areaProds, false, searchField.getScene()));
 
             // Header row
@@ -235,10 +257,6 @@ public class OrganigramaController {
             HBox badgesRow = new HBox(6);
             badgesRow.setAlignment(Pos.CENTER_LEFT);
 
-            long alertas = areaProds.stream()
-                .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.AGOTADO
-                          || p.getEstado() == com.sibim.model.enums.EstadoProducto.BAJO_STOCK)
-                .count();
             if (alertas > 0) {
                 FontIcon ai = new FontIcon("mdi2a-alert-circle");
                 ai.setIconSize(11);
@@ -484,5 +502,138 @@ public class OrganigramaController {
     @FXML private void onCollapseAll() {
         for (javafx.scene.Node n : orgTree.getChildren())
             if (n instanceof TitledPane pane) pane.setExpanded(false);
+    }
+
+    // ── Vista tabla ───────────────────────────────────────────────────────────
+
+    private record AreaRow(String nombre, int bienes, java.math.BigDecimal valor,
+                           int alertas, int resguardos, int prestamos, int comodatos,
+                           List<Producto> prods,
+                           List<com.sibim.model.Resguardo> rsgs,
+                           List<Prestamo> prests,
+                           List<Comodato> comods) {}
+
+    private void buildTableView(String filter) {
+        orgTree.getChildren().clear();
+        String q = filter == null ? "" : filter.toLowerCase();
+
+        Map<String, List<Producto>> rollup = rollupByTopLevelArea();
+        List<AreaRow> rows = new ArrayList<>();
+
+        for (var entry : rollup.entrySet()) {
+            String areaName = entry.getKey();
+            List<Producto> areaProds = entry.getValue();
+            if (!q.isBlank() && !areaName.toLowerCase().contains(q)
+                    && areaProds.stream().noneMatch(p ->
+                        p.getNombre().toLowerCase().contains(q)
+                        || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(q))))
+                continue;
+
+            java.math.BigDecimal valor = OrganigramaTreeBuilder.valorPatrimonial(areaProds);
+            int alertas = (int) areaProds.stream()
+                .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.AGOTADO
+                          || p.getEstado() == com.sibim.model.enums.EstadoProducto.BAJO_STOCK)
+                .count();
+
+            List<String> children = getChildrenForTopLevel(areaName);
+            List<com.sibim.model.Resguardo> rsgList = new ArrayList<>(resguardosPorArea.getOrDefault(areaName, List.of()));
+            children.forEach(c -> rsgList.addAll(resguardosPorArea.getOrDefault(c, List.of())));
+            List<Prestamo> prestList = new ArrayList<>(prestamosPorArea.getOrDefault(areaName, List.of()));
+            children.forEach(c -> prestList.addAll(prestamosPorArea.getOrDefault(c, List.of())));
+            List<Comodato> comodList = new ArrayList<>(comodatosPorArea.getOrDefault(areaName, List.of()));
+            children.forEach(c -> comodList.addAll(comodatosPorArea.getOrDefault(c, List.of())));
+
+            rows.add(new AreaRow(areaName, areaProds.size(), valor, alertas,
+                rsgList.size(), prestList.size(), comodList.size(),
+                List.copyOf(areaProds), List.copyOf(rsgList),
+                List.copyOf(prestList), List.copyOf(comodList)));
+        }
+
+        if (rows.isEmpty()) {
+            orgTree.getChildren().add(com.sibim.util.EmptyStateUtil.build(
+                "mdi2o-office-building-outline",
+                q.isBlank() ? "No hay áreas con bienes registrados" : "Sin resultados para «" + filter + "»",
+                q.isBlank() ? "Registra bienes con área asignada en la sección Bienes" : "Prueba con otro término"));
+            return;
+        }
+
+        TableView<AreaRow> table = new TableView<>();
+        table.getStyleClass().add("data-table");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        TableColumn<AreaRow, String>  colArea   = new TableColumn<>("Área");
+        TableColumn<AreaRow, Integer> colBienes = new TableColumn<>("Bienes");
+        TableColumn<AreaRow, String>  colValor  = new TableColumn<>("Valor patrimonial");
+        TableColumn<AreaRow, Integer> colAlerts = new TableColumn<>("Alertas");
+        TableColumn<AreaRow, Integer> colRsg    = new TableColumn<>("Resguardos");
+        TableColumn<AreaRow, Integer> colPrest  = new TableColumn<>("Préstamos");
+        TableColumn<AreaRow, Integer> colComod  = new TableColumn<>("Comodatos");
+
+        colArea.setCellValueFactory(r -> new javafx.beans.property.SimpleStringProperty(r.getValue().nombre()));
+        colBienes.setCellValueFactory(r -> new javafx.beans.property.SimpleIntegerProperty(r.getValue().bienes()).asObject());
+        colValor.setCellValueFactory(r -> new javafx.beans.property.SimpleStringProperty(FormatUtils.formatCurrency(r.getValue().valor())));
+        colAlerts.setCellValueFactory(r -> new javafx.beans.property.SimpleIntegerProperty(r.getValue().alertas()).asObject());
+        colRsg.setCellValueFactory(r   -> new javafx.beans.property.SimpleIntegerProperty(r.getValue().resguardos()).asObject());
+        colPrest.setCellValueFactory(r -> new javafx.beans.property.SimpleIntegerProperty(r.getValue().prestamos()).asObject());
+        colComod.setCellValueFactory(r -> new javafx.beans.property.SimpleIntegerProperty(r.getValue().comodatos()).asObject());
+
+        colArea.setPrefWidth(240); colBienes.setPrefWidth(80); colValor.setPrefWidth(165);
+        colAlerts.setPrefWidth(80); colRsg.setPrefWidth(100); colPrest.setPrefWidth(95); colComod.setPrefWidth(95);
+
+        colAlerts.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(Integer v, boolean empty) {
+                super.updateItem(v, empty); setText(null); setGraphic(null);
+                if (empty || v == null) return;
+                if (v == 0) { setText("—"); getStyleClass().add("muted-text"); return; }
+                getStyleClass().remove("muted-text");
+                Label b = new Label(v.toString()); b.getStyleClass().addAll("cell-badge", "cell-badge-danger");
+                setGraphic(b);
+            }
+        });
+
+        for (var col : List.of(colRsg, colPrest, colComod)) {
+            col.setCellFactory(c -> new TableCell<>() {
+                @Override protected void updateItem(Integer v, boolean empty) {
+                    super.updateItem(v, empty); setText(null);
+                    if (empty || v == null) return;
+                    setText(v == 0 ? "—" : v.toString());
+                    getStyleClass().removeIf("muted-text"::equals);
+                    if (v == 0) getStyleClass().add("muted-text");
+                }
+            });
+        }
+
+        table.getColumns().addAll(colArea, colBienes, colValor, colAlerts, colRsg, colPrest, colComod);
+        table.getItems().addAll(rows);
+        colBienes.setSortType(TableColumn.SortType.DESCENDING);
+        table.getSortOrder().add(colBienes);
+        table.sort();
+
+        table.setOnMouseClicked(e -> {
+            AreaRow sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null || e.getClickCount() != 2) return;
+            dialogs.showAreaProductsDialog(sel.nombre(), sel.prods(), false, searchField.getScene());
+        });
+
+        table.setRowFactory(tv -> {
+            javafx.scene.control.TableRow<AreaRow> row = new javafx.scene.control.TableRow<>();
+            javafx.scene.control.ContextMenu menu = new javafx.scene.control.ContextMenu();
+            javafx.scene.control.MenuItem miVer   = new javafx.scene.control.MenuItem("Ver bienes del área");
+            javafx.scene.control.MenuItem miRsg   = new javafx.scene.control.MenuItem("Ver resguardos");
+            javafx.scene.control.MenuItem miPrest = new javafx.scene.control.MenuItem("Ver préstamos");
+            miVer.setGraphic(new FontIcon("mdi2p-package-variant"));
+            miRsg.setGraphic(new FontIcon("mdi2c-clipboard-account-outline"));
+            miPrest.setGraphic(new FontIcon("mdi2c-clipboard-arrow-right-outline"));
+            miVer.setOnAction(e -> { AreaRow r = row.getItem(); if (r != null) dialogs.showAreaProductsDialog(r.nombre(), r.prods(), false, searchField.getScene()); });
+            miRsg.setOnAction(e -> { AreaRow r = row.getItem(); if (r != null && !r.rsgs().isEmpty()) dialogs.showResguardosAreaDialog(r.nombre(), r.rsgs(), searchField.getScene()); });
+            miPrest.setOnAction(e -> { AreaRow r = row.getItem(); if (r != null && !r.prests().isEmpty()) dialogs.showPrestamosAreaDialog(r.nombre(), r.prests(), searchField.getScene()); });
+            menu.getItems().addAll(miVer, miRsg, miPrest);
+            row.setOnContextMenuRequested(e -> { if (!row.isEmpty()) menu.show(row, e.getScreenX(), e.getScreenY()); });
+            return row;
+        });
+
+        orgTree.getChildren().add(table);
+        AnimationUtils.staggeredFadeInUp(List.of(table), 280, 0);
     }
 }

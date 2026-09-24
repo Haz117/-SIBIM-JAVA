@@ -12,6 +12,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
@@ -513,9 +514,10 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         cValor.setMaxWidth(110);
         itemsTable.getColumns().addAll(cNombre, cCodigo, cArea, cValor);
 
-        if (items.isEmpty()) {
-            itemsTable.setPlaceholder(new Label("Sin bienes registrados en este resguardo"));
-        }
+        itemsTable.setPlaceholder(EmptyStateUtil.build(
+            "mdi2b-badge-account-outline",
+            "Sin bienes en este resguardo",
+            "Agrega bienes desde la sección Inventario"));
 
         Label hintVer = new Label("Doble clic en un bien para verlo en el inventario");
         hintVer.getStyleClass().add("table-count-label");

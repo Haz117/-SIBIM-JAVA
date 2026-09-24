@@ -91,6 +91,23 @@
 }
 .test-btn:pressed { -fx-background-color: rgba(255,255,255,0.35); }
 
+/* ── Login preview card (floating mini-stats on brand panel) ── */
+.login-preview-card {
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-background-radius: 16;
+    -fx-border-color: rgba(255,255,255,0.22);
+    -fx-border-width: 1;
+    -fx-border-radius: 16;
+    -fx-padding: 16 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.20), 24, 0, 0, 8);
+}
+.login-preview-value { -fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold; }
+.login-preview-label { -fx-text-fill: rgba(255,255,255,0.65); -fx-font-size: 10.5px; -fx-font-weight: bold; }
+.login-preview-sub   { -fx-text-fill: rgba(255,255,255,0.50); -fx-font-size: 11px; }
+.login-preview-trend { -fx-text-fill: #86EFAC; -fx-font-size: 11px; -fx-font-weight: 600; }
+.login-preview-ok-icon    { -fx-icon-color: #86EFAC; -fx-icon-size: 12; }
+.login-preview-trend-icon { -fx-icon-color: #86EFAC; -fx-icon-size: 12; }
+
 /* ── Form panel (right) ── */
 .login-form-panel {
     -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #EDEEFF, white);
@@ -683,6 +700,32 @@
 .btn-secondary:pressed  { -fx-background-color: #EEF2FF; }
 .btn-secondary:disabled { -fx-background-color: #F8FAFC; -fx-text-fill: #CBD5E1; -fx-border-color: #F1F5F9; -fx-cursor: default; -fx-effect: none; }
 
+/* ── Vista toggle group (Árbol | Tarjetas | Tabla) ── */
+.toggle-view-group { -fx-alignment: CENTER_LEFT; }
+.toggle-view-btn {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-right-width: 0;
+}
+.toggle-view-btn-first { -fx-background-radius: 12 0 0 12; -fx-border-radius: 12 0 0 12; }
+.toggle-view-btn-last  { -fx-background-radius: 0 12 12 0; -fx-border-radius: 0 12 12 0; -fx-border-right-width: 1; }
+.toggle-view-btn:selected {
+    -fx-background-color: #4338CA;
+    -fx-text-fill: white;
+    -fx-border-color: #4338CA;
+}
+.toggle-view-btn:selected:hover { -fx-background-color: #3730A3; }
+.toggle-view-btn:focused {
+    -fx-border-color: #6366F1;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 0, 0, 0, 0),
+                innershadow(gaussian, rgba(99,102,241,0.20), 3, 0, 0, 0);
+}
+.toggle-view-btn:selected:focused { -fx-border-color: #312E81; }
+
+/* Muted zero value in table cells */
+.muted-text { -fx-text-fill: #CBD5E1; }
+
 .btn-danger {
     -fx-background-color: #EF4444;
     -fx-text-fill: white;
@@ -763,9 +806,10 @@
 }
 .data-table .column-header {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent rgba(255,255,255,0.15) transparent;
-    -fx-border-width: 0 0 1 0;
+    -fx-border-color: transparent rgba(255,255,255,0.12) rgba(255,255,255,0.15) transparent;
+    -fx-border-width: 0 1 1 0;
     -fx-padding: 11 14;
+    -fx-cursor: col-resize;
 }
 .data-table .column-header .label {
     -fx-font-weight: bold;
@@ -827,7 +871,7 @@
 .data-table .table-row-cell:filled { -fx-cursor: hand; }
 .data-table .table-row-cell:empty  { -fx-cursor: default; }
 .data-table .column-header .arrow {
-    -fx-background-color: rgba(255,255,255,0.70);
+    -fx-background-color: white;
     -fx-padding: 3;
 }
 .data-table .column-header:hover .arrow { -fx-background-color: white; }
@@ -1131,12 +1175,29 @@
     -fx-alignment: CENTER;
 }
 .cell-badge-success { -fx-background-color: #D1FAE5; -fx-text-fill: #064E3B; }
-.cell-badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #78350F; }
-.cell-badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: #7F1D1D; }
+.cell-badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #78350F;
+                      -fx-border-color: #FDE68A; -fx-border-width: 0 0 0 3; -fx-border-radius: 99; }
+.cell-badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: #7F1D1D;
+                      -fx-border-color: #FCA5A5; -fx-border-width: 0 0 0 3; -fx-border-radius: 99; }
 .cell-badge-purple  { -fx-background-color: #EDE9FE; -fx-text-fill: #4C1D95; }
 .cell-badge-blue    { -fx-background-color: #DBEAFE; -fx-text-fill: #1E3A8A; }
 .cell-badge-teal    { -fx-background-color: #CCFBF1; -fx-text-fill: #134E4A; }
 .cell-badge-hidden  { -fx-background-color: transparent; -fx-text-fill: transparent; -fx-padding: 0; }
+
+/* Icon-bearing badge: color the glyph and propagate text-fill to the nested label */
+.cell-badge-icon-success { -fx-icon-color: #059669; }
+.cell-badge-icon-warning { -fx-icon-color: #D97706; }
+.cell-badge-icon-danger  { -fx-icon-color: #DC2626; }
+.cell-badge-icon-purple  { -fx-icon-color: #6D28D9; }
+.cell-badge-icon-blue    { -fx-icon-color: #1E40AF; }
+.cell-badge-icon-teal    { -fx-icon-color: #0F766E; }
+
+.cell-badge-success .cell-badge-text { -fx-text-fill: #064E3B; }
+.cell-badge-warning .cell-badge-text { -fx-text-fill: #78350F; }
+.cell-badge-danger  .cell-badge-text { -fx-text-fill: #7F1D1D; }
+.cell-badge-purple  .cell-badge-text { -fx-text-fill: #4C1D95; }
+.cell-badge-blue    .cell-badge-text { -fx-text-fill: #1E3A8A; }
+.cell-badge-teal    .cell-badge-text { -fx-text-fill: #134E4A; }
 
 .badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: #DC2626; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
 .badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #D97706; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
@@ -1671,8 +1732,8 @@
     -fx-font-weight: 600;
 }
 .org-card-view-card {
-    -fx-background-color: -fx-card-bg;
-    -fx-border-color: -fx-border-subtle;
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0;
     -fx-border-radius: 12;
     -fx-background-radius: 12;
     -fx-border-width: 1;
@@ -1684,8 +1745,9 @@
     -fx-max-width: 360;
 }
 .org-card-view-card:hover {
-    -fx-border-color: -fx-accent;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.13), 12, 0, 0, 3);
+    -fx-border-color: #6366F1;
+    -fx-translate-y: -3;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 18, 0, 0, 6);
 }
 .org-product-code {
     -fx-text-fill: #7C3AED;
@@ -1758,6 +1820,55 @@
 
 /* Child count badge "my area" override */
 .org-area-count-myarea { -fx-background-color: #EDE9FE; -fx-text-fill: #5B21B6; }
+
+/* ─── Organigrama styled TitledPane sections ─────────────────────── */
+.org-titled-section {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
+}
+.org-titled-section > .title {
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 12 16;
+}
+.org-titled-section:expanded > .title {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #EEF2FF, #F5F3FF);
+    -fx-border-color: #C7D2FE;
+    -fx-border-radius: 12 12 0 0;
+    -fx-background-radius: 12 12 0 0;
+}
+.org-titled-section > .title > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 6 0 0;
+}
+.org-titled-section > .title > .arrow-button > .arrow {
+    -fx-background-color: #6366F1;
+}
+.org-titled-section > .content {
+    -fx-background-color: white;
+    -fx-border-color: #C7D2FE;
+    -fx-border-radius: 0 0 12 12;
+    -fx-background-radius: 0 0 12 12;
+    -fx-border-width: 0 1 1 1;
+}
+
+/* ─── Card view accent border variants ───────────────────────────── */
+.org-card-warning {
+    -fx-border-color: #FDE68A #FDE68A #FDE68A #F59E0B;
+    -fx-border-width: 1 1 1 4;
+}
+.org-card-warning:hover {
+    -fx-border-color: #FCD34D #FCD34D #FCD34D #F59E0B;
+}
+.org-card-danger {
+    -fx-border-color: #FCA5A5 #FCA5A5 #FCA5A5 #EF4444;
+    -fx-border-width: 1 1 1 4;
+}
+.org-card-danger:hover {
+    -fx-border-color: #FCA5A5 #FCA5A5 #FCA5A5 #DC2626;
+}
 
 /* Inner product list separator */
 .org-products-inner-box {
@@ -2426,7 +2537,8 @@
    .empty-state-icon (util/EmptyStateUtil.java) so the two empty-state code
    paths (static FXML <placeholder> blocks vs. table.setPlaceholder() built
    in Java) can never visually drift apart again. */
-.empty-icon-lg, .empty-state-icon { -fx-icon-size: 52; -fx-icon-color: #CBD5E1; }
+.empty-icon-lg { -fx-icon-size: 52; -fx-icon-color: #CBD5E1; }
+.empty-state-icon { -fx-icon-size: 34; -fx-icon-color: #6366F1; }
 
 /* Pie chart empty state overlay */
 .pie-empty-state { -fx-min-height: 140; }
@@ -3082,10 +3194,10 @@
     -fx-background-radius: 99;
     -fx-min-width: 26; -fx-min-height: 26; -fx-max-width: 26; -fx-max-height: 26;
 }
-.toast-icon-success { -fx-background-color: #22C55E; }
-.toast-icon-error   { -fx-background-color: #EF4444; }
-.toast-icon-warning { -fx-background-color: #F59E0B; }
-.toast-icon-info    { -fx-background-color: #6366F1; }
+.toast-icon-success { -fx-background-color: #22C55E; -fx-icon-color: white; }
+.toast-icon-error   { -fx-background-color: #EF4444; -fx-icon-color: white; }
+.toast-icon-warning { -fx-background-color: #F59E0B; -fx-icon-color: white; }
+.toast-icon-info    { -fx-background-color: #6366F1; -fx-icon-color: white; }
 
 .toast-icon-text {
     -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: white;
@@ -3645,6 +3757,31 @@
     -fx-background-radius: 8;
 }
 
+/* Close button (top-right of header) */
+.tutorial-close-btn {
+    -fx-background-color: rgba(255,255,255,0.18);
+    -fx-text-fill: white;
+    -fx-background-radius: 99;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-pref-width: 28; -fx-pref-height: 28;
+    -fx-min-width: 28;  -fx-min-height: 28;
+    -fx-max-width: 28;  -fx-max-height: 28;
+    -fx-padding: 0;
+    -fx-alignment: CENTER;
+}
+.tutorial-close-btn:hover   { -fx-background-color: rgba(255,255,255,0.32); }
+.tutorial-close-btn:pressed { -fx-background-color: rgba(255,255,255,0.48); }
+.tutorial-close-btn:focused { -fx-background-color: rgba(255,255,255,0.32);
+    -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.65), 0, 0, 0, 0); }
+
+/* When arrow-caret is shown, left corners are squared on the card */
+.tutorial-card-with-arrow {
+    -fx-background-radius: 0 20 20 0;
+    -fx-border-radius: 0 20 20 0;
+}
+
 /* Keyboard navigation hint below buttons */
 .tutorial-kb-hint {
     -fx-font-size: 10.5px;
@@ -4096,6 +4233,40 @@
 .history-menu-header { -fx-font-size: 10.5px; -fx-text-fill: #64748B; -fx-font-weight: bold; }
 .history-icon { -fx-fill: #64748B; -fx-icon-size: 14; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CONTEXT MENU  (right-click + ContextMenu popups)
+   ═══════════════════════════════════════════════════════════════════ */
+.context-menu {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.16), 18, 0, 0, 6);
+    -fx-padding: 4 0;
+}
+.menu-item {
+    -fx-background-color: transparent;
+    -fx-background-radius: 7;
+    -fx-padding: 7 14;
+    -fx-font-size: 13px;
+    -fx-text-fill: #374151;
+    -fx-cursor: hand;
+}
+.menu-item:focused,
+.menu-item:hover {
+    -fx-background-color: #EEF2FF;
+    -fx-text-fill: #4338CA;
+}
+.menu-item .label { -fx-text-fill: inherit; }
+.menu-item .graphic { -fx-padding: 0 6 0 0; }
+.separator-menu-item { -fx-padding: 3 0; }
+.separator-menu-item .separator { -fx-padding: 0; }
+.separator-menu-item .separator .line {
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 0.5 0 0 0;
+}
+
 /* Inline table cell editor — stockMín / stockMáx double-click edit */
 .inline-edit-field {
     -fx-background-color: white;
@@ -4314,18 +4485,24 @@
 /* ─── FEATURE 3: Empty states ─── */
 /* .empty-state-icon is defined once, together with .empty-icon-lg, near the
    "Empty-state large icon" rule above. */
+.empty-state-icon-circle {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
+    -fx-padding: 22;
+    -fx-alignment: CENTER;
+}
 .empty-state-box {
-    -fx-padding: 48 24;
+    -fx-padding: 52 24;
     -fx-alignment: center;
 }
 .empty-state-title, .empty-state-msg {
-    -fx-font-size: 16px;
+    -fx-font-size: 15px;
     -fx-font-weight: 700;
-    -fx-text-fill: #94A3B8;
+    -fx-text-fill: #475569;
 }
 .empty-state-subtitle, .empty-state-hint {
     -fx-font-size: 13px;
-    -fx-text-fill: #CBD5E1;
+    -fx-text-fill: #94A3B8;
     -fx-text-alignment: center;
     -fx-alignment: center;
     -fx-wrap-text: true;

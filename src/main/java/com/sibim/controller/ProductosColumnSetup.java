@@ -230,12 +230,20 @@ class ProductosColumnSetup {
         col.setCellValueFactory(c ->
             new javafx.beans.property.SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
 
-        col.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Agotado"    -> "cell-badge-danger";
-            case "Bajo Stock" -> "cell-badge-warning";
-            case "Vencido"    -> "cell-badge-purple";
-            default           -> "cell-badge-success";
-        }));
+        col.setCellFactory(DialogUtil.iconBadgeCellFactory(
+            item -> switch (item) {
+                case "Agotado"    -> "cell-badge-danger";
+                case "Bajo Stock" -> "cell-badge-warning";
+                case "Vencido"    -> "cell-badge-purple";
+                default           -> "cell-badge-success";
+            },
+            item -> switch (item) {
+                case "Agotado"    -> "mdi2a-alert-circle-outline";
+                case "Bajo Stock" -> "mdi2a-alert-outline";
+                case "Vencido"    -> "mdi2c-clock-alert-outline";
+                default           -> "mdi2c-check-circle-outline";
+            }
+        ));
     }
 
     static void configureStockMinMax(TableColumn<Producto, Integer> colMin,

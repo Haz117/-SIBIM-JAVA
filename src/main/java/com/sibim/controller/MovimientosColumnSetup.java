@@ -114,11 +114,18 @@ class MovimientosColumnSetup {
 
     static void configureEstado(TableColumn<Movimiento, String> col) {
         col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
-        col.setCellFactory(DialogUtil.badgeCellFactory(estado -> switch (estado) {
-            case "PENDIENTE"  -> "cell-badge-warning";
-            case "RECHAZADO"  -> "cell-badge-danger";
-            default           -> "cell-badge-success";   // APROBADO — green, no llama la atención
-        }));
+        col.setCellFactory(DialogUtil.iconBadgeCellFactory(
+            estado -> switch (estado) {
+                case "PENDIENTE"  -> "cell-badge-warning";
+                case "RECHAZADO"  -> "cell-badge-danger";
+                default           -> "cell-badge-success";
+            },
+            estado -> switch (estado) {
+                case "PENDIENTE"  -> "mdi2c-clock-outline";
+                case "RECHAZADO"  -> "mdi2c-close-circle-outline";
+                default           -> "mdi2c-check-circle-outline";
+            }
+        ));
     }
 
     /** Row tints by movement type; new-row flash via pendingHighlightId. */

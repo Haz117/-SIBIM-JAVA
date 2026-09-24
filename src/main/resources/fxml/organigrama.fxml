@@ -152,11 +152,26 @@
         <Label text="Expande cada sección para ver los bienes asignados"
                styleClass="muted-sm"/>
         <Separator orientation="VERTICAL"/>
-        <ToggleButton fx:id="btnToggleVista" styleClass="btn-secondary btn-sm"
-                      onAction="#onToggleVista" contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2v-view-grid-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Alternar entre vista de árbol y vista de tarjetas"/></tooltip>
-        </ToggleButton>
+        <HBox spacing="0" styleClass="toggle-view-group">
+            <ToggleButton fx:id="btnVistaArbol" selected="true" onAction="#onVistaArbol"
+                          styleClass="btn-secondary,btn-sm,toggle-view-btn,toggle-view-btn-first"
+                          contentDisplay="LEFT" graphicTextGap="5">
+                <graphic><FontIcon iconLiteral="mdi2s-sitemap" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Vista árbol — jerarquía expandible de áreas"/></tooltip>
+            </ToggleButton>
+            <ToggleButton fx:id="btnVistaCards" onAction="#onVistaCards"
+                          styleClass="btn-secondary,btn-sm,toggle-view-btn"
+                          contentDisplay="LEFT" graphicTextGap="5">
+                <graphic><FontIcon iconLiteral="mdi2v-view-grid-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Vista tarjetas — resumen compacto por área"/></tooltip>
+            </ToggleButton>
+            <ToggleButton fx:id="btnVistaTabla" onAction="#onVistaTabla"
+                          styleClass="btn-secondary,btn-sm,toggle-view-btn,toggle-view-btn-last"
+                          contentDisplay="LEFT" graphicTextGap="5">
+                <graphic><FontIcon iconLiteral="mdi2t-table-large" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Vista tabla — comparativa de todas las áreas"/></tooltip>
+            </ToggleButton>
+        </HBox>
         <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary btn-sm">
             <tooltip><Tooltip text="Expande todas las secciones visibles"/></tooltip>
         </Button>

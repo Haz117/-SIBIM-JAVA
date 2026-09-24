@@ -57,6 +57,40 @@ public final class DialogUtil {
         };
     }
 
+    /** Like {@link #badgeCellFactory} but prepends a small FontIcon to each
+     *  badge, making status columns more scannable at a glance. */
+    public static <S> Callback<TableColumn<S, String>, TableCell<S, String>> iconBadgeCellFactory(
+            Function<String, String> cssClassOf,
+            Function<String, String> iconLiteralOf) {
+        return col -> new TableCell<>() {
+            private final FontIcon fi  = new FontIcon();
+            private final Label    txt = new Label();
+            private final HBox     box;
+            {
+                fi.setIconSize(11);
+                txt.getStyleClass().add("cell-badge-text");
+                box = new HBox(4, fi, txt);
+                box.setAlignment(javafx.geometry.Pos.CENTER);
+                box.getStyleClass().add("cell-badge");
+            }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(null); setText(null);
+                if (empty || item == null) return;
+                String css = cssClassOf.apply(item);
+                if (css == null) { setText(item); return; }
+                txt.setText(item);
+                box.getStyleClass().removeIf(c -> c.startsWith("cell-badge-"));
+                fi.getStyleClass().removeIf(c -> c.startsWith("cell-badge-icon-"));
+                box.getStyleClass().addAll("cell-badge", css);
+                fi.setIconLiteral(iconLiteralOf.apply(item));
+                fi.getStyleClass().add("cell-badge-icon-" + css.replace("cell-badge-", ""));
+                setGraphic(box);
+            }
+        };
+    }
+
     // ── Dialog creation ──────────────────────────────────────────────────
 
     /** Create a dialog with CSS applied and OK+Cancel buttons. */

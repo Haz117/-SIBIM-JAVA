@@ -15,6 +15,7 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import javafx.animation.KeyFrame;
@@ -131,6 +132,7 @@ public class AlertasController implements Refreshable {
     private VBox     sectionComodatos;
     private Timeline autoRefresh;
     private javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter;
+    private boolean  dataLoaded = false;
 
     @FXML
     public void initialize() {
@@ -223,8 +225,21 @@ public class AlertasController implements Refreshable {
         header.setCursor(javafx.scene.Cursor.HAND);
         header.setOnMouseClicked(e -> {
             boolean nowCollapsed = content.isVisible();
-            AlertasComodatosSection.applyCollapsed(content, chevron, nowCollapsed);
             STICKY.putBoolean(prefKey, nowCollapsed);
+            if (nowCollapsed) {
+                javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
+                    javafx.util.Duration.millis(160), content);
+                ft.setFromValue(1); ft.setToValue(0);
+                ft.setOnFinished(ev -> { AlertasComodatosSection.applyCollapsed(content, chevron, true); content.setOpacity(1); });
+                ft.play();
+            } else {
+                AlertasComodatosSection.applyCollapsed(content, chevron, false);
+                content.setOpacity(0);
+                javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
+                    javafx.util.Duration.millis(200), content);
+                ft.setFromValue(0); ft.setToValue(1);
+                ft.play();
+            }
         });
     }
 
@@ -339,9 +354,18 @@ public class AlertasController implements Refreshable {
     private void loadData() { loadData(false); }
 
     private void loadData(boolean showToast) {
-        if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
+        if (!dataLoaded) {
+            tableAgotados.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(5));
+            tableBajoStock.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(4));
+            tableGarantias.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(3));
+            if (tableMantenimiento != null)
+                tableMantenimiento.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(4));
+        } else if (spinner != null) {
+            spinner.setVisible(true); spinner.setManaged(true);
+        }
         dataLoader.load(
             data -> {
+                dataLoaded = true;
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 allAgotados          = data.agotados();
                 allBajoStock         = data.bajoStock();
@@ -638,17 +662,7 @@ public class AlertasController implements Refreshable {
     // ── Static UI node builders ────────────────────────────────────────────────
 
     private static javafx.scene.Node searchEmptyNode(String q) {
-        FontIcon icon = new FontIcon("mdi2m-magnify-close");
-        icon.setIconSize(40);
-        icon.getStyleClass().add("empty-icon-lg");
-        Label lbl = new Label("Sin resultados para «" + q + "»");
-        lbl.getStyleClass().add("empty-state-msg");
-        Label hint = new Label("Prueba con otro término de búsqueda");
-        hint.getStyleClass().add("empty-state-hint");
-        VBox box = new VBox(8, icon, lbl, hint);
-        box.setAlignment(javafx.geometry.Pos.CENTER);
-        box.getStyleClass().add("empty-state-pane");
-        return box;
+        return EmptyStateUtil.buildSearch(q);
     }
 
     private static javafx.scene.Node alertaOkNode(String msg) {

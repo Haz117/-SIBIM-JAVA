@@ -257,7 +257,15 @@ public final class TutorialOverlay {
         iconBadge.setPrefSize(64, 64); iconBadge.setMaxSize(64, 64);
         iconBadge.setTranslateY(32);
         StackPane.setAlignment(iconBadge, Pos.BOTTOM_CENTER);
-        header.getChildren().addAll(progressPane, iconBadge);
+
+        Button btnClose = new Button("×");
+        btnClose.getStyleClass().add("tutorial-close-btn");
+        btnClose.setFocusTraversable(false);
+        btnClose.setAccessibleText("Cerrar tutorial");
+        StackPane.setAlignment(btnClose, Pos.TOP_RIGHT);
+        StackPane.setMargin(btnClose, new Insets(8, 8, 0, 0));
+
+        header.getChildren().addAll(progressPane, iconBadge, btnClose);
 
         // ── Slide content ─────────────────────────────────────────────────────
         Label lblTitle = new Label();
@@ -294,6 +302,7 @@ public final class TutorialOverlay {
             circles[i] = new Circle(3.5);
             circles[i].getStyleClass().add("tutorial-dot");
             circles[i].setCursor(Cursor.HAND);
+            circles[i].setAccessibleHelp("Ir al paso " + (i + 1) + " de " + STEPS.length);
             dotsRow.getChildren().add(circles[i]);
         }
         Label lblCounter = new Label();
@@ -304,10 +313,13 @@ public final class TutorialOverlay {
         // ── Nav buttons ───────────────────────────────────────────────────────
         Button btnPrev = new Button("← Anterior");
         btnPrev.getStyleClass().add("tutorial-btn-secondary");
+        btnPrev.setAccessibleText("Paso anterior");
         Button btnNext = new Button("Siguiente →");
         btnNext.getStyleClass().add("tutorial-btn-primary");
+        btnNext.setAccessibleText("Siguiente paso");
         Button btnSkip = new Button("Saltar");
         btnSkip.getStyleClass().add("tutorial-btn-skip");
+        btnSkip.setAccessibleText("Saltar tutorial");
         Region btnSpacer = new Region();
         HBox.setHgrow(btnSpacer, Priority.ALWAYS);
         HBox btnRow = new HBox(8, btnSkip, btnSpacer, btnPrev, btnNext);
@@ -396,11 +408,8 @@ public final class TutorialOverlay {
             );
 
             // Card: left corners square when arrow is shown, fully rounded when centered
-            if (hasNav) {
-                card.setStyle("-fx-background-radius: 0 20 20 0; -fx-border-radius: 0 20 20 0;");
-            } else {
-                card.setStyle("");
-            }
+            if (hasNav) card.getStyleClass().add("tutorial-card-with-arrow");
+            else        card.getStyleClass().remove("tutorial-card-with-arrow");
 
             icon.setIconLiteral(s.icon());
             icon.setIconColor(Color.web(s.color()));
@@ -455,6 +464,7 @@ public final class TutorialOverlay {
             lblCounter.setText("Paso " + (step[0] + 1) + " de " + STEPS.length);
             btnPrev.setVisible(!isFirst); btnPrev.setManaged(!isFirst);
             btnNext.setText(isLast ? "Comenzar  ✓" : "Siguiente →");
+            btnNext.setAccessibleText(isLast ? "Comenzar a usar SIBIM" : "Siguiente paso");
             btnNext.setStyle("-fx-background-color: " + s.color()
                 + "; -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.40) + ", 10, 0, 0, 2);");
             btnSkip.setVisible(!isLast); btnSkip.setManaged(!isLast);
@@ -553,6 +563,8 @@ public final class TutorialOverlay {
                     goTo.accept(idx, idx > step[0] ? 1 : -1);
             });
         }
+
+        btnClose.setOnAction(e -> dismiss.run());
 
         btnNext.setOnAction(e -> {
             if (step[0] < STEPS.length - 1) goTo.accept(step[0] + 1, 1);

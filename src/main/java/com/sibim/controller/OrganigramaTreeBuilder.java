@@ -117,6 +117,7 @@ class OrganigramaTreeBuilder {
         }
 
         TitledPane section = new TitledPane();
+        section.getStyleClass().add("org-titled-section");
         section.setExpanded(expanded || !filter.isBlank());
 
         // ── Header ────────────────────────────────────────────────────
