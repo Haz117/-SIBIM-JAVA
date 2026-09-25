@@ -35,6 +35,7 @@
         <Button fx:id="btnNuevo" text="Nuevo Préstamo" onAction="#onNuevoPrestamo" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Registrar un nuevo préstamo"/></tooltip>
         </Button>
     </HBox>
 
@@ -100,14 +101,17 @@
         <Button fx:id="btnDevolver" text="Registrar devolución" onAction="#onDevolver"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Marcar el préstamo seleccionado como devuelto"/></tooltip>
         </Button>
         <Button fx:id="btnExportarPdf" text="PDF" onAction="#onExportarPdf"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de préstamos visible a PDF"/></tooltip>
         </Button>
         <Button fx:id="btnExportarExcel" text="Excel" onAction="#onExportarExcel"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2m-microsoft-excel" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de préstamos visible a Excel"/></tooltip>
         </Button>
         <ToggleButton fx:id="btnKanban" text="Vista Kanban" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2v-view-column-outline" styleClass="btn-icon"/></graphic>

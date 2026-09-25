@@ -6,6 +6,7 @@ import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
+import com.sibim.util.SearchUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -24,7 +25,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.prefs.Preferences;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import javafx.beans.binding.Bindings;
+import javafx.collections.ListChangeListener;
 
 /**
  * Abstract base for document controllers (Resguardos, Préstamos, Comodatos, Actas).
@@ -121,11 +131,12 @@ public abstract class BaseDocumentController<T> {
         });
         table.setContextMenu(buildContextMenu());
         table.getSelectionModel().getSelectedItems()
-            .addListener((javafx.collections.ListChangeListener<T>) c -> updateCountDisplay());
+            .addListener((ListChangeListener<T>) c -> updateCountDisplay());
 
         lblCount = new Label();
         lblCount.getStyleClass().add("table-count-label");
         lblCount.setVisible(false);
+        lblCount.managedProperty().bind(lblCount.visibleProperty());   // hidden = no empty gap above the table
         if (rootPane != null) {
             VBox.setMargin(lblCount, new Insets(0, 0, 2, 4));
             int idx = rootPane.getChildren().indexOf(table);
@@ -189,7 +200,7 @@ public abstract class BaseDocumentController<T> {
      *  otherwise the full filtered list visible in the table. */
     protected List<T> exportTarget() {
         var sel = table.getSelectionModel().getSelectedItems();
-        return sel.size() > 1 ? new java.util.ArrayList<>(sel) : new java.util.ArrayList<>(data);
+        return sel.size() > 1 ? new ArrayList<>(sel) : new ArrayList<>(data);
     }
 
     protected void setupButtonState() {
@@ -238,7 +249,7 @@ public abstract class BaseDocumentController<T> {
 
     @FXML
     protected void onExportarPdfLote() {
-        List<T> sel = new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems());
+        List<T> sel = new ArrayList<>(table.getSelectionModel().getSelectedItems());
         if (sel.size() < 2) { onExportarPdf(); return; }
         Scene scene = rootPane != null ? rootPane.getScene() : null;
         if (scene == null) return;
@@ -251,8 +262,8 @@ public abstract class BaseDocumentController<T> {
 
     private File exportarLoteZip(List<T> items) throws Exception {
         File zip = File.createTempFile("sibim_lote_", ".zip");
-        try (java.util.zip.ZipOutputStream zos =
-                new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(zip))) {
+        try (ZipOutputStream zos =
+                new ZipOutputStream(new FileOutputStream(zip))) {
             int n = 0;
             for (T item : items) {
                 try {
@@ -260,8 +271,8 @@ public abstract class BaseDocumentController<T> {
                     if (pdf == null) continue;
                     String entryName = pdf.getName().isEmpty()
                         ? "documento_" + (++n) + ".pdf" : pdf.getName();
-                    zos.putNextEntry(new java.util.zip.ZipEntry(entryName));
-                    java.nio.file.Files.copy(pdf.toPath(), zos);
+                    zos.putNextEntry(new ZipEntry(entryName));
+                    Files.copy(pdf.toPath(), zos);
                     zos.closeEntry();
                 } catch (Exception ignored) { /* skip failed item */ }
             }
@@ -274,7 +285,7 @@ public abstract class BaseDocumentController<T> {
         mi.setGraphic(new FontIcon("mdi2a-archive-arrow-down-outline"));
         mi.setOnAction(e -> onExportarPdfLote());
         mi.disableProperty().bind(
-            javafx.beans.binding.Bindings.size(
+            Bindings.size(
                 table.getSelectionModel().getSelectedItems()).lessThan(2));
         if (!cm.getItems().isEmpty()) cm.getItems().add(new SeparatorMenuItem());
         cm.getItems().add(mi);
@@ -283,7 +294,7 @@ public abstract class BaseDocumentController<T> {
     // ── Sort persistence ──────────────────────────────────────────────────────
 
     protected void setupSortPersistence() {
-        java.util.prefs.Preferences p = getFilterPrefsNode();
+        Preferences p = getFilterPrefsNode();
         String savedText = p.get("sortCol", "");
         String savedDir  = p.get("sortDir", "");
         if (!savedText.isBlank()) {
@@ -297,7 +308,7 @@ public abstract class BaseDocumentController<T> {
                 });
         }
         table.getSortOrder().addListener(
-            (javafx.collections.ListChangeListener<TableColumn<T, ?>>) change -> {
+            (ListChangeListener<TableColumn<T, ?>>) change -> {
                 if (table.getSortOrder().isEmpty()) {
                     p.remove("sortCol"); p.remove("sortDir");
                 } else {
@@ -334,9 +345,9 @@ public abstract class BaseDocumentController<T> {
 
     // ── Filter infrastructure ─────────────────────────────────────────────────
 
-    protected java.util.prefs.Preferences getFilterPrefsNode() {
+    protected Preferences getFilterPrefsNode() {
         String name = getClass().getSimpleName().toLowerCase().replace("controller", "");
-        return java.util.prefs.Preferences.userRoot().node("sibim/filters/" + name);
+        return Preferences.userRoot().node("sibim/filters/" + name);
     }
 
     protected void setupDateFilterBar(ListExporter excelFn, ListExporter csvFn) {
@@ -391,8 +402,8 @@ public abstract class BaseDocumentController<T> {
         if (searchField == null) return;
         String key = "sibim/search-history/"
             + getClass().getSimpleName().toLowerCase().replace("controller", "");
-        com.sibim.util.SearchUtils.setupSearchHistory(key, searchField, this::applyFilter);
-        com.sibim.util.SearchUtils.debounce(searchField, 260, q -> {
+        SearchUtils.setupSearchHistory(key, searchField, this::applyFilter);
+        SearchUtils.debounce(searchField, 260, q -> {
             getFilterPrefsNode().put("search", q != null ? q : "");
             applyFilter();
         });
@@ -410,29 +421,29 @@ public abstract class BaseDocumentController<T> {
     }
 
     protected void restoreFilterPrefs() {
-        java.util.prefs.Preferences p = getFilterPrefsNode();
+        Preferences p = getFilterPrefsNode();
         String savedSearch = p.get("search", "");
         if (!savedSearch.isBlank() && searchField != null) searchField.setText(savedSearch);
         String savedDesde = p.get("desde", "");
         if (!savedDesde.isBlank() && dpDesde != null) {
-            try { dpDesde.setValue(java.time.LocalDate.parse(savedDesde)); } catch (Exception ignored) {}
+            try { dpDesde.setValue(LocalDate.parse(savedDesde)); } catch (Exception ignored) {}
         }
         String savedHasta = p.get("hasta", "");
         if (!savedHasta.isBlank() && dpHasta != null) {
-            try { dpHasta.setValue(java.time.LocalDate.parse(savedHasta)); } catch (Exception ignored) {}
+            try { dpHasta.setValue(LocalDate.parse(savedHasta)); } catch (Exception ignored) {}
         }
     }
 
-    protected void saveFilterPrefs(String q, java.time.LocalDate desde, java.time.LocalDate hasta) {
-        java.util.prefs.Preferences p = getFilterPrefsNode();
+    protected void saveFilterPrefs(String q, LocalDate desde, LocalDate hasta) {
+        Preferences p = getFilterPrefsNode();
         p.put("search", q     != null ? q               : "");
         p.put("desde",  desde != null ? desde.toString() : "");
         p.put("hasta",  hasta != null ? hasta.toString() : "");
     }
 
     protected void saveFilterPrefs(String q, String estado,
-                                    java.time.LocalDate desde, java.time.LocalDate hasta) {
-        java.util.prefs.Preferences p = getFilterPrefsNode();
+                                    LocalDate desde, LocalDate hasta) {
+        Preferences p = getFilterPrefsNode();
         p.put("search", q      != null ? q               : "");
         p.put("estado", estado != null ? estado           : "Todos");
         p.put("desde",  desde  != null ? desde.toString() : "");

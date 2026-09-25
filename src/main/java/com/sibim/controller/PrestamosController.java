@@ -6,8 +6,10 @@ import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.service.PrestamoService;
 import com.sibim.service.ProductoService;
+import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
@@ -29,6 +31,7 @@ import javafx.scene.input.KeyEvent;
 
 import java.io.File;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class PrestamosController extends BaseDocumentController<Prestamo> {
@@ -123,8 +126,8 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             });
         }
         setupDateFilterBar(
-            () -> com.sibim.service.ReporteService.getInstance().exportPrestamosExcel(exportTarget()),
-            () -> com.sibim.service.ReporteService.getInstance().exportPrestamosCsv(exportTarget())
+            () -> ReporteService.getInstance().exportPrestamosExcel(exportTarget()),
+            () -> ReporteService.getInstance().exportPrestamosCsv(exportTarget())
         );
         setupSearchListener();
 
@@ -247,6 +250,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             String cur = estadoFilter.getValue();
             estadoFilter.setValue(filterVal.equals(cur) ? "Todos" : filterVal);
         });
+        AccessibilityUtils.asButton(card, "Filtro rápido: " + filterVal);
     }
 
     private void updateStatHighlight(String estado) {
@@ -317,7 +321,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             { "DEVUELTO", "Devueltos", "kanban-col-indigo", "mdi2c-check-all" }
         };
 
-        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy");
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yy");
         for (String[] col : cols) {
             String estado = col[0], label = col[1], styleClass = col[2], icon = col[3];
             List<Prestamo> colItems = items.stream()
@@ -389,6 +393,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
                     card.getChildren().addAll(lblBien, lblFolio, lblResp);
                     if (!fechaStr.isEmpty()) card.getChildren().add(lblFecha);
                     card.setOnMouseClicked(e -> { if (e.getClickCount() >= 1) mostrarDetalle(p); });
+                    AccessibilityUtils.asButton(card, "Préstamo " + lblFolio.getText() + ", " + lblBien.getText() + " — ver detalle");
                     cards.getChildren().add(card);
                 }
             }

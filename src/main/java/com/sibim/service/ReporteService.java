@@ -17,23 +17,29 @@ import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.sibim.model.AuditLog;
 import com.sibim.model.Comodato;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.model.Resguardo;
+import com.sibim.model.Usuario;
 import com.sibim.model.enums.EstadoProducto;
+import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.FolioRepository;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
+import com.sibim.session.SessionManager;
 import com.sibim.util.FormatUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,19 +59,19 @@ public class ReporteService {
 
     protected final ProductoRepository   productoRepo;
     protected final MovimientoRepository movimientoRepo;
-    private final com.sibim.repository.ConfiguracionRepository configRepo;
+    private final ConfiguracionRepository configRepo;
     private final FolioRepository folioRepo;
 
-    public ReporteService() { this(new ProductoRepository(), new MovimientoRepository(), new com.sibim.repository.ConfiguracionRepository(), new FolioRepository()); }
+    public ReporteService() { this(new ProductoRepository(), new MovimientoRepository(), new ConfiguracionRepository(), new FolioRepository()); }
     ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo) {
-        this(productoRepo, movimientoRepo, new com.sibim.repository.ConfiguracionRepository(), new FolioRepository());
+        this(productoRepo, movimientoRepo, new ConfiguracionRepository(), new FolioRepository());
     }
     ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo,
-                   com.sibim.repository.ConfiguracionRepository configRepo) {
+                   ConfiguracionRepository configRepo) {
         this(productoRepo, movimientoRepo, configRepo, new FolioRepository());
     }
     ReporteService(ProductoRepository productoRepo, MovimientoRepository movimientoRepo,
-                   com.sibim.repository.ConfiguracionRepository configRepo, FolioRepository folioRepo) {
+                   ConfiguracionRepository configRepo, FolioRepository folioRepo) {
         this.productoRepo   = productoRepo;
         this.movimientoRepo = movimientoRepo;
         this.configRepo     = configRepo;
@@ -86,7 +92,7 @@ public class ReporteService {
     protected String logoPath() {
         try {
             String path = configRepo.get("logo_path", null);
-            if (path != null && new java.io.File(path).exists()) return path;
+            if (path != null && new File(path).exists()) return path;
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(ReporteService.class)
                 .warn("No se pudo leer logo_path de configuración: {}", e.getMessage());
@@ -135,7 +141,7 @@ public class ReporteService {
     }
 
     protected static String getCurrentUserName() {
-        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        Usuario u = SessionManager.getCurrentUser();
         return u != null ? u.getNombre() : "_______________";
     }
 
@@ -146,7 +152,7 @@ public class ReporteService {
         DeviceRgb grayMut = new DeviceRgb(107, 114, 128);
         doc.add(new Paragraph("").setMarginTop(28));
         float[] cols = new float[firmas.length];
-        java.util.Arrays.fill(cols, 1f);
+        Arrays.fill(cols, 1f);
         Table t = new Table(cols).useAllAvailableWidth().setMarginTop(8);
         for (String[] f : firmas) {
             com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
@@ -252,8 +258,8 @@ public class ReporteService {
                 List<Producto> ps = entry.getValue();
                 long agotados  = ps.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
                 long bajo      = ps.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
-                java.math.BigDecimal valor = ps.stream().map(Producto::getValorTotal)
-                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                BigDecimal valor = ps.stream().map(Producto::getValorTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
                 table.addCell(cell(entry.getKey()));
                 table.addCell(cell(String.valueOf(ps.size())));
                 table.addCell(cell(FormatUtils.formatCurrency(valor)));
@@ -352,17 +358,17 @@ public class ReporteService {
         return file;
     }
 
-    public File exportAuditoriaPdf(List<com.sibim.model.AuditLog> logs,
+    public File exportAuditoriaPdf(List<AuditLog> logs,
                                String busqueda, String entidad,
                                LocalDate desde, LocalDate hasta) throws Exception {
         return new ReporteAuditoriaService().exportAuditoriaPdf(logs, busqueda, entidad, desde, hasta);
     }
 
-    public File exportAuditoriaCsv(List<com.sibim.model.AuditLog> logs) throws Exception {
+    public File exportAuditoriaCsv(List<AuditLog> logs) throws Exception {
         return new ReporteAuditoriaService().exportAuditoriaCsv(logs);
     }
 
-    public File exportAuditoriaExcel(List<com.sibim.model.AuditLog> logs) throws Exception {
+    public File exportAuditoriaExcel(List<AuditLog> logs) throws Exception {
         return new ReporteAuditoriaService().exportAuditoriaExcel(logs);
     }
 
@@ -432,7 +438,7 @@ public class ReporteService {
 
     protected void addExcelInfoSheet(Workbook wb, String titulo, LocalDate desde, LocalDate hasta) {
         Sheet info = wb.createSheet("_Info");
-        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        Usuario u = SessionManager.getCurrentUser();
         String user = u != null ? u.getNombre() : "—";
         String ts   = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
         String[][] rows = {
@@ -562,7 +568,7 @@ public class ReporteService {
         doc.add(accentBar);
 
         String gen = "Generado " + LocalDate.now().format(FMT);
-        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        Usuario u = SessionManager.getCurrentUser();
         if (u != null) gen += " por " + u.getNombre();
         if (desde != null || hasta != null) {
             String periodo = (desde != null ? desde.format(FMT) : "inicio") + " — "
@@ -600,7 +606,7 @@ public class ReporteService {
 
     protected void addPdfFooter(Document doc, int count, String folio) throws IOException {
         PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
+        Usuario u = SessionManager.getCurrentUser();
         String user = u != null ? u.getNombre() : "—";
         String ts   = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
         String folioTxt = folio != null ? "Folio: " + folio + "   |   " : "";
@@ -695,19 +701,19 @@ public class ReporteService {
     public File exportBajasExcel() throws Exception { return exportBajasExcel(fetchBajas()); }
     public File exportBajasCsv() throws Exception   { return exportBajasCsv(fetchBajas()); }
 
-    public File exportBajasPdf(List<com.sibim.model.Producto> bajas) throws Exception {
+    public File exportBajasPdf(List<Producto> bajas) throws Exception {
         return new ReporteBajasService().exportBajasPdf(bajas);
     }
 
-    public File exportBajasExcel(List<com.sibim.model.Producto> bajas) throws Exception {
+    public File exportBajasExcel(List<Producto> bajas) throws Exception {
         return new ReporteBajasService().exportBajasExcel(bajas);
     }
 
-    public File exportBajasCsv(List<com.sibim.model.Producto> bajas) throws Exception {
+    public File exportBajasCsv(List<Producto> bajas) throws Exception {
         return new ReporteBajasService().exportBajasCsv(bajas);
     }
 
-    public File exportActaBaja(com.sibim.model.Producto p) throws Exception {
+    public File exportActaBaja(Producto p) throws Exception {
         return new ReporteBajasService().exportActaBaja(p);
     }
 

@@ -4,20 +4,21 @@
 <?import javafx.scene.layout.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 
-<!-- Minimal splash: dark indigo, one small centered brand block, a hairline progress bar, a quiet footer.
-     Spacing and colors live in CSS (.splash-*). Nothing here animates by itself — see SplashController
-     (one fade-in, the bar, and the status text). The ids logoBadge / progressBar / lblStatus / lblOrg /
-     splashRoot are used by the controller and by SplashControllerSmokeTest. -->
+<!-- Minimal splash: dark indigo, one centered brand block, a 3-px progress bar, a quiet footer.
+     Spacing and colors live in CSS (.splash-*). Nothing here animates by itself — see SplashController.
+     The ids logoBadge / progressBar / lblStatus / lblOrg / splashRoot are used by the controller
+     and by SplashControllerSmokeTest. -->
 <StackPane fx:id="splashRoot" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.sibim.controller.SplashController"
            styleClass="splash-root" opacity="0">
 
     <!-- ── Centro ─────────────────────────────────────────────── -->
-    <VBox fx:id="splashContent" alignment="CENTER" maxWidth="320">
+    <VBox fx:id="splashContent" alignment="CENTER" maxWidth="340" spacing="0">
 
-        <!-- The pulse ring sits behind the mark and only exists to say "working" (see SplashController) -->
+        <!-- Two pulse rings stacked behind the mark — sonar effect (SplashController offsets them 900 ms) -->
         <StackPane fx:id="markWrap" alignment="CENTER" maxWidth="-Infinity" maxHeight="-Infinity">
-            <Region fx:id="logoPulse" styleClass="splash-pulse" mouseTransparent="true"/>
+            <Region fx:id="logoPulse2" styleClass="splash-pulse" mouseTransparent="true"/>
+            <Region fx:id="logoPulse"  styleClass="splash-pulse" mouseTransparent="true"/>
             <StackPane fx:id="logoBadge" styleClass="splash-logo-badge" alignment="CENTER">
                 <FontIcon iconLiteral="mdi2p-package-variant" styleClass="splash-logo-icon"/>
             </StackPane>
@@ -26,8 +27,13 @@
         <Label fx:id="lblTitle"    text="SIBIM"                                  styleClass="splash-title"/>
         <Label fx:id="lblSubtitle" text="Sistema Integral de Bienes Municipales" styleClass="splash-subtitle"/>
 
-        <VBox fx:id="progressBox" alignment="CENTER" spacing="10" styleClass="splash-progress-box">
-            <ProgressBar fx:id="progressBar" prefWidth="140" prefHeight="2" styleClass="splash-progress"/>
+        <!-- Thin indigo separator between wordmark and progress block -->
+        <Region fx:id="splashSep" styleClass="splash-sep">
+            <VBox.margin><Insets top="22" bottom="22"/></VBox.margin>
+        </Region>
+
+        <VBox fx:id="progressBox" alignment="CENTER" spacing="12" styleClass="splash-progress-box">
+            <ProgressBar fx:id="progressBar" prefWidth="200" prefHeight="3" styleClass="splash-progress"/>
             <Label fx:id="lblStatus" text="Iniciando…" styleClass="splash-status"/>
         </VBox>
 

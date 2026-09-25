@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.prefs.Preferences;
@@ -213,7 +214,7 @@ public class AuditoriaController {
             try {
                 List<String> acciones = auditRepo.findDistinctAcciones();
                 Platform.runLater(() -> {
-                    List<String> items = new java.util.ArrayList<>();
+                    List<String> items = new ArrayList<>();
                     items.add("Todas");
                     items.addAll(acciones);
                     accionFilter.getItems().setAll(items);
@@ -240,7 +241,7 @@ public class AuditoriaController {
             try {
                 List<String> usuarios = auditRepo.findDistinctUsuarios();
                 Platform.runLater(() -> {
-                    List<String> items = new java.util.ArrayList<>();
+                    List<String> items = new ArrayList<>();
                     items.add("Todos");
                     items.addAll(usuarios);
                     usuarioFilter.getItems().setAll(items);

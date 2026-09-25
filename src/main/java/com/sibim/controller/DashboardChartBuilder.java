@@ -2,14 +2,26 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.repository.ProductoRepository;
+import com.sibim.session.NavigationContext;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.scene.chart.*;
+import javafx.util.Duration;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.scene.Node;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.util.HashMap;
@@ -45,7 +57,7 @@ class DashboardChartBuilder {
         XYChart.Series<String, Number> salidas  = new XYChart.Series<>(); salidas.setName("Salidas");
 
         LocalDate today = LocalDate.now();
-        List<String> labels = new java.util.ArrayList<>();
+        List<String> labels = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             String raw = today.minusDays(i).getDayOfWeek()
                 .getDisplayName(TextStyle.SHORT, Locale.of("es")).replace(".", "");
@@ -106,23 +118,24 @@ class DashboardChartBuilder {
             item.getStyleClass().add("stat-card-clickable");
             String catName = cv.nombre();
             item.setOnMouseClicked(e -> {
-                com.sibim.session.NavigationContext.setPendingCategoryFilter(catName);
+                NavigationContext.setPendingCategoryFilter(catName);
                 navigarA.accept("Productos");
             });
+            AccessibilityUtils.asButton(item, catName + ": " + FormatUtils.formatCurrency(cv.valor()) + " — ver en Bienes");
             Tooltip.install(item, new Tooltip(catName + ": " + FormatUtils.formatCurrency(cv.valor())));
             categoriaValorBox.getChildren().add(item);
 
             double target = pct;
             int delay = i * 90;
-            javafx.animation.PauseTransition wait = new javafx.animation.PauseTransition(
-                javafx.util.Duration.millis(delay + 400));
+            PauseTransition wait = new PauseTransition(
+                Duration.millis(delay + 400));
             wait.setOnFinished(ev -> {
-                javafx.animation.Timeline anim = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
-                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(900),
-                        new javafx.animation.KeyValue(pb.progressProperty(), target,
-                            javafx.animation.Interpolator.EASE_OUT))
+                Timeline anim = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(pb.progressProperty(), 0)),
+                    new KeyFrame(Duration.millis(900),
+                        new KeyValue(pb.progressProperty(), target,
+                            Interpolator.EASE_OUT))
                 );
                 anim.play();
             });
@@ -142,13 +155,13 @@ class DashboardChartBuilder {
     }
 
     private static void installTooltipWhenReady(
-            javafx.beans.value.ObservableValue<? extends javafx.scene.Node> nodeProp, String text) {
-        javafx.scene.Node node = nodeProp.getValue();
+            ObservableValue<? extends Node> nodeProp, String text) {
+        Node node = nodeProp.getValue();
         if (node != null) { Tooltip.install(node, new Tooltip(text)); return; }
-        nodeProp.addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
+        nodeProp.addListener(new ChangeListener<Node>() {
             @Override
-            public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> obs,
-                                javafx.scene.Node old, javafx.scene.Node n) {
+            public void changed(ObservableValue<? extends Node> obs,
+                                Node old, Node n) {
                 if (n != null) { Tooltip.install(n, new Tooltip(text)); nodeProp.removeListener(this); }
             }
         });

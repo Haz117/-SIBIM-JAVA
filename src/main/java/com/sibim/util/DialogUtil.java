@@ -5,22 +5,36 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
+import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
+import javafx.stage.Popup;
+import javafx.stage.Screen;
+import javafx.stage.Window;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.prefs.Preferences;
 
 /**
  * Shared utilities for styled dialogs across the application.
@@ -70,8 +84,12 @@ public final class DialogUtil {
                 fi.setIconSize(11);
                 txt.getStyleClass().add("cell-badge-text");
                 box = new HBox(4, fi, txt);
-                box.setAlignment(javafx.geometry.Pos.CENTER);
+                box.setAlignment(Pos.CENTER);
                 box.getStyleClass().add("cell-badge");
+                // Pill hugs its content: without this it stretches to the full
+                // row height and the label ellipsizes to "…" in narrow columns.
+                box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+                txt.setMinWidth(Region.USE_PREF_SIZE);
             }
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -151,13 +169,13 @@ public final class DialogUtil {
         Node btn = pane.lookupButton(type);
         if (btn == null) return;
         btn.getStyleClass().add("dialog-ok-btn");
-        String on  = "-fx-background-color:" + hexColor + ";-fx-text-fill:white;"
-                   + "-fx-font-weight:bold;-fx-padding:8 22;-fx-background-radius:8;"
-                   + "-fx-opacity:1;-fx-cursor:hand;";
-        String off = "-fx-background-color:#DDE3EF;-fx-text-fill:#8896AA;"
-                   + "-fx-font-weight:bold;-fx-padding:8 22;-fx-background-radius:8;"
-                   + "-fx-opacity:1;-fx-cursor:default;";
-        Runnable sync = () -> btn.setStyle(btn.isDisabled() ? off : on);
+        // Active state needs inline style for the dynamic hexColor; disabled state
+        // clears inline and falls through to .dialog-ok-btn:disabled in styles.css
+        // (which sets opacity:1 to prevent Modena's default 0.4 dimming).
+        String activeStyle = "-fx-background-color:" + hexColor + ";-fx-text-fill:white;"
+                           + "-fx-font-weight:bold;-fx-padding:8 22;-fx-background-radius:8;"
+                           + "-fx-opacity:1;-fx-cursor:hand;";
+        Runnable sync = () -> btn.setStyle(btn.isDisabled() ? null : activeStyle);
         sync.run();
         btn.disabledProperty().addListener((obs, o, n) -> sync.run());
     }
@@ -215,9 +233,9 @@ public final class DialogUtil {
         btn.getStyleClass().addAll("btn-ghost", "dlg-copy-folio-btn");
         btn.setTooltip(new Tooltip("Copiar " + value));
         btn.setOnAction(e -> {
-            javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
+            ClipboardContent cc = new ClipboardContent();
             cc.putString(value);
-            javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
+            Clipboard.getSystemClipboard().setContent(cc);
             FontIcon ok = new FontIcon("mdi2c-check");
             ok.getStyleClass().add("dlg-header-icon");
             ok.setIconSize(16);
@@ -248,7 +266,7 @@ public final class DialogUtil {
      *  modality stacks correctly. */
     public static Dialog<ButtonType> styledMessage(String icon, String title, String subtitle,
                                                     String color1, String color2, String body,
-                                                    javafx.stage.Window owner) {
+                                                    Window owner) {
         Dialog<ButtonType> dialog = new Dialog<>();
         if (owner != null) dialog.initOwner(owner);
         else if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
@@ -317,7 +335,7 @@ public final class DialogUtil {
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("dialog-scroll");
         pane.setContent(scroll);
-        double maxH = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() * 0.85;
+        double maxH = Screen.getPrimary().getVisualBounds().getHeight() * 0.85;
         pane.setMaxHeight(maxH);
     }
 
@@ -393,8 +411,8 @@ public final class DialogUtil {
 
     // ── Column visibility toggle ─────────────────────────────────────────
 
-    private static final java.util.prefs.Preferences UI_PREFS =
-        java.util.prefs.Preferences.userNodeForPackage(DialogUtil.class);
+    private static final Preferences UI_PREFS =
+        Preferences.userNodeForPackage(DialogUtil.class);
 
     /**
      * Adds a right-click context menu on a TableView's header that lets the
@@ -439,7 +457,7 @@ public final class DialogUtil {
 
                 menu.getItems().add(new SeparatorMenuItem());
                 MenuItem resetItem = new MenuItem("Restaurar columnas predeterminadas");
-                resetItem.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2r-refresh"));
+                resetItem.setGraphic(new FontIcon("mdi2r-refresh"));
                 resetItem.setOnAction(e -> {
                     for (TableColumn<?, ?> col : toggleable) {
                         String prefKey = prefKeyPrefix + "." + col.getText();
@@ -504,7 +522,7 @@ public final class DialogUtil {
      */
     public static <T> void makeFilterable(ComboBox<T> combo, java.util.List<T> allItems, Function<T, String> toText) {
         combo.setEditable(true);
-        combo.setItems(javafx.collections.FXCollections.observableArrayList(allItems));
+        combo.setItems(FXCollections.observableArrayList(allItems));
         // Distinguishes the user typing from this method's own programmatic
         // edits to the editor text (e.g. restoring the label after a pick) —
         // without it, that restore would re-trigger the filter and fight itself.
@@ -519,7 +537,7 @@ public final class DialogUtil {
             String q = text == null ? "" : text.toLowerCase();
             java.util.List<T> filtered = q.isBlank() ? allItems
                 : allItems.stream().filter(i -> toText.apply(i).toLowerCase().contains(q)).toList();
-            combo.setItems(javafx.collections.FXCollections.observableArrayList(filtered));
+            combo.setItems(FXCollections.observableArrayList(filtered));
             if (!filtered.isEmpty()) combo.show(); else combo.hide();
         });
         combo.valueProperty().addListener((obs, old, val) -> {
@@ -543,7 +561,7 @@ public final class DialogUtil {
                 // must open the list immediately — otherwise it looks like a
                 // dead text field instead of a searchable picker until
                 // the user already knows to start typing.
-                combo.setItems(javafx.collections.FXCollections.observableArrayList(allItems));
+                combo.setItems(FXCollections.observableArrayList(allItems));
                 if (!combo.getItems().isEmpty()) combo.show();
                 return;
             }
@@ -631,7 +649,7 @@ public final class DialogUtil {
      * reasonable template for any future "load a list into a table" screen with an inline
      * ProgressIndicator, as opposed to {@link #runAsyncWithProgress} which pops its own toast).
      */
-    public static <R> void loadAsync(ProgressIndicator spinner, javafx.scene.Scene scene,
+    public static <R> void loadAsync(ProgressIndicator spinner, Scene scene,
             java.util.concurrent.Callable<R> task, Consumer<R> onSuccess, String errorMsg, Logger log) {
         if (spinner != null) { spinner.setVisible(true); spinner.setManaged(true); }
         runAsync(task,
@@ -649,12 +667,12 @@ public final class DialogUtil {
     /** Same as {@link #runAsync(java.util.concurrent.Callable, Consumer, Consumer)} but shows a
      *  non-dismissable "working…" toast while the task runs. Use for exports and other
      *  operations that can take a noticeable moment so the user knows something is happening. */
-    public static <R> void runAsyncWithProgress(javafx.scene.Scene scene, String mensaje,
+    public static <R> void runAsyncWithProgress(Scene scene, String mensaje,
             java.util.concurrent.Callable<R> task,
             Consumer<R> onSuccess, Consumer<Exception> onError) {
-        javafx.stage.Window owner = scene == null ? null : scene.getWindow();
+        Window owner = scene == null ? null : scene.getWindow();
 
-        javafx.scene.control.ProgressIndicator spinner = new javafx.scene.control.ProgressIndicator(-1);
+        ProgressIndicator spinner = new ProgressIndicator(-1);
         spinner.setPrefSize(18, 18);
         spinner.setMaxSize(18, 18);
         spinner.getStyleClass().add("toast-spinner");
@@ -672,7 +690,7 @@ public final class DialogUtil {
         if (css != null) box.getStylesheets().add(css.toExternalForm());
         box.setOpacity(0);
 
-        javafx.stage.Popup popup = new javafx.stage.Popup();
+        Popup popup = new Popup();
         popup.setAutoHide(false);
         popup.getContent().add(box);
 
@@ -680,8 +698,8 @@ public final class DialogUtil {
             double x = owner.getX() + (owner.getWidth() - 500) / 2.0;
             double y = owner.getY() + 22;
             popup.show(owner, x, y);
-            javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
-                javafx.util.Duration.millis(180), box);
+            FadeTransition ft = new FadeTransition(
+                Duration.millis(180), box);
             ft.setToValue(1); ft.play();
         }
 
@@ -692,8 +710,8 @@ public final class DialogUtil {
             final R finalResult = result;
             final Exception finalError = error;
             Platform.runLater(() -> {
-                javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
-                    javafx.util.Duration.millis(160), box);
+                FadeTransition ft = new FadeTransition(
+                    Duration.millis(160), box);
                 ft.setToValue(0);
                 ft.setOnFinished(e -> popup.hide());
                 ft.play();
@@ -710,7 +728,7 @@ public final class DialogUtil {
      *  exports a PDF/Excel/CSV (Reportes, Depreciación) so this ~80-line
      *  dialog isn't duplicated per controller. For PDFs the file is auto-opened
      *  in the system viewer and "Guardar como..." becomes the primary action. */
-    public static void showExportResultDialog(javafx.scene.Scene scene, java.io.File file) {
+    public static void showExportResultDialog(Scene scene, File file) {
         Dialog<ButtonType> dialog = new Dialog<>();
         applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -821,9 +839,9 @@ public final class DialogUtil {
             } catch (Exception ex) { /* best-effort */ }
         });
         btnCopiar.setOnAction(e -> {
-            var content = new javafx.scene.input.ClipboardContent();
+            var content = new ClipboardContent();
             content.putString(file.getAbsolutePath());
-            javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+            Clipboard.getSystemClipboard().setContent(content);
             NotificacionUtil.info(scene, "Ruta copiada al portapapeles");
         });
         btnImpr.setOnAction(e -> {
@@ -839,13 +857,13 @@ public final class DialogUtil {
             } catch (Exception ex) { NotificacionUtil.error(scene, "No se pudo abrir el archivo para imprimir"); }
         });
         btnGuardar.setOnAction(e -> {
-            javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
+            FileChooser fc = new FileChooser();
             fc.setTitle("Guardar " + ext + " como…");
             fc.setInitialFileName(name);
             String filterDesc = "PDF".equals(ext) ? "Archivo PDF" : "XLSX".equals(ext) ? "Libro de Excel" : "Archivo CSV";
-            fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter(filterDesc, "*." + ext.toLowerCase()));
-            javafx.stage.Window w = dialog.getDialogPane().getScene() != null ? dialog.getDialogPane().getScene().getWindow() : null;
-            java.io.File dest = fc.showSaveDialog(w);
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(filterDesc, "*." + ext.toLowerCase()));
+            Window w = dialog.getDialogPane().getScene() != null ? dialog.getDialogPane().getScene().getWindow() : null;
+            File dest = fc.showSaveDialog(w);
             if (dest != null) {
                 try {
                     java.nio.file.Files.copy(file.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
@@ -886,11 +904,11 @@ public final class DialogUtil {
                 if (q == null || q.isBlank()) { setText(item); setGraphic(null); return; }
                 int idx = item.toLowerCase().indexOf(q.toLowerCase());
                 if (idx < 0) { setText(item); setGraphic(null); return; }
-                javafx.scene.text.Text pre = new javafx.scene.text.Text(item.substring(0, idx));
-                javafx.scene.text.Text hl  = new javafx.scene.text.Text(item.substring(idx, idx + q.length()));
+                Text pre = new Text(item.substring(0, idx));
+                Text hl  = new Text(item.substring(idx, idx + q.length()));
                 hl.getStyleClass().add("search-highlight");
-                javafx.scene.text.Text suf = new javafx.scene.text.Text(item.substring(idx + q.length()));
-                setGraphic(new javafx.scene.text.TextFlow(pre, hl, suf));
+                Text suf = new Text(item.substring(idx + q.length()));
+                setGraphic(new TextFlow(pre, hl, suf));
                 setText(null);
             }
         };
@@ -900,7 +918,7 @@ public final class DialogUtil {
      *  {@code prefs} with keys {@code keyPrefix + ".sortIdx"} and
      *  {@code keyPrefix + ".sortDir"}.  Call once after all columns are added. */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void persistTableSort(TableView<?> table, java.util.prefs.Preferences prefs, String keyPrefix) {
+    public static void persistTableSort(TableView<?> table, Preferences prefs, String keyPrefix) {
         // Restore
         int savedIdx = prefs.getInt(keyPrefix + ".sortIdx", -1);
         if (savedIdx >= 0 && savedIdx < table.getColumns().size()) {
@@ -910,7 +928,7 @@ public final class DialogUtil {
             ((TableView) table).getSortOrder().setAll(col);
         }
         // Persist on change
-        table.getSortOrder().addListener((javafx.collections.ListChangeListener) c -> {
+        table.getSortOrder().addListener((ListChangeListener) c -> {
             if (table.getSortOrder().isEmpty()) {
                 prefs.remove(keyPrefix + ".sortIdx");
                 prefs.remove(keyPrefix + ".sortDir");
@@ -935,7 +953,7 @@ public final class DialogUtil {
      *  {@code prefs}/{@code keyPrefix} may be null when this table doesn't
      *  persist width/sort — visibility and order still get reset either way. */
     public static void setupColumnReset(TableView<?> table, Button btnReset,
-                                         java.util.prefs.Preferences prefs) {
+                                         Preferences prefs) {
         if (btnReset == null || table == null) return;
         Runnable reset = captureColumnReset(table, prefs);
         btnReset.setOnAction(e -> reset.run());
@@ -951,7 +969,7 @@ public final class DialogUtil {
      *  prefixes below are hardcoded because every caller of those two
      *  methods in this codebase already uses exactly those two literals. */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static Runnable captureColumnReset(TableView table, java.util.prefs.Preferences prefs) {
+    public static Runnable captureColumnReset(TableView table, Preferences prefs) {
         List<TableColumn> defaultOrder = new java.util.ArrayList<>(table.getColumns());
         double[] defaultWidths = new double[defaultOrder.size()];
         for (int i = 0; i < defaultOrder.size(); i++) defaultWidths[i] = defaultOrder.get(i).getPrefWidth();
@@ -974,7 +992,7 @@ public final class DialogUtil {
 
     /** Saves and restores column widths for {@code table} so the user's manual
      *  resizes survive navigation.  Call once after all columns are added. */
-    public static void persistColumnWidths(TableView<?> table, java.util.prefs.Preferences prefs, String keyPrefix) {
+    public static void persistColumnWidths(TableView<?> table, Preferences prefs, String keyPrefix) {
         // Restore (deferred so layout has run at least once)
         Platform.runLater(() -> {
             for (int i = 0; i < table.getColumns().size(); i++) {

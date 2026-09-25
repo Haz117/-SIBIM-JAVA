@@ -1,18 +1,28 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.model.Movimiento;
+import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
+import com.sibim.model.Resguardo;
 import com.sibim.repository.PriceHistoryRepository;
+import com.sibim.service.MantenimientoService;
 import com.sibim.service.MovimientoService;
+import com.sibim.service.PrestamoService;
+import com.sibim.service.ProductoService;
 import com.sibim.controller.dialogs.MovimientoTimelineDialog;
 import com.sibim.service.ReporteService;
+import com.sibim.service.ResguardoService;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.QrUtils;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
+import javafx.stage.FileChooser;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -22,9 +32,15 @@ import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /** Read-only detail dialog for a {@link Producto}.
  *  Extracted from ProductosController to keep it under 700 lines. */
@@ -37,9 +53,9 @@ public final class ProductoDetailDialog {
     private record DetalleData(
         List<Movimiento> movimientos,
         List<String> fotos,
-        List<com.sibim.model.Resguardo> resguardos,
-        List<com.sibim.model.Prestamo> prestamos,
-        List<com.sibim.service.MantenimientoService.Alerta> alertas
+        List<Resguardo> resguardos,
+        List<Prestamo> prestamos,
+        List<MantenimientoService.Alerta> alertas
     ) {}
 
     /** Opens the read-only bien detail dialog. Loads movimientos, fotos, resguardos,
@@ -57,19 +73,19 @@ public final class ProductoDetailDialog {
                 } catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
                 List<String> fotosGaleria = List.of();
-                try { fotosGaleria = new com.sibim.service.ProductoService().getFotosByProductoId(p.getId()); }
+                try { fotosGaleria = new ProductoService().getFotosByProductoId(p.getId()); }
                 catch (Exception ex) { log.warn("No se pudo cargar galería de fotos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-                List<com.sibim.model.Resguardo> resguardoHistory = List.of();
-                try { resguardoHistory = new com.sibim.service.ResguardoService().getByProductoId(p.getId()); }
+                List<Resguardo> resguardoHistory = List.of();
+                try { resguardoHistory = new ResguardoService().getByProductoId(p.getId()); }
                 catch (Exception ex) { log.warn("No se pudo cargar historial de resguardos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-                List<com.sibim.model.Prestamo> prestamoHistory = List.of();
-                try { prestamoHistory = new com.sibim.service.PrestamoService().getByProductoId(p.getId()); }
+                List<Prestamo> prestamoHistory = List.of();
+                try { prestamoHistory = new PrestamoService().getByProductoId(p.getId()); }
                 catch (Exception ex) { log.warn("No se pudo cargar historial de préstamos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-                List<com.sibim.service.MantenimientoService.Alerta> alertas = List.of();
-                try { alertas = new com.sibim.service.MantenimientoService().getAlertas(p.getId()); }
+                List<MantenimientoService.Alerta> alertas = List.of();
+                try { alertas = new MantenimientoService().getAlertas(p.getId()); }
                 catch (Exception ex) { log.warn("No se pudo cargar alertas de mantenimiento para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
                 return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas);
@@ -88,8 +104,8 @@ public final class ProductoDetailDialog {
     private static void buildAndShow(Producto p, Scene scene, Logger log, DetalleData loaded) {
         final List<Movimiento> movs = loaded.movimientos();
         final List<String> _fotosGaleria = loaded.fotos();
-        final java.util.List<com.sibim.model.Resguardo> _resguardos = loaded.resguardos();
-        final java.util.List<com.sibim.model.Prestamo> _prestamos = loaded.prestamos();
+        final List<Resguardo> _resguardos = loaded.resguardos();
+        final List<Prestamo> _prestamos = loaded.prestamos();
 
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
@@ -120,7 +136,7 @@ public final class ProductoDetailDialog {
         btnTimeline.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             event.consume();
             dialog.close();
-            MovimientoTimelineDialog.show(p, scene, new com.sibim.service.MovimientoService());
+            MovimientoTimelineDialog.show(p, scene, new MovimientoService());
         });
 
         VBox root = new VBox(14);
@@ -144,6 +160,7 @@ public final class ProductoDetailDialog {
                 thumbPane.getChildren().add(iv);
                 thumbPane.getStyleClass().addAll("dlg-thumb-photo", "foto-cell-box-clickable");
                 thumbPane.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(p.getFotoUrl(), p.getNombre()));
+                AccessibilityUtils.asButton(thumbPane, "Ver foto de " + p.getNombre());
                 photoLoaded = true;
             } catch (Exception ex) { log.warn("No se pudo cargar thumbnail de detalle: {}", p.getFotoUrl(), ex); }
         }
@@ -195,6 +212,7 @@ public final class ProductoDetailDialog {
             Tooltip qrTip = new Tooltip("Código QR — clic para ampliar");
             Tooltip.install(qrPane, qrTip);
             qrPane.setOnMouseClicked(e -> showQrPopup(p, qrSmall, scene));
+            AccessibilityUtils.asButton(qrPane, "Ampliar código QR");
             qrPane.getStyleClass().add("dlg-qr-thumb-clickable");
         }
 
@@ -214,7 +232,7 @@ public final class ProductoDetailDialog {
 
         // Build rows dynamically so new fields (marca/modelo/serie) are shown only when present
         record Row(String key, String val, String styleClass) {}
-        java.util.ArrayList<Row> rowList = new java.util.ArrayList<>();
+        ArrayList<Row> rowList = new ArrayList<>();
         rowList.add(new Row("Categoría",       p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—", null));
         rowList.add(new Row("Área",            p.getArea() != null ? p.getArea() : "—", null));
         rowList.add(new Row("Resguardante",    p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "—", null));
@@ -261,6 +279,7 @@ public final class ProductoDetailDialog {
                 javafx.scene.layout.StackPane factPane = new javafx.scene.layout.StackPane(factIv);
                 factPane.getStyleClass().addAll("dlg-img-box", "foto-cell-box-clickable");
                 factPane.setOnMouseClicked(e -> DialogUtil.showPhotoViewer(fUrl, "Factura — " + p.getNombre()));
+                AccessibilityUtils.asButton(factPane, "Ver foto de factura");
                 VBox factBox = new VBox(4, DialogUtil.fieldLabel("Foto de factura"), factPane);
                 int nextRow = rowList.size();
                 g.add(factBox, 0, nextRow, 2, 1);
@@ -283,6 +302,7 @@ public final class ProductoDetailDialog {
                     iv.setFitWidth(90); iv.setFitHeight(70); iv.setPreserveRatio(true);
                     iv.getStyleClass().add("foto-thumbnail-clickable");
                     iv.setOnMouseClicked(e -> openLightbox(galFotos, idx));
+                    AccessibilityUtils.asButton(iv, "Ver foto " + (idx + 1) + " de " + galFotos.size());
                     StackPane cell = new StackPane(iv);
                     cell.getStyleClass().add("dlg-img-box");
                     thumbnails.getChildren().add(cell);
@@ -414,7 +434,7 @@ public final class ProductoDetailDialog {
         }
 
         // ── Historial de precios ──────────────────────────────────────
-        java.util.List<PriceHistoryRepository.PriceHistoryEntry> priceHistory = java.util.List.of();
+        List<PriceHistoryRepository.PriceHistoryEntry> priceHistory = List.of();
         if (p.getId() != null) {
             try { priceHistory = new PriceHistoryRepository().findByProducto(p.getId()); }
             catch (Exception ex) { log.warn("No se pudo cargar historial de precios: {}", ex.getMessage()); }
@@ -433,34 +453,34 @@ public final class ProductoDetailDialog {
             priceTable.getStyleClass().add("data-table");
 
             TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colCampo = new TableColumn<>("Campo");
-            colCampo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+            colCampo.setCellValueFactory(c -> new SimpleStringProperty(
                 "precio_compra".equals(c.getValue().campo()) ? "Precio compra" : "Precio venta"));
             colCampo.setPrefWidth(100);
 
-            TableColumn<PriceHistoryRepository.PriceHistoryEntry, java.math.BigDecimal> colAnt = new TableColumn<>("Anterior");
-            colAnt.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().valorAnterior()));
+            TableColumn<PriceHistoryRepository.PriceHistoryEntry, BigDecimal> colAnt = new TableColumn<>("Anterior");
+            colAnt.setCellValueFactory(c -> new SimpleObjectProperty<>(c.getValue().valorAnterior()));
             colAnt.setCellFactory(col -> new TableCell<>() {
-                @Override protected void updateItem(java.math.BigDecimal v, boolean empty) {
+                @Override protected void updateItem(BigDecimal v, boolean empty) {
                     super.updateItem(v, empty); setText(empty || v == null ? "—" : FormatUtils.formatCurrency(v));
                 }
             });
             colAnt.setPrefWidth(90);
 
-            TableColumn<PriceHistoryRepository.PriceHistoryEntry, java.math.BigDecimal> colNuevo = new TableColumn<>("Nuevo");
-            colNuevo.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().valorNuevo()));
+            TableColumn<PriceHistoryRepository.PriceHistoryEntry, BigDecimal> colNuevo = new TableColumn<>("Nuevo");
+            colNuevo.setCellValueFactory(c -> new SimpleObjectProperty<>(c.getValue().valorNuevo()));
             colNuevo.setCellFactory(col -> new TableCell<>() {
-                @Override protected void updateItem(java.math.BigDecimal v, boolean empty) {
+                @Override protected void updateItem(BigDecimal v, boolean empty) {
                     super.updateItem(v, empty); setText(empty || v == null ? "—" : FormatUtils.formatCurrency(v));
                 }
             });
             colNuevo.setPrefWidth(90);
 
             TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colUsuario = new TableColumn<>("Usuario");
-            colUsuario.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().usuarioNombre()));
+            colUsuario.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().usuarioNombre()));
             colUsuario.setPrefWidth(110);
 
             TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colFecha = new TableColumn<>("Fecha");
-            colFecha.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+            colFecha.setCellValueFactory(c -> new SimpleStringProperty(
                 c.getValue().creadoEn() != null ? FormatUtils.formatDateTime(c.getValue().creadoEn()) : "—"));
             colFecha.setPrefWidth(130);
 
@@ -479,10 +499,10 @@ public final class ProductoDetailDialog {
             rsgTitle.getStyleClass().add("dialog-field-label");
 
             VBox rsgList = new VBox(4);
-            for (com.sibim.model.Resguardo rsg : _resguardos) {
+            for (Resguardo rsg : _resguardos) {
                 String fecha = rsg.getCreadoEn() != null
-                    ? rsg.getCreadoEn().toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "—";
-                String estadoBadgeClass = com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(rsg.getEstado())
+                    ? rsg.getCreadoEn().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "—";
+                String estadoBadgeClass = Resguardo.ESTADO_ACTIVO.equals(rsg.getEstado())
                     ? "cell-badge-ok" : "cell-badge-muted";
                 Label lblFolio = new Label(rsg.getNumero() != null ? rsg.getNumero() : "—");
                 lblFolio.getStyleClass().add("dlg-detail-code");
@@ -509,9 +529,9 @@ public final class ProductoDetailDialog {
             Label prsTitle = new Label("Préstamos (" + _prestamos.size() + ")");
             prsTitle.getStyleClass().add("dialog-field-label");
 
-            java.time.format.DateTimeFormatter fmtPrs = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter fmtPrs = DateTimeFormatter.ofPattern("dd/MM/yyyy");
             VBox prsList = new VBox(4);
-            for (com.sibim.model.Prestamo prs : _prestamos) {
+            for (Prestamo prs : _prestamos) {
                 String fecha = prs.getFechaPrestamo() != null ? prs.getFechaPrestamo().format(fmtPrs) : "—";
                 String badgeClass = switch (prs.getEstado() != null ? prs.getEstado() : "") {
                     case "DEVUELTO" -> "cell-badge-muted";
@@ -538,8 +558,8 @@ public final class ProductoDetailDialog {
 
         // ── Alertas de mantenimiento ───────────────────────────────────
         {
-            com.sibim.service.MantenimientoService mantSvc = new com.sibim.service.MantenimientoService();
-            java.util.List<com.sibim.service.MantenimientoService.Alerta> alertasIniciales = loaded.alertas();
+            MantenimientoService mantSvc = new MantenimientoService();
+            List<MantenimientoService.Alerta> alertasIniciales = loaded.alertas();
 
             Separator sepMant = new Separator();
             sepMant.getStyleClass().add("form-separator");
@@ -558,10 +578,10 @@ public final class ProductoDetailDialog {
             VBox mantList = new VBox(4);
             root.getChildren().addAll(mantHeader, mantList);
 
-            java.time.format.DateTimeFormatter fmtMant = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter fmtMant = DateTimeFormatter.ofPattern("dd/MM/yyyy");
             // Use a holder to allow self-referential Runnable (rebuild triggers itself via buttons)
             Runnable[] rebuildHolder = { null };
-            java.util.function.Consumer<java.util.List<com.sibim.service.MantenimientoService.Alerta>> renderAlertas = current -> {
+            Consumer<List<MantenimientoService.Alerta>> renderAlertas = current -> {
                 mantList.getChildren().clear();
                 mantTitle.setText("Mantenimiento" + (current.isEmpty() ? "" : " (" + current.size() + ")"));
                 if (current.isEmpty()) {
@@ -570,9 +590,9 @@ public final class ProductoDetailDialog {
                     mantList.getChildren().add(empty);
                     return;
                 }
-                for (com.sibim.service.MantenimientoService.Alerta a : current) {
+                for (MantenimientoService.Alerta a : current) {
                     if (a.completada()) continue;
-                    boolean vencida = a.fecha() != null && a.fecha().isBefore(java.time.LocalDate.now());
+                    boolean vencida = a.fecha() != null && a.fecha().isBefore(LocalDate.now());
                     Label lblDesc = new Label(a.descripcion());
                     lblDesc.getStyleClass().add(vencida ? "cell-badge-warning" : "muted-sm");
                     Label lblFecha = new Label(a.fecha() != null ? a.fecha().format(fmtMant) : "—");
@@ -620,7 +640,7 @@ public final class ProductoDetailDialog {
     }
 
     private static void showAgregarMantenimientoDialog(Producto p,
-                                                        com.sibim.service.MantenimientoService mantSvc,
+                                                        MantenimientoService mantSvc,
                                                         Scene scene, Runnable onSaved) {
         Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);
@@ -640,7 +660,7 @@ public final class ProductoDetailDialog {
 
         Label lblFecha = new Label("Fecha de revisión:");
         lblFecha.getStyleClass().add("dialog-field-label");
-        DatePicker dpFecha = new DatePicker(java.time.LocalDate.now().plusMonths(6));
+        DatePicker dpFecha = new DatePicker(LocalDate.now().plusMonths(6));
         dpFecha.getStyleClass().add("form-field");
         dpFecha.setPrefWidth(Double.MAX_VALUE);
 
@@ -660,7 +680,7 @@ public final class ProductoDetailDialog {
         dlg.showAndWait().ifPresent(bt -> {
             if (bt == okType && !tfDesc.getText().isBlank() && dpFecha.getValue() != null) {
                 String descripcion = tfDesc.getText().trim();
-                java.time.LocalDate fecha = dpFecha.getValue();
+                LocalDate fecha = dpFecha.getValue();
                 DialogUtil.runAsync(
                     () -> { mantSvc.agregarAlerta(p.getId(), descripcion, fecha); return null; },
                     v -> onSaved.run(),
@@ -696,12 +716,12 @@ public final class ProductoDetailDialog {
 
         dlg.showAndWait().ifPresent(result -> {
             if (result != savePng) return;
-            javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
+            FileChooser fc = new FileChooser();
             fc.setTitle("Guardar código QR como imagen");
             fc.setInitialFileName("QR_" + p.getCodigo() + ".png");
             fc.getExtensionFilters().add(
-                new javafx.stage.FileChooser.ExtensionFilter("Imagen PNG (*.png)", "*.png"));
-            java.io.File dest = fc.showSaveDialog(scene != null ? scene.getWindow() : null);
+                new FileChooser.ExtensionFilter("Imagen PNG (*.png)", "*.png"));
+            File dest = fc.showSaveDialog(scene != null ? scene.getWindow() : null);
             if (dest != null) {
                 try {
                     QrUtils.saveAsPng(qrFull, dest);
@@ -742,7 +762,7 @@ public final class ProductoDetailDialog {
         Runnable refresh = () -> {
             String path = fotos.get(idx[0]);
             try {
-                bigImg.setImage(new Image(new java.io.FileInputStream(path), 620, 440, true, true));
+                bigImg.setImage(new Image(new FileInputStream(path), 620, 440, true, true));
             } catch (Exception ex) {
                 bigImg.setImage(null);
             }

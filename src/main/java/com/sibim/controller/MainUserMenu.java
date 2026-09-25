@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.util.AccessibilityUtils;
 import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -42,5 +43,6 @@ class MainUserMenu {
             if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY)
                 menu.show(card, e.getScreenX(), e.getScreenY());
         });
+        AccessibilityUtils.asButton(card, "Menú de usuario");
     }
 }

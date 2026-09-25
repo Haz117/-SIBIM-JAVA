@@ -10,6 +10,7 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.PrestamoService;
 import com.sibim.service.ResguardoService;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -124,8 +125,8 @@ public final class MovimientoTimelineDialog {
                 content.getChildren().add(scroll);
                 VBox.setVgrow(scroll, Priority.ALWAYS);
                 dlg.getDialogPane().setContent(content);
-                com.sibim.util.AnimationUtils.staggeredFadeInUp(
-                    java.util.List.of(header, scroll), 240, 60);
+                AnimationUtils.staggeredFadeInUp(
+                    List.of(header, scroll), 240, 60);
                 dlg.showAndWait();
             },
             ex -> NotificacionUtil.error(ownerScene, "No se pudo cargar el historial"));

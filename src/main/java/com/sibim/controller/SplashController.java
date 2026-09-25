@@ -3,8 +3,11 @@ package com.sibim.controller;
 import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.MigrationRunner;
+import com.sibim.db.offline.OfflineStore;
 import com.sibim.db.offline.SyncService;
+import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.util.AnimationUtils;
+import java.io.File;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.flywaydb.core.Flyway;
 import javafx.animation.*;
@@ -22,6 +25,9 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +43,8 @@ public class SplashController {
     @FXML private VBox splashContent;
     @FXML private StackPane markWrap;
     @FXML private Region logoPulse;
+    @FXML private Region logoPulse2;
+    @FXML private Region splashSep;
     @FXML private StackPane logoBadge;
     @FXML private Label lblTitle;
     @FXML private Label lblSubtitle;
@@ -46,57 +54,62 @@ public class SplashController {
     @FXML private ProgressBar progressBar;
     @FXML private Label lblStatus;
 
-    /** Institution logo size in the brand mark (a rounded square, matching the default flat badge). */
-    private static final double LOGO_SIZE = 44;
+    private static final double LOGO_SIZE = 68;
 
     private Timeline dotAnim;
-    private Animation pulseAnim;
+    private final List<Animation> pulseAnims = new ArrayList<>();
     private boolean finishing     = false;
     private boolean animReady     = false;
     private boolean dbReady       = false;
     private boolean firstRunAdmin = false;
 
+    /** Set once initDatabase() has fully finished (success or offline fallback),
+     *  so the smoke test can wait for the db-init thread to settle before it
+     *  resets the shared DatabaseConfig state. */
+    private static volatile boolean dbInitFinished = false;
+    static boolean isDbInitFinished() { return dbInitFinished; }
+
     /**
-     * A short, quiet sequence: the window fades in, then the mark, wordmark, subtitle, progress and footer
-     * appear one after another (each a soft fade with a few pixels of rise), a thin ring breathes out from
-     * the mark while the app starts, the bar fills as the status text crossfades through the startup
-     * phases, and on completion the bar closes to 100 %. Nothing bounces, glows or spins. With animations
-     * turned off in the app settings everything simply shows at once.
+     * Entrance: window fades in, badge springs in (0.78→1.06→1.0 overshoot), then wordmark,
+     * subtitle, separator and progress box rise in staggered. Two sonar rings breathe out from
+     * the badge. Bar fills non-linearly and status text crossfades through startup phases.
+     * With animations disabled everything simply shows at once.
      */
     @FXML
     public void initialize() {
         progressBar.setProgress(0);
+        dbInitFinished = false;
         Thread.ofVirtual().name("db-init").start(this::initDatabase);
 
-        FadeTransition rootFade = new FadeTransition(Duration.millis(260), splashRoot);
+        FadeTransition rootFade = new FadeTransition(Duration.millis(300), splashRoot);
         rootFade.setFromValue(0); rootFade.setToValue(1);
         rootFade.setInterpolator(Interpolator.EASE_OUT);
 
-        reveal(markWrap,    100, 0, 0.86);
-        reveal(lblTitle,    240, 6, 1);
-        reveal(lblSubtitle, 330, 6, 1);
-        reveal(progressBox, 450, 6, 1);
-        reveal(lblOrg,      580, 0, 1);
-        reveal(lblVersion,  580, 0, 1);
+        revealSpring(markWrap,   80);
+        reveal(lblTitle,        280, 8, 1);
+        reveal(lblSubtitle,     370, 8, 1);
+        reveal(splashSep,       460, 0, 1);
+        reveal(progressBox,     500, 8, 1);
+        reveal(lblOrg,          640, 0, 1);
+        reveal(lblVersion,      640, 0, 1);
 
-        // Non-linear fill; stops at 88% so the bar never falsely reaches 100% before the DB is ready
+        // Non-linear fill; stops at 88 % so the bar never falsely reaches 100 % before the DB is ready
         Timeline progressAnim = new Timeline(
             new KeyFrame(Duration.ZERO,           new KeyValue(progressBar.progressProperty(), 0.0)),
             new KeyFrame(Duration.millis(400),    new KeyValue(progressBar.progressProperty(), 0.18, Interpolator.EASE_IN)),
             new KeyFrame(Duration.millis(1000),   new KeyValue(progressBar.progressProperty(), 0.52, Interpolator.EASE_BOTH)),
             new KeyFrame(Duration.millis(1650),   new KeyValue(progressBar.progressProperty(), 0.82, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(2100),   new KeyValue(progressBar.progressProperty(), 0.88, Interpolator.EASE_OUT))
+            new KeyFrame(Duration.millis(2200),   new KeyValue(progressBar.progressProperty(), 0.88, Interpolator.EASE_OUT))
         );
-        progressAnim.setDelay(Duration.millis(450));
+        progressAnim.setDelay(Duration.millis(500));
 
         Timeline statusAnim = new Timeline(
             new KeyFrame(Duration.millis(0),    e -> setStatus("Iniciando sistema…")),
-            new KeyFrame(Duration.millis(650),  e -> setStatus("Conectando base de datos…")),
-            new KeyFrame(Duration.millis(1300), e -> setStatus("Cargando módulos…")),
-            // Don't say "listo" here — the real "Listo" is set when both the animation and the DB are done
-            new KeyFrame(Duration.millis(1950), e -> setStatus("Preparando interfaz…"))
+            new KeyFrame(Duration.millis(700),  e -> setStatus("Conectando base de datos…")),
+            new KeyFrame(Duration.millis(1400), e -> setStatus("Cargando módulos…")),
+            new KeyFrame(Duration.millis(2100), e -> setStatus("Preparando interfaz…"))
         );
-        statusAnim.setDelay(Duration.millis(450));
+        statusAnim.setDelay(Duration.millis(500));
 
         startPulse();
 
@@ -104,7 +117,6 @@ public class SplashController {
         hold.setOnFinished(e -> {
             animReady = true;
             if (!dbReady) {
-                // still waiting on the database: keep the bar alive as an indeterminate sweep
                 progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
                 startDotAnimation();
             }
@@ -116,47 +128,71 @@ public class SplashController {
         entrance.play();
     }
 
-    /** Fade a node in (with an optional few pixels of rise and/or a slight scale-up) after {@code delayMs}. */
+    /** Fade a node in with an optional rise after {@code delayMs}. */
     private static void reveal(Node node, int delayMs, double riseFrom, double scaleFrom) {
         if (node == null) return;
-        if (!AnimationUtils.isEnabled()) return;           // animations off: leave it fully visible
+        if (!AnimationUtils.isEnabled()) return;
         node.setOpacity(0);
         node.setTranslateY(riseFrom);
         node.setScaleX(scaleFrom); node.setScaleY(scaleFrom);
-        FadeTransition fade = new FadeTransition(Duration.millis(400), node);
+        FadeTransition fade = new FadeTransition(Duration.millis(420), node);
         fade.setFromValue(0); fade.setToValue(1);
         fade.setInterpolator(Interpolator.EASE_OUT);
         ParallelTransition in = new ParallelTransition(fade);
         if (riseFrom != 0) {
-            TranslateTransition rise = new TranslateTransition(Duration.millis(400), node);
+            TranslateTransition rise = new TranslateTransition(Duration.millis(420), node);
             rise.setFromY(riseFrom); rise.setToY(0);
             rise.setInterpolator(Interpolator.EASE_OUT);
             in.getChildren().add(rise);
-        }
-        if (scaleFrom != 1) {
-            ScaleTransition grow = new ScaleTransition(Duration.millis(460), node);
-            grow.setFromX(scaleFrom); grow.setFromY(scaleFrom); grow.setToX(1); grow.setToY(1);
-            grow.setInterpolator(Interpolator.EASE_OUT);
-            in.getChildren().add(grow);
         }
         in.setDelay(Duration.millis(delayMs));
         in.play();
     }
 
-    /** A thin ring that expands and fades out from the mark, repeating while the app is starting. */
-    private void startPulse() {
-        if (logoPulse == null || !AnimationUtils.isEnabled()) return;
-        ScaleTransition grow = new ScaleTransition(Duration.millis(1700), logoPulse);
-        grow.setFromX(1); grow.setFromY(1); grow.setToX(1.9); grow.setToY(1.9);
-        grow.setInterpolator(Interpolator.EASE_OUT);
-        FadeTransition fade = new FadeTransition(Duration.millis(1700), logoPulse);
-        fade.setFromValue(0.55); fade.setToValue(0);
+    /** Scale-spring entrance for the badge: grows slightly past 1.0 then settles, like a physical object dropping in. */
+    private static void revealSpring(Node node, int delayMs) {
+        if (node == null) return;
+        if (!AnimationUtils.isEnabled()) return;
+        node.setOpacity(0);
+        node.setScaleX(0.78); node.setScaleY(0.78);
+        FadeTransition fade = new FadeTransition(Duration.millis(380), node);
+        fade.setFromValue(0); fade.setToValue(1);
         fade.setInterpolator(Interpolator.EASE_OUT);
-        ParallelTransition ring = new ParallelTransition(grow, fade);
-        ring.setDelay(Duration.millis(700));
-        ring.setCycleCount(Animation.INDEFINITE);
-        pulseAnim = ring;
-        ring.play();
+        Timeline spring = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(node.scaleXProperty(), 0.78),
+                new KeyValue(node.scaleYProperty(), 0.78)),
+            new KeyFrame(Duration.millis(430),
+                new KeyValue(node.scaleXProperty(), 1.07, Interpolator.EASE_OUT),
+                new KeyValue(node.scaleYProperty(), 1.07, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(570),
+                new KeyValue(node.scaleXProperty(), 1.0, Interpolator.EASE_IN),
+                new KeyValue(node.scaleYProperty(), 1.0, Interpolator.EASE_IN))
+        );
+        ParallelTransition in = new ParallelTransition(fade, spring);
+        in.setDelay(Duration.millis(delayMs));
+        in.play();
+    }
+
+    /** Two sonar rings expand and fade from the badge; the second is offset 900 ms for a ripple feel. */
+    private void startPulse() {
+        if (!AnimationUtils.isEnabled()) return;
+        if (logoPulse  != null) pulseAnims.add(buildRing(logoPulse,  800,    0));
+        if (logoPulse2 != null) pulseAnims.add(buildRing(logoPulse2, 800, 900));
+    }
+
+    private static Animation buildRing(Region ring, int durationMs, int delayMs) {
+        ScaleTransition grow = new ScaleTransition(Duration.millis(durationMs), ring);
+        grow.setFromX(1); grow.setFromY(1); grow.setToX(2.2); grow.setToY(2.2);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), ring);
+        fade.setFromValue(0.50); fade.setToValue(0);
+        fade.setInterpolator(Interpolator.EASE_OUT);
+        ParallelTransition anim = new ParallelTransition(grow, fade);
+        anim.setDelay(Duration.millis(delayMs));
+        anim.setCycleCount(Animation.INDEFINITE);
+        anim.play();
+        return anim;
     }
 
     /** Swap the status line with a quick crossfade instead of a hard text change. */
@@ -188,7 +224,10 @@ public class SplashController {
 
     private void stopLoops() {
         if (dotAnim != null) { dotAnim.stop(); dotAnim = null; }
-        if (pulseAnim != null) { pulseAnim.stop(); pulseAnim = null; if (logoPulse != null) logoPulse.setOpacity(0); }
+        for (Animation a : pulseAnims) a.stop();
+        pulseAnims.clear();
+        if (logoPulse  != null) logoPulse.setOpacity(0);
+        if (logoPulse2 != null) logoPulse2.setOpacity(0);
     }
 
     /** Once both the intro and the database are done: close the bar to 100 %, say "Listo", beat, continue. */
@@ -229,7 +268,7 @@ public class SplashController {
                 MigrationRunner.run(flyway, autoRepair);
                 firstRunAdmin = seedAdminIfEmpty();
                 try {
-                    com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
+                    ConfiguracionRepository cr = new ConfiguracionRepository();
                     String org      = cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan");
                     String mun      = cr.get("municipio",           "Ixmiquilpan, Hidalgo");
                     String logoPath = cr.get("logo_path",           "");
@@ -261,6 +300,7 @@ public class SplashController {
                     log.error("Error al iniciar SyncService", se);
                 }
             }
+            dbInitFinished = true;
             Platform.runLater(() -> {
                 dbReady = true;
                 maybeTransition();
@@ -366,7 +406,7 @@ public class SplashController {
 
     private void applyLogoIfExists(String path) {
         try {
-            java.io.File f = new java.io.File(path);
+            File f = new File(path);
             if (!f.exists() || !f.isFile()) return;
             javafx.scene.image.Image img =
                 new javafx.scene.image.Image(f.toURI().toString(), LOGO_SIZE, LOGO_SIZE, true, true, true);
@@ -385,7 +425,7 @@ public class SplashController {
      *  locked by another running instance, shows a clear error and exits. */
     private boolean tryInitOfflineStore() {
         try {
-            com.sibim.db.offline.OfflineStore.findCachedUserByUsername("__probe__");
+            OfflineStore.findCachedUserByUsername("__probe__");
             return true;
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";

@@ -2,6 +2,7 @@ package com.sibim.util;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -13,6 +14,8 @@ public class EmptyStateUtil {
         icon.getStyleClass().add("empty-state-icon");
         StackPane iconWrap = new StackPane(icon);
         iconWrap.getStyleClass().add("empty-state-icon-circle");
+        // Stay a circle — the parent VBox would otherwise stretch it into a full-width pill.
+        iconWrap.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         Label lTitle = new Label(title);
         lTitle.getStyleClass().add("empty-state-title");
         Label lSub = new Label(subtitle);

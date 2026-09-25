@@ -8,6 +8,7 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ResguardoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
@@ -183,6 +184,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             updateStatHighlight();
             applyFilter();
         });
+        AccessibilityUtils.asButton(card, "Filtro rápido: " + (estado == null ? "Todos" : estado));
     }
 
     private void updateStatHighlight() {

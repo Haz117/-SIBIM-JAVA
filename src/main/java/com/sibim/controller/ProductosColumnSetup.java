@@ -10,11 +10,13 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -101,7 +103,7 @@ class ProductosColumnSetup {
                 setText(item);
                 Producto p = getTableRow() != null ? getTableRow().getItem() : null;
                 if (p != null && p.getCreadoEn() != null) {
-                    String fecha = p.getCreadoEn().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    String fecha = p.getCreadoEn().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                     tip.setText(item + "\n\nRegistrado el " + fecha
                         + (p.getArea() != null ? "\nÁrea: " + p.getArea() : ""));
                 } else {
@@ -135,8 +137,7 @@ class ProductosColumnSetup {
         });
     }
 
-    static void configureCategoria(TableColumn<Producto, String> col,
-                                   Map<String, String> catIcon) {
+    static void configureCategoria(TableColumn<Producto, String> col) {
         col.setCellValueFactory(c ->
             new javafx.beans.property.SimpleStringProperty(c.getValue().getCategoriaNombre() != null
                 ? c.getValue().getCategoriaNombre() : ""));
@@ -151,12 +152,7 @@ class ProductosColumnSetup {
                     ? p.getCategoriaColor() : "#4338CA";
                 String bgColor  = catColor + "22";
                 Label lbl = new Label(value);
-                String iconLiteral = catIcon.entrySet().stream()
-                    .filter(e -> e.getKey().equalsIgnoreCase(value))
-                    .map(Map.Entry::getValue)
-                    .findFirst()
-                    .orElse("mdi2t-tag-outline");
-                FontIcon ico = new FontIcon(iconLiteral);
+                FontIcon ico = com.sibim.util.CategoriaIcons.iconFor(value);
                 ico.setIconSize(16);
                 ico.setIconColor(javafx.scene.paint.Color.web(catColor));
                 javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(5, ico, lbl);
@@ -195,7 +191,8 @@ class ProductosColumnSetup {
             private final ProgressBar bar = new ProgressBar(0);
             private final HBox box = new HBox(5, bar, numLabel);
             {
-                bar.setPrefHeight(6); bar.setMaxHeight(6); bar.setPrefWidth(44); bar.setMinWidth(44);
+                bar.setPrefHeight(6); bar.setMaxHeight(6); bar.setPrefWidth(34); bar.setMinWidth(34);
+                numLabel.setMinWidth(Region.USE_PREF_SIZE);   // never "…" for the count itself
                 bar.getStyleClass().add("stock-progress");
                 numLabel.getStyleClass().add("stock-num");
                 box.setAlignment(Pos.CENTER_LEFT);
@@ -265,7 +262,9 @@ class ProductosColumnSetup {
         return new TableCell<>() {
             private final Label lbl = new Label();
             private final TextField tf = new TextField();
+            private final javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(lbl, tf);
             {
+                box.setAlignment(Pos.CENTER_LEFT);
                 tf.getStyleClass().add("inline-edit-field");
                 tf.setVisible(false); tf.setManaged(false);
                 tf.setOnAction(e -> commit());
@@ -311,7 +310,6 @@ class ProductosColumnSetup {
                 lbl.setText(String.valueOf(value));
                 lbl.setVisible(true); lbl.setManaged(true);
                 tf.setVisible(false); tf.setManaged(false);
-                javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(lbl, tf);
                 setGraphic(box);
             }
 

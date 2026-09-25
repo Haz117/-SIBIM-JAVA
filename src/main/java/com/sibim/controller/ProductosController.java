@@ -18,8 +18,11 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
+import com.sibim.repository.ProductoRepository;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -40,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -64,15 +68,6 @@ public class ProductosController {
                 return size() > THUMBNAIL_CACHE_MAX;
             }
         });
-
-    private static final Map<String, String> CAT_ICON = Map.of(
-        "Mobiliario",                "mdi2s-sofa-outline",
-        "Vehículos",                 "mdi2c-car-outline",
-        "Equipo de Cómputo",         "mdi2l-laptop",
-        "Equipo de Oficina",         "mdi2p-printer",
-        "Herramientas y Maquinaria", "mdi2w-wrench-outline",
-        "Equipo Audiovisual",        "mdi2c-camera-outline"
-    );
 
     @FXML private VBox rootPane;
     @FXML private TextField searchField;
@@ -139,8 +134,8 @@ public class ProductosController {
     @FXML private Label helpColumnas;
     @FXML private Label helpFechaReg;
     @FXML private Label helpResumen;
-    @FXML private javafx.scene.control.DatePicker desdeRegFilter;
-    @FXML private javafx.scene.control.DatePicker hastaRegFilter;
+    @FXML private DatePicker desdeRegFilter;
+    @FXML private DatePicker hastaRegFilter;
 
     private final ProductoService productoService = new ProductoService();
     private final CategoriaService categoriaService = new CategoriaService();
@@ -242,6 +237,7 @@ public class ProductosController {
         if (cardSinEtiquetar != null) {
             cardSinEtiquetar.getStyleClass().add("stat-card-clickable");
             cardSinEtiquetar.setOnMouseClicked(e -> onCardSinEtiquetar());
+            AccessibilityUtils.asButton(cardSinEtiquetar, "Filtrar bienes sin etiqueta física");
             Tooltip.install(cardSinEtiquetar, new Tooltip("Clic para filtrar bienes sin etiqueta física"));
         }
         Platform.runLater(() -> searchField.requestFocus());
@@ -264,7 +260,7 @@ public class ProductosController {
             colStock, colStockMin, colStockMax, colValor, colEstado,
             pageSizeBox, lblTotal, lblPage, btnPrev, btnNext, lblSeleccionados,
             btnMovimiento, btnQr, btnEditar, btnEliminar, btnExportarSeleccion,
-            THUMBNAIL_CACHE, CAT_ICON, log, canEdit, () -> canEdit,
+            THUMBNAIL_CACHE, log, canEdit, () -> canEdit,
             this::onEdit, this::onDelete,
             this::showProductDetail, this::showMovimientoTimeline,
             this::exportarEtiquetasQr, this::exportarEtiquetaFisica,
@@ -449,7 +445,7 @@ public class ProductosController {
             resguardanteFilter.setValue(current);
     }
 
-    private void updateStats(com.sibim.repository.ProductoRepository.InventarioStats stats) {
+    private void updateStats(ProductoRepository.InventarioStats stats) {
         if (lblStatTotal   != null) AnimationUtils.animateCount(lblStatTotal,   stats.total(), 700);
         if (lblStatValor   != null) AnimationUtils.animateCount(lblStatValor,   stats.valorTotal().longValue(), 880,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
@@ -478,8 +474,8 @@ public class ProductosController {
         String area  = areaFilter.getValue() != null ? areaFilter.getValue() : null;
         String resguardante = resguardanteFilter.getValue();
         EstadoProducto estado = ProductosChipsManager.parseEstado(getSelectedEstado());
-        java.time.LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
-        java.time.LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
+        LocalDate desdeReg = desdeRegFilter != null ? desdeRegFilter.getValue() : null;
+        LocalDate hastaReg = hastaRegFilter != null ? hastaRegFilter.getValue() : null;
         return new ProductosFilterState(busqueda, catId, area, resguardante, estado,
                 filterSinEtiquetar, desdeReg, hastaReg, currentPage, pageSize);
     }
@@ -538,7 +534,7 @@ public class ProductosController {
                 NotificacionUtil.error(table.getScene(), "No se pudo cargar los bienes para el conteo físico");
             }
         };
-        com.sibim.util.AppExecutor.submit(task);
+        AppExecutor.submit(task);
     }
 
     @FXML
@@ -701,7 +697,7 @@ public class ProductosController {
     private void populateBajaFields(Producto sel, ProductoBajasDialog.BajaResult r) {
         // Pre-fill baja fields from dialog result so the acta PDF is generated
         // immediately without a second DB round-trip.
-        sel.setFechaBaja(java.time.LocalDate.now());
+        sel.setFechaBaja(LocalDate.now());
         sel.setMotivoBaja(r.motivo());
         sel.setTipoDestinoBaja(r.tipoDestino());
         sel.setDictamenBaja(r.dictamen());
@@ -864,7 +860,7 @@ public class ProductosController {
     }
 
     private void saveStockThresholds(Producto p) {
-        DialogUtil.runAsync((com.sibim.util.DialogUtil.CheckedRunnable) () -> productoService.save(p),
+        DialogUtil.runAsync((DialogUtil.CheckedRunnable) () -> productoService.save(p),
             () -> NotificacionUtil.info(table.getScene(), "Umbrales de stock actualizados"),
             ex -> {
                 NotificacionUtil.error(table.getScene(), "No se pudieron guardar los umbrales de stock — " + ex.getMessage());

@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
 import com.sibim.service.DashboardService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -126,7 +127,7 @@ public final class PanelEjecutivoDialog {
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
         dlg.getDialogPane().setContent(content);
-        com.sibim.util.AnimationUtils.staggeredFadeInUp(java.util.List.of(header, body), 260, 60);
+        AnimationUtils.staggeredFadeInUp(List.of(header, body), 260, 60);
         dlg.showAndWait();
     }
 

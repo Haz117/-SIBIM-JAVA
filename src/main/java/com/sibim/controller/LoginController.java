@@ -7,11 +7,14 @@ import com.sibim.service.AuthService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.controller.dialogs.CambiarPasswordDialog;
+import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
 import javafx.animation.ParallelTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -26,7 +29,7 @@ public class LoginController {
     @FXML private PasswordField passwordField;
     @FXML private TextField passwordRevealField;
     @FXML private Button btnTogglePassword;
-    @FXML private org.kordamp.ikonli.javafx.FontIcon iconTogglePassword;
+    @FXML private FontIcon iconTogglePassword;
     @FXML private Button loginButton;
     @FXML private Label errorLabel;
     @FXML private ProgressIndicator spinner;
@@ -43,7 +46,7 @@ public class LoginController {
 
     private final AuthService authService = new AuthService();
     private int failedAttempts = 0;
-    private javafx.animation.Timeline lockoutTimer = null;
+    private Timeline lockoutTimer = null;
     private PauseTransition errorDismiss = null;
 
     @FXML
@@ -281,27 +284,29 @@ public class LoginController {
         usernameField.setDisable(true);
         passwordField.setDisable(true);
         if (passwordRevealField != null) passwordRevealField.setDisable(true);
-        int[] seconds = {30};
-        lockoutTimer = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
-                seconds[0]--;
-                showError("Demasiados intentos fallidos. Espera " + seconds[0] + " segundos…");
-                if (seconds[0] <= 0) {
-                    lockoutTimer.stop();
-                    loginButton.setDisable(false);
-                    usernameField.setDisable(false);
-                    passwordField.setDisable(false);
-                    if (passwordRevealField != null) passwordRevealField.setDisable(false);
-                    failedAttempts = 0;
-                    errorLabel.setVisible(false);
-                    errorLabel.setManaged(false);
-                    usernameField.requestFocus();
-                }
-            })
-        );
+        final int[] remaining = {30};
+        showError("Demasiados intentos fallidos. Espera 30 segundos…");
+        lockoutTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            if (--remaining[0] <= 0) {
+                lockoutTimer.stop();
+                endLockout();
+            } else {
+                showError("Demasiados intentos fallidos. Espera " + remaining[0] + " segundos…");
+            }
+        }));
         lockoutTimer.setCycleCount(30);
         lockoutTimer.play();
-        showError("Demasiados intentos fallidos. Espera 30 segundos…");
+    }
+
+    private void endLockout() {
+        loginButton.setDisable(false);
+        usernameField.setDisable(false);
+        passwordField.setDisable(false);
+        if (passwordRevealField != null) passwordRevealField.setDisable(false);
+        failedAttempts = 0;
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
+        usernameField.requestFocus();
     }
 
     private void setLoading(boolean loading) {

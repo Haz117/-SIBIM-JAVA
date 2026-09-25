@@ -10,12 +10,17 @@ import com.sibim.session.SessionManager;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +132,7 @@ public class BackupService {
     }
 
     private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {
-        List<Map<String, Object>> filas = new java.util.ArrayList<>();
+        List<Map<String, Object>> filas = new ArrayList<>();
         try (Statement st = conn.createStatement();
              ResultSet rs = st.executeQuery("SELECT * FROM " + tabla)) {
             ResultSetMetaData meta = rs.getMetaData();
@@ -139,8 +144,8 @@ public class BackupService {
                     // Timestamps come back as java.sql.Timestamp/Date, which
                     // Jackson+JavaTimeModule doesn't handle directly — convert
                     // to the java.time equivalent so round-tripping is exact.
-                    if (valor instanceof java.sql.Timestamp ts) valor = ts.toLocalDateTime();
-                    else if (valor instanceof java.sql.Date d) valor = d.toLocalDate();
+                    if (valor instanceof Timestamp ts) valor = ts.toLocalDateTime();
+                    else if (valor instanceof Date d) valor = d.toLocalDate();
                     fila.put(meta.getColumnLabel(i), valor);
                 }
                 filas.add(fila);
@@ -166,9 +171,9 @@ public class BackupService {
                 for (String col : columnas) {
                     Object valor = fila.get(col);
                     if (valor instanceof String s && looksLikeDateTime(s)) {
-                        ps.setObject(i++, java.time.LocalDateTime.parse(s));
+                        ps.setObject(i++, LocalDateTime.parse(s));
                     } else if (valor instanceof String s && looksLikeDate(s)) {
-                        ps.setObject(i++, java.time.LocalDate.parse(s));
+                        ps.setObject(i++, LocalDate.parse(s));
                     } else {
                         ps.setObject(i++, valor);
                     }
@@ -200,7 +205,7 @@ public class BackupService {
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery("SELECT * FROM " + entry.getKey() + " LIMIT 0")) {
                 ResultSetMetaData meta = rs.getMetaData();
-                columnasPermitidas = new java.util.HashSet<>();
+                columnasPermitidas = new HashSet<>();
                 for (int i = 1; i <= meta.getColumnCount(); i++)
                     columnasPermitidas.add(meta.getColumnLabel(i));
             }

@@ -1,7 +1,9 @@
 package com.sibim.controller;
 
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.util.AnimationUtils;
+import javafx.stage.DirectoryChooser;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.geometry.Insets;
@@ -10,6 +12,9 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 class ConfigSchedulerSectionBuilder {
@@ -55,9 +60,9 @@ class ConfigSchedulerSectionBuilder {
         Button btnExaminar = new Button("Examinar…");
         btnExaminar.getStyleClass().add("btn-secondary");
         btnExaminar.setOnAction(ev -> {
-            javafx.stage.DirectoryChooser dc = new javafx.stage.DirectoryChooser();
+            DirectoryChooser dc = new DirectoryChooser();
             dc.setTitle("Seleccionar carpeta para reportes");
-            java.io.File dir = dc.showDialog(schedCard.getScene() != null ? schedCard.getScene().getWindow() : null);
+            File dir = dc.showDialog(schedCard.getScene() != null ? schedCard.getScene().getWindow() : null);
             if (dir != null) tfCarpeta.setText(dir.getAbsolutePath());
         });
         HBox carpetaRow = new HBox(8, tfCarpeta, btnExaminar);
@@ -89,7 +94,7 @@ class ConfigSchedulerSectionBuilder {
 
         btnGuardarSched.setOnAction(ev -> {
             javafx.scene.Scene scene = schedCard.getScene();
-            java.util.List<String> tipos = new java.util.ArrayList<>();
+            List<String> tipos = new ArrayList<>();
             if (chkInventario.isSelected())  tipos.add("INVENTARIO");
             if (chkMovimientos.isSelected()) tipos.add("MOVIMIENTOS");
             if (chkAlertas.isSelected())     tipos.add("ALERTAS");
@@ -99,7 +104,7 @@ class ConfigSchedulerSectionBuilder {
                 configRepo.set("reportes_frecuencia", cbFrecuencia.getValue() != null ? cbFrecuencia.getValue() : "MENSUAL");
                 configRepo.set("reportes_carpeta",    tfCarpeta.getText().strip());
                 configRepo.set("reportes_tipos",      tiposStr.isBlank() ? "INVENTARIO" : tiposStr);
-                new com.sibim.repository.AuditLogRepository().log("configuracion", "scheduler", "Reportes programados",
+                new AuditLogRepository().log("configuracion", "scheduler", "Reportes programados",
                     "actualizar", "Configuración de reportes programados actualizada");
                 return null;
             }, v -> NotificacionUtil.exito(scene, "Configuración de reportes guardada"),

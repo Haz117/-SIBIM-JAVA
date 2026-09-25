@@ -35,6 +35,7 @@
         <Button fx:id="btnNuevo" text="Nuevo Resguardo" onAction="#onNuevoResguardo" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Registrar un nuevo resguardo"/></tooltip>
         </Button>
     </HBox>
 
@@ -99,6 +100,7 @@
         <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de resguardos visible a PDF"/></tooltip>
         </Button>
         <Button fx:id="btnCancelar" text="Dar de baja" onAction="#onCancelar"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">

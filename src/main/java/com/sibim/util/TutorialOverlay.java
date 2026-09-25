@@ -1,6 +1,7 @@
 package com.sibim.util;
 
 import com.sibim.controller.MainController;
+import com.sibim.model.Usuario;
 import com.sibim.session.SessionManager;
 import javafx.animation.*;
 import javafx.beans.value.ChangeListener;
@@ -18,6 +19,9 @@ import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.prefs.Preferences;
 
 public final class TutorialOverlay {
@@ -33,7 +37,7 @@ public final class TutorialOverlay {
     ) {}
 
     private static Step[] buildSteps() {
-        com.sibim.model.Usuario user = SessionManager.getCurrentUser();
+        Usuario user = SessionManager.getCurrentUser();
         String primerNombre = (user != null && user.getNombre() != null && !user.getNombre().isBlank())
             ? user.getNombre().split("\\s+")[0] : null;
         String welcomeTitle = primerNombre != null ? "¡Hola, " + primerNombre + "!" : "Bienvenido a SIBIM";
@@ -43,7 +47,7 @@ public final class TutorialOverlay {
                 ? "Tu rol de Secretario te da acceso a todos los módulos de inventario y reportes"
                 : "Tu rol te da acceso a inventario, movimientos, reportes y depreciación";
 
-        java.util.List<Step> list = new java.util.ArrayList<>(java.util.List.of(
+        List<Step> list = new ArrayList<>(List.of(
             // ── Bienvenida personalizada ──────────────────────────────────────────
             new Step("mdi2b-book-open-outline", "#6366F1", "#3730A3",
                 welcomeTitle, null, null, new String[]{
@@ -480,7 +484,7 @@ public final class TutorialOverlay {
         };
 
         // ── Animated step transition ──────────────────────────────────────────
-        java.util.function.BiConsumer<Integer, Integer> goTo = (newIdx, dir) -> {
+        BiConsumer<Integer, Integer> goTo = (newIdx, dir) -> {
             btnNext.setDisable(true); btnPrev.setDisable(true);
             btnSkip.setDisable(true); dotsRow.setMouseTransparent(true);
 

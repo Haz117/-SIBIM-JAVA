@@ -6,12 +6,20 @@ import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.util.Duration;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -19,17 +27,23 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.prefs.Preferences;
 
 /** Fleet-wide view of asset depreciation — complements the per-asset panel
  *  in {@link ProductosController}'s detail dialog with a summary of the
@@ -39,8 +53,8 @@ import java.util.TreeSet;
 public class DepreciacionController {
 
     private static final Logger log = LoggerFactory.getLogger(DepreciacionController.class);
-    private static final java.util.prefs.Preferences STICKY =
-        java.util.prefs.Preferences.userRoot().node("sibim/filters/depreciacion");
+    private static final Preferences STICKY =
+        Preferences.userRoot().node("sibim/filters/depreciacion");
 
     /** Horizon (years) for the projected value trend chart. */
     private static final int HORIZONTE_ANIOS = 10;
@@ -53,7 +67,7 @@ public class DepreciacionController {
      *  Se usa para el chart y los stat cards. Los exports usan table.getItems()
      *  para respetar el filtro activo. */
     private List<Producto> conDepreciacion = List.of();
-    private javafx.animation.Timeline skeletonPulse;
+    private Timeline skeletonPulse;
 
     @FXML private ProgressIndicator spinner;
     @FXML private VBox statCardCompra;
@@ -154,7 +168,7 @@ public class DepreciacionController {
 
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        com.sibim.util.DialogUtil.setupColumnReset(table, btnResetColumns, null);
+        DialogUtil.setupColumnReset(table, btnResetColumns, null);
         table.setPlaceholder(EmptyStateUtil.build(
             "mdi2c-chart-line",
             "No hay bienes depreciables registrados",
@@ -187,7 +201,7 @@ public class DepreciacionController {
             new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorDepreciado())));
 
         colDepBar.setCellValueFactory(c ->
-            new javafx.beans.property.SimpleIntegerProperty(
+            new SimpleIntegerProperty(
                 c.getValue().getPorcentajeDepreciado() != null
                     ? c.getValue().getPorcentajeDepreciado() : 0).asObject());
         colDepBar.setCellFactory(col -> new TableCell<>() {
@@ -231,12 +245,12 @@ public class DepreciacionController {
                 showDetalle(table.getSelectionModel().getSelectedItem());
         });
         table.setOnKeyPressed(ev -> {
-            if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            if (ev.getCode() == KeyCode.ESCAPE) {
                 table.getSelectionModel().clearSelection(); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.ENTER) {
+            } else if (ev.getCode() == KeyCode.ENTER) {
                 Producto sel = table.getSelectionModel().getSelectedItem();
                 if (sel != null) { showDetalle(sel); ev.consume(); }
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+            } else if (ev.getCode() == KeyCode.F && ev.isControlDown()) {
                 if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
                 ev.consume();
             }
@@ -278,7 +292,7 @@ public class DepreciacionController {
         if (fechaTotal == null) return "—";
         LocalDate hoy = LocalDate.now();
         if (!fechaTotal.isAfter(hoy)) return "Cumplida";
-        long meses = java.time.temporal.ChronoUnit.MONTHS.between(hoy, fechaTotal);
+        long meses = ChronoUnit.MONTHS.between(hoy, fechaTotal);
         return meses < 12 ? meses + " meses" : (meses / 12) + " años";
     }
 
@@ -388,28 +402,28 @@ public class DepreciacionController {
 
     @FXML
     private void onExportarPdf() {
-        List<Producto> vista = new java.util.ArrayList<>(table.getItems());
+        List<Producto> vista = new ArrayList<>(table.getItems());
         if (vista.isEmpty()) { NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para exportar"); return; }
         exportar(() -> reporteService.exportDepreciacionPdf(vista));
     }
 
     @FXML
     private void onExportarExcel() {
-        List<Producto> vista = new java.util.ArrayList<>(table.getItems());
+        List<Producto> vista = new ArrayList<>(table.getItems());
         if (vista.isEmpty()) { NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para exportar"); return; }
         exportar(() -> reporteService.exportDepreciacionExcel(vista));
     }
 
     @FXML
     private void onExportarCsv() {
-        List<Producto> vista = new java.util.ArrayList<>(table.getItems());
+        List<Producto> vista = new ArrayList<>(table.getItems());
         if (vista.isEmpty()) { NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para exportar"); return; }
         exportar(() -> reporteService.exportDepreciacionCsv(vista));
     }
 
     @FXML
     private void onExportarFichas() {
-        List<Producto> lista = new java.util.ArrayList<>(table.getItems());
+        List<Producto> lista = new ArrayList<>(table.getItems());
         if (lista.isEmpty()) {
             NotificacionUtil.advertencia(table.getScene(), "No hay bienes visibles para generar fichas");
             return;
@@ -429,7 +443,7 @@ public class DepreciacionController {
             });
     }
 
-    private void exportar(java.util.concurrent.Callable<java.io.File> task) {
+    private void exportar(Callable<File> task) {
         DialogUtil.runAsyncWithProgress(table.getScene(), "Generando reporte…",
             task,
             file -> DialogUtil.showExportResultDialog(table.getScene(), file),
@@ -486,7 +500,7 @@ public class DepreciacionController {
                     NotificacionUtil.errorConAccion(table.getScene(), "No se pudo cargar la depreciación", "Reintentar", DepreciacionController.this::loadData);
             }
         };
-        com.sibim.util.AppExecutor.submit(task);
+        AppExecutor.submit(task);
     }
 
     private void updateStats(List<Producto> bienes, int sinDatos) {
@@ -514,7 +528,7 @@ public class DepreciacionController {
         if (lblStatTotalmente != null) AnimationUtils.animateCount(lblStatTotalmente, totalmenteDepreciados, 700);
         updateRangos(bienes);
 
-        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
+        PauseTransition pop = new PauseTransition(Duration.millis(900));
         pop.setOnFinished(e -> {
             if (statCardCompra     != null) AnimationUtils.statCardPop(statCardCompra);
             if (statCardActual     != null) AnimationUtils.statCardPop(statCardActual);
@@ -568,15 +582,15 @@ public class DepreciacionController {
             double target = (double) r.count() / total;
             long rCount = r.count();
             int delay = 150 + idx * 80;
-            javafx.animation.PauseTransition wait =
-                new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay));
+            PauseTransition wait =
+                new PauseTransition(Duration.millis(delay));
             wait.setOnFinished(ev -> {
-                javafx.animation.Timeline tl = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
-                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
-                        new javafx.animation.KeyValue(pb.progressProperty(), target,
-                            javafx.animation.Interpolator.EASE_BOTH)));
+                Timeline tl = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(pb.progressProperty(), 0)),
+                    new KeyFrame(Duration.millis(800),
+                        new KeyValue(pb.progressProperty(), target,
+                            Interpolator.EASE_BOTH)));
                 tl.play();
                 AnimationUtils.animateCount(countLbl, rCount, 750, v -> v + " bienes");
             });

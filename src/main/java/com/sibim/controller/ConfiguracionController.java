@@ -1,25 +1,44 @@
 package com.sibim.controller;
 
+import com.sibim.MainApp;
+import com.sibim.controller.dialogs.OutboxErrorsDialog;
 import com.sibim.controller.dialogs.UsuarioDialogFactory;
+import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.SyncService;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
+import com.sibim.repository.AuditLogRepository;
+import com.sibim.repository.ConfiguracionRepository;
+import com.sibim.repository.ConteoRepository;
 import com.sibim.repository.UsuarioRepository;
+import com.sibim.service.BackupService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
+import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
+import java.io.File;
+import java.time.LocalDateTime;
+import javafx.stage.FileChooser;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 public class ConfiguracionController {
 
     @FXML private VBox  profileCard;
@@ -47,7 +66,7 @@ public class ConfiguracionController {
     @FXML private TextField                               tfLogoPath;
     @FXML private Button                                  btnLogoPath;
     @FXML private Button                                  btnGuardarConfig;
-    @FXML private javafx.scene.control.Spinner<Integer>   spInactividadTimeout;
+    @FXML private Spinner<Integer>   spInactividadTimeout;
 
     @FXML private TableView<Usuario> usersTable;
     @FXML private TableColumn<Usuario, String>  colNombre;
@@ -72,11 +91,11 @@ public class ConfiguracionController {
     private boolean configDirty = false;
 
     private final UsuarioRepository usuarioRepo = new UsuarioRepository();
-    private List<Usuario> allUsers = new java.util.ArrayList<>();
-    private final com.sibim.repository.AuditLogRepository auditRepo = new com.sibim.repository.AuditLogRepository();
-    private final com.sibim.repository.ConteoRepository conteoRepo = new com.sibim.repository.ConteoRepository();
-    private final com.sibim.service.BackupService backupService = new com.sibim.service.BackupService();
-    private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
+    private List<Usuario> allUsers = new ArrayList<>();
+    private final AuditLogRepository auditRepo = new AuditLogRepository();
+    private final ConteoRepository conteoRepo = new ConteoRepository();
+    private final BackupService backupService = new BackupService();
+    private final ConfiguracionRepository configRepo = new ConfiguracionRepository();
     private ConfiguracionBackupManager backupManager;
 
     @FXML
@@ -104,11 +123,11 @@ public class ConfiguracionController {
         // "Base de datos activa" with a green dot here — actively wrong at
         // exactly the moment a user most needs to know they're offline.
         if (lblSistemaModo != null) {
-            boolean demo    = com.sibim.db.DatabaseConfig.isDemoMode();
-            boolean offline = com.sibim.db.DatabaseConfig.isOfflineMode();
+            boolean demo    = DatabaseConfig.isDemoMode();
+            boolean offline = DatabaseConfig.isOfflineMode();
             String texto, dotClass;
             if (offline) {
-                texto = "Modo offline · " + com.sibim.db.offline.SyncService.pendingCount() + " pendiente(s)";
+                texto = "Modo offline · " + SyncService.pendingCount() + " pendiente(s)";
                 dotClass = "dot-amber";
             } else if (demo) {
                 texto = "Modo demostración";
@@ -126,7 +145,7 @@ public class ConfiguracionController {
             }
         }
         if (lblSistemaHora != null)
-            lblSistemaHora.setText(com.sibim.util.FormatUtils.formatDateTime(java.time.LocalDateTime.now()));
+            lblSistemaHora.setText(FormatUtils.formatDateTime(LocalDateTime.now()));
 
         boolean isAdmin = SessionManager.isAdmin();
         adminSection.setVisible(isAdmin);
@@ -147,8 +166,8 @@ public class ConfiguracionController {
             configCard.sceneProperty().addListener((obs, old, scene) -> {
                 if (scene == null) return;
                 scene.getAccelerators().put(
-                    new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.S,
-                        javafx.scene.input.KeyCombination.CONTROL_DOWN),
+                    new KeyCodeCombination(KeyCode.S,
+                        KeyCombination.CONTROL_DOWN),
                     () -> { if (btnGuardarConfig != null && !btnGuardarConfig.isDisable()) onGuardarConfig(); }
                 );
             });
@@ -165,9 +184,9 @@ public class ConfiguracionController {
 
         if (isAdmin) {
             AppExecutor.submit(() -> {
-                java.util.Map<String, String> cfg;
+                Map<String, String> cfg;
                 try { cfg = configRepo.findAll(); }
-                catch (Exception e) { cfg = java.util.Map.of(); }
+                catch (Exception e) { cfg = Map.of(); }
                 final var cfgFinal = cfg;
                 javafx.application.Platform.runLater(() -> {
                     new ConfigEmailSectionBuilder(backupSection, configRepo).build(cfgFinal);
@@ -198,22 +217,22 @@ public class ConfiguracionController {
                     onEditUsuario();
             });
             usersTable.setOnKeyPressed(ev -> {
-                if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                if (ev.getCode() == KeyCode.ESCAPE) {
                     usersTable.getSelectionModel().clearSelection(); ev.consume(); return;
                 }
-                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                if (ev.getCode() == KeyCode.F && ev.isControlDown()) {
                     if (userSearchField != null) { userSearchField.requestFocus(); userSearchField.selectAll(); }
                     ev.consume(); return;
                 }
-                if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
+                if (ev.getCode() == KeyCode.N && ev.isControlDown()) {
                     onNuevoUsuario(); ev.consume(); return;
                 }
                 if (usersTable.getSelectionModel().getSelectedItem() == null) return;
-                if (ev.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                if (ev.getCode() == KeyCode.ENTER) {
                     onEditUsuario(); ev.consume();
-                } else if (ev.getCode() == javafx.scene.input.KeyCode.DELETE) {
+                } else if (ev.getCode() == KeyCode.DELETE) {
                     onDeleteUsuario(); ev.consume();
-                } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()) {
+                } else if (ev.getCode() == KeyCode.E && ev.isControlDown()) {
                     onEditUsuario(); ev.consume();
                 }
             });
@@ -320,7 +339,7 @@ public class ConfiguracionController {
                 configRepo.set("correo_contacto",            correo);
                 configRepo.set("logo_path",                  logoPath);
                 configRepo.set("inactividad_timeout_minutos", String.valueOf(inactividadMin));
-                new com.sibim.repository.AuditLogRepository().log("configuracion", "general", "Datos generales",
+                new AuditLogRepository().log("configuracion", "general", "Datos generales",
                     "actualizar", "Datos generales del ayuntamiento actualizados");
                 return null;
             },
@@ -342,11 +361,11 @@ public class ConfiguracionController {
     @FXML
     private void onSeleccionarLogo() {
         if (!SessionManager.isAdmin()) return;
-        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        FileChooser chooser = new FileChooser();
         chooser.setTitle("Seleccionar logo del ayuntamiento");
         chooser.getExtensionFilters().add(
-            new javafx.stage.FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif"));
-        java.io.File file = chooser.showOpenDialog(com.sibim.MainApp.getPrimaryStage());
+            new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+        File file = chooser.showOpenDialog(MainApp.getPrimaryStage());
         if (file != null && tfLogoPath != null) {
             tfLogoPath.setText(file.getAbsolutePath());
         }
@@ -444,7 +463,7 @@ public class ConfiguracionController {
 
         if (colActivo != null) {
             colActivo.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleBooleanProperty(c.getValue().isActivo()).asObject());
+                new SimpleBooleanProperty(c.getValue().isActivo()).asObject());
             colActivo.setCellFactory(col -> new TableCell<>() {
                 private final Label badge = new Label();
                 @Override protected void updateItem(Boolean value, boolean empty) {
@@ -485,7 +504,7 @@ public class ConfiguracionController {
             () -> usuarioRepo.findAll(),
             users -> {
                 if (usersSpinner != null) { usersSpinner.setVisible(false); usersSpinner.setManaged(false); }
-                allUsers = new java.util.ArrayList<>(users);
+                allUsers = new ArrayList<>(users);
                 applyUserFilter();
             },
             e -> {
@@ -555,9 +574,9 @@ public class ConfiguracionController {
                 me == null ? "No hay una sesión activa para continuar" : "No puedes eliminar tu propia cuenta");
             return;
         }
-        if (sel.getRol() == com.sibim.model.enums.Rol.ADMIN) {
+        if (sel.getRol() == Rol.ADMIN) {
             long admins = allUsers.stream()
-                .filter(u -> u.getRol() == com.sibim.model.enums.Rol.ADMIN && u.isActivo()).count();
+                .filter(u -> u.getRol() == Rol.ADMIN && u.isActivo()).count();
             if (admins <= 1) {
                 NotificacionUtil.error(usersTable.getScene(),
                     "No se puede eliminar el único administrador del sistema");
@@ -628,7 +647,7 @@ public class ConfiguracionController {
 
     @FXML
     private void onVerErroresOutbox() {
-        com.sibim.controller.dialogs.OutboxErrorsDialog.show();
+        OutboxErrorsDialog.show();
     }
 
     @FXML

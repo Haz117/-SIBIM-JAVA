@@ -88,8 +88,13 @@
         <VBox fx:id="chartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
               visible="false" managed="false" styleClass="empty-state-pane">
             <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
-            <Label text="Sin bienes asignados a áreas" styleClass="empty-state-msg"/>
-            <Label text="Los bienes con área asignada aparecerán aquí" styleClass="empty-state-hint"/>
+            <Label text="Sin bienes en este período" styleClass="empty-state-msg"/>
+            <Label text="Ningún bien con área asignada se registró entre las fechas elegidas" styleClass="empty-state-hint"/>
+            <Button text="Ver todos los registros" onAction="#onReportTodo" styleClass="btn-secondary, btn-sm"
+                    contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Quitar el filtro de fechas e incluir todos los registros  (Alt+5)"/></tooltip>
+            </Button>
         </VBox>
     </VBox>
 
@@ -114,7 +119,12 @@
               visible="false" managed="false" styleClass="empty-state-pane">
             <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
             <Label text="Sin valor patrimonial en este período" styleClass="empty-state-msg"/>
-            <Label text="Los bienes con categoría y precio asignado aparecerán aquí" styleClass="empty-state-hint"/>
+            <Label text="Ningún bien con categoría y precio se registró entre las fechas elegidas" styleClass="empty-state-hint"/>
+            <Button text="Ver todos los registros" onAction="#onReportTodo" styleClass="btn-secondary, btn-sm"
+                    contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Quitar el filtro de fechas e incluir todos los registros  (Alt+5)"/></tooltip>
+            </Button>
         </VBox>
     </VBox>
 
@@ -321,6 +331,7 @@
                     styleClass="report-export-btn, report-export-purple"
                     contentDisplay="LEFT" graphicTextGap="6">
                 <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Generar reporte PDF de Auditoría Consolidada" wrapText="true" maxWidth="220"/></tooltip>
             </Button>
         </VBox>
 
@@ -344,6 +355,7 @@
                     styleClass="report-export-btn, report-export-indigo"
                     contentDisplay="LEFT" graphicTextGap="6">
                 <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Generar reporte PDF de Parque Vehicular (formato V.6)" wrapText="true" maxWidth="220"/></tooltip>
             </Button>
         </VBox>
 
@@ -367,6 +379,7 @@
                     styleClass="report-export-btn, report-export-red"
                     contentDisplay="LEFT" graphicTextGap="6">
                 <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Generar reporte PDF de Entrega-Recepción (ANEXO V.4)" wrapText="true" maxWidth="220"/></tooltip>
             </Button>
         </VBox>
 

@@ -145,10 +145,11 @@
     <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-indigo">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
-                       promptText="🔍  Buscar por nombre, código, proveedor..."
+                       promptText="Buscar por nombre, código, proveedor..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                    accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
@@ -235,15 +236,15 @@
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
             <TableColumn fx:id="colFoto"      text="Foto"             prefWidth="54"  minWidth="54" maxWidth="54"  sortable="false" resizable="false"/>
-            <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="215" maxWidth="300" sortable="true"/>
-            <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="105" sortable="true"/>
-            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="135" sortable="true"/>
-            <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="195" maxWidth="260" sortable="true"/>
-            <TableColumn fx:id="colStock"     text="Stock"           prefWidth="72"  sortable="true"/>
-            <TableColumn fx:id="colStockMin"  text="Stock Mín."      prefWidth="90"  sortable="true" visible="false"/>
-            <TableColumn fx:id="colStockMax"  text="Stock Máx."      prefWidth="90"  sortable="true" visible="false"/>
-            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="155" minWidth="120" sortable="true"/>
-            <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="110" sortable="true"/>
+            <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="215" maxWidth="300" sortable="true" minWidth="130"/>
+            <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="105" sortable="true" minWidth="84"/>
+            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="135" sortable="true" minWidth="110"/>
+            <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="195" maxWidth="260" sortable="true" minWidth="120"/>
+            <TableColumn fx:id="colStock"     text="Stock"           prefWidth="90"  sortable="true" minWidth="90"/>
+            <TableColumn fx:id="colStockMin"  text="Mín."      prefWidth="80"  sortable="true" visible="false" minWidth="72"/>
+            <TableColumn fx:id="colStockMax"  text="Máx."      prefWidth="80"  sortable="true" visible="false" minWidth="72"/>
+            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="155" minWidth="104" sortable="true"/>
+            <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="126" sortable="true" minWidth="126"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
@@ -295,6 +296,7 @@
         <Button text="Deseleccionar" onAction="#onDeseleccionar" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Quitar la selección de todos los bienes marcados"/></tooltip>
         </Button>
     </HBox>
 
@@ -340,12 +342,14 @@
             <tooltip><Tooltip text="Dar de baja el bien seleccionado (baja patrimonial formal, con motivo)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
-        <Button fx:id="btnPrev" onAction="#onPrev" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnPrev" onAction="#onPrev" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Página anterior">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página anterior"/></tooltip>
         </Button>
         <Label fx:id="lblPage" text="Página 1" styleClass="pagination-lbl"/>
-        <Button fx:id="btnNext" onAction="#onNext" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnNext" onAction="#onNext" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Página siguiente">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-right" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página siguiente"/></tooltip>
         </Button>

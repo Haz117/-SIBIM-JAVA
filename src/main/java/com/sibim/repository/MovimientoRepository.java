@@ -4,16 +4,19 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.db.LocalDataStore;
 import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
+import com.sibim.config.AreaCodigos;
 import com.sibim.model.Movimiento;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.session.SessionManager;
 import com.sibim.util.ProductoUtils;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +37,7 @@ public class MovimientoRepository {
     public record MonthlyStats(String label, int entradas, int salidas) {}
 
     /** Monthly patrimonial value for the valor chart — MXN entradas/salidas from movements × precio_compra. */
-    public record MonthlyValorStats(String label, java.math.BigDecimal valorEntradas, java.math.BigDecimal valorSalidas) {}
+    public record MonthlyValorStats(String label, BigDecimal valorEntradas, BigDecimal valorSalidas) {}
 
     private static final String[] MES_ABREV =
         {"Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"};
@@ -47,7 +50,7 @@ public class MovimientoRepository {
             byMonth.put(m.getYear() + "-" + String.format("%02d", m.getMonthValue()), new int[]{0, 0});
         }
 
-        com.sibim.db.LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             List<Movimiento> movs = local.findMovimientosByDateRange(
                 fromMonth, LocalDate.now(), SessionManager.getAccessibleAreas());
@@ -97,11 +100,11 @@ public class MovimientoRepository {
 
     public List<MonthlyValorStats> findMonthlyValorStats(int months) throws SQLException {
         LocalDate fromMonth = LocalDate.now().withDayOfMonth(1).minusMonths(months - 1);
-        LinkedHashMap<String, java.math.BigDecimal[]> byMonth = new LinkedHashMap<>();
+        LinkedHashMap<String, BigDecimal[]> byMonth = new LinkedHashMap<>();
         for (int i = months - 1; i >= 0; i--) {
             LocalDate m = LocalDate.now().withDayOfMonth(1).minusMonths(i);
             byMonth.put(m.getYear() + "-" + String.format("%02d", m.getMonthValue()),
-                new java.math.BigDecimal[]{ java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO });
+                new BigDecimal[]{ BigDecimal.ZERO, BigDecimal.ZERO });
         }
 
         if (DatabaseConfig.getLocalDataStore() != null) {
@@ -110,7 +113,7 @@ public class MovimientoRepository {
                 String[] parts = e.getKey().split("-");
                 int monthIdx = Integer.parseInt(parts[1]) - 1;
                 return new MonthlyValorStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
-                    java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO);
+                    BigDecimal.ZERO, BigDecimal.ZERO);
             }).toList();
         }
 
@@ -133,12 +136,12 @@ public class MovimientoRepository {
                 ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    java.math.BigDecimal[] arr = byMonth.get(rs.getString("ym"));
+                    BigDecimal[] arr = byMonth.get(rs.getString("ym"));
                     if (arr != null) {
                         arr[0] = rs.getBigDecimal("valor_entradas");
-                        if (arr[0] == null) arr[0] = java.math.BigDecimal.ZERO;
+                        if (arr[0] == null) arr[0] = BigDecimal.ZERO;
                         arr[1] = rs.getBigDecimal("valor_salidas");
-                        if (arr[1] == null) arr[1] = java.math.BigDecimal.ZERO;
+                        if (arr[1] == null) arr[1] = BigDecimal.ZERO;
                     }
                 }
             }
@@ -526,7 +529,7 @@ public class MovimientoRepository {
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
-            if (m.getCreadoEn() == null) m.setCreadoEn(java.time.LocalDateTime.now());
+            if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
             local.addMovimiento(m, expectedStockAnterior);
             return m;
         }
@@ -584,7 +587,7 @@ public class MovimientoRepository {
                 // Reasigna el código de nomenclatura por área en cada transferencia —
                 // el número que deja libre en el área de origen queda disponible para
                 // el siguiente bien nuevo ahí (ver com.sibim.config.AreaCodigos).
-                String codigoNuevo = (esTransferencia && com.sibim.config.AreaCodigos.tienePrefijo(areaNueva))
+                String codigoNuevo = (esTransferencia && AreaCodigos.tienePrefijo(areaNueva))
                     ? siguienteCodigo(conn, areaNueva) : codigoActual;
 
                 try (PreparedStatement ps = conn.prepareStatement(insertMov)) {
@@ -627,8 +630,8 @@ public class MovimientoRepository {
      *  ver ProductoService#asignarCodigo para la misma lógica fuera de una
      *  transacción explícita. */
     private static String siguienteCodigo(Connection conn, String area) throws SQLException {
-        String prefijo = com.sibim.config.AreaCodigos.prefijo(area);
-        java.util.Set<Integer> usados = new java.util.HashSet<>();
+        String prefijo = AreaCodigos.prefijo(area);
+        Set<Integer> usados = new HashSet<>();
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT codigo FROM products WHERE codigo LIKE ? AND fecha_baja IS NULL")) {
             ps.setString(1, prefijo + "/%");
@@ -705,7 +708,7 @@ public class MovimientoRepository {
                 // transferencia — recompute a fresh código for that área the
                 // same way as everywhere else, since its old número there may
                 // have since been claimed by a different bien.
-                String codigoRestaurado = (areaOrigen != null && com.sibim.config.AreaCodigos.tienePrefijo(areaOrigen))
+                String codigoRestaurado = (areaOrigen != null && AreaCodigos.tienePrefijo(areaOrigen))
                     ? siguienteCodigo(conn, areaOrigen) : null;
                 try (PreparedStatement ps = conn.prepareStatement(restoreProducto)) {
                     ps.setInt(1, currentStock + delta);

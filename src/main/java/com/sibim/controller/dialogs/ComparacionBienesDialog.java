@@ -1,6 +1,7 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -10,9 +11,12 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -86,10 +90,10 @@ public final class ComparacionBienesDialog {
 
         VBox content = new VBox(0, header, summaryBar, table);
         content.setPadding(new Insets(0, 18, 0, 18));
-        VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setVgrow(table, Priority.ALWAYS);
         dlg.getDialogPane().setContent(content);
-        com.sibim.util.AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(header, summaryBar, table), 260, 60);
+        AnimationUtils.staggeredFadeInUp(
+            List.of(header, summaryBar, table), 260, 60);
         dlg.showAndWait();
     }
 
@@ -146,10 +150,10 @@ public final class ComparacionBienesDialog {
     private static String estado(Producto p) {
         return p.getEstado() != null ? p.getEstado().getEtiqueta() : "—";
     }
-    private static String currency(java.math.BigDecimal v) {
+    private static String currency(BigDecimal v) {
         return v != null ? FormatUtils.formatCurrency(v) : "—";
     }
-    private static String date(java.time.LocalDate d) {
+    private static String date(LocalDate d) {
         return d != null ? FormatUtils.formatDate(d) : "—";
     }
     private static String nullable(Integer v) { return v != null ? String.valueOf(v) : "—"; }

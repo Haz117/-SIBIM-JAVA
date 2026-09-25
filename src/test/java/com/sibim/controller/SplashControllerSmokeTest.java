@@ -36,9 +36,9 @@ class SplashControllerSmokeTest extends ControllerSmokeTestBase {
         // fails it calls DatabaseConfig.close() (closing the GLOBAL pool) and flips offline
         // mode ~8 s after start — which would close/flip whatever pool the next integration
         // test class has just installed. Wait for it to settle before touching shared state.
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-        while (!DatabaseConfig.isOfflineMode() && !DatabaseConfig.isDemoMode()
-                && System.nanoTime() < deadline) {
+        // It may also succeed (a reachable DB in .env), so wait for "finished", not "failed".
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(25);
+        while (!SplashController.isDbInitFinished() && System.nanoTime() < deadline) {
             Thread.sleep(100);
         }
         // initDatabase()'s finally block then starts SyncService's global "sibim-sync"

@@ -11,29 +11,46 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.SessionManager;
 import com.sibim.controller.dialogs.ProductoDetailDialog;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
+import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
+import com.sibim.util.SkeletonUtil;
+import com.sibim.MainApp;
+import com.sibim.service.TrayService;
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.prefs.Preferences;
 
 public class AlertasController implements Refreshable {
 
@@ -60,7 +77,7 @@ public class AlertasController implements Refreshable {
     @FXML private Label lblGarantiasCount;
 
     @FXML private Label lblSinAlertas;
-    @FXML private javafx.scene.control.ProgressIndicator spinner;
+    @FXML private ProgressIndicator spinner;
     @FXML private Button btnReponerAgotado;
     @FXML private Button btnReponerBajoStock;
     @FXML private Button btnReponerTodos;
@@ -109,12 +126,12 @@ public class AlertasController implements Refreshable {
     @FXML private Label   lblSumBajoStock;
     @FXML private Label   lblSumGarantias;
     @FXML private Label   lblSumGarantiasDetalle;
-    @FXML private javafx.scene.control.ProgressBar pbAgotados;
-    @FXML private javafx.scene.control.ProgressBar pbBajoStock;
-    @FXML private javafx.scene.control.ProgressBar pbGarantias;
+    @FXML private ProgressBar pbAgotados;
+    @FXML private ProgressBar pbBajoStock;
+    @FXML private ProgressBar pbGarantias;
 
-    private static final java.util.prefs.Preferences STICKY =
-        java.util.prefs.Preferences.userRoot().node("sibim/filters/alertas");
+    private static final Preferences STICKY =
+        Preferences.userRoot().node("sibim/filters/alertas");
 
     private final ProductoService  productoService  = new ProductoService();
     private final MovimientoService movimientoService = new MovimientoService();
@@ -131,7 +148,7 @@ public class AlertasController implements Refreshable {
 
     private VBox     sectionComodatos;
     private Timeline autoRefresh;
-    private javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter;
+    private EventHandler<KeyEvent> keyFilter;
     private boolean  dataLoaded = false;
 
     @FXML
@@ -163,12 +180,12 @@ public class AlertasController implements Refreshable {
 
         if (rootPane != null) {
             keyFilter = ev -> {
-                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+                if (ev.getCode() == KeyCode.F && ev.isControlDown()) {
                     if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
                     ev.consume();
                 }
             };
-            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+            rootPane.addEventFilter(KeyEvent.KEY_PRESSED, keyFilter);
         }
         autoRefresh = new Timeline(new KeyFrame(Duration.minutes(5), e -> loadData()));
         autoRefresh.setCycleCount(Timeline.INDEFINITE);
@@ -223,20 +240,21 @@ public class AlertasController implements Refreshable {
         boolean collapsed = STICKY.getBoolean(prefKey, false);
         AlertasComodatosSection.applyCollapsed(content, chevron, collapsed);
         header.setCursor(javafx.scene.Cursor.HAND);
+        AccessibilityUtils.asButton(header, "Plegar o desplegar sección");
         header.setOnMouseClicked(e -> {
             boolean nowCollapsed = content.isVisible();
             STICKY.putBoolean(prefKey, nowCollapsed);
             if (nowCollapsed) {
-                javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
-                    javafx.util.Duration.millis(160), content);
+                FadeTransition ft = new FadeTransition(
+                    Duration.millis(160), content);
                 ft.setFromValue(1); ft.setToValue(0);
                 ft.setOnFinished(ev -> { AlertasComodatosSection.applyCollapsed(content, chevron, true); content.setOpacity(1); });
                 ft.play();
             } else {
                 AlertasComodatosSection.applyCollapsed(content, chevron, false);
                 content.setOpacity(0);
-                javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
-                    javafx.util.Duration.millis(200), content);
+                FadeTransition ft = new FadeTransition(
+                    Duration.millis(200), content);
                 ft.setFromValue(0); ft.setToValue(1);
                 ft.play();
             }
@@ -280,26 +298,26 @@ public class AlertasController implements Refreshable {
             }
         });
         tableAgotados.setOnKeyPressed(ev -> {
-            if (ev.getCode() == javafx.scene.input.KeyCode.ENTER
+            if (ev.getCode() == KeyCode.ENTER
                     && tableAgotados.getSelectionModel().getSelectedItem() != null) {
                 onReponerAgotado(); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            } else if (ev.getCode() == KeyCode.ESCAPE) {
                 tableAgotados.getSelectionModel().clearSelection(); ev.consume();
             }
         });
         tableBajoStock.setOnKeyPressed(ev -> {
-            if (ev.getCode() == javafx.scene.input.KeyCode.ENTER
+            if (ev.getCode() == KeyCode.ENTER
                     && tableBajoStock.getSelectionModel().getSelectedItem() != null) {
                 onSolicitarBajoStock(); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            } else if (ev.getCode() == KeyCode.ESCAPE) {
                 tableBajoStock.getSelectionModel().clearSelection(); ev.consume();
             }
         });
         tableGarantias.setOnKeyPressed(ev -> {
             Producto sel = tableGarantias.getSelectionModel().getSelectedItem();
-            if (ev.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
+            if (ev.getCode() == KeyCode.ENTER && sel != null) {
                 AlertasDialogs.showGarantiaInfo(sel); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            } else if (ev.getCode() == KeyCode.ESCAPE) {
                 tableGarantias.getSelectionModel().clearSelection(); ev.consume();
             }
         });
@@ -329,9 +347,9 @@ public class AlertasController implements Refreshable {
             });
             tableMantenimiento.setOnKeyPressed(ev -> {
                 Producto sel = tableMantenimiento.getSelectionModel().getSelectedItem();
-                if (ev.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
+                if (ev.getCode() == KeyCode.ENTER && sel != null) {
                     ProductoDetailDialog.show(sel, tableAgotados.getScene(), movimientoService, log); ev.consume();
-                } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                } else if (ev.getCode() == KeyCode.ESCAPE) {
                     tableMantenimiento.getSelectionModel().clearSelection(); ev.consume();
                 }
             });
@@ -355,11 +373,11 @@ public class AlertasController implements Refreshable {
 
     private void loadData(boolean showToast) {
         if (!dataLoaded) {
-            tableAgotados.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(5));
-            tableBajoStock.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(4));
-            tableGarantias.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(3));
+            tableAgotados.setPlaceholder(SkeletonUtil.skeletonRows(5));
+            tableBajoStock.setPlaceholder(SkeletonUtil.skeletonRows(4));
+            tableGarantias.setPlaceholder(SkeletonUtil.skeletonRows(3));
             if (tableMantenimiento != null)
-                tableMantenimiento.setPlaceholder(com.sibim.util.SkeletonUtil.skeletonRows(4));
+                tableMantenimiento.setPlaceholder(SkeletonUtil.skeletonRows(4));
         } else if (spinner != null) {
             spinner.setVisible(true); spinner.setManaged(true);
         }
@@ -387,10 +405,10 @@ public class AlertasController implements Refreshable {
 
                 final List<Producto> ag = data.agotados(), bs = data.bajoStock(), ga = data.garantias();
                 AppExecutor.submit(() -> new EmailService().enviarAlertas(ag, bs, ga));
-                javafx.stage.Stage primary = com.sibim.MainApp.getPrimaryStage();
+                Stage primary = MainApp.getPrimaryStage();
                 boolean appEnFoco = primary != null && primary.isFocused() && !primary.isIconified();
                 if (!allAgotados.isEmpty() && !appEnFoco)
-                    com.sibim.service.TrayService.notify("Alerta de inventario",
+                    TrayService.notify("Alerta de inventario",
                         allAgotados.size() + " bien(es) agotado(s)");
 
                 updateSumCards();
@@ -398,16 +416,16 @@ public class AlertasController implements Refreshable {
                 applySearch(searchField != null ? searchField.getText() : "");
                 if (lblActualizado != null)
                     lblActualizado.setText("Actualizado " +
-                        com.sibim.util.FormatUtils.formatTime(java.time.LocalTime.now()));
+                        FormatUtils.formatTime(LocalTime.now()));
                 if (showToast && tableAgotados.getScene() != null)
                     NotificacionUtil.info(tableAgotados.getScene(), "Alertas actualizadas");
             },
             e -> {
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 log.error("Error al cargar alertas", e);
-                javafx.scene.Scene scene = tableAgotados.getScene();
-                if (scene == null && com.sibim.MainApp.getPrimaryStage() != null)
-                    scene = com.sibim.MainApp.getPrimaryStage().getScene();
+                Scene scene = tableAgotados.getScene();
+                if (scene == null && MainApp.getPrimaryStage() != null)
+                    scene = MainApp.getPrimaryStage().getScene();
                 if (scene != null)
                     NotificacionUtil.errorConAccion(scene,
                         "No se pudo cargar las alertas de inventario", "Reintentar", () -> loadData(false));
@@ -441,8 +459,8 @@ public class AlertasController implements Refreshable {
         AnimationUtils.animateCount(lblAgotadosCount,  cntAg, 480, v -> v + (noFilter ? " bienes" : " / " + totAg));
         AnimationUtils.animateCount(lblBajoStockCount, cntBs, 480, v -> v + (noFilter ? " bienes" : " / " + totBs));
         AnimationUtils.animateCount(lblGarantiasCount, cntGa, 480, v -> v + (noFilter ? " bienes" : " / " + totGa));
-        javafx.animation.PauseTransition sectionPop =
-            new javafx.animation.PauseTransition(javafx.util.Duration.millis(510));
+        PauseTransition sectionPop =
+            new PauseTransition(Duration.millis(510));
         sectionPop.setOnFinished(e -> {
             if (sectionAgotados  != null && !allAgotados.isEmpty())  AnimationUtils.statCardPop(sectionAgotados);
             if (sectionBajoStock != null && !allBajoStock.isEmpty()) AnimationUtils.statCardPop(sectionBajoStock);
@@ -485,8 +503,8 @@ public class AlertasController implements Refreshable {
                 vencidas + (vencidas == 1 ? " vencida" : " vencidas")
                 + " · " + (nGa - vencidas) + " próximas");
         }
-        javafx.animation.PauseTransition pop =
-            new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
+        PauseTransition pop =
+            new PauseTransition(Duration.millis(620));
         pop.setOnFinished(e -> {
             if (statCardAgotados     != null && nAg > 0) AnimationUtils.statCardPop(statCardAgotados);
             if (statCardBajoStockSum != null && nBs > 0) AnimationUtils.statCardPop(statCardBajoStockSum);
@@ -495,14 +513,14 @@ public class AlertasController implements Refreshable {
         pop.play();
     }
 
-    private static void animateProgressBar(javafx.scene.control.ProgressBar pb, double target) {
+    private static void animateProgressBar(ProgressBar pb, double target) {
         if (pb == null) return;
-        javafx.animation.Timeline tl = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
-                new javafx.animation.KeyValue(pb.progressProperty(), pb.getProgress())),
-            new javafx.animation.KeyFrame(javafx.util.Duration.millis(700),
-                new javafx.animation.KeyValue(pb.progressProperty(), target,
-                    javafx.animation.Interpolator.EASE_BOTH)));
+        Timeline tl = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(pb.progressProperty(), pb.getProgress())),
+            new KeyFrame(Duration.millis(700),
+                new KeyValue(pb.progressProperty(), target,
+                    Interpolator.EASE_BOTH)));
         tl.play();
     }
 
@@ -523,7 +541,7 @@ public class AlertasController implements Refreshable {
         return false;
     }
 
-    private void exportar(String label, java.util.concurrent.Callable<java.io.File> task) {
+    private void exportar(String label, java.util.concurrent.Callable<File> task) {
         if (sinAlertas()) return;
         javafx.scene.Scene scene = tableAgotados.getScene();
         DialogUtil.runAsyncWithProgress(scene, label, task,
@@ -654,7 +672,7 @@ public class AlertasController implements Refreshable {
     public void stopAutoRefresh() {
         if (autoRefresh != null) autoRefresh.stop();
         if (keyFilter != null && rootPane != null) {
-            rootPane.removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+            rootPane.removeEventFilter(KeyEvent.KEY_PRESSED, keyFilter);
             keyFilter = null;
         }
     }

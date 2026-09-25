@@ -13,6 +13,7 @@ import javafx.util.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.LongFunction;
+import java.util.prefs.Preferences;
 
 public final class AnimationUtils {
 
@@ -32,8 +33,8 @@ public final class AnimationUtils {
     // straight to its END state instead of skipping the call outright — a
     // caller that does node.setOpacity(0) then calls fadeIn() expects the
     // node visible afterward either way, animated or not.
-    private static final java.util.prefs.Preferences ANIM_PREFS =
-        java.util.prefs.Preferences.userRoot().node("sibim/ui/animations");
+    private static final Preferences ANIM_PREFS =
+        Preferences.userRoot().node("sibim/ui/animations");
     private static volatile boolean enabled = ANIM_PREFS.getBoolean("enabled", true);
 
     public static boolean isEnabled() { return enabled; }
@@ -54,60 +55,45 @@ public final class AnimationUtils {
         ft.play();
     }
 
+    /** Direction for directional slide-in animations. */
+    public enum Direction { UP, DOWN, LEFT, RIGHT }
+
     /** Slide up from below while fading in. */
-    public static void fadeInUp(Node node, int durationMs, int delayMs) {
-        if (!enabled) { node.setOpacity(1); node.setTranslateY(0); return; }
-        node.setOpacity(0);
-        node.setTranslateY(SLIDE_V_OFFSET);
-        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
-        fade.setFromValue(0); fade.setToValue(1);
-        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromY(SLIDE_V_OFFSET); slide.setToY(0);
-        slide.setInterpolator(Interpolator.EASE_OUT);
-        ParallelTransition pt = new ParallelTransition(fade, slide);
-        pt.setDelay(Duration.millis(delayMs));
-        pt.play();
-    }
-
+    public static void fadeInUp(Node node, int durationMs, int delayMs)    { fadeInImpl(node,  0,  SLIDE_V_OFFSET, durationMs, delayMs); }
     /** Slide down from above while fading in. */
-    public static void fadeInDown(Node node, int durationMs, int delayMs) {
-        if (!enabled) { node.setOpacity(1); node.setTranslateY(0); return; }
-        node.setOpacity(0);
-        node.setTranslateY(-SLIDE_V_OFFSET);
-        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
-        fade.setFromValue(0); fade.setToValue(1);
-        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromY(-SLIDE_V_OFFSET); slide.setToY(0);
-        slide.setInterpolator(Interpolator.EASE_OUT);
-        ParallelTransition pt = new ParallelTransition(fade, slide);
-        pt.setDelay(Duration.millis(delayMs));
-        pt.play();
-    }
-
+    public static void fadeInDown(Node node, int durationMs, int delayMs)  { fadeInImpl(node,  0, -SLIDE_V_OFFSET, durationMs, delayMs); }
     /** Slide in from the right while fading in. */
-    public static void fadeInRight(Node node, int durationMs, int delayMs) {
-        if (!enabled) { node.setOpacity(1); node.setTranslateX(0); return; }
-        node.setOpacity(0);
-        node.setTranslateX(SLIDE_H_OFFSET);
-        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
-        fade.setFromValue(0); fade.setToValue(1);
-        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromX(SLIDE_H_OFFSET); slide.setToX(0);
-        slide.setInterpolator(Interpolator.EASE_OUT);
-        ParallelTransition pt = new ParallelTransition(fade, slide);
-        pt.setDelay(Duration.millis(delayMs));
-        pt.play();
+    public static void fadeInRight(Node node, int durationMs, int delayMs) { fadeInImpl(node,  SLIDE_H_OFFSET, 0, durationMs, delayMs); }
+    /** Slide in from the left while fading in. */
+    public static void fadeInLeft(Node node, int durationMs, int delayMs)  { fadeInImpl(node, -SLIDE_H_OFFSET, 0, durationMs, delayMs); }
+
+    /** Slide in from {@code dir} while fading in — direction-typed overload. */
+    public static void fadeIn(Node node, Direction dir, int durationMs, int delayMs) {
+        double tx = 0, ty = 0;
+        switch (dir) {
+            case UP:    ty =  SLIDE_V_OFFSET;  break;
+            case DOWN:  ty = -SLIDE_V_OFFSET;  break;
+            case RIGHT: tx =  SLIDE_H_OFFSET;  break;
+            case LEFT:  tx = -SLIDE_H_OFFSET;  break;
+        }
+        fadeInImpl(node, tx, ty, durationMs, delayMs);
     }
 
-    /** Slide in from the left while fading in. */
-    public static void fadeInLeft(Node node, int durationMs, int delayMs) {
-        if (!enabled) { node.setOpacity(1); node.setTranslateX(0); return; }
+    private static void fadeInImpl(Node node, double tx, double ty, int durationMs, int delayMs) {
+        if (!enabled) {
+            node.setOpacity(1);
+            if (tx != 0) node.setTranslateX(0);
+            if (ty != 0) node.setTranslateY(0);
+            return;
+        }
         node.setOpacity(0);
-        node.setTranslateX(-SLIDE_H_OFFSET);
+        node.setTranslateX(tx);
+        node.setTranslateY(ty);
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setFromValue(0); fade.setToValue(1);
         TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
-        slide.setFromX(-SLIDE_H_OFFSET); slide.setToX(0);
+        slide.setFromX(tx); slide.setToX(0);
+        slide.setFromY(ty); slide.setToY(0);
         slide.setInterpolator(Interpolator.EASE_OUT);
         ParallelTransition pt = new ParallelTransition(fade, slide);
         pt.setDelay(Duration.millis(delayMs));

@@ -35,6 +35,7 @@
         <Button fx:id="btnNueva" text="Nueva Acta" onAction="#onNuevaActa" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Registrar una nueva acta de entrega-recepción"/></tooltip>
         </Button>
     </HBox>
 
@@ -75,6 +76,7 @@
         <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de actas visible a PDF"/></tooltip>
         </Button>
     </HBox>
 

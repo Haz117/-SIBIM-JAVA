@@ -19,7 +19,9 @@
                text="Sin conexión — trabajando en modo offline"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="offlineBannerSyncBtn" text="Sincronizar ahora"
-                styleClass="offline-banner-btn" onAction="#onSyncNow"/>
+                styleClass="offline-banner-btn" onAction="#onSyncNow">
+            <tooltip><Tooltip text="Enviar los cambios locales al servidor cuando haya conexión"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- ── Main row: sidebar + content ──
@@ -58,12 +60,14 @@
                     <Label text="Bienes Municipales" styleClass="sidebar-app-sub"/>
                 </VBox>
                 <Button fx:id="btnGlobalSearch" onAction="#onGlobalSearch"
-                        styleClass="sidebar-icon-btn" contentDisplay="GRAPHIC_ONLY">
+                        styleClass="sidebar-icon-btn" contentDisplay="GRAPHIC_ONLY"
+                        accessibleText="Búsqueda global">
                     <graphic><FontIcon iconLiteral="mdi2m-magnify" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Búsqueda global — Ctrl+K"/></tooltip>
                 </Button>
                 <Button fx:id="btnToggleSidebar" onAction="#onToggleSidebar"
-                        styleClass="sidebar-icon-btn" contentDisplay="GRAPHIC_ONLY">
+                        styleClass="sidebar-icon-btn" contentDisplay="GRAPHIC_ONLY"
+                        accessibleText="Contraer o expandir barra lateral">
                     <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="nav-icon"/></graphic>
                     <tooltip><Tooltip text="Contraer/expandir barra lateral"/></tooltip>
                 </Button>
@@ -230,12 +234,14 @@
         <Region HBox.hgrow="ALWAYS"/>
         <Label text="SIBIM v12.3.5" styleClass="sidebar-version"/>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
-        <Label text="⌨ Atajos (F1)" styleClass="status-shortcut-hint" onMouseClicked="#onShowShortcuts">
+        <Label text="⌨ Atajos (F1)" styleClass="status-shortcut-hint" onMouseClicked="#onShowShortcuts"
+               accessibleRole="BUTTON" accessibleText="Ver atajos de teclado">
             <tooltip><Tooltip text="Ver todos los atajos de teclado  ·  F2 = Tutorial"/></tooltip>
         </Label>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <StackPane>
-            <Button fx:id="btnNotificaciones" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+            <Button fx:id="btnNotificaciones" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                    accessibleText="Notificaciones">
                 <graphic><FontIcon iconLiteral="mdi2b-bell-outline" styleClass="status-icon"/></graphic>
                 <tooltip><Tooltip text="Notificaciones — alertas de stock y préstamos vencidos"
                                   wrapText="true" maxWidth="240"/></tooltip>

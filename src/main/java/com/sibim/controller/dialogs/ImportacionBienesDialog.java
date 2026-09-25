@@ -8,6 +8,8 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -30,6 +32,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ImportacionBienesDialog {
@@ -130,12 +133,12 @@ public class ImportacionBienesDialog {
         preview.getStyleClass().addAll("data-table", "import-preview-table");
 
         TableColumn<ParsedRow, String> colNum = new TableColumn<>("#");
-        colNum.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().num())));
+        colNum.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().num())));
         colNum.setPrefWidth(44); colNum.setMinWidth(44); colNum.setMaxWidth(44);
 
         TableColumn<ParsedRow, String> colStatus = new TableColumn<>("");
         colStatus.setPrefWidth(36); colStatus.setMinWidth(36); colStatus.setMaxWidth(36);
-        colStatus.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().status()));
+        colStatus.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().status()));
         colStatus.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -158,41 +161,41 @@ public class ImportacionBienesDialog {
         colNombre.setPrefWidth(180);
         colNombre.setCellValueFactory(c -> {
             Producto p = c.getValue().producto();
-            return new javafx.beans.property.SimpleStringProperty(p != null && p.getNombre() != null ? p.getNombre() : "—");
+            return new SimpleStringProperty(p != null && p.getNombre() != null ? p.getNombre() : "—");
         });
 
         TableColumn<ParsedRow, String> colCat = new TableColumn<>("Categoría");
         colCat.setPrefWidth(140);
         colCat.setCellValueFactory(c -> {
             Producto p = c.getValue().producto();
-            return new javafx.beans.property.SimpleStringProperty(p != null && p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—");
+            return new SimpleStringProperty(p != null && p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—");
         });
 
         TableColumn<ParsedRow, String> colArea = new TableColumn<>("Área");
         colArea.setPrefWidth(160);
         colArea.setCellValueFactory(c -> {
             Producto p = c.getValue().producto();
-            return new javafx.beans.property.SimpleStringProperty(p != null && p.getArea() != null ? p.getArea() : "—");
+            return new SimpleStringProperty(p != null && p.getArea() != null ? p.getArea() : "—");
         });
 
         TableColumn<ParsedRow, String> colCant = new TableColumn<>("Stock");
         colCant.setPrefWidth(58);
         colCant.setCellValueFactory(c -> {
             Producto p = c.getValue().producto();
-            return new javafx.beans.property.SimpleStringProperty(p != null ? String.valueOf(p.getStockActual()) : "—");
+            return new SimpleStringProperty(p != null ? String.valueOf(p.getStockActual()) : "—");
         });
 
         TableColumn<ParsedRow, String> colSerie = new TableColumn<>("N° de Serie");
         colSerie.setPrefWidth(110);
         colSerie.setCellValueFactory(c -> {
             Producto p = c.getValue().producto();
-            return new javafx.beans.property.SimpleStringProperty(
+            return new SimpleStringProperty(
                 p != null && p.getNumeroSerie() != null ? p.getNumeroSerie() : "");
         });
 
         TableColumn<ParsedRow, String> colError = new TableColumn<>("Observación");
         colError.setPrefWidth(180);
-        colError.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+        colError.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().error() != null ? c.getValue().error() : ""));
         colError.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {
@@ -218,7 +221,7 @@ public class ImportacionBienesDialog {
         // Shared UI update once a file has been parsed (on a background thread —
         // parseFile() does blocking I/O and, for .xlsx, Apache POI parsing that can
         // take noticeable time on large files, so it must never run on the FX thread).
-        java.util.function.BiConsumer<String, List<ParsedRow>> applyParsedRows = (fileName, rows) -> {
+        BiConsumer<String, List<ParsedRow>> applyParsedRows = (fileName, rows) -> {
             parsedRows.set(rows);
             long validas = rows.stream().filter(r -> "ok".equals(r.status())).count();
             long errores = rows.size() - validas;
@@ -235,7 +238,7 @@ public class ImportacionBienesDialog {
                 lblResumen.getStyleClass().add("import-summary-warn");
             }
             lblResumen.setVisible(true); lblResumen.setManaged(true);
-            preview.setItems(javafx.collections.FXCollections.observableArrayList(rows));
+            preview.setItems(FXCollections.observableArrayList(rows));
             preview.setVisible(true); preview.setManaged(true);
             AnimationUtils.fadeInUp(preview, 240, 0);
             btnImportar.setDisable(validas == 0);
@@ -262,7 +265,7 @@ public class ImportacionBienesDialog {
             Dragboard db = e.getDragboard();
             boolean accepted = db.hasFiles() && !db.getFiles().isEmpty();
             if (accepted) {
-                java.io.File droppedFile = db.getFiles().get(0);
+                File droppedFile = db.getFiles().get(0);
                 dropZone.getStyleClass().remove("drop-zone-active");
                 lblArchivo.getStyleClass().remove("field-hint-error");
                 lblArchivo.setText("Procesando " + droppedFile.getName() + "…");
@@ -292,7 +295,7 @@ public class ImportacionBienesDialog {
             try {
                 writeTemplate(dest);
                 NotificacionUtil.exito(ownerScene, "Plantilla guardada en " + dest.getName());
-                com.sibim.util.DialogUtil.showExportResultDialog(ownerScene, dest);
+                DialogUtil.showExportResultDialog(ownerScene, dest);
             } catch (Exception ex) {
                 NotificacionUtil.error(ownerScene, "No se pudo guardar la plantilla");
             }

@@ -22,6 +22,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import java.io.File;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ActasController extends BaseDocumentController<ActaEntregaRecepcion> {
@@ -111,7 +112,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         if (lblStatTotal != null) AnimationUtils.animateCount(lblStatTotal, (long) list.size(), 700);
         if (lblStatValor != null) lblStatValor.setText(FormatUtils.formatCurrency(valorTotal));
 
-        List<VBox> cards = new java.util.ArrayList<>();
+        List<VBox> cards = new ArrayList<>();
         if (statCardTotal != null) cards.add(statCardTotal);
         if (statCardValor != null) cards.add(statCardValor);
         if (!cards.isEmpty()) AnimationUtils.staggeredFadeInUp(cards, 280, 60);

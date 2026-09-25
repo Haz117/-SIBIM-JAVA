@@ -41,7 +41,8 @@
          ALERT BANNER (condicional)
          ══════════════════════════════════════════════════════════ -->
     <HBox fx:id="alertBanner" styleClass="alert-banner" spacing="10" alignment="CENTER_LEFT"
-          visible="false" managed="false" onMouseClicked="#onVerAlertas">
+          visible="false" managed="false" onMouseClicked="#onVerAlertas"
+          accessibleRole="BUTTON" accessibleText="Hay bienes que requieren atención — ver alertas">
         <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
         <FontIcon iconLiteral="mdi2b-bell-ring" styleClass="alert-banner-icon"/>
         <Label fx:id="lblAlertBannerText" text="Hay bienes que requieren atención."
@@ -58,55 +59,60 @@
     </HBox>
     <HBox fx:id="quickActionsRow" spacing="12">
         <VBox fx:id="cardNuevoBien" styleClass="quick-action-card" onMouseClicked="#onAccionNuevoBien"
-              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
+              accessibleRole="BUTTON" accessibleText="Nuevo Bien — registrar un activo al inventario">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2p-plus-circle-outline" styleClass="qa-card-icon-indigo"/>
-                <VBox spacing="2">
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label text="Nuevo Bien" styleClass="qa-card-title"/>
                     <Label text="Registrar un activo al inventario" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
         <VBox fx:id="cardNuevaEntrada" styleClass="quick-action-card" onMouseClicked="#onAccionNuevaEntrada"
-              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
+              accessibleRole="BUTTON" accessibleText="Registrar Entrada — nueva entrada de stock">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2a-arrow-up-bold-circle-outline" styleClass="qa-card-icon-green"/>
-                <VBox spacing="2">
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label text="Registrar Entrada" styleClass="qa-card-title"/>
                     <Label text="Nueva entrada de stock" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
         <VBox styleClass="quick-action-card" onMouseClicked="#onVerAlertas"
-              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
+              accessibleRole="BUTTON" accessibleText="Ver Alertas — bienes agotados y bajo stock">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="qa-card-icon-amber"/>
-                <VBox spacing="2">
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label text="Ver Alertas" styleClass="qa-card-title"/>
                     <Label text="Bienes agotados y bajo stock" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
         <VBox styleClass="quick-action-card" onMouseClicked="#onVerReportes"
-              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
+              accessibleRole="BUTTON" accessibleText="Generar Reporte — exportar inventario en PDF o Excel">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="qa-card-icon-blue"/>
-                <VBox spacing="2">
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label text="Generar Reporte" styleClass="qa-card-title"/>
                     <Label text="Exportar inventario y más" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
         <VBox styleClass="quick-action-card" onMouseClicked="#onBusquedaGlobal"
-              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
+              accessibleRole="BUTTON" accessibleText="Buscar Bien — búsqueda global, atajo Ctrl+K">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2m-magnify" styleClass="qa-card-icon-violet"/>
-                <VBox spacing="2">
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label text="Buscar Bien" styleClass="qa-card-title"/>
                     <Label text="Búsqueda global  (Ctrl+K)" styleClass="qa-card-hint"/>
                 </VBox>
@@ -126,17 +132,17 @@
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblStatsActualizacion" text="" styleClass="muted"/>
         <Button fx:id="btnRefreshDash" onAction="#onRefreshDash" styleClass="btn-icon-only"
-                contentDisplay="GRAPHIC_ONLY">
+                contentDisplay="GRAPHIC_ONLY" accessibleText="Actualizar datos">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar datos ahora"/></tooltip>
         </Button>
         <Button fx:id="btnExportarPdf" onAction="#onExportarDashboardPdf"
-                styleClass="btn-secondary" contentDisplay="GRAPHIC_ONLY">
+                styleClass="btn-secondary" contentDisplay="GRAPHIC_ONLY" accessibleText="Exportar PDF">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar resumen a PDF"/></tooltip>
         </Button>
         <Button fx:id="btnPanelEjecutivo" onAction="#onPanelEjecutivo"
-                styleClass="btn-secondary" contentDisplay="GRAPHIC_ONLY">
+                styleClass="btn-secondary" contentDisplay="GRAPHIC_ONLY" accessibleText="Panel ejecutivo">
             <graphic><FontIcon iconLiteral="mdi2c-chart-donut" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Panel ejecutivo: depreciación patrimonial y proyección de bajas"/></tooltip>
         </Button>
@@ -154,7 +160,8 @@
         <!-- Total de Bienes — Indigo -->
         <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerProductos"
-              GridPane.columnIndex="0" GridPane.rowIndex="0">
+              GridPane.columnIndex="0" GridPane.rowIndex="0"
+              accessibleRole="BUTTON" accessibleText="Total de bienes — ver inventario completo">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
@@ -175,7 +182,8 @@
         <!-- Valor Patrimonial — Teal -->
         <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerReportes"
-              GridPane.columnIndex="1" GridPane.rowIndex="0">
+              GridPane.columnIndex="1" GridPane.rowIndex="0"
+              accessibleRole="BUTTON" accessibleText="Valor patrimonial total — ver reportes">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
@@ -196,7 +204,8 @@
         <!-- Movimientos Hoy — Violet -->
         <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerMovimientos"
-              GridPane.columnIndex="2" GridPane.rowIndex="0">
+              GridPane.columnIndex="2" GridPane.rowIndex="0"
+              accessibleRole="BUTTON" accessibleText="Movimientos de hoy — ver historial">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
@@ -217,7 +226,8 @@
         <!-- Categorías — Indigo oscuro -->
         <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
               onMouseClicked="#onVerCategorias"
-              GridPane.columnIndex="3" GridPane.rowIndex="0">
+              GridPane.columnIndex="3" GridPane.rowIndex="0"
+              accessibleRole="BUTTON" accessibleText="Categorías activas — ver categorías del inventario">
             <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-dark-indigo">
@@ -245,7 +255,9 @@
         <Label fx:id="lblCountReciente" text="" styleClass="dash-activity-badge"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="Ver todos →" onAction="#onVerMovimientos"
-                styleClass="btn-secondary, btn-sm"/>
+                styleClass="btn-secondary, btn-sm">
+            <tooltip><Tooltip text="Ir a la sección de Movimientos"/></tooltip>
+        </Button>
     </HBox>
 
     <VBox fx:id="activityCard" styleClass="card" spacing="0">
@@ -270,6 +282,12 @@
             <tooltip><Tooltip text="Movimientos Semanales: entradas vs. salidas por día. Valor por Categoría: cómo se reparte el valor patrimonial entre categorías." wrapText="true" maxWidth="270"/></tooltip>
         </Label>
         <Label text="Últimos 7 días" styleClass="dash-section-badge"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnToggleAnalisis" onAction="#onToggleAnalisis"
+                styleClass="btn-ghost, btn-sm" contentDisplay="LEFT" graphicTextGap="5">
+            <graphic><FontIcon fx:id="iconToggleAnalisis" iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Mostrar u ocultar los gráficos de análisis"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- Charts row -->

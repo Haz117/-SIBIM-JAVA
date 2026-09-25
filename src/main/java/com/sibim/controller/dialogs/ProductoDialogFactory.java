@@ -1,13 +1,16 @@
 package com.sibim.controller.dialogs;
 
+import com.sibim.config.AreaCodigos;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.service.ProductoService;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ImageUtils;
+import com.sibim.util.SupabaseStorage;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,10 +24,14 @@ import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -113,6 +120,7 @@ public final class ProductoDialogFactory {
             step.setAlignment(Pos.CENTER);
             step.getStyleClass().add("stepper-step");
             step.setOnMouseClicked(e -> tabs.getSelectionModel().select(stepIdx));
+            AccessibilityUtils.asButton(step, "Paso " + (si + 1) + ": " + stepTitles[si]);
             String[] stepTooltips = {
                 "Nombre, Código, Categoría, Área, Ubicación, Imagen",
                 "Stock, Precio unitario, Precio total, Fecha de vencimiento",
@@ -153,14 +161,14 @@ public final class ProductoDialogFactory {
         btnGuardar.setOnAction(e -> {
             boolean inv = false;
             if (infoTab.fNombre.getText().isBlank()) { infoTab.fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
-            boolean codigoManual = !isNewProduct || (infoTab.fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
+            boolean codigoManual = !isNewProduct || (infoTab.fArea.getValue() != null && !AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
             if (codigoManual && infoTab.fCodigo.getText().isBlank()) { infoTab.fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             if (infoTab.fArea.getValue() == null || infoTab.fArea.getValue().isBlank()) { infoTab.fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             if (infoTab.fCat.getValue() == null) { infoTab.fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             String pcText = stockTab.fPrecioC.getText().trim(), pvText = stockTab.fPrecioV.getText().trim();
-            try { var bd = new java.math.BigDecimal(pcText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioC.getStyleClass().remove("field-error"); }
+            try { var bd = new BigDecimal(pcText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioC.getStyleClass().remove("field-error"); }
             catch (Exception ex) { stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
-            try { var bd = new java.math.BigDecimal(pvText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioV.getStyleClass().remove("field-error"); }
+            try { var bd = new BigDecimal(pvText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioV.getStyleClass().remove("field-error"); }
             catch (Exception ex) { stockTab.fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
             if (stockTab.fStockMin.getValue() > stockTab.fStockMax.getValue()) { stockTab.fStockMin.getStyleClass().add("field-error"); stockTab.fStockMax.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
             if (inv) {
@@ -196,7 +204,7 @@ public final class ProductoDialogFactory {
         Button[] navNextRef = {null};
         if (okBtn != null) {
             Runnable checkOk = () -> {
-                boolean needsCodigo = !isNewProduct || (infoTab.fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
+                boolean needsCodigo = !isNewProduct || (infoTab.fArea.getValue() != null && !AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
                 boolean codigoError = needsCodigo && infoTab.lblCodigoHint.getStyleClass().contains("field-hint-error");
                 boolean codigoBlank = needsCodigo && infoTab.fCodigo.getText().isBlank();
                 boolean invalid = infoTab.fNombre.getText().isBlank() || codigoBlank
@@ -265,7 +273,7 @@ public final class ProductoDialogFactory {
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
         VBox dialogContent = new VBox(0, dialogHeader, stepBar, tabsScroll, lblFormError, navBar);
         dialog.getDialogPane().setContent(dialogContent);
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(dialogHeader, stepBar, tabs), 280, 70);
+        AnimationUtils.staggeredFadeInUp(List.of(dialogHeader, stepBar, tabs), 280, 70);
 
         // ── Dirty tracking ───────────────────────────────────────────────────
         boolean[] dirty = {false};
@@ -307,7 +315,7 @@ public final class ProductoDialogFactory {
             Node firstErrField = null;
             if (infoTab.fNombre.getText().isBlank()) { infoTab.fNombre.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fNombre; invalid = true; }
             else infoTab.fNombre.getStyleClass().remove("field-error");
-            boolean codigoManual = !isNewProduct || (infoTab.fArea.getValue() != null && !com.sibim.config.AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
+            boolean codigoManual = !isNewProduct || (infoTab.fArea.getValue() != null && !AreaCodigos.tienePrefijo(infoTab.fArea.getValue()));
             if (codigoManual && infoTab.fCodigo.getText().isBlank()) { infoTab.fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fCodigo; invalid = true; }
             else infoTab.fCodigo.getStyleClass().remove("field-error");
             if (infoTab.fArea.getValue() == null || infoTab.fArea.getValue().isBlank()) { infoTab.fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fArea; invalid = true; }
@@ -403,24 +411,24 @@ public final class ProductoDialogFactory {
             dirty[0] = false;
 
             // ── Process and save photos ──────────────────────────────────────
-            java.util.List<String> savedFotos = new java.util.ArrayList<>();
+            List<String> savedFotos = new ArrayList<>();
             Path imgDir = imgDir();
-            boolean useStorage = com.sibim.util.SupabaseStorage.isAvailable();
+            boolean useStorage = SupabaseStorage.isAvailable();
             try {
                 if (!useStorage) Files.createDirectories(imgDir);
                 for (String rawUrl : infoTab.fotosHolder) {
                     try {
-                        if (com.sibim.util.SupabaseStorage.isRemoteUrl(rawUrl)) {
+                        if (SupabaseStorage.isRemoteUrl(rawUrl)) {
                             savedFotos.add(rawUrl);
                             continue;
                         }
-                        Path src = java.nio.file.Path.of(rawUrl);
+                        Path src = Path.of(rawUrl);
                         String remoteName = photoId + "_" + savedFotos.size() + ".jpg";
                         if (useStorage) {
-                            java.io.File tmp = Files.createTempFile("sibim-", ".jpg").toFile();
+                            File tmp = Files.createTempFile("sibim-", ".jpg").toFile();
                             try {
                                 ImageUtils.resizeAndSave(src.toFile(), tmp);
-                                String uploadedUrl = com.sibim.util.SupabaseStorage.upload(tmp, remoteName);
+                                String uploadedUrl = SupabaseStorage.upload(tmp, remoteName);
                                 savedFotos.add(uploadedUrl);
                             } catch (Exception uploadEx) {
                                 log.warn("Upload a Storage falló para '{}', guardando local: {}", p.getNombre(), uploadEx.getMessage());
@@ -450,13 +458,13 @@ public final class ProductoDialogFactory {
             // ── Process factura ──────────────────────────────────────────────
             String factUrlFinal = infoTab.facturaHolder[0];
             if (factUrlFinal != null && !factUrlFinal.isBlank()) {
-                if (!com.sibim.util.SupabaseStorage.isRemoteUrl(factUrlFinal)) {
+                if (!SupabaseStorage.isRemoteUrl(factUrlFinal)) {
                     try {
                         if (useStorage) {
-                            java.io.File tmp = Files.createTempFile("sibim-fact-", ".jpg").toFile();
+                            File tmp = Files.createTempFile("sibim-fact-", ".jpg").toFile();
                             try {
                                 ImageUtils.resizeAndSave(Path.of(factUrlFinal).toFile(), tmp);
-                                factUrlFinal = com.sibim.util.SupabaseStorage.upload(tmp, photoId + "_factura.jpg");
+                                factUrlFinal = SupabaseStorage.upload(tmp, photoId + "_factura.jpg");
                             } finally { tmp.delete(); }
                         } else {
                             Path factDir = ImageUtils.storageDir().resolve("facturas");
@@ -493,7 +501,7 @@ public final class ProductoDialogFactory {
     static double diceSimilarity(String a, String b) {
         if (a.equals(b)) return 1.0;
         if (a.length() < 2 || b.length() < 2) return 0.0;
-        java.util.Set<String> bigrams = new java.util.HashSet<>();
+        Set<String> bigrams = new HashSet<>();
         for (int i = 0; i < a.length() - 1; i++) bigrams.add(a.substring(i, i + 2));
         int shared = 0;
         for (int i = 0; i < b.length() - 1; i++) { if (bigrams.contains(b.substring(i, i + 2))) shared++; }

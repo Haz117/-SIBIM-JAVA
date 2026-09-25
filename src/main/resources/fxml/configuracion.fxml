@@ -138,6 +138,7 @@
                     <TextField fx:id="tfLogoPath" promptText="Ruta al archivo de imagen (PNG, JPG)" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                     <Button fx:id="btnLogoPath" text="Examinar…" onAction="#onSeleccionarLogo" styleClass="btn-secondary">
                         <graphic><FontIcon iconLiteral="mdi2f-folder-open-outline" styleClass="btn-icon"/></graphic>
+                        <tooltip><Tooltip text="Seleccionar archivo de imagen para el logotipo del ayuntamiento (PNG, JPG)"/></tooltip>
                     </Button>
                 </HBox>
                 <Label text="Se muestra en la pantalla de inicio al abrir la aplicación." styleClass="muted-sm"/>
@@ -224,10 +225,11 @@
         <HBox alignment="CENTER_LEFT" spacing="8">
             <StackPane HBox.hgrow="ALWAYS">
                 <TextField fx:id="userSearchField"
-                           promptText="🔍  Buscar por nombre, usuario, cargo o área..."
+                           promptText="Buscar por nombre, usuario, cargo o área..."
                            maxWidth="Infinity" styleClass="search-field"/>
                 <Button fx:id="btnClearUserSearch" text="" styleClass="search-clear-btn"
-                        StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                        StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                        accessibleText="Limpiar búsqueda">
                     <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                     <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
                 </Button>

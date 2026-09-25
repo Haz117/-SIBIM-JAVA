@@ -113,16 +113,22 @@ class MovimientosColumnSetup {
     }
 
     static void configureEstado(TableColumn<Movimiento, String> col) {
-        col.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado()));
+        // Shown as "Aprobado"/"Pendiente"/"Rechazado" to match every other status pill
+        // (Bienes: "Activo", "Agotado"…); the stored value stays upper-case.
+        col.setCellValueFactory(c -> new SimpleStringProperty(switch (c.getValue().getEstado()) {
+            case Movimiento.ESTADO_PENDIENTE -> "Pendiente";
+            case Movimiento.ESTADO_RECHAZADO -> "Rechazado";
+            default                          -> "Aprobado";
+        }));
         col.setCellFactory(DialogUtil.iconBadgeCellFactory(
             estado -> switch (estado) {
-                case "PENDIENTE"  -> "cell-badge-warning";
-                case "RECHAZADO"  -> "cell-badge-danger";
+                case "Pendiente"  -> "cell-badge-warning";
+                case "Rechazado"  -> "cell-badge-danger";
                 default           -> "cell-badge-success";
             },
             estado -> switch (estado) {
-                case "PENDIENTE"  -> "mdi2c-clock-outline";
-                case "RECHAZADO"  -> "mdi2c-close-circle-outline";
+                case "Pendiente"  -> "mdi2c-clock-outline";
+                case "Rechazado"  -> "mdi2c-close-circle-outline";
                 default           -> "mdi2c-check-circle-outline";
             }
         ));

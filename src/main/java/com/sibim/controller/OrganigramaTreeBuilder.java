@@ -7,6 +7,7 @@ import com.sibim.model.Producto;
 import com.sibim.model.Resguardo;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
 import javafx.geometry.Insets;
@@ -142,6 +143,7 @@ class OrganigramaTreeBuilder {
         if (totalBienes > 0) {
             countLabel.getStyleClass().add("org-area-count-clickable");
             countLabel.setOnMouseClicked(e -> { e.consume(); onAreaClick.show(parentName, allAreaProds, false); });
+            AccessibilityUtils.asButton(countLabel, "Ver " + totalBienes + " bienes de " + parentName);
             Tooltip.install(countLabel, new Tooltip("Ver todos los bienes de " + parentName + " y sus dependencias"));
         }
 
@@ -161,6 +163,7 @@ class OrganigramaTreeBuilder {
             alertDot.setContentDisplay(ContentDisplay.LEFT);
             alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
             alertDot.setOnMouseClicked(e -> { e.consume(); onAreaClick.show(parentName, allAreaProds, true); });
+            AccessibilityUtils.asButton(alertDot, "Ver bienes con alerta de " + parentName);
             Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) agotado(s) o bajo stock en esta área — clic para verlos"));
             header.getChildren().add(alertDot);
         }
@@ -176,6 +179,7 @@ class OrganigramaTreeBuilder {
             rsgDot.getStyleClass().addAll("org-resguardo-badge", "org-alert-badge-clickable");
             final List<Resguardo> rsgFinal = List.copyOf(rsgArea);
             rsgDot.setOnMouseClicked(e -> { e.consume(); onRsgClick.accept(parentName, rsgFinal); });
+            AccessibilityUtils.asButton(rsgDot, "Ver resguardos de " + parentName);
             Tooltip.install(rsgDot, new Tooltip(rsgArea.size() + " resguardo(s) activo(s) en esta área — clic para verlos"));
             header.getChildren().add(rsgDot);
         }
@@ -191,6 +195,7 @@ class OrganigramaTreeBuilder {
             prestDot.getStyleClass().addAll("org-prestamo-badge", "org-alert-badge-clickable");
             final List<Prestamo> prestFinal = List.copyOf(prestArea);
             prestDot.setOnMouseClicked(e -> { e.consume(); onPrestClick.accept(parentName, prestFinal); });
+            AccessibilityUtils.asButton(prestDot, "Ver préstamos de " + parentName);
             Tooltip.install(prestDot, new Tooltip(prestArea.size() + " préstamo(s) activo(s) en esta área — clic para verlos"));
             header.getChildren().add(prestDot);
         }
@@ -206,6 +211,7 @@ class OrganigramaTreeBuilder {
             comodDot.getStyleClass().addAll("org-comodato-badge", "org-alert-badge-clickable");
             final List<Comodato> comodFinal = List.copyOf(comodArea);
             comodDot.setOnMouseClicked(e -> { e.consume(); onComodClick.accept(parentName, comodFinal); });
+            AccessibilityUtils.asButton(comodDot, "Ver comodatos de " + parentName);
             Tooltip.install(comodDot, new Tooltip(comodArea.size() + " comodato(s) activo(s) en esta área — clic para verlos"));
             header.getChildren().add(comodDot);
         }
@@ -280,6 +286,7 @@ class OrganigramaTreeBuilder {
                 alertDot.setContentDisplay(ContentDisplay.LEFT);
                 alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
                 alertDot.setOnMouseClicked(e -> { e.consume(); onAreaClick.show(child, childProds, true); });
+                AccessibilityUtils.asButton(alertDot, "Ver bienes con alerta de " + child);
                 Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) agotado(s) o bajo stock en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(alertDot);
             }
@@ -294,6 +301,7 @@ class OrganigramaTreeBuilder {
                 rsgDot.getStyleClass().addAll("org-resguardo-badge", "org-alert-badge-clickable");
                 final List<Resguardo> rsgChildFinal = List.copyOf(rsgChild);
                 rsgDot.setOnMouseClicked(e -> { e.consume(); onRsgClick.accept(child, rsgChildFinal); });
+                AccessibilityUtils.asButton(rsgDot, "Ver resguardos de " + child);
                 Tooltip.install(rsgDot, new Tooltip(rsgChild.size() + " resguardo(s) activo(s) en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(rsgDot);
             }
@@ -308,6 +316,7 @@ class OrganigramaTreeBuilder {
                 prestDot.getStyleClass().addAll("org-prestamo-badge", "org-alert-badge-clickable");
                 final List<Prestamo> prestChildFinal = List.copyOf(prestChild);
                 prestDot.setOnMouseClicked(e -> { e.consume(); onPrestClick.accept(child, prestChildFinal); });
+                AccessibilityUtils.asButton(prestDot, "Ver préstamos de " + child);
                 Tooltip.install(prestDot, new Tooltip(prestChild.size() + " préstamo(s) activo(s) en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(prestDot);
             }
@@ -322,6 +331,7 @@ class OrganigramaTreeBuilder {
                 comodDot.getStyleClass().addAll("org-comodato-badge", "org-alert-badge-clickable");
                 final List<Comodato> comodChildFinal = List.copyOf(comodChild);
                 comodDot.setOnMouseClicked(e -> { e.consume(); onComodClick.accept(child, comodChildFinal); });
+                AccessibilityUtils.asButton(comodDot, "Ver comodatos de " + child);
                 Tooltip.install(comodDot, new Tooltip(comodChild.size() + " comodato(s) activo(s) en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(comodDot);
             }
@@ -334,6 +344,7 @@ class OrganigramaTreeBuilder {
             if (!childProds.isEmpty()) {
                 String areaKey = child;
                 childHeader.setOnMouseClicked(e -> onAreaClick.show(areaKey, childProds, false));
+                AccessibilityUtils.asButton(childHeader, "Ver bienes de " + child);
                 Tooltip.install(childHeader, new Tooltip("Ver todos los bienes de " + child));
             }
             childCard.getChildren().add(childHeader);

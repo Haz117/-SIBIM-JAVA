@@ -1,5 +1,6 @@
 package com.sibim.service;
 
+import com.sibim.config.AreaCodigos;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
@@ -7,15 +8,18 @@ import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
+import com.sibim.util.FormatUtils;
 import com.sibim.util.ProductoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class MovimientoService {
 
@@ -191,7 +195,7 @@ public class MovimientoService {
         if (infoOpt.isPresent()) {
             String productoId  = infoOpt.get()[0];
             String areaDestino = infoOpt.get()[1];
-            if (areaDestino != null && com.sibim.config.AreaCodigos.tienePrefijo(areaDestino)) {
+            if (areaDestino != null && AreaCodigos.tienePrefijo(areaDestino)) {
                 productoRepo.actualizarCodigo(productoId, asignarCodigo(areaDestino));
             }
         }
@@ -200,8 +204,8 @@ public class MovimientoService {
     }
 
     private String asignarCodigo(String area) throws SQLException {
-        String prefijo = com.sibim.config.AreaCodigos.prefijo(area);
-        java.util.Set<Integer> usados = new java.util.HashSet<>();
+        String prefijo = AreaCodigos.prefijo(area);
+        Set<Integer> usados = new HashSet<>();
         for (Producto p : productoRepo.findAll(false)) {
             String codigo = p.getCodigo();
             if (codigo == null || !codigo.startsWith(prefijo + "/")) continue;
@@ -234,7 +238,7 @@ public class MovimientoService {
             throw new ValidationException(
                 "Las transferencias se gestionan con el flujo de aprobación — usa Rechazar en el panel de pendientes.");
         String fechaStr = original.getCreadoEn() != null
-            ? com.sibim.util.FormatUtils.formatDate(original.getCreadoEn().toLocalDate()) : "?";
+            ? FormatUtils.formatDate(original.getCreadoEn().toLocalDate()) : "?";
         String motivoRev = "Reversión de " + original.getTipo().getEtiqueta().toLowerCase()
             + " del " + fechaStr
             + (razon != null && !razon.isBlank() ? ": " + razon : "");

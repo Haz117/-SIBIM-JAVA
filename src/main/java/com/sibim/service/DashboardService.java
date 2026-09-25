@@ -4,10 +4,15 @@ import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
+import com.sibim.util.AppExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -33,9 +38,9 @@ public class DashboardService {
     }
 
     public Resumen cargarResumen() throws SQLException {
-        int anioActual   = java.time.LocalDate.now().getYear();
+        int anioActual   = LocalDate.now().getYear();
         int anioAnterior = anioActual - 1;
-        ExecutorService exec = com.sibim.util.AppExecutor.pool();
+        ExecutorService exec = AppExecutor.pool();
         var fStats        = async(() -> productoRepo.getStats(),                  exec);
         var fCatValores   = async(() -> productoRepo.getValorPorCategoria(),      exec);
         var fAgotados     = async(() -> productoRepo.findAgotados(),              exec);
@@ -107,21 +112,21 @@ public class DashboardService {
      *  que se calcula bajo demanda en vez de cada 30 s. */
     public ResumenEjecutivo calcularResumenEjecutivo() throws SQLException {
         List<Producto> activos = productoRepo.findAll(false);
-        java.math.BigDecimal valorCompraTotal = java.math.BigDecimal.ZERO;
-        java.math.BigDecimal valorDepreciadoTotal = java.math.BigDecimal.ZERO;
+        BigDecimal valorCompraTotal = BigDecimal.ZERO;
+        BigDecimal valorDepreciadoTotal = BigDecimal.ZERO;
         int conDatosDepreciacion = 0;
         int finVidaUtilEsteAnio = 0;
-        List<Producto> bienesFinVidaUtil = new java.util.ArrayList<>();
-        int anioActual = java.time.LocalDate.now().getYear();
+        List<Producto> bienesFinVidaUtil = new ArrayList<>();
+        int anioActual = LocalDate.now().getYear();
 
         for (Producto p : activos) {
-            java.math.BigDecimal valorDep = p.getValorDepreciado();
+            BigDecimal valorDep = p.getValorDepreciado();
             if (valorDep == null) continue;
             conDatosDepreciacion++;
             valorCompraTotal = valorCompraTotal.add(p.getPrecioCompra());
             valorDepreciadoTotal = valorDepreciadoTotal.add(valorDep);
 
-            java.time.LocalDate finVidaUtil = p.getFechaAdquisicion().plusYears(p.getVidaUtilAnios());
+            LocalDate finVidaUtil = p.getFechaAdquisicion().plusYears(p.getVidaUtilAnios());
             if (finVidaUtil.getYear() == anioActual) {
                 finVidaUtilEsteAnio++;
                 bienesFinVidaUtil.add(p);
@@ -130,8 +135,8 @@ public class DashboardService {
 
         double porcentajeDepreciado = valorCompraTotal.signum() > 0
             ? valorCompraTotal.subtract(valorDepreciadoTotal)
-                .divide(valorCompraTotal, 4, java.math.RoundingMode.HALF_UP)
-                .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                .divide(valorCompraTotal, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100)).doubleValue()
             : 0.0;
 
         return new ResumenEjecutivo(activos.size(), conDatosDepreciacion, valorCompraTotal,
@@ -141,8 +146,8 @@ public class DashboardService {
     public record ResumenEjecutivo(
             int totalBienes,
             int bienesConDatosDepreciacion,
-            java.math.BigDecimal valorCompraTotal,
-            java.math.BigDecimal valorDepreciadoTotal,
+            BigDecimal valorCompraTotal,
+            BigDecimal valorDepreciadoTotal,
             double porcentajeDepreciado,
             int bienesFinVidaUtilEsteAnio,
             List<Producto> bienesFinVidaUtil) {}

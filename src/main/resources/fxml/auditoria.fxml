@@ -34,11 +34,13 @@
             <tooltip><Tooltip text="Exportar el registro de auditoría visible a CSV" wrapText="true" maxWidth="220"/></tooltip>
         </Button>
         <ProgressIndicator fx:id="loadSpinner" prefWidth="20" prefHeight="20" visible="false" managed="false"/>
-        <Button fx:id="btnRefresh" onAction="#onRefresh" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnRefresh" onAction="#onRefresh" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Actualizar">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar  (F5)"/></tooltip>
         </Button>
-        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Restaurar columnas">
             <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Restaurar columnas de la tabla a su configuración original (orden, ancho y visibilidad)"
                               wrapText="true" maxWidth="260"/></tooltip>
@@ -115,7 +117,7 @@
     <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
         <padding><Insets top="12" right="22" bottom="12" left="34"/></padding>
         <StackPane prefWidth="220">
-            <TextField fx:id="searchField" promptText="🔍  Buscar por nombre, detalle o acción…"
+            <TextField fx:id="searchField" promptText="Buscar por nombre, detalle o acción…"
                        styleClass="search-field" maxWidth="Infinity"
                        onKeyReleased="#onSearch"/>
         </StackPane>
@@ -151,6 +153,7 @@
         </Button>
         <Button text="Limpiar" onAction="#onLimpiar" styleClass="btn-secondary">
             <graphic><FontIcon iconLiteral="mdi2c-close-circle-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Limpiar todos los filtros y búsqueda activos"/></tooltip>
         </Button>
     </FlowPane>
 
@@ -186,20 +189,20 @@
     <!-- PAGINATION BAR -->
     <HBox fx:id="paginationBar" alignment="CENTER" spacing="8" styleClass="pagination-bar">
         <padding><Insets top="10" right="22" bottom="10" left="22"/></padding>
-        <Button fx:id="btnPrimera"  onAction="#onPrimera"  styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnPrimera"  onAction="#onPrimera"  styleClass="btn-page" contentDisplay="GRAPHIC_ONLY" accessibleText="Primera página">
             <graphic><FontIcon iconLiteral="mdi2p-page-first" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Primera página  (Ctrl+Inicio)"/></tooltip>
         </Button>
-        <Button fx:id="btnAnterior" onAction="#onAnterior" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnAnterior" onAction="#onAnterior" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY" accessibleText="Página anterior">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página anterior  (Ctrl+←)"/></tooltip>
         </Button>
         <Label fx:id="lblPagina" styleClass="pagination-label"/>
-        <Button fx:id="btnSiguiente" onAction="#onSiguiente" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnSiguiente" onAction="#onSiguiente" styleClass="btn-page" contentDisplay="GRAPHIC_ONLY" accessibleText="Página siguiente">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-right" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página siguiente  (Ctrl+→)"/></tooltip>
         </Button>
-        <Button fx:id="btnUltima"   onAction="#onUltima"   styleClass="btn-page" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnUltima"   onAction="#onUltima"   styleClass="btn-page" contentDisplay="GRAPHIC_ONLY" accessibleText="Última página">
             <graphic><FontIcon iconLiteral="mdi2p-page-last" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Última página  (Ctrl+Fin)"/></tooltip>
         </Button>

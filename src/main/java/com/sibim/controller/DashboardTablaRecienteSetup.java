@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.model.Movimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
@@ -9,6 +10,7 @@ import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import org.slf4j.Logger;
 
@@ -119,9 +121,9 @@ class DashboardTablaRecienteSetup {
             }
         });
         tablaReciente.setOnKeyPressed(e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            if (e.getCode() == KeyCode.ESCAPE) {
                 tablaReciente.getSelectionModel().clearSelection(); e.consume();
-            } else if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
+            } else if (e.getCode() == KeyCode.ENTER) {
                 Movimiento sel = tablaReciente.getSelectionModel().getSelectedItem();
                 if (sel != null) { showMovimientoDetalle(sel); e.consume(); }
             }
@@ -138,7 +140,7 @@ class DashboardTablaRecienteSetup {
             if (sel == null || sel.getProductoId() == null) return;
             DialogUtil.runAsyncWithProgress(tablaReciente.getScene(), "Cargando bien…",
                 () -> productoService.findById(sel.getProductoId()),
-                opt -> opt.ifPresent(p -> com.sibim.controller.dialogs.ProductoDetailDialog.show(
+                opt -> opt.ifPresent(p -> ProductoDetailDialog.show(
                     p, tablaReciente.getScene(), movimientoService, log)),
                 ex -> { log.error("Error cargando bien desde dashboard", ex);
                     NotificacionUtil.error(tablaReciente.getScene(), "No se pudo cargar el bien"); });
@@ -186,7 +188,7 @@ class DashboardTablaRecienteSetup {
                 dlg.close();
                 DialogUtil.runAsyncWithProgress(tablaReciente.getScene(), "Cargando bien…",
                     () -> productoService.findById(m.getProductoId()),
-                    opt -> opt.ifPresent(p -> com.sibim.controller.dialogs.ProductoDetailDialog.show(
+                    opt -> opt.ifPresent(p -> ProductoDetailDialog.show(
                         p, tablaReciente.getScene(), movimientoService, log)),
                     ex -> { log.error("Error cargando bien desde dashboard movimiento", ex);
                         NotificacionUtil.error(tablaReciente.getScene(), "No se pudo cargar el bien"); });

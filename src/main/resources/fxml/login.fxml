@@ -72,9 +72,15 @@
                 <Label text="CUENTAS DE PRUEBA" styleClass="brand-hint"/>
                 <Region prefHeight="10"/>
                 <HBox spacing="8" alignment="CENTER_LEFT">
-                    <Button text="Admin" onAction="#fillAdmin" styleClass="test-btn"/>
-                    <Button text="Secretario" onAction="#fillSecretario" styleClass="test-btn"/>
-                    <Button text="Dirección" onAction="#fillDireccion" styleClass="test-btn"/>
+                    <Button text="Admin" onAction="#fillAdmin" styleClass="test-btn">
+                        <tooltip><Tooltip text="Cuenta demo: Administrador (acceso completo)"/></tooltip>
+                    </Button>
+                    <Button text="Secretario" onAction="#fillSecretario" styleClass="test-btn">
+                        <tooltip><Tooltip text="Cuenta demo: Secretario (acceso operativo)"/></tooltip>
+                    </Button>
+                    <Button text="Dirección" onAction="#fillDireccion" styleClass="test-btn">
+                        <tooltip><Tooltip text="Cuenta demo: Dirección (acceso de consulta)"/></tooltip>
+                    </Button>
                 </HBox>
             </VBox>
         </VBox>
@@ -95,8 +101,8 @@
         <VBox fx:id="usernameBox" spacing="7">
             <Label text="Usuario" styleClass="form-label"/>
             <TextField fx:id="usernameField" promptText="nombre.apellido"
-                       onAction="#handleLogin"
-                       styleClass="form-input" maxWidth="Infinity"/>
+                       onAction="#handleLogin" styleClass="form-input" maxWidth="Infinity"
+                       accessibleText="Usuario — escribe tu nombre de usuario"/>
         </VBox>
 
         <Region prefHeight="18"/>
@@ -106,15 +112,15 @@
             <Label text="Contraseña" styleClass="form-label"/>
             <StackPane>
                 <PasswordField fx:id="passwordField" promptText="••••••••"
-                               onAction="#handleLogin"
-                               styleClass="form-input" maxWidth="Infinity"/>
+                               onAction="#handleLogin" styleClass="form-input" maxWidth="Infinity"
+                               accessibleText="Contraseña — campo obligatorio"/>
                 <!-- PasswordField can't reveal its own text — this plain
                      TextField is kept text-bound to it and swapped in when
                      the eye toggle is on (see LoginController#initialize). -->
                 <TextField fx:id="passwordRevealField" promptText="••••••••"
-                           onAction="#handleLogin"
-                           styleClass="form-input" maxWidth="Infinity"
-                           visible="false" managed="false"/>
+                           onAction="#handleLogin" styleClass="form-input" maxWidth="Infinity"
+                           visible="false" managed="false"
+                           accessibleText="Contraseña visible — campo obligatorio"/>
                 <Button fx:id="btnTogglePassword" text="" styleClass="search-clear-btn"
                         StackPane.alignment="CENTER_RIGHT" focusTraversable="false">
                     <graphic><FontIcon fx:id="iconTogglePassword" iconLiteral="mdi2e-eye-outline"/></graphic>
@@ -123,14 +129,19 @@
             </StackPane>
         </VBox>
 
-        <Label fx:id="lblCapsLock" text="⚠ Bloq Mayús activado"
-               styleClass="caps-lock-hint" visible="false" managed="false"/>
+        <Label fx:id="lblCapsLock" text="Bloq Mayús activado" styleClass="caps-lock-hint"
+               visible="false" managed="false" accessibleText="Advertencia: Bloq Mayús está activado — la contraseña se escribe en mayúsculas">
+            <graphic><FontIcon iconLiteral="mdi2a-alert-outline" styleClass="caps-lock-icon"/></graphic>
+        </Label>
 
         <Region prefHeight="6"/>
 
         <!-- Error label -->
         <Label fx:id="errorLabel" styleClass="error-label" wrapText="true"
-               visible="false" managed="false" maxWidth="Infinity"/>
+               visible="false" managed="false" maxWidth="Infinity"
+               contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="error-icon"/></graphic>
+        </Label>
 
         <Region prefHeight="22"/>
 
@@ -155,7 +166,9 @@
         <Region prefHeight="10"/>
 
         <!-- Security badge -->
-        <Label fx:id="secureBadge" text="🔒  Sesión encriptada y segura" styleClass="login-secure-badge"
-               maxWidth="Infinity"/>
+        <Label fx:id="secureBadge" text="Sesión encriptada y segura" styleClass="login-secure-badge"
+               maxWidth="Infinity" accessibleText="Conexión segura: las credenciales viajan cifradas">
+            <graphic><FontIcon iconLiteral="mdi2l-lock-outline" styleClass="login-secure-icon"/></graphic>
+        </Label>
     </VBox>
 </HBox>

@@ -5,6 +5,7 @@ import com.sibim.db.LocalDataStore;
 import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Producto;
+import com.sibim.model.enums.EstadoProducto;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.session.SessionManager;
 
@@ -13,7 +14,10 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ProductoRepository {
 
@@ -60,7 +64,7 @@ public class ProductoRepository {
     // ── Server-side filtering & pagination ───────────────────────────────────
 
     /** Aggregate stats for the Bienes screen stat cards — one round-trip. */
-    public record InventarioStats(long total, java.math.BigDecimal valorTotal, long alertas, long sinEtiquetar) {}
+    public record InventarioStats(long total, BigDecimal valorTotal, long alertas, long sinEtiquetar) {}
 
     /** SQL expression that mirrors ProductoUtils.computeEstado logic. */
     private static final String ESTADO_SQL =
@@ -93,8 +97,8 @@ public class ProductoRepository {
             conds.add("(" + ESTADO_SQL + ") = ?");
             params.add(f.estado().getCodigo());
         }
-        if (f.desdeReg() != null) { conds.add("p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(f.desdeReg().atStartOfDay())); }
-        if (f.hastaReg() != null) { conds.add("p.created_at < ?"); params.add(java.sql.Timestamp.valueOf(f.hastaReg().plusDays(1).atStartOfDay())); }
+        if (f.desdeReg() != null) { conds.add("p.created_at >= ?"); params.add(Timestamp.valueOf(f.desdeReg().atStartOfDay())); }
+        if (f.hastaReg() != null) { conds.add("p.created_at < ?"); params.add(Timestamp.valueOf(f.hastaReg().plusDays(1).atStartOfDay())); }
         return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
     }
 
@@ -149,7 +153,7 @@ public class ProductoRepository {
             for (String id : ids) {
                 var opt = local.findProductoById(id);
                 if (opt.isPresent()) {
-                    com.sibim.model.Producto p = opt.get();
+                    Producto p = opt.get();
                     p.setEtiquetado(valor);
                     local.saveProducto(p);
                 }
@@ -212,12 +216,12 @@ public class ProductoRepository {
         if (local != null) {
             List<Producto> all = findAll(false);
             long total = all.size();
-            java.math.BigDecimal valor = all.stream()
-                .map(p -> { java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
-                            return v.multiply(java.math.BigDecimal.valueOf(p.getStockActual())); })
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+            BigDecimal valor = all.stream()
+                .map(p -> { BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : BigDecimal.ZERO;
+                            return v.multiply(BigDecimal.valueOf(p.getStockActual())); })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
             long alertas = all.stream()
-                .filter(p -> p.getEstado() != com.sibim.model.enums.EstadoProducto.ACTIVO).count();
+                .filter(p -> p.getEstado() != EstadoProducto.ACTIVO).count();
             long sinEtiq = all.stream().filter(p -> !p.isEtiquetado()).count();
             return new InventarioStats(total, valor, alertas, sinEtiq);
         }
@@ -244,12 +248,12 @@ public class ProductoRepository {
                     rs.getLong("sin_etiquetar"));
             }
         }
-        return new InventarioStats(0, java.math.BigDecimal.ZERO, 0, 0);
+        return new InventarioStats(0, BigDecimal.ZERO, 0, 0);
     }
 
     /** In-memory filter for offline/demo mode — mirrors {@link #buildFiltroWhere}. */
     private static List<Producto> applyClientFilters(List<Producto> all, ProductoFiltro f) {
-        java.util.stream.Stream<Producto> stream = all.stream()
+        Stream<Producto> stream = all.stream()
             .filter(p -> f.busqueda() == null || f.busqueda().isBlank()
                 || p.getNombre().toLowerCase().contains(f.busqueda().toLowerCase())
                 || p.getCodigo().toLowerCase().contains(f.busqueda().toLowerCase())
@@ -264,7 +268,7 @@ public class ProductoRepository {
         if (f.desdeReg() != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isBefore(f.desdeReg()));
         if (f.hastaReg() != null) stream = stream.filter(p -> p.getCreadoEn() != null && !p.getCreadoEn().toLocalDate().isAfter(f.hastaReg()));
         return stream
-            .sorted(java.util.Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
+            .sorted(Comparator.comparing(Producto::getNombre, String.CASE_INSENSITIVE_ORDER))
             .toList();
     }
 
@@ -361,8 +365,8 @@ public class ProductoRepository {
         if (p.getId() == null) p.setId(UUID.randomUUID().toString());
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
-            if (p.getCreadoEn() == null) p.setCreadoEn(java.time.LocalDateTime.now());
-            p.setActualizadoEn(java.time.LocalDateTime.now());
+            if (p.getCreadoEn() == null) p.setCreadoEn(LocalDateTime.now());
+            p.setActualizadoEn(LocalDateTime.now());
             local.saveProducto(p);
             return p;
         }
@@ -768,8 +772,8 @@ public class ProductoRepository {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
-        if (desde != null) { sb.append(" AND p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desde.atStartOfDay())); }
-        if (hasta != null) { sb.append(" AND p.created_at <= ?"); params.add(java.sql.Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
+        if (desde != null) { sb.append(" AND p.created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { sb.append(" AND p.created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
         sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_venta * p.stock_actual) > 0 ORDER BY valor DESC LIMIT ").append(limit);
         List<CategoriaValor> result = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
@@ -824,9 +828,9 @@ public class ProductoRepository {
                 .toList();
             LinkedHashMap<String, Long> result = new LinkedHashMap<>();
             all.stream()
-                .collect(java.util.stream.Collectors.groupingBy(
+                .collect(Collectors.groupingBy(
                     p -> p.getArea() != null && !p.getArea().isBlank() ? p.getArea() : "Sin área",
-                    java.util.stream.Collectors.counting()))
+                    Collectors.counting()))
                 .entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(limit)
@@ -842,8 +846,8 @@ public class ProductoRepository {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
-        if (desde != null) { sb.append(" AND p.created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desde.atStartOfDay())); }
-        if (hasta != null) { sb.append(" AND p.created_at <= ?"); params.add(java.sql.Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
+        if (desde != null) { sb.append(" AND p.created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { sb.append(" AND p.created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
         sb.append(" GROUP BY area_label ORDER BY cnt DESC LIMIT ").append(limit);
         LinkedHashMap<String, Long> result = new LinkedHashMap<>();
         try (Connection conn = DatabaseConfig.getConnection();
@@ -1083,10 +1087,10 @@ public class ProductoRepository {
     public List<String> findFotos(String productoId) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) {
             // offline: fotos stored in Producto.fotosUrls (already loaded)
-            return new java.util.ArrayList<>();
+            return new ArrayList<>();
         }
-        if (DatabaseConfig.isDemoMode()) return new java.util.ArrayList<>();
-        List<String> fotos = new java.util.ArrayList<>();
+        if (DatabaseConfig.isDemoMode()) return new ArrayList<>();
+        List<String> fotos = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "SELECT foto_url FROM product_fotos WHERE producto_id = ? ORDER BY orden")) {
@@ -1124,7 +1128,7 @@ public class ProductoRepository {
         try (PreparedStatement ins = conn.prepareStatement(
                 "INSERT INTO product_fotos (id, producto_id, foto_url, orden) VALUES (?,?,?,?)")) {
             for (int i = 0; i < fotos.size(); i++) {
-                ins.setString(1, java.util.UUID.randomUUID().toString());
+                ins.setString(1, UUID.randomUUID().toString());
                 ins.setString(2, productoId);
                 ins.setString(3, fotos.get(i));
                 ins.setInt(4, i);
@@ -1137,13 +1141,13 @@ public class ProductoRepository {
     /** Returns products whose proxima_revision falls within the next {@code diasAnticipacion} days. */
     public List<Producto> findProximasRevisiones(int diasAnticipacion) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null || DatabaseConfig.isDemoMode())
-            return new java.util.ArrayList<>();
+            return new ArrayList<>();
         String sql = BASE_SELECT
             + " WHERE p.fecha_baja IS NULL"
             + "   AND p.proxima_revision IS NOT NULL"
             + "   AND p.proxima_revision BETWEEN CURRENT_DATE AND CURRENT_DATE + ?::interval"
             + " ORDER BY p.proxima_revision";
-        List<Producto> result = new java.util.ArrayList<>();
+        List<Producto> result = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, diasAnticipacion + " days");

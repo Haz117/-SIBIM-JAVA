@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.service.EmailService;
 import com.sibim.util.AnimationUtils;
@@ -100,7 +101,7 @@ class ConfigEmailSectionBuilder {
                 configRepo.set("smtp_usuario",           tfSmtpUser.getText().strip());
                 configRepo.set("smtp_password",          tfSmtpPass.getText());
                 configRepo.set("alertas_correo_destino", tfDest.getText().strip());
-                new com.sibim.repository.AuditLogRepository().log("configuracion", "email", "Correo y SMTP",
+                new AuditLogRepository().log("configuracion", "email", "Correo y SMTP",
                     "actualizar", "Configuración de alertas por correo actualizada");
                 return null;
             }, v -> NotificacionUtil.exito(scene, "Configuración de email guardada"),

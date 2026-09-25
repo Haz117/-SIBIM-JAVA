@@ -41,7 +41,8 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recalcular alertas (auto-refresca cada 5 min)"/></tooltip>
         </Button>
-        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Restaurar columnas">
             <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Restaurar columnas de las 4 tablas (agotados, stock bajo, garantías y mantenimiento) a su configuración original"
                               wrapText="true" maxWidth="270"/></tooltip>
@@ -102,12 +103,13 @@
     <!-- ══ BARRA DE BÚSQUEDA ════════════════════════════════════════ -->
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-danger">
         <StackPane HBox.hgrow="ALWAYS">
-            <TextField fx:id="searchField" promptText="🔍  Buscar bien por nombre o código..."
+            <TextField fx:id="searchField" promptText="Buscar bien por nombre o código..."
                        styleClass="search-field" maxWidth="Infinity">
                 <tooltip><Tooltip text="Filtrar las alertas por nombre o código del bien"/></tooltip>
             </TextField>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch">
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch"
+                    accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>

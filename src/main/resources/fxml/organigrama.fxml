@@ -137,10 +137,11 @@
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-blue">
         <StackPane HBox.hgrow="ALWAYS">
             <TextField fx:id="searchField"
-                       promptText="🔍  Buscar área, secretaría o departamento..."
+                       promptText="Buscar área, secretaría o departamento..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                    accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>

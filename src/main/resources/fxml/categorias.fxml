@@ -26,7 +26,8 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar lista de categorías (F5)"/></tooltip>
         </Button>
-        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Restaurar columnas">
             <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Restaurar columnas de la tabla a su configuración original (orden, ancho y visibilidad)"
                               wrapText="true" maxWidth="260"/></tooltip>
@@ -123,10 +124,11 @@
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-teal">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
-                       promptText="🔍  Buscar por nombre o descripción..."
+                       promptText="Buscar por nombre o descripción..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                    accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>

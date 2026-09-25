@@ -1,32 +1,46 @@
 package com.sibim.controller;
 
+import com.sibim.MainApp;
+import com.sibim.db.DatabaseConfig;
+import com.sibim.service.BackupEncryption;
+import com.sibim.service.BackupService;
+import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import java.io.File;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import javafx.animation.PauseTransition;
+import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.event.ActionEvent;
+import javafx.util.Duration;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Optional;
 
 /** Backup creation and restore logic — extracted from ConfiguracionController. */
 class ConfiguracionBackupManager {
 
-    private final com.sibim.service.BackupService backupService;
+    private final BackupService backupService;
     private final VBox backupSection;
 
-    ConfiguracionBackupManager(com.sibim.service.BackupService backupService, VBox backupSection) {
+    ConfiguracionBackupManager(BackupService backupService, VBox backupSection) {
         this.backupService = backupService;
         this.backupSection = backupSection;
     }
 
     void onGenerarRespaldo() {
-        if (com.sibim.db.DatabaseConfig.isOfflineMode() || com.sibim.db.DatabaseConfig.isDemoMode()) {
+        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode()) {
             NotificacionUtil.advertencia(scene(),
                 "La copia de seguridad solo está disponible con la base de datos principal conectada.");
             return;
@@ -42,35 +56,35 @@ class ConfiguracionBackupManager {
         if (passwordOpt.isEmpty()) return;
         char[] password = passwordOpt.get();
 
-        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        FileChooser chooser = new FileChooser();
         chooser.setTitle("Guardar respaldo de la base de datos");
-        chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JSON", "*.json"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON", "*.json"));
         chooser.setInitialFileName("sibim_backup_"
-            + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE) + ".json");
-        java.io.File destino = chooser.showSaveDialog(com.sibim.MainApp.getPrimaryStage());
-        if (destino == null) { java.util.Arrays.fill(password, '\0'); return; }
+            + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + ".json");
+        File destino = chooser.showSaveDialog(MainApp.getPrimaryStage());
+        if (destino == null) { Arrays.fill(password, '\0'); return; }
 
         DialogUtil.runAsyncWithProgress(scene(), "Generando respaldo…",
             () -> { backupService.backup(destino, password); return destino; },
-            file -> { java.util.Arrays.fill(password, '\0');
+            file -> { Arrays.fill(password, '\0');
                 NotificacionUtil.exito(scene(), "Respaldo generado: " + file.getName()); },
-            e -> { java.util.Arrays.fill(password, '\0');
+            e -> { Arrays.fill(password, '\0');
                 NotificacionUtil.error(scene(),
-                    e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo generar el respaldo"); }
+                    e instanceof SQLException ? e.getMessage() : "No se pudo generar el respaldo"); }
         );
     }
 
     void onRestaurar() {
-        if (com.sibim.db.DatabaseConfig.isOfflineMode() || com.sibim.db.DatabaseConfig.isDemoMode()) {
+        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode()) {
             NotificacionUtil.advertencia(scene(),
                 "La restauración solo está disponible con la base de datos principal conectada.");
             return;
         }
 
-        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        FileChooser chooser = new FileChooser();
         chooser.setTitle("Restaurar desde un archivo de respaldo");
-        chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JSON", "*.json"));
-        java.io.File origen = chooser.showOpenDialog(com.sibim.MainApp.getPrimaryStage());
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON", "*.json"));
+        File origen = chooser.showOpenDialog(MainApp.getPrimaryStage());
         if (origen == null) return;
 
         if (!ConfirmacionUtil.confirmar("Restaurar base de datos",
@@ -84,24 +98,24 @@ class ConfiguracionBackupManager {
         char[] password = passwordOpt.get();
 
         DialogUtil.runAsyncWithProgress(scene(), "Restaurando base de datos…",
-            () -> { backupService.restore(origen, password); java.util.Arrays.fill(password, '\0'); return null; },
+            () -> { backupService.restore(origen, password); Arrays.fill(password, '\0'); return null; },
             v -> {
                 NotificacionUtil.restauracionCompletada(scene(), origen.getName());
-                javafx.animation.PauseTransition delay =
-                    new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+                PauseTransition delay =
+                    new PauseTransition(Duration.seconds(2));
                 delay.setOnFinished(e -> {
-                    com.sibim.session.SessionManager.logout();
-                    try { com.sibim.MainApp.showLogin(); }
+                    SessionManager.logout();
+                    try { MainApp.showLogin(); }
                     catch (Exception ex) { /* toast ya mostrado — usuario reiniciará manualmente */ }
                 });
                 delay.play();
             },
             e -> {
-                java.util.Arrays.fill(password, '\0');
+                Arrays.fill(password, '\0');
                 NotificacionUtil.error(scene(),
-                    e instanceof com.sibim.service.BackupEncryption.WrongPasswordException
+                    e instanceof BackupEncryption.WrongPasswordException
                         ? "Contraseña incorrecta para este respaldo"
-                        : e instanceof java.sql.SQLException ? e.getMessage() : "No se pudo restaurar el respaldo");
+                        : e instanceof SQLException ? e.getMessage() : "No se pudo restaurar el respaldo");
             }
         );
     }
@@ -112,8 +126,8 @@ class ConfiguracionBackupManager {
 
     private Optional<char[]> promptBackupPassword(boolean confirmar) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        if (com.sibim.MainApp.getPrimaryStage() != null) dialog.initOwner(com.sibim.MainApp.getPrimaryStage());
-        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
+        dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.getDialogPane().setPrefWidth(440);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 

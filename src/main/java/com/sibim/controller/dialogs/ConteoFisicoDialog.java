@@ -17,6 +17,7 @@ import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -32,6 +33,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javafx.stage.FileChooser;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -299,12 +301,12 @@ public final class ConteoFisicoDialog {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
-            "Captura lo contado y compáralo contra el sistema — " + com.sibim.util.FormatUtils.formatDate(LocalDate.now()),
+            "Captura lo contado y compáralo contra el sistema — " + FormatUtils.formatDate(LocalDate.now()),
             AppColors.CYAN, AppColors.CYAN_D);
 
         // Toolbar
         TextField searchField = new TextField();
-        searchField.setPromptText("🔍  Buscar por nombre o código...");
+        searchField.setPromptText("Buscar por nombre o código...");
         HBox.setHgrow(searchField, Priority.ALWAYS);
         CheckBox soloDiferencias = new CheckBox("Solo incidencias");
         Button btnHistorial = new Button("Historial");
@@ -312,7 +314,7 @@ public final class ConteoFisicoDialog {
         btnHistorial.setContentDisplay(ContentDisplay.LEFT);
         btnHistorial.getStyleClass().add("btn-secondary");
         btnHistorial.setOnAction(e -> {
-            if (com.sibim.session.SessionManager.isAdmin()) {
+            if (SessionManager.isAdmin()) {
                 HistorialConteosDialog.show(dialog.getDialogPane().getScene());
             } else {
                 NotificacionUtil.info(dialog.getDialogPane().getScene(),
@@ -499,7 +501,7 @@ public final class ConteoFisicoDialog {
         });
 
         ReporteConteoService reporteService = new ReporteConteoService();
-        String tituloConteo = "Conteo del " + com.sibim.util.FormatUtils.formatDate(LocalDate.now());
+        String tituloConteo = "Conteo del " + FormatUtils.formatDate(LocalDate.now());
         Usuario userForPdf = SessionManager.getCurrentUser();
         String userNameForPdf = userForPdf != null ? userForPdf.getNombre() : "Sistema";
 
@@ -525,7 +527,7 @@ public final class ConteoFisicoDialog {
             javafx.scene.Scene scene = dialog.getDialogPane().getScene();
             AppExecutor.submit(() -> {
                 try {
-                    java.io.File f = reporteService.exportConteoPdf(tituloConteo, userNameForPdf, pdfItems);
+                    File f = reporteService.exportConteoPdf(tituloConteo, userNameForPdf, pdfItems);
                     javafx.application.Platform.runLater(() -> {
                         if (scene != null) DialogUtil.showExportResultDialog(scene, f);
                     });
@@ -559,7 +561,7 @@ public final class ConteoFisicoDialog {
             javafx.scene.Scene scene = dialog.getDialogPane().getScene();
             AppExecutor.submit(() -> {
                 try {
-                    java.io.File f = reporteService.exportConteoExcel(tituloConteo, userNameForPdf, xlsItems);
+                    File f = reporteService.exportConteoExcel(tituloConteo, userNameForPdf, xlsItems);
                     javafx.application.Platform.runLater(() -> {
                         if (scene != null) DialogUtil.showExportResultDialog(scene, f);
                     });
@@ -611,7 +613,7 @@ public final class ConteoFisicoDialog {
                 ));
             }
 
-            String motivo = "Conteo físico del " + com.sibim.util.FormatUtils.formatDate(LocalDate.now());
+            String motivo = "Conteo físico del " + FormatUtils.formatDate(LocalDate.now());
             Usuario currentUser = SessionManager.getCurrentUser();
 
             AppExecutor.submit(() -> {
@@ -757,9 +759,9 @@ public final class ConteoFisicoDialog {
         btnCargar.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2f-file-image-outline"));
         btnCargar.getStyleClass().add("btn-secondary");
         btnCargar.setOnAction(ev -> {
-            javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
+            FileChooser fc = new FileChooser();
             fc.setTitle("Seleccionar imagen con QR o código de barras");
-            fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter(
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(
                 "Imágenes (*.png, *.jpg, *.bmp)", "*.png", "*.jpg", "*.jpeg", "*.bmp"));
             File file = fc.showOpenDialog(scanDlg.getDialogPane().getScene().getWindow());
             if (file == null) return;
@@ -801,7 +803,7 @@ public final class ConteoFisicoDialog {
                     return;
                 }
             }
-            com.sibim.util.NotificacionUtil.advertencia(
+            NotificacionUtil.advertencia(
                 scanDlg.getDialogPane().getScene(),
                 "No se encontró ningún bien con el código: " + code);
         });

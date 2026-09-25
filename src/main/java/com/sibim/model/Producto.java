@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
@@ -83,7 +84,7 @@ public class Producto {
         BigDecimal residual = valorResidual != null ? valorResidual : BigDecimal.ZERO;
         BigDecimal depreciable = precioCompra.subtract(residual);
         if (depreciable.compareTo(BigDecimal.ZERO) <= 0) return residual;
-        long diasTranscurridos = java.time.temporal.ChronoUnit.DAYS.between(fechaAdquisicion, fecha);
+        long diasTranscurridos = ChronoUnit.DAYS.between(fechaAdquisicion, fecha);
         if (diasTranscurridos <= 0) return precioCompra;
         BigDecimal depAnual = depreciable.divide(BigDecimal.valueOf(vidaUtilAnios), 10, RoundingMode.HALF_UP);
         BigDecimal depAcumulada = depAnual.multiply(BigDecimal.valueOf(diasTranscurridos)).divide(BigDecimal.valueOf(365), 10, RoundingMode.HALF_UP);

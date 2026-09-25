@@ -5,8 +5,10 @@ import com.sibim.model.Comodato;
 import com.sibim.model.Producto;
 import com.sibim.service.ComodatoService;
 import com.sibim.service.ProductoService;
+import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
@@ -123,8 +125,8 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         setupDateFilterBar(
-            () -> com.sibim.service.ReporteService.getInstance().exportComodatosExcel(exportTarget()),
-            () -> com.sibim.service.ReporteService.getInstance().exportComodatosCsv(exportTarget())
+            () -> ReporteService.getInstance().exportComodatosExcel(exportTarget()),
+            () -> ReporteService.getInstance().exportComodatosCsv(exportTarget())
         );
         setupSearchListener();
 
@@ -221,6 +223,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             String cur = estadoFilter.getValue();
             estadoFilter.setValue(filterVal.equals(cur) ? "Todos" : filterVal);
         });
+        AccessibilityUtils.asButton(card, "Filtro rápido: " + filterVal);
     }
 
     private void updateStatHighlight(String estado) {

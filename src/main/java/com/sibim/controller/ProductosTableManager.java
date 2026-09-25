@@ -55,7 +55,6 @@ class ProductosTableManager {
     private final MenuButton btnExportarSeleccion;
 
     private final Map<String, Image> thumbnailCache;
-    private final Map<String, String> catIcon;
     private final Logger log;
     private final boolean canEdit;
     private final BooleanSupplier canEditSupplier;
@@ -101,7 +100,6 @@ class ProductosTableManager {
             Button btnEditar, Button btnEliminar,
             MenuButton btnExportarSeleccion,
             Map<String, Image> thumbnailCache,
-            Map<String, String> catIcon,
             Logger log,
             boolean canEdit,
             BooleanSupplier canEditSupplier,
@@ -140,7 +138,6 @@ class ProductosTableManager {
         this.btnEliminar = btnEliminar;
         this.btnExportarSeleccion = btnExportarSeleccion;
         this.thumbnailCache = thumbnailCache;
-        this.catIcon = catIcon;
         this.log = log;
         this.canEdit = canEdit;
         this.canEditSupplier = canEditSupplier;
@@ -164,7 +161,7 @@ class ProductosTableManager {
         ProductosColumnSetup.configureFoto(colFoto, table, thumbnailCache, log);
         ProductosColumnSetup.configureNombre(colNombre);
         ProductosColumnSetup.configureCodigo(colCodigo);
-        ProductosColumnSetup.configureCategoria(colCategoria, catIcon);
+        ProductosColumnSetup.configureCategoria(colCategoria);
         ProductosColumnSetup.configureArea(colArea);
         ProductosColumnSetup.configureStockYValor(colStock, colValor);
         ProductosColumnSetup.configureStockMinMax(colStockMin, colStockMax, saveStockThresholds);

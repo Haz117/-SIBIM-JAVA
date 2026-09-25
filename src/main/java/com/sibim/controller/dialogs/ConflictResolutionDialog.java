@@ -14,6 +14,7 @@ import javafx.scene.layout.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,7 @@ public final class ConflictResolutionDialog {
 
         VBox cardsBox = new VBox(12);
         cardsBox.setPadding(new Insets(4, 0, 4, 0));
-        List<Node> cards = new java.util.ArrayList<>();
+        List<Node> cards = new ArrayList<>();
         for (ConflictoInfo c : conflictos) {
             VBox card = buildCard(c, decisions);
             cards.add(card);

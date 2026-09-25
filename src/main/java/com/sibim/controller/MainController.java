@@ -3,15 +3,25 @@ package com.sibim.controller;
 import com.sibim.MainApp;
 import com.sibim.controller.dialogs.ConteoFisicoDialog;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.SyncService;
+import com.sibim.model.Prestamo;
+import com.sibim.model.Usuario;
+import com.sibim.model.Producto;
+import com.sibim.model.Resguardo;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.PrestamoService;
 import com.sibim.service.ProductoService;
+import com.sibim.service.ResguardoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
+import com.sibim.util.AppExecutor;
+import com.sibim.util.BarcodeScanner;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -44,9 +54,12 @@ import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.prefs.Preferences;
 
 public class MainController {
 
@@ -80,9 +93,9 @@ public class MainController {
     @FXML private Label loanBadge;
     @FXML private Button btnNotificaciones;
     @FXML private Label notifBadge;
-    @FXML private javafx.scene.layout.HBox offlineBanner;
+    @FXML private HBox offlineBanner;
     @FXML private Label offlineBannerLabel;
-    @FXML private javafx.scene.control.Button offlineBannerSyncBtn;
+    @FXML private Button offlineBannerSyncBtn;
     @FXML private Label statusDbLabel;
     @FXML private Tooltip statusDbTooltip;
     @FXML private Label statusUserLabel;
@@ -152,7 +165,7 @@ public class MainController {
         // A folded section shows the sum of its items' badges (alerts / overdue loans) on its header.
         sidebarSections.bindBadge(NavSection.OPERACIONES, alertBadge);
         sidebarSections.bindBadge(NavSection.CONTROL, loanBadge);
-        java.util.List<Button> navButtons = new java.util.ArrayList<>(navRegistry.buttons());
+        List<Button> navButtons = new ArrayList<>(navRegistry.buttons());
         navButtons.add(btnGlobalSearch);
         sidebarManager = new SidebarManager(
             sidebar, sidebarBackdrop, outerStack,
@@ -195,7 +208,7 @@ public class MainController {
                 setupKeyboardShortcuts(scene);
                 scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
                 scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
-                com.sibim.util.BarcodeScanner.attach(scene, this::handleBarcodeScan);
+                BarcodeScanner.attach(scene, this::handleBarcodeScan);
                 javafx.application.Platform.runLater(sidebarManager::setup);
                 if (!startupTasksScheduled) {
                     startupTasksScheduled = true;
@@ -318,7 +331,7 @@ public class MainController {
     /** Every sidebar destination, described once: view, section, shortcut, palette entry, admin-only. */
     private NavRegistry buildNavRegistry() {
         KeyCombination.Modifier[] ctrlAlt = { KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN };
-        return new NavRegistry(java.util.List.of(
+        return new NavRegistry(List.of(
             page("dashboard",     NavSection.NAVEGACION,  btnDashboard,     KeyCode.DIGIT1),
             page("organigrama",   NavSection.NAVEGACION,  btnOrganigrama,   KeyCode.DIGIT2),
             page("productos",     NavSection.NAVEGACION,  btnProductos,     KeyCode.DIGIT3).withPaletteLabel("Bienes / Inventario"),
@@ -379,7 +392,8 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
             Node node = loader.load();
-            com.sibim.util.AccessibilityUtils.applyAccessibleTextFromTooltips(node);
+            AccessibilityUtils.applyAccessibleTextFromTooltips(node);
+            com.sibim.util.ResponsiveHeader.installAll(node);
 
             if (currentController instanceof Refreshable r) r.stopAutoRefresh();
             currentController = loader.getController();
@@ -417,14 +431,14 @@ public class MainController {
             offlineBannerSyncBtn.setText("Sincronizando…");
         }
         if (offlineBannerLabel != null) {
-            int pending = com.sibim.db.offline.SyncService.pendingCount();
+            int pending = SyncService.pendingCount();
             offlineBannerLabel.setText(pending > 0
                 ? "Sincronizando " + pending + " cambio(s) pendiente(s)…"
                 : "Conectando con el servidor…");
         }
         statusBarManager.setConnecting(true);
-        com.sibim.util.AppExecutor.submit(() -> {
-            com.sibim.db.offline.SyncService.syncNow();
+        AppExecutor.submit(() -> {
+            SyncService.syncNow();
             javafx.application.Platform.runLater(() -> {
                 statusBarManager.setConnecting(false);
                 if (offlineBannerSyncBtn != null) {
@@ -436,8 +450,8 @@ public class MainController {
     }
 
     // ── Table density ─────────────────────────────────────────────────────────
-    private static final java.util.prefs.Preferences DENSITY_PREFS =
-        java.util.prefs.Preferences.userRoot().node("sibim/ui/density");
+    private static final Preferences DENSITY_PREFS =
+        Preferences.userRoot().node("sibim/ui/density");
     private static final String[] DENSITY_CLASSES = { "density-compact", "", "density-comfortable" };
     private static final String[] DENSITY_LABELS  = { "Comp.", "Normal", "Cómod." };
     private static final String[] DENSITY_ICONS   = { "mdi2v-view-headline", "mdi2v-view-list", "mdi2v-view-module" };
@@ -467,15 +481,15 @@ public class MainController {
 
     @FXML
     private void onToggleTextSize() {
-        com.sibim.util.AccessibilityUtils.cycleTextScaleIndex();
+        AccessibilityUtils.cycleTextScaleIndex();
         applyTextScaleClass();
     }
 
     private void applyTextScaleClass() {
-        com.sibim.util.AccessibilityUtils.applyCurrentTextScaleClass(contentArea);
+        AccessibilityUtils.applyCurrentTextScaleClass(contentArea);
         if (btnTextSize != null) {
-            int idx = com.sibim.util.AccessibilityUtils.getTextScaleIndex();
-            btnTextSize.setText(com.sibim.util.AccessibilityUtils.TEXT_SCALE_LABELS[idx]);
+            int idx = AccessibilityUtils.getTextScaleIndex();
+            btnTextSize.setText(AccessibilityUtils.TEXT_SCALE_LABELS[idx]);
         }
     }
 
@@ -487,7 +501,7 @@ public class MainController {
     private long inactivityTimeoutMs() {
         try {
             int minutes = Integer.parseInt(
-                new com.sibim.repository.ConfiguracionRepository()
+                new ConfiguracionRepository()
                     .get("inactividad_timeout_minutos", "30"));
             return Math.max(6, minutes) * 60_000L;
         } catch (Exception e) {
@@ -513,7 +527,7 @@ public class MainController {
                 activeInactivityDialog = null;
             }
             stopTimers();
-            com.sibim.model.Usuario me = SessionManager.getCurrentUser();
+            Usuario me = SessionManager.getCurrentUser();
             if (me != null)
                 auditRepo.log("sesion", me.getId(), me.getNombre(),
                     "logout", "Cierre automático por inactividad");
@@ -543,7 +557,7 @@ public class MainController {
         lblCountdown.getStyleClass().add("inactivity-countdown");
         VBox body = buildInactivityBody(lblCountdown);
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, body), 260, 70);
+        AnimationUtils.staggeredFadeInUp(List.of(header, body), 260, 70);
         dlg.getDialogPane().setContent(new VBox(header, body));
 
         long[] msLeft = { INACTIVITY_WARN_WINDOW_MS };
@@ -606,7 +620,7 @@ public class MainController {
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
         a.put(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN),      this::onCommandPalette);
         a.put(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN), () -> {
-            com.sibim.session.NavigationContext.setPendingNuevoBien();
+            NavigationContext.setPendingNuevoBien();
             navigateToView("productos");
         });
         a.put(new KeyCodeCombination(KeyCode.F1), () -> MainShortcutHelpDialog.show());
@@ -627,20 +641,20 @@ public class MainController {
 
     private void onCommandPalette() {
         javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
-        java.util.List<SearchPaletteDialog.NavEntry> navEntries = navRegistry.paletteEntries(SessionManager.isAdmin());
+        List<SearchPaletteDialog.NavEntry> navEntries = navRegistry.paletteEntries(SessionManager.isAdmin());
 
         // Mutable lists: start empty so the dialog opens instantly showing nav entries,
         // then data is appended via Platform.runLater while the dialog is open.
         // rebuildList in SearchPaletteDialog reads these lazily on each keystroke.
-        java.util.List<com.sibim.model.Producto>  mProductos  = new java.util.ArrayList<>();
-        java.util.List<com.sibim.model.Resguardo> mResguardos = new java.util.ArrayList<>();
-        java.util.List<com.sibim.model.Prestamo>  mPrestamos  = new java.util.ArrayList<>();
+        List<Producto>  mProductos  = new ArrayList<>();
+        List<Resguardo> mResguardos = new ArrayList<>();
+        List<Prestamo>  mPrestamos  = new ArrayList<>();
 
-        com.sibim.util.AppExecutor.submit(() -> {
+        AppExecutor.submit(() -> {
             try { var d = alertProductoService.getAll();
                   javafx.application.Platform.runLater(() -> mProductos.addAll(d)); }
             catch (Exception e) { log.warn("Palette: no se pudieron cargar bienes", e); }
-            try { var d = new com.sibim.service.ResguardoService().getAll();
+            try { var d = new ResguardoService().getAll();
                   javafx.application.Platform.runLater(() -> mResguardos.addAll(d)); }
             catch (Exception e) { log.warn("Palette: no se pudieron cargar resguardos", e); }
             try { var d = prestamoService.getAll();

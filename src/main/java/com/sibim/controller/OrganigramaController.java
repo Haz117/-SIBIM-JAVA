@@ -11,6 +11,7 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteEntregaRecepcionService;
 import com.sibim.service.ReporteOrganigramaService;
 import com.sibim.service.ResguardoService;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -216,6 +217,7 @@ public class OrganigramaController {
             if (alertas >= 3) card.getStyleClass().add("org-card-danger");
             else if (alertas > 0) card.getStyleClass().add("org-card-warning");
             card.setOnMouseClicked(e -> dialogs.showAreaProductsDialog(areaName, areaProds, false, searchField.getScene()));
+            AccessibilityUtils.asButton(card, areaName + " — ver bienes");
 
             // Header row
             HBox cardHeader = new HBox(8);
@@ -266,6 +268,7 @@ public class OrganigramaController {
                 alertBadge.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
                 final List<Producto> prodsForAlert = areaProds;
                 alertBadge.setOnMouseClicked(e -> { e.consume(); dialogs.showAreaProductsDialog(areaName, prodsForAlert, true, searchField.getScene()); });
+                AccessibilityUtils.asButton(alertBadge, "Ver bienes con alerta de " + areaName);
                 badgesRow.getChildren().add(alertBadge);
             }
 
@@ -282,6 +285,7 @@ public class OrganigramaController {
                 rsgBadge.getStyleClass().addAll("org-resguardo-badge", "org-alert-badge-clickable");
                 final List<com.sibim.model.Resguardo> rsgFinal = List.copyOf(rsgCard);
                 rsgBadge.setOnMouseClicked(e -> { e.consume(); dialogs.showResguardosAreaDialog(areaName, rsgFinal, searchField.getScene()); });
+                AccessibilityUtils.asButton(rsgBadge, "Ver resguardos de " + areaName);
                 badgesRow.getChildren().add(rsgBadge);
             }
 
@@ -296,6 +300,7 @@ public class OrganigramaController {
                 prestBadge.getStyleClass().addAll("org-prestamo-badge", "org-alert-badge-clickable");
                 final List<Prestamo> prestFinal = List.copyOf(prestCard);
                 prestBadge.setOnMouseClicked(e -> { e.consume(); dialogs.showPrestamosAreaDialog(areaName, prestFinal, searchField.getScene()); });
+                AccessibilityUtils.asButton(prestBadge, "Ver préstamos de " + areaName);
                 badgesRow.getChildren().add(prestBadge);
             }
 
@@ -310,6 +315,7 @@ public class OrganigramaController {
                 comodBadge.getStyleClass().addAll("org-comodato-badge", "org-alert-badge-clickable");
                 final List<Comodato> comodFinal = List.copyOf(comodCard);
                 comodBadge.setOnMouseClicked(e -> { e.consume(); dialogs.showComodatosAreaDialog(areaName, comodFinal, searchField.getScene()); });
+                AccessibilityUtils.asButton(comodBadge, "Ver comodatos de " + areaName);
                 badgesRow.getChildren().add(comodBadge);
             }
 

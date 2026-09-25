@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.MainApp;
 import com.sibim.model.Usuario;
+import com.sibim.session.SessionManager;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.service.AuthService;
 import com.sibim.util.AnimationUtils;
@@ -9,6 +10,7 @@ import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
+import javafx.stage.Modality;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -17,6 +19,7 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -57,7 +60,7 @@ public final class CambiarPasswordDialog {
         dialog.getDialogPane().setPrefWidth(420);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
         if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
-        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        dialog.initModality(Modality.APPLICATION_MODAL);
         // No true cancel via the window's own [X] — CANCEL_CLOSE on
         // btnLogout makes JavaFX resolve any close-via-X to that button on
         // its own, which is exactly the "Cerrar sesión" behavior we want,
@@ -105,7 +108,7 @@ public final class CambiarPasswordDialog {
             errorLbl);
         form.setPadding(new Insets(18, 22, 20, 22));
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, form), 260, 70);
+        AnimationUtils.staggeredFadeInUp(List.of(header, form), 260, 70);
         dialog.getDialogPane().setContent(new VBox(header, form));
 
         Node guardarBtn = dialog.getDialogPane().lookupButton(btnGuardar);
@@ -167,7 +170,7 @@ public final class CambiarPasswordDialog {
     /** Voluntary password change — called from the sidebar user-card menu.
      *  Requires the current password for verification before allowing the change. */
     public static void mostrar(javafx.scene.Scene scene) {
-        com.sibim.model.Usuario user = com.sibim.session.SessionManager.getCurrentUser();
+        Usuario user = SessionManager.getCurrentUser();
         if (user == null) return;
 
         ButtonType btnGuardar  = new ButtonType("Guardar",   ButtonBar.ButtonData.OK_DONE);
@@ -179,7 +182,7 @@ public final class CambiarPasswordDialog {
         dialog.getDialogPane().setPrefWidth(420);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
         if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());
-        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        dialog.initModality(Modality.APPLICATION_MODAL);
 
         HBox header = DialogUtil.gradientHeader("mdi2l-lock-outline", "Cambiar contraseña",
             "Verifica tu contraseña actual antes de definir una nueva",
@@ -225,7 +228,7 @@ public final class CambiarPasswordDialog {
             errorLbl);
         form.setPadding(new Insets(18, 22, 20, 22));
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, form), 260, 70);
+        AnimationUtils.staggeredFadeInUp(List.of(header, form), 260, 70);
         dialog.getDialogPane().setContent(new VBox(header, form));
 
         Node guardarBtn = dialog.getDialogPane().lookupButton(btnGuardar);

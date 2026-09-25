@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.model.Comodato;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -39,6 +40,7 @@ class AlertasComodatosSection {
             applyCollapsed(content, chevron, nowCollapsed);
             sticky.putBoolean(PREF_KEY, nowCollapsed);
         });
+        AccessibilityUtils.asButton(header, "Plegar o desplegar sección de comodatos");
 
         VBox section = new VBox(0, header, content);
         section.getStyleClass().addAll("alert-section", "alert-warning");

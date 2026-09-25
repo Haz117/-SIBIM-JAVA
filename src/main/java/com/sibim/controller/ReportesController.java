@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
+import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
@@ -322,6 +323,7 @@ public class ReportesController {
                 MainController mc = MainController.getInstance();
                 if (mc != null) mc.navigateTo("productos");
             });
+            AccessibilityUtils.asButton(node, area + " — ver en Bienes");
         }
     }
 

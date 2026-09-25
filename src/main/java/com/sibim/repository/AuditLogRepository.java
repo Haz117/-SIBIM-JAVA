@@ -10,6 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -53,7 +56,7 @@ public class AuditLogRepository {
             // System events such as failed logins and backups do not always
             // belong to a persisted entity. The schema migration permits null
             // entity IDs for those events instead of rejecting the audit row.
-            a.setCreadoEn(java.time.LocalDateTime.now());
+            a.setCreadoEn(LocalDateTime.now());
 
             if (DatabaseConfig.isOfflineMode()) {
                 OfflineStore.logAudit(a);
@@ -141,7 +144,7 @@ public class AuditLogRepository {
 
     public List<AuditLog> findPaginated(int limit, int offset,
             String busqueda, String entidad, String accion, String usuarioNombre,
-            java.time.LocalDate desde, java.time.LocalDate hasta) throws SQLException {
+            LocalDate desde, LocalDate hasta) throws SQLException {
         requireAdmin();
         if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
             return applyClientFilters(findAll(500), busqueda, entidad, accion, usuarioNombre, desde, hasta)
@@ -163,7 +166,7 @@ public class AuditLogRepository {
     }
 
     public int countFiltrado(String busqueda, String entidad, String accion, String usuarioNombre,
-            java.time.LocalDate desde, java.time.LocalDate hasta) throws SQLException {
+            LocalDate desde, LocalDate hasta) throws SQLException {
         requireAdmin();
         if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
             return applyClientFilters(findAll(500), busqueda, entidad, accion, usuarioNombre, desde, hasta).size();
@@ -225,7 +228,7 @@ public class AuditLogRepository {
      *  making every filter on the Auditoría screen a no-op whenever the
      *  app runs in demo mode. */
     private static List<AuditLog> applyClientFilters(List<AuditLog> all, String busqueda, String entidad,
-            String accion, String usuarioNombre, java.time.LocalDate desde, java.time.LocalDate hasta) {
+            String accion, String usuarioNombre, LocalDate desde, LocalDate hasta) {
         return all.stream()
             .filter(a -> busqueda == null || busqueda.isBlank()
                 || containsIgnoreCase(a.getEntidadNombre(), busqueda)
@@ -250,7 +253,7 @@ public class AuditLogRepository {
      *  table below them — Auditoría was the only list screen with no summary
      *  section at all. */
     public AuditStats getStats(String busqueda, String entidad, String accion, String usuarioNombre,
-            java.time.LocalDate desde, java.time.LocalDate hasta) throws SQLException {
+            LocalDate desde, LocalDate hasta) throws SQLException {
         requireAdmin();
         if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode()) {
             List<AuditLog> filtered = applyClientFilters(findAll(500), busqueda, entidad, accion, usuarioNombre, desde, hasta);
@@ -280,7 +283,7 @@ public class AuditLogRepository {
     }
 
     private static String buildAuditWhere(String busqueda, String entidad, String accion, String usuarioNombre,
-            java.time.LocalDate desde, java.time.LocalDate hasta, List<Object> params) {
+            LocalDate desde, LocalDate hasta, List<Object> params) {
         List<String> conds = new ArrayList<>();
         if (busqueda != null && !busqueda.isBlank()) {
             String like = "%" + busqueda + "%";
@@ -292,8 +295,8 @@ public class AuditLogRepository {
         if (usuarioNombre != null && !usuarioNombre.isBlank()) {
             conds.add("usuario_nombre ILIKE ?"); params.add("%" + usuarioNombre + "%");
         }
-        if (desde != null) { conds.add("created_at >= ?"); params.add(java.sql.Timestamp.valueOf(desde.atStartOfDay())); }
-        if (hasta != null) { conds.add("created_at <= ?"); params.add(java.sql.Timestamp.valueOf(hasta.atTime(java.time.LocalTime.MAX))); }
+        if (desde != null) { conds.add("created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
+        if (hasta != null) { conds.add("created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX))); }
         return conds.isEmpty() ? "" : " WHERE " + String.join(" AND ", conds);
     }
 

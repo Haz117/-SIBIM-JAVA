@@ -1,5 +1,6 @@
 package com.sibim.controller.dialogs;
 
+import com.sibim.config.Areas;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.util.AnimationUtils;
@@ -23,8 +24,10 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 /** Builds and drives the "Registrar Movimiento" dialog. Extracted out of
  *  MovimientosController for the same reason as ProductoDialogFactory — the
@@ -66,7 +69,7 @@ public final class MovimientoDialogFactory {
         fProducto.setMaxWidth(Double.MAX_VALUE);
         fProducto.setPromptText("Seleccionar bien del inventario...");
         fProducto.getStyleClass().add("form-input");
-        java.util.function.Function<Producto, String> productoTexto =
+        Function<Producto, String> productoTexto =
             p -> p == null ? "" : p.getNombre() + "  [" + p.getCodigo() + "]";
         fProducto.setConverter(new javafx.util.StringConverter<>() {
             public String toString(Producto p) { return productoTexto.apply(p); }
@@ -125,7 +128,7 @@ public final class MovimientoDialogFactory {
         Runnable refreshAreaOptions = () -> {
             Producto p = fProducto.getValue();
             String current = fAreaDestino.getValue();
-            List<String> opts = new java.util.ArrayList<>(com.sibim.config.Areas.getAllAreaNames());
+            List<String> opts = new ArrayList<>(Areas.getAllAreaNames());
             if (p != null) opts.remove(p.getArea());
             fAreaDestino.setItems(FXCollections.observableArrayList(opts));
             if (current != null && opts.contains(current)) fAreaDestino.setValue(current);
@@ -432,7 +435,7 @@ public final class MovimientoDialogFactory {
             if (bar != null) { bar.setVisible(false); bar.setManaged(false); }
         });
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(grid, actionBar), 280, 70);
+        AnimationUtils.staggeredFadeInUp(List.of(grid, actionBar), 280, 70);
         // Only the form scrolls — actionBar stays pinned at the bottom so it's
         // always reachable even when the form is taller than the screen
         // (was reproducible with the dialog's real button-bar off-screen;

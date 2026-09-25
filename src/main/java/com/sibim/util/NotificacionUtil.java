@@ -174,6 +174,7 @@ public class NotificacionUtil {
         // time for the same toast, throwing off the vertical stacking
         // offset of whichever toasts show next.
         boolean[] closing = { false };
+        AccessibilityUtils.asButton(closeBtn, "Cerrar notificación");
         closeBtn.setOnMouseClicked(e -> {
             if (closing[0]) return;
             closing[0] = true;
@@ -496,6 +497,7 @@ public class NotificacionUtil {
 
         actionBtn.setOnAction(e -> { dismiss.run(); onAction.run(); });
         closeIcon.setOnMouseClicked(e -> dismiss.run());
+        AccessibilityUtils.asButton(closeIcon, "Cerrar notificación");
     }
 
     private static void showConAccion(Window owner, String mensaje, String btnLabel, Runnable onAction, Tipo tipo) {
@@ -582,5 +584,6 @@ public class NotificacionUtil {
 
         actionBtn.setOnAction(e -> { dismiss.run(); onAction.run(); });
         closeBtn.setOnMouseClicked(e -> dismiss.run());
+        AccessibilityUtils.asButton(closeBtn, "Cerrar notificación");
     }
 }

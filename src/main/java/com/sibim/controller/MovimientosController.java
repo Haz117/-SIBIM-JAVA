@@ -9,6 +9,7 @@ import com.sibim.repository.MovimientoRepository;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
@@ -16,6 +17,7 @@ import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
+import com.sibim.util.FormatUtils;
 import com.sibim.util.SearchUtils;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -27,6 +29,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.util.Duration;
 import javafx.geometry.Insets;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -34,17 +37,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.prefs.Preferences;
+import javafx.collections.ListChangeListener;
 
 public class MovimientosController {
 
     private static final Logger log = LoggerFactory.getLogger(MovimientosController.class);
-    private static final java.util.prefs.Preferences STICKY =
-        java.util.prefs.Preferences.userRoot().node("sibim/filters/movimientos");
+    private static final Preferences STICKY =
+        Preferences.userRoot().node("sibim/filters/movimientos");
 
     @FXML private VBox rootPane;
-    @FXML private javafx.scene.layout.FlowPane filterBar;
+    @FXML private FlowPane filterBar;
     @FXML private Button btnToggleFiltros;
     @FXML private VBox resumenBox;
     @FXML private Button btnToggleResumen;
@@ -81,7 +87,7 @@ public class MovimientosController {
     @FXML private VBox  statCardSalida;
     @FXML private VBox  statCardAjuste;
     @FXML private Button btnDelete;
-    @FXML private javafx.scene.control.MenuButton btnExportarSeleccion;
+    @FXML private MenuButton btnExportarSeleccion;
     @FXML private Label  lblSeleccionados;
     @FXML private Button btnClearSearch;
     @FXML private Button btnPendientes;
@@ -136,12 +142,12 @@ public class MovimientosController {
         setupSelectionListener();
         restoreStickyFilters();
 
-        if (com.sibim.session.NavigationContext.consumePendingNuevoMovimiento())
+        if (NavigationContext.consumePendingNuevoMovimiento())
             Platform.runLater(this::onNuevoMovimiento);
 
         loadData();
         AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
+            List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
         if (lblPage != null) {
             lblPage.getStyleClass().add("page-label-jump");
             lblPage.setOnMouseClicked(e -> { if (e.getClickCount() == 2) promptJumpToPage(); });
@@ -221,7 +227,7 @@ public class MovimientosController {
     private void setupSelectionListener() {
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         table.getSelectionModel().getSelectedItems().addListener(
-            (javafx.collections.ListChangeListener<Movimiento>) change -> {
+            (ListChangeListener<Movimiento>) change -> {
                 int n = table.getSelectionModel().getSelectedItems().size();
                 boolean hasSelection = n > 0;
                 if (btnDelete            != null) btnDelete.setDisable(!hasSelection);
@@ -304,7 +310,7 @@ public class MovimientosController {
         emptyStatePlaceholder = emptyState;
         table.setPlaceholder(emptyState);
         DialogUtil.setupColumnVisibilityMenu("movimientos.cols", table,
-            java.util.List.of(colProducto, colTipo, colFecha));
+            List.of(colProducto, colTipo, colFecha));
         DialogUtil.setupColumnReset(table, btnResetColumns, STICKY);
         DialogUtil.persistTableSort(table, STICKY, "sort");
         DialogUtil.persistColumnWidths(table, STICKY, "colW");
@@ -332,8 +338,8 @@ public class MovimientosController {
 
     private void setupFilters() {
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
-        desdeFilter.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
-        hastaFilter.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
+        desdeFilter.setConverter(FormatUtils.datePickerConverter());
+        hastaFilter.setConverter(FormatUtils.datePickerConverter());
         desdeFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         if (categoriaFilter != null)
@@ -376,7 +382,7 @@ public class MovimientosController {
 
                 if (categoriaFilter != null) {
                     String prev = categoriaFilter.getValue();
-                    categoriaFilter.getItems().setAll(new java.util.ArrayList<>());
+                    categoriaFilter.getItems().setAll(new ArrayList<>());
                     categoriaFilter.getItems().add(null);
                     categoriaFilter.getItems().addAll(r.categorias());
                     if (prev != null && categoriaFilter.getItems().contains(prev))
@@ -661,7 +667,7 @@ public class MovimientosController {
 
     @FXML
     private void onExportSeleccionCsv() {
-        List<Movimiento> sel = new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems());
+        List<Movimiento> sel = new ArrayList<>(table.getSelectionModel().getSelectedItems());
         if (sel.isEmpty()) { onExportCsv(); return; }
         DialogUtil.runAsync(
             () -> reporteService.exportMovimientosCsv(sel),
@@ -672,7 +678,7 @@ public class MovimientosController {
 
     @FXML
     private void onExportSeleccionExcel() {
-        List<Movimiento> sel = new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems());
+        List<Movimiento> sel = new ArrayList<>(table.getSelectionModel().getSelectedItems());
         if (sel.isEmpty()) { onExportExcel(); return; }
         DialogUtil.runAsync(
             () -> reporteService.exportMovimientosExcel(sel),

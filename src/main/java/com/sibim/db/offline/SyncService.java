@@ -28,7 +28,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -382,8 +384,8 @@ public final class SyncService {
         p.setCodigo(r.codigo());
         p.setDescripcion(r.descripcion());
         p.setCategoriaId(r.categoriaId());
-        p.setPrecioCompra(r.precioCompra() != null ? new java.math.BigDecimal(r.precioCompra()) : java.math.BigDecimal.ZERO);
-        p.setPrecioVenta(r.precioVenta() != null ? new java.math.BigDecimal(r.precioVenta()) : java.math.BigDecimal.ZERO);
+        p.setPrecioCompra(r.precioCompra() != null ? new BigDecimal(r.precioCompra()) : BigDecimal.ZERO);
+        p.setPrecioVenta(r.precioVenta() != null ? new BigDecimal(r.precioVenta()) : BigDecimal.ZERO);
         p.setStockActual(r.stockActual());
         p.setStockMinimo(r.stockMinimo());
         p.setStockMaximo(r.stockMaximo());
@@ -400,7 +402,7 @@ public final class SyncService {
         p.setResguardante(r.resguardante());
         p.setEtiquetado(r.etiquetado());
         if (r.fotosUrls() != null && !r.fotosUrls().isBlank())
-            p.setFotosUrls(new java.util.ArrayList<>(java.util.Arrays.asList(r.fotosUrls().split("\\|\\|"))));
+            p.setFotosUrls(new ArrayList<>(Arrays.asList(r.fotosUrls().split("\\|\\|"))));
         p.setEstadoFisico(r.estadoFisico());
         p.setNumeroFactura(r.numeroFactura());
         return p;
@@ -688,7 +690,7 @@ public final class SyncService {
      *  "not found" responses).  Such rows are marked DISCARDED immediately so
      *  requeueFailedChanges() doesn't loop on them forever. */
     private static boolean isPermanentFailure(Exception ex) {
-        if (ex instanceof java.sql.SQLException sqle) {
+        if (ex instanceof SQLException sqle) {
             String state = sqle.getSQLState();
             // 23xxx = integrity constraint violation (FK, unique, not-null…)
             if (state != null && state.startsWith("23")) return true;

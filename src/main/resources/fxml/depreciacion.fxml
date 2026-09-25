@@ -54,7 +54,8 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recalcular depreciación"/></tooltip>
         </Button>
-        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Restaurar columnas">
             <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Restaurar columnas de la tabla a su configuración original (orden, ancho y visibilidad)"
                               wrapText="true" maxWidth="260"/></tooltip>
@@ -121,7 +122,8 @@
         </VBox>
 
         <VBox fx:id="statCardTotalmente" styleClass="rich-stat-card, rich-stat-card-clickable"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT" onMouseClicked="#onFiltrarTotalmenteDepreciados">
+              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT" onMouseClicked="#onFiltrarTotalmenteDepreciados"
+              accessibleRole="BUTTON" accessibleText="Totalmente depreciados — filtrar la tabla solo a estos bienes">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
@@ -175,17 +177,20 @@
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-indigo">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
-                       promptText="🔍  Buscar por nombre o categoría..."
+                       promptText="Buscar por nombre o categoría..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                    accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
         <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="240"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFiltros" styleClass="btn-secondary"/>
+        <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFiltros" styleClass="btn-secondary">
+            <tooltip><Tooltip text="Restablecer búsqueda y filtro de área"/></tooltip>
+        </Button>
     </HBox>
 
     <!-- ══ ACTIVE FILTER CHIPS ════════════════════════════════════════ -->

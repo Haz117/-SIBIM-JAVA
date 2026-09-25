@@ -1,25 +1,41 @@
 package com.sibim.controller;
 
+import com.sibim.controller.dialogs.PanelEjecutivoDialog;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
+import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.service.DashboardService;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
+import com.sibim.service.ReporteService;
+import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
+import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.NotificacionUtil;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import javafx.animation.KeyFrame;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.beans.value.ChangeListener;
 import javafx.concurrent.Task;
+import javafx.util.Duration;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 public class DashboardController implements Refreshable {
@@ -44,8 +60,8 @@ public class DashboardController implements Refreshable {
     @FXML private HBox  alertBanner;
     @FXML private Label lblAlertBannerText;
     @FXML private Label  lblStatsActualizacion;
-    @FXML private javafx.scene.control.Button btnRefreshDash;
-    @FXML private javafx.scene.control.Button btnPanelEjecutivo;
+    @FXML private Button btnRefreshDash;
+    @FXML private Button btnPanelEjecutivo;
 
     // ── Help badges ("?") ────────────────────────────────────────────
     @FXML private Label helpStats;
@@ -56,12 +72,14 @@ public class DashboardController implements Refreshable {
     @FXML private Label helpAnalisis;
 
     // ── Charts ───────────────────────────────────────────────────────
-    @FXML private LineChart<String, Number>  chartMovimientos;
-    @FXML private VBox                       categoriaValorBox;
-    @FXML private VBox                       pieEmptyState;
+    @FXML private LineChart<String, Number>           chartMovimientos;
+    @FXML private VBox                                categoriaValorBox;
+    @FXML private VBox                                pieEmptyState;
+    @FXML private Button         btnToggleAnalisis;
+    @FXML private FontIcon       iconToggleAnalisis;
 
     // ── Layout ───────────────────────────────────────────────────────
-    @FXML private javafx.scene.control.ScrollPane rootScrollPane;
+    @FXML private ScrollPane rootScrollPane;
     @FXML private GridPane statsGrid;
     @FXML private TableView<Movimiento> tablaReciente;
     @FXML private Label lblCountReciente;
@@ -72,15 +90,17 @@ public class DashboardController implements Refreshable {
     @FXML private VBox  cardNuevoBien;
     @FXML private VBox  cardNuevaEntrada;
 
+    private boolean chartsVisible = true;
+
     private final DashboardService dashboardService = new DashboardService();
-    private final com.sibim.repository.ConfiguracionRepository configRepo = new com.sibim.repository.ConfiguracionRepository();
-    private final com.sibim.service.ReporteService reporteService = com.sibim.service.ReporteService.getInstance();
+    private final ConfiguracionRepository configRepo = new ConfiguracionRepository();
+    private final ReporteService reporteService = ReporteService.getInstance();
 
     private List<Producto> lastAgotados  = List.of();
     private List<Producto> lastBajoStock = List.of();
     private DashboardService.Resumen lastResumen;
-    private javafx.animation.Timeline autoRefresh;
-    private javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneReadyListener;
+    private Timeline autoRefresh;
+    private ChangeListener<Scene> sceneReadyListener;
     private boolean chartsFirstLoad = true;
     private DashboardChartBuilder chartBuilder;
 
@@ -99,13 +119,27 @@ public class DashboardController implements Refreshable {
         setupHelpBadges();
         setupPermissions();
         setupSceneReadyListener();
+        if (btnToggleAnalisis != null) btnToggleAnalisis.setText("Ocultar");
+    }
+
+    @FXML
+    private void onToggleAnalisis() {
+        chartsVisible = !chartsVisible;
+        if (chartsRow != null) {
+            chartsRow.setVisible(chartsVisible);
+            chartsRow.setManaged(chartsVisible);
+        }
+        if (iconToggleAnalisis != null)
+            iconToggleAnalisis.setIconLiteral(chartsVisible ? "mdi2c-chevron-up" : "mdi2c-chevron-down");
+        if (btnToggleAnalisis != null)
+            btnToggleAnalisis.setText(chartsVisible ? "Ocultar" : "Mostrar");
     }
 
     private void loadOrgNameAsync() {
         if (lblOrgBanner == null) return;
-        com.sibim.util.DialogUtil.runAsync(
+        DialogUtil.runAsync(
             () -> {
-                com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
+                ConfiguracionRepository cr = new ConfiguracionRepository();
                 return cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan")
                      + "  ·  Bienes Municipales";
             },
@@ -125,7 +159,7 @@ public class DashboardController implements Refreshable {
     private void setupHelpBadges() {
         for (Label badge : new Label[]{ helpStats, helpTotalBienes, helpValorTotal,
                 helpMovimientosHoy, helpCategorias, helpAnalisis }) {
-            if (badge != null) com.sibim.util.DialogUtil.enableClickToShowTooltip(badge);
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
     }
 
@@ -157,9 +191,9 @@ public class DashboardController implements Refreshable {
             if (chartsRow      != null) chartsRow.setOpacity(0);
             if (activityCard   != null) activityCard.setOpacity(0);
             loadDataAsync();
-            autoRefresh = new javafx.animation.Timeline(
-                new javafx.animation.KeyFrame(javafx.util.Duration.minutes(10), e -> loadDataAsync()));
-            autoRefresh.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+            autoRefresh = new Timeline(
+                new KeyFrame(Duration.minutes(10), e -> loadDataAsync()));
+            autoRefresh.setCycleCount(Timeline.INDEFINITE);
             autoRefresh.play();
         };
         statsGrid.sceneProperty().addListener(sceneReadyListener);
@@ -177,11 +211,11 @@ public class DashboardController implements Refreshable {
                 lblTotalBienes.setText("—");
                 lblValorTotal.setText("Sin datos");
                 if (statsGrid != null && statsGrid.getScene() != null)
-                    com.sibim.util.NotificacionUtil.errorConAccion(statsGrid.getScene(),
+                    NotificacionUtil.errorConAccion(statsGrid.getScene(),
                         "No se pudo cargar el resumen. Verifica la conexión.", "Reintentar", DashboardController.this::loadDataAsync);
             }
         };
-        com.sibim.util.AppExecutor.submit(task);
+        AppExecutor.submit(task);
     }
 
     private void updateUI(DashboardService.Resumen data) {
@@ -212,13 +246,13 @@ public class DashboardController implements Refreshable {
         AnimationUtils.animateCount(lblValorTotal,
             stats.valorTotal().longValue(), 850,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
-        javafx.animation.PauseTransition popDelay =
-            new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+        PauseTransition popDelay =
+            new PauseTransition(Duration.millis(820));
         popDelay.setOnFinished(ev -> statsGrid.getChildren().forEach(AnimationUtils::statCardPop));
         popDelay.play();
         if (lblStatsActualizacion != null) {
             lblStatsActualizacion.setText("Actualizado " +
-                com.sibim.util.FormatUtils.formatTime(java.time.LocalTime.now()));
+                FormatUtils.formatTime(LocalTime.now()));
             AnimationUtils.pulse(lblStatsActualizacion, 2);
         }
     }
@@ -236,6 +270,7 @@ public class DashboardController implements Refreshable {
             if (proximasRevisiones > 0)
                 parts.add(proximasRevisiones + " con revisión próxima");
             lblAlertBannerText.setText(String.join("  ·  ", parts) + " — requieren atención");
+            alertBanner.setAccessibleText(String.join(", ", parts) + " — requieren atención. Ver alertas");
         }
         alertBanner.setVisible(showAlert);
         alertBanner.setManaged(showAlert);
@@ -246,7 +281,7 @@ public class DashboardController implements Refreshable {
         if (lblMovimientosHoy == null || !(lblMovimientosHoy.getParent() instanceof VBox inner)) return;
         inner.getChildren().removeIf(n -> n instanceof Label l && l.getStyleClass().contains("trend-lbl"));
         long todayCount     = data.movHoy().size();
-        java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now().minusDays(1);
         long yesterdayCount = data.movSemana().stream()
             .filter(m -> m.getCreadoEn().toLocalDate().equals(yesterday)).count();
         String arrow; String cls;
@@ -277,8 +312,8 @@ public class DashboardController implements Refreshable {
         if (lblTotalBienes == null || !(lblTotalBienes.getParent() instanceof VBox bienesInner)) return;
         bienesInner.getChildren().removeIf(n -> n instanceof Label l
             && l.getText() != null && l.getText().contains("este año"));
-        int anioActual = java.time.LocalDate.now().getYear();
-        com.sibim.util.DialogUtil.runAsync(
+        int anioActual = LocalDate.now().getYear();
+        DialogUtil.runAsync(
             () -> productoService.countNuevosEnAnio(anioActual),
             nuevos -> {
                 if (nuevos > 0) {
@@ -312,23 +347,23 @@ public class DashboardController implements Refreshable {
 
     @FXML
     private void onAccionNuevoBien() {
-        com.sibim.session.NavigationContext.setPendingNuevoBien();
+        NavigationContext.setPendingNuevoBien();
         navigarA("Productos");
     }
 
     @FXML
     private void onAccionNuevaEntrada() {
-        com.sibim.session.NavigationContext.setPendingNuevoMovimiento();
+        NavigationContext.setPendingNuevoMovimiento();
         navigarA("Movimientos");
     }
 
     @FXML
     private void onBusquedaGlobal() {
-        javafx.scene.Scene scene = statsGrid != null ? statsGrid.getScene() : null;
+        Scene scene = statsGrid != null ? statsGrid.getScene() : null;
         if (scene == null) return;
-        scene.getRoot().fireEvent(new javafx.scene.input.KeyEvent(
-            javafx.scene.input.KeyEvent.KEY_PRESSED, "k", "k",
-            javafx.scene.input.KeyCode.K, false, true, false, false));
+        scene.getRoot().fireEvent(new KeyEvent(
+            KeyEvent.KEY_PRESSED, "k", "k",
+            KeyCode.K, false, true, false, false));
     }
 
     private void navigarA(String vista) {
@@ -339,8 +374,8 @@ public class DashboardController implements Refreshable {
         String btnId = "#btn" + vista.substring(0, 1).toUpperCase() + vista.substring(1);
         javafx.scene.Node btn = scene.lookup(btnId);
         if (btn instanceof Button b) {
-            javafx.animation.PauseTransition delay =
-                new javafx.animation.PauseTransition(javafx.util.Duration.millis(80));
+            PauseTransition delay =
+                new PauseTransition(Duration.millis(80));
             delay.setOnFinished(ev -> b.fire());
             delay.play();
         }
@@ -375,7 +410,7 @@ public class DashboardController implements Refreshable {
     // ── Helpers ──────────────────────────────────────────────────────
 
     private String getBienvenida() {
-        int hour = java.time.LocalTime.now().getHour();
+        int hour = LocalTime.now().getHour();
         if (hour < 12) return "Buenos días,";
         if (hour < 19) return "Buenas tardes,";
         return "Buenas noches,";
@@ -384,7 +419,7 @@ public class DashboardController implements Refreshable {
     @FXML
     private void onExportarDashboardPdf() {
         if (lastResumen == null) {
-            com.sibim.util.NotificacionUtil.advertencia(statsGrid.getScene(),
+            NotificacionUtil.advertencia(statsGrid.getScene(),
                 "Los datos del dashboard aún se están cargando, intenta en un momento");
             return;
         }
@@ -398,7 +433,7 @@ public class DashboardController implements Refreshable {
             },
             ex -> {
                 log.error("Error al exportar dashboard PDF", ex);
-                com.sibim.util.NotificacionUtil.error(statsGrid.getScene(),
+                NotificacionUtil.error(statsGrid.getScene(),
                     "No se pudo generar el PDF del dashboard");
             }
         );
@@ -406,7 +441,7 @@ public class DashboardController implements Refreshable {
 
     @FXML
     private void onPanelEjecutivo() {
-        com.sibim.controller.dialogs.PanelEjecutivoDialog.show(statsGrid.getScene(), dashboardService);
+        PanelEjecutivoDialog.show(statsGrid.getScene(), dashboardService);
     }
 
     public void stopAutoRefresh() {

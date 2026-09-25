@@ -1,6 +1,8 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.config.Areas;
+import com.sibim.session.SessionManager;
+import com.sibim.util.AppExecutor;
 import com.sibim.repository.AreaResguardoRepository;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
@@ -19,12 +21,16 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.Desktop;
 import java.io.File;
+import javafx.stage.FileChooser;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public final class AreaResguardosDialog {
 
@@ -50,8 +56,8 @@ public final class AreaResguardosDialog {
         // Area selector — scoped to the user's own areas so a non-admin can't pick an
         // área they don't belong to and read/download another área's resguardo PDFs
         // (the repository query itself has no área filter of its own to fall back on).
-        java.util.Set<String> accessible = com.sibim.session.SessionManager.getAccessibleAreas();
-        List<String> areaNames = new java.util.ArrayList<>(
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        List<String> areaNames = new ArrayList<>(
             accessible != null ? accessible : Areas.getAllAreaNames());
         ComboBox<String> areaCombo = new ComboBox<>(FXCollections.observableArrayList(areaNames));
         areaCombo.setPromptText("Selecciona un área…");
@@ -76,7 +82,7 @@ public final class AreaResguardosDialog {
                 resguardosList.getChildren().add(lblEmptyList);
                 return;
             }
-            com.sibim.util.AppExecutor.submit(() -> {
+            AppExecutor.submit(() -> {
                 try {
                     List<AreaResguardoRepository.AreaResguardo> list = repo.findByArea(area);
                     Platform.runLater(() -> {
@@ -111,10 +117,10 @@ public final class AreaResguardosDialog {
         btnSelPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         btnSelPdf.getStyleClass().add("btn-secondary");
         btnSelPdf.setOnAction(ev -> {
-            javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+            FileChooser chooser = new FileChooser();
             chooser.setTitle("Seleccionar PDF de resguardo");
             chooser.getExtensionFilters().add(
-                new javafx.stage.FileChooser.ExtensionFilter("PDF", "*.pdf"));
+                new FileChooser.ExtensionFilter("PDF", "*.pdf"));
             File file = chooser.showOpenDialog(dialog.getOwner());
             if (file != null) {
                 pdfPathHolder[0] = file.getAbsolutePath();
@@ -137,11 +143,11 @@ public final class AreaResguardosDialog {
             String area = areaCombo.getValue();
             if (area == null) { NotificacionUtil.advertencia(scene, "Selecciona un área primero"); return; }
             if (pdfPathHolder[0] == null) { NotificacionUtil.advertencia(scene, "Selecciona un archivo PDF primero"); return; }
-            com.sibim.util.AppExecutor.submit(() -> {
+            AppExecutor.submit(() -> {
                 try {
                     Path storageDir = Path.of(System.getProperty("user.home"), ".sibim", "resguardos");
                     Files.createDirectories(storageDir);
-                    String fileName = java.util.UUID.randomUUID() + ".pdf";
+                    String fileName = UUID.randomUUID() + ".pdf";
                     Path dest = storageDir.resolve(fileName);
                     Files.copy(Path.of(pdfPathHolder[0]), dest, StandardCopyOption.REPLACE_EXISTING);
                     repo.save(area, dest.toString(),
@@ -191,7 +197,7 @@ public final class AreaResguardosDialog {
         content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, uploadGrid, scrollList), 270, 70);
+        AnimationUtils.staggeredFadeInUp(List.of(header, uploadGrid, scrollList), 270, 70);
         Platform.runLater(() -> areaCombo.requestFocus());
         dialog.showAndWait();
     }
@@ -232,7 +238,7 @@ public final class AreaResguardosDialog {
         btnElim.setOnAction(ev -> {
             if (ConfirmacionUtil.confirmar("Eliminar resguardo",
                     "¿Eliminar el resguardo \"" + desc + "\"? El archivo PDF también se eliminará.")) {
-                com.sibim.util.AppExecutor.submit(() -> {
+                AppExecutor.submit(() -> {
                     try {
                         if (r.pdfUrl() != null) Files.deleteIfExists(Path.of(r.pdfUrl()));
                         repo.delete(r.id());

@@ -25,7 +25,8 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar desde la base de datos (F5)"/></tooltip>
         </Button>
-        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Restaurar columnas">
             <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Restaurar ancho y orden de columnas a su configuración original  (para visibilidad, clic derecho en el encabezado)"
                               wrapText="true" maxWidth="270"/></tooltip>
@@ -144,10 +145,11 @@
     <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-purple">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
-                       promptText="🔍  Buscar por producto, motivo o referencia..."
+                       promptText="Buscar por producto, motivo o referencia..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false">
+                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                    accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
@@ -212,14 +214,14 @@
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
-            <TableColumn fx:id="colProducto"   text="Bien / Producto"    prefWidth="230" maxWidth="280" sortable="true"/>
-            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="115" sortable="true"/>
-            <TableColumn fx:id="colCantidad"   text="Cantidad"           prefWidth="80"  sortable="true"/>
-            <TableColumn fx:id="colStock"      text="Stock Ant. → Nuevo" prefWidth="148" sortable="false"/>
-            <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true"/>
-            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="140" sortable="true"/>
-            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true"/>
-            <TableColumn fx:id="colEstado"     text="Estado"             prefWidth="120" sortable="true"/>
+            <TableColumn fx:id="colProducto"   text="Bien / Producto"    prefWidth="230" maxWidth="280" sortable="true" minWidth="140"/>
+            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="115" sortable="true" minWidth="96"/>
+            <TableColumn fx:id="colCantidad"   text="Cant."           prefWidth="86"  sortable="true" minWidth="80"/>
+            <TableColumn fx:id="colStock"      text="Stock Ant. → Nuevo" prefWidth="148" sortable="false" minWidth="150"/>
+            <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true" minWidth="110"/>
+            <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="140" sortable="true" minWidth="100"/>
+            <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true" minWidth="120"/>
+            <TableColumn fx:id="colEstado"     text="Estado"             prefWidth="124" sortable="true" minWidth="118"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
@@ -256,12 +258,14 @@
             <tooltip><Tooltip text="Eliminar el movimiento seleccionado (irreversible)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
-        <Button fx:id="btnPrev" onAction="#onPrev" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnPrev" onAction="#onPrev" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Página anterior">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página anterior"/></tooltip>
         </Button>
         <Label fx:id="lblPage" text="Página 1" styleClass="pagination-lbl"/>
-        <Button fx:id="btnNext" onAction="#onNext" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY">
+        <Button fx:id="btnNext" onAction="#onNext" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY"
+                accessibleText="Página siguiente">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-right" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página siguiente"/></tooltip>
         </Button>

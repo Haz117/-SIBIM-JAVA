@@ -3,15 +3,24 @@ package com.sibim.service;
 import com.sibim.model.Producto;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ProductoFiltro;
+import com.sibim.config.AreaCodigos;
+import com.sibim.model.Usuario;
+import com.sibim.model.enums.EstadoProducto;
+import com.sibim.repository.PriceHistoryRepository;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
+import com.sibim.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class ProductoService {
 
@@ -19,14 +28,14 @@ public class ProductoService {
 
     private final ProductoRepository productoRepo;
     private final AuditLogRepository auditRepo;
-    private final com.sibim.repository.PriceHistoryRepository priceHistoryRepo;
+    private final PriceHistoryRepository priceHistoryRepo;
 
-    public ProductoService() { this(new ProductoRepository(), new AuditLogRepository(), new com.sibim.repository.PriceHistoryRepository()); }
+    public ProductoService() { this(new ProductoRepository(), new AuditLogRepository(), new PriceHistoryRepository()); }
     ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo) {
-        this(productoRepo, auditRepo, new com.sibim.repository.PriceHistoryRepository());
+        this(productoRepo, auditRepo, new PriceHistoryRepository());
     }
     ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo,
-                    com.sibim.repository.PriceHistoryRepository priceHistoryRepo) {
+                    PriceHistoryRepository priceHistoryRepo) {
         this.productoRepo     = productoRepo;
         this.auditRepo        = auditRepo;
         this.priceHistoryRepo = priceHistoryRepo;
@@ -53,14 +62,14 @@ public class ProductoService {
     // ── Overloads legacy — delegan a los métodos con ProductoFiltro ───────────
 
     public List<Producto> getPaginated(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            String resguardante, EstadoProducto estado,
             boolean soloSinEtiquetar, int limit, int offset,
             LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
         return getPaginated(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg), limit, offset);
     }
 
     public int countFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado,
+            String resguardante, EstadoProducto estado,
             boolean soloSinEtiquetar, LocalDate desdeReg, LocalDate hastaReg) throws SQLException {
         return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg));
     }
@@ -70,7 +79,7 @@ public class ProductoService {
     }
 
     public List<Producto> getAllFiltrado(String busqueda, String categoriaId, String area,
-            String resguardante, com.sibim.model.enums.EstadoProducto estado) throws SQLException {
+            String resguardante, EstadoProducto estado) throws SQLException {
         return getAllFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, false, null, null));
     }
 
@@ -92,7 +101,7 @@ public class ProductoService {
         return productoRepo.countNuevosEnAnio(anio);
     }
 
-    public java.util.LinkedHashMap<String, Long> countByArea(int limit, LocalDate desde, LocalDate hasta) throws SQLException {
+    public LinkedHashMap<String, Long> countByArea(int limit, LocalDate desde, LocalDate hasta) throws SQLException {
         return productoRepo.countByArea(limit, desde, hasta);
     }
 
@@ -129,11 +138,11 @@ public class ProductoService {
         // El código se asigna por área (ver AreaCodigos) al dar de alta un bien
         // nuevo; al editar uno existente el código sigue siendo editable a mano
         // (útil para corregir datos heredados que no siguen este formato).
-        if (isNew && p.getArea() != null && com.sibim.config.AreaCodigos.tienePrefijo(p.getArea()))
+        if (isNew && p.getArea() != null && AreaCodigos.tienePrefijo(p.getArea()))
             p.setCodigo(asignarCodigo(p.getArea()));
         validate(p);
 
-        java.math.BigDecimal prevCompra = null, prevVenta = null;
+        BigDecimal prevCompra = null, prevVenta = null;
         if (!isNew) {
             try {
                 Optional<Producto> existing = productoRepo.findById(p.getId());
@@ -153,7 +162,7 @@ public class ProductoService {
             isNew ? "Bien registrado" : "Datos del bien actualizados");
 
         if (!isNew) {
-            com.sibim.model.Usuario u = SessionManager.getCurrentUser();
+            Usuario u = SessionManager.getCurrentUser();
             String userId   = u != null ? u.getId()     : null;
             String userName = u != null ? u.getNombre() : "Sistema";
             // PriceHistoryRepository keeps the per-bien detail (shown in ProductoDetailDialog),
@@ -163,14 +172,14 @@ public class ProductoService {
             if (priceChanged(prevCompra, p.getPrecioCompra())) {
                 priceHistoryRepo.save(saved.getId(), "precio_compra", prevCompra, p.getPrecioCompra(), userId, userName);
                 auditRepo.log("producto", saved.getId(), saved.getNombre(), "cambio_precio",
-                    "Precio de compra: " + com.sibim.util.FormatUtils.formatCurrency(prevCompra)
-                        + " → " + com.sibim.util.FormatUtils.formatCurrency(p.getPrecioCompra()));
+                    "Precio de compra: " + FormatUtils.formatCurrency(prevCompra)
+                        + " → " + FormatUtils.formatCurrency(p.getPrecioCompra()));
             }
             if (priceChanged(prevVenta, p.getPrecioVenta())) {
                 priceHistoryRepo.save(saved.getId(), "precio_venta", prevVenta, p.getPrecioVenta(), userId, userName);
                 auditRepo.log("producto", saved.getId(), saved.getNombre(), "cambio_precio",
-                    "Precio de venta: " + com.sibim.util.FormatUtils.formatCurrency(prevVenta)
-                        + " → " + com.sibim.util.FormatUtils.formatCurrency(p.getPrecioVenta()));
+                    "Precio de venta: " + FormatUtils.formatCurrency(prevVenta)
+                        + " → " + FormatUtils.formatCurrency(p.getPrecioVenta()));
             }
         }
 
@@ -182,8 +191,8 @@ public class ProductoService {
      *  dado de baja o transferido deja de contar como activo, su número
      *  vuelve a aparecer libre automáticamente en el próximo cálculo. */
     private String asignarCodigo(String area) throws SQLException {
-        String prefijo = com.sibim.config.AreaCodigos.prefijo(area);
-        java.util.Set<Integer> usados = new java.util.HashSet<>();
+        String prefijo = AreaCodigos.prefijo(area);
+        Set<Integer> usados = new HashSet<>();
         for (Producto p : productoRepo.findAll(false)) {
             String codigo = p.getCodigo();
             if (codigo == null || !codigo.startsWith(prefijo + "/")) continue;
@@ -197,7 +206,7 @@ public class ProductoService {
         return prefijo + "/" + String.format("%02d", numero);
     }
 
-    private static boolean priceChanged(java.math.BigDecimal a, java.math.BigDecimal b) {
+    private static boolean priceChanged(BigDecimal a, BigDecimal b) {
         if (a == null && b == null) return false;
         if (a == null || b == null) return true;
         return a.compareTo(b) != 0;
@@ -260,7 +269,7 @@ public class ProductoService {
         Producto p = opt.get();
         if (!SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
-        if (com.sibim.config.AreaCodigos.tienePrefijo(p.getArea())) {
+        if (AreaCodigos.tienePrefijo(p.getArea())) {
             productoRepo.reactivarConCodigo(id, asignarCodigo(p.getArea()));
         } else {
             productoRepo.reactivar(id);

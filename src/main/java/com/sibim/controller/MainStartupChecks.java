@@ -5,6 +5,11 @@ import com.sibim.service.ProductoService;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import com.sibim.util.UpdateChecker;
+import javafx.application.Platform;
+import java.awt.Desktop;
+import java.io.File;
+import java.net.URI;
 import javafx.scene.Scene;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,11 +70,11 @@ class MainStartupChecks {
      *  silently (File#delete() returns false), it doesn't throw. */
     void cleanupStaleTempFiles() {
         AppExecutor.submit(() -> {
-            java.io.File tmpDir = new java.io.File(System.getProperty("java.io.tmpdir"));
-            java.io.File[] stale = tmpDir.listFiles((dir, name) -> name.startsWith("sibim_"));
+            File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+            File[] stale = tmpDir.listFiles((dir, name) -> name.startsWith("sibim_"));
             if (stale == null) return;
             int deleted = 0;
-            for (java.io.File f : stale) {
+            for (File f : stale) {
                 if (f.delete()) deleted++;
             }
             if (deleted > 0)
@@ -79,14 +84,14 @@ class MainStartupChecks {
 
     void checkForUpdate(Scene scene) {
         AppExecutor.submit(() -> {
-            com.sibim.util.UpdateChecker.UpdateInfo info = com.sibim.util.UpdateChecker.checkForUpdate();
+            UpdateChecker.UpdateInfo info = UpdateChecker.checkForUpdate();
             if (info != null) {
-                javafx.application.Platform.runLater(() ->
+                Platform.runLater(() ->
                     NotificacionUtil.exitoConAccion(scene,
                         "Nueva versión disponible: v" + info.latestVersion(),
                         "Ver actualización",
                         () -> {
-                            try { java.awt.Desktop.getDesktop().browse(new java.net.URI(info.releaseUrl())); }
+                            try { Desktop.getDesktop().browse(new URI(info.releaseUrl())); }
                             catch (Exception ex) { log.warn("No se pudo abrir el navegador", ex); }
                         }
                     )

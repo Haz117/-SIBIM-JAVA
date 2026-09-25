@@ -12,7 +12,10 @@ import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.util.Duration;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -20,13 +23,18 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.prefs.Preferences;
 
 public class CategoriasController {
 
@@ -59,13 +67,13 @@ public class CategoriasController {
     @FXML private Button btnToggleResumen;
     @FXML private Label helpResumen;
 
-    private static final java.util.prefs.Preferences STICKY =
-        java.util.prefs.Preferences.userRoot().node("sibim/filters/categorias");
+    private static final Preferences STICKY =
+        Preferences.userRoot().node("sibim/filters/categorias");
 
     private final CategoriaService categoriaService = new CategoriaService();
     private ObservableList<Categoria> allData = FXCollections.observableArrayList();
-    private javafx.animation.Timeline skeletonPulse;
-    private javafx.scene.Node defaultPlaceholder;
+    private Timeline skeletonPulse;
+    private Node defaultPlaceholder;
 
     @FXML
     public void initialize() {
@@ -82,13 +90,13 @@ public class CategoriasController {
         if (btnEditCat   != null) { btnEditCat.setVisible(isAdmin);   btnEditCat.setManaged(isAdmin); }
         if (btnDeleteCat != null) { btnDeleteCat.setVisible(isAdmin); btnDeleteCat.setManaged(isAdmin); }
         if (rootPane != null) {
-            rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
-                if (ev.getCode() == javafx.scene.input.KeyCode.F && ev.isControlDown()) {
+            rootPane.addEventFilter(KeyEvent.KEY_PRESSED, ev -> {
+                if (ev.getCode() == KeyCode.F && ev.isControlDown()) {
                     if (searchField != null) { searchField.requestFocus(); searchField.selectAll(); }
                     ev.consume();
-                } else if (isAdmin && ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
+                } else if (isAdmin && ev.getCode() == KeyCode.N && ev.isControlDown()) {
                     onNuevaCategoria(); ev.consume();
-                } else if (isAdmin && ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
+                } else if (isAdmin && ev.getCode() == KeyCode.E && ev.isControlDown()
                         && table.getSelectionModel().getSelectedItem() != null) {
                     onEdit(); ev.consume();
                 }
@@ -115,10 +123,10 @@ public class CategoriasController {
             javafx.scene.control.Tooltip.install(btnDeleteCat, new javafx.scene.control.Tooltip("Selecciona una categoría para eliminarla"));
         }
         table.setOnKeyPressed(ev -> {
-            if (ev.getCode() == javafx.scene.input.KeyCode.DELETE && isAdmin
+            if (ev.getCode() == KeyCode.DELETE && isAdmin
                     && table.getSelectionModel().getSelectedItem() != null) {
                 onDelete(); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+            } else if (ev.getCode() == KeyCode.ESCAPE) {
                 table.getSelectionModel().clearSelection(); ev.consume();
             }
         });
@@ -174,7 +182,7 @@ public class CategoriasController {
                 AnimationUtils.fadeInDown(children.get(0), 280, 0);
                 if (children.size() > 1)
                     AnimationUtils.staggeredFadeInUp(
-                        new java.util.ArrayList<>(children.subList(1, children.size())), 300, 55);
+                        new ArrayList<>(children.subList(1, children.size())), 300, 55);
             }
         }
         String savedSearch = STICKY.get("search", "");
@@ -205,15 +213,23 @@ public class CategoriasController {
                 setGraphic(box); setText(null);
             }
         });
-        colIcono.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getIcono() != null ? c.getValue().getIcono() : ""));
+        // Same vector icon the category gets in Bienes, in its own color — the
+        // stored emoji rendered as monochrome, often unrecognizable glyphs.
+        colIcono.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colIcono.setCellFactory(col -> new TableCell<>() {
-            private final Label lbl = new Label();
-            { lbl.getStyleClass().add("cat-icon-cell-label"); setContentDisplay(ContentDisplay.GRAPHIC_ONLY); setAlignment(javafx.geometry.Pos.CENTER); }
+            { setContentDisplay(ContentDisplay.GRAPHIC_ONLY); setAlignment(javafx.geometry.Pos.CENTER); }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null || item.isBlank()) { setGraphic(null); return; }
-                lbl.setText(item);
-                setGraphic(lbl);
+                Categoria c = empty || getTableRow() == null ? null : getTableRow().getItem();
+                if (c == null) { setGraphic(null); return; }
+                org.kordamp.ikonli.javafx.FontIcon ico = com.sibim.util.CategoriaIcons.iconFor(c.getNombre());
+                ico.setIconSize(18);
+                // Inline style: a table-cell icon rule in styles.css outranks setIconColor(),
+                // and this is a user-picked DB color (same exception as the swatch).
+                String color = c.getColor() != null && c.getColor().matches("#[0-9A-Fa-f]{3,8}") ? c.getColor() : "#4338CA";
+                String base = ico.getStyle() == null ? "" : ico.getStyle();   // keeps ikonli's own icon-font style
+                ico.setStyle(base + (base.isBlank() || base.endsWith(";") ? "" : ";") + "-fx-icon-color: " + color + ";");
+                setGraphic(ico);
             }
         });
         colProductos.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalProductos"));
@@ -281,12 +297,12 @@ public class CategoriasController {
         if (lblStatClasificados != null) AnimationUtils.animateCount(lblStatClasificados, clasificados, 650);
         if (lblStatTop != null) {
             Categoria top = allData.stream()
-                .max(java.util.Comparator.comparingInt(Categoria::getTotalProductos))
+                .max(Comparator.comparingInt(Categoria::getTotalProductos))
                 .filter(c -> c.getTotalProductos() > 0)
                 .orElse(null);
             lblStatTop.setText(top != null ? top.getNombre() : "—");
         }
-        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(700));
+        PauseTransition pop = new PauseTransition(Duration.millis(700));
         pop.setOnFinished(e -> {
             for (VBox card : new VBox[]{ statCardTotal, statCardClasificados, statCardTop }) {
                 if (card != null) AnimationUtils.statCardPop(card);
@@ -490,7 +506,7 @@ public class CategoriasController {
         grid.add(DialogUtil.fieldLabel("Ícono"),       0, r); grid.add(iconGrid,     1, r++);
         grid.add(new Label(),                          0, r); grid.add(previewRow,   1, r);
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 270, 70);
+        AnimationUtils.staggeredFadeInUp(List.of(header, grid), 270, 70);
         DialogUtil.setScrollableContent(dialog.getDialogPane(), new VBox(0, header, grid));
         Platform.runLater(() -> fNombre.requestFocus());
 
