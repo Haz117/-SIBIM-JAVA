@@ -138,7 +138,7 @@ class ProductoServiceLengthValidationTest {
     private Producto validProducto() {
         Producto p = new Producto();
         p.setNombre("Bien de Prueba Longitud");
-        p.setCodigo("LEN-TEST-" + System.nanoTime() % 100000); // único por ejecución
+        p.setCodigo("LEN-TEST-" + java.util.UUID.randomUUID());
         p.setCategoriaId("cat-mob");
         p.setArea("Direccion de Administracion");
         p.setUnidad(UnidadMedida.PIEZA);

@@ -1,6 +1,9 @@
 package com.sibim.service;
 
+import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Producto;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,12 +16,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for ReporteDepreciacionService.
- * No database connection — the service builds files purely from the List<Producto>
- * passed in; ReporteService.tempFile() writes to the JVM temp directory.
+ * The service builds files purely from the List<Producto> passed in;
+ * ReporteService.tempFile() writes to the JVM temp directory. Demo mode keeps
+ * the institutional header (orgName/logo) and folio lookups off the real
+ * database, so this never depends on — or writes to — a configured Postgres.
  */
 class ReporteDepreciacionServiceTest {
 
     private ReporteDepreciacionService service;
+
+    @BeforeAll
+    static void enableDemoMode() { DatabaseConfig.setDemoMode(true); }
+
+    @AfterAll
+    static void disableDemoMode() { DatabaseConfig.setDemoMode(false); }
 
     @BeforeEach
     void setUp() {

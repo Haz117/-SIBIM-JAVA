@@ -4,6 +4,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
+import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
 import org.junit.jupiter.api.AfterEach;
@@ -19,17 +20,21 @@ import static org.mockito.Mockito.*;
 
 class AuthServiceTest {
 
+    private MockedConstruction<AuditLogRepository> auditRepositoryConstruction;
+
     @BeforeEach
     void reset() {
         AuthAttemptStore.clearAll();
         SessionManager.logout();
         DatabaseConfig.setDemoMode(false);
+        auditRepositoryConstruction = mockConstruction(AuditLogRepository.class);
     }
 
     @AfterEach
     void cleanup() {
         SessionManager.logout();
         DatabaseConfig.setDemoMode(false);
+        auditRepositoryConstruction.close();
     }
 
     // ── Inputs nulos / vacíos ─────────────────────────────────────────────────

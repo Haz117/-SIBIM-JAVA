@@ -3,6 +3,13 @@ package com.sibim.service;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
+import com.sibim.model.Comodato;
+import com.sibim.model.Producto;
+import com.sibim.repository.AuditLogRepository;
+import com.sibim.repository.ComodatoRepository;
+import com.sibim.repository.ConfiguracionRepository;
+import com.sibim.repository.PrestamoRepository;
+import com.sibim.repository.ProductoRepository;
 import com.sibim.session.SessionManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests validation logic in ComodatoService.crear().
@@ -169,5 +177,71 @@ class ComodatoServiceValidationTest {
         assertTrue(ex.getMessage().toLowerCase().contains("inicio") ||
                    ex.getMessage().toLowerCase().contains("fecha"),
             "El mensaje debe mencionar 'inicio' o 'fecha': " + ex.getMessage());
+    }
+
+    @Test
+    void testCrear_valido_guardaYAudita() throws Exception {
+        ComodatoRepository comodatoRepo = mock(ComodatoRepository.class);
+        ProductoRepository productoRepo = mock(ProductoRepository.class);
+        PrestamoRepository prestamoRepo = mock(PrestamoRepository.class);
+        AuditLogRepository auditRepo = mock(AuditLogRepository.class);
+        Producto producto = new Producto();
+        producto.setNombre("Laptop de préstamo");
+        producto.setCodigo("EC-001");
+        when(productoRepo.findById(VALID_PRODUCTO_ID)).thenReturn(java.util.Optional.of(producto));
+        when(comodatoRepo.save(any(Comodato.class))).thenAnswer(invocation -> {
+            Comodato saved = invocation.getArgument(0);
+            saved.setId("comodato-1");
+            saved.setNumero("CDT-001");
+            return saved;
+        });
+
+        ComodatoService isolated = new ComodatoService(comodatoRepo, productoRepo,
+            prestamoRepo, mock(ConfiguracionRepository.class), auditRepo);
+        Comodato result = isolated.crear(VALID_PRODUCTO_ID, VALID_ENTIDAD, VALID_CONTACTO,
+            null, null, null, null, VALID_FECHA_INICIO, VALID_FECHA_FIN);
+
+        assertEquals("comodato-1", result.getId());
+        verify(comodatoRepo).save(any(Comodato.class));
+        verify(auditRepo).log(eq("comodato"), eq("comodato-1"), eq("Laptop de préstamo"),
+            eq("crear"), anyString());
+    }
+
+    @Test
+    void testCrear_bienConComodatoVigente_throws() throws Exception {
+        ComodatoRepository comodatoRepo = mock(ComodatoRepository.class);
+        ProductoRepository productoRepo = mock(ProductoRepository.class);
+        Producto producto = new Producto();
+        producto.setNombre("Laptop");
+        when(productoRepo.findById(VALID_PRODUCTO_ID)).thenReturn(java.util.Optional.of(producto));
+        when(comodatoRepo.existeVigentePorProducto(VALID_PRODUCTO_ID)).thenReturn(true);
+
+        ComodatoService isolated = new ComodatoService(comodatoRepo, productoRepo,
+            mock(PrestamoRepository.class), mock(ConfiguracionRepository.class),
+            mock(AuditLogRepository.class));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+            isolated.crear(VALID_PRODUCTO_ID, VALID_ENTIDAD, VALID_CONTACTO,
+                null, null, null, null, VALID_FECHA_INICIO, VALID_FECHA_FIN));
+        assertTrue(ex.getMessage().contains("comodato vigente"));
+    }
+
+    @Test
+    void testCrear_bienConPrestamoActivo_throws() throws Exception {
+        ComodatoRepository comodatoRepo = mock(ComodatoRepository.class);
+        ProductoRepository productoRepo = mock(ProductoRepository.class);
+        PrestamoRepository prestamoRepo = mock(PrestamoRepository.class);
+        Producto producto = new Producto();
+        producto.setNombre("Laptop");
+        when(productoRepo.findById(VALID_PRODUCTO_ID)).thenReturn(java.util.Optional.of(producto));
+        when(prestamoRepo.existsActivoForProducto(VALID_PRODUCTO_ID)).thenReturn(true);
+
+        ComodatoService isolated = new ComodatoService(comodatoRepo, productoRepo,
+            prestamoRepo, mock(ConfiguracionRepository.class), mock(AuditLogRepository.class));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+            isolated.crear(VALID_PRODUCTO_ID, VALID_ENTIDAD, VALID_CONTACTO,
+                null, null, null, null, VALID_FECHA_INICIO, VALID_FECHA_FIN));
+        assertTrue(ex.getMessage().contains("préstamo activo"));
     }
 }
