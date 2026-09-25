@@ -92,7 +92,7 @@
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>layout</artifactId>
-            <version>8.0.5</version>
+            <version>9.7.1</version>
         </dependency>
 
         <!-- Jackson - JSON serialization for the backup/restore feature
