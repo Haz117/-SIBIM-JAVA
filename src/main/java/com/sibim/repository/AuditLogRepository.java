@@ -45,10 +45,14 @@ public class AuditLogRepository {
             a.setDetalle(detalle);
             if (SessionManager.getCurrentUser() != null) {
                 a.setUsuarioId(SessionManager.getCurrentUser().getId());
-                a.setUsuarioNombre(SessionManager.getCurrentUser().getNombre());
+                String nombre = SessionManager.getCurrentUser().getNombre();
+                a.setUsuarioNombre(nombre == null || nombre.isBlank() ? "Sistema" : nombre);
             } else {
                 a.setUsuarioNombre("Sistema");
             }
+            // System events such as failed logins and backups do not always
+            // belong to a persisted entity. The schema migration permits null
+            // entity IDs for those events instead of rejecting the audit row.
             a.setCreadoEn(java.time.LocalDateTime.now());
 
             if (DatabaseConfig.isOfflineMode()) {
@@ -75,14 +79,26 @@ public class AuditLogRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, a.getId());
             ps.setString(2, a.getEntidad());
-            ps.setString(3, a.getEntidadId());
+            if (a.getEntidadId() == null || a.getEntidadId().isBlank()) ps.setNull(3, Types.VARCHAR);
+            else ps.setString(3, a.getEntidadId());
             ps.setString(4, a.getEntidadNombre());
             ps.setString(5, a.getAccion());
             ps.setString(6, a.getDetalle());
-            ps.setString(7, a.getUsuarioId());
+            String usuarioId = a.getUsuarioId();
+            if (usuarioId != null && !usuarioExiste(conn, usuarioId)) usuarioId = null;
+            ps.setString(7, usuarioId);
             ps.setString(8, a.getUsuarioNombre());
             ps.setTimestamp(9, Timestamp.valueOf(a.getCreadoEn()));
             ps.executeUpdate();
+        }
+    }
+
+    private static boolean usuarioExiste(Connection conn, String usuarioId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM users WHERE id = ?")) {
+            ps.setString(1, usuarioId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         }
     }
 

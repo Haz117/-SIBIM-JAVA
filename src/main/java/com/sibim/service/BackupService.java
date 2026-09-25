@@ -118,12 +118,12 @@ public class BackupService {
     }
 
     private void requireOnlineMode() throws SQLException {
+        if (!SessionManager.isAdmin())
+            throw new SecurityException("Solo el administrador puede realizar respaldos y restauraciones");
         if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
             throw new SQLException(
                 "Respaldo/restauración solo disponible conectado a la base de datos principal "
                 + "(no en modo offline ni demostración)");
-        if (!SessionManager.isAdmin())
-            throw new SecurityException("Solo el administrador puede realizar respaldos y restauraciones");
     }
 
     private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {

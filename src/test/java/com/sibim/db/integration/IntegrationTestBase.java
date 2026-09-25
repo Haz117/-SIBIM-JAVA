@@ -1,6 +1,7 @@
 package com.sibim.db.integration;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.SyncService;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.session.SessionManager;
@@ -66,12 +67,10 @@ public abstract class IntegrationTestBase {
     @AfterAll
     void stopDatabase() throws Exception {
         SessionManager.logout();
-        // DatabaseConfig.close() nils the internal reference; the pool itself
-        // is owned by our local field and closed below.
-        DatabaseConfig.close();
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-        }
+        // Only clear the pool if this test class still owns the active global
+        // reference; another integration class may have installed its own.
+        DatabaseConfig.clearDataSourceForTest(dataSource);
+        if (dataSource != null && !dataSource.isClosed()) dataSource.close();
         if (postgres != null) {
             postgres.close();
         }
@@ -85,6 +84,14 @@ public abstract class IntegrationTestBase {
      */
     @BeforeEach
     void truncateAll() throws SQLException {
+        // Other unit tests exercise demo/offline modes in the same Surefire
+        // JVM. Restore the integration contract before touching the database.
+        // A SyncService watcher leaked by an earlier test would otherwise flip
+        // DatabaseConfig to offline mode mid-test when it sees a pool close.
+        SyncService.stopWatching();
+        DatabaseConfig.setDemoMode(false);
+        DatabaseConfig.setOfflineMode(false);
+        DatabaseConfig.setDataSourceForTest(dataSource);
         try (Connection c = dataSource.getConnection();
              Statement st = c.createStatement()) {
             st.execute(

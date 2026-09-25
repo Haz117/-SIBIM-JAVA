@@ -29,7 +29,10 @@ public final class DatabaseConfig {
      *  for local development without a Postgres instance at all. */
     public static boolean isDemoMode() { return demoMode; }
 
-    public static void setDemoMode(boolean dm) { demoMode = dm; }
+    public static void setDemoMode(boolean dm) {
+        demoMode = dm;
+        offlineMode = false;
+    }
 
     /** Offline mode: the real Postgres was reachable at some point (or is
      *  expected to be) but isn't reachable right now — writes go to a local
@@ -38,7 +41,10 @@ public final class DatabaseConfig {
      *  when DatabaseConfig.init() fails at startup, unless DEMO_MODE is set. */
     public static boolean isOfflineMode() { return offlineMode; }
 
-    public static void setOfflineMode(boolean om) { offlineMode = om; }
+    public static void setOfflineMode(boolean om) {
+        offlineMode = om;
+        demoMode = false;
+    }
 
     /** Returns the active local data store, or null when running against live Postgres. */
     public static LocalDataStore getLocalDataStore() {
@@ -108,12 +114,16 @@ public final class DatabaseConfig {
      * Never call this from production code.
      */
     public static void setDataSourceForTest(HikariDataSource ds) {
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-        }
         dataSource = ds;
         demoMode = false;
         offlineMode = false;
+    }
+
+    /** Clears a test-owned datasource only if it is still the active one. */
+    public static void clearDataSourceForTest(HikariDataSource ds) {
+        if (dataSource != ds) return;
+        if (dataSource != null && !dataSource.isClosed()) dataSource.close();
+        dataSource = null;
     }
 
     public static void close() {

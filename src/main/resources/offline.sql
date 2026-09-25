@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS audit_log_outbox (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     audit_id        TEXT NOT NULL,
     entidad         TEXT NOT NULL,
-    entidad_id      TEXT NOT NULL,
+    entidad_id      TEXT,
     entidad_nombre  TEXT,
     accion          TEXT NOT NULL,
     detalle         TEXT,

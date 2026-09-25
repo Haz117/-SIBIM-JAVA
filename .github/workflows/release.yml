@@ -40,8 +40,8 @@ jobs:
       - name: Stamp version in pom.xml
         run: mvn --batch-mode versions:set -DnewVersion=${{ steps.ver.outputs.version }} -DgenerateBackupPoms=false
 
-      - name: Run tests
-        run: mvn --batch-mode --no-transfer-progress test
+      - name: Run tests, enforce coverage gate, and build fat JAR
+        run: mvn --batch-mode --no-transfer-progress verify
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -50,9 +50,6 @@ jobs:
           name: surefire-reports-${{ steps.ver.outputs.version }}
           path: target/surefire-reports/
           retention-days: 30
-
-      - name: Build fat JAR
-        run: mvn --batch-mode --no-transfer-progress package -DskipTests
 
       # ── Portable ZIP (app-image, no installer needed) ─────────────────────────
       - name: Create portable app-image

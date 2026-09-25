@@ -241,6 +241,7 @@ public class ReporteEtiquetasService extends ReporteService {
     }
 
     private static byte[] qrToPngBytes(String content, int size) {
+        if (content == null || content.isBlank()) return null;
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(
                 content, BarcodeFormat.QR_CODE, size, size, java.util.Map.of(EncodeHintType.MARGIN, 1));

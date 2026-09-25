@@ -1314,7 +1314,9 @@ public final class OfflineStore {
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setString(1, a.getId());
             ps.setString(2, a.getEntidad());
-            ps.setString(3, a.getEntidadId());
+            // Empty text keeps compatibility with older offline schemas where
+            // entidad_id was NOT NULL; online replay converts it back to null.
+            ps.setString(3, a.getEntidadId() == null || a.getEntidadId().isBlank() ? "" : a.getEntidadId());
             ps.setString(4, a.getEntidadNombre());
             ps.setString(5, a.getAccion());
             ps.setString(6, a.getDetalle());

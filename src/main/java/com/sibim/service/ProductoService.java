@@ -78,6 +78,28 @@ public class ProductoService {
         return productoRepo.findDistinctResguardantes();
     }
 
+    // Suggestions for the Marca/Modelo/Proveedor/Ubicación autocomplete fields.
+    public List<String> getMarcas()       { return productoRepo.findDistinctMarcas(); }
+    public List<String> getModelos()      { return productoRepo.findDistinctModelos(); }
+    public List<String> getProveedores()  { return productoRepo.findDistinctProveedores(); }
+    public List<String> getUbicaciones()  { return productoRepo.findDistinctUbicaciones(); }
+
+    public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
+        return productoRepo.existsByCodigo(codigo, excludeId);
+    }
+
+    public long countNuevosEnAnio(int anio) throws SQLException {
+        return productoRepo.countNuevosEnAnio(anio);
+    }
+
+    public java.util.LinkedHashMap<String, Long> countByArea(int limit, LocalDate desde, LocalDate hasta) throws SQLException {
+        return productoRepo.countByArea(limit, desde, hasta);
+    }
+
+    public List<ProductoRepository.CategoriaValor> getValorPorCategoria(int limit, LocalDate desde, LocalDate hasta) throws SQLException {
+        return productoRepo.getValorPorCategoria(limit, desde, hasta);
+    }
+
     public ProductoRepository.InventarioStats getStats() throws SQLException {
         return productoRepo.findStats();
     }

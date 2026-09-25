@@ -25,8 +25,8 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Run tests
-        run: mvn --batch-mode --no-transfer-progress test
+      - name: Run tests, enforce coverage gate, and build fat JAR
+        run: mvn --batch-mode --no-transfer-progress verify
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -35,9 +35,6 @@ jobs:
           name: surefire-reports-${{ github.sha }}
           path: target/surefire-reports/
           retention-days: 14
-
-      - name: Package fat JAR
-        run: mvn --batch-mode --no-transfer-progress package -DskipTests
 
       - name: Upload fat JAR
         uses: actions/upload-artifact@v4
