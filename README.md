@@ -83,7 +83,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V18` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja y nomenclatura de código por área. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V21` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse) y eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -208,9 +208,9 @@ SIBIM-Java/
 │   │   │   ├── session/           # SessionManager (usuario activo, áreas accesibles)
 │   │   │   └── config/            # Áreas del organigrama y configuración de BD
 │   │   └── resources/
-│   │       ├── fxml/              # 16 vistas de la interfaz
+│   │       ├── fxml/              # 17 vistas de la interfaz
 │   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
-│   │       ├── db/migration/      # Migraciones Flyway V1–V18, se aplican solas al arrancar
+│   │       ├── db/migration/      # Migraciones Flyway V1–V21, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
 │   └── test/java/com/sibim/
@@ -271,7 +271,7 @@ pg_dump -U tu_usuario -d sibim -F c -f sibim_$(date +%Y%m%d).dump
 pg_restore -U tu_usuario -d sibim --clean sibim_20260101.dump
 ```
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V19__descripcion.sql` (numeración consecutiva a partir de V18) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia.
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V22__descripcion.sql` (numeración consecutiva a partir de V21) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 
 ---
 
