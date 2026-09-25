@@ -72,6 +72,10 @@ public class MainController {
     @FXML private Button btnConfiguracion;
     @FXML private Button btnAuditoria;
     @FXML private Button btnGlobalSearch;
+    @FXML private VBox secNavegacion;
+    @FXML private VBox secOperaciones;
+    @FXML private VBox secControl;
+    @FXML private VBox secSistema;
     @FXML private Label alertBadge;
     @FXML private Label loanBadge;
     @FXML private Button btnNotificaciones;
@@ -93,6 +97,8 @@ public class MainController {
     @FXML private FontIcon statusDotIcon;
 
     private SidebarManager      sidebarManager;
+    private SidebarSections     sidebarSections;
+    private NavRegistry         navRegistry;
     private MainStatusBarManager statusBarManager;
     private Object   currentController;
     private Timeline badgeRefresh;
@@ -136,13 +142,22 @@ public class MainController {
     @FXML
     public void initialize() {
         instance = this;
+        navRegistry = buildNavRegistry();
+        sidebarSections = new SidebarSections(Map.of(
+            NavSection.NAVEGACION,  secNavegacion,
+            NavSection.OPERACIONES, secOperaciones,
+            NavSection.CONTROL,     secControl,
+            NavSection.SISTEMA,     secSistema),
+            SidebarSections.defaultPrefs(), true);
+        // A folded section shows the sum of its items' badges (alerts / overdue loans) on its header.
+        sidebarSections.bindBadge(NavSection.OPERACIONES, alertBadge);
+        sidebarSections.bindBadge(NavSection.CONTROL, loanBadge);
+        java.util.List<Button> navButtons = new java.util.ArrayList<>(navRegistry.buttons());
+        navButtons.add(btnGlobalSearch);
         sidebarManager = new SidebarManager(
             sidebar, sidebarBackdrop, outerStack,
-            logoTextBox, userInfoVBox, btnToggleSidebar,
-            java.util.List.of(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-                btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
-                btnResguardos, btnPrestamos, btnComodatos, btnActas, btnConfiguracion, btnAuditoria,
-                btnGlobalSearch));
+            logoTextBox, userInfoVBox, btnToggleSidebar, navButtons);
+        sidebarManager.setSections(sidebarSections);
         statusBarManager = new MainStatusBarManager(
             offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
@@ -153,6 +168,8 @@ public class MainController {
             String nombre = SessionManager.getCurrentUser().getNombre();
             userNameLabel.setText(nombre);
             userRolLabel.setText(SessionManager.getCurrentUser().getRol().getEtiqueta());
+            // the name label ellipsizes long names: keep the full text one hover away
+            userNameLabel.setTooltip(new javafx.scene.control.Tooltip(nombre + " — " + userRolLabel.getText()));
             if (userAvatarLabel != null && nombre != null && !nombre.isBlank())
                 userAvatarLabel.setText(String.valueOf(nombre.charAt(0)).toUpperCase());
         }
@@ -162,11 +179,8 @@ public class MainController {
         densityIndex = DENSITY_PREFS.getInt("index", 1);
         applyDensityClass();
         applyTextScaleClass();
-        addNavTooltips();
-        setupNavHover(btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-                      btnMovimientos, btnAlertas, btnReportes, btnDepreciacion, btnConteoFisico,
-                      btnResguardos, btnPrestamos, btnComodatos, btnActas,
-                      btnConfiguracion, btnAuditoria);
+        navRegistry.tuneTooltips(Duration.millis(700), Duration.millis(200));
+        setupNavHover(navRegistry.buttons().toArray(new Button[0]));
 
         if (btnAuditoria != null) {
             btnAuditoria.setVisible(SessionManager.isAdmin());
@@ -238,21 +252,14 @@ public class MainController {
         sessionGuard.play();
     }
 
-    @FXML private void onDashboard()     { navigateTo("dashboard",     btnDashboard); }
-    @FXML private void onOrganigrama()   { navigateTo("organigrama",   btnOrganigrama); }
-    @FXML private void onProductos()     { navigateTo("productos",     btnProductos); }
-    @FXML private void onCategorias()    { navigateTo("categorias",    btnCategorias); }
-    @FXML private void onMovimientos()   { navigateTo("movimientos",   btnMovimientos); }
-    @FXML private void onAlertas()       { navigateTo("alertas",       btnAlertas); }
-    @FXML private void onReportes()      { navigateTo("reportes",      btnReportes); }
-    @FXML private void onDepreciacion()  { navigateTo("depreciacion",  btnDepreciacion); }
-    @FXML private void onResguardos()    { navigateTo("resguardos",   btnResguardos); }
-    @FXML private void onPrestamos()     { navigateTo("prestamos",    btnPrestamos); }
-    @FXML private void onComodatos()     { navigateTo("comodatos",    btnComodatos); }
-    @FXML private void onActas()         { navigateTo("actas",        btnActas); }
-    @FXML private void onConfiguracion() { navigateTo("configuracion", btnConfiguracion); }
 
+    /** One handler for every sidebar item — the registry knows what each button does. */
     @FXML
+    private void onNavItem(javafx.event.ActionEvent e) {
+        if (e.getSource() instanceof Button b) navRegistry.byButton(b).ifPresent(NavItem::run);
+    }
+
+    /** Action item (opens a dialog instead of navigating) — registered in buildNavRegistry(). */
     private void onConteoFisico() {
         javafx.scene.Scene scene = contentArea.getScene();
         if (scene == null) return;
@@ -272,7 +279,6 @@ public class MainController {
             e -> NotificacionUtil.error(scene, "No se pudo cargar los bienes para el conteo")
         );
     }
-    @FXML private void onAuditoria()     { navigateTo("auditoria",     btnAuditoria); }
 
     @FXML
     private void onAcercaDe() {
@@ -285,7 +291,7 @@ public class MainController {
     }
 
     private void setupUserCardMenu() {
-        MainUserMenu.setup(userInfoVBox, contentArea, this::onLogout);
+        MainUserMenu.setup(userInfoVBox, contentArea, this::onLogout, this::onShowTutorial, this::onAcercaDe);
     }
 
     @FXML
@@ -300,7 +306,7 @@ public class MainController {
         try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
     }
 
-    private void stopTimers() {
+    void stopTimers() {
         if (badgeRefresh != null) badgeRefresh.stop();
         if (clock != null) clock.stop();
         if (sessionGuard != null) sessionGuard.stop();
@@ -309,56 +315,51 @@ public class MainController {
         if (currentController instanceof DashboardController dc) dc.stopAutoRefresh();
     }
 
-    public static Button resolveNavigationButton(String view,
-                                                Button dashboard,
-                                                Button organigrama,
-                                                Button productos,
-                                                Button categorias,
-                                                Button movimientos,
-                                                Button alertas,
-                                                Button reportes,
-                                                Button configuracion,
-                                                Button depreciacion,
-                                                Button fallback) {
-        Button resolved = switch (view) {
-            case "dashboard"     -> dashboard;
-            case "organigrama"   -> organigrama;
-            case "productos"     -> productos;
-            case "categorias"    -> categorias;
-            case "movimientos"   -> movimientos;
-            case "alertas"       -> alertas;
-            case "reportes"      -> reportes;
-            case "configuracion" -> configuracion;
-            case "depreciacion"  -> depreciacion;
-            default              -> fallback;
-        };
-        return resolved != null ? resolved : fallback;
+    /** Every sidebar destination, described once: view, section, shortcut, palette entry, admin-only. */
+    private NavRegistry buildNavRegistry() {
+        KeyCombination.Modifier[] ctrlAlt = { KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN };
+        return new NavRegistry(java.util.List.of(
+            page("dashboard",     NavSection.NAVEGACION,  btnDashboard,     KeyCode.DIGIT1),
+            page("organigrama",   NavSection.NAVEGACION,  btnOrganigrama,   KeyCode.DIGIT2),
+            page("productos",     NavSection.NAVEGACION,  btnProductos,     KeyCode.DIGIT3).withPaletteLabel("Bienes / Inventario"),
+            page("categorias",    NavSection.NAVEGACION,  btnCategorias,    KeyCode.DIGIT4),
+            page("movimientos",   NavSection.OPERACIONES, btnMovimientos,   KeyCode.DIGIT5),
+            page("alertas",       NavSection.OPERACIONES, btnAlertas,       KeyCode.DIGIT6),
+            page("reportes",      NavSection.OPERACIONES, btnReportes,      KeyCode.DIGIT7),
+            page("depreciacion",  NavSection.OPERACIONES, btnDepreciacion,  KeyCode.DIGIT8),
+            action("conteo",      NavSection.OPERACIONES, btnConteoFisico,  this::onConteoFisico, KeyCode.C, ctrlAlt).hiddenFromPalette(),
+            page("resguardos",    NavSection.CONTROL,     btnResguardos,    KeyCode.G, ctrlAlt),
+            page("prestamos",     NavSection.CONTROL,     btnPrestamos,     KeyCode.P, ctrlAlt),
+            page("comodatos",     NavSection.CONTROL,     btnComodatos,     KeyCode.O, ctrlAlt),
+            page("actas",         NavSection.CONTROL,     btnActas,         KeyCode.A, ctrlAlt),
+            page("configuracion", NavSection.SISTEMA,     btnConfiguracion, KeyCode.DIGIT9),
+            page("auditoria",     NavSection.SISTEMA,     btnAuditoria,     KeyCode.DIGIT0).restrictedToAdmin()));
     }
 
-    /** Navigate programmatically by view name — used by TutorialOverlay. */
+    /** A destination that loads {@code /fxml/<view>.fxml}. Ctrl+key unless other modifiers are given. */
+    private NavItem page(String view, NavSection section, Button button, KeyCode key, KeyCombination.Modifier... mods) {
+        return NavItem.of(view, section, button, () -> navigateTo(view, button), accelerator(key, mods));
+    }
+
+    /** A destination that runs something else (e.g. opens a dialog) instead of loading a view. */
+    private NavItem action(String view, NavSection section, Button button, Runnable action,
+                           KeyCode key, KeyCombination.Modifier... mods) {
+        return NavItem.of(view, section, button, action, accelerator(key, mods));
+    }
+
+    private static KeyCombination accelerator(KeyCode key, KeyCombination.Modifier... mods) {
+        return new KeyCodeCombination(key,
+            mods.length == 0 ? new KeyCombination.Modifier[] { KeyCombination.CONTROL_DOWN } : mods);
+    }
+
+    /** Navigate programmatically by view name — used by TutorialOverlay and shortcuts. */
     public void navigateToView(String view) {
-        if ("auditoria".equals(view))  { navigateTo(view, btnAuditoria);  return; }
-        if ("resguardos".equals(view)) { navigateTo(view, btnResguardos); return; }
-        if ("prestamos".equals(view))  { navigateTo(view, btnPrestamos);  return; }
-        if ("comodatos".equals(view))  { navigateTo(view, btnComodatos);  return; }
-        if ("actas".equals(view))      { navigateTo(view, btnActas);      return; }
-        navigateTo(view, resolveNavigationButton(view,
-            btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-            btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
-            btnDepreciacion, btnDashboard));
+        navRegistry.byView(view).ifPresentOrElse(NavItem::run, () -> navigateTo(view, btnDashboard));
     }
 
     /** Return the sidebar Button for a given view — used by TutorialOverlay for ring positioning. */
     public Button getNavButton(String view) {
-        if ("auditoria".equals(view))  return btnAuditoria;
-        if ("resguardos".equals(view)) return btnResguardos;
-        if ("prestamos".equals(view))  return btnPrestamos;
-        if ("comodatos".equals(view))  return btnComodatos;
-        if ("actas".equals(view))      return btnActas;
-        return resolveNavigationButton(view,
-            btnDashboard, btnOrganigrama, btnProductos, btnCategorias,
-            btnMovimientos, btnAlertas, btnReportes, btnConfiguracion,
-            btnDepreciacion, null);
+        return navRegistry.byView(view).map(NavItem::button).orElse(null);
     }
 
     private void navigateTo(String view, Button button) {
@@ -371,7 +372,9 @@ public class MainController {
             Timeline pendingHover = navHoverAnims.remove(button);
             if (pendingHover != null) pendingHover.stop();
             button.setTranslateX(0);
+            sidebarSections.reveal(button);      // unfold its section first so the active-tab marker lands right
             sidebarManager.setActive(button);
+            sidebarSections.markActive(button);
 
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
@@ -597,28 +600,14 @@ public class MainController {
 
     private void setupKeyboardShortcuts(javafx.scene.Scene scene) {
         var a = scene.getAccelerators();
-        a.put(new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.CONTROL_DOWN), () -> onDashboard());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.CONTROL_DOWN), () -> onOrganigrama());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT3, KeyCombination.CONTROL_DOWN), () -> onProductos());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT4, KeyCombination.CONTROL_DOWN), () -> onCategorias());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT5, KeyCombination.CONTROL_DOWN), () -> onMovimientos());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT6, KeyCombination.CONTROL_DOWN), () -> onAlertas());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT7, KeyCombination.CONTROL_DOWN), () -> onReportes());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT8, KeyCombination.CONTROL_DOWN), () -> onDepreciacion());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT9, KeyCombination.CONTROL_DOWN), () -> onConfiguracion());
-        a.put(new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.CONTROL_DOWN), () -> { if (SessionManager.isAdmin()) onAuditoria(); });
-        a.put(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onConteoFisico());
-        a.put(new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onResguardos());
-        a.put(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onPrestamos());
-        a.put(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onComodatos());
-        a.put(new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_DOWN), () -> onActas());
+        navRegistry.installAccelerators(scene, SessionManager::isAdmin);
         a.put(new KeyCodeCombination(KeyCode.F5),                                   () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),      () -> refreshCurrentView());
         a.put(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),      () -> focusCurrentSearch(scene));
         a.put(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN),      this::onCommandPalette);
         a.put(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN), () -> {
             com.sibim.session.NavigationContext.setPendingNuevoBien();
-            onProductos();
+            navigateToView("productos");
         });
         a.put(new KeyCodeCombination(KeyCode.F1), () -> MainShortcutHelpDialog.show());
         a.put(new KeyCodeCombination(KeyCode.F2), () -> onShowTutorial());
@@ -638,24 +627,7 @@ public class MainController {
 
     private void onCommandPalette() {
         javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
-        java.util.List<SearchPaletteDialog.NavEntry> baseEntries = new java.util.ArrayList<>(java.util.List.of(
-            new SearchPaletteDialog.NavEntry("mdi2v-view-dashboard",          "Dashboard",           "Ctrl+1", this::onDashboard),
-            new SearchPaletteDialog.NavEntry("mdi2s-sitemap",                 "Organigrama",         "Ctrl+2", this::onOrganigrama),
-            new SearchPaletteDialog.NavEntry("mdi2p-package-variant",         "Bienes / Inventario", "Ctrl+3", this::onProductos),
-            new SearchPaletteDialog.NavEntry("mdi2t-tag-multiple",            "Categorías",          "Ctrl+4", this::onCategorias),
-            new SearchPaletteDialog.NavEntry("mdi2s-swap-vertical",           "Movimientos",         "Ctrl+5", this::onMovimientos),
-            new SearchPaletteDialog.NavEntry("mdi2b-bell-alert",              "Alertas",             "Ctrl+6", this::onAlertas),
-            new SearchPaletteDialog.NavEntry("mdi2f-file-chart",              "Reportes",            "Ctrl+7", this::onReportes),
-            new SearchPaletteDialog.NavEntry("mdi2c-chart-line",              "Depreciación",        "Ctrl+8", this::onDepreciacion),
-            new SearchPaletteDialog.NavEntry("mdi2c-clipboard-account-outline","Resguardos",         "Ctrl+Alt+G", this::onResguardos),
-            new SearchPaletteDialog.NavEntry("mdi2s-swap-horizontal",         "Préstamos",          "Ctrl+Alt+P", this::onPrestamos),
-            new SearchPaletteDialog.NavEntry("mdi2c-clipboard-list-outline",  "Comodatos",          "Ctrl+Alt+O", this::onComodatos),
-            new SearchPaletteDialog.NavEntry("mdi2s-swap-horizontal-bold",    "Actas E/R",          "Ctrl+Alt+A", this::onActas),
-            new SearchPaletteDialog.NavEntry("mdi2c-cog-outline",             "Configuración",       "Ctrl+9", this::onConfiguracion)
-        ));
-        if (com.sibim.session.SessionManager.isAdmin())
-            baseEntries.add(new SearchPaletteDialog.NavEntry("mdi2h-history", "Auditoría", "Ctrl+0", this::onAuditoria));
-        java.util.List<SearchPaletteDialog.NavEntry> navEntries = java.util.List.copyOf(baseEntries);
+        java.util.List<SearchPaletteDialog.NavEntry> navEntries = navRegistry.paletteEntries(SessionManager.isAdmin());
 
         // Mutable lists: start empty so the dialog opens instantly showing nav entries,
         // then data is appended via Platform.runLater while the dialog is open.
@@ -686,24 +658,6 @@ public class MainController {
             mPrestamos,
             prs -> navigateTo("prestamos", btnPrestamos),
             navEntries);
-    }
-
-    private void addNavTooltips() {
-        addNavTooltip(btnDashboard,     "Dashboard  (Ctrl+1)");
-        addNavTooltip(btnOrganigrama,   "Organigrama  (Ctrl+2)");
-        addNavTooltip(btnProductos,     "Bienes / Inventario  (Ctrl+3)");
-        addNavTooltip(btnCategorias,    "Categorías  (Ctrl+4)");
-        addNavTooltip(btnMovimientos,   "Movimientos  (Ctrl+5)");
-        addNavTooltip(btnAlertas,       "Alertas  (Ctrl+6)");
-        addNavTooltip(btnReportes,      "Reportes  (Ctrl+7)");
-        addNavTooltip(btnDepreciacion,  "Depreciación  (Ctrl+8)");
-        addNavTooltip(btnConteoFisico,  "Conteo físico del inventario");
-        addNavTooltip(btnResguardos,    "Resguardos  (Ctrl+Alt+G)");
-        addNavTooltip(btnPrestamos,     "Préstamos  (Ctrl+Alt+P)");
-        addNavTooltip(btnComodatos,     "Comodatos  (Ctrl+Alt+O)");
-        addNavTooltip(btnActas,         "Actas E/R  (Ctrl+Alt+A)");
-        addNavTooltip(btnConfiguracion, "Configuración  (Ctrl+9)");
-        addNavTooltip(btnAuditoria,     "Auditoría  (Ctrl+0)");
     }
 
     private void setupNavHover(Button... buttons) {
@@ -738,14 +692,6 @@ public class MainController {
         }
     }
 
-    private void addNavTooltip(Button btn, String text) {
-        if (btn == null) return;
-        Tooltip tip = new Tooltip(text);
-        tip.setShowDelay(javafx.util.Duration.millis(700));
-        tip.setHideDelay(javafx.util.Duration.millis(200));
-        Tooltip.install(btn, tip);
-    }
-
     private void refreshCurrentView() {
         // Re-navigate to the current active view to trigger a refresh
         if (sidebarManager.getActive() != null) sidebarManager.getActive().fire();
@@ -770,7 +716,7 @@ public class MainController {
     private void handleBarcodeScan(String codigo) {
         javafx.scene.Scene scene = contentArea.getScene();
         NotificacionUtil.info(scene, "Escaneado: " + codigo);
-        onProductos();
+        navigateToView("productos");
         javafx.application.Platform.runLater(() -> {
             if (currentController instanceof ProductosController productosCtrl) {
                 productosCtrl.buscarPorCodigo(codigo);

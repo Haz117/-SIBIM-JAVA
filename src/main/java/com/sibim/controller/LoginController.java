@@ -6,7 +6,7 @@ import com.sibim.model.Usuario;
 import com.sibim.service.AuthService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
-import com.sibim.util.CambiarPasswordDialog;
+import com.sibim.controller.dialogs.CambiarPasswordDialog;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
@@ -33,7 +33,7 @@ public class LoginController {
     @FXML private StackPane brandPanel;
     @FXML private VBox formPanel;
     @FXML private VBox testAccountsBox;
-    @FXML private Label brandLogoBadge;
+    @FXML private StackPane brandLogoBadge;
     @FXML private VBox featureList;
     @FXML private VBox formHeader;
     @FXML private VBox usernameBox;

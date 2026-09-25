@@ -165,6 +165,9 @@ public class MainApp extends Application {
      * Scene, so nothing extra lingers in the scene graph afterward.
      */
     private static void transitionTo(Parent newRoot, double targetWidth, double targetHeight, Runnable stageSetup) {
+        if (primaryStage == null) {
+            throw new IllegalStateException("La aplicación aún no ha inicializado su Stage principal");
+        }
         Scene oldScene = primaryStage.getScene();
         primaryStage.setTitle("SIBIM — Sistema Integral de Bienes Municipales");
 

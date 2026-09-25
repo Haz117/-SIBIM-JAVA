@@ -1,10 +1,13 @@
-package com.sibim.util;
+package com.sibim.controller.dialogs;
 
 import com.sibim.MainApp;
 import com.sibim.model.Usuario;
-import com.sibim.util.AppColors;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.service.AuthService;
+import com.sibim.util.AnimationUtils;
+import com.sibim.util.AppColors;
+import com.sibim.util.DialogUtil;
+import com.sibim.util.NotificacionUtil;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Node;

@@ -13,7 +13,6 @@ import javafx.scene.layout.*;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.util.ArrayList;
 import java.util.List;
 
 class SidebarManager {
@@ -36,6 +35,12 @@ class SidebarManager {
     private Pane    tabOverlay;
     private Region  tabProtrusion;
     private boolean tabPositioned = false;
+    private SidebarSections sections;
+    // Padding/spacing as they really are while expanded (the CSS overrides what the FXML declares),
+    // remembered when collapsing so expanding again puts back exactly the same layout.
+    private Insets expandedLogoPadding;
+    private double expandedLogoSpacing;
+    private Insets expandedNavPadding;
 
     SidebarManager(VBox sidebar, Region sidebarBackdrop, StackPane outerStack,
                    VBox logoTextBox, VBox userInfoVBox, Button btnToggleSidebar,
@@ -75,6 +80,17 @@ class SidebarManager {
         updateTabProtrusion(btn);
     }
 
+    /** Accordion sections (null until wired). Their folding changes where the active button sits. */
+    void setSections(SidebarSections sections) {
+        this.sections = sections;
+        if (sections != null) sections.setOnLayoutChanged(this::refreshTab);
+    }
+
+    /** Re-positions the active-tab marker after the nav layout changed (section folded/unfolded…). */
+    void refreshTab() {
+        if (activeButton != null) updateTabProtrusion(activeButton);
+    }
+
     Button getActive() { return activeButton; }
     boolean isCollapsed() { return sidebarCollapsed; }
 
@@ -87,17 +103,19 @@ class SidebarManager {
         sidebarBackdrop.setMinWidth(Region.USE_PREF_SIZE);
         sidebarBackdrop.setMaxWidth(Region.USE_PREF_SIZE);
 
-        java.util.Set<javafx.scene.Node> sectionLabels = sidebar.lookupAll(".nav-section-label");
-        List<Button> footerBtns = new ArrayList<>();
-        sidebar.lookupAll(".logout-btn").forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });
-        sidebar.lookupAll(".about-btn" ).forEach(n -> { if (n instanceof Button b) footerBtns.add(b); });
 
         javafx.scene.Node logoBadge = sidebar.lookup(".sidebar-logo-badge");
         HBox logoHBox = (logoTextBox != null && logoTextBox.getParent() instanceof HBox h) ? h : null;
-        javafx.scene.Node userCard = (userInfoVBox != null) ? userInfoVBox.getParent() : null;
+        // Only the account TEXT is hidden in the rail: the avatar stays (and still opens the account menu).
+        javafx.scene.Node userText = userInfoVBox;
 
         ScrollPane navScroll = sidebar.lookup(".sidebar-scroll") instanceof ScrollPane sp ? sp : null;
         VBox navVBox = (navScroll != null && navScroll.getContent() instanceof VBox v) ? v : null;
+
+        if (sidebarCollapsed) {
+            if (logoHBox != null) { expandedLogoPadding = logoHBox.getPadding(); expandedLogoSpacing = logoHBox.getSpacing(); }
+            if (navVBox != null)  expandedNavPadding = navVBox.getPadding();
+        }
 
         if (sidebarCollapsed) sidebar.getStyleClass().add("sidebar-collapsed");
         else                  sidebar.getStyleClass().remove("sidebar-collapsed");
@@ -106,11 +124,10 @@ class SidebarManager {
             if (logoBadge != null) { logoBadge.setVisible(false); logoBadge.setManaged(false); }
             logoTextBox.setVisible(false); logoTextBox.setManaged(false);
             if (logoHBox != null) { logoHBox.setPadding(new Insets(10, 4, 0, 4)); logoHBox.setSpacing(0); }
-            if (userCard != null) { userCard.setVisible(false); userCard.setManaged(false); }
-            sectionLabels.forEach(n -> { n.setVisible(false); n.setManaged(false); });
+            if (userText != null) { userText.setVisible(false); userText.setManaged(false); }
+            if (sections != null) sections.setRailMode(true);
             navButtons.stream().filter(b -> b != null).forEach(b -> b.setContentDisplay(ContentDisplay.GRAPHIC_ONLY));
             if (navVBox != null) navVBox.setPadding(new Insets(6, 12, 6, 12));
-            footerBtns.forEach(b -> b.setContentDisplay(ContentDisplay.GRAPHIC_ONLY));
             ((FontIcon) btnToggleSidebar.getGraphic()).setIconLiteral("mdi2c-chevron-right");
         } else {
             ((FontIcon) btnToggleSidebar.getGraphic()).setIconLiteral("mdi2c-chevron-left");
@@ -125,12 +142,14 @@ class SidebarManager {
             if (!sidebarCollapsed) {
                 if (logoBadge != null) { logoBadge.setVisible(true); logoBadge.setManaged(true); }
                 logoTextBox.setVisible(true); logoTextBox.setManaged(true);
-                if (logoHBox != null) { logoHBox.setPadding(new Insets(18, 18, 0, 10)); logoHBox.setSpacing(10); }
-                if (userCard != null) { userCard.setVisible(true); userCard.setManaged(true); }
-                sectionLabels.forEach(n -> { n.setVisible(true); n.setManaged(true); });
+                if (logoHBox != null && expandedLogoPadding != null) {
+                    logoHBox.setPadding(expandedLogoPadding);
+                    logoHBox.setSpacing(expandedLogoSpacing);
+                }
+                if (userText != null) { userText.setVisible(true); userText.setManaged(true); }
+                if (sections != null) sections.setRailMode(false);
                 navButtons.stream().filter(b -> b != null).forEach(b -> b.setContentDisplay(ContentDisplay.LEFT));
-                if (navVBox != null) navVBox.setPadding(new Insets(6, 18, 6, 10));
-                footerBtns.forEach(b -> b.setContentDisplay(ContentDisplay.LEFT));
+                if (navVBox != null && expandedNavPadding != null) navVBox.setPadding(expandedNavPadding);
             }
             if (activeButton != null) updateTabProtrusion(activeButton);
         });
@@ -139,9 +158,20 @@ class SidebarManager {
 
     // ── Tab protrusion ────────────────────────────────────────────────────────
 
+    /** A node is on screen only if it and every ancestor are visible and managed. */
+    private static boolean isShowing(javafx.scene.Node n) {
+        for (javafx.scene.Node p = n; p != null; p = p.getParent()) {
+            if (!p.isVisible() || !p.isManaged()) return false;
+        }
+        return true;
+    }
+
     void updateTabProtrusion(Button btn) {
         if (tabProtrusion == null || outerStack == null || outerStack.getScene() == null) return;
         javafx.application.Platform.runLater(() -> {
+            boolean showing = isShowing(btn);
+            tabProtrusion.setVisible(showing);
+            if (!showing) return;     // active page lives in a folded section: its header is highlighted instead
             javafx.geometry.Bounds b   = btn.localToScene(btn.getBoundsInLocal());
             javafx.geometry.Point2D org = outerStack.sceneToLocal(0, 0);
             double btnTop = b.getMinY() + org.getY();

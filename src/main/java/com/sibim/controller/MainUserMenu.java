@@ -9,7 +9,8 @@ class MainUserMenu {
 
     private MainUserMenu() {}
 
-    static void setup(VBox userInfoVBox, StackPane contentArea, Runnable onLogout) {
+    static void setup(VBox userInfoVBox, StackPane contentArea, Runnable onLogout,
+                      Runnable onTutorial, Runnable onAbout) {
         if (userInfoVBox == null) return;
         javafx.scene.Node card = userInfoVBox.getParent();
         if (card == null) return;
@@ -20,7 +21,15 @@ class MainUserMenu {
 
         MenuItem miPassword = new MenuItem("Cambiar contraseña");
         miPassword.setGraphic(new FontIcon("mdi2l-lock-outline"));
-        miPassword.setOnAction(e -> com.sibim.util.CambiarPasswordDialog.mostrar(contentArea.getScene()));
+        miPassword.setOnAction(e -> com.sibim.controller.dialogs.CambiarPasswordDialog.mostrar(contentArea.getScene()));
+
+        MenuItem miTutorial = new MenuItem("Tutorial del sistema");
+        miTutorial.setGraphic(new FontIcon("mdi2h-help-circle-outline"));
+        miTutorial.setOnAction(e -> onTutorial.run());
+
+        MenuItem miAbout = new MenuItem("Acerca de SIBIM");
+        miAbout.setGraphic(new FontIcon("mdi2i-information-outline"));
+        miAbout.setOnAction(e -> onAbout.run());
 
         SeparatorMenuItem sep = new SeparatorMenuItem();
 
@@ -28,7 +37,7 @@ class MainUserMenu {
         miLogout.setGraphic(new FontIcon("mdi2l-logout"));
         miLogout.setOnAction(e -> onLogout.run());
 
-        menu.getItems().addAll(miPassword, sep, miLogout);
+        menu.getItems().addAll(miPassword, miTutorial, miAbout, sep, miLogout);
         card.setOnMouseClicked(e -> {
             if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY)
                 menu.show(card, e.getScreenX(), e.getScreenY());
