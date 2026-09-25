@@ -145,7 +145,14 @@ public final class OfflineStore {
                 // quirk on JDK 21 where native statement handles get finalized mid-batch.
                 // runOfflineMigrations() is fully idempotent and handles schema evolution.
                 if (!schemaExists(conn)) {
-                    runSchema(conn);
+                    try {
+                        runSchema(conn);
+                    } catch (SQLException | RuntimeException schemaError) {
+                        // Don't keep a half-built store around as the cached connection.
+                        try { conn.close(); } catch (SQLException ignored) { /* already failing */ }
+                        conn = null;
+                        throw schemaError;
+                    }
                 }
                 runOfflineMigrations(conn);
 
@@ -413,7 +420,13 @@ public final class OfflineStore {
             if (in == null) throw new SQLException("No se encontró offline.sql en el classpath");
             String sql;
             try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-                sql = r.lines().collect(Collectors.joining("\n"));
+                // Drop "-- …" comments before splitting on ';' — several comments in
+                // offline.sql contain semicolons, which cut CREATE TABLE users_cache and
+                // product_outbox in half, so a brand-new offline.db (fresh install, or
+                // after the cache file is removed) came up without those tables.
+                sql = r.lines()
+                    .map(line -> line.replaceFirst("--.*$", ""))
+                    .collect(Collectors.joining("\n"));
             }
             // Use addBatch/executeBatch instead of per-statement execute() to keep a
             // strong reference to the Statement throughout, preventing the JIT from
