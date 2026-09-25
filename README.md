@@ -287,6 +287,8 @@ maven-dist/apache-maven-3.9.9/bin/mvn.cmd test -Dtest=AuthServiceTest
 
 Los tests de integración (`db/integration/`) levantan una instancia efímera de PostgreSQL con EmbeddedPostgres — no requieren ninguna instalación externa. Los tests de autorización verifican que los guards de seguridad lanzan `SecurityException` para roles sin permiso, independientemente de si hay BD disponible.
 
+**Los tests nunca tocan la instalación real**, aunque la app esté instalada en la misma PC: Maven los corre con `APPDATA` y `user.home` apuntando a `target/` (no ven `%APPDATA%\SIBIM\.env` ni `~/.sibim`) y con las preferencias de Java en memoria (no escriben en el registro de Windows). Además, `DatabaseConfig` se niega a conectarse a una base remota mientras corre bajo tests. Antes de este aislamiento, una corrida de `mvn test` restauró un respaldo de prueba sobre la base de producción.
+
 ---
 
 ## Licencia

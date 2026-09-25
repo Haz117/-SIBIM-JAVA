@@ -316,6 +316,21 @@
                          Flyway) connect to the real database configured there. target/ has no
                          .env, so tests fall back to localhost:5432 exactly as they do in CI. -->
                     <workingDirectory>${project.build.directory}</workingDirectory>
+                    <!-- The working directory alone was not enough: DatabaseConfig and
+                         SupabaseStorage read %APPDATA%\SIBIM\.env FIRST, so on a machine with
+                         the app installed the tests connected to the production database
+                         (BackupServiceAuthorizationTest restored a test backup over it on
+                         2026-09-25). Point APPDATA and user.home at target/ so tests never see
+                         the real .env, offline store (~/.sibim) or saved filters, and keep
+                         java.util.prefs in memory instead of the user's registry. -->
+                    <environmentVariables>
+                        <APPDATA>${project.build.directory}/test-appdata</APPDATA>
+                    </environmentVariables>
+                    <systemPropertyVariables>
+                        <user.home>${project.build.directory}/test-home</user.home>
+                        <sibim.test>true</sibim.test>
+                        <java.util.prefs.PreferencesFactory>com.sibim.testsupport.InMemoryPreferencesFactory</java.util.prefs.PreferencesFactory>
+                    </systemPropertyVariables>
                     <argLine>@{argLine} -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar" -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
                 </configuration>
             </plugin>

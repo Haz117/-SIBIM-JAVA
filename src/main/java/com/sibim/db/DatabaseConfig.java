@@ -65,6 +65,13 @@ public final class DatabaseConfig {
         String user     = getEnv(dotenv, "DB_USER", "postgres");
         String password = getEnv(dotenv, "DB_PASSWORD", "");
         boolean isRemote = isRemoteUrl(url);
+        // Last line of defence behind the surefire sandbox (pom.xml): a test run
+        // must never reach a remote database — one already restored a test
+        // backup over production. sibim.test is only ever set by surefire.
+        if (isRemote && Boolean.getBoolean("sibim.test")) {
+            throw new IllegalStateException(
+                "Los tests no pueden conectarse a una base de datos remota: " + url.replaceAll("password=[^&]*", "password=***"));
+        }
         boolean bypass   = "true".equalsIgnoreCase(getEnv(dotenv, "DB_SSL_BYPASS", "false"));
 
         enforcePasswordPolicy(url, isRemote, password.isBlank(), bypass);
