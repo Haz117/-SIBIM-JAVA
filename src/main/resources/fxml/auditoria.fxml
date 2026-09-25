@@ -9,9 +9,9 @@
       spacing="0" styleClass="page-root">
 
     <!-- PAGE HEADER -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-slate">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-slate">
         <padding><Insets top="18" right="22" bottom="18" left="34"/></padding>
-        <StackPane styleClass="page-header-icon page-header-icon-slate">
+        <StackPane styleClass="page-header-icon, page-header-icon-slate">
             <FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">

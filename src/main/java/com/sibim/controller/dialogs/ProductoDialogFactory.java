@@ -2,7 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
-import com.sibim.repository.ProductoRepository;
+import com.sibim.service.ProductoService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
@@ -45,11 +45,11 @@ public final class ProductoDialogFactory {
         boolean isNewProduct = existing == null || existing.getId() == null;
 
         // Load autocomplete suggestions (fast queries; best-effort)
-        ProductoRepository acRepo = new ProductoRepository();
-        List<String> sugestMarcas      = acRepo.findDistinctMarcas();
-        List<String> sugestModelos     = acRepo.findDistinctModelos();
-        List<String> sugestProveedores = acRepo.findDistinctProveedores();
-        List<String> sugestUbicaciones = acRepo.findDistinctUbicaciones();
+        ProductoService productoService = new ProductoService();
+        List<String> sugestMarcas      = productoService.getMarcas();
+        List<String> sugestModelos     = productoService.getModelos();
+        List<String> sugestProveedores = productoService.getProveedores();
+        List<String> sugestUbicaciones = productoService.getUbicaciones();
 
         Dialog<Producto> dialog = DialogUtil.create(520);
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
@@ -74,7 +74,7 @@ public final class ProductoDialogFactory {
         // ── Build tab field objects ──────────────────────────────────────────
         var infoTab = new ProductoTabInfoFields(existing, isNewProduct,
             existing != null ? existing.getId() : null,
-            cats, log, dialog, markDirtyRef, checkOkRef, thumbnailCache, existingFotos, acRepo);
+            cats, log, dialog, markDirtyRef, checkOkRef, thumbnailCache, existingFotos, productoService);
 
         var stockTab = new ProductoTabStockFields(existing);
 

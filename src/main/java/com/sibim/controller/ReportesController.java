@@ -1,6 +1,6 @@
 package com.sibim.controller;
 
-import com.sibim.repository.ProductoRepository;
+import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
@@ -52,8 +52,8 @@ public class ReportesController {
     private static final java.util.prefs.Preferences STICKY =
         java.util.prefs.Preferences.userRoot().node("sibim/filters/reportes");
 
-    private final ReporteService    reporteService  = ReporteService.getInstance();
-    private final ProductoRepository productoRepo   = new ProductoRepository();
+    private final ReporteService   reporteService  = ReporteService.getInstance();
+    private final ProductoService  productoService = new ProductoService();
     private boolean updatingFromPreset = false;
 
     @FXML
@@ -184,7 +184,7 @@ public class ReportesController {
     // ─── Parque Vehicular V.6 ───
     @FXML private void onParqueVehicularPdf(ActionEvent event) {
         exportar(event, () -> {
-            var vehiculos = productoRepo.findAll().stream()
+            var vehiculos = productoService.getAll().stream()
                 .filter(p -> p.getMarca() != null && !p.getMarca().isBlank())
                 .toList();
             return reporteService.exportParqueVehicularPdf(vehiculos);
@@ -194,7 +194,7 @@ public class ReportesController {
     // ─── Entrega-Recepción ANEXO V.4 ───
     @FXML private void onEntregaRecepcionPdf(ActionEvent event) {
         exportar(event, () -> {
-            var bienes = productoRepo.findAll();
+            var bienes = productoService.getAll();
             return reporteService.exportEntregaRecepcionPdf(bienes);
         });
     }
@@ -205,7 +205,7 @@ public class ReportesController {
         LocalDate desde = getDesde(), hasta = getHasta();
         AppExecutor.submit(() -> {
             try {
-                var counts = productoRepo.countByArea(20, desde, hasta);
+                var counts = productoService.countByArea(20, desde, hasta);
                 XYChart.Series<String, Number> series = new XYChart.Series<>();
                 counts.forEach((area, cnt) -> series.getData().add(new XYChart.Data<>(area, cnt)));
                 Platform.runLater(() -> {
@@ -238,7 +238,7 @@ public class ReportesController {
         LocalDate desde = getDesde(), hasta = getHasta();
         AppExecutor.submit(() -> {
             try {
-                var valores = productoRepo.getValorPorCategoria(20, desde, hasta);
+                var valores = productoService.getValorPorCategoria(20, desde, hasta);
                 XYChart.Series<String, Number> series = new XYChart.Series<>();
                 valores.forEach(cv -> series.getData().add(new XYChart.Data<>(cv.nombre(), cv.valor())));
                 Platform.runLater(() -> {

@@ -11,8 +11,8 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-danger">
-        <StackPane styleClass="page-header-icon page-header-icon-danger">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-danger">
+        <StackPane styleClass="page-header-icon, page-header-icon-danger">
             <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -59,7 +59,7 @@
     <VBox fx:id="resumenBox" spacing="20">
     <!-- ══ RESUMEN RÁPIDO ═══════════════════════════════════════════ -->
     <HBox spacing="12">
-        <VBox fx:id="statCardAgotados" styleClass="status-mini-card status-mini-card-red"
+        <VBox fx:id="statCardAgotados" styleClass="status-mini-card, status-mini-card-red"
               HBox.hgrow="ALWAYS" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
@@ -69,9 +69,9 @@
             <Label fx:id="lblSumAgotados" text="0" styleClass="status-mini-count"/>
             <Label text="bienes sin stock" styleClass="rich-stat-hint"/>
             <ProgressBar fx:id="pbAgotados" progress="0" maxWidth="Infinity"
-                         styleClass="status-pb status-pb-red"/>
+                         styleClass="status-pb, status-pb-red"/>
         </VBox>
-        <VBox fx:id="statCardBajoStockSum" styleClass="status-mini-card status-mini-card-amber"
+        <VBox fx:id="statCardBajoStockSum" styleClass="status-mini-card, status-mini-card-amber"
               HBox.hgrow="ALWAYS" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
@@ -81,9 +81,9 @@
             <Label fx:id="lblSumBajoStock" text="0" styleClass="status-mini-count"/>
             <Label text="por debajo del mínimo" styleClass="rich-stat-hint"/>
             <ProgressBar fx:id="pbBajoStock" progress="0" maxWidth="Infinity"
-                         styleClass="status-pb status-pb-amber"/>
+                         styleClass="status-pb, status-pb-amber"/>
         </VBox>
-        <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card status-mini-card-violet"
+        <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card, status-mini-card-violet"
               HBox.hgrow="ALWAYS" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
@@ -94,13 +94,13 @@
             <Label fx:id="lblSumGarantiasDetalle" text="— vencidas · — próximas"
                    styleClass="rich-stat-hint"/>
             <ProgressBar fx:id="pbGarantias" progress="0" maxWidth="Infinity"
-                         styleClass="status-pb status-pb-violet"/>
+                         styleClass="status-pb, status-pb-violet"/>
         </VBox>
     </HBox>
     </VBox>
 
     <!-- ══ BARRA DE BÚSQUEDA ════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-danger">
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-danger">
         <StackPane HBox.hgrow="ALWAYS">
             <TextField fx:id="searchField" promptText="🔍  Buscar bien por nombre o código..."
                        styleClass="search-field" maxWidth="Infinity">
@@ -123,7 +123,7 @@
     </Label>
 
     <!-- ══ BIENES AGOTADOS ═══════════════════════════════════════════ -->
-    <VBox fx:id="sectionAgotados" styleClass="alert-section alert-danger" spacing="0">
+    <VBox fx:id="sectionAgotados" styleClass="alert-section, alert-danger" spacing="0">
         <!-- Header gradiente -->
         <HBox fx:id="headerAgotados" styleClass="alert-header-danger" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="alert-section-icon"/>
@@ -172,7 +172,7 @@
     </VBox>
 
     <!-- ══ EXISTENCIAS BAJAS ══════════════════════════════════════════ -->
-    <VBox fx:id="sectionBajoStock" styleClass="alert-section alert-warning" spacing="0">
+    <VBox fx:id="sectionBajoStock" styleClass="alert-section, alert-warning" spacing="0">
         <HBox fx:id="headerBajoStock" styleClass="alert-header-warning" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="alert-section-icon-white"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
@@ -216,7 +216,7 @@
     </VBox>
 
     <!-- ══ GARANTÍAS POR VENCER ═══════════════════════════════════════ -->
-    <VBox fx:id="sectionGarantias" styleClass="alert-section alert-info" spacing="0">
+    <VBox fx:id="sectionGarantias" styleClass="alert-section, alert-info" spacing="0">
         <HBox fx:id="headerGarantias" styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">
@@ -251,7 +251,7 @@
     </VBox>
 
     <!-- ══════════════ Mantenimiento próximo ══════════════ -->
-    <VBox fx:id="sectionMantenimiento" styleClass="alert-section alert-info" spacing="0">
+    <VBox fx:id="sectionMantenimiento" styleClass="alert-section, alert-info" spacing="0">
         <HBox fx:id="headerMantenimiento" styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2w-wrench-outline" styleClass="alert-section-icon"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">

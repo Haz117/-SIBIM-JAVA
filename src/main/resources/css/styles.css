@@ -42,15 +42,19 @@
 .login-deco-circle-2 { -fx-fill: #FFFFFF06; }
 .login-deco-circle-3 { -fx-fill: #FFFFFF0B; }
 .login-deco-circle-4 { -fx-fill: #FFFFFF0E; }
+/* Same brand mark as the splash: flat indigo rounded square with the package icon */
 .brand-logo-badge {
-    -fx-background-color: rgba(255,255,255,0.18);
-    -fx-background-radius: 12;
-    -fx-text-fill: white;
-    -fx-font-size: 22px;
-    -fx-font-weight: bold;
-    -fx-padding: 10 18;
-    -fx-alignment: CENTER;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 6, 0, 0, 2);
+    -fx-background-color: #4F46E5;
+    -fx-background-radius: 13;
+    -fx-border-color: rgba(165,180,252,0.35);
+    -fx-border-radius: 13;
+    -fx-border-width: 1;
+    -fx-min-width: 52; -fx-min-height: 52;
+    -fx-max-width: 52; -fx-max-height: 52;
+}
+.brand-logo-icon {
+    -fx-icon-color: white;
+    -fx-icon-size: 24px;
 }
 .brand-title {
     -fx-font-size: 44px;
@@ -90,23 +94,6 @@
     -fx-border-color: rgba(255,255,255,0.45);
 }
 .test-btn:pressed { -fx-background-color: rgba(255,255,255,0.35); }
-
-/* ── Login preview card (floating mini-stats on brand panel) ── */
-.login-preview-card {
-    -fx-background-color: rgba(255,255,255,0.10);
-    -fx-background-radius: 16;
-    -fx-border-color: rgba(255,255,255,0.22);
-    -fx-border-width: 1;
-    -fx-border-radius: 16;
-    -fx-padding: 16 20;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.20), 24, 0, 0, 8);
-}
-.login-preview-value { -fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold; }
-.login-preview-label { -fx-text-fill: rgba(255,255,255,0.65); -fx-font-size: 10.5px; -fx-font-weight: bold; }
-.login-preview-sub   { -fx-text-fill: rgba(255,255,255,0.50); -fx-font-size: 11px; }
-.login-preview-trend { -fx-text-fill: #86EFAC; -fx-font-size: 11px; -fx-font-weight: 600; }
-.login-preview-ok-icon    { -fx-icon-color: #86EFAC; -fx-icon-size: 12; }
-.login-preview-trend-icon { -fx-icon-color: #86EFAC; -fx-icon-size: 12; }
 
 /* ── Form panel (right) ── */
 .login-form-panel {
@@ -252,11 +239,13 @@
     -fx-text-fill: #1E293B;
 }
 .sidebar-logo-area {
-    -fx-padding: 2 0 4 2;
+    -fx-padding: 14 12 8 12;
 }
+/* Icon rail: only the search + collapse icons remain in this row — center them. */
+.sidebar-collapsed .sidebar-logo-area { -fx-alignment: CENTER; }
 .sidebar-app-sub {
     -fx-font-size: 9px;
-    -fx-text-fill: #94A3B8;
+    -fx-text-fill: #475569;
     -fx-padding: 0 0 0 1;
 }
 
@@ -264,40 +253,39 @@
    elsewhere (pale gray fill + hairline border) instead of a translucent
    overlay that only read correctly against a dark background. */
 .sidebar-user-box {
-    -fx-background-color: #F8FAFC;
-    -fx-background-radius: 10;
-    -fx-border-color: #E2E8F0;
-    -fx-border-radius: 10;
-    -fx-border-width: 1;
-    -fx-padding: 8 10;
+    -fx-background-color: transparent;
+    -fx-background-radius: 14;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 6 8;
+    -fx-cursor: hand;
 }
+.sidebar-user-box:hover { -fx-background-color: #F1F5F9; }
 .user-avatar {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
     -fx-background-radius: 999;
-    -fx-min-width: 38;
-    -fx-min-height: 38;
-    -fx-max-width: 38;
-    -fx-max-height: 38;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 8, 0, 0, 0);
+    -fx-min-width: 36;
+    -fx-min-height: 36;
+    -fx-max-width: 36;
+    -fx-max-height: 36;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 6, 0, 0, 1);
 }
 .user-avatar-text {
     -fx-text-fill: white;
-    -fx-font-size: 15px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
 .sidebar-username {
     -fx-text-fill: #1E293B;
-    -fx-font-size: 12.5px;
-    -fx-font-weight: 600;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
 }
 .sidebar-userrole {
-    -fx-background-color: #EEF2FF;
-    -fx-background-radius: 99;
-    -fx-text-fill: #4F46E5;
-    -fx-font-size: 10px;
-    -fx-font-weight: bold;
-    -fx-padding: 2 8;
+    -fx-text-fill: #64748B;
+    -fx-font-size: 11px;
+    -fx-padding: 0;
 }
+/* Icon rail: only the avatar remains, centered. */
+.sidebar-collapsed .sidebar-user-box { -fx-alignment: CENTER; -fx-padding: 6 0; }
 
 /* Nav section labels — same muted-gray uppercase treatment as
    .dash-section-label in the content area. */
@@ -308,6 +296,56 @@
     -fx-padding: 12 14 3 16;
 }
 
+/* ── Accordion sections (SidebarSections.java) ───────────────────────────────
+   A section = clickable header (label + optional badge + chevron) + items box.
+   Folding lets all four sections fit without scrolling at the default window
+   height; a folded section still shows where you are and how many alerts it hides. */
+.nav-section {
+    -fx-border-color: #CBD5E1 transparent transparent transparent;
+    -fx-border-width: 1.5 0 0 0;
+    -fx-padding: 4 0 0 0;
+}
+.nav-section-header {
+    -fx-padding: 6 10 3 16;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+.nav-section-header:hover   { -fx-background-color: #F8FAFC; }
+.nav-section-header:focused {
+    -fx-background-color: #EEF2FF;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.nav-section-header .nav-section-label { -fx-padding: 0; }
+.nav-section-chevron { -fx-icon-size: 14; -fx-icon-color: #94A3B8; }
+.nav-section-header:hover .nav-section-chevron { -fx-icon-color: #6366F1; }
+/* The section that holds the active page keeps a hint of where you are, even when folded. */
+.nav-section-active .nav-section-label   { -fx-text-fill: #4F46E5; }
+.nav-section-active .nav-section-chevron { -fx-icon-color: #6366F1; }
+/* Sum of the items' badges (alerts, overdue loans) — only visible while the section is folded. */
+.nav-section-badge {
+    -fx-background-color: #EF4444;
+    -fx-text-fill: white;
+    -fx-font-size: 9.5px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 99;
+    -fx-padding: 1 6;
+}
+.nav-section-items { -fx-padding: 0; }
+.nav-list { -fx-spacing: 4; }
+
+/* ── Icon rail (sidebar collapsed) ───────────────────────────────────────────
+   No headers here, so the groups are told apart only by the divider between them. Keep it
+   minimal — the same plain line as when expanded — but darker and a bit thicker, with the same
+   air above and below it. The nav list already has 12 px of side padding here, so the line
+   never touches the sidebar edge. Do NOT add -fx-border-insets: they count as layout insets,
+   narrow the content and make the ScrollPane show a horizontal scrollbar. */
+.sidebar-collapsed .nav-list { -fx-spacing: 4; }
+.sidebar-collapsed .nav-section {
+    -fx-border-color: #CBD5E1 transparent transparent transparent;
+    -fx-border-width: 1.5 0 0 0;
+    -fx-padding: 4 0 0 0;
+}
 /* Nav buttons — radius 12 to match .btn-primary/.btn-secondary (every
    button in the content area uses 12). */
 .nav-btn {
@@ -371,35 +409,13 @@
 .logout-btn .nav-icon { -fx-icon-color: #94A3B8; }
 .logout-btn:hover .nav-icon { -fx-icon-color: #B91C1C; }
 
-/* Global search button in sidebar */
-.sidebar-search-btn {
-    -fx-background-color: #F1F5F9;
-    -fx-text-fill: #94A3B8;
-    -fx-alignment: CENTER_LEFT;
-    -fx-padding: 8 12;
-    -fx-background-radius: 10;
-    -fx-cursor: hand;
-    -fx-font-size: 12px;
-    -fx-border-color: #E2E8F0;
-    -fx-border-width: 1;
-    -fx-border-radius: 10;
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
-}
-.sidebar-search-btn:hover {
-    -fx-background-color: #EEF2FF;
-    -fx-border-color: #C7D2FE;
-    -fx-text-fill: #6366F1;
-}
-.sidebar-search-btn .nav-icon { -fx-icon-color: #94A3B8; }
-.sidebar-search-btn:hover .nav-icon { -fx-icon-color: #6366F1; }
 
 /* Protrusion overlay */
 .nav-tab-extension { -fx-background-color: transparent; }
 
 .sidebar-divider .line {
-    -fx-border-color: #E2E8F0;
-    -fx-border-width: 0.5;
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 1.5;
 }
 
 /* About */
@@ -442,8 +458,13 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 /* OPERACIONES — teal */
-.nav-btn.nav-ops:hover { -fx-border-color: transparent transparent transparent rgba(13,148,136,0.55); }
+.nav-btn.nav-ops:hover {
+    -fx-background-color: #F0FDFA;
+    -fx-text-fill: #0F766E;
+    -fx-border-color: transparent transparent transparent rgba(13,148,136,0.55);
+}
 .nav-btn.nav-ops:hover .nav-icon { -fx-icon-color: #0D9488; }
+.nav-btn.nav-ops:pressed { -fx-background-color: #CCFBF1; }
 .nav-btn.nav-ops.nav-active,
 .nav-btn.nav-ops.nav-active:hover,
 .nav-btn.nav-ops.nav-active:armed {
@@ -460,8 +481,13 @@
 }
 
 /* CONTROL PATRIMONIAL — violet */
-.nav-btn.nav-ctrl:hover { -fx-border-color: transparent transparent transparent rgba(124,58,237,0.55); }
+.nav-btn.nav-ctrl:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-text-fill: #6D28D9;
+    -fx-border-color: transparent transparent transparent rgba(124,58,237,0.55);
+}
 .nav-btn.nav-ctrl:hover .nav-icon { -fx-icon-color: #7C3AED; }
+.nav-btn.nav-ctrl:pressed { -fx-background-color: #EDE9FE; }
 .nav-btn.nav-ctrl.nav-active,
 .nav-btn.nav-ctrl.nav-active:hover,
 .nav-btn.nav-ctrl.nav-active:armed {
@@ -1125,7 +1151,10 @@
 /* ═══════════════════════════════════════════════════════════════════
    PAGINACIÓN
    ═══════════════════════════════════════════════════════════════════ */
-.pagination-btn {
+/* .pagination-btn shares its look with .btn-page (Auditoría's First/Prev/
+   Next/Last icon buttons) via combined selectors — was two near-identical
+   copy-pasted rule sets differing only in padding. */
+.pagination-btn, .btn-page {
     -fx-background-color: white;
     -fx-border-color: #D1D9E6;
     -fx-border-radius: 7;
@@ -1136,8 +1165,8 @@
     -fx-text-fill: #374151;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
 }
-.pagination-btn:hover { -fx-background-color: #F5F7FF; -fx-border-color: #A5B4FC; -fx-text-fill: #4338CA; }
-.pagination-btn:disabled { -fx-background-color: #F8FAFC; -fx-text-fill: #CBD5E1; -fx-cursor: default; -fx-effect: none; }
+.pagination-btn:hover, .btn-page:hover { -fx-background-color: #F5F7FF; -fx-border-color: #A5B4FC; -fx-text-fill: #4338CA; }
+.pagination-btn:disabled, .btn-page:disabled { -fx-background-color: #F8FAFC; -fx-text-fill: #CBD5E1; -fx-cursor: default; -fx-effect: none; }
 
 /* ═══════════════════════════════════════════════════════════════════
    TITLED PANE (Organigrama)
@@ -2090,9 +2119,15 @@
     -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
+/* The hairline belongs on the Separator's inner .line node. A border on the Separator itself (what this rule
+   used to do) boxed all four sides, so every divider rendered as an empty rectangle. */
 .status-separator {
+    -fx-padding: 6 4;
+}
+.status-separator .line {
     -fx-border-color: #CBD5E1;
-    -fx-opacity: 0.8;
+    -fx-border-width: 0 0 0 1;
+    -fx-background-color: transparent;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2373,18 +2408,30 @@
 /* ═══════════════════════════════════════════════════════════════════
    SIDEBAR — collapse toggle button
    ═══════════════════════════════════════════════════════════════════ */
-/* Icon-only (collapsed) mode — center icons inside the narrower sidebar */
-.sidebar-collapsed .nav-btn {
+/* Icon-only (collapsed) mode — center icons inside the narrower sidebar.
+   8 px of vertical padding (was 10) lets all 15 icons plus the dividers fit at the default window height
+   without scrolling. The rule is repeated per state because the hover / active / focus rules earlier in the
+   file set their own padding with higher specificity. When editing: a rule that ties in specificity but sits
+   LATER in the file wins — put rail overrides here, not next to the base rules. */
+.sidebar-collapsed .nav-btn,
+.sidebar-collapsed .nav-btn:hover,
+.sidebar-collapsed .nav-btn:focused,
+.sidebar-collapsed .nav-btn.nav-active,
+.sidebar-collapsed .nav-btn.nav-active:hover,
+.sidebar-collapsed .nav-btn.nav-active:armed,
+.sidebar-collapsed .nav-btn.nav-active:focused {
     -fx-alignment: CENTER;
-    -fx-padding: 10 8;
+    -fx-padding: 8 8;
 }
+.sidebar-collapsed .nav-section-items { -fx-spacing: 1; }
 .sidebar-collapsed .logout-btn,
 .sidebar-collapsed .about-btn {
     -fx-alignment: CENTER;
     -fx-padding: 10 8;
 }
 
-.sidebar-toggle-btn {
+.sidebar-toggle-btn,
+.sidebar-icon-btn {
     -fx-background-color: transparent;
     -fx-padding: 4 6;
     -fx-background-radius: 8;
@@ -2394,14 +2441,17 @@
     -fx-max-width: 28;
     -fx-max-height: 28;
 }
-.sidebar-toggle-btn:hover {
+.sidebar-toggle-btn:hover,
+.sidebar-icon-btn:hover {
     -fx-background-color: rgba(99,102,241,0.08);
 }
-.sidebar-toggle-btn .ikonli-font-icon {
+.sidebar-toggle-btn .ikonli-font-icon,
+.sidebar-icon-btn .ikonli-font-icon {
     -fx-icon-color: #94A3B8;
     -fx-icon-size: 16;
 }
-.sidebar-toggle-btn:hover .ikonli-font-icon {
+.sidebar-toggle-btn:hover .ikonli-font-icon,
+.sidebar-icon-btn:hover .ikonli-font-icon {
     -fx-icon-color: #6366F1;
 }
 
@@ -2442,7 +2492,7 @@
    SIDEBAR — version badge at bottom
    ═══════════════════════════════════════════════════════════════════ */
 .sidebar-version {
-    -fx-text-fill: #CBD5E1;
+    -fx-text-fill: #475569;
     -fx-font-size: 10px;
     -fx-alignment: CENTER;
 }
@@ -2530,8 +2580,8 @@
 .qty-neutral { -fx-font-weight: 600;  -fx-text-fill: #475569; }
 
 
-/* Pagination page label */
-.pagination-lbl { -fx-font-size: 12px; -fx-text-fill: #475569; }
+/* Pagination page label — shared with .pagination-label (Auditoría) */
+.pagination-lbl, .pagination-label { -fx-font-size: 12px; -fx-text-fill: #475569; -fx-padding: 0 12; }
 
 /* Empty-state large icon (placeholder inside tables) — kept as one rule with
    .empty-state-icon (util/EmptyStateUtil.java) so the two empty-state code
@@ -3171,7 +3221,7 @@
     -fx-font-size: 12px;
 }
 .dlg-message-body {
-    -fx-text-fill: -color-fg-default;
+    -fx-text-fill: #334155;
     -fx-font-size: 13px;
     -fx-line-spacing: 3px;
 }
@@ -3286,101 +3336,87 @@
    SPLASH SCREEN
    ═══════════════════════════════════════════════════════════════════ */
 
+/* Executive / minimal: the original dark indigo field, but nothing else competes with it — a small brand
+   mark, one wordmark, a hairline progress bar and a quiet footer. No blobs, glow, shadows or gradients on the
+   elements. Every text color clears WCAG AA on the darkest-to-lightest point of the background
+   (white 16:1, #A5B4FC 8:1, #94A3B8 6:1). (-fx-letter-spacing is not a JavaFX CSS property.) */
 .splash-root {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #0d0b1e 0%, #1e1b4b 50%, #0d0b1e 100%);
+    -fx-background-color: radial-gradient(center 50% 44%, radius 75%, #1f1c55 0%, #16143f 55%, #0d0b1e 100%);
 }
 
-/* Decorative background blobs */
-.splash-deco-ring-tr {
-    -fx-background-color: rgba(99,102,241,0.08);
-    -fx-background-radius: 999;
-    -fx-min-width: 340; -fx-min-height: 340;
-    -fx-max-width: 340; -fx-max-height: 340;
-    -fx-translate-x: 150;
-    -fx-translate-y: -150;
-}
-.splash-deco-ring-bl {
-    -fx-background-color: rgba(124,58,237,0.06);
-    -fx-background-radius: 999;
-    -fx-min-width: 280; -fx-min-height: 280;
-    -fx-max-width: 280; -fx-max-height: 280;
-    -fx-translate-x: -110;
-    -fx-translate-y: 110;
-}
-
-/* Logo badge — circular, indigo→violet gradient */
+/* Brand mark — small flat indigo rounded square */
 .splash-logo-badge {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #312e81, #4f46e5 48%, #7c3aed);
-    -fx-background-radius: 999;
-    -fx-min-width: 100; -fx-min-height: 100;
-    -fx-max-width: 100; -fx-max-height: 100;
-    -fx-border-color: rgba(165,180,252,0.22);
-    -fx-border-radius: 999;
-    -fx-border-width: 1.5;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.70), 44, 0.10, 0, 14);
+    -fx-background-color: #4F46E5;
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(165,180,252,0.28);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-min-width: 44; -fx-min-height: 44;
+    -fx-max-width: 44; -fx-max-height: 44;
 }
-
-/* Icon inside the badge */
 .splash-logo-icon {
     -fx-icon-color: white;
-    -fx-icon-size: 42px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 4, 0, 0, 1);
+    -fx-icon-size: 20px;
+}
+/* Ring that breathes out from the mark while the app is starting (animated in SplashController) */
+.splash-pulse {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(129,140,248,0.60);
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-min-width: 44; -fx-min-height: 44;
+    -fx-max-width: 44; -fx-max-height: 44;
+    -fx-opacity: 0;
 }
 
-/* Thin accent divider between subtitle and org */
-.splash-divider {
-    -fx-background-color: linear-gradient(to right, transparent, #818cf8, transparent);
-    -fx-background-radius: 999;
-}
-
-/* "SIBIM" headline */
+/* "SIBIM" wordmark */
 .splash-title {
-    -fx-font-size: 40px;
-    -fx-font-weight: 900;
+    -fx-font-size: 22px;
+    -fx-font-weight: 700;
     -fx-text-fill: white;
     -fx-font-family: 'Segoe UI';
-    -fx-letter-spacing: 6;
-    -fx-effect: dropshadow(gaussian, rgba(129,140,248,0.45), 16, 0.15, 0, 2);
+    -fx-padding: 16 0 2 0;
 }
-
-/* Subtitle line */
 .splash-subtitle {
-    -fx-font-size: 12.5px;
-    -fx-text-fill: rgba(255,255,255,0.58);
+    -fx-font-size: 11.5px;
+    -fx-text-fill: #A5B4FC;
     -fx-font-family: 'Segoe UI';
-    -fx-letter-spacing: 0.3;
 }
 
-/* Org line */
-.splash-org {
-    -fx-font-size: 11px;
-    -fx-text-fill: rgba(165,180,252,0.70);
-    -fx-font-family: 'Segoe UI';
-    -fx-padding: 4 0 0 0;
-}
-
-/* Progress bar */
-.splash-progress {
-    -fx-background-color: transparent;
-}
+/* Progress: 2 px hairline + status text */
+.splash-progress-box { -fx-padding: 26 0 0 0; }
+.splash-progress { -fx-background-color: transparent; }
 .splash-progress .track {
-    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-background-color: rgba(255,255,255,0.12);
     -fx-background-radius: 999;
     -fx-background-insets: 0;
+    -fx-pref-height: 2;
 }
 .splash-progress .bar {
-    -fx-background-color: linear-gradient(to right, #4f46e5, #818cf8, #a78bfa);
+    -fx-background-color: #818CF8;
     -fx-background-radius: 999;
     -fx-background-insets: 0;
+    -fx-pref-height: 2;
 }
-
-/* Status text */
 .splash-status {
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(255,255,255,0.42);
+    -fx-text-fill: #94A3B8;
     -fx-font-family: 'Segoe UI';
 }
 
+/* Footer: institution (bottom center) and version (bottom right) */
+.splash-org {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94A3B8;
+    -fx-font-family: 'Segoe UI';
+    -fx-padding: 0 0 18 0;
+}
+.splash-version {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94A3B8;
+    -fx-font-family: 'Segoe UI';
+    -fx-padding: 0 20 18 0;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    PROGRESS INDICATOR — brand-colored spinner
@@ -3431,14 +3467,6 @@
     -fx-border-color: #E2E8F0;
     -fx-border-radius: 14;
     -fx-border-width: 1;
-}
-
-/* Version watermark */
-.splash-version {
-    -fx-font-size: 10px;
-    -fx-text-fill: rgba(255,255,255,0.20);
-    -fx-font-family: 'Segoe UI';
-    -fx-padding: 0 20 16 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4081,33 +4109,18 @@
     -fx-border-color: #E2E8F0 transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
 }
-.pagination-label {
-    -fx-font-size: 12px;
-    -fx-text-fill: #475569;
-    -fx-padding: 0 12;
-}
-.btn-page {
-    -fx-background-color: white;
-    -fx-border-color: #D1D9E6;
-    -fx-border-radius: 7;
-    -fx-background-radius: 7;
-    -fx-cursor: hand;
-    -fx-padding: 5 9;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
-}
-.btn-page .btn-icon { -fx-icon-size: 15; -fx-icon-color: #475569; }
-.btn-page:hover {
-    -fx-background-color: #F5F7FF;
-    -fx-border-color: #A5B4FC;
-}
-.btn-page:hover .btn-icon { -fx-icon-color: #4338CA; }
-.btn-page:pressed { -fx-background-color: #EEF2FF; }
+/* .pagination-label / the shared look for .btn-page are defined once,
+   together with .pagination-lbl / .pagination-btn, near "PAGINACIÓN" above.
+   Both are icon-only now (chevrons), so the icon-color rules are shared too. */
+.btn-page .btn-icon, .pagination-btn .btn-icon { -fx-icon-size: 15; -fx-icon-color: #475569; }
+.btn-page:hover .btn-icon, .pagination-btn:hover .btn-icon { -fx-icon-color: #4338CA; }
+.btn-page:pressed, .pagination-btn:pressed { -fx-background-color: #EEF2FF; }
 .btn-page:disabled {
     -fx-background-color: #F8FAFC;
     -fx-cursor: default;
     -fx-effect: none;
 }
-.btn-page:disabled .btn-icon { -fx-icon-color: #CBD5E1; }
+.btn-page:disabled .btn-icon, .pagination-btn:disabled .btn-icon { -fx-icon-color: #CBD5E1; }
 .btn-icon-only {
     -fx-background-color: transparent;
     -fx-border-color: transparent;

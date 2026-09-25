@@ -8,9 +8,6 @@ import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -18,7 +15,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
@@ -274,24 +270,10 @@ class ProductosTableManager {
 
     void setOnClearFilters(Runnable r) { this.onClearFilters = r; }
 
-    VBox buildSkeletonPlaceholder() {
-        VBox box = new VBox(4);
-        box.setPadding(new Insets(8));
-        for (int i = 0; i < 7; i++) {
-            Label bar = new Label();
-            bar.getStyleClass().add("skeleton");
-            bar.setPrefHeight(44);
-            bar.setMaxWidth(Double.MAX_VALUE);
-            box.getChildren().add(bar);
-        }
-        skeletonPulse = new Timeline(
-            new KeyFrame(Duration.millis(0),   new KeyValue(box.opacityProperty(), 0.7)),
-            new KeyFrame(Duration.millis(800),  new KeyValue(box.opacityProperty(), 0.4)),
-            new KeyFrame(Duration.millis(1600), new KeyValue(box.opacityProperty(), 0.7))
-        );
-        skeletonPulse.setCycleCount(Timeline.INDEFINITE);
-        skeletonPulse.play();
-        return box;
+    /** Shows the pulsing skeleton in the table; skeletonPulse is stopped by the
+     *  controller once real data arrives. */
+    void showSkeletonPlaceholder() {
+        skeletonPulse = AnimationUtils.buildSkeletonPlaceholder(table, 7);
     }
 
     private void setupPagination() {

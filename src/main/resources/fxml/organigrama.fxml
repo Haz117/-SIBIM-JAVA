@@ -10,8 +10,8 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-blue">
-        <StackPane styleClass="page-header-icon page-header-icon-blue">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-blue">
+        <StackPane styleClass="page-header-icon, page-header-icon-blue">
             <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -134,7 +134,7 @@
     </VBox>
 
     <!-- ══ SEARCH BAR ════════════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-blue">
+    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-blue">
         <StackPane HBox.hgrow="ALWAYS">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar área, secretaría o departamento..."
@@ -145,7 +145,7 @@
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
-        <ToggleButton fx:id="btnSoloAlertas" text="⚠ Solo alertas" styleClass="btn-secondary btn-sm"
+        <ToggleButton fx:id="btnSoloAlertas" text="⚠ Solo alertas" styleClass="btn-secondary, btn-sm"
                       onAction="#onToggleSoloAlertas">
             <tooltip><Tooltip text="Mostrar solo las áreas que tienen bienes agotados o bajo stock" wrapText="true" maxWidth="220"/></tooltip>
         </ToggleButton>
@@ -172,16 +172,16 @@
                 <tooltip><Tooltip text="Vista tabla — comparativa de todas las áreas"/></tooltip>
             </ToggleButton>
         </HBox>
-        <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary btn-sm">
+        <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary, btn-sm">
             <tooltip><Tooltip text="Expande todas las secciones visibles"/></tooltip>
         </Button>
-        <Button text="Colapsar todo" onAction="#onCollapseAll" styleClass="btn-secondary btn-sm">
+        <Button text="Colapsar todo" onAction="#onCollapseAll" styleClass="btn-secondary, btn-sm">
             <tooltip><Tooltip text="Colapsa todas las secciones visibles"/></tooltip>
         </Button>
     </HBox>
 
     <!-- ══ ORG TREE ═══════════════════════════════════════════════════ -->
-    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="page-scroll page-scroll-inner">
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="page-scroll, page-scroll-inner">
         <VBox fx:id="orgTree" spacing="8">
             <padding><Insets top="4" right="0" bottom="8" left="0"/></padding>
         </VBox>

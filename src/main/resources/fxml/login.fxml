@@ -23,28 +23,15 @@
         <Circle radius="50"  styleClass="login-deco-circle-4" StackPane.alignment="BOTTOM_LEFT"
                 translateX="30" translateY="-30"/>
 
-        <!-- Floating mini-stats card -->
-        <VBox StackPane.alignment="BOTTOM_RIGHT" translateX="-28" translateY="-110"
-              maxWidth="185" styleClass="login-preview-card" spacing="6">
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2c-check-circle" styleClass="login-preview-ok-icon"/>
-                <Label text="INVENTARIO" styleClass="login-preview-label"/>
-            </HBox>
-            <Label text="342 bienes" styleClass="login-preview-value"/>
-            <Label text="activos en el sistema" styleClass="login-preview-sub"/>
-            <HBox spacing="4" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2t-trending-up" styleClass="login-preview-trend-icon"/>
-                <Label text="+12 registros este mes" styleClass="login-preview-trend"/>
-            </HBox>
-        </VBox>
-
         <!-- Content -->
         <VBox alignment="CENTER_LEFT" spacing="0" StackPane.alignment="CENTER">
             <padding><Insets top="52" right="44" bottom="52" left="44"/></padding>
 
             <!-- Logo badge -->
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <Label fx:id="brandLogoBadge" text="S" styleClass="brand-logo-badge"/>
+                <StackPane fx:id="brandLogoBadge" styleClass="brand-logo-badge" alignment="CENTER">
+                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="brand-logo-icon"/>
+                </StackPane>
                 <VBox spacing="1">
                     <Label text="SIBIM" styleClass="brand-title"/>
                     <Label text="Sistema Integral de Bienes Municipales"

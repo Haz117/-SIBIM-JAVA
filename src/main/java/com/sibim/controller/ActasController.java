@@ -297,7 +297,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         infoLbl.setWrapText(true);
 
         Label lblError = new Label();
-        lblError.getStyleClass().add("form-error-label");
+        lblError.getStyleClass().add("field-error-label");
         lblError.setVisible(false);
 
         VBox content = new VBox(10, header, form, infoLbl, lblError);

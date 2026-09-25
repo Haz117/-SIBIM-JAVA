@@ -57,7 +57,7 @@ public final class ProductoDetailDialog {
                 } catch (Exception ex) { log.warn("No se pudo cargar historial de movimientos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
                 List<String> fotosGaleria = List.of();
-                try { fotosGaleria = new com.sibim.repository.ProductoRepository().findFotos(p.getId()); }
+                try { fotosGaleria = new com.sibim.service.ProductoService().getFotosByProductoId(p.getId()); }
                 catch (Exception ex) { log.warn("No se pudo cargar galería de fotos para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
                 List<com.sibim.model.Resguardo> resguardoHistory = List.of();
@@ -515,7 +515,7 @@ public final class ProductoDetailDialog {
                 String fecha = prs.getFechaPrestamo() != null ? prs.getFechaPrestamo().format(fmtPrs) : "—";
                 String badgeClass = switch (prs.getEstado() != null ? prs.getEstado() : "") {
                     case "DEVUELTO" -> "cell-badge-muted";
-                    case "VENCIDO"  -> "cell-badge-warn";
+                    case "VENCIDO"  -> "cell-badge-warning";
                     default         -> "cell-badge-ok";
                 };
                 Label lblFolio = new Label(prs.getNumero() != null ? prs.getNumero() : "—");
@@ -574,9 +574,9 @@ public final class ProductoDetailDialog {
                     if (a.completada()) continue;
                     boolean vencida = a.fecha() != null && a.fecha().isBefore(java.time.LocalDate.now());
                     Label lblDesc = new Label(a.descripcion());
-                    lblDesc.getStyleClass().add(vencida ? "cell-badge-warn" : "muted-sm");
+                    lblDesc.getStyleClass().add(vencida ? "cell-badge-warning" : "muted-sm");
                     Label lblFecha = new Label(a.fecha() != null ? a.fecha().format(fmtMant) : "—");
-                    lblFecha.getStyleClass().add(vencida ? "cell-badge-warn" : "muted-sm");
+                    lblFecha.getStyleClass().add(vencida ? "cell-badge-warning" : "muted-sm");
                     Button btnOk = new Button("✓");
                     btnOk.getStyleClass().add("btn-link");
                     btnOk.setOnAction(ev -> DialogUtil.runAsync(

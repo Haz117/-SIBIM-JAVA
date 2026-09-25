@@ -12,8 +12,8 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-emerald">
-        <StackPane styleClass="page-header-icon page-header-icon-emerald">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-emerald">
+        <StackPane styleClass="page-header-icon, page-header-icon-emerald">
             <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -147,7 +147,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Inventario General" styleClass="report-title"/>
                     <Label text="Bienes · stock · valor · estado"
-                           styleClass="report-card-tag report-card-tag-indigo"/>
+                           styleClass="report-card-tag, report-card-tag-indigo"/>
                 </VBox>
             </HBox>
             <Label text="Listado completo de todos los bienes patrimoniales con existencias, valor unitario y estado actual."
@@ -180,7 +180,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Registro de Movimientos" styleClass="report-title"/>
                     <Label text="Entradas · salidas · ajustes · transferencias"
-                           styleClass="report-card-tag report-card-tag-teal"/>
+                           styleClass="report-card-tag, report-card-tag-teal"/>
                 </VBox>
             </HBox>
             <Label text="Historial de entradas, salidas, ajustes y transferencias en el período seleccionado."
@@ -213,7 +213,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Alertas de Stock" styleClass="report-title"/>
                     <Label text="Agotados · bajo stock · garantías vencidas"
-                           styleClass="report-card-tag report-card-tag-amber"/>
+                           styleClass="report-card-tag, report-card-tag-amber"/>
                 </VBox>
             </HBox>
             <Label text="Bienes agotados, con existencias bajas y garantías próximas a vencer — para gestión inmediata."
@@ -246,7 +246,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Distribución por Área" styleClass="report-title"/>
                     <Label text="Secretarías · direcciones · dependencias"
-                           styleClass="report-card-tag report-card-tag-green"/>
+                           styleClass="report-card-tag, report-card-tag-green"/>
                 </VBox>
             </HBox>
             <Label text="Bienes patrimoniales agrupados por secretaría y dirección municipal del Ayuntamiento de Ixmiquilpan."
@@ -279,7 +279,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Bienes Dados de Baja" styleClass="report-title"/>
                     <Label text="Historial patrimonial · bienes fuera del inventario activo"
-                           styleClass="report-card-tag report-card-tag-slate"/>
+                           styleClass="report-card-tag, report-card-tag-slate"/>
                 </VBox>
             </HBox>
             <Label text="Bienes patrimoniales que han sido dados de baja del inventario activo — su historial se conserva para fines de auditoría y control patrimonial."
@@ -312,7 +312,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Auditoría Consolidada" styleClass="report-title"/>
                     <Label text="Resguardos · Préstamos · Estado"
-                           styleClass="report-card-tag report-card-tag-purple"/>
+                           styleClass="report-card-tag, report-card-tag-purple"/>
                 </VBox>
             </HBox>
             <Label text="Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Ideal para auditorías y cambios de administración."
@@ -335,7 +335,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Parque Vehicular (V.6)" styleClass="report-title"/>
                     <Label text="Ficha por vehículo · componentes · condición"
-                           styleClass="report-card-tag report-card-tag-indigo"/>
+                           styleClass="report-card-tag, report-card-tag-indigo"/>
                 </VBox>
             </HBox>
             <Label text="Formato oficial V.6: una tarjeta por vehículo con datos de identificación, condición y lista de verificación de componentes. Solo incluye bienes con marca registrada."
@@ -358,7 +358,7 @@
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Entrega-Recepción (ANEXO V.4)" styleClass="report-title"/>
                     <Label text="Inventario patrimonial · depreciación · valor en libros"
-                           styleClass="report-card-tag report-card-tag-red"/>
+                           styleClass="report-card-tag, report-card-tag-red"/>
                 </VBox>
             </HBox>
             <Label text="Formato oficial ANEXO V.4: tabla horizontal con todos los bienes, resguardante, valor de adquisición, depreciación acumulada, valor en libros y condición. Para actos formales de entrega-recepción."

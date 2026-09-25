@@ -4,7 +4,7 @@ import com.sibim.config.Areas;
 import com.sibim.config.AreaCodigos;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
-import com.sibim.repository.ProductoRepository;
+import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
@@ -57,7 +57,7 @@ class ProductoTabInfoFields {
             Runnable[] checkOkRef,
             Map<String, Image> thumbnailCache,
             List<String> existingFotos,
-            ProductoRepository codigoRepo) {
+            ProductoService productoService) {
 
         grid = DialogUtil.formGrid(120);
 
@@ -88,7 +88,7 @@ class ProductoTabInfoFields {
             codigoDebounce[0] = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
                 javafx.util.Duration.millis(280), e -> AppExecutor.submit(() -> {
                     try {
-                        boolean exists = codigoRepo.existsByCodigo(val.trim(), existingId);
+                        boolean exists = productoService.existsByCodigo(val.trim(), existingId);
                         Platform.runLater(() -> {
                             lblCodigoHint.setText(exists ? "✕  Este código ya existe" : "✓  Disponible");
                             lblCodigoHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
@@ -220,7 +220,7 @@ class ProductoTabInfoFields {
                 String typedLow = typed.toLowerCase();
                 AppExecutor.submit(() -> {
                     try {
-                        List<Producto> all = codigoRepo.findAll();
+                        List<Producto> all = productoService.getAll();
                         List<String> hits = all.stream()
                             .filter(p -> existingId == null || !existingId.equals(p.getId()))
                             .map(Producto::getNombre)

@@ -10,8 +10,8 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-blue">
-        <StackPane styleClass="page-header-icon page-header-icon-blue">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-blue">
+        <StackPane styleClass="page-header-icon, page-header-icon-blue">
             <FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="page-icon-emoji"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -69,7 +69,7 @@
     </VBox>
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
-    <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar filter-bar-blue">
+    <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar, filter-bar-blue">
         <TextField fx:id="searchField" promptText="Buscar por saliente, entrante o folio…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"

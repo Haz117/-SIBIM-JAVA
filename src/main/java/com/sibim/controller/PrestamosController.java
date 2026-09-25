@@ -4,8 +4,8 @@ import com.sibim.config.Areas;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
-import com.sibim.repository.ProductoRepository;
 import com.sibim.service.PrestamoService;
+import com.sibim.service.ProductoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -55,8 +55,8 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     @FXML private ToggleButton      btnKanban;
     @FXML private HBox              kanbanBoard;
 
-    private final PrestamoService    service      = new PrestamoService();
-    private final ProductoRepository productoRepo = new ProductoRepository();
+    private final PrestamoService  service         = new PrestamoService();
+    private final ProductoService  productoService = new ProductoService();
     private List<Prestamo> allData   = List.of();
     private boolean        kanbanMode = false;
 
@@ -404,7 +404,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     private void onNuevoPrestamo() {
         javafx.scene.Scene scene = rootPane.getScene();
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes activos…",
-            () -> productoRepo.findAll().stream()
+            () -> productoService.getAll().stream()
                 .filter(p -> p.getFechaBaja() == null)
                 .sorted((a, b) -> a.getNombre().compareTo(b.getNombre()))
                 .toList(),
@@ -475,7 +475,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         form.add(DialogUtil.fieldLabel("Motivo / uso"), 0, row); form.add(fMotivo, 1, row++);
 
         Label lblError = new Label();
-        lblError.getStyleClass().add("form-error-label");
+        lblError.getStyleClass().add("field-error-label");
         lblError.setVisible(false);
 
         VBox content = new VBox(10, header, form, lblError);

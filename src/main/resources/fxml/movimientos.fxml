@@ -10,9 +10,9 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header page-header-purple">
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-purple">
         <!-- Icon badge -->
-        <StackPane styleClass="page-header-icon page-header-icon-purple">
+        <StackPane styleClass="page-header-icon, page-header-icon-purple">
             <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -141,7 +141,7 @@
     </HBox>
 
     <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar filter-bar-purple">
+    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-purple">
         <StackPane prefWidth="280">
             <TextField fx:id="searchField"
                        promptText="🔍  Buscar por producto, motivo o referencia..."
@@ -256,11 +256,13 @@
             <tooltip><Tooltip text="Eliminar el movimiento seleccionado (irreversible)"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
-        <Button fx:id="btnPrev" text="‹" onAction="#onPrev" styleClass="pagination-btn">
+        <Button fx:id="btnPrev" onAction="#onPrev" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-left" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página anterior"/></tooltip>
         </Button>
         <Label fx:id="lblPage" text="Página 1" styleClass="pagination-lbl"/>
-        <Button fx:id="btnNext" text="›" onAction="#onNext" styleClass="pagination-btn">
+        <Button fx:id="btnNext" onAction="#onNext" styleClass="pagination-btn" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-right" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Página siguiente"/></tooltip>
         </Button>
         <ComboBox fx:id="pageSizeBox" prefWidth="82">

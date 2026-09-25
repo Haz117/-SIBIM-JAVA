@@ -279,7 +279,7 @@ public class DashboardController implements Refreshable {
             && l.getText() != null && l.getText().contains("este año"));
         int anioActual = java.time.LocalDate.now().getYear();
         com.sibim.util.DialogUtil.runAsync(
-            () -> new com.sibim.repository.ProductoRepository().countNuevosEnAnio(anioActual),
+            () -> productoService.countNuevosEnAnio(anioActual),
             nuevos -> {
                 if (nuevos > 0) {
                     Label nuevosLbl = new Label("+" + nuevos + " registrados este año");
@@ -357,82 +357,19 @@ public class DashboardController implements Refreshable {
     @FXML
     private void onVerAgotados() {
         if (lastAgotados.isEmpty()) { navigarA("Alertas"); return; }
-        showProductosMiniPanel("Bienes Agotados", "mdi2a-alert-octagon-outline",
+        DashboardMiniPanelDialog.show(statsGrid != null ? statsGrid.getScene() : null,
+            "Bienes Agotados", "mdi2a-alert-octagon-outline",
             "Stock = 0 · " + lastAgotados.size() + " bienes requieren reposición",
-            AppColors.DANGER, AppColors.DANGER_D, lastAgotados);
+            AppColors.DANGER, AppColors.DANGER_D, lastAgotados, () -> navigarA("Alertas"));
     }
 
     @FXML
     private void onVerBajoStock() {
         if (lastBajoStock.isEmpty()) { navigarA("Alertas"); return; }
-        showProductosMiniPanel("Existencias Bajas", "mdi2a-alert-circle-outline",
+        DashboardMiniPanelDialog.show(statsGrid != null ? statsGrid.getScene() : null,
+            "Existencias Bajas", "mdi2a-alert-circle-outline",
             "Por debajo del mínimo · " + lastBajoStock.size() + " bienes",
-            AppColors.WARNING, AppColors.WARNING_D, lastBajoStock);
-    }
-
-    private void showProductosMiniPanel(String titulo, String icono, String subtitulo,
-                                         String color1, String color2, List<Producto> items) {
-        javafx.scene.Scene scene = statsGrid != null ? statsGrid.getScene() : null;
-        if (scene == null) return;
-
-        Dialog<ButtonType> dlg = new Dialog<>();
-        DialogUtil.applyOwner(dlg);
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
-        dlg.getDialogPane().setPrefWidth(500);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        javafx.scene.layout.HBox header = com.sibim.util.DialogUtil.gradientHeader(
-            icono, titulo, subtitulo, color1, color2);
-
-        TableView<Producto> tbl = new TableView<>();
-        tbl.setPrefHeight(250);
-        tbl.getStyleClass().add("data-table");
-
-        TableColumn<Producto, String> cNombre = new TableColumn<>("Nombre");
-        cNombre.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getNombre()));
-        cNombre.setPrefWidth(220);
-
-        TableColumn<Producto, String> cCodigo = new TableColumn<>("Código");
-        cCodigo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getCodigo()));
-        cCodigo.setPrefWidth(110);
-
-        TableColumn<Producto, Integer> cStock = new TableColumn<>("Stock");
-        cStock.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getStockActual()));
-        cStock.setPrefWidth(70);
-        cStock.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(Integer v, boolean empty) {
-                super.updateItem(v, empty);
-                getStyleClass().removeAll("stock-low","stock-warn");
-                if (empty || v == null) { setText(null); return; }
-                setText(String.valueOf(v));
-                getStyleClass().add(v == 0 ? "stock-low" : "stock-warn");
-            }
-        });
-
-        TableColumn<Producto, String> cArea = new TableColumn<>("Área");
-        cArea.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            c.getValue().getArea() != null ? c.getValue().getArea() : ""));
-        cArea.setPrefWidth(160);
-
-        tbl.getColumns().add(cNombre);
-        tbl.getColumns().add(cCodigo);
-        tbl.getColumns().add(cStock);
-        tbl.getColumns().add(cArea);
-        tbl.setItems(javafx.collections.FXCollections.observableArrayList(items));
-
-        Button btnVerTodas = new Button("Ver todas las alertas →");
-        btnVerTodas.getStyleClass().add("btn-primary");
-        btnVerTodas.setOnAction(e -> { dlg.close(); navigarA("Alertas"); });
-
-        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(0, header, tbl);
-        javafx.scene.layout.HBox footer = new javafx.scene.layout.HBox(btnVerTodas);
-        footer.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-        footer.setPadding(new javafx.geometry.Insets(10, 4, 0, 4));
-        content.getChildren().add(footer);
-
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, tbl), 270, 70);
-        dlg.getDialogPane().setContent(content);
-        dlg.showAndWait();
+            AppColors.WARNING, AppColors.WARNING_D, lastBajoStock, () -> navigarA("Alertas"));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────

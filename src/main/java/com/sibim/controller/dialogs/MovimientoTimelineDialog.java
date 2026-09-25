@@ -6,9 +6,9 @@ import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.model.Resguardo;
 import com.sibim.repository.AuditLogRepository;
-import com.sibim.repository.PrestamoRepository;
-import com.sibim.repository.ResguardoRepository;
 import com.sibim.service.MovimientoService;
+import com.sibim.service.PrestamoService;
+import com.sibim.service.ResguardoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
@@ -52,8 +52,8 @@ public final class MovimientoTimelineDialog {
         DialogUtil.runAsyncWithProgress(ownerScene, "Cargando historial…",
             () -> {
                 List<Movimiento> movs        = movimientoService.getByProducto(p.getId());
-                List<Resguardo> resguardos   = new ResguardoRepository().findByProductoId(p.getId());
-                List<Prestamo> prestamos     = new PrestamoRepository().findByProductoId(p.getId());
+                List<Resguardo> resguardos   = new ResguardoService().getByProductoId(p.getId());
+                List<Prestamo> prestamos     = new PrestamoService().getByProductoId(p.getId());
                 // Auditoría es admin-only (ver AuditLogRepository#requireAdmin) — un
                 // usuario sin ese rol simplemente no ve esa parte de la línea de tiempo.
                 List<AuditLog> auditoria = SessionManager.isAdmin()

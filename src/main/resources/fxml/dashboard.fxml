@@ -245,11 +245,11 @@
         <Label fx:id="lblCountReciente" text="" styleClass="dash-activity-badge"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="Ver todos →" onAction="#onVerMovimientos"
-                styleClass="btn-secondary btn-sm"/>
+                styleClass="btn-secondary, btn-sm"/>
     </HBox>
 
     <VBox fx:id="activityCard" styleClass="card" spacing="0">
-        <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table recent-table">
+        <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table, recent-table">
             <placeholder>
                 <VBox alignment="CENTER" spacing="8">
                     <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>

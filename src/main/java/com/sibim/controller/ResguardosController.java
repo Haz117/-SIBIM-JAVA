@@ -4,7 +4,7 @@ import com.sibim.config.Areas;
 import com.sibim.model.Resguardo;
 import com.sibim.model.ResguardoItem;
 import com.sibim.model.Producto;
-import com.sibim.repository.ProductoRepository;
+import com.sibim.service.ProductoService;
 import com.sibim.service.ResguardoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
@@ -52,8 +52,8 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @FXML private Button     btnNuevo;
     @FXML private Button     btnCancelar;
 
-    private final ResguardoService   service      = new ResguardoService();
-    private final ProductoRepository productoRepo = new ProductoRepository();
+    private final ResguardoService service         = new ResguardoService();
+    private final ProductoService  productoService = new ProductoService();
     private List<Resguardo> allData = new ArrayList<>();
     private String statQuickFilter = null;
 
@@ -253,7 +253,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     private void onNuevoResguardo() {
         javafx.scene.Scene scene = rootPane.getScene();
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes activos…",
-            () -> productoRepo.findAll().stream()
+            () -> productoService.getAll().stream()
                 .filter(p -> p.getFechaBaja() == null)
                 .sorted((a, b) -> a.getNombre().compareTo(b.getNombre()))
                 .toList(),
@@ -406,7 +406,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         fObs.getStyleClass().add("form-input");
 
         Label lblError = new Label();
-        lblError.getStyleClass().add("form-error-label");
+        lblError.getStyleClass().add("field-error-label");
         lblError.setVisible(false);
 
         HBox selectorRow = new HBox(8, productoCombo, btnAgregar);

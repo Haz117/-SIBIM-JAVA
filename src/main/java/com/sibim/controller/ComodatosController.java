@@ -3,8 +3,8 @@ package com.sibim.controller;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Comodato;
 import com.sibim.model.Producto;
-import com.sibim.repository.ProductoRepository;
 import com.sibim.service.ComodatoService;
+import com.sibim.service.ProductoService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -49,8 +49,8 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
     @FXML private Button         btnNuevo;
     @FXML private ComboBox<String> estadoFilter;
 
-    private final ComodatoService    service      = new ComodatoService();
-    private final ProductoRepository productoRepo = new ProductoRepository();
+    private final ComodatoService  service         = new ComodatoService();
+    private final ProductoService  productoService = new ProductoService();
     private List<Comodato> allData = List.of();
 
     // ── BaseDocumentController hooks ─────────────────────────────────────────
@@ -285,7 +285,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
     private void onNuevoComodato() {
         javafx.scene.Scene scene = rootPane.getScene();
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes activos…",
-            () -> productoRepo.findAll().stream()
+            () -> productoService.getAll().stream()
                 .filter(p -> p.getFechaBaja() == null)
                 .sorted((a, b) -> a.getNombre().compareTo(b.getNombre()))
                 .toList(),
@@ -376,7 +376,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         form.add(DialogUtil.fieldLabel("Condiciones"), 0, row); form.add(fCondiciones, 1, row++);
 
         Label lblError = new Label();
-        lblError.getStyleClass().add("form-error-label");
+        lblError.getStyleClass().add("field-error-label");
         lblError.setVisible(false);
 
         VBox content = new VBox(10, header, form, lblError);

@@ -360,7 +360,7 @@ public class ProductosController {
     private void loadData() {
         if (!loading.compareAndSet(false, true)) { refreshing = true; return; }
         if (dataLoader == null) dataLoader = new ProductosDataLoader(productoService);
-        table.setPlaceholder(tableManager.buildSkeletonPlaceholder());
+        tableManager.showSkeletonPlaceholder();
         spinner.setVisible(true); spinner.setManaged(true);
 
         ProductosFilterState snap = snapshotFilters();
