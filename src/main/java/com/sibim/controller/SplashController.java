@@ -2,7 +2,9 @@ package com.sibim.controller;
 
 import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.MigrationRunner;
 import com.sibim.db.offline.SyncService;
+import com.sibim.util.AnimationUtils;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.flywaydb.core.Flyway;
 import javafx.animation.*;
@@ -14,24 +16,17 @@ import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.Node;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.effect.DropShadow;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Arc;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 public class SplashController {
@@ -39,186 +34,143 @@ public class SplashController {
     private static final Logger log = LoggerFactory.getLogger(SplashController.class);
 
     @FXML private StackPane splashRoot;
-    @FXML private StackPane logoWrapper;
+    @FXML private VBox splashContent;
+    @FXML private StackPane markWrap;
+    @FXML private Region logoPulse;
     @FXML private StackPane logoBadge;
-    @FXML private VBox brandBox;
     @FXML private Label lblTitle;
     @FXML private Label lblSubtitle;
-    @FXML private Region splashDivider;
     @FXML private Label lblOrg;
+    @FXML private Label lblVersion;
     @FXML private VBox progressBox;
     @FXML private ProgressBar progressBar;
     @FXML private Label lblStatus;
-    @FXML private StackPane ringTr;
-    @FXML private StackPane ringBl;
 
-    private final List<Animation> loops = new ArrayList<>();
-    private Arc arcRing;
-    private Animation arcSpin;
+    /** Institution logo size in the brand mark (a rounded square, matching the default flat badge). */
+    private static final double LOGO_SIZE = 44;
+
     private Timeline dotAnim;
+    private Animation pulseAnim;
+    private boolean finishing     = false;
     private boolean animReady     = false;
     private boolean dbReady       = false;
     private boolean firstRunAdmin = false;
 
+    /**
+     * A short, quiet sequence: the window fades in, then the mark, wordmark, subtitle, progress and footer
+     * appear one after another (each a soft fade with a few pixels of rise), a thin ring breathes out from
+     * the mark while the app starts, the bar fills as the status text crossfades through the startup
+     * phases, and on completion the bar closes to 100 %. Nothing bounces, glows or spins. With animations
+     * turned off in the app settings everything simply shows at once.
+     */
     @FXML
     public void initialize() {
         progressBar.setProgress(0);
         Thread.ofVirtual().name("db-init").start(this::initDatabase);
 
-        arcRing = buildArcRing();
-
-        // ── Root fade-in ──────────────────────────────────────────────────────
-        FadeTransition rootFade = new FadeTransition(Duration.millis(280), splashRoot);
+        FadeTransition rootFade = new FadeTransition(Duration.millis(260), splashRoot);
         rootFade.setFromValue(0); rootFade.setToValue(1);
         rootFade.setInterpolator(Interpolator.EASE_OUT);
 
-        // ── Logo: rise from below + spring bounce (0.5→1.12→0.96→1.0) + fade ──
-        logoBadge.setOpacity(0);
-        logoBadge.setScaleX(0.5);  logoBadge.setScaleY(0.5);
-        logoBadge.setTranslateY(24);
-        FadeTransition logoFade = new FadeTransition(Duration.millis(380), logoBadge);
-        logoFade.setFromValue(0); logoFade.setToValue(1);
-        logoFade.setInterpolator(Interpolator.EASE_OUT);
-        Timeline logoScale = new Timeline(
-            new KeyFrame(Duration.ZERO,
-                new KeyValue(logoBadge.scaleXProperty(),    0.50, Interpolator.EASE_OUT),
-                new KeyValue(logoBadge.scaleYProperty(),    0.50, Interpolator.EASE_OUT),
-                new KeyValue(logoBadge.translateYProperty(), 24,  Interpolator.EASE_OUT)),
-            new KeyFrame(Duration.millis(320),
-                new KeyValue(logoBadge.scaleXProperty(),    1.12, Interpolator.EASE_OUT),
-                new KeyValue(logoBadge.scaleYProperty(),    1.12, Interpolator.EASE_OUT),
-                new KeyValue(logoBadge.translateYProperty(),  0,  Interpolator.EASE_OUT)),
-            new KeyFrame(Duration.millis(430),
-                new KeyValue(logoBadge.scaleXProperty(),    0.96, Interpolator.EASE_BOTH),
-                new KeyValue(logoBadge.scaleYProperty(),    0.96, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(520),
-                new KeyValue(logoBadge.scaleXProperty(),    1.0,  Interpolator.EASE_BOTH),
-                new KeyValue(logoBadge.scaleYProperty(),    1.0,  Interpolator.EASE_BOTH))
-        );
-        ParallelTransition logoIn = new ParallelTransition(logoFade, logoScale);
-        logoIn.setDelay(Duration.millis(80));
+        reveal(markWrap,    100, 0, 0.86);
+        reveal(lblTitle,    240, 6, 1);
+        reveal(lblSubtitle, 330, 6, 1);
+        reveal(progressBox, 450, 6, 1);
+        reveal(lblOrg,      580, 0, 1);
+        reveal(lblVersion,  580, 0, 1);
 
-        // ── Brand labels: sequential fade-up con micro-escala en el título ────
-        ParallelTransition titleIn    = labelFadeUpScale(lblTitle,    220, 380);
-        ParallelTransition subtitleIn = labelFadeUp(lblSubtitle,      340, 300);
-
-        // Divider: scale-X from 0 → 1, fade 0 → 1
-        splashDivider.setScaleX(0); splashDivider.setOpacity(0);
-        Timeline dividerIn = new Timeline(
-            new KeyFrame(Duration.ZERO,
-                new KeyValue(splashDivider.scaleXProperty(), 0.0, Interpolator.EASE_OUT),
-                new KeyValue(splashDivider.opacityProperty(), 0.0)),
-            new KeyFrame(Duration.millis(320),
-                new KeyValue(splashDivider.scaleXProperty(), 1.0, Interpolator.EASE_OUT),
-                new KeyValue(splashDivider.opacityProperty(), 1.0))
-        );
-        dividerIn.setDelay(Duration.millis(380));
-
-        ParallelTransition orgIn = labelFadeUp(lblOrg, 460, 280);
-
-        // ── Progress section ──────────────────────────────────────────────────
-        progressBox.setOpacity(0); progressBox.setTranslateY(10);
-        FadeTransition progFade = new FadeTransition(Duration.millis(300), progressBox);
-        progFade.setFromValue(0); progFade.setToValue(1);
-        TranslateTransition progSlide = new TranslateTransition(Duration.millis(300), progressBox);
-        progSlide.setFromY(10); progSlide.setToY(0);
-        progSlide.setInterpolator(Interpolator.EASE_OUT);
-        ParallelTransition progressIn = new ParallelTransition(progFade, progSlide);
-        progressIn.setDelay(Duration.millis(560));
-
-        // Non-linear progress fill
+        // Non-linear fill; stops at 88% so the bar never falsely reaches 100% before the DB is ready
         Timeline progressAnim = new Timeline(
-            new KeyFrame(Duration.ZERO,
-                new KeyValue(progressBar.progressProperty(), 0.0),
-                new KeyValue(arcRing.lengthProperty(),       0.0)),
-            new KeyFrame(Duration.millis(400),
-                new KeyValue(progressBar.progressProperty(), 0.18, Interpolator.EASE_IN),
-                new KeyValue(arcRing.lengthProperty(),      -64.8, Interpolator.EASE_IN)),
-            new KeyFrame(Duration.millis(1000),
-                new KeyValue(progressBar.progressProperty(), 0.52,   Interpolator.EASE_BOTH),
-                new KeyValue(arcRing.lengthProperty(),      -187.2,  Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(1650),
-                new KeyValue(progressBar.progressProperty(), 0.82,   Interpolator.EASE_BOTH),
-                new KeyValue(arcRing.lengthProperty(),      -295.2,  Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(2100),
-                // Stop at 88% so the bar never falsely reaches 100% before the DB is ready
-                new KeyValue(progressBar.progressProperty(), 0.88,   Interpolator.EASE_OUT),
-                new KeyValue(arcRing.lengthProperty(),      -316.8,  Interpolator.EASE_OUT))
+            new KeyFrame(Duration.ZERO,           new KeyValue(progressBar.progressProperty(), 0.0)),
+            new KeyFrame(Duration.millis(400),    new KeyValue(progressBar.progressProperty(), 0.18, Interpolator.EASE_IN)),
+            new KeyFrame(Duration.millis(1000),   new KeyValue(progressBar.progressProperty(), 0.52, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(1650),   new KeyValue(progressBar.progressProperty(), 0.82, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(2100),   new KeyValue(progressBar.progressProperty(), 0.88, Interpolator.EASE_OUT))
         );
-        progressAnim.setDelay(Duration.millis(680));
+        progressAnim.setDelay(Duration.millis(450));
 
         Timeline statusAnim = new Timeline(
-            new KeyFrame(Duration.millis(0),    e -> lblStatus.setText("Iniciando sistema...")),
-            new KeyFrame(Duration.millis(650),  e -> lblStatus.setText("Conectando base de datos...")),
-            new KeyFrame(Duration.millis(1300), e -> lblStatus.setText("Cargando módulos...")),
-            // Don't say "listo" here — the real "Sistema listo ✓" is set when dbReady fires
-            new KeyFrame(Duration.millis(1950), e -> lblStatus.setText("Preparando interfaz..."))
+            new KeyFrame(Duration.millis(0),    e -> setStatus("Iniciando sistema…")),
+            new KeyFrame(Duration.millis(650),  e -> setStatus("Conectando base de datos…")),
+            new KeyFrame(Duration.millis(1300), e -> setStatus("Cargando módulos…")),
+            // Don't say "listo" here — the real "Listo" is set when both the animation and the DB are done
+            new KeyFrame(Duration.millis(1950), e -> setStatus("Preparando interfaz…"))
         );
-        statusAnim.setDelay(Duration.millis(680));
+        statusAnim.setDelay(Duration.millis(450));
 
-        PauseTransition hold = new PauseTransition(Duration.millis(400));
+        startPulse();
+
+        PauseTransition hold = new PauseTransition(Duration.millis(300));
         hold.setOnFinished(e -> {
-            stopLoops();
             animReady = true;
             if (!dbReady) {
-                progressBar.setVisible(false);
+                // still waiting on the database: keep the bar alive as an indeterminate sweep
+                progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
                 startDotAnimation();
-                startArcSpin();
             }
             maybeTransition();
         });
 
-        ParallelTransition entrance = new ParallelTransition(
-            rootFade, logoIn, titleIn, subtitleIn, dividerIn, orgIn,
-            progressIn, progressAnim, statusAnim);
+        ParallelTransition entrance = new ParallelTransition(rootFade, progressAnim, statusAnim);
         entrance.setOnFinished(e -> hold.play());
         entrance.play();
-
-        startGlowPulse();
-        startBlobFloat();
     }
 
-    private Arc buildArcRing() {
-        Arc track = new Arc(58, 58, 57, 57, 90, -360);
-        track.setType(ArcType.OPEN);
-        track.setFill(null);
-        track.setStroke(Color.web("#3730a3", 0.30));
-        track.setStrokeWidth(2.5);
-
-        Arc arc = new Arc(58, 58, 57, 57, 90, 0);
-        arc.setType(ArcType.OPEN);
-        arc.setFill(null);
-        arc.setStroke(Color.web("#818cf8"));
-        arc.setStrokeWidth(2.5);
-        arc.setStrokeLineCap(StrokeLineCap.ROUND);
-
-        Pane arcLayer = new Pane(track, arc);
-        arcLayer.setPrefSize(116, 116);
-        arcLayer.setMouseTransparent(true);
-        if (logoWrapper != null) logoWrapper.getChildren().add(arcLayer);
-        return arc;
+    /** Fade a node in (with an optional few pixels of rise and/or a slight scale-up) after {@code delayMs}. */
+    private static void reveal(Node node, int delayMs, double riseFrom, double scaleFrom) {
+        if (node == null) return;
+        if (!AnimationUtils.isEnabled()) return;           // animations off: leave it fully visible
+        node.setOpacity(0);
+        node.setTranslateY(riseFrom);
+        node.setScaleX(scaleFrom); node.setScaleY(scaleFrom);
+        FadeTransition fade = new FadeTransition(Duration.millis(400), node);
+        fade.setFromValue(0); fade.setToValue(1);
+        fade.setInterpolator(Interpolator.EASE_OUT);
+        ParallelTransition in = new ParallelTransition(fade);
+        if (riseFrom != 0) {
+            TranslateTransition rise = new TranslateTransition(Duration.millis(400), node);
+            rise.setFromY(riseFrom); rise.setToY(0);
+            rise.setInterpolator(Interpolator.EASE_OUT);
+            in.getChildren().add(rise);
+        }
+        if (scaleFrom != 1) {
+            ScaleTransition grow = new ScaleTransition(Duration.millis(460), node);
+            grow.setFromX(scaleFrom); grow.setFromY(scaleFrom); grow.setToX(1); grow.setToY(1);
+            grow.setInterpolator(Interpolator.EASE_OUT);
+            in.getChildren().add(grow);
+        }
+        in.setDelay(Duration.millis(delayMs));
+        in.play();
     }
 
-    private void startArcSpin() {
-        if (arcRing == null) return;
-        // First shrink arc from fill-up length to 90°, then spin by animating startAngle.
-        // We animate startAngle (not rotate the node) because a partial Arc's bounding-box
-        // center doesn't coincide with the circle's center, making RotateTransition wobble.
-        Timeline shrink = new Timeline(new KeyFrame(Duration.millis(280),
-            new KeyValue(arcRing.lengthProperty(), -90.0, Interpolator.EASE_BOTH)));
-        shrink.setOnFinished(ev -> {
-            double start = arcRing.getStartAngle();
-            Timeline spin = new Timeline(
-                new KeyFrame(Duration.ZERO,
-                    new KeyValue(arcRing.startAngleProperty(), start)),
-                new KeyFrame(Duration.millis(1100),
-                    new KeyValue(arcRing.startAngleProperty(), start - 360.0, Interpolator.LINEAR))
-            );
-            spin.setCycleCount(Animation.INDEFINITE);
-            spin.play();
-            arcSpin = spin;
+    /** A thin ring that expands and fades out from the mark, repeating while the app is starting. */
+    private void startPulse() {
+        if (logoPulse == null || !AnimationUtils.isEnabled()) return;
+        ScaleTransition grow = new ScaleTransition(Duration.millis(1700), logoPulse);
+        grow.setFromX(1); grow.setFromY(1); grow.setToX(1.9); grow.setToY(1.9);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition fade = new FadeTransition(Duration.millis(1700), logoPulse);
+        fade.setFromValue(0.55); fade.setToValue(0);
+        fade.setInterpolator(Interpolator.EASE_OUT);
+        ParallelTransition ring = new ParallelTransition(grow, fade);
+        ring.setDelay(Duration.millis(700));
+        ring.setCycleCount(Animation.INDEFINITE);
+        pulseAnim = ring;
+        ring.play();
+    }
+
+    /** Swap the status line with a quick crossfade instead of a hard text change. */
+    private void setStatus(String text) {
+        if (!AnimationUtils.isEnabled()) { lblStatus.setText(text); return; }
+        FadeTransition out = new FadeTransition(Duration.millis(90), lblStatus);
+        out.setToValue(0);
+        out.setOnFinished(e -> {
+            lblStatus.setText(text);
+            FadeTransition in = new FadeTransition(Duration.millis(170), lblStatus);
+            in.setToValue(1);
+            in.play();
         });
-        shrink.play();
+        out.play();
     }
 
     private void startDotAnimation() {
@@ -234,89 +186,26 @@ public class SplashController {
         dotAnim.play();
     }
 
-    /** Slow vertical float on the decorative background blobs — makes the dark background feel alive. */
-    private void startBlobFloat() {
-        if (ringTr == null || ringBl == null) return;
-        Timeline floatTr = new Timeline(
-            new KeyFrame(Duration.ZERO,        new KeyValue(ringTr.translateYProperty(), -150.0, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(3800), new KeyValue(ringTr.translateYProperty(), -168.0, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(7600), new KeyValue(ringTr.translateYProperty(), -150.0, Interpolator.EASE_BOTH))
-        );
-        floatTr.setCycleCount(Animation.INDEFINITE);
-        floatTr.play();
-        Timeline floatBl = new Timeline(
-            new KeyFrame(Duration.ZERO,        new KeyValue(ringBl.translateYProperty(),  110.0, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(4200), new KeyValue(ringBl.translateYProperty(),  124.0, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(8400), new KeyValue(ringBl.translateYProperty(),  110.0, Interpolator.EASE_BOTH))
-        );
-        floatBl.setCycleCount(Animation.INDEFINITE);
-        floatBl.setDelay(Duration.millis(1200));
-        floatBl.play();
-        loops.add(floatTr);
-        loops.add(floatBl);
-    }
-
-    /** Single ambient effect: a subtle glow pulse on the logo badge. */
-    private void startGlowPulse() {
-        DropShadow glow = new DropShadow(36, Color.rgb(99, 102, 241, 0.65));
-        glow.setSpread(0); glow.setOffsetY(10);
-        logoBadge.setEffect(glow);
-        Timeline glowPulse = new Timeline(
-            new KeyFrame(Duration.ZERO,        new KeyValue(glow.radiusProperty(), 30, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(1400), new KeyValue(glow.radiusProperty(), 52, Interpolator.EASE_BOTH)),
-            new KeyFrame(Duration.millis(2800), new KeyValue(glow.radiusProperty(), 30, Interpolator.EASE_BOTH))
-        );
-        glowPulse.setCycleCount(Animation.INDEFINITE);
-        glowPulse.setDelay(Duration.millis(500));
-        glowPulse.play();
-        loops.add(glowPulse);
-    }
-
-    private static ParallelTransition labelFadeUp(javafx.scene.Node node, int delayMs, int durationMs) {
-        node.setOpacity(0);
-        if (node instanceof javafx.scene.control.Labeled l) l.setTranslateY(14);
-        FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
-        ft.setFromValue(0); ft.setToValue(1);
-        TranslateTransition tt = new TranslateTransition(Duration.millis(durationMs), node);
-        tt.setFromY(14); tt.setToY(0);
-        tt.setInterpolator(Interpolator.EASE_OUT);
-        ParallelTransition pt = new ParallelTransition(ft, tt);
-        pt.setDelay(Duration.millis(delayMs));
-        return pt;
-    }
-
-    /** Like labelFadeUp but also animates scale 0.94→1.0 for a weightier entrance. */
-    private static ParallelTransition labelFadeUpScale(javafx.scene.Node node, int delayMs, int durationMs) {
-        node.setOpacity(0);
-        node.setScaleX(0.94); node.setScaleY(0.94);
-        if (node instanceof javafx.scene.control.Labeled l) l.setTranslateY(12);
-        FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
-        ft.setFromValue(0); ft.setToValue(1);
-        TranslateTransition tt = new TranslateTransition(Duration.millis(durationMs), node);
-        tt.setFromY(12); tt.setToY(0);
-        tt.setInterpolator(Interpolator.EASE_OUT);
-        Timeline scaleIn = new Timeline(
-            new KeyFrame(Duration.ZERO,
-                new KeyValue(node.scaleXProperty(), 0.94, Interpolator.EASE_OUT),
-                new KeyValue(node.scaleYProperty(), 0.94, Interpolator.EASE_OUT)),
-            new KeyFrame(Duration.millis(durationMs),
-                new KeyValue(node.scaleXProperty(), 1.0, Interpolator.EASE_OUT),
-                new KeyValue(node.scaleYProperty(), 1.0, Interpolator.EASE_OUT))
-        );
-        ParallelTransition pt = new ParallelTransition(ft, tt, scaleIn);
-        pt.setDelay(Duration.millis(delayMs));
-        return pt;
-    }
-
     private void stopLoops() {
-        for (Animation a : loops) if (a != null) a.stop();
-        loops.clear();
-        if (arcSpin != null) { arcSpin.stop(); arcSpin = null; }
-        if (dotAnim  != null) { dotAnim.stop();  dotAnim  = null; }
+        if (dotAnim != null) { dotAnim.stop(); dotAnim = null; }
+        if (pulseAnim != null) { pulseAnim.stop(); pulseAnim = null; if (logoPulse != null) logoPulse.setOpacity(0); }
     }
 
+    /** Once both the intro and the database are done: close the bar to 100 %, say "Listo", beat, continue. */
     private void maybeTransition() {
-        if (animReady && dbReady) Platform.runLater(this::afterEntrance);
+        if (!(animReady && dbReady) || finishing) return;
+        finishing = true;
+        stopLoops();
+        setStatus("Listo");
+        if (progressBar.getProgress() < 0) progressBar.setProgress(0.9);   // was the indeterminate sweep
+        Timeline close = new Timeline(new KeyFrame(Duration.millis(260),
+            new KeyValue(progressBar.progressProperty(), 1.0, Interpolator.EASE_BOTH)));
+        close.setOnFinished(e -> {
+            PauseTransition beat = new PauseTransition(Duration.millis(160));
+            beat.setOnFinished(x -> Platform.runLater(this::afterEntrance));
+            beat.play();
+        });
+        close.play();
     }
 
     private void initDatabase() {
@@ -335,8 +224,9 @@ public class SplashController {
                     .baselineOnMigrate(true)
                     .baselineVersion("0")
                     .load();
-                flyway.repair();
-                flyway.migrate();
+                boolean autoRepair = "true".equalsIgnoreCase(
+                    dotenv.get(MigrationRunner.AUTO_REPAIR_KEY, System.getenv(MigrationRunner.AUTO_REPAIR_KEY)));
+                MigrationRunner.run(flyway, autoRepair);
                 firstRunAdmin = seedAdminIfEmpty();
                 try {
                     com.sibim.repository.ConfiguracionRepository cr = new com.sibim.repository.ConfiguracionRepository();
@@ -352,7 +242,15 @@ public class SplashController {
                 }
             }
         } catch (Exception e) {
-            log.warn("No se pudo conectar a la base de datos: {}", e.getMessage());
+            // Only a validation failure means "history != this build's scripts". Flyway wraps
+            // plain connection/IO errors in other FlywayExceptions — those are just "no connection".
+            if (e instanceof org.flywaydb.core.api.exception.FlywayValidateException) {
+                log.error("Las migraciones de la base de datos no coinciden con esta versión del programa; "
+                    + "NO se modificó el historial. Si el cambio es intencional agrega {}=true al .env y reinicia. "
+                    + "Detalle: {}", MigrationRunner.AUTO_REPAIR_KEY, e.getMessage());
+            } else {
+                log.warn("No se pudo conectar a la base de datos: {}", e.getMessage());
+            }
             DatabaseConfig.close();
             log.info("Iniciando en modo offline.");
             DatabaseConfig.setOfflineMode(true);
@@ -365,25 +263,6 @@ public class SplashController {
             }
             Platform.runLater(() -> {
                 dbReady = true;
-                if (animReady) {
-                    if (arcSpin != null) { arcSpin.stop(); arcSpin = null; }
-                    if (arcRing != null) { arcRing.setLength(-360); }
-                    progressBar.setProgress(1.0);
-                    lblStatus.setText("Sistema listo  ✓");
-                    // Brief logo pulse as visual confirmation
-                    Timeline confirmPulse = new Timeline(
-                        new KeyFrame(Duration.ZERO,
-                            new KeyValue(logoBadge.scaleXProperty(), 1.0, Interpolator.EASE_OUT),
-                            new KeyValue(logoBadge.scaleYProperty(), 1.0, Interpolator.EASE_OUT)),
-                        new KeyFrame(Duration.millis(180),
-                            new KeyValue(logoBadge.scaleXProperty(), 1.07, Interpolator.EASE_OUT),
-                            new KeyValue(logoBadge.scaleYProperty(), 1.07, Interpolator.EASE_OUT)),
-                        new KeyFrame(Duration.millis(340),
-                            new KeyValue(logoBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
-                            new KeyValue(logoBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
-                    );
-                    confirmPulse.play();
-                }
                 maybeTransition();
             });
         }
@@ -396,6 +275,10 @@ public class SplashController {
             notifyOfflineMode();
         }
         if (firstRunAdmin) notifyFirstRun();
+        if (MainApp.getPrimaryStage() == null) {
+            log.debug("Splash finalizado sin Stage principal; se omite la navegación en modo smoke-test");
+            return;
+        }
         try {
             MainApp.showLogin();
         } catch (Exception ex) {
@@ -486,10 +369,11 @@ public class SplashController {
             java.io.File f = new java.io.File(path);
             if (!f.exists() || !f.isFile()) return;
             javafx.scene.image.Image img =
-                new javafx.scene.image.Image(f.toURI().toString(), 92, 92, true, true, true);
+                new javafx.scene.image.Image(f.toURI().toString(), LOGO_SIZE, LOGO_SIZE, true, true, true);
             javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
-            iv.setFitWidth(92); iv.setFitHeight(92); iv.setPreserveRatio(true);
-            javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(46, 46, 46);
+            iv.setFitWidth(LOGO_SIZE); iv.setFitHeight(LOGO_SIZE); iv.setPreserveRatio(true);
+            javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(LOGO_SIZE, LOGO_SIZE);
+            clip.setArcWidth(24); clip.setArcHeight(24);
             iv.setClip(clip);
             logoBadge.getChildren().setAll(iv);
         } catch (Exception e) {

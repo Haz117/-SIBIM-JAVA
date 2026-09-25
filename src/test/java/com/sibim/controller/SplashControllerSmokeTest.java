@@ -1,11 +1,14 @@
 package com.sibim.controller;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.SyncService;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -29,8 +32,22 @@ class SplashControllerSmokeTest extends ControllerSmokeTestBase {
 
     @Override
     public void stop() throws Exception {
-        // Don't flip demoMode — initDatabase() may have already set it.
-        // Just clean up the session (none was set, but be safe).
+        // The splash's "db-init" virtual thread outlives this test. When the connection
+        // fails it calls DatabaseConfig.close() (closing the GLOBAL pool) and flips offline
+        // mode ~8 s after start — which would close/flip whatever pool the next integration
+        // test class has just installed. Wait for it to settle before touching shared state.
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (!DatabaseConfig.isOfflineMode() && !DatabaseConfig.isDemoMode()
+                && System.nanoTime() < deadline) {
+            Thread.sleep(100);
+        }
+        // initDatabase()'s finally block then starts SyncService's global "sibim-sync"
+        // watcher, which would keep flipping the shared DatabaseConfig in later tests.
+        for (int i = 0; i < 10; i++) {
+            SyncService.stopWatching();
+            Thread.sleep(100);
+        }
+        DatabaseConfig.setOfflineMode(false);
         DatabaseConfig.setDemoMode(false);
     }
 
