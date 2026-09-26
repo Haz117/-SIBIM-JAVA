@@ -49,5 +49,10 @@ packaging/dist/
 # ── Archivos temporales del editor ────────────────────────────────
 *.tmp
 *.tmp.*
-CTempsibim-stdout.txt
+C*Tempsibim-stdout.txt
 test-output.txt
+__pycache__/
+
+# ── Inventario físico real del ayuntamiento (miles de .docx/.xlsx, ~4 GB) ──
+# Son datos de trabajo, no código: nunca deben llegar a GitHub.
+INV.DIG MLA/
