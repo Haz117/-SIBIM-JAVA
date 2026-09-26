@@ -31,7 +31,9 @@ import java.time.LocalDateTime;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -330,17 +332,24 @@ public final class SyncService {
             }
         }
         ProductoRepository repo = new ProductoRepository();
+        // Once one queued change of a bien is applied, the server's updated_at
+        // moves to "now" — a later queued change of the same bien must be
+        // compared against that, not against the baseline both were queued
+        // with, or every bien edited twice offline would conflict with itself.
+        Map<String, LocalDateTime> baselineTrasReplicar = new HashMap<>();
         for (ProductRow r : rows) {
             try {
                 // Conflict detection: if the server's updated_at is newer than the snapshot
                 // this PC had when it made the offline change, another user modified the
                 // same product in the meantime — don't blindly overwrite. Applies to SAVE,
                 // BAJA, and REACTIVAR (all three now store a non-null serverSnapshotAt).
-                if (r.serverSnapshotAt() != null) {
+                String snapshot = baselineTrasReplicar.containsKey(r.productoId())
+                    ? baselineTrasReplicar.get(r.productoId()).toString() : r.serverSnapshotAt();
+                if (snapshot != null) {
                     LocalDateTime serverUpdatedAt = fetchServerUpdatedAt(r.productoId());
                     if (serverUpdatedAt != null) {
                         try {
-                            LocalDateTime snapshotAt = LocalDateTime.parse(r.serverSnapshotAt());
+                            LocalDateTime snapshotAt = LocalDateTime.parse(snapshot);
                             if (serverUpdatedAt.isAfter(snapshotAt)) {
                                 log.warn("SyncService: CONFLICTO bien '{}' [{}] op={} — servidor modificado en {}, snapshot local: {}",
                                     r.nombre(), r.productoId(), r.operacion(), serverUpdatedAt, snapshotAt);
@@ -353,7 +362,7 @@ public final class SyncService {
                                 continue;
                             }
                         } catch (Exception parseEx) {
-                            log.debug("SyncService: no se pudo parsear server_snapshot_at '{}'", r.serverSnapshotAt());
+                            log.debug("SyncService: no se pudo parsear server_snapshot_at '{}'", snapshot);
                         }
                     }
                 }
@@ -361,6 +370,11 @@ public final class SyncService {
                     case "BAJA" -> repo.darDeBajaOnline(r.productoId(), r.motivoBaja());
                     case "REACTIVAR" -> repo.reactivarOnline(r.productoId());
                     default -> repo.saveOnline(productFromRow(r));
+                }
+                LocalDateTime nuevoBaseline = fetchServerUpdatedAt(r.productoId());
+                if (nuevoBaseline != null) {
+                    baselineTrasReplicar.put(r.productoId(), nuevoBaseline);
+                    actualizarBaselinePendiente(r.productoId(), r.id(), nuevoBaseline);
                 }
                 markOutbox("product_outbox", r.id(), STATUS_SYNCED, null);
                 writeAuditEntry("producto", r.productoId(), r.nombre(),
@@ -375,6 +389,21 @@ public final class SyncService {
             }
         }
         return conflicts;
+    }
+
+    /** Persists the new baseline on this bien's later queued rows too, so an
+     *  interrupted pass doesn't flag them as conflicts on the next one. */
+    private static void actualizarBaselinePendiente(String productoId, int despuesDeId, LocalDateTime baseline) {
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                "UPDATE product_outbox SET server_snapshot_at = ? WHERE producto_id = ? AND id > ? AND status = ?")) {
+            ps.setString(1, baseline.toString());
+            ps.setString(2, productoId);
+            ps.setInt(3, despuesDeId);
+            ps.setString(4, STATUS_PENDING);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            log.warn("SyncService: no se pudo actualizar la referencia de conflicto del bien {}", productoId, e);
+        }
     }
 
     private static Producto productFromRow(ProductRow r) {

@@ -15,6 +15,8 @@ module com.sibim {
     requires com.zaxxer.hikari;
     requires org.postgresql.jdbc;
     requires org.xerial.sqlitejdbc;
+    requires com.sun.jna;
+    requires com.sun.jna.platform;
 
     requires bcrypt;
 

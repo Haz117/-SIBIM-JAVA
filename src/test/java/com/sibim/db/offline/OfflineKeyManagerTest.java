@@ -1,7 +1,16 @@
 package com.sibim.db.offline;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import javax.crypto.SecretKey;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.HexFormat;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class OfflineKeyManagerTest {
 
@@ -26,6 +35,28 @@ class OfflineKeyManagerTest {
         // tested by the fact that user.name is part of the material.
         String key = OfflineKeyManager.deriveKey();
         assertNotEquals("0000000000000000000000000000000000000000000000000000000000000000", key);
+    }
+
+    @Test
+    void claveProtegida_seCreaUnaVezYSeReutiliza(@TempDir Path dir) throws Exception {
+        assumeTrue(System.getProperty("os.name", "").toLowerCase().contains("win"), "DPAPI solo existe en Windows");
+        SecretKey primera = OfflineKeyManager.claveProtegida(dir);
+        assertNotNull(primera);
+        byte[] sellada = Files.readAllBytes(dir.resolve(OfflineKeyManager.ARCHIVO_CLAVE));
+        assertFalse(Arrays.equals(primera.getEncoded(), sellada), "en disco va sellada, no en claro");
+        assertArrayEquals(primera.getEncoded(), OfflineKeyManager.claveProtegida(dir).getEncoded());
+        assertNotEquals(OfflineKeyManager.deriveKey(), HexFormat.of().formatHex(primera.getEncoded()),
+            "es aleatoria, no derivable de datos del equipo");
+    }
+
+    @Test
+    void claveProtegida_ilegible_seApartaYSeCreaOtra(@TempDir Path dir) throws Exception {
+        assumeTrue(System.getProperty("os.name", "").toLowerCase().contains("win"), "DPAPI solo existe en Windows");
+        Files.write(dir.resolve(OfflineKeyManager.ARCHIVO_CLAVE), new byte[]{1, 2, 3, 4});
+        assertNotNull(OfflineKeyManager.claveProtegida(dir));
+        try (var archivos = Files.list(dir)) {
+            assertTrue(archivos.anyMatch(p -> p.getFileName().toString().startsWith("offline.key.ilegible-")));
+        }
     }
 
     @Test

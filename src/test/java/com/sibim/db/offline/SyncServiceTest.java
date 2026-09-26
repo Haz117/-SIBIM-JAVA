@@ -263,6 +263,70 @@ class SyncServiceTest extends IntegrationTestBase {
     }
 
     @Test
+    void syncProductos_dosEdicionesOfflineDelMismoBien_noChocanEntreSi() throws Exception {
+        String catId = insertPgCategory("Cómputo dos ediciones");
+        String prodId = insertPgProduct("Impresora", "IMP-001", catId);
+        String baseline = pgUpdatedAt(prodId);
+        // Both queued with the baseline the PC had before going offline.
+        int primera = insertProductOutbox("SAVE", prodId, "Impresora (ed. 1)", "IMP-001", catId, baseline, null);
+        int segunda = insertProductOutbox("SAVE", prodId, "Impresora (ed. 2)", "IMP-001", catId, baseline, null);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        List<ConflictoInfo> conflicts = SyncService.syncProductos(synced, failed);
+
+        assertTrue(conflicts.isEmpty(), "aplicar la 1a edición no debe hacer que la 2a parezca un conflicto");
+        assertEquals(2, synced.get());
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", primera));
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", segunda));
+        assertEquals("Impresora (ed. 2)", pgString("SELECT nombre FROM products WHERE id = ?", prodId));
+    }
+
+    @Test
+    void syncProductosLuegoMovimientos_edicionOfflineConStockYaSumado_noDuplicaElStock() throws Exception {
+        String catId = insertPgCategory("Cómputo stock");
+        String prodId = insertPgProduct("Tóner", "TON-001", catId);   // stock 10 on the server
+        // Offline: ENTRADA of 5 (local stock → 15), then an edit of the same bien,
+        // whose queued copy therefore already carries stock 15.
+        int edicion = insertProductOutbox("SAVE", prodId, "Tóner negro", "TON-001", catId, pgUpdatedAt(prodId), null);
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                "UPDATE product_outbox SET stock_actual = 15 WHERE id = ?")) {
+            ps.setInt(1, edicion);
+            ps.executeUpdate();
+        }
+        insertMovementOutbox(UUID.randomUUID().toString(), prodId, "entrada", 5);
+        AtomicInteger synced = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+
+        SyncService.syncProductos(synced, failed);
+        SyncService.syncMovimientos(synced, failed);
+
+        assertEquals(0, failed.get());
+        assertEquals("15", pgString("SELECT stock_actual::text FROM products WHERE id = ?", prodId),
+            "el movimiento se aplica una sola vez: 10 + 5");
+    }
+
+    private String pgUpdatedAt(String prodId) throws SQLException {
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT updated_at FROM products WHERE id = ?")) {
+            ps.setString(1, prodId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getTimestamp(1).toLocalDateTime().toString();
+            }
+        }
+    }
+
+    private String pgString(String sql, String id) throws SQLException {
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    @Test
     void syncProductos_SAVE_snapshotAtNulo_omiteDeteccionDeConflicto() throws Exception {
         String catId = insertPgCategory("Cómputo 2");
         String prodId = insertPgProduct("Monitor LG", "MON-001", catId);

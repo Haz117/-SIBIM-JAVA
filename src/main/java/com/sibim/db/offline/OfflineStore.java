@@ -96,8 +96,12 @@ public final class OfflineStore {
                 Path encFile  = dbDir.resolve("offline.db.enc");
                 Path workFile = dbDir.resolve("offline.db.work");
 
-                javax.crypto.SecretKey key =
+                // DPAPI-sealed random key where available; the machine-derived
+                // key otherwise (see OfflineKeyManager#claveProtegida).
+                javax.crypto.SecretKey derivada =
                     OfflineEncryption.keyFrom(OfflineKeyManager.deriveKey());
+                javax.crypto.SecretKey protegida = OfflineKeyManager.claveProtegida(dbDir);
+                javax.crypto.SecretKey key = protegida != null ? protegida : derivada;
 
                 // Migrate plaintext legacy DB on first run after encryption was introduced
                 if (Files.exists(legacyDb) && !OfflineEncryption.isEncrypted(legacyDb)) {
@@ -122,19 +126,34 @@ public final class OfflineStore {
                     }
                 }
 
-                // Decrypt enc → work, with automatic one-time migration from the old
-                // hostname-based key (SIBIM-v1) to the stable MachineGuid-based key (SIBIM-v2)
-                if (Files.exists(encFile)) {
-                    if (!OfflineEncryption.tryDecryptTo(encFile, workFile, key)) {
-                        log.warn("offline.db: clave actual no coincide — probando clave legacy "
-                            + "(¿se renombró la computadora?)...");
-                        javax.crypto.SecretKey legacyKey =
-                            OfflineEncryption.keyFrom(OfflineKeyManager.deriveLegacyKey());
-                        OfflineEncryption.decryptTo(encFile, workFile, legacyKey);
-                        log.info("offline.db: re-cifrando con clave estable (MachineGuid)...");
-                        OfflineEncryption.encryptFrom(workFile, encFile, key);
-                        OfflineEncryption.decryptTo(encFile, workFile, key);
-                        log.info("offline.db: migración de clave completada");
+                // Decrypt enc → work. A store written by an earlier version is
+                // encrypted with the machine-derived key (SIBIM-v2, before DPAPI)
+                // or the hostname-based one (SIBIM-v1): open it with whichever
+                // works and re-seal it with the current key, once.
+                if (Files.exists(encFile) && !OfflineEncryption.tryDecryptTo(encFile, workFile, key)) {
+                    boolean migrado = false;
+                    for (javax.crypto.SecretKey anterior : List.of(derivada,
+                            OfflineEncryption.keyFrom(OfflineKeyManager.deriveLegacyKey()))) {
+                        if (anterior.equals(key)) continue;
+                        if (OfflineEncryption.tryDecryptTo(encFile, workFile, anterior)) {
+                            log.info("offline.db: re-cifrando con la clave actual...");
+                            OfflineEncryption.encryptFrom(workFile, encFile, key);
+                            OfflineEncryption.decryptTo(encFile, workFile, key);
+                            log.info("offline.db: migración de clave completada");
+                            migrado = true;
+                            break;
+                        }
+                    }
+                    if (!migrado) {
+                        // No key opens it (DPAPI keys are lost when an administrator
+                        // resets the Windows password). Set it aside and let the store
+                        // be rebuilt from the server instead of leaving this PC
+                        // unable to work offline at all.
+                        Path apartado = encFile.resolveSibling("offline.db.enc.ilegible-" + System.currentTimeMillis());
+                        Files.move(encFile, apartado);
+                        log.error("offline.db.enc no se pudo descifrar con ninguna clave; se apartó como {} "
+                            + "y se crea un almacén nuevo (los cambios offline sin sincronizar de esa copia se pierden)",
+                            apartado.getFileName());
                     }
                 }
 
@@ -413,6 +432,18 @@ public final class OfflineStore {
         try (Statement st = c.createStatement()) { st.execute("ALTER TABLE category_outbox ADD COLUMN codigo_conac TEXT"); } catch (SQLException ignored) {
             log.debug("Offline migration step already applied (idempotent)", ignored);
         }
+        // M(2026-09): server_updated_at — the server's own updated_at as last
+        // mirrored. Offline writes stamp updated_at with this PC's clock, so it
+        // can't serve as the conflict baseline (see serverSnapshot()). Backfill
+        // from updated_at for bienes with nothing queued, where it still is the
+        // server's value.
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE products ADD COLUMN server_updated_at TEXT");
+            st.execute("UPDATE products SET server_updated_at = updated_at WHERE id NOT IN "
+                + "(SELECT producto_id FROM product_outbox WHERE status NOT IN ('SYNCED','DISCARDED'))");
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
     }
 
     private static void runSchema(Connection c) throws SQLException {
@@ -576,8 +607,8 @@ public final class OfflineStore {
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante, fecha_baja, motivo_baja,
-                etiquetado, fotos_urls, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                etiquetado, fotos_urls, created_at, updated_at, server_updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
                 nombre=excluded.nombre, codigo=excluded.codigo, descripcion=excluded.descripcion,
                 categoria_id=excluded.categoria_id, precio_compra=excluded.precio_compra,
@@ -590,9 +621,10 @@ public final class OfflineStore {
                 ubicacion=excluded.ubicacion, area=excluded.area, resguardante=excluded.resguardante,
                 fecha_baja=excluded.fecha_baja, motivo_baja=excluded.motivo_baja,
                 etiquetado=excluded.etiquetado, fotos_urls=excluded.fotos_urls,
-                updated_at=excluded.updated_at
+                updated_at=excluded.updated_at, server_updated_at=excluded.server_updated_at
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setString(28, str(p.getActualizadoEn()));
             ps.setString(1, p.getId());
             ps.setString(2, p.getNombre());
             ps.setString(3, p.getCodigo());
@@ -788,16 +820,37 @@ public final class OfflineStore {
                        && !p.getId().equals(excludeId != null ? excludeId : ""));
     }
 
+    /** The baseline SyncService compares the server's updated_at against to
+     *  tell whether someone else changed this bien while this PC was offline.
+     *  It must be a value the server itself produced: the local updated_at is
+     *  stamped with this PC's clock by every offline write (including stock
+     *  changes from movements), so using it made a second offline edit of the
+     *  same bien conflict with the first one, and could hide real conflicts.
+     *  If a change for this bien is already queued, the whole chain diverged
+     *  from that row's baseline, so it's reused (null for a bien created
+     *  offline — there is nothing on the server to conflict with). */
+    private static String serverSnapshot(String productoId) throws SQLException {
+        try (PreparedStatement ps = conn().prepareStatement(
+                "SELECT server_snapshot_at FROM product_outbox WHERE producto_id = ? "
+                + "AND status NOT IN ('SYNCED','DISCARDED') ORDER BY id LIMIT 1")) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString(1);
+            }
+        }
+        try (PreparedStatement ps = conn().prepareStatement(
+                "SELECT server_updated_at FROM products WHERE id = ?")) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
     public static synchronized void saveProducto(Producto p) throws SQLException {
         ensureLoaded();
-        // Capture the server's last-known updated_at BEFORE overwriting the product
-        // in memory. SyncService uses this to detect whether the server was modified
-        // by another machine while this PC was offline (conflict detection).
-        String serverSnapshotAt = PRODUCTOS.stream()
-            .filter(x -> x.getId().equals(p.getId()))
-            .findFirst()
-            .map(x -> str(x.getActualizadoEn()))
-            .orElse(null);
+        // Captured BEFORE the local row is overwritten — see serverSnapshot().
+        String serverSnapshotAt = serverSnapshot(p.getId());
         Producto anterior = PRODUCTOS_MAP.get(p.getId());
         Connection db = conn();
         db.setAutoCommit(false);
@@ -827,7 +880,7 @@ public final class OfflineStore {
         ensureLoaded();
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
-        String serverSnapshotAt = str(p.getActualizadoEn()); // capture before mutation
+        String serverSnapshotAt = serverSnapshot(id); // capture before mutation
         p.setFechaBaja(LocalDate.now());
         p.setMotivoBaja(motivo);
         p.setActualizadoEn(LocalDateTime.now());
@@ -839,7 +892,7 @@ public final class OfflineStore {
         ensureLoaded();
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
-        String serverSnapshotAt = str(p.getActualizadoEn()); // capture before mutation
+        String serverSnapshotAt = serverSnapshot(id); // capture before mutation
         p.setFechaBaja(null);
         p.setMotivoBaja(null);
         p.setActualizadoEn(LocalDateTime.now());
