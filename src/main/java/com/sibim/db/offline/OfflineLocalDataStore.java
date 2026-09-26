@@ -47,16 +47,6 @@ public final class OfflineLocalDataStore implements LocalDataStore {
         OfflineStore.reactivarProducto(id);
     }
 
-    @Override
-    public void updateProductoStock(String id, int stock) throws SQLException {
-        OfflineStore.updateProductoStock(id, stock);
-    }
-
-    @Override
-    public void actualizarCodigoProducto(String id, String codigo) throws SQLException {
-        // Transfer approvals don't happen in offline mode — no-op
-    }
-
     // Movimientos
 
     @Override

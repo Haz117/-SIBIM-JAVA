@@ -33,6 +33,59 @@ public final class MigrationRunner {
 
     private MigrationRunner() {}
 
+    /**
+     * Brings the connected database's schema in line with this build, or
+     * fails: migrates it (or, with {@value #MIGRATE_KEY}=false, only checks
+     * it), using the flags from the same .env as the connection. Runs at
+     * startup AND every time the app comes back online — a PC that started
+     * without a connection must not go online against a schema it never
+     * migrated or validated.
+     *
+     * @throws MigracionesPendientesException / FlywayValidateException when
+     *         the app must not work online against this database yet
+     */
+    public static void asegurarEsquema() {
+        Flyway flyway = Flyway.configure()
+            .dataSource(DatabaseConfig.getDataSource())
+            .locations(ubicacionMigraciones())
+            .baselineOnMigrate(true)
+            .baselineVersion("0")
+            .load();
+        boolean autoRepair = "true".equalsIgnoreCase(DatabaseConfig.setting(AUTO_REPAIR_KEY, "false"));
+        boolean migrar = !"false".equalsIgnoreCase(DatabaseConfig.setting(MIGRATE_KEY, "true"));
+        run(flyway, autoRepair, migrar);
+    }
+
+    /** A user-facing reason why the app can't work online yet, or null if
+     *  {@code e} is just "no connection". */
+    public static String motivoEsquema(Throwable e) {
+        if (e instanceof MigracionesPendientesException) return e.getMessage();
+        if (e instanceof org.flywaydb.core.api.exception.FlywayValidateException)
+            return "Las migraciones de la base de datos no coinciden con esta versión del programa; "
+                + "no se modificó el historial. Si el cambio es intencional, agrega " + AUTO_REPAIR_KEY
+                + "=true al .env una vez y reinicia. Detalle: " + e.getMessage();
+        return null;
+    }
+
+    // Resolves the Flyway migrations location in a way that bypasses the Java
+    // module system's cross-module resource encapsulation. getResource() from
+    // within com.sibim itself always succeeds (a module can read its own
+    // resources). When running exploded (mvn javafx:run / IDE) the URL is a
+    // plain file:// path, so Flyway gets a "filesystem:" location and reads the
+    // SQL files directly; inside a JAR it falls back to the classpath location
+    // and relies on the module's opens.
+    private static String ubicacionMigraciones() {
+        try {
+            java.net.URL url = MigrationRunner.class.getResource("/db/migration");
+            if (url != null && "file".equals(url.getProtocol())) {
+                return "filesystem:" + java.nio.file.Paths.get(url.toURI());
+            }
+        } catch (Exception ignored) {
+            log.debug("Could not resolve migrations location via URI, falling back to classpath", ignored);
+        }
+        return "classpath:db/migration";
+    }
+
     public static void run(Flyway flyway, boolean autoRepair) {
         run(flyway, autoRepair, true);
     }

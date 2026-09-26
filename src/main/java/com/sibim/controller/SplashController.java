@@ -8,7 +8,6 @@ import com.sibim.db.offline.SyncService;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.util.AnimationUtils;
 import java.io.File;
-import org.flywaydb.core.Flyway;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -30,8 +29,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URL;
-import java.nio.file.Paths;
 import java.util.Optional;
 
 public class SplashController {
@@ -61,6 +58,8 @@ public class SplashController {
     private boolean animReady     = false;
     private boolean dbReady       = false;
     private boolean firstRunAdmin = false;
+    /** Why startup fell back to offline when it wasn't just a missing connection. */
+    private volatile String motivoOffline;
 
     /** Set once initDatabase() has fully finished (success or offline fallback),
      *  so the smoke test can wait for the db-init thread to settle before it
@@ -255,17 +254,7 @@ public class SplashController {
                 DatabaseConfig.setDemoMode(true);
             } else {
                 DatabaseConfig.init();
-                org.flywaydb.core.Flyway flyway = Flyway.configure()
-                    .dataSource(DatabaseConfig.getDataSource())
-                    .locations(resolveMigrationsLocation())
-                    .baselineOnMigrate(true)
-                    .baselineVersion("0")
-                    .load();
-                boolean autoRepair = "true".equalsIgnoreCase(
-                    DatabaseConfig.setting(MigrationRunner.AUTO_REPAIR_KEY, "false"));
-                boolean migrar = !"false".equalsIgnoreCase(
-                    DatabaseConfig.setting(MigrationRunner.MIGRATE_KEY, "true"));
-                MigrationRunner.run(flyway, autoRepair, migrar);
+                MigrationRunner.asegurarEsquema();
                 firstRunAdmin = seedAdminIfEmpty();
                 try {
                     ConfiguracionRepository cr = new ConfiguracionRepository();
@@ -281,17 +270,12 @@ public class SplashController {
                 }
             }
         } catch (Exception e) {
-            // Only a validation failure means "history != this build's scripts". Flyway wraps
-            // plain connection/IO errors in other FlywayExceptions — those are just "no connection".
-            if (e instanceof MigrationRunner.MigracionesPendientesException) {
-                log.error(e.getMessage());
-            } else if (e instanceof org.flywaydb.core.api.exception.FlywayValidateException) {
-                log.error("Las migraciones de la base de datos no coinciden con esta versión del programa; "
-                    + "NO se modificó el historial. Si el cambio es intencional agrega {}=true al .env y reinicia. "
-                    + "Detalle: {}", MigrationRunner.AUTO_REPAIR_KEY, e.getMessage());
-            } else {
-                log.warn("No se pudo conectar a la base de datos: {}", e.getMessage());
-            }
+            // Only a schema problem (pending migrations this PC can't apply, or a
+            // history that doesn't match this build) is worth explaining to the
+            // user; Flyway wraps plain connection/IO errors in other exceptions.
+            motivoOffline = MigrationRunner.motivoEsquema(e);
+            if (motivoOffline != null) log.error(motivoOffline);
+            else log.warn("No se pudo conectar a la base de datos: {}", e.getMessage());
             DatabaseConfig.close();
             log.info("Iniciando en modo offline.");
             DatabaseConfig.setOfflineMode(true);
@@ -386,26 +370,6 @@ public class SplashController {
         return result.isPresent() && result.get() == btnContinuar;
     }
 
-    // Resolves the Flyway migrations location in a way that bypasses the Java
-    // module system's cross-module resource encapsulation.  Calling getResource()
-    // from within com.sibim itself always succeeds (a module can read its own
-    // resources).  When running exploded (mvn javafx:run / IDE), the URL is a
-    // plain file:// path, so we hand Flyway a "filesystem:" location and it reads
-    // the SQL files directly without going through ClassLoader — no module barrier.
-    // If for some reason the URL isn't a plain file (e.g. inside a JAR), we fall
-    // back to the standard classpath location and rely on module opens.
-    private static String resolveMigrationsLocation() {
-        try {
-            URL url = SplashController.class.getResource("/db/migration");
-            if (url != null && "file".equals(url.getProtocol())) {
-                return "filesystem:" + Paths.get(url.toURI()).toString();
-            }
-        } catch (Exception ignored) {
-            log.debug("Could not resolve migrations location via URI, falling back to classpath", ignored);
-        }
-        return "classpath:db/migration";
-    }
-
     private void applyLogoIfExists(String path) {
         try {
             File f = new File(path);
@@ -453,12 +417,16 @@ public class SplashController {
     }
 
     private void notifyOfflineMode() {
+        String detalle = motivoOffline != null
+            ? "La base de datos necesita una actualización que esta computadora no puede aplicar, así que el "
+              + "sistema va a funcionar en modo offline: lo que captures se guarda aquí y se subirá cuando la "
+              + "base esté al día. Avisa al administrador del sistema.\n\n" + motivoOffline
+            : "No se pudo conectar a la base de datos ahora mismo. El sistema va a funcionar en modo offline: "
+              + "todo lo que captures se guarda en esta computadora, y se subirá automáticamente al servidor "
+              + "en cuanto vuelva la conexión — no necesitas hacer nada.";
         Dialog<ButtonType> dialog = DialogUtil.styledMessage(
             "mdi2c-cloud-off-outline", "Trabajando sin conexión", "Sin conexión a la base de datos",
-            "#2563EB", "#1D4ED8",
-            "No se pudo conectar a la base de datos ahora mismo. El sistema va a funcionar en modo offline: "
-            + "todo lo que captures se guarda en esta computadora, y se subirá automáticamente al servidor "
-            + "en cuanto vuelva la conexión — no necesitas hacer nada.");
+            "#2563EB", "#1D4ED8", detalle);
         dialog.setTitle("Sin conexión a la base de datos");
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
         DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, AppColors.INFO);

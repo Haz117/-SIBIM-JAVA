@@ -486,21 +486,6 @@ public class ProductoRepository {
         return p;
     }
 
-    public void updateStock(String productoId, int newStock) throws SQLException {
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) {
-            local.updateProductoStock(productoId, newStock);
-            return;
-        }
-        String sql = "UPDATE products SET stock_actual = ?, updated_at = NOW() WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, newStock);
-            ps.setString(2, productoId);
-            if (ps.executeUpdate() == 0)
-                throw new SQLException("El bien ya no existe en la base de datos (id=" + productoId + ")");
-        }
-    }
 
     /** Formal baja patrimonial (decommission) — soft-delete: the record and
      *  its movement history stay in the database, it's just excluded from
@@ -625,20 +610,6 @@ public class ProductoRepository {
             }
         }
         return AreaCodigos.siguienteCodigo(area, codigos);
-    }
-
-    /** Updates only the código of an active product — called when a transfer
-     *  approval causes a nomenclature reassignment to the destination area. */
-    public void actualizarCodigo(String id, String codigo) throws SQLException {
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) { local.actualizarCodigoProducto(id, codigo); return; }
-        String sql = "UPDATE products SET codigo = ?, updated_at = NOW() WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, codigo);
-            ps.setString(2, id);
-            ps.executeUpdate();
-        }
     }
 
     public void delete(String id) throws SQLException {

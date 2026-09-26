@@ -14,7 +14,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
 - **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con el conteo de bienes agotados, stock bajo, garantías por vencer y préstamos vencidos/por vencer; cada elemento navega directo a la pantalla correspondiente
-- **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). La bitácora de auditoría nunca se borra al restaurar (solo se le agregan las entradas del respaldo que falten), y un respaldo de una versión anterior que no incluye tablas nuevas con datos (p. ej. comodatos) se rechaza en vez de borrarlas. Solo disponible conectado a la base de datos real, no en modo offline/demo
+- **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). La bitácora de auditoría nunca se borra al restaurar (solo se le agregan las entradas del respaldo que falten). Un respaldo de una versión anterior deja intactas las tablas que no incluye; si alguna de ellas depende de los bienes y tiene datos (fotos, comodatos, historial de precios, mantenimiento), se rechaza en vez de borrarlas. Solo disponible conectado a la base de datos real, no en modo offline/demo
 - **Depreciación de activos** — 4 tarjetas (valor compra, valor actual, % promedio, totalmente depreciados); distribución del inventario en 4 rangos de depreciación (0–24 % / 25–49 % / 50–99 % / 100 %+) como barras animadas; columna de visualización con `ProgressBar` codificada por color en la tabla; gráfica de proyección del valor a 10 años; exportable a PDF / Excel / fichas técnicas en lote
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
 - **Alertas** — resumen rápido con 3 tarjetas animadas (Agotados / Bajo Stock / Garantías) con barras de proporción; detalle de garantías vencidas vs. próximas; exportable a PDF, Excel y CSV directamente desde la pantalla de alertas (Ctrl+F para filtrar, atajos de teclado en todos los módulos)
@@ -47,7 +47,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (860 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (864 tests en la última ejecución) |
 
 ---
 
@@ -269,14 +269,10 @@ Cada PC se conecta directo a PostgreSQL con las credenciales de su `.env`. Si es
    - el historial de Flyway es de solo lectura.
 
    Además quita a los roles `anon`/`authenticated` de Supabase el acceso por la API REST a las tablas de SIBIM, que la app no usa.
-2. En el `.env` de cada PC:
-   ```env
-   DB_USER=sibim_app            # con el pooler de Supabase: sibim_app.<ref-del-proyecto>
-   DB_PASSWORD=<la del paso 1>
-   DB_MIGRATE=false
-   ```
-   Con `DB_MIGRATE=false` la app no intenta migrar el esquema al arrancar; solo verifica que esté al día.
-3. Deja **una** PC de administración con el usuario `postgres` y sin `DB_MIGRATE=false`. Al instalar una versión nueva, ábrela primero ahí para que aplique las migraciones; si una PC con `DB_MIGRATE=false` arranca antes, entra en modo offline y el log explica que faltan migraciones.
+2. En cada PC de trabajo ejecuta `packaging\configurar-sibim.ps1` (sin parámetros): escribe `%APPDATA%\SIBIM\.env` con `DB_USER=sibim_app.<ref-del-proyecto>`, la contraseña del paso 1 y `DB_MIGRATE=false`. Con `DB_MIGRATE=false` la app no intenta migrar el esquema al arrancar; solo verifica que esté al día.
+
+   Si editas el `.env` a mano, **quita `user=` y `password=` del `DB_URL`**: el driver de PostgreSQL los prefería sobre `DB_USER`/`DB_PASSWORD`, así que con ellos ahí la PC seguía entrando como `postgres` aunque `DB_USER` dijera otra cosa. La versión actual los ignora y lo avisa en el log, pero conviene dejar la URL limpia.
+3. Deja **una** PC de administración con el usuario `postgres` (`configurar-sibim.ps1 -Admin`). Al instalar una versión nueva, ábrela primero ahí para que aplique las migraciones. Si una PC con `DB_MIGRATE=false` arranca antes, trabaja en modo offline, avisa que la base necesita actualizarse y no vuelve a modo en línea hasta que el esquema esté al día. Lo mismo aplica a cualquier PC que arranque sin conexión: al reconectarse verifica o aplica las migraciones antes de sincronizar.
 4. Vuelve a ejecutar el script después de cada versión que agregue tablas.
 
 `src/test/java/com/sibim/db/integration/RolAppMinimoIntegrationTest.java` verifica el script contra un PostgreSQL real.
@@ -309,7 +305,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (860 en total)
+# Correr todos los tests (864 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

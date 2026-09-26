@@ -206,7 +206,7 @@ class IntegridadInventarioIntegrationTest extends IntegrationTestBase {
         Movimiento pendiente = movimientoRepo.addMovimientoPendiente(transferencia(p.getId(), AREA_TICS));
         movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "otra", null, areaRh);
 
-        SQLException ex = assertThrows(SQLException.class,
+        var ex = assertThrows(MovimientoService.ValidationException.class,
             () -> movimientoService.aprobarTransferencia(pendiente.getId()));
         assertTrue(ex.getMessage().contains("ya no está"), ex.getMessage());
         assertEquals(areaRh, productoRepo.findById(p.getId()).orElseThrow().getArea());

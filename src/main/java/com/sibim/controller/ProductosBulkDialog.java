@@ -72,18 +72,14 @@ final class ProductosBulkDialog {
             table.lookupAll(".table-row-cell:selected")
                  .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
             DialogUtil.runAsyncWithProgress(scene, "Registrando transferencias…",
-                () -> {
-                    for (Producto p : aMover) {
-                        service.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA,
-                            Math.max(1, p.getStockActual()), "Transferencia en lote", null, area);
-                    }
-                    return aMover.size();
-                },
-                count -> {
+                () -> porCadaBien(aMover, p -> service.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA,
+                    Math.max(1, p.getStockActual()), "Transferencia en lote", null, area)),
+                r -> {
                     onSuccess.run();
-                    NotificacionUtil.exito(scene, SessionManager.isAdmin()
-                        ? count + " bien(es) transferidos a \"" + area + "\""
-                        : count + " solicitud(es) de transferencia a \"" + area + "\" pendientes de aprobación");
+                    if (r.ok() > 0) NotificacionUtil.exito(scene, SessionManager.isAdmin()
+                        ? r.ok() + " bien(es) transferidos a \"" + area + "\""
+                        : r.ok() + " solicitud(es) de transferencia a \"" + area + "\" pendientes de aprobación");
+                    avisarFallidos(scene, r, "transferir");
                 },
                 e -> NotificacionUtil.errorConAccion(scene,
                         "No se pudo registrar la transferencia: " + e.getMessage(), "Reintentar", onRetry)
@@ -115,18 +111,42 @@ final class ProductosBulkDialog {
             table.lookupAll(".table-row-cell:selected")
                  .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
             DialogUtil.runAsyncWithProgress(scene, "Actualizando resguardante…",
-                () -> {
-                    for (Producto p : sel) { p.setResguardante(nombre); service.save(p); }
-                    return sel.size();
-                },
-                count -> {
+                () -> porCadaBien(sel, p -> { p.setResguardante(nombre); service.save(p); }),
+                r -> {
                     onSuccess.run();
-                    NotificacionUtil.exito(scene, count + " bien(es) asignados a \"" + nombre + "\"");
+                    if (r.ok() > 0) NotificacionUtil.exito(scene, r.ok() + " bien(es) asignados a \"" + nombre + "\"");
+                    avisarFallidos(scene, r, "actualizar");
                 },
                 e -> NotificacionUtil.errorConAccion(scene,
                         "No se pudo cambiar el resguardante", "Reintentar", onRetry)
             );
         });
+    }
+
+    /** Outcome of a bulk action applied bien by bien. */
+    private record Resultado(int ok, List<String> errores) {}
+
+    @FunctionalInterface
+    private interface AccionPorBien { void aplicar(Producto p) throws Exception; }
+
+    /** One bien that can't be processed (no access, changed by someone else,
+     *  already in that área...) doesn't stop the others — and since the list
+     *  is reloaded afterwards, "Reintentar" never applies twice what already
+     *  went through, as stopping at the first error used to invite. */
+    private static Resultado porCadaBien(List<Producto> bienes, AccionPorBien accion) {
+        int ok = 0;
+        List<String> errores = new java.util.ArrayList<>();
+        for (Producto p : bienes) {
+            try { accion.aplicar(p); ok++; }
+            catch (Exception ex) { errores.add(p.getNombre() + ": " + ex.getMessage()); }
+        }
+        return new Resultado(ok, errores);
+    }
+
+    private static void avisarFallidos(Scene scene, Resultado r, String verbo) {
+        if (r.errores().isEmpty()) return;
+        NotificacionUtil.advertencia(scene, "No se pudo " + verbo + " " + r.errores().size() + " bien(es). "
+            + r.errores().get(0) + (r.errores().size() > 1 ? " (y otros)" : ""));
     }
 
     // ── Marcar como etiquetado en lote ──────────────────────────────────────

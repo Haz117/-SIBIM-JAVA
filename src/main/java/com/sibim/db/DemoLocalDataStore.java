@@ -46,16 +46,6 @@ public final class DemoLocalDataStore implements LocalDataStore {
         DemoDataStore.reactivarProducto(id);
     }
 
-    @Override
-    public void updateProductoStock(String id, int stock) throws SQLException {
-        DemoDataStore.updateProductoStock(id, stock);
-    }
-
-    @Override
-    public void actualizarCodigoProducto(String id, String codigo) throws SQLException {
-        DemoDataStore.updateProductoCodigo(id, codigo);
-    }
-
     // Movimientos
 
     @Override

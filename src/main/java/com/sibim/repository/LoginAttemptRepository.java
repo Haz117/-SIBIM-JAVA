@@ -36,8 +36,15 @@ public class LoginAttemptRepository {
         }
     }
 
-    /** Counts one failure; a failure after the window expired starts a new one. */
+    /** Counts one failure; a failure after the window expired starts a new one.
+     *  Failures for made-up usernames also create rows, so rows whose window
+     *  ended a day ago are dropped here to keep the table from growing forever. */
     public void registrarFallo(String username, long ventanaMs) throws SQLException {
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "DELETE FROM login_attempts WHERE ventana_inicio < NOW() - INTERVAL '1 day'")) {
+            ps.executeUpdate();
+        }
         String sql = """
             INSERT INTO login_attempts (username, intentos, ventana_inicio) VALUES (?, 1, NOW())
             ON CONFLICT (username) DO UPDATE SET

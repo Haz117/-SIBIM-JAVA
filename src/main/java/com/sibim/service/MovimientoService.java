@@ -187,9 +187,14 @@ public class MovimientoService {
 
     /** The área move and the new código are applied together inside the
      *  repository's transaction (MovimientoRepository#aprobarTransferencia). */
-    public void aprobarTransferencia(String movimientoId) throws SQLException {
+    public void aprobarTransferencia(String movimientoId) throws SQLException, ValidationException {
         requireAdminForTransferWorkflow();
-        movimientoRepo.aprobarTransferencia(movimientoId);
+        try {
+            movimientoRepo.aprobarTransferencia(movimientoId);
+        } catch (SQLException e) {
+            if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
+            throw e;
+        }
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_aprobada",
             "Transferencia aprobada por administrador");
     }
@@ -270,6 +275,7 @@ public class MovimientoService {
         String msg = e.getMessage();
         return msg != null && (msg.startsWith("La cantidad supera el stock disponible")
                 || msg.startsWith("Solo se puede eliminar el movimiento mas reciente")
+                || msg.startsWith("El bien ya no está en ")
                 || msg.startsWith("El stock cambió desde que se capturó el conteo"));
     }
 

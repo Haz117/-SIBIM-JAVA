@@ -101,8 +101,9 @@ public class BackupService {
             "Respaldo completo generado");
     }
 
-    /** Replaces every row in every table (except the audit trail, which is
-     *  only added to) with what's in {@code origen}. Runs inside a single
+    /** Replaces every row of every table {@code origen} contains (except the
+     *  audit trail, which is only added to); tables an older backup doesn't
+     *  have are left as they are. Runs inside a single
      *  transaction — any failure rolls back completely, never leaving the
      *  database half-restored.
     *  @throws BackupEncryption.WrongPasswordException if {@code password}
@@ -127,8 +128,11 @@ public class BackupService {
             conn.setAutoCommit(false);
             try {
                 rechazarSiBorraDatosNoRespaldados(conn, tablas);
+                // Only tables the backup contains are replaced; the audit trail
+                // is only added to.
                 for (int i = TABLAS.size() - 1; i >= 0; i--) {
-                    if (!TABLA_AUDITORIA.equals(TABLAS.get(i))) borrarTabla(conn, TABLAS.get(i));
+                    String tabla = TABLAS.get(i);
+                    if (tablas.containsKey(tabla) && !TABLA_AUDITORIA.equals(tabla)) borrarTabla(conn, tabla);
                 }
                 for (String tabla : TABLAS) {
                     List<Map<String, Object>> filas = tablas.get(tabla);
@@ -156,14 +160,17 @@ public class BackupService {
     }
 
     /** A backup made by an older version doesn't contain the tables added
-     *  since. Restoring it would still empty them (products can't be deleted
-     *  while their comodatos/fotos exist), so if any of them has data now the
-     *  restore is refused instead of silently losing it. */
+     *  since. Those are left as they are — unless they hang off a table the
+     *  restore replaces: deleting products fails while a comodato points at
+     *  it (RESTRICT) and silently takes fotos, historial de precios and
+     *  mantenimiento with it (CASCADE). If such a table has data, the restore
+     *  is refused instead of losing it. */
     private void rechazarSiBorraDatosNoRespaldados(Connection conn,
             Map<String, List<Map<String, Object>>> tablas) throws SQLException, IOException {
         List<String> seBorrarian = new ArrayList<>();
         for (String tabla : TABLAS) {
             if (tablas.containsKey(tabla) || TABLA_AUDITORIA.equals(tabla)) continue;
+            if (tablasReferenciadas(conn, tabla).stream().noneMatch(tablas::containsKey)) continue;
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery("SELECT EXISTS (SELECT 1 FROM " + tabla + ")")) {
                 if (rs.next() && rs.getBoolean(1)) seBorrarian.add(tabla);
@@ -174,6 +181,20 @@ public class BackupService {
                 + String.join(", ", seBorrarian) + ". Restaurarlo borraría esos datos sin reponerlos, "
                 + "así que no se aplicó. Genera un respaldo nuevo o restaura con pg_restore.");
         }
+    }
+
+    /** Tables {@code tabla} has a foreign key to. */
+    private static Set<String> tablasReferenciadas(Connection conn, String tabla) throws SQLException {
+        Set<String> referenciadas = new HashSet<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT DISTINCT confrelid::regclass::text FROM pg_constraint "
+                + "WHERE contype = 'f' AND conrelid = ?::regclass")) {
+            ps.setString(1, tabla);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) referenciadas.add(rs.getString(1));
+            }
+        }
+        return referenciadas;
     }
 
     private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {

@@ -9,8 +9,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public final class DatabaseConfig {
@@ -61,9 +65,15 @@ public final class DatabaseConfig {
         // back to the working directory for development.
         Dotenv dotenv = loadDotenv();
 
-        String url      = getEnv(dotenv, "DB_URL", "jdbc:postgresql://localhost:5432/sibim");
-        String user     = getEnv(dotenv, "DB_USER", "postgres");
-        String password = getEnv(dotenv, "DB_PASSWORD", "");
+        CredencialesUrl url0 = separarCredenciales(getEnv(dotenv, "DB_URL", "jdbc:postgresql://localhost:5432/sibim"));
+        String url      = url0.url();
+        String user     = getEnv(dotenv, "DB_USER", url0.user() != null ? url0.user() : "postgres");
+        String password = getEnv(dotenv, "DB_PASSWORD", url0.password() != null ? url0.password() : "");
+        if (url0.user() != null || url0.password() != null) {
+            log.warn("DB_URL trae user= o password= como parámetros; se ignoran y se usan DB_USER/DB_PASSWORD. "
+                + "Quítalos del DB_URL del .env (el driver los prefería a DB_USER, así que cambiar DB_USER no "
+                + "cambiaba el usuario con el que se conecta la app).");
+        }
         boolean isRemote = isRemoteUrl(url);
         // Last line of defence behind the surefire sandbox (pom.xml): a test run
         // must never reach a remote database — one already restored a test
@@ -138,6 +148,32 @@ public final class DatabaseConfig {
             dataSource.close();
         }
         dataSource = null;
+    }
+
+    record CredencialesUrl(String url, String user, String password) {}
+
+    /** pgjdbc gives user=/password= query parameters in the URL precedence
+     *  over the user and password the pool passes, so a DB_URL carrying the
+     *  owner's credentials (as configurar-sibim.ps1 used to write it) kept
+     *  the app connecting as the owner no matter what DB_USER said — and the
+     *  password ended up in any log line that printed the URL. They're taken
+     *  out of the URL; the caller only uses them when DB_USER/DB_PASSWORD
+     *  are missing. */
+    static CredencialesUrl separarCredenciales(String url) {
+        int q = url.indexOf('?');
+        if (q < 0) return new CredencialesUrl(url, null, null);
+        String user = null, password = null;
+        List<String> resto = new ArrayList<>();
+        for (String par : url.substring(q + 1).split("&")) {
+            if (par.isEmpty()) continue;
+            String clave = par.contains("=") ? par.substring(0, par.indexOf('=')) : par;
+            String valor = par.contains("=") ? par.substring(par.indexOf('=') + 1) : "";
+            if (clave.equalsIgnoreCase("user")) user = URLDecoder.decode(valor, StandardCharsets.UTF_8);
+            else if (clave.equalsIgnoreCase("password")) password = URLDecoder.decode(valor, StandardCharsets.UTF_8);
+            else resto.add(par);
+        }
+        String base = url.substring(0, q);
+        return new CredencialesUrl(resto.isEmpty() ? base : base + "?" + String.join("&", resto), user, password);
     }
 
     static boolean isRemoteUrl(String url) {

@@ -440,7 +440,8 @@ public final class OfflineStore {
         try (Statement st = c.createStatement()) {
             st.execute("ALTER TABLE products ADD COLUMN server_updated_at TEXT");
             st.execute("UPDATE products SET server_updated_at = updated_at WHERE id NOT IN "
-                + "(SELECT producto_id FROM product_outbox WHERE status NOT IN ('SYNCED','DISCARDED'))");
+                + "(SELECT producto_id FROM product_outbox WHERE status NOT IN ('SYNCED','DISCARDED') "
+                + "AND producto_id IS NOT NULL)");   // a NULL in NOT IN would match no row at all
         } catch (SQLException ignored) {
             log.debug("Offline migration step already applied (idempotent)", ignored);
         }

@@ -498,15 +498,21 @@ public class MainController {
         sidebarManager.toggle();
     }
 
+    /** Last value read from Configuración; reused while offline, where reading
+     *  it would only mean another failed connection attempt every minute. */
+    private volatile long ultimoTimeoutMs = 30 * 60_000L;
+
     private long inactivityTimeoutMs() {
+        if (DatabaseConfig.isOfflineMode()) return ultimoTimeoutMs;
         try {
             int minutes = Integer.parseInt(
                 new ConfiguracionRepository()
                     .get("inactividad_timeout_minutos", "30"));
-            return Math.max(6, minutes) * 60_000L;
+            ultimoTimeoutMs = Math.max(6, minutes) * 60_000L;
         } catch (Exception e) {
-            return 30 * 60_000L;
+            log.debug("No se pudo leer el tiempo de inactividad; se usa el último conocido", e);
         }
+        return ultimoTimeoutMs;
     }
 
     /** Every minute: reads the configured timeout and re-checks the signed-in

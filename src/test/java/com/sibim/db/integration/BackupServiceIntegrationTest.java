@@ -122,6 +122,39 @@ class BackupServiceIntegrationTest extends IntegrationTestBase {
         assertEquals(1, count("comodatos"));
     }
 
+    @Test
+    void unRespaldoViejo_dejaIntactasLasTablasQueNoIncluyeYNoDependenDeLoRestaurado() throws Exception {
+        // Nothing hangs off products now, so an old backup can be applied...
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("DELETE FROM comodatos");
+            st.execute("DELETE FROM product_fotos");
+            st.execute("DELETE FROM price_history");
+            st.execute("DELETE FROM producto_mantenimiento");
+            st.execute("INSERT INTO configuracion (clave, valor) VALUES ('nombre_ayuntamiento', 'Mi Municipio')");
+        }
+        Map<String, Object> raiz = new LinkedHashMap<>();
+        raiz.put("version", 1);
+        Map<String, List<Object>> tablas = new LinkedHashMap<>();
+        tablas.put("users", List.of(Map.of("id", "test-admin", "username", "admin-test",
+            "password", "x", "nombre", "Admin Test", "role", "admin")));
+        for (String t : List.of("categories", "products", "movements", "audit_log", "conteos_fisicos",
+                "conteo_items", "resguardos", "resguardo_items", "prestamos", "actas_entrega_recepcion")) {
+            tablas.put(t, List.of());
+        }
+        raiz.put("tablas", tablas);
+        File archivo = tmp.resolve("viejo-aplicable.sibim").toFile();
+        Files.write(archivo.toPath(),
+            BackupEncryption.encrypt(new ObjectMapper().writeValueAsBytes(raiz), PASSWORD));
+
+        service.restore(archivo, PASSWORD);
+
+        assertEquals(0, count("products"), "lo que el respaldo sí trae se reemplaza");
+        // ...and the tables it doesn't know about keep their data.
+        assertEquals("Mi Municipio", scalar("SELECT valor FROM configuracion WHERE clave = 'nombre_ayuntamiento'"));
+        assertEquals(1, count("folios"));
+        assertEquals(1, count("filtros_guardados"));
+    }
+
     private int count(String tablaYFiltro) throws SQLException {
         return Integer.parseInt(scalar("SELECT COUNT(*) FROM " + tablaYFiltro));
     }

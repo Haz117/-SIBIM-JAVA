@@ -6,6 +6,28 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class DatabaseConfigSslTest {
 
+    // ── separarCredenciales: user/password en DB_URL ─────────────────────────
+
+    @Test void urlConCredenciales_seLimpiaYLasDevuelve() {
+        var r = DatabaseConfig.separarCredenciales(
+            "jdbc:postgresql://pooler.example.com:5432/postgres?user=postgres.ref&password=s3cr%26to&sslmode=require");
+        assertEquals("jdbc:postgresql://pooler.example.com:5432/postgres?sslmode=require", r.url());
+        assertEquals("postgres.ref", r.user());
+        assertEquals("s3cr&to", r.password());
+    }
+
+    @Test void urlSoloConCredenciales_quedaSinQuery() {
+        var r = DatabaseConfig.separarCredenciales("jdbc:postgresql://h:5432/db?user=u&password=p");
+        assertEquals("jdbc:postgresql://h:5432/db", r.url());
+    }
+
+    @Test void urlSinCredenciales_noCambia() {
+        var r = DatabaseConfig.separarCredenciales("jdbc:postgresql://h:5432/db?sslmode=require");
+        assertEquals("jdbc:postgresql://h:5432/db?sslmode=require", r.url());
+        assertNull(r.user());
+        assertNull(r.password());
+    }
+
     // ── isRemoteUrl ───────────────────────────────────────────────────────────
 
     @Test void localhost_isLocal() {

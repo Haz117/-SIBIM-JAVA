@@ -3,6 +3,7 @@ package com.sibim.db.offline;
 import com.sibim.controller.MainController;
 import com.sibim.controller.dialogs.ConflictResolutionDialog;
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.MigrationRunner;
 import com.sibim.model.AuditLog;
 import com.sibim.model.Categoria;
 import com.sibim.model.ConteoFisico;
@@ -162,7 +163,43 @@ public final class SyncService {
         });
     }
 
+    /** Set once the user has been told why the app stays offline, so the
+     *  notice isn't repeated on every poll. */
+    private static volatile String motivoEsquemaAvisado;
+
+    /** Before replaying anything or going back online, the database must be
+     *  migrated (or validated) for this build — the same check as startup.
+     *  A PC that started without a connection never ran it, and one that
+     *  can't migrate (DB_MIGRATE=false) would otherwise go online against an
+     *  outdated schema a minute after the splash sent it offline for that. */
+    private static boolean esquemaListo() {
+        try {
+            MigrationRunner.asegurarEsquema();
+            motivoEsquemaAvisado = null;
+            return true;
+        } catch (Exception e) {
+            String motivo = MigrationRunner.motivoEsquema(e);
+            if (motivo == null) {
+                log.warn("SyncService: no se pudo verificar el esquema de la base de datos: {}", e.getMessage());
+                return false;
+            }
+            if (!motivo.equals(motivoEsquemaAvisado)) {
+                motivoEsquemaAvisado = motivo;
+                log.error("SyncService: se sigue en modo offline — {}", motivo);
+                Platform.runLater(() -> {
+                    MainController mc = MainController.getInstance();
+                    var scene = mc != null ? mc.getContentAreaScene() : null;
+                    if (scene != null) NotificacionUtil.advertencia(scene,
+                        "Hay conexión, pero la base de datos necesita una actualización que esta computadora "
+                        + "no puede aplicar. Sigues en modo offline; avisa al administrador del sistema.");
+                });
+            }
+            return false;
+        }
+    }
+
     private static void syncPendingChanges() {
+        if (!esquemaListo()) return;
         requeueFailedChanges();
         int pendingBefore = countPending();
         if (pendingBefore > 0) {
