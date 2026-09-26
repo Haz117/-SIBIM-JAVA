@@ -145,6 +145,37 @@ class SessionManagerTest {
 
     // ── Helper ────────────────────────────────────────────────────────────────
 
+    // ── motivoCierre: cambios a la cuenta hechos por un admin ────────────────
+
+    @Test
+    void motivoCierre_cuentaSinCambios_noCierra() {
+        Usuario enSesion = usuario(Rol.SECRETARIO, "Tesorería Municipal");
+        assertNull(SessionManager.motivoCierre(enSesion,
+            java.util.Optional.of(usuario(Rol.SECRETARIO, "Tesorería Municipal"))));
+    }
+
+    @Test
+    void motivoCierre_cuentaDesactivada_cierra() {
+        Usuario actual = usuario(Rol.SECRETARIO, "Tesorería Municipal");
+        actual.setActivo(false);
+        assertNotNull(SessionManager.motivoCierre(usuario(Rol.SECRETARIO, "Tesorería Municipal"),
+            java.util.Optional.of(actual)));
+    }
+
+    @Test
+    void motivoCierre_cuentaEliminada_cierra() {
+        assertNotNull(SessionManager.motivoCierre(usuario(Rol.DIRECCION, "SIPINNA"), java.util.Optional.empty()));
+    }
+
+    @Test
+    void motivoCierre_rolOAreaCambiados_cierra() {
+        Usuario enSesion = usuario(Rol.SECRETARIO, "Tesorería Municipal");
+        assertNotNull(SessionManager.motivoCierre(enSesion,
+            java.util.Optional.of(usuario(Rol.DIRECCION, "Tesorería Municipal"))));
+        assertNotNull(SessionManager.motivoCierre(enSesion,
+            java.util.Optional.of(usuario(Rol.SECRETARIO, "Secretaría General Municipal"))));
+    }
+
     private Usuario usuario(Rol rol, String area) {
         Usuario u = new Usuario();
         u.setId("u-test");

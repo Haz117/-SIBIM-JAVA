@@ -260,7 +260,7 @@ public class MainController {
         clock.setCycleCount(Timeline.INDEFINITE);
         clock.play();
 
-        sessionGuard = new Timeline(new KeyFrame(Duration.minutes(1), e -> checkInactivity()));
+        sessionGuard = new Timeline(new KeyFrame(Duration.minutes(1), e -> tickSessionGuard()));
         sessionGuard.setCycleCount(Timeline.INDEFINITE);
         sessionGuard.play();
     }
@@ -509,9 +509,55 @@ public class MainController {
         }
     }
 
-    private void checkInactivity() {
+    /** Every minute: reads the configured timeout and re-checks the signed-in
+     *  account off the FX thread (both are database reads — a slow connection
+     *  must not freeze the window), then acts on the FX thread. */
+    private void tickSessionGuard() {
+        Usuario me = SessionManager.getCurrentUser();
+        AppExecutor.submit(() -> {
+            long timeoutMs = inactivityTimeoutMs();
+            String motivo = motivoCierreCuenta(me);
+            javafx.application.Platform.runLater(() -> {
+                if (SessionManager.getCurrentUser() != me) return; // already logged out
+                if (motivo != null) cerrarSesionPorCambioDeCuenta(me, motivo);
+                else checkInactivity(timeoutMs);
+            });
+        });
+    }
+
+    /** Only online: offline there is no authoritative copy of the account,
+     *  and a failed read (connection trouble) is not a reason to log out. */
+    private static String motivoCierreCuenta(Usuario me) {
+        if (me == null || me.getId() == null || DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
+            return null;
+        try {
+            return SessionManager.motivoCierre(me, new com.sibim.repository.UsuarioRepository().findById(me.getId()));
+        } catch (Exception e) {
+            log.debug("No se pudo verificar la cuenta en sesión; se reintenta en el próximo ciclo", e);
+            return null;
+        }
+    }
+
+    private void cerrarSesionPorCambioDeCuenta(Usuario me, String motivo) {
+        log.info("Sesión de {} cerrada: {}", me.getUsername(), motivo);
+        if (activeInactivityDialog != null) { activeInactivityDialog.close(); activeInactivityDialog = null; }
+        stopTimers();
+        instance = null;
+        auditRepo.log("sesion", me.getId(), me.getNombre(), "logout", "Cierre automático: " + motivo);
+        SessionManager.logout();
+        try { MainApp.showLogin(); }
+        catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
+        javafx.scene.control.Alert aviso = new javafx.scene.control.Alert(
+            javafx.scene.control.Alert.AlertType.INFORMATION, motivo);
+        aviso.setTitle("Sesión cerrada");
+        aviso.setHeaderText("Tu sesión se cerró");
+        DialogUtil.applyOwner(aviso);
+        DialogUtil.applyStylesheet(aviso.getDialogPane());
+        aviso.show();
+    }
+
+    private void checkInactivity(long timeoutMs) {
         long idle = System.currentTimeMillis() - lastActivityMs;
-        long timeoutMs = inactivityTimeoutMs();
         if (idle > timeoutMs) {
             log.info("Sesión cerrada por inactividad");
             inactivityWarned = false;

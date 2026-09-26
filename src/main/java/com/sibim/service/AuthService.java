@@ -6,6 +6,7 @@ import com.sibim.db.DemoDataStore;
 import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Usuario;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.repository.LoginAttemptRepository;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
 
@@ -21,11 +22,16 @@ public class AuthService {
 
     private final UsuarioRepository  usuarioRepo;
     private final AuditLogRepository auditRepo;
+    private final LoginAttemptRepository intentosRepo;
 
-    public AuthService() { this(new UsuarioRepository(), new AuditLogRepository()); }
+    public AuthService() { this(new UsuarioRepository(), new AuditLogRepository(), new LoginAttemptRepository()); }
     AuthService(UsuarioRepository usuarioRepo, AuditLogRepository auditRepo) {
-        this.usuarioRepo = usuarioRepo;
-        this.auditRepo   = auditRepo;
+        this(usuarioRepo, auditRepo, new LoginAttemptRepository());
+    }
+    AuthService(UsuarioRepository usuarioRepo, AuditLogRepository auditRepo, LoginAttemptRepository intentosRepo) {
+        this.usuarioRepo  = usuarioRepo;
+        this.auditRepo    = auditRepo;
+        this.intentosRepo = intentosRepo;
     }
 
     private static final int  MAX_INTENTOS = 5;
@@ -89,6 +95,15 @@ public class AuthService {
                 return new LoginResult(user, null);
             }
 
+            // Shared lockout (every PC): the local counter above only covers
+            // this computer and lives in a file the user can delete.
+            boolean compartido = !DatabaseConfig.isDemoMode();
+            if (compartido) {
+                long minsCompartido = minutosBloqueoCompartido(key);
+                if (minsCompartido > 0) throw new AuthException(
+                    "Demasiados intentos fallidos. Espera " + minsCompartido + " minuto(s) antes de volver a intentar.");
+            }
+
             Optional<Usuario> opt = usuarioRepo.findByUsername(key);
             if (opt.isEmpty()) {
                 registrarFallo(key);
@@ -112,6 +127,10 @@ public class AuthService {
                 throw new AuthException("Esta cuenta ha sido desactivada. Contacta al administrador.");
             }
             AuthAttemptStore.clear(key); // login exitoso — limpiar contadores
+            if (compartido) {
+                try { intentosRepo.limpiar(key); }
+                catch (SQLException e) { log.warn("No se pudo limpiar el contador de intentos de '{}'", key, e); }
+            }
             SessionManager.setCurrentUser(user);
             auditRepo.log("sesion", user.getId(), user.getNombre(), "login",
                 "Inicio de sesión — " + (DatabaseConfig.isDemoMode() ? "modo demo" : "base de datos"));
@@ -140,7 +159,21 @@ public class AuthService {
      *  as the entidad name instead, with a null id. */
     private void registrarFallo(String key) {
         AuthAttemptStore.increment(key);
+        if (!DatabaseConfig.isOfflineMode() && !DatabaseConfig.isDemoMode()) {
+            try { intentosRepo.registrarFallo(key, VENTANA_MS); }
+            catch (SQLException e) { log.warn("No se pudo registrar el intento fallido de '{}' en el servidor", key, e); }
+        }
         auditRepo.log("sesion", null, key, "login_fallido", "Intento de inicio de sesión fallido");
+    }
+
+    /** A failure to read the shared counter (e.g. the table isn't there yet)
+     *  must not lock everyone out — the local counter still applies. */
+    private long minutosBloqueoCompartido(String key) {
+        try { return intentosRepo.minutosBloqueo(key, MAX_INTENTOS, VENTANA_MS); }
+        catch (SQLException e) {
+            log.warn("No se pudo consultar el contador de intentos de '{}' en el servidor", key, e);
+            return 0;
+        }
     }
 
     public void logout() {

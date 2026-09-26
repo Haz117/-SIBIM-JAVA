@@ -67,6 +67,22 @@ public final class SessionManager {
         return Collections.unmodifiableSet(areas);
     }
 
+    /** Permissions are captured at login, so a session opened before an
+     *  admin deactivated the account, deleted it, or changed its rol/área
+     *  would otherwise keep the old access until the user logs out. Given
+     *  the account as the database has it now (empty = deleted), returns
+     *  why the session must end, or null if it's still valid. */
+    public static String motivoCierre(Usuario enSesion, java.util.Optional<Usuario> enBaseDeDatos) {
+        if (enSesion == null) return null;
+        if (enBaseDeDatos.isEmpty()) return "Tu cuenta fue eliminada por un administrador.";
+        Usuario actual = enBaseDeDatos.get();
+        if (!actual.isActivo()) return "Tu cuenta fue desactivada por un administrador.";
+        if (actual.getRol() != enSesion.getRol()
+                || !java.util.Objects.equals(actual.getArea(), enSesion.getArea()))
+            return "Un administrador cambió tu rol o tu área. Inicia sesión de nuevo para aplicar los permisos nuevos.";
+        return null;
+    }
+
     public static boolean isAreaAccessible(String area) {
         if (isAdmin()) return true;
         if (area == null || area.isBlank()) return false;

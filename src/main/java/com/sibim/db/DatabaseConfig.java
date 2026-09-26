@@ -193,6 +193,15 @@ public final class DatabaseConfig {
         }
     }
 
+    /** A setting from the same .env the connection uses (%APPDATA%\SIBIM\
+     *  first, then the working directory), else the environment. Startup
+     *  flags (DEMO_MODE, DB_MIGRATE, FLYWAY_AUTO_REPAIR) must come from here:
+     *  reading only the working directory ignored them on installed PCs,
+     *  whose .env lives in %APPDATA%\SIBIM\. */
+    public static String setting(String key, String fallback) {
+        return getEnv(loadDotenv(), key, fallback);
+    }
+
     private static Dotenv loadDotenv() {
         // 1. Production: %APPDATA%\SIBIM\.env  (Windows) or ~/.sibim/.env
         String appData = System.getenv("APPDATA");

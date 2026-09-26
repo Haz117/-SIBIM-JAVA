@@ -13,6 +13,8 @@ import java.time.Duration;
 
 public final class SupabaseStorage {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SupabaseStorage.class);
+
     public static final String BUCKET = "sibim-fotos";
 
     private static volatile boolean initialized = false;
@@ -103,7 +105,34 @@ public final class SupabaseStorage {
             }
             if (supabaseUrl != null) supabaseUrl = supabaseUrl.trim();
             if (anonKey     != null) anonKey     = anonKey.trim();
+            if (esClaveSecreta(anonKey)) {
+                log.error("SUPABASE_ANON_KEY contiene una clave secreta/service_role, que ignora todas las "
+                    + "políticas de Storage y de la base. No se usará: pon la clave pública (anon) y rota la secreta.");
+                anonKey = null;
+            }
+            for (String clave : new String[]{"SUPABASE_SERVICE_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"}) {
+                if (prod.get(clave) != null || Dotenv.configure().ignoreIfMissing().load().get(clave) != null) {
+                    log.error("El .env de esta PC contiene {}: una clave de servicio de Supabase da control total "
+                        + "del proyecto a quien abra el archivo. SIBIM no la usa; bórrala del .env y rótala en Supabase.", clave);
+                }
+            }
             initialized = true;
+        }
+    }
+
+    /** True for a Supabase key that bypasses Row Level Security: the new
+     *  "sb_secret_…" format, or a legacy JWT whose role is service_role. */
+    static boolean esClaveSecreta(String key) {
+        if (key == null || key.isBlank()) return false;
+        if (key.startsWith("sb_secret_")) return true;
+        String[] partes = key.split("\\.");
+        if (partes.length != 3) return false;
+        try {
+            String payload = new String(java.util.Base64.getUrlDecoder().decode(partes[1]),
+                java.nio.charset.StandardCharsets.UTF_8);
+            return payload.replace(" ", "").contains("\"role\":\"service_role\"");
+        } catch (IllegalArgumentException e) {
+            return false;
         }
     }
 }

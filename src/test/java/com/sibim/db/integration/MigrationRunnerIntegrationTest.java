@@ -84,6 +84,40 @@ class MigrationRunnerIntegrationTest {
         return scalar("SELECT checksum FROM flyway_schema_history WHERE version = '19'");
     }
 
+    /** Leaves V21 as the next pending migration. Later versions go too: a
+     *  missing V21 below an applied V22 would be an out-of-order gap, which
+     *  Flyway rejects — not the production state being reproduced. */
+    private void borrarHistorialDesdeV21() throws SQLException {
+        exec("DELETE FROM flyway_schema_history WHERE installed_rank >= "
+            + "(SELECT installed_rank FROM flyway_schema_history WHERE version = '21')");
+    }
+
+    // ── DB_MIGRATE=false (rol sin permisos de DDL) ──────────────────────────
+
+    @Test
+    void sinMigrar_conEsquemaAlDia_soloValida() throws Exception {
+        MigrationRunner.run(flyway, false);
+        long aplicadas = scalar("SELECT count(*) FROM flyway_schema_history");
+
+        assertDoesNotThrow(() -> MigrationRunner.run(flyway, false, false));
+
+        assertEquals(aplicadas, scalar("SELECT count(*) FROM flyway_schema_history"));
+    }
+
+    @Test
+    void sinMigrar_conMigracionesPendientes_fallaSinTocarElEsquema() throws Exception {
+        MigrationRunner.run(flyway, false);
+        exec("DELETE FROM flyway_schema_history WHERE version = (SELECT max(version::int)::text "
+            + "FROM flyway_schema_history WHERE version ~ '^[0-9]+$')");
+        long aplicadas = scalar("SELECT count(*) FROM flyway_schema_history");
+
+        assertThrows(MigrationRunner.MigracionesPendientesException.class,
+            () -> MigrationRunner.run(flyway, false, false));
+
+        assertEquals(aplicadas, scalar("SELECT count(*) FROM flyway_schema_history"),
+            "no debe aplicar nada");
+    }
+
     // ── tests ────────────────────────────────────────────────────────────────
 
     @Test
@@ -121,7 +155,7 @@ class MigrationRunnerIntegrationTest {
         MigrationRunner.run(flyway, false);
         // Estado real de producción: historial con V19 "aplicada", columnas ausentes, V21 pendiente.
         for (String col : V19_COLUMNS) exec("ALTER TABLE products DROP COLUMN " + col);
-        exec("DELETE FROM flyway_schema_history WHERE version = '21'");
+        borrarHistorialDesdeV21();
         assertEquals(0, v19ColumnCount(), "Precondición: las columnas no existen");
 
         MigrationRunner.run(flyway, false);
@@ -132,7 +166,7 @@ class MigrationRunnerIntegrationTest {
     @Test
     void v21_esIdempotente_siLasColumnasYaExisten() throws Exception {
         MigrationRunner.run(flyway, false);
-        exec("DELETE FROM flyway_schema_history WHERE version = '21'");
+        borrarHistorialDesdeV21();
 
         assertDoesNotThrow(() -> MigrationRunner.run(flyway, false),
             "ADD COLUMN IF NOT EXISTS no debe fallar cuando V19 sí había corrido");

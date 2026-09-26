@@ -38,6 +38,19 @@ class SupabaseStorageTest {
     }
 
     @Test
+    void esClaveSecreta_detectaServiceRoleYSecretas_peroNoLaPublica() {
+        java.util.function.Function<String, String> jwt = payload -> "eyJhbGciOiJIUzI1NiJ9."
+            + java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+            + ".firma";
+        assertTrue(SupabaseStorage.esClaveSecreta(jwt.apply("{\"iss\":\"supabase\",\"role\":\"service_role\"}")));
+        assertTrue(SupabaseStorage.esClaveSecreta("sb_secret_abcdefghijklmnopqrstuvwxyz0123"));
+        assertFalse(SupabaseStorage.esClaveSecreta(jwt.apply("{\"iss\":\"supabase\",\"role\":\"anon\"}")));
+        assertFalse(SupabaseStorage.esClaveSecreta("sb_publishable_abcdefghijklmnopqrstuvwx"));
+        assertFalse(SupabaseStorage.esClaveSecreta(null));
+    }
+
+    @Test
     void isRemoteUrl_httpsSupabaseStorageUrl_returnsTrue() {
         assertTrue(SupabaseStorage.isRemoteUrl(
             "https://zjrzrcfpvkkefsscvzyh.supabase.co/storage/v1/object/public/sibim-fotos/abc123_0.jpg"));

@@ -5,6 +5,7 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.repository.AuditLogRepository;
+import com.sibim.repository.LoginAttemptRepository;
 import com.sibim.repository.UsuarioRepository;
 import com.sibim.session.SessionManager;
 import org.junit.jupiter.api.AfterEach;
@@ -15,12 +16,16 @@ import org.mockito.MockedConstruction;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class AuthServiceTest {
 
     private MockedConstruction<AuditLogRepository> auditRepositoryConstruction;
+    private MockedConstruction<LoginAttemptRepository> intentosConstruction;
 
     @BeforeEach
     void reset() {
@@ -28,6 +33,8 @@ class AuthServiceTest {
         SessionManager.logout();
         DatabaseConfig.setDemoMode(false);
         auditRepositoryConstruction = mockConstruction(AuditLogRepository.class);
+        // No database here: the shared (server-side) counter reports "not locked".
+        intentosConstruction = mockConstruction(LoginAttemptRepository.class);
     }
 
     @AfterEach
@@ -35,6 +42,35 @@ class AuthServiceTest {
         SessionManager.logout();
         DatabaseConfig.setDemoMode(false);
         auditRepositoryConstruction.close();
+        intentosConstruction.close();
+    }
+
+    // ── Bloqueo compartido entre PCs ──────────────────────────────────────────
+
+    @Test
+    void login_bloqueadoEnElServidor_rechazaAunqueElContadorLocalEsteLimpio() throws Exception {
+        intentosConstruction.close();
+        String hash = BCrypt.withDefaults().hashToString(4, "buena".toCharArray());
+        Usuario u = usuario(hash);
+        try (MockedConstruction<LoginAttemptRepository> bloqueado = mockConstruction(LoginAttemptRepository.class,
+                 (mock, ctx) -> when(mock.minutosBloqueo(anyString(), anyInt(), anyLong())).thenReturn(7L));
+             MockedConstruction<UsuarioRepository> ignored = mockConstruction(UsuarioRepository.class,
+                 (mock, ctx) -> when(mock.findByUsername("testuser")).thenReturn(Optional.of(u)))) {
+            AuthService.AuthException ex = assertThrows(AuthService.AuthException.class,
+                () -> new AuthService().login("testuser", "buena"));
+            assertTrue(ex.getMessage().contains("7 minuto"), ex.getMessage());
+        } finally {
+            intentosConstruction = mockConstruction(LoginAttemptRepository.class);
+        }
+    }
+
+    @Test
+    void login_fallido_seRegistraTambienEnElServidor() throws Exception {
+        try (MockedConstruction<UsuarioRepository> ignored = mockConstruction(UsuarioRepository.class,
+                (mock, ctx) -> when(mock.findByUsername(anyString())).thenReturn(Optional.empty()))) {
+            assertThrows(AuthService.AuthException.class, () -> new AuthService().login("alguien", "x"));
+            verify(intentosConstruction.constructed().get(0)).registrarFallo(eq("alguien"), anyLong());
+        }
     }
 
     // ── Inputs nulos / vacíos ─────────────────────────────────────────────────

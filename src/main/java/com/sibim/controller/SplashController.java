@@ -8,7 +8,6 @@ import com.sibim.db.offline.SyncService;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.util.AnimationUtils;
 import java.io.File;
-import io.github.cdimascio.dotenv.Dotenv;
 import org.flywaydb.core.Flyway;
 import javafx.animation.*;
 import javafx.application.Platform;
@@ -250,8 +249,7 @@ public class SplashController {
     private void initDatabase() {
         boolean demoRequested = false;
         try {
-            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-            demoRequested = "true".equalsIgnoreCase(dotenv.get("DEMO_MODE", System.getenv("DEMO_MODE")));
+            demoRequested = "true".equalsIgnoreCase(DatabaseConfig.setting("DEMO_MODE", "false"));
             if (demoRequested) {
                 log.info("DEMO_MODE=true — iniciando en modo demo (datos ficticios en memoria).");
                 DatabaseConfig.setDemoMode(true);
@@ -264,8 +262,10 @@ public class SplashController {
                     .baselineVersion("0")
                     .load();
                 boolean autoRepair = "true".equalsIgnoreCase(
-                    dotenv.get(MigrationRunner.AUTO_REPAIR_KEY, System.getenv(MigrationRunner.AUTO_REPAIR_KEY)));
-                MigrationRunner.run(flyway, autoRepair);
+                    DatabaseConfig.setting(MigrationRunner.AUTO_REPAIR_KEY, "false"));
+                boolean migrar = !"false".equalsIgnoreCase(
+                    DatabaseConfig.setting(MigrationRunner.MIGRATE_KEY, "true"));
+                MigrationRunner.run(flyway, autoRepair, migrar);
                 firstRunAdmin = seedAdminIfEmpty();
                 try {
                     ConfiguracionRepository cr = new ConfiguracionRepository();
@@ -283,7 +283,9 @@ public class SplashController {
         } catch (Exception e) {
             // Only a validation failure means "history != this build's scripts". Flyway wraps
             // plain connection/IO errors in other FlywayExceptions — those are just "no connection".
-            if (e instanceof org.flywaydb.core.api.exception.FlywayValidateException) {
+            if (e instanceof MigrationRunner.MigracionesPendientesException) {
+                log.error(e.getMessage());
+            } else if (e instanceof org.flywaydb.core.api.exception.FlywayValidateException) {
                 log.error("Las migraciones de la base de datos no coinciden con esta versión del programa; "
                     + "NO se modificó el historial. Si el cambio es intencional agrega {}=true al .env y reinicia. "
                     + "Detalle: {}", MigrationRunner.AUTO_REPAIR_KEY, e.getMessage());
