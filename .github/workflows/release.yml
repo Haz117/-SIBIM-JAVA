@@ -145,7 +145,7 @@ jobs:
 
       # ── Publish GitHub Release with both artifacts ─────────────────────────
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: SIBIM Desktop ${{ steps.ver.outputs.version }}
