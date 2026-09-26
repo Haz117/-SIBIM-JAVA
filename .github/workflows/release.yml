@@ -51,16 +51,25 @@ jobs:
           path: target/surefire-reports/
           retention-days: 30
 
+      # jpackage copies everything in --input into the app and puts every jar on
+      # the classpath — stage only the fat JAR, not the whole target/ folder.
+      - name: Stage fat JAR for jpackage
+        shell: pwsh
+        run: |
+          $jar = Get-ChildItem target -Filter "sibim-desktop-*.jar" |
+                 Where-Object { $_.Name -notlike "*original*" -and $_.Name -notlike "*shaded*" } |
+                 Sort-Object LastWriteTime -Descending |
+                 Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path "target\jpackage-input" | Out-Null
+          Copy-Item $jar.FullName "target\jpackage-input"
+          Write-Host "Fat JAR: $($jar.Name)"
+
       # ── Portable ZIP (app-image, no installer needed) ─────────────────────────
       - name: Create portable app-image
         shell: pwsh
         run: |
           $version = '${{ steps.ver.outputs.version }}'
-          $jar = Get-ChildItem target -Filter "sibim-desktop-*.jar" |
-                 Where-Object { $_.Name -notlike "*original*" } |
-                 Sort-Object LastWriteTime -Descending |
-                 Select-Object -First 1
-          Write-Host "Fat JAR: $($jar.Name)"
+          $jar = Get-ChildItem "target\jpackage-input" -Filter "*.jar" | Select-Object -First 1
 
           $iconArg = @()
           if (Test-Path "src\main\resources\img\icon.ico") {
@@ -75,7 +84,7 @@ jobs:
             --app-version $version `
             --vendor      "H. Ayuntamiento Municipal" `
             --description "Sistema Integral de Bienes Municipales" `
-            --input       target `
+            --input       "target\jpackage-input" `
             --main-jar    $jar.Name `
             --main-class  com.sibim.Main `
             --dest        "packaging\dist" `
@@ -96,10 +105,7 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ steps.ver.outputs.version }}'
-          $jar = Get-ChildItem target -Filter "sibim-desktop-*.jar" |
-                 Where-Object { $_.Name -notlike "*original*" } |
-                 Sort-Object LastWriteTime -Descending |
-                 Select-Object -First 1
+          $jar = Get-ChildItem "target\jpackage-input" -Filter "*.jar" | Select-Object -First 1
 
           # WiX adds itself to machine PATH — refresh it so jpackage can find candle.exe / light.exe
           $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + $env:PATH
@@ -115,7 +121,7 @@ jobs:
             --app-version $version `
             --vendor      "H. Ayuntamiento Municipal" `
             --description "Sistema Integral de Bienes Municipales" `
-            --input       target `
+            --input       "target\jpackage-input" `
             --main-jar    $jar.Name `
             --main-class  com.sibim.Main `
             --dest        "packaging\dist" `

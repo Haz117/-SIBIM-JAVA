@@ -141,16 +141,26 @@ if ($LASTEXITCODE -ne 0) { throw "Maven build failed (exit $LASTEXITCODE)" }
 $step++
 
 $Jar = Get-ChildItem $Target -Filter "sibim-desktop-*.jar" |
-       Where-Object { $_.Name -notlike "*original*" } |
+       Where-Object { $_.Name -notlike "*original*" -and $_.Name -notlike "*shaded*" } |
        Sort-Object LastWriteTime -Descending |
        Select-Object -First 1
 
 if (-not $Jar) { throw "Fat JAR not found in $Target" }
 Write-Host "Fat JAR: $($Jar.Name)  ($([math]::Round($Jar.Length/1MB, 1)) MB)"
 
+# jpackage copies EVERYTHING in --input into the app and puts every jar there
+# on the classpath. Pointing it at target/ shipped test-classes, surefire
+# reports, jacoco.exec and three copies of the fat JAR. Stage only the one jar.
+$Stage = "$Target\jpackage-input"
+if (Test-Path $Stage) { Remove-Item -Recurse -Force $Stage }
+New-Item -ItemType Directory -Force -Path $Stage | Out-Null
+Copy-Item $Jar.FullName $Stage
+
 # ── Run jpackage ──────────────────────────────────────────────────────────────
 Write-Host "`n[$step/$steps] Creating $Type → $Out"
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
+# jpackage refuses to overwrite a previous app-image.
+if (Test-Path "$Out\SIBIM Desktop") { Remove-Item -Recurse -Force "$Out\SIBIM Desktop" }
 
 $jargs = @(
     "--type",        $Type,
@@ -158,7 +168,7 @@ $jargs = @(
     "--app-version", $Version,
     "--vendor",      "H. Ayuntamiento Municipal",
     "--description", "Sistema Integral de Bienes Municipales",
-    "--input",       $Target,
+    "--input",       $Stage,
     "--main-jar",    $Jar.Name,
     "--main-class",  "com.sibim.Main",
     "--dest",        $Out,

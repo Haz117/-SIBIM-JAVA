@@ -18,14 +18,8 @@ REM Estructura esperada junto a este .bat:
 REM   .\SIBIM Desktop\SIBIM Desktop.exe
 REM   .\.env
 
-REM Verificar Java
-java -version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] Java no encontrado. Instala Java 21 o superior.
-    pause
-    exit /b 1
-)
-
+REM El app-image trae su propio runtime de Java: no se revisa que Java este
+REM instalado (antes se exigia y bloqueaba PCs que no lo necesitan).
 set "SIBIM_EXE=SIBIM Desktop\SIBIM Desktop.exe"
 if not exist "%SIBIM_EXE%" (
     echo [ERROR] No se encontro el app-image de SIBIM Desktop.
@@ -35,6 +29,4 @@ if not exist "%SIBIM_EXE%" (
 )
 
 echo Iniciando SIBIM Desktop...
-echo.
 start "SIBIM Desktop" "%SIBIM_EXE%"
-pause

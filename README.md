@@ -8,13 +8,13 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 
 - **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios, foto y datos de depreciación; filtros combinables guardables como **presets de acceso rápido** (máx. 10, persistidos en `~/.sibim/presets-bienes.json`); importación masiva desde CSV
 - **Depreciación en línea recta (SAT)** — cada bien puede tener fecha de adquisición, vida útil en años y valor residual; el sistema calcula automáticamente el valor depreciado actual y el porcentaje depreciado, visible en el detalle del bien con una barra de progreso codificada por color (verde / ámbar / rojo)
-- **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino
+- **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino. El **stock y el área de un bien solo cambian con movimientos**: el formulario de edición los muestra en solo lectura, la acción masiva "Transferir" registra transferencias (con aprobación para no-Admin) y guardar una edición nunca pisa un movimiento registrado mientras el formulario estaba abierto (si otro usuario modificó el bien, pide volver a abrirlo). Cada transferencia guarda el código patrimonial anterior y el nuevo. Solo el Admin puede eliminar un movimiento, y solo el más reciente de cada bien; los demás usan **Revertir**, que deja ambos registros
 - **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
 - **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con el conteo de bienes agotados, stock bajo, garantías por vencer y préstamos vencidos/por vencer; cada elemento navega directo a la pantalla correspondiente
-- **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). Solo disponible conectado a la base de datos real, no en modo offline/demo
+- **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). La bitácora de auditoría nunca se borra al restaurar (solo se le agregan las entradas del respaldo que falten), y un respaldo de una versión anterior que no incluye tablas nuevas con datos (p. ej. comodatos) se rechaza en vez de borrarlas. Solo disponible conectado a la base de datos real, no en modo offline/demo
 - **Depreciación de activos** — 4 tarjetas (valor compra, valor actual, % promedio, totalmente depreciados); distribución del inventario en 4 rangos de depreciación (0–24 % / 25–49 % / 50–99 % / 100 %+) como barras animadas; columna de visualización con `ProgressBar` codificada por color en la tabla; gráfica de proyección del valor a 10 años; exportable a PDF / Excel / fichas técnicas en lote
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
 - **Alertas** — resumen rápido con 3 tarjetas animadas (Agotados / Bajo Stock / Garantías) con barras de proporción; detalle de garantías vencidas vs. próximas; exportable a PDF, Excel y CSV directamente desde la pantalla de alertas (Ctrl+F para filtrar, atajos de teclado en todos los módulos)
@@ -44,10 +44,10 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Reportes PDF | iText 7 |
 | Reportes Excel | Apache POI |
 | Cifrado de contraseñas | BCrypt (at.favre.lib, factor 12) |
-| Cifrado de datos en reposo | AES-256-GCM — `offline.db` cifrada con clave derivada de `MachineGuid` |
+| Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (701 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (860 tests en la última ejecución) |
 
 ---
 
@@ -58,17 +58,17 @@ El sistema implementa múltiples capas de defensa:
 | Área | Mecanismo |
 |---|---|
 | Contraseñas | BCrypt (factor 12) — nunca se almacena texto plano |
-| Intentos de login | Bloqueo tras 5 fallos en 15 min; mensaje con minutos restantes |
-| Sesión activa | Timeout de inactividad a los 30 min con countdown UI; cierre automático o manual |
+| Intentos de login | Bloqueo tras 5 fallos en 15 min, con mensaje de minutos restantes. El contador vive en el servidor (tabla `login_attempts`, reloj del servidor), así que el bloqueo aplica desde cualquier PC; además hay un contador local para el modo offline |
+| Sesión activa | Timeout de inactividad a los 30 min con countdown UI; cierre automático o manual. Si un Admin desactiva o elimina la cuenta, o le cambia el rol o el área, la sesión abierta se cierra en menos de un minuto |
 | Credenciales offline | Caché local expira a los **30 días** — requiere conexión periódica al servidor para renovar; el estado `activo` se sincroniza en cada login online — una cuenta desactivada no puede entrar ni en modo offline |
-| Autorización | Guards en capa de servicio/repositorio: `SecurityException` si el rol no tiene permiso (no solo en UI) |
+| Autorización | Guards en capa de servicio/repositorio: `SecurityException` si el rol no tiene permiso (no solo en UI). Como cada PC se conecta directo a PostgreSQL, estos guards no protegen contra quien tenga las credenciales de la base: por eso las PCs deben usar el rol `sibim_app` (ver [Rol de base de datos con mínimo privilegio](#rol-de-base-de-datos-con-mínimo-privilegio)) |
 | Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área. Los préstamos son visibles si el área accesible coincide con el área de origen **o** destino (una transferencia debe verse desde ambos lados); los resguardos se acotan por su área única; las actas de entrega-recepción son documentos de todo el ayuntamiento y no se acotan por área (no tienen un área propia — son un corte de administración completa) |
 | Cifrado en tránsito | Configurable via `DB_SSL_MODE` en `.env`; la app emite advertencia en log si la BD es remota y SSL no está en modo `require` |
 | Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías, usuarios, resguardos, préstamos, actas y configuración queda en `audit_log` con usuario y timestamp, incluyendo intentos de inicio de sesión fallidos |
 | Backup | Solo Admin puede ejecutar respaldo/restauración; el archivo debe estar cifrado con AES-256-GCM y una contraseña elegida al momento; los respaldos JSON en claro se rechazan |
-| Supabase Storage | La app usa únicamente la clave **anon/public** de Supabase (nunca `service_role`) para subir fotos de bienes — la app corre en las PCs del ayuntamiento, así que cualquier clave embebida ahí debe asumirse extraíble; el bucket debe tener políticas RLS que permitan solo las operaciones necesarias |
+| Supabase Storage | La app usa únicamente la clave **anon/public** de Supabase (`SUPABASE_ANON_KEY`, nunca `service_role`) para subir fotos de bienes — la app corre en las PCs del ayuntamiento, así que cualquier clave embebida ahí debe asumirse extraíble; el bucket debe tener políticas RLS que permitan solo las operaciones necesarias. Si en `SUPABASE_ANON_KEY` hay una clave secreta, la app no la usa, y si el `.env` contiene una clave de servicio (`SUPABASE_SERVICE_KEY`, etc.) lo registra como error en el log |
 
-> **Cifrado en reposo**: el almacén persistente `offline.db.enc` está cifrado con **AES-256-GCM**. Durante la ejecución se usa temporalmente un archivo de trabajo SQLite y el proceso debe proteger el perfil de Windows y evitar copias de seguridad de ese archivo. La clave se deriva del `MachineGuid` de Windows y es estable ante renombres de equipo.
+> **Cifrado en reposo**: el almacén persistente `offline.db.enc` está cifrado con **AES-256-GCM** usando una clave aleatoria que se guarda en `offline.key` **sellada con DPAPI** para la cuenta de Windows del usuario: otra cuenta de la misma PC no puede abrirla. (Las versiones anteriores derivaban la clave del nombre de usuario y el `MachineGuid`, datos que cualquier cuenta del equipo puede leer; al abrir un almacén de esas versiones se vuelve a cifrar con la clave nueva.) Si un administrador restablece la contraseña de Windows del usuario, DPAPI ya no puede abrir la clave: el almacén ilegible se aparta como `offline.db.enc.ilegible-*` y se reconstruye desde el servidor (se pierden los cambios offline que no se hubieran sincronizado). Durante la ejecución se usa temporalmente un archivo de trabajo SQLite en claro.
 
 ---
 
@@ -83,7 +83,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V21` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse) y eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada. Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V23` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse), eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada, los códigos anterior/nuevo de cada transferencia (V22) y el contador de intentos de inicio de sesión compartido entre PCs (V23). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -254,31 +254,62 @@ SIBIM-Java/
 | Rol | Permisos |
 |---|---|
 | **Admin** | Acceso completo: gestión de usuarios, todas las áreas, reportes globales, aprobación/rechazo de transferencias pendientes |
-| **Secretario** | Acceso a su secretaría y a las direcciones que dependen de ella; las transferencias que registre quedan en PENDIENTE hasta aprobación |
-| **Dirección** | Acceso solo a su área asignada; las transferencias que registre quedan en PENDIENTE hasta aprobación |
+| **Secretario** | Acceso a su secretaría y a las direcciones que dependen de ella; las transferencias que registre quedan en PENDIENTE hasta aprobación; deshace movimientos con Revertir (no puede eliminarlos) |
+| **Dirección** | Acceso solo a su área asignada; las transferencias que registre quedan en PENDIENTE hasta aprobación; deshace movimientos con Revertir (no puede eliminarlos) |
+
+---
+
+## Rol de base de datos con mínimo privilegio
+
+Cada PC se conecta directo a PostgreSQL con las credenciales de su `.env`. Si esas credenciales son las del dueño de la base (`postgres`), cualquiera que abra el archivo puede borrar tablas, darse rol de Admin o editar la bitácora, y los permisos por rol de la app no lo impiden. Para que las PCs solo puedan leer y escribir datos:
+
+1. Edita la contraseña en `scripts/sql/rol_app_minimo.sql` y ejecútalo **una vez** como `postgres` (SQL Editor de Supabase o `psql`). Crea el rol `sibim_app`:
+   - sin permisos de DDL (no puede crear, alterar ni borrar tablas);
+   - la bitácora `audit_log` solo acepta inserciones (ni `UPDATE` ni `DELETE`);
+   - el historial de Flyway es de solo lectura.
+
+   Además quita a los roles `anon`/`authenticated` de Supabase el acceso por la API REST a las tablas de SIBIM, que la app no usa.
+2. En el `.env` de cada PC:
+   ```env
+   DB_USER=sibim_app            # con el pooler de Supabase: sibim_app.<ref-del-proyecto>
+   DB_PASSWORD=<la del paso 1>
+   DB_MIGRATE=false
+   ```
+   Con `DB_MIGRATE=false` la app no intenta migrar el esquema al arrancar; solo verifica que esté al día.
+3. Deja **una** PC de administración con el usuario `postgres` y sin `DB_MIGRATE=false`. Al instalar una versión nueva, ábrela primero ahí para que aplique las migraciones; si una PC con `DB_MIGRATE=false` arranca antes, entra en modo offline y el log explica que faltan migraciones.
+4. Vuelve a ejecutar el script después de cada versión que agregue tablas.
+
+`src/test/java/com/sibim/db/integration/RolAppMinimoIntegrationTest.java` verifica el script contra un PostgreSQL real.
 
 ---
 
 ## Respaldo de la base de datos
 
-Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo JSON, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado real — para eso, sigue siendo responsabilidad de quien administre el servidor PostgreSQL. Como mínimo, en producción se recomienda:
+Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo cifrado, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado.
 
-```bash
-# Respaldo diario (ejemplo)
-pg_dump -U tu_usuario -d sibim -F c -f sibim_$(date +%Y%m%d).dump
+**Respaldo automático diario** (en una PC de administración, con las *Command Line Tools* de PostgreSQL instaladas — `pg_dump` de la misma versión mayor que el servidor o más nueva):
 
-# Restauración
-pg_restore -U tu_usuario -d sibim --clean sibim_20260101.dump
+```powershell
+# Respaldo ahora (lee la conexión de %APPDATA%\SIBIM\.env; guarda en %APPDATA%\SIBIM\respaldos, conserva 30 días)
+.\scripts\respaldo_diario.ps1
+
+# Registrar la tarea programada de Windows (todos los días a las 23:00)
+.\scripts\respaldo_diario.ps1 -Registrar
+
+# Restaurar un respaldo
+pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d <base> sibim-20260926-2300.dump
 ```
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V22__descripcion.sql` (numeración consecutiva a partir de V21) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
+El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta periódicamente fuera de esa PC.
+
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V24__descripcion.sql` (numeración consecutiva a partir de V23) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (701 en total)
+# Correr todos los tests (860 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase
