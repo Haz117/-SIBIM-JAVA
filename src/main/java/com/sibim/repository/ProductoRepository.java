@@ -218,8 +218,7 @@ public class ProductoRepository {
             List<Producto> all = findAll(false);
             long total = all.size();
             BigDecimal valor = all.stream()
-                .map(p -> { BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : BigDecimal.ZERO;
-                            return v.multiply(BigDecimal.valueOf(p.getStockActual())); })
+                .map(Producto::getValorTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             long alertas = all.stream()
                 .filter(p -> p.getEstado() != EstadoProducto.ACTIVO).count();
@@ -228,7 +227,7 @@ public class ProductoRepository {
         }
         String sql = """
             SELECT COUNT(*) AS total,
-                   COALESCE(SUM(precio_venta * stock_actual), 0) AS valor_total,
+                   COALESCE(SUM(precio_compra * stock_actual), 0) AS valor_total,
                    COUNT(*) FILTER (WHERE %s IN ('agotado','bajo_stock','vencido')) AS alertas,
                    COUNT(*) FILTER (WHERE etiquetado = FALSE) AS sin_etiquetar
             FROM products p
@@ -689,7 +688,7 @@ public class ProductoRepository {
               COUNT(*) FILTER (WHERE stock_actual = 0
                 AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE)) AS agotados,
               COUNT(*) FILTER (WHERE fecha_vencimiento IS NOT NULL AND fecha_vencimiento < CURRENT_DATE) AS vencidos,
-              COALESCE(SUM(precio_venta * stock_actual), 0) AS valor_total,
+              COALESCE(SUM(precio_compra * stock_actual), 0) AS valor_total,
               COUNT(DISTINCT categoria_id) AS categorias
             FROM products p
             WHERE p.fecha_baja IS NULL
@@ -730,7 +729,7 @@ public class ProductoRepository {
                 .toList();
         }
         StringBuilder sb = new StringBuilder("""
-            SELECT c.nombre, COALESCE(SUM(p.precio_venta * p.stock_actual), 0) AS valor
+            SELECT c.nombre, COALESCE(SUM(p.precio_compra * p.stock_actual), 0) AS valor
             FROM products p
             LEFT JOIN categories c ON c.id = p.categoria_id
             WHERE p.fecha_baja IS NULL
@@ -741,7 +740,7 @@ public class ProductoRepository {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
-        sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_venta * p.stock_actual) > 0 ORDER BY valor DESC");
+        sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_compra * p.stock_actual) > 0 ORDER BY valor DESC");
         List<CategoriaValor> result = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = buildStatement(conn, sb.toString(), params);
@@ -777,7 +776,7 @@ public class ProductoRepository {
                 .toList();
         }
         StringBuilder sb = new StringBuilder("""
-            SELECT c.nombre, COALESCE(SUM(p.precio_venta * p.stock_actual), 0) AS valor
+            SELECT c.nombre, COALESCE(SUM(p.precio_compra * p.stock_actual), 0) AS valor
             FROM products p
             LEFT JOIN categories c ON c.id = p.categoria_id
             WHERE p.fecha_baja IS NULL
@@ -790,7 +789,7 @@ public class ProductoRepository {
         }
         if (desde != null) { sb.append(" AND p.created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
         if (hasta != null) { sb.append(" AND p.created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(23, 59, 59))); }
-        sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_venta * p.stock_actual) > 0 ORDER BY valor DESC LIMIT ").append(limit);
+        sb.append(" GROUP BY c.nombre HAVING SUM(p.precio_compra * p.stock_actual) > 0 ORDER BY valor DESC LIMIT ").append(limit);
         List<CategoriaValor> result = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = buildStatement(conn, sb.toString(), params)) {

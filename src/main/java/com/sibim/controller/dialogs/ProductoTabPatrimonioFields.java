@@ -22,6 +22,7 @@ class ProductoTabPatrimonioFields {
     final TextField fNumeroSerie;
     final TextField fUbicacion;
     final TextField fResguardante;
+    final Label     lblResguardoActivo;
     final ComboBox<String> fEstadoFisico;
     final TextField fNumeroFactura;
     final CheckBox  fEtiquetado;
@@ -42,7 +43,8 @@ class ProductoTabPatrimonioFields {
             List<String> sugestMarcas,
             List<String> sugestModelos,
             List<String> sugestProveedores,
-            List<String> sugestUbicaciones) {
+            List<String> sugestUbicaciones,
+            String folioResguardoActivo) {
 
         grid = DialogUtil.formGrid(140);
 
@@ -82,6 +84,16 @@ class ProductoTabPatrimonioFields {
                 ? existing.getResguardante() : "");
         fResguardante.setPromptText("Persona responsable del resguardo (nombre completo)");
         fResguardante.getStyleClass().add("form-input");
+        // While a signed resguardo covers the bien, that document says who
+        // holds it; typing another name here would contradict it.
+        lblResguardoActivo = new Label(folioResguardoActivo == null ? "" :
+            "Asignado por el resguardo " + folioResguardoActivo
+            + ". Para cambiarlo, cancela ese resguardo o genera uno nuevo en Resguardos.");
+        lblResguardoActivo.getStyleClass().addAll("field-hint", "muted-sm");
+        lblResguardoActivo.setWrapText(true);
+        lblResguardoActivo.setVisible(folioResguardoActivo != null);
+        lblResguardoActivo.setManaged(folioResguardoActivo != null);
+        fResguardante.setDisable(folioResguardoActivo != null);
 
         fEstadoFisico = new ComboBox<>(FXCollections.observableArrayList(
                 "", "BUENO", "REGULAR", "MALO", "DEFICIENTE"));
@@ -175,7 +187,7 @@ class ProductoTabPatrimonioFields {
         grid.add(DialogUtil.fieldLabel("Ubicación"),     0, rp); grid.add(fUbicacion,    1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Resguardante",
             "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
-                                                         0, rp); grid.add(fResguardante, 1, rp++);
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fResguardante, lblResguardoActivo), 1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Estado físico",
             "Condición actual del bien según el último levantamiento físico.\nBUENO = sin daños; REGULAR = desgaste menor; MALO = requiere reparación; DEFICIENTE = fuera de uso."),
                                                          0, rp); grid.add(fEstadoFisico, 1, rp++);

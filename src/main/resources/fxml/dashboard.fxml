@@ -72,25 +72,25 @@
         </VBox>
         <VBox fx:id="cardNuevaEntrada" styleClass="quick-action-card" onMouseClicked="#onAccionNuevaEntrada"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
-              accessibleRole="BUTTON" accessibleText="Registrar Entrada — nueva entrada de stock">
+              accessibleRole="BUTTON" accessibleText="Registrar Movimiento — entrada, salida, ajuste o transferencia">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2a-arrow-up-bold-circle-outline" styleClass="qa-card-icon-green"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
-                    <Label text="Registrar Entrada" styleClass="qa-card-title"/>
-                    <Label text="Nueva entrada de stock" styleClass="qa-card-hint"/>
+                    <Label text="Registrar Movimiento" styleClass="qa-card-title"/>
+                    <Label text="Entrada, salida o transferencia" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
         <VBox styleClass="quick-action-card" onMouseClicked="#onVerAlertas"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
-              accessibleRole="BUTTON" accessibleText="Ver Alertas — bienes agotados y bajo stock">
+              accessibleRole="BUTTON" accessibleText="Ver Alertas — inventario, garantías y pendientes">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="qa-card-icon-amber"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label text="Ver Alertas" styleClass="qa-card-title"/>
-                    <Label text="Bienes agotados y bajo stock" styleClass="qa-card-hint"/>
+                    <Label text="Inventario, garantías y pendientes" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>

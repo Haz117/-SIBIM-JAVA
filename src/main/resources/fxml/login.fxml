@@ -51,7 +51,7 @@
                        contentDisplay="LEFT" graphicTextGap="8">
                     <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
                 </Label>
-                <Label text="Alertas automáticas de stock" styleClass="brand-feature"
+                <Label text="Alertas de garantías y pendientes" styleClass="brand-feature"
                        contentDisplay="LEFT" graphicTextGap="8">
                     <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
                 </Label>

@@ -27,16 +27,30 @@ public class ProductoService {
     private final ProductoRepository productoRepo;
     private final AuditLogRepository auditRepo;
     private final PriceHistoryRepository priceHistoryRepo;
+    private final ResguardoActivo resguardoActivo;
 
-    public ProductoService() { this(new ProductoRepository(), new AuditLogRepository(), new PriceHistoryRepository()); }
+    /** Folio of the active resguardo covering a bien, if any. */
+    @FunctionalInterface
+    interface ResguardoActivo { Optional<String> folio(String productoId) throws SQLException; }
+
+    public ProductoService() {
+        this(new ProductoRepository(), new AuditLogRepository(), new PriceHistoryRepository(),
+            id -> new com.sibim.repository.ResguardoRepository().findActivoByProductoId(id)
+                .map(com.sibim.model.Resguardo::getNumero));
+    }
     ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo) {
         this(productoRepo, auditRepo, new PriceHistoryRepository());
     }
     ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo,
                     PriceHistoryRepository priceHistoryRepo) {
+        this(productoRepo, auditRepo, priceHistoryRepo, id -> Optional.empty());
+    }
+    ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo,
+                    PriceHistoryRepository priceHistoryRepo, ResguardoActivo resguardoActivo) {
         this.productoRepo     = productoRepo;
         this.auditRepo        = auditRepo;
         this.priceHistoryRepo = priceHistoryRepo;
+        this.resguardoActivo  = resguardoActivo;
     }
 
     public List<Producto> getAll() throws SQLException {
@@ -139,7 +153,12 @@ public class ProductoService {
         if (isNew && p.getArea() != null && AreaCodigos.tienePrefijo(p.getArea()))
             p.setCodigo(asignarCodigo(p.getArea()));
 
-        BigDecimal prevCompra = null, prevVenta = null;
+        // A municipal bien has no sale price. The column stays (older clients,
+        // imports and reports still read it) but always mirrors the purchase
+        // price, which is what every valuation uses (Producto#getValorTotal).
+        p.setPrecioVenta(p.getPrecioCompra());
+
+        BigDecimal prevCompra = null;
         if (!isNew) {
             // findById is already scoped to the caller's áreas, so a bien from
             // another área comes back empty — checking the área the object
@@ -155,7 +174,15 @@ public class ProductoService {
             p.setStockActual(actual.getStockActual());
             p.setArea(actual.getArea());
             prevCompra = actual.getPrecioCompra();
-            prevVenta  = actual.getPrecioVenta();
+            // A signed resguardo says who holds the bien (ResguardoRepository
+            // keeps products.resguardante in step with it); an edit — single
+            // or in bulk — can't contradict the document.
+            if (!java.util.Objects.equals(sinBlancos(p.getResguardante()), sinBlancos(actual.getResguardante()))) {
+                Optional<String> folio = resguardoActivo.folio(p.getId());
+                if (folio.isPresent())
+                    throw new ValidationException("El resguardante lo define el resguardo " + folio.get()
+                        + "; para cambiarlo cancélalo o genera uno nuevo en Resguardos");
+            }
         }
         validate(p);
 
@@ -179,12 +206,6 @@ public class ProductoService {
                     "Precio de compra: " + FormatUtils.formatCurrency(prevCompra)
                         + " → " + FormatUtils.formatCurrency(p.getPrecioCompra()));
             }
-            if (priceChanged(prevVenta, p.getPrecioVenta())) {
-                priceHistoryRepo.save(saved.getId(), "precio_venta", prevVenta, p.getPrecioVenta(), userId, userName);
-                auditRepo.log("producto", saved.getId(), saved.getNombre(), "cambio_precio",
-                    "Precio de venta: " + FormatUtils.formatCurrency(prevVenta)
-                        + " → " + FormatUtils.formatCurrency(p.getPrecioVenta()));
-            }
         }
 
         return saved;
@@ -196,6 +217,10 @@ public class ProductoService {
      *  vuelve a aparecer libre automáticamente en el próximo cálculo. */
     private String asignarCodigo(String area) throws SQLException {
         return productoRepo.siguienteCodigo(area);
+    }
+
+    private static String sinBlancos(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
     }
 
     private static boolean priceChanged(BigDecimal a, BigDecimal b) {

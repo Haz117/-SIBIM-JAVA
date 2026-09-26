@@ -184,7 +184,7 @@ class ProductosColumnSetup {
                                      TableColumn<Producto, String> colValor) {
         colStock.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stockActual"));
         colValor.setCellValueFactory(c ->
-            new javafx.beans.property.SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getPrecioVenta())));
+            new javafx.beans.property.SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorUnitario())));
 
         colStock.setCellFactory(column -> new TableCell<>() {
             private final Label numLabel = new Label();

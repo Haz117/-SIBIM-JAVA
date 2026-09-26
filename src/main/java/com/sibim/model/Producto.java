@@ -60,9 +60,17 @@ public class Producto {
     }
 
     // --- Computed field: valor total ---
+    /** Valor patrimonial: costo de adquisición × cantidad. A municipal bien
+     *  has no sale price; this used to multiply precio_venta, so a bien
+     *  captured with only its purchase price counted as $0 in the dashboard,
+     *  the organigrama, reports and the acta de entrega-recepción. */
     public BigDecimal getValorTotal() {
-        if (precioVenta == null) return BigDecimal.ZERO;
-        return precioVenta.multiply(BigDecimal.valueOf(stockActual));
+        return getValorUnitario().multiply(BigDecimal.valueOf(stockActual));
+    }
+
+    /** Costo de adquisición por unidad (precio de compra). */
+    public BigDecimal getValorUnitario() {
+        return precioCompra != null ? precioCompra : BigDecimal.ZERO;
     }
 
     /**

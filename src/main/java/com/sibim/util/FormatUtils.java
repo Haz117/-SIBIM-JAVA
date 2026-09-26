@@ -54,6 +54,11 @@ public final class FormatUtils {
         return stock + " " + unidad;
     }
 
+    /** "1 bien", "5 bienes" — instead of hard-coding the plural ("1 bienes"). */
+    public static String plural(long n, String singular, String plural) {
+        return n + " " + (n == 1 ? singular : plural);
+    }
+
     public static long diasHastaVencimiento(LocalDate fechaVencimiento) {
         if (fechaVencimiento == null) return Long.MAX_VALUE;
         return ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);

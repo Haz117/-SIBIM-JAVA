@@ -394,7 +394,7 @@ public class DashboardController implements Refreshable {
         if (lastAgotados.isEmpty()) { navigarA("Alertas"); return; }
         DashboardMiniPanelDialog.show(statsGrid != null ? statsGrid.getScene() : null,
             "Bienes Agotados", "mdi2a-alert-octagon-outline",
-            "Stock = 0 · " + lastAgotados.size() + " bienes requieren reposición",
+            "Existencia 0 · " + FormatUtils.plural(lastAgotados.size(), "bien requiere", "bienes requieren") + " reposición",
             AppColors.DANGER, AppColors.DANGER_D, lastAgotados, () -> navigarA("Alertas"));
     }
 
@@ -403,7 +403,7 @@ public class DashboardController implements Refreshable {
         if (lastBajoStock.isEmpty()) { navigarA("Alertas"); return; }
         DashboardMiniPanelDialog.show(statsGrid != null ? statsGrid.getScene() : null,
             "Existencias Bajas", "mdi2a-alert-circle-outline",
-            "Por debajo del mínimo · " + lastBajoStock.size() + " bienes",
+            "Por debajo del mínimo · " + FormatUtils.plural(lastBajoStock.size(), "bien", "bienes"),
             AppColors.WARNING, AppColors.WARNING_D, lastBajoStock, () -> navigarA("Alertas"));
     }
 

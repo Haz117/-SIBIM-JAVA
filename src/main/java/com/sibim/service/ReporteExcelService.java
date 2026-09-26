@@ -50,7 +50,7 @@ public class ReporteExcelService extends ReporteService {
 
     private File exportInventarioExcel(List<Producto> productos, LocalDate desde, LocalDate hasta) throws Exception {
         String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Stock", "Min", "Max",
-                            "Precio Venta", "Valor Total", "Estado", "Proveedor", "Marca", "Modelo",
+                            "Valor Unitario", "Valor Total", "Estado", "Proveedor", "Marca", "Modelo",
                             "N° de Serie", "Ubicacion", "Fecha Registro", "Estado Físico", "N° Factura"};
         File file = tempFile("inventario", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
@@ -67,7 +67,7 @@ public class ReporteExcelService extends ReporteService {
                 r.createCell(5).setCellValue(p.getStockActual());
                 r.createCell(6).setCellValue(p.getStockMinimo());
                 r.createCell(7).setCellValue(p.getStockMaximo());
-                r.createCell(8).setCellValue(p.getPrecioVenta() != null ? p.getPrecioVenta().doubleValue() : 0);
+                r.createCell(8).setCellValue(p.getValorUnitario().doubleValue());
                 r.createCell(9).setCellValue(p.getValorTotal().doubleValue());
                 r.createCell(10).setCellValue(p.getEstado().getEtiqueta());
                 r.createCell(11).setCellValue(p.getProveedor() != null ? p.getProveedor() : "");

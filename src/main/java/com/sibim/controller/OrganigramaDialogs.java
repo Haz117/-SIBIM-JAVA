@@ -268,7 +268,7 @@ class OrganigramaDialogs {
             HBox.setHgrow(pb, Priority.ALWAYS);
             String color = catColors[i % catColors.length];
             pb.setStyle("-fx-accent: " + color + ";");
-            Label cnt = new Label(entry.getValue() + " bienes");
+            Label cnt = new Label(FormatUtils.plural(entry.getValue(), "bien", "bienes"));
             cnt.getStyleClass().add("area-bar-count");
             cnt.setMinWidth(70);
             HBox row = new HBox(10, catName, pb, cnt);

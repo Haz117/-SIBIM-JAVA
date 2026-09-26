@@ -111,7 +111,7 @@
                 <Label text="VALOR PATRIMONIAL" styleClass="rich-stat-label"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpValor" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Suma del valor patrimonial (precio de venta × stock) de todos los bienes con área asignada." wrapText="true" maxWidth="250"/></tooltip>
+                    <tooltip><Tooltip text="Suma del valor patrimonial (costo de adquisición × cantidad) de todos los bienes con área asignada." wrapText="true" maxWidth="250"/></tooltip>
                 </Label>
             </HBox>
             <Label fx:id="lblStatValor" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>

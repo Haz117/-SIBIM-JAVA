@@ -376,7 +376,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             ResguardoItem item = new ResguardoItem();
             item.setProductoId(sel.getId()); item.setProductoNombre(sel.getNombre());
             item.setProductoCodigo(sel.getCodigo()); item.setArea(sel.getArea());
-            item.setValorUnitario(sel.getPrecioVenta()); item.setNumeroSerie(sel.getNumeroSerie());
+            item.setValorUnitario(sel.getValorUnitario()); item.setNumeroSerie(sel.getNumeroSerie());
             itemsAgregados.add(item);
             productoCombo.setValue(null);
             if (productoCombo.getEditor() != null) productoCombo.getEditor().clear();
@@ -397,7 +397,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
                     ResguardoItem item = new ResguardoItem();
                     item.setProductoId(p.getId()); item.setProductoNombre(p.getNombre());
                     item.setProductoCodigo(p.getCodigo()); item.setArea(p.getArea());
-                    item.setValorUnitario(p.getPrecioVenta()); item.setNumeroSerie(p.getNumeroSerie());
+                    item.setValorUnitario(p.getValorUnitario()); item.setNumeroSerie(p.getNumeroSerie());
                     itemsAgregados.add(item);
                 });
             if (itemsAgregados.isEmpty())

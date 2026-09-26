@@ -16,7 +16,8 @@ class AlertasDataLoader {
         List<Producto> bajoStock,
         List<Producto> garantias,
         List<Producto> mantenimiento,
-        List<Comodato> comodatosVencidos
+        List<Comodato> comodatosVencidos,
+        List<AlertasPatrimonialesSection.Pendiente> pendientesPatrimoniales
     ) {}
 
     private final ProductoService productoService;
@@ -36,7 +37,8 @@ class AlertasDataLoader {
                     productoService.getBajoStock(),
                     productoService.getVencidosProximos(30),
                     productoService.getProximasRevisiones(30),
-                    comodatoService.getVencidos()
+                    comodatoService.getVencidos(),
+                    AlertasPatrimonialesSection.pendientes(productoService.getAll())
                 );
             },
             onSuccess,

@@ -245,7 +245,7 @@ public class CategoriasController {
                 if (item > 0) {
                     getStyleClass().addAll("cat-count-active", "org-area-count-clickable");
                     setCursor(javafx.scene.Cursor.HAND);
-                    Tooltip.install(this, new Tooltip("Ver los " + item + " bienes de esta categoría"));
+                    Tooltip.install(this, new Tooltip("Ver " + FormatUtils.plural(item, "el bien", "los bienes") + " de esta categoría"));
                     setOnMouseClicked(e -> {
                         Categoria cat = getTableView().getItems().get(getIndex());
                         NavigationContext.setPendingCategoryFilter(cat.getNombre());

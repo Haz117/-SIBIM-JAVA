@@ -85,15 +85,25 @@ public final class ProductoDialogFactory {
 
         var stockTab = new ProductoTabStockFields(existing);
 
+        String folioResguardo = null;
+        if (!isNewProduct) {
+            try {
+                folioResguardo = new com.sibim.repository.ResguardoRepository()
+                    .findActivoByProductoId(existing.getId())
+                    .map(com.sibim.model.Resguardo::getNumero).orElse(null);
+            } catch (Exception e) {
+                log.debug("No se pudo consultar el resguardo activo de '{}'", existing.getId(), e);
+            }
+        }
         var patrimonioTab = new ProductoTabPatrimonioFields(existing,
-            sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones);
+            sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones, folioResguardo);
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         Tab tabInfo       = new Tab("Información General", infoTab.grid);
         tabInfo.setGraphic(new FontIcon("mdi2i-information-outline"));
-        Tab tabStock      = new Tab("Stock y Precios", stockTab.grid);
+        Tab tabStock      = new Tab("Valor y cantidad", stockTab.grid);
         tabStock.setGraphic(new FontIcon("mdi2c-chart-bar"));
         Tab tabPatrimonio = new Tab("Datos Patrimoniales", patrimonioTab.grid);
         tabPatrimonio.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
@@ -101,7 +111,7 @@ public final class ProductoDialogFactory {
         tabs.getStyleClass().addAll("dlg-tabpane", "dlg-stepper");
 
         // ── Step indicator bar ───────────────────────────────────────────────
-        String[] stepTitles = {"Datos básicos", "Stock y Precios", "Patrimonio"};
+        String[] stepTitles = {"Datos básicos", "Valor y cantidad", "Patrimonio"};
         VBox[] stepNodes = new VBox[3];
         Region[] connectors = new Region[2];
         HBox stepBar = new HBox(0);
@@ -123,7 +133,7 @@ public final class ProductoDialogFactory {
             AccessibilityUtils.asButton(step, "Paso " + (si + 1) + ": " + stepTitles[si]);
             String[] stepTooltips = {
                 "Nombre, Código, Categoría, Área, Ubicación, Imagen",
-                "Stock, Precio unitario, Precio total, Fecha de vencimiento",
+                "Costo de adquisición, Cantidad, Garantía",
                 "Proveedor, Marca, Modelo, N° serie, Depreciación, Estado"
             };
             Tooltip.install(step, new Tooltip(stepTooltips[si]));
@@ -165,14 +175,12 @@ public final class ProductoDialogFactory {
             if (codigoManual && infoTab.fCodigo.getText().isBlank()) { infoTab.fCodigo.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             if (infoTab.fArea.getValue() == null || infoTab.fArea.getValue().isBlank()) { infoTab.fArea.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
             if (infoTab.fCat.getValue() == null) { infoTab.fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); inv = true; }
-            String pcText = stockTab.fPrecioC.getText().trim(), pvText = stockTab.fPrecioV.getText().trim();
+            String pcText = stockTab.fPrecioC.getText().trim();
             try { var bd = new BigDecimal(pcText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioC.getStyleClass().remove("field-error"); }
             catch (Exception ex) { stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
-            try { var bd = new BigDecimal(pvText); if (bd.signum() < 0) throw new NumberFormatException(); stockTab.fPrecioV.getStyleClass().remove("field-error"); }
-            catch (Exception ex) { stockTab.fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
             if (stockTab.fStockMin.getValue() > stockTab.fStockMax.getValue()) { stockTab.fStockMin.getStyleClass().add("field-error"); stockTab.fStockMax.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); inv = true; }
             if (inv) {
-                lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos y no negativos (ej. 1500.00), y el Stock Mínimo no puede superar al Stock Máximo.");
+                lblFormError.setText("Completa los campos obligatorios marcados en rojo. El costo debe ser un número válido y no negativo (ej. 1500.00), y la existencia mínima no puede superar a la máxima.");
                 lblFormError.setVisible(true); lblFormError.setManaged(true);
                 AnimationUtils.shake(lblFormError);
                 return;
@@ -196,7 +204,6 @@ public final class ProductoDialogFactory {
             hideFormError.run();
         });
         stockTab.fPrecioC.textProperty().addListener((o, a, b) -> { stockTab.fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
-        stockTab.fPrecioV.textProperty().addListener((o, a, b) -> { stockTab.fPrecioV.getStyleClass().remove("field-error"); hideFormError.run(); });
         stockTab.fStockMin.valueProperty().addListener((o, a, b) -> { stockTab.fStockMin.getStyleClass().remove("field-error"); stockTab.fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
         stockTab.fStockMax.valueProperty().addListener((o, a, b) -> { stockTab.fStockMin.getStyleClass().remove("field-error"); stockTab.fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
 
@@ -304,8 +311,14 @@ public final class ProductoDialogFactory {
                 if (n instanceof ComboBox<?> cb && cb.isShowing()) return;
                 if (n instanceof TextArea) return;
             }
-            if (okBtn instanceof Button b && !b.isDisabled()) { b.fire(); e.consume(); }
+            // Enter advances like the stepper's own button: next step, and on the
+            // last one "Guardar" (which validates and then saves).
+            if (!btnNextNav.isDisabled()) { btnNextNav.fire(); e.consume(); }
         });
+        // The dialog's own OK button used to sit next to "Siguiente" and saved
+        // from any step, skipping the rest of the wizard. It stays in the pane
+        // (btnGuardar fires it to run the result converter) but out of sight.
+        if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
         Platform.runLater(() -> infoTab.fNombre.requestFocus());
 
         // ── Result converter ─────────────────────────────────────────────────
@@ -323,20 +336,13 @@ public final class ProductoDialogFactory {
             if (infoTab.fCat.getValue() == null) { infoTab.fCat.getStyleClass().add("field-error"); tabs.getSelectionModel().select(0); if (firstErrField == null) firstErrField = infoTab.fCat; invalid = true; }
             else infoTab.fCat.getStyleClass().remove("field-error");
 
-            BigDecimal precioCompra = null, precioVenta = null;
+            BigDecimal precioCompra = null;
             try {
                 precioCompra = new BigDecimal(stockTab.fPrecioC.getText().trim());
                 if (precioCompra.signum() < 0) throw new NumberFormatException("negativo");
                 stockTab.fPrecioC.getStyleClass().remove("field-error");
             } catch (Exception ex) {
                 stockTab.fPrecioC.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
-            }
-            try {
-                precioVenta = new BigDecimal(stockTab.fPrecioV.getText().trim());
-                if (precioVenta.signum() < 0) throw new NumberFormatException("negativo");
-                stockTab.fPrecioV.getStyleClass().remove("field-error");
-            } catch (Exception ex) {
-                stockTab.fPrecioV.getStyleClass().add("field-error"); tabs.getSelectionModel().select(1); invalid = true;
             }
 
             if (stockTab.fStockMin.getValue() > stockTab.fStockMax.getValue()) {
@@ -350,7 +356,7 @@ public final class ProductoDialogFactory {
             }
 
             if (invalid) {
-                lblFormError.setText("Completa los campos obligatorios marcados en rojo. Los precios deben ser números válidos y no negativos (ej. 1500.00), y el Stock Mínimo no puede superar al Stock Máximo.");
+                lblFormError.setText("Completa los campos obligatorios marcados en rojo. El costo debe ser un número válido y no negativo (ej. 1500.00), y la existencia mínima no puede superar a la máxima.");
                 lblFormError.setVisible(true);
                 lblFormError.setManaged(true);
                 AnimationUtils.shake(lblFormError);
@@ -373,7 +379,7 @@ public final class ProductoDialogFactory {
                 p.setCategoriaColor(infoTab.fCat.getValue().getColor());
             }
             p.setPrecioCompra(precioCompra);
-            p.setPrecioVenta(precioVenta);
+            p.setPrecioVenta(precioCompra);   // no sale price for a municipal bien (see ProductoService#save)
             p.setStockActual(stockTab.fStock.getValue());
             p.setStockMinimo(stockTab.fStockMin.getValue());
             p.setStockMaximo(stockTab.fStockMax.getValue());

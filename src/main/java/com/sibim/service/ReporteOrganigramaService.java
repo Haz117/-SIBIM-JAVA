@@ -26,12 +26,10 @@ public class ReporteOrganigramaService extends ReporteService {
 
     public ReporteOrganigramaService() { super(); }
 
-    /** precioVenta × stockActual entirely in BigDecimal — mixing in double here would
-     *  drift the patrimonial totals shown in this report away from the BigDecimal-based
-     *  sums the rest of ReporteService's exports use for the same figure. */
+    /** Same figure as every other export: Producto#getValorTotal (costo de
+     *  adquisición × cantidad), kept in BigDecimal. */
     private static java.math.BigDecimal valorProducto(Producto p) {
-        java.math.BigDecimal v = p.getPrecioVenta() != null ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
-        return v.multiply(java.math.BigDecimal.valueOf(p.getStockActual()));
+        return p.getValorTotal();
     }
 
     /** Generates a structured organigrama PDF — one section per area with bienes table. */

@@ -89,8 +89,8 @@ public final class MovimientoDialogFactory {
         fTipo.setConverter(new javafx.util.StringConverter<>() {
             public String toString(TipoMovimiento t) {
                 return t == null ? "" : switch (t) {
-                    case ENTRADA       -> "Entrada (suma stock)";
-                    case SALIDA        -> "Salida (resta stock)";
+                    case ENTRADA       -> "Entrada (suma a la cantidad)";
+                    case SALIDA        -> "Salida (resta de la cantidad)";
                     case AJUSTE        -> "Ajuste manual";
                     case TRANSFERENCIA -> "Transferencia entre áreas";
                 };

@@ -465,14 +465,15 @@ class ProductoTabInfoFields {
         lblInfoReq.getStyleClass().addAll("muted-sm");
 
         int r = 0;
+        // Área goes before Código: the código is assigned from the área's prefix.
         grid.add(DialogUtil.fieldLabel("Nombre *"),    0, r); grid.add(new VBox(2, fNombre, lblNombreHint, lblNombreWarn), 1, r++);
-        grid.add(DialogUtil.fieldLabel("Código *"),    0, r); grid.add(codigoBox,  1, r++);
-        grid.add(DialogUtil.fieldLabel("Categoría *"), 0, r); grid.add(new VBox(2, fCat, lblCatHint), 1, r++);
         grid.add(DialogUtil.fieldLabelWithHelp("Área *",
             "Secretaría o Dirección responsable del bien.\n" +
             "Solo los usuarios de esa área podrán gestionarlo.\n" +
             "Para DIRECCIÓN el área se fija automáticamente."),
                                                             0, r); grid.add(new VBox(2, fArea, lblAreaHint, lblAreaBloqueada), 1, r++);
+        grid.add(DialogUtil.fieldLabel("Código *"),    0, r); grid.add(codigoBox,  1, r++);
+        grid.add(DialogUtil.fieldLabel("Categoría *"), 0, r); grid.add(new VBox(2, fCat, lblCatHint), 1, r++);
         grid.add(new javafx.scene.control.Separator(), 0, r, 2, 1); r++;
         grid.add(DialogUtil.fieldLabel("Descripción"), 0, r); grid.add(fDesc,      1, r++);
         grid.add(DialogUtil.fieldLabel("Imagen"),      0, r); grid.add(imgSection, 1, r++);

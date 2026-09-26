@@ -246,12 +246,13 @@ public final class ProductoDetailDialog {
         if (estadoFisico != null && !estadoFisico.isBlank()) rowList.add(new Row("Estado físico", estadoFisico, null));
         String numeroFactura = p.getNumeroFactura();
         if (numeroFactura != null && !numeroFactura.isBlank()) rowList.add(new Row("N° factura", numeroFactura, null));
-        rowList.add(new Row("Stock actual",    String.valueOf(p.getStockActual()), stockClass));
-        rowList.add(new Row("Stock mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null));
+        rowList.add(new Row("Cantidad",        String.valueOf(p.getStockActual()), stockClass));
+        // Min/max only mean something for bienes managed by quantity.
+        if (p.getStockMaximo() > 1)
+            rowList.add(new Row("Existencia mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null));
         rowList.add(new Row("Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null));
-        rowList.add(new Row("Precio compra",   FormatUtils.formatCurrency(p.getPrecioCompra()), null));
-        rowList.add(new Row("Precio venta",    FormatUtils.formatCurrency(p.getPrecioVenta()), null));
-        rowList.add(new Row("Valor total",     FormatUtils.formatCurrency(p.getValorTotal()), "dlg-detail-total"));
+        rowList.add(new Row("Costo de adquisición", FormatUtils.formatCurrency(p.getPrecioCompra()), null));
+        rowList.add(new Row("Valor patrimonial", FormatUtils.formatCurrency(p.getValorTotal()), "dlg-detail-total"));
         rowList.add(new Row("Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null));
         rowList.add(new Row("Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null));
         rowList.add(new Row("Vencimiento",     p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "—", null));

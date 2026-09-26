@@ -123,10 +123,9 @@ public class ReporteFichaTecnicaService extends ReporteService {
             doc.add(sectionTitle("VALOR PATRIMONIAL", bold, indigo));
             Table valTable = new Table(new float[]{1f, 2.5f}).useAllAvailableWidth();
             addRow(valTable, "Precio de adquisición", FormatUtils.formatCurrency(p.getPrecioCompra()), bold, regular, muted, bgAlt, false);
-            addRow(valTable, "Precio unitario",        FormatUtils.formatCurrency(p.getPrecioVenta()),  bold, regular, muted, bgAlt, true);
-            addRow(valTable, "Valor total inventario", FormatUtils.formatCurrency(p.getValorTotal()),   bold, regular, muted, bgAlt, false);
+            addRow(valTable, "Valor patrimonial",      FormatUtils.formatCurrency(p.getValorTotal()),   bold, regular, muted, bgAlt, true);
             if (p.getFechaAdquisicion() != null)
-                addRow(valTable, "Fecha de adquisición", FormatUtils.formatDate(p.getFechaAdquisicion()), bold, regular, muted, bgAlt, true);
+                addRow(valTable, "Fecha de adquisición", FormatUtils.formatDate(p.getFechaAdquisicion()), bold, regular, muted, bgAlt, false);
             if (p.getProveedor() != null && !p.getProveedor().isBlank())
                 addRow(valTable, "Proveedor", p.getProveedor(), bold, regular, muted, bgAlt, false);
             if (p.getVidaUtilAnios() != null) {

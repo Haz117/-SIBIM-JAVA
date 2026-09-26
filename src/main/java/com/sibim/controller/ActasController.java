@@ -336,7 +336,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
                     fFecha.getValue(), fObs.getText().trim()),
                 acta -> {
                     NotificacionUtil.exito(scene, "Acta " + acta.getNumero() + " generada — "
-                        + acta.getTotalBienes() + " bienes registrados");
+                        + FormatUtils.plural(acta.getTotalBienes(), "bien registrado", "bienes registrados"));
                     loadData();
                     exportarPdfAsync(acta, scene);
                 },

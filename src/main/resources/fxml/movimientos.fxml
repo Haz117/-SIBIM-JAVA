@@ -16,7 +16,7 @@
             <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Movimientos de Stock" styleClass="page-title"/>
+            <Label text="Movimientos" styleClass="page-title"/>
             <Label text="Historial de entradas, salidas, ajustes y transferencias" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
@@ -217,7 +217,7 @@
             <TableColumn fx:id="colProducto"   text="Bien / Producto"    prefWidth="230" maxWidth="280" sortable="true" minWidth="140"/>
             <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="115" sortable="true" minWidth="96"/>
             <TableColumn fx:id="colCantidad"   text="Cant."           prefWidth="86"  sortable="true" minWidth="80"/>
-            <TableColumn fx:id="colStock"      text="Stock Ant. → Nuevo" prefWidth="148" sortable="false" minWidth="150"/>
+            <TableColumn fx:id="colStock"      text="Cantidad ant. → nueva" prefWidth="148" sortable="false" minWidth="150"/>
             <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true" minWidth="110"/>
             <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="140" sortable="true" minWidth="100"/>
             <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true" minWidth="120"/>

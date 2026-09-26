@@ -121,11 +121,9 @@ public final class ComparacionBienesDialog {
         rows.add(row("Área",                str(a.getArea()),                     str(b.getArea())));
         rows.add(row("Resguardante",        str(a.getResguardante()),             str(b.getResguardante())));
         rows.add(row("Estado",              estado(a),                            estado(b)));
-        rows.add(row("Stock actual",        String.valueOf(a.getStockActual()),   String.valueOf(b.getStockActual())));
-        rows.add(row("Stock mínimo",        String.valueOf(a.getStockMinimo()),   String.valueOf(b.getStockMinimo())));
-        rows.add(row("Stock máximo",        String.valueOf(a.getStockMaximo()),   String.valueOf(b.getStockMaximo())));
-        rows.add(row("Precio de compra",    currency(a.getPrecioCompra()),        currency(b.getPrecioCompra())));
-        rows.add(row("Precio de venta",     currency(a.getPrecioVenta()),         currency(b.getPrecioVenta())));
+        rows.add(row("Cantidad",            String.valueOf(a.getStockActual()),   String.valueOf(b.getStockActual())));
+        rows.add(row("Costo de adquisición", currency(a.getPrecioCompra()),       currency(b.getPrecioCompra())));
+        rows.add(row("Valor patrimonial",   currency(a.getValorTotal()),          currency(b.getValorTotal())));
         rows.add(row("Marca",               str(a.getMarca()),                    str(b.getMarca())));
         rows.add(row("Modelo",              str(a.getModelo()),                   str(b.getModelo())));
         rows.add(row("Número de serie",     str(a.getNumeroSerie()),              str(b.getNumeroSerie())));

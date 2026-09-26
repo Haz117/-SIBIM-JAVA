@@ -244,7 +244,7 @@ public class OrganigramaController {
             // Stats row
             HBox statsRow = new HBox(10);
             statsRow.setAlignment(Pos.CENTER_LEFT);
-            Label bienesChip = new Label(areaProds.size() + " bienes");
+            Label bienesChip = new Label(FormatUtils.plural(areaProds.size(), "bien", "bienes"));
             bienesChip.getStyleClass().addAll("org-area-count");
             Label valorChip = new Label(FormatUtils.formatCurrency(OrganigramaTreeBuilder.valorPatrimonial(areaProds)));
             valorChip.getStyleClass().add("org-area-valor");
@@ -364,11 +364,7 @@ public class OrganigramaController {
 
         java.math.BigDecimal totalValor = productosPorArea.values().stream()
             .flatMap(List::stream)
-            .map(p -> {
-                java.math.BigDecimal precio = p.getPrecioVenta() != null
-                    ? p.getPrecioVenta() : java.math.BigDecimal.ZERO;
-                return precio.multiply(java.math.BigDecimal.valueOf(p.getStockActual()));
-            })
+            .map(Producto::getValorTotal)
             .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
         javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
@@ -468,7 +464,7 @@ public class OrganigramaController {
                         new javafx.animation.KeyValue(pb.progressProperty(), target,
                             javafx.animation.Interpolator.EASE_OUT)));
                 anim.play();
-                AnimationUtils.animateCount(countLbl, countL, 750, v -> v + " bienes");
+                AnimationUtils.animateCount(countLbl, countL, 750, v -> FormatUtils.plural(v, "bien", "bienes"));
             });
             wait.play();
         }

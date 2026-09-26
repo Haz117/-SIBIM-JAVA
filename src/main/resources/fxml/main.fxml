@@ -243,7 +243,7 @@
             <Button fx:id="btnNotificaciones" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
                     accessibleText="Notificaciones">
                 <graphic><FontIcon iconLiteral="mdi2b-bell-outline" styleClass="status-icon"/></graphic>
-                <tooltip><Tooltip text="Notificaciones — alertas de stock y préstamos vencidos"
+                <tooltip><Tooltip text="Avisos — alertas de inventario, garantías y préstamos vencidos"
                                   wrapText="true" maxWidth="240"/></tooltip>
             </Button>
             <Label fx:id="notifBadge" text="0" styleClass="notif-bell-badge"

@@ -147,6 +147,7 @@ public class AlertasController implements Refreshable {
     private List<Comodato> allComodatosVencidos = List.of();
 
     private VBox     sectionComodatos;
+    private VBox     sectionPatrimoniales;
     private Timeline autoRefresh;
     private EventHandler<KeyEvent> keyFilter;
     private boolean  dataLoaded = false;
@@ -168,6 +169,10 @@ public class AlertasController implements Refreshable {
 
         sectionComodatos = AlertasComodatosSection.build(STICKY, () -> alertaOkNode("Sin comodatos vencidos"));
         if (rootPane != null) rootPane.getChildren().add(sectionComodatos);
+        sectionPatrimoniales = AlertasPatrimonialesSection.build(STICKY,
+            () -> alertaOkNode("Todos los bienes tienen resguardante y etiqueta"),
+            p -> ProductoDetailDialog.show(p, tableAgotados.getScene(), movimientoService, log));
+        if (rootPane != null) rootPane.getChildren().add(sectionPatrimoniales);
 
         loadData();
 
@@ -392,11 +397,12 @@ public class AlertasController implements Refreshable {
                 allComodatosVencidos = data.comodatosVencidos();
 
                 AlertasComodatosSection.update(sectionComodatos, allComodatosVencidos);
+                AlertasPatrimonialesSection.update(sectionPatrimoniales, data.pendientesPatrimoniales());
 
                 if (tableMantenimiento != null) {
                     tableMantenimiento.getItems().setAll(allMantenimiento);
                     if (lblMantenimientoCount != null)
-                        lblMantenimientoCount.setText(allMantenimiento.size() + " bienes");
+                        lblMantenimientoCount.setText(FormatUtils.plural(allMantenimiento.size(), "bien", "bienes"));
                     if (sectionMantenimiento != null) {
                         sectionMantenimiento.setVisible(!allMantenimiento.isEmpty());
                         sectionMantenimiento.setManaged(!allMantenimiento.isEmpty());
@@ -456,9 +462,9 @@ public class AlertasController implements Refreshable {
         long cntAg = filtAgotados.size(), cntBs = filtBajoStock.size(), cntGa = filtGarantias.size();
         boolean noFilter = q.isBlank();
         long totAg = allAgotados.size(), totBs = allBajoStock.size(), totGa = allGarantias.size();
-        AnimationUtils.animateCount(lblAgotadosCount,  cntAg, 480, v -> v + (noFilter ? " bienes" : " / " + totAg));
-        AnimationUtils.animateCount(lblBajoStockCount, cntBs, 480, v -> v + (noFilter ? " bienes" : " / " + totBs));
-        AnimationUtils.animateCount(lblGarantiasCount, cntGa, 480, v -> v + (noFilter ? " bienes" : " / " + totGa));
+        AnimationUtils.animateCount(lblAgotadosCount,  cntAg, 480, v -> noFilter ? FormatUtils.plural(v, "bien", "bienes") : v + " / " + totAg);
+        AnimationUtils.animateCount(lblBajoStockCount, cntBs, 480, v -> noFilter ? FormatUtils.plural(v, "bien", "bienes") : v + " / " + totBs);
+        AnimationUtils.animateCount(lblGarantiasCount, cntGa, 480, v -> noFilter ? FormatUtils.plural(v, "bien", "bienes") : v + " / " + totGa);
         PauseTransition sectionPop =
             new PauseTransition(Duration.millis(510));
         sectionPop.setOnFinished(e -> {

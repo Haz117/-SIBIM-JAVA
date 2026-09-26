@@ -138,7 +138,7 @@ class OrganigramaTreeBuilder {
         HBox.setHgrow(nameLabel, Priority.ALWAYS);
 
         int totalBienes = allAreaProds.size();
-        Label countLabel = new Label(totalBienes + " bienes");
+        Label countLabel = new Label(FormatUtils.plural(totalBienes, "bien", "bienes"));
         countLabel.getStyleClass().add("org-area-count");
         if (totalBienes > 0) {
             countLabel.getStyleClass().add("org-area-count-clickable");
@@ -376,7 +376,11 @@ class OrganigramaTreeBuilder {
         name.getStyleClass().add("org-product-name");
         name.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(name, Priority.ALWAYS);
-        Label stock = new Label("Stock: " + p.getStockActual());
+        // Who holds it matters more than a quantity that is 1 for almost every bien.
+        String resguardante = p.getResguardante() != null && !p.getResguardante().isBlank()
+            ? p.getResguardante() : "Sin resguardante";
+        Label stock = new Label(p.getStockActual() == 1 ? resguardante
+            : resguardante + " · Cant. " + p.getStockActual());
         stock.getStyleClass().add("org-product-stock");
         stock.getStyleClass().add(switch (p.getEstado()) {
             case AGOTADO    -> "stock-low";
@@ -422,10 +426,7 @@ class OrganigramaTreeBuilder {
 
     static BigDecimal valorPatrimonial(List<Producto> prods) {
         return prods.stream()
-            .map(p -> {
-                BigDecimal precio = p.getPrecioVenta() != null ? p.getPrecioVenta() : BigDecimal.ZERO;
-                return precio.multiply(BigDecimal.valueOf(p.getStockActual()));
-            })
+            .map(Producto::getValorTotal)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

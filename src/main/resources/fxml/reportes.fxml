@@ -156,7 +156,7 @@
                 </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
                     <Label text="Inventario General" styleClass="report-title"/>
-                    <Label text="Bienes · stock · valor · estado"
+                    <Label text="Bienes · cantidad · valor · estado"
                            styleClass="report-card-tag, report-card-tag-indigo"/>
                 </VBox>
             </HBox>
@@ -221,7 +221,7 @@
                     <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="report-icon"/>
                 </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Alertas de Stock" styleClass="report-title"/>
+                    <Label text="Alertas de Inventario" styleClass="report-title"/>
                     <Label text="Agotados · bajo stock · garantías vencidas"
                            styleClass="report-card-tag, report-card-tag-amber"/>
                 </VBox>
