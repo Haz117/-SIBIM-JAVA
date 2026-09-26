@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.4</version>
+            <version>42.7.13</version>
         </dependency>
 
         <!-- SQLite JDBC - local persistent store for modo offline (see
