@@ -1,5 +1,6 @@
 package com.sibim.service;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -17,7 +18,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDate;
+import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,16 +36,35 @@ import java.util.Set;
  *  single source of truth to dump. */
 public class BackupService {
 
-    /** Insert order (parents before children, per the FKs in sibim.sql).
-     *  Restore deletes in the reverse of this order, then re-inserts in
-     *  this order, all inside one transaction. */
-    private static final List<String> TABLAS = List.of(
-        "users", "categories", "products", "movements",
-        "audit_log", "conteos_fisicos", "conteo_items",
-        "resguardos", "resguardo_items", "prestamos",
-        "actas_entrega_recepcion");
+    /** Every data table, parents before children (per the FKs in the
+     *  migrations). Restore deletes in the reverse of this order, then
+     *  re-inserts in this order, all inside one transaction.
+     *
+     *  A table missing here is not just "not backed up": restore deletes
+     *  products, so a child with ON DELETE CASCADE (fotos, historial de
+     *  precios, mantenimiento) would be wiped without being put back, and one
+     *  with RESTRICT (comodatos) would make every restore fail.
+     *  BackupServiceTablasIntegrationTest fails when a migration adds a table
+     *  that is in neither this list nor {@link #TABLAS_EXCLUIDAS}. */
+    public static final List<String> TABLAS = List.of(
+        "users", "categories", "configuracion", "folios", "filtros_guardados",
+        "products", "product_fotos", "price_history", "producto_mantenimiento",
+        "movements", "audit_log", "conteos_fisicos", "conteo_items",
+        "resguardos", "resguardo_items", "prestamos", "comodatos",
+        "actas_entrega_recepcion", "area_resguardos");
 
-    private static final int BACKUP_VERSION = 1;
+    /** Tables deliberately left out: migration bookkeeping and transient
+     *  login counters. */
+    public static final Set<String> TABLAS_EXCLUIDAS = Set.of(
+        "flyway_schema_history", "schema_version", "login_attempts");
+
+    /** The audit trail is append-only: a restore never deletes it, it only
+     *  adds back the entries the backup has that the database lost — so the
+     *  restore itself (and whatever happened before it) stays on record. */
+    private static final String TABLA_AUDITORIA = "audit_log";
+
+    /** 2 = every table in {@link #TABLAS}; 1 = the first 11 only. */
+    private static final int BACKUP_VERSION = 2;
 
     private final ObjectMapper mapper;
 
@@ -53,6 +73,8 @@ public class BackupService {
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        // Amounts are NUMERIC(12,2): read them back as BigDecimal, not double.
+        mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
 
     /** Dumps every table into {@code destino}, encrypted with {@code password}
@@ -79,9 +101,10 @@ public class BackupService {
             "Respaldo completo generado");
     }
 
-    /** Replaces every row in every table with what's in {@code origen}.
-     *  Runs inside a single transaction — any failure rolls back completely,
-     *  never leaving the database half-restored.
+    /** Replaces every row in every table (except the audit trail, which is
+     *  only added to) with what's in {@code origen}. Runs inside a single
+     *  transaction — any failure rolls back completely, never leaving the
+     *  database half-restored.
     *  @throws BackupEncryption.WrongPasswordException if {@code password}
     *  doesn't match the one used to create an encrypted backup. Plain JSON
     *  backups are rejected because they contain password hashes and complete
@@ -103,12 +126,13 @@ public class BackupService {
             validarTablas(conn, tablas);
             conn.setAutoCommit(false);
             try {
+                rechazarSiBorraDatosNoRespaldados(conn, tablas);
                 for (int i = TABLAS.size() - 1; i >= 0; i--) {
-                    borrarTabla(conn, TABLAS.get(i));
+                    if (!TABLA_AUDITORIA.equals(TABLAS.get(i))) borrarTabla(conn, TABLAS.get(i));
                 }
                 for (String tabla : TABLAS) {
                     List<Map<String, Object>> filas = tablas.get(tabla);
-                    if (filas != null) insertarFilas(conn, tabla, filas);
+                    if (filas != null) insertarFilas(conn, tabla, filas, TABLA_AUDITORIA.equals(tabla));
                 }
                 conn.commit();
             } catch (Exception e) {
@@ -129,6 +153,27 @@ public class BackupService {
             throw new SQLException(
                 "Respaldo/restauración solo disponible conectado a la base de datos principal "
                 + "(no en modo offline ni demostración)");
+    }
+
+    /** A backup made by an older version doesn't contain the tables added
+     *  since. Restoring it would still empty them (products can't be deleted
+     *  while their comodatos/fotos exist), so if any of them has data now the
+     *  restore is refused instead of silently losing it. */
+    private void rechazarSiBorraDatosNoRespaldados(Connection conn,
+            Map<String, List<Map<String, Object>>> tablas) throws SQLException, IOException {
+        List<String> seBorrarian = new ArrayList<>();
+        for (String tabla : TABLAS) {
+            if (tablas.containsKey(tabla) || TABLA_AUDITORIA.equals(tabla)) continue;
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT EXISTS (SELECT 1 FROM " + tabla + ")")) {
+                if (rs.next() && rs.getBoolean(1)) seBorrarian.add(tabla);
+            }
+        }
+        if (!seBorrarian.isEmpty()) {
+            throw new IOException("Este respaldo es de una versión anterior y no incluye "
+                + String.join(", ", seBorrarian) + ". Restaurarlo borraría esos datos sin reponerlos, "
+                + "así que no se aplicó. Genera un respaldo nuevo o restaura con pg_restore.");
+        }
     }
 
     private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {
@@ -160,40 +205,29 @@ public class BackupService {
         }
     }
 
-    private void insertarFilas(Connection conn, String tabla, List<Map<String, Object>> filas) throws SQLException {
+    private void insertarFilas(Connection conn, String tabla, List<Map<String, Object>> filas,
+                               boolean soloFaltantes) throws SQLException {
         if (filas.isEmpty()) return;
         List<String> columnas = List.copyOf(filas.get(0).keySet());
         String placeholders = String.join(",", columnas.stream().map(c -> "?").toList());
-        String sql = "INSERT INTO " + tabla + " (" + String.join(",", columnas) + ") VALUES (" + placeholders + ")";
+        String sql = "INSERT INTO " + tabla + " (" + String.join(",", columnas) + ") VALUES (" + placeholders + ")"
+            + (soloFaltantes ? " ON CONFLICT DO NOTHING" : "");
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             for (Map<String, Object> fila : filas) {
                 int i = 1;
                 for (String col : columnas) {
                     Object valor = fila.get(col);
-                    if (valor instanceof String s && looksLikeDateTime(s)) {
-                        ps.setObject(i++, LocalDateTime.parse(s));
-                    } else if (valor instanceof String s && looksLikeDate(s)) {
-                        ps.setObject(i++, LocalDate.parse(s));
-                    } else {
-                        ps.setObject(i++, valor);
-                    }
+                    // JSON gives back plain strings for dates, timestamps and
+                    // UUIDs. Sent untyped, Postgres converts each one to its
+                    // column's type (a text column keeps it as text), instead
+                    // of guessing from the shape of the string.
+                    if (valor instanceof String s) ps.setObject(i++, s, Types.OTHER);
+                    else ps.setObject(i++, valor);
                 }
                 ps.addBatch();
             }
             ps.executeBatch();
         }
-    }
-
-    // Jackson serializes LocalDateTime/LocalDate as ISO strings; on the way
-    // back in they're plain Strings from the generic Map<String,Object>
-    // deserialization, so re-parse them into java.time types the JDBC driver
-    // can bind to a TIMESTAMPTZ/DATE column correctly.
-    private boolean looksLikeDateTime(String s) {
-        return s.length() >= 19 && s.charAt(4) == '-' && s.charAt(7) == '-' && s.charAt(10) == 'T';
-    }
-
-    private boolean looksLikeDate(String s) {
-        return s.length() == 10 && s.charAt(4) == '-' && s.charAt(7) == '-';
     }
 
     private void validarTablas(Connection conn, Map<String, List<Map<String, Object>>> tablas) throws SQLException, IOException {
