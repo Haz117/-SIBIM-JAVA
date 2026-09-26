@@ -53,11 +53,10 @@ class ProductoServiceLengthValidationTest {
     // ── codigo ────────────────────────────────────────────────────────────────
 
     @Test
-    void save_codigo51Chars_throwsValidation() {
+    void save_codigo51Chars_throwsValidation() throws Exception {
         // El código solo se valida a mano al editar — en alta se asigna
         // automático por área (ver ProductoService#asignarCodigo).
-        Producto p = validProducto();
-        p.setId("p-existing-len51");
+        Producto p = copiaParaEditar(service.save(validProducto()));
         p.setCodigo("X".repeat(51));
         var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
         assertTrue(ex.getMessage().contains("codigo") || ex.getMessage().contains("código")
@@ -65,11 +64,18 @@ class ProductoServiceLengthValidationTest {
     }
 
     @Test
-    void save_codigo50Chars_valido() {
-        Producto p = validProducto();
-        p.setId("p-existing-len50");
+    void save_codigo50Chars_valido() throws Exception {
+        Producto p = copiaParaEditar(service.save(validProducto()));
         p.setCodigo("X".repeat(50));
         assertDoesNotThrow(() -> service.save(p));
+    }
+
+    /** The demo store keeps the saved instance: edit a separate copy so a
+     *  rejected edit doesn't leave invalid data behind for later tests. */
+    private Producto copiaParaEditar(Producto guardado) {
+        Producto p = validProducto();
+        p.setId(guardado.getId());
+        return p;
     }
 
     // ── descripcion ───────────────────────────────────────────────────────────

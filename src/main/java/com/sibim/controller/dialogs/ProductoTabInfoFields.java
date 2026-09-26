@@ -43,6 +43,7 @@ class ProductoTabInfoFields {
     final Label lblNombreWarn;
     final Label lblCatHint;
     final Label lblAreaHint;
+    final Label lblAreaBloqueada;
     final List<String> fotosHolder;
     final String[] facturaHolder;
 
@@ -162,8 +163,16 @@ class ProductoTabInfoFields {
         var sessionUser = SessionManager.getCurrentUser();
         fArea.setValue(existing != null ? existing.getArea()
             : sessionUser != null ? sessionUser.getArea() : null);
-        if (SessionManager.isDireccion()) fArea.setDisable(true);
+        // Moving an existing bien to another área is a transferencia: it goes
+        // through Movimientos (approval for non-admins, new código, history).
+        // Editing it here would skip all of that, so the field is read-only.
+        if (SessionManager.isDireccion() || !isNewProduct) fArea.setDisable(true);
         fArea.getStyleClass().add("form-input");
+        lblAreaBloqueada = new Label("Para cambiar el área registra una Transferencia en Movimientos.");
+        lblAreaBloqueada.getStyleClass().addAll("field-hint", "muted-sm");
+        lblAreaBloqueada.setWrapText(true);
+        lblAreaBloqueada.setVisible(!isNewProduct);
+        lblAreaBloqueada.setManaged(!isNewProduct);
 
         // For new products: disable código when the area has an auto-prefix
         if (isNewProduct) {
@@ -463,7 +472,7 @@ class ProductoTabInfoFields {
             "Secretaría o Dirección responsable del bien.\n" +
             "Solo los usuarios de esa área podrán gestionarlo.\n" +
             "Para DIRECCIÓN el área se fija automáticamente."),
-                                                            0, r); grid.add(new VBox(2, fArea, lblAreaHint), 1, r++);
+                                                            0, r); grid.add(new VBox(2, fArea, lblAreaHint, lblAreaBloqueada), 1, r++);
         grid.add(new javafx.scene.control.Separator(), 0, r, 2, 1); r++;
         grid.add(DialogUtil.fieldLabel("Descripción"), 0, r); grid.add(fDesc,      1, r++);
         grid.add(DialogUtil.fieldLabel("Imagen"),      0, r); grid.add(imgSection, 1, r++);

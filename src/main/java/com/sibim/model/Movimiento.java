@@ -27,6 +27,10 @@ public class Movimiento {
     private String usuarioNombre;
     private LocalDateTime creadoEn;
     private String estado = ESTADO_APROBADO;
+    /** Only set on an applied TRANSFERENCIA: the bien's código before and
+     *  after the move (the área nomenclature reassigns it — see AreaCodigos). */
+    private String codigoAnterior;
+    private String codigoNuevo;
 
     public Movimiento() {}
 
@@ -78,6 +82,12 @@ public class Movimiento {
 
     public String getEstado() { return estado != null ? estado : ESTADO_APROBADO; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public String getCodigoAnterior() { return codigoAnterior; }
+    public void setCodigoAnterior(String codigoAnterior) { this.codigoAnterior = codigoAnterior; }
+
+    public String getCodigoNuevo() { return codigoNuevo; }
+    public void setCodigoNuevo(String codigoNuevo) { this.codigoNuevo = codigoNuevo; }
 
     public boolean isPendiente()  { return ESTADO_PENDIENTE.equals(estado); }
     public boolean isAprobado()   { return ESTADO_APROBADO.equals(estado) || estado == null; }

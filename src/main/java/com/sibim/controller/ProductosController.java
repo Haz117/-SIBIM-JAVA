@@ -743,7 +743,7 @@ public class ProductosController {
     @FXML
     private void onBulkCambiarArea() {
         runBulkIfValid(sel -> ProductosBulkDialog.showCambiarArea(
-            sel, table.getScene(), productoService, table,
+            sel, table.getScene(), movimientoService, table,
             () -> { refreshing = true; loadData(); }, this::onBulkCambiarArea));
     }
 
@@ -932,6 +932,12 @@ public class ProductosController {
                         })).play();
                 },
                 e -> {
+                    if (e instanceof ProductoService.ModificadoPorOtroException) {
+                        // Reopening with the same object would fail the same way.
+                        NotificacionUtil.advertencia(table.getScene(), e.getMessage());
+                        loadData();
+                        return;
+                    }
                     // Reopen pre-filled with what the user typed — same cats already
                     // loaded, no extra DB round-trip on a failed save.
                     NotificacionUtil.error(table.getScene(),

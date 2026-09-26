@@ -1,6 +1,5 @@
 package com.sibim.service;
 
-import com.sibim.config.AreaCodigos;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
@@ -15,11 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public class MovimientoService {
 
@@ -188,33 +185,13 @@ public class MovimientoService {
         return movimientoRepo.findPendientesTransferencias();
     }
 
+    /** The área move and the new código are applied together inside the
+     *  repository's transaction (MovimientoRepository#aprobarTransferencia). */
     public void aprobarTransferencia(String movimientoId) throws SQLException {
         requireAdminForTransferWorkflow();
-        Optional<String[]> infoOpt = movimientoRepo.findTransferenciaInfo(movimientoId);
         movimientoRepo.aprobarTransferencia(movimientoId);
-        if (infoOpt.isPresent()) {
-            String productoId  = infoOpt.get()[0];
-            String areaDestino = infoOpt.get()[1];
-            if (areaDestino != null && AreaCodigos.tienePrefijo(areaDestino)) {
-                productoRepo.actualizarCodigo(productoId, asignarCodigo(areaDestino));
-            }
-        }
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_aprobada",
             "Transferencia aprobada por administrador");
-    }
-
-    private String asignarCodigo(String area) throws SQLException {
-        String prefijo = AreaCodigos.prefijo(area);
-        Set<Integer> usados = new HashSet<>();
-        for (Producto p : productoRepo.findAll(false)) {
-            String codigo = p.getCodigo();
-            if (codigo == null || !codigo.startsWith(prefijo + "/")) continue;
-            try { usados.add(Integer.parseInt(codigo.substring(prefijo.length() + 1))); }
-            catch (NumberFormatException ignored) {}
-        }
-        int numero = 1;
-        while (usados.contains(numero)) numero++;
-        return prefijo + "/" + String.format("%02d", numero);
     }
 
     public void rechazarTransferencia(String movimientoId) throws SQLException {
@@ -260,24 +237,24 @@ public class MovimientoService {
         }
     }
 
+    /** Deleting erases the movement from the history, so it's reserved for
+     *  the administrator (e.g. a duplicate captured by mistake). Everyone
+     *  else undoes a movement with {@link #revertirMovimiento}, which leaves
+     *  both the original and its reversal on record. */
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
+        if (!SessionManager.isAdmin())
+            throw new ValidationException("Solo el administrador puede eliminar movimientos. "
+                + "Para deshacer uno, ábrelo y usa \"Revertir\".");
         Optional<String> estado = movimientoRepo.findEstadoById(movimientoId);
         if (estado.isPresent() && Movimiento.ESTADO_PENDIENTE.equals(estado.get()))
             throw new ValidationException(
                 "No se puede eliminar una transferencia pendiente. Primero apruébala o recházala.");
 
-        Optional<String> productoId = movimientoRepo.findProductoIdById(movimientoId);
-        if (!SessionManager.isAdmin()) {
-            // Orphaned movement (product deleted) — can't verify area, deny.
-            if (productoId.isEmpty())
-                throw new ValidationException("No tienes permiso para eliminar ese movimiento");
-            Optional<Producto> producto = productoRepo.findById(productoId.get());
-            if (producto.isEmpty() || !SessionManager.isAreaAccessible(producto.get().getArea()))
-                throw new ValidationException("No tienes acceso a esa area");
-        }
+        String productoId = movimientoRepo.findProductoIdById(movimientoId).orElse("?");
         try {
             movimientoRepo.deleteMovimientoAtomic(movimientoId);
-            auditRepo.log("movimiento", movimientoId, movimientoId, "eliminar", "Movimiento eliminado");
+            auditRepo.log("movimiento", movimientoId, movimientoId, "eliminar",
+                "Movimiento eliminado (bien " + productoId + ", estado " + estado.orElse("?") + ")");
             log.info("Movimiento eliminado [{}]", movimientoId);
         } catch (SQLException e) {
             if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());

@@ -165,13 +165,16 @@ class MovimientoServiceTest {
         assertThrows(MovimientoService.ValidationException.class, () -> service.eliminar("mov-01"));
     }
 
-    @Test void eliminar_noAdmin_areaAccesible_llama_deleteAtomic() throws Exception {
+    @Test void eliminar_noAdmin_areaAccesible_igualSeRechaza() throws Exception {
+        // Borrar un movimiento lo quita del historial: solo el admin puede;
+        // los demás usan revertirMovimiento, que deja ambos registros.
         Producto pPropio = new Producto(); pPropio.setId("p-01"); pPropio.setArea("Area Sin Acceso");
         when(mockProductoRepo.findById("p-01")).thenReturn(Optional.of(pPropio));
         when(mockMovimientoRepo.findProductoIdById("mov-01")).thenReturn(Optional.of("p-01"));
         SessionManager.setCurrentUser(director);
-        service.eliminar("mov-01");
-        verify(mockMovimientoRepo).deleteMovimientoAtomic("mov-01");
+        var ex = assertThrows(MovimientoService.ValidationException.class, () -> service.eliminar("mov-01"));
+        assertTrue(ex.getMessage().contains("Revertir"));
+        verify(mockMovimientoRepo, never()).deleteMovimientoAtomic(any());
     }
 
     @Test void eliminar_noAdmin_productoHuerfano_lanzaValidation() throws Exception {

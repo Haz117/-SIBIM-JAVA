@@ -16,7 +16,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -547,8 +546,9 @@ public class MovimientoRepository {
         String lockProducto = "SELECT stock_actual, area, codigo FROM products WHERE id = ? FOR UPDATE";
         String insertMov = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
-                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado,
+                codigo_anterior, codigo_nuevo)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         String updateProducto = "UPDATE products SET stock_actual = ?, area = ?, codigo = ?, updated_at = NOW() WHERE id = ?";
 
@@ -589,6 +589,12 @@ public class MovimientoRepository {
                 // el siguiente bien nuevo ahí (ver com.sibim.config.AreaCodigos).
                 String codigoNuevo = (esTransferencia && AreaCodigos.tienePrefijo(areaNueva))
                     ? siguienteCodigo(conn, areaNueva) : codigoActual;
+                // Both códigos stay on the movement: labels, resguardos and actas
+                // printed with the old number remain traceable after it's reused.
+                if (esTransferencia) {
+                    m.setCodigoAnterior(codigoActual);
+                    m.setCodigoNuevo(codigoNuevo);
+                }
 
                 try (PreparedStatement ps = conn.prepareStatement(insertMov)) {
                     ps.setString(1, m.getId());
@@ -605,6 +611,8 @@ public class MovimientoRepository {
                     ps.setString(12, m.getUsuarioNombre());
                     ps.setTimestamp(13, Timestamp.valueOf(LocalDateTime.now()));
                     ps.setString(14, Movimiento.ESTADO_APROBADO);
+                    ps.setString(15, m.getCodigoAnterior());
+                    ps.setString(16, m.getCodigoNuevo());
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(updateProducto)) {
@@ -625,26 +633,8 @@ public class MovimientoRepository {
         return m;
     }
 
-    /** Menor número positivo no usado por ningún bien activo con el prefijo
-     *  de {@code area}, calculado dentro de la transacción/conexión dada —
-     *  ver ProductoService#asignarCodigo para la misma lógica fuera de una
-     *  transacción explícita. */
     private static String siguienteCodigo(Connection conn, String area) throws SQLException {
-        String prefijo = AreaCodigos.prefijo(area);
-        Set<Integer> usados = new HashSet<>();
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT codigo FROM products WHERE codigo LIKE ? AND fecha_baja IS NULL")) {
-            ps.setString(1, prefijo + "/%");
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    try { usados.add(Integer.parseInt(rs.getString("codigo").substring(prefijo.length() + 1))); }
-                    catch (NumberFormatException ignored) {}
-                }
-            }
-        }
-        int numero = 1;
-        while (usados.contains(numero)) numero++;
-        return prefijo + "/" + String.format("%02d", numero);
+        return ProductoRepository.siguienteCodigo(conn, area);
     }
 
     /**
@@ -670,10 +660,21 @@ public class MovimientoRepository {
         deleteMovimientoAtomicOnline(movimientoId);
     }
 
-    /** Replay target for SyncService — see ProductoRepository#saveOnline. */
+    /** Replay target for SyncService — see ProductoRepository#saveOnline.
+     *
+     *  Only the most recent applied movement of a product may be deleted —
+     *  the same rule OfflineStore and DemoDataStore enforce. Stock is
+     *  reversed by delta, but área is restored by snapshot (area_origen):
+     *  deleting an older transferencia would send the bien back to where it
+     *  was before it, even though later transfers have moved it on since.
+     *  Pending/rejected movements never touched the bien, so deleting one
+     *  leaves stock, área and código as they are. */
     public void deleteMovimientoAtomicOnline(String movimientoId) throws SQLException {
-        String getMov = "SELECT producto_id, stock_anterior, stock_nuevo, area_origen FROM movements WHERE id = ?";
+        String getMov = "SELECT producto_id, stock_anterior, stock_nuevo, area_origen, estado, created_at "
+            + "FROM movements WHERE id = ?";
         String lockProduct = "SELECT stock_actual FROM products WHERE id = ? FOR UPDATE";
+        String newerMov = "SELECT 1 FROM movements WHERE producto_id = ? AND id <> ? AND created_at > ? "
+            + "AND COALESCE(estado, 'APROBADO') = 'APROBADO' LIMIT 1";
         String deleteMov = "DELETE FROM movements WHERE id = ?";
         String restoreProducto = "UPDATE products SET stock_actual = ?, area = COALESCE(?, area), " +
             "codigo = COALESCE(?, codigo), updated_at = NOW() WHERE id = ?";
@@ -684,13 +685,18 @@ public class MovimientoRepository {
                 String productoId;
                 int delta;
                 String areaOrigen;
+                boolean aplicado;
+                Timestamp creado;
                 try (PreparedStatement ps = conn.prepareStatement(getMov)) {
                     ps.setString(1, movimientoId);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) throw new SQLException("Movimiento no encontrado: " + movimientoId);
                         productoId = rs.getString("producto_id");
-                        delta = rs.getInt("stock_anterior") - rs.getInt("stock_nuevo");
-                        areaOrigen = rs.getString("area_origen");
+                        String estado = rs.getString("estado");
+                        aplicado = estado == null || Movimiento.ESTADO_APROBADO.equals(estado);
+                        delta = aplicado ? rs.getInt("stock_anterior") - rs.getInt("stock_nuevo") : 0;
+                        areaOrigen = aplicado ? rs.getString("area_origen") : null;
+                        creado = rs.getTimestamp("created_at");
                     }
                 }
                 int currentStock;
@@ -698,6 +704,18 @@ public class MovimientoRepository {
                     ps.setString(1, productoId);
                     try (ResultSet rs = ps.executeQuery()) {
                         currentStock = rs.next() ? rs.getInt("stock_actual") : 0;
+                    }
+                }
+                if (aplicado && creado != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(newerMov)) {
+                        ps.setString(1, productoId);
+                        ps.setString(2, movimientoId);
+                        ps.setTimestamp(3, creado);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) throw new SQLException(
+                                "Solo se puede eliminar el movimiento mas reciente de este producto: "
+                                + "existen movimientos registrados despues de este.");
+                        }
                     }
                 }
                 try (PreparedStatement ps = conn.prepareStatement(deleteMov)) {
@@ -843,34 +861,61 @@ public class MovimientoRepository {
         }
     }
 
-    /** Applies a pending transfer: updates product area → area_destino, marks movement APROBADO. */
+    /** Applies a pending transfer in one transaction: moves the bien to
+     *  area_destino, gives it the next free código there (same rule as a
+     *  direct admin transfer, see addMovimientoAtomicOnline) and marks the
+     *  movement APROBADO with both códigos on record. Refuses if the bien is
+     *  no longer in the área the request was made from — approving it would
+     *  otherwise pull it out of wherever it was moved to in the meantime. */
     public void aprobarTransferencia(String movimientoId) throws SQLException {
         if (DatabaseConfig.isDemoMode()) { DemoDataStore.aprobarTransferencia(movimientoId); return; }
-        String getMov   = "SELECT producto_id, area_destino FROM movements WHERE id = ? AND estado = 'PENDIENTE'";
-        String lockProd = "SELECT area FROM products WHERE id = ? FOR UPDATE";
-        String updProd  = "UPDATE products SET area = ?, updated_at = NOW() WHERE id = ?";
-        String updMov   = "UPDATE movements SET estado = 'APROBADO' WHERE id = ?";
+        String getMov   = "SELECT producto_id, area_origen, area_destino FROM movements "
+            + "WHERE id = ? AND estado = 'PENDIENTE' FOR UPDATE";
+        String lockProd = "SELECT area, codigo, stock_actual FROM products WHERE id = ? FOR UPDATE";
+        String updProd  = "UPDATE products SET area = ?, codigo = ?, updated_at = NOW() WHERE id = ?";
+        String updMov   = "UPDATE movements SET estado = 'APROBADO', stock_anterior = ?, stock_nuevo = ?, "
+            + "codigo_anterior = ?, codigo_nuevo = ? WHERE id = ?";
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                String productoId, areaDestino;
+                String productoId, areaOrigen, areaDestino;
                 try (PreparedStatement ps = conn.prepareStatement(getMov)) {
                     ps.setString(1, movimientoId);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) throw new SQLException("Transferencia pendiente no encontrada: " + movimientoId);
                         productoId  = rs.getString("producto_id");
+                        areaOrigen  = rs.getString("area_origen");
                         areaDestino = rs.getString("area_destino");
                     }
                 }
+                String areaActual, codigoActual;
+                int stock;
                 try (PreparedStatement ps = conn.prepareStatement(lockProd)) {
                     ps.setString(1, productoId);
-                    try (ResultSet ignored = ps.executeQuery()) { /* acquires row lock */ }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Producto no encontrado: " + productoId);
+                        areaActual   = rs.getString("area");
+                        codigoActual = rs.getString("codigo");
+                        stock        = rs.getInt("stock_actual");
+                    }
                 }
+                if (areaOrigen != null && !areaOrigen.equals(areaActual)) {
+                    throw new SQLException("El bien ya no está en " + areaOrigen + " (ahora está en "
+                        + areaActual + "): rechaza esta solicitud y registra una nueva si sigue siendo necesaria.");
+                }
+                String codigoNuevo = AreaCodigos.tienePrefijo(areaDestino)
+                    ? siguienteCodigo(conn, areaDestino) : codigoActual;
                 try (PreparedStatement ps = conn.prepareStatement(updProd)) {
-                    ps.setString(1, areaDestino); ps.setString(2, productoId); ps.executeUpdate();
+                    ps.setString(1, areaDestino); ps.setString(2, codigoNuevo); ps.setString(3, productoId);
+                    ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(updMov)) {
-                    ps.setString(1, movimientoId); ps.executeUpdate();
+                    ps.setInt(1, stock);
+                    ps.setInt(2, stock);
+                    ps.setString(3, codigoActual);
+                    ps.setString(4, codigoNuevo);
+                    ps.setString(5, movimientoId);
+                    ps.executeUpdate();
                 }
                 conn.commit();
             } catch (SQLException e) { conn.rollback(); throw e; }
@@ -923,6 +968,17 @@ public class MovimientoRepository {
             // Column added in V8 migration — absent in queries that pre-date the JOIN
             if (!e.getMessage().contains("estado")) throw e;
         }
+        m.setCodigoAnterior(columnaOpcional(rs, "codigo_anterior"));
+        m.setCodigoNuevo(columnaOpcional(rs, "codigo_nuevo"));
         return m;
+    }
+
+    /** Columns added by V22 — absent from queries with an explicit column list. */
+    private static String columnaOpcional(ResultSet rs, String columna) throws SQLException {
+        ResultSetMetaData meta = rs.getMetaData();
+        for (int i = 1; i <= meta.getColumnCount(); i++) {
+            if (columna.equalsIgnoreCase(meta.getColumnLabel(i))) return rs.getString(i);
+        }
+        return null;
     }
 }

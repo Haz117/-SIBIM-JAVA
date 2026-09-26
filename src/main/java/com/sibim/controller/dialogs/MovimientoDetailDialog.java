@@ -100,6 +100,18 @@ public final class MovimientoDetailDialog {
             areaDestinoLbl.getStyleClass().add("dlg-detail-value");
             areaRow.getChildren().addAll(areaOrigenLbl, areaArrow, areaDestinoLbl);
             grid.add(DialogUtil.fieldLabel("Área"), 0, r); grid.add(areaRow, 1, r++);
+            if (m.getCodigoAnterior() != null && m.getCodigoNuevo() != null
+                    && !m.getCodigoAnterior().equals(m.getCodigoNuevo())) {
+                Label codigoAnt = new Label(m.getCodigoAnterior());
+                codigoAnt.getStyleClass().add("dlg-detail-value");
+                Label codigoArrow = new Label("→");
+                codigoArrow.getStyleClass().add("dlg-stock-arrow");
+                Label codigoNvo = new Label(m.getCodigoNuevo());
+                codigoNvo.getStyleClass().add("dlg-detail-value");
+                HBox codigoRow = new HBox(8, codigoAnt, codigoArrow, codigoNvo);
+                codigoRow.setAlignment(Pos.CENTER_LEFT);
+                grid.add(DialogUtil.fieldLabel("Código"), 0, r); grid.add(codigoRow, 1, r++);
+            }
         }
         grid.add(DialogUtil.fieldLabel("Motivo"),         0, r); grid.add(fMotivo,   1, r++);
         grid.add(DialogUtil.fieldLabel("Referencia"),     0, r); grid.add(fRef,      1, r++);

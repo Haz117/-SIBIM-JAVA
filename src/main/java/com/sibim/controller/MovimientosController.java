@@ -204,7 +204,8 @@ public class MovimientosController {
                 table.getSelectionModel().clearSelection(); ev.consume();
             } else if (ev.getCode() == javafx.scene.input.KeyCode.ENTER && sel != null) {
                 MovimientoDetailDialog.show(sel, table.getScene(), movimientoService, this::loadData); ev.consume();
-            } else if (ev.getCode() == javafx.scene.input.KeyCode.DELETE && sel != null) {
+            } else if (ev.getCode() == javafx.scene.input.KeyCode.DELETE && sel != null
+                    && SessionManager.isAdmin()) {
                 onDelete(); ev.consume();
             }
         });
@@ -213,7 +214,8 @@ public class MovimientosController {
                 MovimientoDetailDialog.show(table.getSelectionModel().getSelectedItem(),
                     table.getScene(), movimientoService, this::loadData);
         });
-        boolean canDelete = SessionManager.isAdmin() || SessionManager.isSecretario();
+        // Only the admin deletes; everyone else reverts (MovimientoService#eliminar).
+        boolean canDelete = SessionManager.isAdmin();
         table.setContextMenu(MovimientosContextMenu.build(
             table, canDelete, movimientoService, this::onDelete, this::loadData));
         if (btnClearSearch != null) {

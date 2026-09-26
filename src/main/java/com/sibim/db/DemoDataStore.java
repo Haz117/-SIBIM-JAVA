@@ -755,6 +755,11 @@ public final class DemoDataStore {
                 .ifPresent(m -> {
                     m.setEstado(Movimiento.ESTADO_APROBADO);
                     updateProductoArea(m.getProductoId(), m.getAreaDestino());
+                    if (com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())) {
+                        String codigo = com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(),
+                            PRODUCTOS.stream().filter(p -> !p.isDadoDeBaja()).map(Producto::getCodigo).toList());
+                        updateProductoCodigo(m.getProductoId(), codigo);
+                    }
                 });
         }
     }

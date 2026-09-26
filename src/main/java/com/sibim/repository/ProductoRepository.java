@@ -1,5 +1,6 @@
 package com.sibim.repository;
 
+import com.sibim.config.AreaCodigos;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.LocalDataStore;
 import com.sibim.db.DemoDataStore;
@@ -376,7 +377,14 @@ public class ProductoRepository {
     /** The real-Postgres half of {@link #save}, callable directly — used by
      *  SyncService to replay a queued offline product write once the
      *  connection to Postgres comes back, so replay goes through the exact
-     *  same upsert (and its ON CONFLICT semantics) as a normal online save. */
+     *  same upsert (and its ON CONFLICT semantics) as a normal online save.
+     *
+     *  On UPDATE, stock_actual and area are deliberately left alone: they
+     *  only change through movimientos (addMovimientoAtomicOnline,
+     *  aprobarTransferencia), which lock the row. Writing them back from a
+     *  form or an offline snapshot would undo concurrent movements, and on
+     *  sync it double-counts: the offline copy already includes the movement
+     *  that SyncService replays right after the product. */
     public Producto saveOnline(Producto p) throws SQLException {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
@@ -394,7 +402,6 @@ public class ProductoRepository {
                 categoria_id = EXCLUDED.categoria_id,
                 precio_compra = EXCLUDED.precio_compra,
                 precio_venta = EXCLUDED.precio_venta,
-                stock_actual = EXCLUDED.stock_actual,
                 stock_minimo = EXCLUDED.stock_minimo,
                 stock_maximo = EXCLUDED.stock_maximo,
                 unidad = EXCLUDED.unidad,
@@ -406,7 +413,6 @@ public class ProductoRepository {
                 marca = EXCLUDED.marca,
                 modelo = EXCLUDED.modelo,
                 ubicacion = EXCLUDED.ubicacion,
-                area = EXCLUDED.area,
                 resguardante = EXCLUDED.resguardante,
                 fecha_adquisicion = EXCLUDED.fecha_adquisicion,
                 vida_util_anios = EXCLUDED.vida_util_anios,
@@ -423,6 +429,7 @@ public class ProductoRepository {
                 no_tarjeta_circulacion = EXCLUDED.no_tarjeta_circulacion,
                 no_poliza_seguro = EXCLUDED.no_poliza_seguro,
                 updated_at = NOW()
+            RETURNING stock_actual, area, updated_at
             """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -464,7 +471,17 @@ public class ProductoRepository {
             ps.setString(35, p.getNoPolizaSeguro());
             ps.setTimestamp(36, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
             ps.setTimestamp(37, Timestamp.valueOf(now));
-            ps.executeUpdate();
+            // Reflect what the row actually holds now (stock/área may differ
+            // from the object's on an update), and the new updated_at so a
+            // second edit of this same object isn't rejected as stale.
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    p.setStockActual(rs.getInt("stock_actual"));
+                    p.setArea(rs.getString("area"));
+                    Timestamp ua = rs.getTimestamp("updated_at");
+                    if (ua != null) p.setActualizadoEn(ua.toLocalDateTime());
+                }
+            }
         }
         return p;
     }
@@ -580,6 +597,34 @@ public class ProductoRepository {
             if (ps.executeUpdate() == 0)
                 throw new SQLException("El bien no existe o no estaba dado de baja (id=" + id + ")");
         }
+    }
+
+    /** Next free código for {@code area} among active bienes (the rule itself
+     *  lives in AreaCodigos#siguienteCodigo). Online it reads every active
+     *  bien with that prefix — not only the caller's áreas — straight from
+     *  SQL instead of loading the whole inventory. */
+    public String siguienteCodigo(String area) throws SQLException {
+        if (DatabaseConfig.getLocalDataStore() != null) {
+            return AreaCodigos.siguienteCodigo(area,
+                findAll(false).stream().map(Producto::getCodigo).toList());
+        }
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            return siguienteCodigo(conn, area);
+        }
+    }
+
+    /** Same as {@link #siguienteCodigo(String)}, on the caller's connection —
+     *  so a transfer can pick the código inside its own transaction. */
+    public static String siguienteCodigo(Connection conn, String area) throws SQLException {
+        List<String> codigos = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT codigo FROM products WHERE codigo LIKE ? AND fecha_baja IS NULL")) {
+            ps.setString(1, AreaCodigos.prefijo(area) + "/%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) codigos.add(rs.getString(1));
+            }
+        }
+        return AreaCodigos.siguienteCodigo(area, codigos);
     }
 
     /** Updates only the código of an active product — called when a transfer

@@ -52,11 +52,14 @@ class ProductoServiceValidationTest {
     }
 
     @Test
-    void save_nullCodigo_throwsValidation() {
+    void save_nullCodigo_throwsValidation() throws Exception {
         // El código solo se valida a mano al editar — en alta se asigna
         // automático por área (ver ProductoService#asignarCodigo).
+        // Edit a separate copy: the demo store keeps the saved instance, and a
+        // null código left on it would break every later test's lookups.
+        Producto guardado = service.save(validProducto());
         Producto p = validProducto();
-        p.setId("p-existing");
+        p.setId(guardado.getId());
         p.setCodigo(null);
         var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
         assertTrue(ex.getMessage().contains("codigo") || ex.getMessage().contains("código"));

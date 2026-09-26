@@ -26,16 +26,27 @@ class ProductoTabStockFields {
     final DatePicker          fVenc;
     final Label               lblPrecioCHint;
     final Label               lblPrecioVHint;
+    final Label               lblStockBloqueado;
 
     ProductoTabStockFields(Producto existing) {
 
         grid = DialogUtil.formGrid(140);
+        boolean isEdit = existing != null && existing.getId() != null;
 
         fStock = new Spinner<>(0, 999_999, existing != null ? existing.getStockActual() : 0);
-        fStock.setEditable(true);
+        // Once a bien exists its stock only changes through movimientos
+        // (Entrada/Salida/Ajuste), so every change is audited and concurrent
+        // movements are never overwritten by a stale value from this form.
+        fStock.setEditable(!isEdit);
+        fStock.setDisable(isEdit);
         fStock.setMaxWidth(Double.MAX_VALUE);
         fStock.getStyleClass().add("form-input");
         DialogUtil.commitOnFocusLoss(fStock);
+        lblStockBloqueado = new Label("Para cambiar el stock registra una Entrada, Salida o Ajuste en Movimientos.");
+        lblStockBloqueado.getStyleClass().addAll("field-hint", "muted-sm");
+        lblStockBloqueado.setWrapText(true);
+        lblStockBloqueado.setVisible(isEdit);
+        lblStockBloqueado.setManaged(isEdit);
 
         fStockMin = new Spinner<>(0, 999_999, existing != null ? existing.getStockMinimo() : 0);
         fStockMin.setEditable(true);
@@ -111,7 +122,7 @@ class ProductoTabStockFields {
 
         // ── Assemble gridStock ────────────────────────────────────────────────
         int rs = 0;
-        grid.add(DialogUtil.fieldLabel("Stock Actual"),    0, rs); grid.add(fStock,    1, rs++);
+        grid.add(DialogUtil.fieldLabel("Stock Actual"),    0, rs); grid.add(new VBox(2, fStock, lblStockBloqueado), 1, rs++);
         grid.add(DialogUtil.fieldLabelWithHelp("Stock Mínimo",
             "Cuando el stock baje de este número se generará\nuna alerta automática en el módulo de Alertas."),
                                                            0, rs); grid.add(fStockMin, 1, rs++);

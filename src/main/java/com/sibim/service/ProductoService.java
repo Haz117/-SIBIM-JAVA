@@ -17,10 +17,8 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public class ProductoService {
 
@@ -140,20 +138,26 @@ public class ProductoService {
         // (útil para corregir datos heredados que no siguen este formato).
         if (isNew && p.getArea() != null && AreaCodigos.tienePrefijo(p.getArea()))
             p.setCodigo(asignarCodigo(p.getArea()));
-        validate(p);
 
         BigDecimal prevCompra = null, prevVenta = null;
         if (!isNew) {
-            try {
-                Optional<Producto> existing = productoRepo.findById(p.getId());
-                if (existing.isPresent()) {
-                    prevCompra = existing.get().getPrecioCompra();
-                    prevVenta  = existing.get().getPrecioVenta();
-                }
-            } catch (Exception e) {
-                log.warn("No se pudo leer el precio anterior de '{}' para el historial de precios", p.getId(), e);
-            }
+            // findById is already scoped to the caller's áreas, so a bien from
+            // another área comes back empty — checking the área the object
+            // claims (validate() below) is not enough, it could be anything.
+            Producto actual = productoRepo.findById(p.getId()).orElseThrow(() ->
+                new ValidationException("El bien no existe o no tienes acceso a él"));
+            if (p.getActualizadoEn() != null && actual.getActualizadoEn() != null
+                    && actual.getActualizadoEn().isAfter(p.getActualizadoEn()))
+                throw new ModificadoPorOtroException();
+            // Stock and área only change through movimientos (Entrada/Salida/
+            // Ajuste/Transferencia): keep whatever the database has now, not
+            // what the form captured when it was opened.
+            p.setStockActual(actual.getStockActual());
+            p.setArea(actual.getArea());
+            prevCompra = actual.getPrecioCompra();
+            prevVenta  = actual.getPrecioVenta();
         }
+        validate(p);
 
         Producto saved = productoRepo.save(p);
         log.info("Bien {} [{}] '{}'", isNew ? "registrado" : "actualizado", saved.getId(), saved.getNombre());
@@ -191,19 +195,7 @@ public class ProductoService {
      *  dado de baja o transferido deja de contar como activo, su número
      *  vuelve a aparecer libre automáticamente en el próximo cálculo. */
     private String asignarCodigo(String area) throws SQLException {
-        String prefijo = AreaCodigos.prefijo(area);
-        Set<Integer> usados = new HashSet<>();
-        for (Producto p : productoRepo.findAll(false)) {
-            String codigo = p.getCodigo();
-            if (codigo == null || !codigo.startsWith(prefijo + "/")) continue;
-            try { usados.add(Integer.parseInt(codigo.substring(prefijo.length() + 1))); }
-            catch (NumberFormatException ignored) {
-                log.debug("Non-numeric suffix in código '{}' for área '{}', skipping", codigo, area);
-            }
-        }
-        int numero = 1;
-        while (usados.contains(numero)) numero++;
-        return prefijo + "/" + String.format("%02d", numero);
+        return productoRepo.siguienteCodigo(area);
     }
 
     private static boolean priceChanged(BigDecimal a, BigDecimal b) {
@@ -345,5 +337,15 @@ public class ProductoService {
 
     public static class ValidationException extends Exception {
         public ValidationException(String msg) { super(msg); }
+    }
+
+    /** The bien changed in the database after the form was opened — saving
+     *  would silently undo someone else's edit, so the caller should reload
+     *  instead of retrying with the same (stale) object. */
+    public static class ModificadoPorOtroException extends ValidationException {
+        public ModificadoPorOtroException() {
+            super("Otro usuario modificó este bien mientras lo editabas. "
+                + "Vuelve a abrirlo para ver los datos actuales");
+        }
     }
 }

@@ -2,7 +2,10 @@ package com.sibim.controller;
 
 import com.sibim.config.Areas;
 import com.sibim.model.Producto;
+import com.sibim.model.enums.TipoMovimiento;
+import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
+import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -27,49 +30,63 @@ final class ProductosBulkDialog {
 
     private ProductosBulkDialog() {}
 
-    // ── Cambiar área en lote ────────────────────────────────────────────────
+    // ── Transferir en lote ──────────────────────────────────────────────────
 
     /**
-     * Shows a ChoiceDialog with all known areas.  On confirmation it saves
-     * every product via {@code service}, then calls {@code onSuccess} (on the
-     * FX thread, via DialogUtil.runAsyncWithProgress).
+     * Shows a ChoiceDialog with all known areas and registers a TRANSFERENCIA
+     * movement for every selected bien not already there — the same path as
+     * a single transfer from Movimientos, so an admin's transfer applies at
+     * once (with a new código for the destination área) and anyone else's
+     * waits for approval. Rewriting {@code area} directly would skip the
+     * approval, the código and the movement history.
      *
      * @param sel        the selected products (must be >= 2)
      * @param scene      scene used for theming, notifications, and progress
-     * @param service    ProductoService instance from the controller
+     * @param service    MovimientoService instance from the controller
      * @param table      table whose selected rows get a flash animation
-     * @param onSuccess  called after all saves complete successfully
+     * @param onSuccess  called after all transfers were registered
      * @param onRetry    called when the user clicks "Reintentar" on error
      */
     static void showCambiarArea(
             List<Producto> sel,
             Scene scene,
-            ProductoService service,
+            MovimientoService service,
             TableView<Producto> table,
             Runnable onSuccess,
             Runnable onRetry) {
 
         var areaNames = new java.util.ArrayList<>(Areas.getAllAreaNames());
         ChoiceDialog<String> dlg = new ChoiceDialog<>(areaNames.get(0), areaNames);
-        dlg.setTitle("Cambiar área");
-        dlg.setHeaderText("Nueva área para " + sel.size() + " bienes seleccionados");
-        dlg.setContentText("Área:");
+        dlg.setTitle("Transferir bienes");
+        dlg.setHeaderText("Transferir " + sel.size() + " bienes seleccionados a otra área"
+            + (SessionManager.isAdmin() ? "" : "\n(quedarán pendientes hasta que un administrador las apruebe)"));
+        dlg.setContentText("Área destino:");
         DialogUtil.applyOwner(dlg);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
         dlg.showAndWait().ifPresent(area -> {
+            List<Producto> aMover = sel.stream().filter(p -> !area.equals(p.getArea())).toList();
+            if (aMover.isEmpty()) {
+                NotificacionUtil.info(scene, "Los bienes seleccionados ya están en \"" + area + "\"");
+                return;
+            }
             table.lookupAll(".table-row-cell:selected")
                  .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
-            DialogUtil.runAsyncWithProgress(scene, "Actualizando área…",
+            DialogUtil.runAsyncWithProgress(scene, "Registrando transferencias…",
                 () -> {
-                    for (Producto p : sel) { p.setArea(area); service.save(p); }
-                    return sel.size();
+                    for (Producto p : aMover) {
+                        service.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA,
+                            Math.max(1, p.getStockActual()), "Transferencia en lote", null, area);
+                    }
+                    return aMover.size();
                 },
                 count -> {
                     onSuccess.run();
-                    NotificacionUtil.exito(scene, count + " bien(es) movidos a \"" + area + "\"");
+                    NotificacionUtil.exito(scene, SessionManager.isAdmin()
+                        ? count + " bien(es) transferidos a \"" + area + "\""
+                        : count + " solicitud(es) de transferencia a \"" + area + "\" pendientes de aprobación");
                 },
                 e -> NotificacionUtil.errorConAccion(scene,
-                        "No se pudo cambiar el área", "Reintentar", onRetry)
+                        "No se pudo registrar la transferencia: " + e.getMessage(), "Reintentar", onRetry)
             );
         });
     }
