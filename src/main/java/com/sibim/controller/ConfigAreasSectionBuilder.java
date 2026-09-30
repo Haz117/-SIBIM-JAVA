@@ -47,7 +47,7 @@ class ConfigAreasSectionBuilder {
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
         Label hint = new Label("El organigrama y el prefijo con el que se numeran los bienes nuevos de cada área "
-            + "(p. ej. TICS/01). Un cambio de prefijo solo afecta a los bienes que se registren después; "
+            + "(p. ej. TICS/01). Al cambiar un prefijo puedes renumerar los bienes activos del área o dejarlo solo para los nuevos; "
             + "el nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan.");
         hint.setWrapText(true);
         hint.getStyleClass().add("muted-sm");
@@ -181,10 +181,44 @@ class ConfigAreasSectionBuilder {
         Optional<AreaCatalog.Entrada> res = dlg.showAndWait();
         res.ifPresent(e -> {
             javafx.scene.Scene scene = table.getScene();
-            DialogUtil.runAsync(() -> { areaService.guardar(e); return null; },
-                v -> { refrescar(); NotificacionUtil.exito(scene, "Área \"" + e.nombre() + "\" guardada"); },
-                ex -> NotificacionUtil.error(scene, "No se pudo guardar el área: " + ex.getMessage()));
+            boolean cambioPrefijo = actual != null && !actual.prefijo().equals(e.prefijo());
+            if (!cambioPrefijo) { guardar(scene, e, false); return; }
+            DialogUtil.runAsync(() -> areaService.bienesConPrefijoActual(e.nombre()),
+                n -> {
+                    Boolean renumerar = n == 0 ? Boolean.FALSE : preguntarRenumerar(actual, e, n);
+                    if (renumerar != null) guardar(scene, e, renumerar);
+                },
+                ex -> NotificacionUtil.error(scene, "No se pudo revisar los bienes del área: " + ex.getMessage()));
         });
+    }
+
+    private void guardar(javafx.scene.Scene scene, AreaCatalog.Entrada e, boolean renumerar) {
+        DialogUtil.runAsync(() -> areaService.guardar(e, renumerar),
+            n -> {
+                refrescar();
+                NotificacionUtil.exito(scene, "Área \"" + e.nombre() + "\" guardada"
+                    + (n > 0 ? " · " + n + (n == 1 ? " bien renumerado" : " bienes renumerados") : ""));
+            },
+            ex -> NotificacionUtil.error(scene, "No se pudo guardar el área: " + ex.getMessage()));
+    }
+
+    /** @return true = renumber, false = only new bienes, null = cancel */
+    static Boolean preguntarRenumerar(AreaCatalog.Entrada actual, AreaCatalog.Entrada nueva, int bienes) {
+        Dialog<ButtonType> d = DialogUtil.styledMessage("mdi2f-format-list-numbered",
+            "Cambio de prefijo", actual.prefijo() + " → " + nueva.prefijo(),
+            com.sibim.util.AppColors.WARNING, com.sibim.util.AppColors.WARNING_D,
+            nueva.nombre() + " tiene " + bienes + (bienes == 1 ? " bien activo" : " bienes activos")
+                + " con el prefijo " + actual.prefijo() + ".\n\n"
+                + "Renumerar cambia sus códigos al nuevo prefijo conservando el número ("
+                + actual.prefijo() + "/05 → " + nueva.prefijo() + "/05). Las etiquetas y resguardos ya "
+                + "impresos quedarán con el código anterior.\n\n"
+                + "Si no los renumeras, solo los bienes que se registren después usarán " + nueva.prefijo() + ".");
+        ButtonType renumerar = new ButtonType("Renumerar " + bienes, ButtonBar.ButtonData.YES);
+        ButtonType soloNuevos = new ButtonType("Solo bienes nuevos", ButtonBar.ButtonData.NO);
+        d.getDialogPane().getButtonTypes().setAll(renumerar, soloNuevos, ButtonType.CANCEL);
+        DialogUtil.styleButton(d.getDialogPane(), renumerar, com.sibim.util.AppColors.WARNING);
+        ButtonType r = d.showAndWait().orElse(ButtonType.CANCEL);
+        return r == renumerar ? Boolean.TRUE : r == soloNuevos ? Boolean.FALSE : null;
     }
 
     private static AreaCatalog.Entrada leer(TextField nombre, ComboBox<AreaCatalog.Grupo> grupo,

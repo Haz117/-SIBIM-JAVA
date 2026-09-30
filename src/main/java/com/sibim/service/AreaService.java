@@ -25,6 +25,10 @@ public class AreaService {
     private static final String CACHE_NODE = "sibim/areas";
     private static final String CACHE_KEY  = "catalogo";
 
+    /** {@link AreaRepository#firma()} of the catalog in use, so the periodic
+     *  check only reloads when another PC changed the table. */
+    private static volatile String firmaCargada;
+
     private final AreaRepository repo;
     private final AuditLogRepository auditRepo;
 
@@ -44,9 +48,7 @@ public class AreaService {
             return;
         }
         try {
-            AreaCatalog c = repo.cargar();
-            Areas.usar(c);
-            guardarCache(c);
+            recargar();
         } catch (Exception e) {
             log.warn("No se pudieron leer las áreas de la base; se usa la lista integrada: {}", e.getMessage());
             AreaCatalog cache = leerCache();
@@ -55,11 +57,56 @@ public class AreaService {
     }
 
     /**
+     * Picks up areas added or edited on another PC. Called by the connectivity
+     * watcher (SyncService) on every online tick; one tiny query when nothing
+     * changed. Never throws.
+     * @return true when the catalog was reloaded
+     */
+    public boolean refrescarSiCambio() {
+        if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return false;
+        try {
+            String firma = repo.firma();
+            if (firma.equals(firmaCargada)) return false;
+            recargar();
+            log.info("Catálogo de áreas actualizado desde la base de datos");
+            return true;
+        } catch (Exception e) {
+            log.debug("No se pudo revisar la tabla de áreas: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private void recargar() throws SQLException {
+        String firma = repo.firma();
+        AreaCatalog c = repo.cargar();
+        Areas.usar(c);
+        guardarCache(c);
+        firmaCargada = firma;
+    }
+
+    /**
      * Adds an area or changes an existing one's group, parent or prefix.
      * @throws IllegalArgumentException when the result would not be a valid organigrama
      *         (duplicate prefix, dirección without a valid parent…).
      */
     public void guardar(AreaCatalog.Entrada cambio) throws SQLException {
+        guardar(cambio, false);
+    }
+
+    /** Active bienes that would be renumbered if {@code area}'s prefix changed now. */
+    public int bienesConPrefijoActual(String area) throws SQLException {
+        return Areas.catalogo().buscar(area)
+            .map(e -> { try { return repo.contarBienesConPrefijo(area, e.prefijo()); }
+                        catch (SQLException ex) { throw new RuntimeException(ex); } })
+            .orElse(0);
+    }
+
+    /**
+     * @param renumerar when the prefix changes, also move the area's active bienes
+     *        to the new prefix keeping their number (TICS/05 → TI/05)
+     * @return bienes renumbered
+     */
+    public int guardar(AreaCatalog.Entrada cambio, boolean renumerar) throws SQLException {
         if (!SessionManager.isAdmin())
             throw new IllegalStateException("Solo un administrador puede editar las áreas");
         if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode())
@@ -72,13 +119,27 @@ public class AreaService {
                 && !Areas.PRESIDENCIA.equals(nombre))
             throw new IllegalArgumentException("Solo puede existir un Despacho de Presidencia");
 
-        boolean nueva = Areas.catalogo().buscar(nombre).isEmpty();
+        var anterior = Areas.catalogo().buscar(nombre);
+        boolean nueva = anterior.isEmpty();
         AreaCatalog resultante = Areas.catalogo().con(limpia);   // validates the whole organigrama
-        repo.guardar(limpia);
+        String prefijoAnterior = anterior.map(AreaCatalog.Entrada::prefijo).orElse(null);
+        int renumerados;
+        try {
+            renumerados = repo.guardar(limpia, renumerar ? prefijoAnterior : null);
+        } catch (SQLException e) {
+            if (!"23505".equals(e.getSQLState())) throw e;
+            throw new IllegalStateException(renumerar
+                ? "Otro bien activo ya usa alguno de los códigos " + prefijo + "/…, o el prefijo lo tomó otra área. No se cambió nada."
+                : "El prefijo " + prefijo + " ya lo usa otra área. No se cambió nada.", e);
+        }
+        if (renumerados > 0) ProductosEnMemoria.invalidar();
         Areas.usar(resultante);
         guardarCache(resultante);
+        try { firmaCargada = repo.firma(); } catch (SQLException ignored) { firmaCargada = null; }
         auditRepo.log("area", nombre, nombre, nueva ? "crear" : "editar",
-            "Prefijo " + prefijo + (limpia.padre() != null ? " · depende de " + limpia.padre() : ""));
+            "Prefijo " + prefijo + (limpia.padre() != null ? " · depende de " + limpia.padre() : "")
+                + (renumerados > 0 ? " · " + renumerados + " bienes renumerados desde " + prefijoAnterior : ""));
+        return renumerados;
     }
 
     // ── Local cache (one line per area: nombre \t grupo \t padre \t prefijo) ──

@@ -135,9 +135,17 @@ public final class SyncService {
         if (DatabaseConfig.isDemoMode()) return;
         if (DatabaseConfig.isOfflineMode()) {
             if (postgresReachable()) syncPendingChanges();
+            if (!DatabaseConfig.isOfflineMode()) refrescarAreas();
             return;
         }
         if (!postgresReachable()) enterOfflineMode();
+        else refrescarAreas();
+    }
+
+    /** Areas added or edited on another PC show up here within one poll. */
+    private static void refrescarAreas() {
+        try { new com.sibim.service.AreaService().refrescarSiCambio(); }
+        catch (RuntimeException e) { log.debug("Revisión de áreas omitida: {}", e.getMessage()); }
     }
 
     /** Mid-session connectivity loss while online — the counterpart to the
