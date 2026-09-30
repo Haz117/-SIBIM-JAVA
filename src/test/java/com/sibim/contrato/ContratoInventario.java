@@ -202,6 +202,53 @@ public interface ContratoInventario {
             .noneMatch(m -> m.getId().equals(pendiente[0].getId())));
     }
 
+    // ── Eliminar un movimiento (solo admin) ─────────────────────────────────
+
+    @Test
+    default void eliminarUnaEntrada_devuelveLaExistencia() throws Exception {
+        Producto p = alta(AREA_A, 3, 0);
+        Movimiento m = movimientos().registrar(p.getId(), TipoMovimiento.ENTRADA, 4, "contrato", null);
+        assertEquals(7, releer(p.getId()).getStockActual());
+        movimientos().eliminar(m.getId());
+        assertEquals(3, releer(p.getId()).getStockActual());
+        assertTrue(movimientos().getByProducto(p.getId()).isEmpty());
+    }
+
+    @Test
+    default void eliminarUnaTransferencia_regresaElBienASuAreaConUnCodigoDeEsaArea() throws Exception {
+        Producto p = alta(AREA_A, 1, 0);
+        Movimiento t = movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B);
+        assertEquals(AREA_B, releer(p.getId()).getArea());
+
+        String esperado = AreaCodigos.siguienteCodigo(AREA_A, codigosActivos());
+        movimientos().eliminar(t.getId());
+        Producto r = releer(p.getId());
+        assertEquals(AREA_A, r.getArea());
+        assertEquals(esperado, r.getCodigo(), "vuelve con el siguiente código libre de su área");
+        assertEquals(1, r.getStockActual());
+    }
+
+    @Test
+    default void eliminarUnMovimientoConOtroPosterior_seRechaza() throws Exception {
+        Producto p = alta(AREA_A, 5, 0);
+        Movimiento primero = movimientos().registrar(p.getId(), TipoMovimiento.ENTRADA, 1, "uno", null);
+        Thread.sleep(5);   // distinct timestamps for the SQL store's ordering
+        movimientos().registrar(p.getId(), TipoMovimiento.SALIDA, 2, "dos", null);
+        assertThrows(MovimientoService.ValidationException.class, () -> movimientos().eliminar(primero.getId()));
+        assertEquals(4, releer(p.getId()).getStockActual());
+    }
+
+    @Test
+    default void unaSolicitudPendientePosterior_noImpideEliminarElUltimoMovimientoAplicado() throws Exception {
+        Producto p = alta(AREA_A, 5, 0);
+        Movimiento entrada = movimientos().registrar(p.getId(), TipoMovimiento.ENTRADA, 1, "uno", null);
+        Thread.sleep(5);
+        comoDireccion(AREA_A, () -> movimientos()
+            .registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 6, "contrato", null, AREA_B));
+        movimientos().eliminar(entrada.getId());
+        assertEquals(5, releer(p.getId()).getStockActual());
+    }
+
     // ── Baja y reactivación ─────────────────────────────────────────────────
 
     @Test

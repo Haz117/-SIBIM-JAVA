@@ -1148,32 +1148,12 @@ public final class OfflineStore {
         synchronized (LOCK) {
             Producto p = PRODUCTOS_MAP.get(m.getProductoId());
             if (p == null) throw new SQLException("Producto no encontrado: " + m.getProductoId());
-            int stockActual = p.getStockActual();
-
-            if (expectedStockAnterior != null && stockActual != expectedStockAnterior) {
-                throw new SQLException("El stock cambió desde que se capturó el conteo (esperado "
-                    + expectedStockAnterior + ", actual " + stockActual + ") — no se aplicó el ajuste.");
-            }
-            if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual) {
-                throw new SQLException("La cantidad supera el stock disponible (" + stockActual + ")");
-            }
-            if (p.isDadoDeBaja()) throw new SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
-
-            int stockNuevo = ProductoUtils.calcularStockNuevo(m.getTipo().getCodigo(), stockActual, m.getCantidad());
-            m.setStockAnterior(stockActual);
-            m.setStockNuevo(stockNuevo);
+            // Same rules as online; a transfer's código is re-assigned by the
+            // server when this movement syncs.
+            com.sibim.db.ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosActivos());
+            int stockNuevo = m.getStockNuevo();
             if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
-
-            boolean transferencia = m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null;
-            if (transferencia) {
-                m.setAreaOrigen(p.getArea());
-                // Same rule as online (AreaCodigos): next free número in the
-                // destination; the server re-assigns it when this syncs.
-                m.setCodigoAnterior(p.getCodigo());
-                m.setCodigoNuevo(com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())
-                    ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosActivos())
-                    : p.getCodigo());
-            }
+            boolean transferencia = m.getAreaOrigen() != null;
             Connection c = conn();
             c.setAutoCommit(false);
             try {
@@ -1207,13 +1187,8 @@ public final class OfflineStore {
         synchronized (LOCK) {
             Movimiento m = MOVIMIENTOS.stream().filter(x -> x.getId().equals(id)).findFirst()
                 .orElseThrow(() -> new SQLException("Movimiento no encontrado: " + id));
-            int idx = MOVIMIENTOS.indexOf(m);
-            boolean hasNewer = MOVIMIENTOS.subList(0, idx).stream()
-                .anyMatch(other -> other.getProductoId().equals(m.getProductoId()));
-            if (hasNewer) {
-                throw new SQLException("Solo se puede eliminar el movimiento mas reciente de este producto: "
-                    + "existen movimientos registrados despues de este.");
-            }
+            com.sibim.db.ReglasLocales.exigirQueSeaElUltimo(m, MOVIMIENTOS);
+            Producto p = PRODUCTOS_MAP.get(m.getProductoId());
             Connection c = conn();
             c.setAutoCommit(false);
             try {
@@ -1221,8 +1196,13 @@ public final class OfflineStore {
                     ps.setString(1, id);
                     ps.executeUpdate();
                 }
-                updateProductoStock(m.getProductoId(), m.getStockAnterior());
-                if (m.getAreaOrigen() != null) updateProductoArea(m.getProductoId(), m.getAreaOrigen());
+                if (com.sibim.db.ReglasLocales.aplicado(m) && p != null) {
+                    com.sibim.db.ReglasLocales.Deshacer r =
+                        com.sibim.db.ReglasLocales.deshacer(m, p, codigosActivos());
+                    updateProductoStock(m.getProductoId(), r.stock());
+                    updateProductoArea(m.getProductoId(), r.area());
+                    updateProductoCodigo(m.getProductoId(), r.codigo());
+                }
                 enqueueMovement("DELETE", m);
                 c.commit();
                 MOVIMIENTOS.remove(m);

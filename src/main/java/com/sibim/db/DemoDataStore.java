@@ -714,40 +714,20 @@ public final class DemoDataStore {
      *  as a separate pre-check, which would leave a race window). */
     public static void addMovimiento(Movimiento m, Integer expectedStockAnterior) throws java.sql.SQLException {
         synchronized (STOCK_LOCK) {
-            Optional<Producto> opt = findProductoById(m.getProductoId());
-            if (opt.isEmpty()) throw new java.sql.SQLException("Producto no encontrado: " + m.getProductoId());
-            int stockActual = opt.get().getStockActual();
-
-            if (expectedStockAnterior != null && stockActual != expectedStockAnterior) {
-                throw new java.sql.SQLException("El stock cambió desde que se capturó el conteo (esperado "
-                    + expectedStockAnterior + ", actual " + stockActual + ") — no se aplicó el ajuste.");
-            }
-            if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual) {
-                throw new java.sql.SQLException("La cantidad supera el stock disponible (" + stockActual + ")");
-            }
-            if (opt.get().isDadoDeBaja())
-                throw new java.sql.SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
-
-            int stockNuevo = com.sibim.util.ProductoUtils.calcularStockNuevo(
-                m.getTipo().getCodigo(), stockActual, m.getCantidad());
-            m.setStockAnterior(stockActual);
-            m.setStockNuevo(stockNuevo);
-            m.setEstado(Movimiento.ESTADO_APROBADO);
-
-            if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
-                Producto p = opt.get();
-                m.setAreaOrigen(p.getArea());
-                m.setCodigoAnterior(p.getCodigo());
-                m.setCodigoNuevo(com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())
-                    ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(),
-                        PRODUCTOS.stream().filter(x -> !x.isDadoDeBaja()).map(Producto::getCodigo).toList())
-                    : p.getCodigo());
+            Producto p = findProductoById(m.getProductoId()).orElseThrow(() ->
+                new java.sql.SQLException("Producto no encontrado: " + m.getProductoId()));
+            ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosActivos());
+            if (m.getAreaOrigen() != null) {   // transferencia
                 updateProductoArea(m.getProductoId(), m.getAreaDestino());
                 updateProductoCodigo(m.getProductoId(), m.getCodigoNuevo());
             }
             MOVIMIENTOS.add(0, m);
-            updateProductoStock(m.getProductoId(), stockNuevo);
+            updateProductoStock(m.getProductoId(), m.getStockNuevo());
         }
+    }
+
+    private static List<String> codigosActivos() {
+        return PRODUCTOS.stream().filter(x -> !x.isDadoDeBaja()).map(Producto::getCodigo).toList();
     }
 
     /** A transferencia registered by a non-Admin doesn't move stock/area
@@ -776,18 +756,29 @@ public final class DemoDataStore {
             .collect(Collectors.toList());
     }
 
-    public static void aprobarTransferencia(String id) {
+    /** Same checks as MovimientoRepository#aprobarTransferencia. */
+    public static void aprobarTransferencia(String id) throws java.sql.SQLException {
         synchronized (STOCK_LOCK) {
-            MOVIMIENTOS.stream().filter(m -> m.getId().equals(id) && m.isPendiente()).findFirst()
-                .ifPresent(m -> {
-                    m.setEstado(Movimiento.ESTADO_APROBADO);
-                    updateProductoArea(m.getProductoId(), m.getAreaDestino());
-                    if (com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())) {
-                        String codigo = com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(),
-                            PRODUCTOS.stream().filter(p -> !p.isDadoDeBaja()).map(Producto::getCodigo).toList());
-                        updateProductoCodigo(m.getProductoId(), codigo);
-                    }
-                });
+            Movimiento m = MOVIMIENTOS.stream().filter(x -> x.getId().equals(id) && x.isPendiente()).findFirst()
+                .orElseThrow(() -> new java.sql.SQLException("Transferencia pendiente no encontrada: " + id));
+            Producto p = findProductoById(m.getProductoId()).orElseThrow(() ->
+                new java.sql.SQLException("Producto no encontrado: " + m.getProductoId()));
+            if (p.isDadoDeBaja()) throw new java.sql.SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
+            if (p.getStockActual() <= 0)
+                throw new java.sql.SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
+            if (m.getAreaOrigen() != null && !m.getAreaOrigen().equals(p.getArea()))
+                throw new java.sql.SQLException("El bien ya no está en " + m.getAreaOrigen() + " (ahora está en "
+                    + p.getArea() + "): rechaza esta solicitud y registra una nueva si sigue siendo necesaria.");
+            String codigo = com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())
+                ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosActivos())
+                : p.getCodigo();
+            m.setEstado(Movimiento.ESTADO_APROBADO);
+            m.setStockAnterior(p.getStockActual());
+            m.setStockNuevo(p.getStockActual());
+            m.setCodigoAnterior(p.getCodigo());
+            m.setCodigoNuevo(codigo);
+            updateProductoArea(m.getProductoId(), m.getAreaDestino());
+            updateProductoCodigo(m.getProductoId(), codigo);
         }
     }
 
@@ -805,23 +796,16 @@ public final class DemoDataStore {
      *  "most recent" check — deleting one is just discarding the request. */
     public static void deleteMovimiento(String id) throws java.sql.SQLException {
         synchronized (STOCK_LOCK) {
-            Optional<Movimiento> found = MOVIMIENTOS.stream().filter(m -> m.getId().equals(id)).findFirst();
-            if (found.isEmpty()) throw new java.sql.SQLException("Movimiento no encontrado: " + id);
-            Movimiento m = found.get();
-            if (!m.isPendiente()) {
-                int idx = MOVIMIENTOS.indexOf(m);
-                boolean hasNewer = MOVIMIENTOS.subList(0, idx).stream()
-                    .anyMatch(other -> other.getProductoId().equals(m.getProductoId()));
-                if (hasNewer) {
-                    throw new java.sql.SQLException(
-                        "Solo se puede eliminar el movimiento mas reciente de este producto: "
-                        + "existen movimientos registrados despues de este.");
-                }
-            }
+            Movimiento m = MOVIMIENTOS.stream().filter(x -> x.getId().equals(id)).findFirst()
+                .orElseThrow(() -> new java.sql.SQLException("Movimiento no encontrado: " + id));
+            ReglasLocales.exigirQueSeaElUltimo(m, MOVIMIENTOS);
+            Optional<Producto> p = findProductoById(m.getProductoId());
             MOVIMIENTOS.remove(m);
-            if (!m.isPendiente()) {
-                updateProductoStock(m.getProductoId(), m.getStockAnterior());
-                if (m.getAreaOrigen() != null) updateProductoArea(m.getProductoId(), m.getAreaOrigen());
+            if (ReglasLocales.aplicado(m) && p.isPresent()) {
+                ReglasLocales.Deshacer r = ReglasLocales.deshacer(m, p.get(), codigosActivos());
+                updateProductoStock(m.getProductoId(), r.stock());
+                updateProductoArea(m.getProductoId(), r.area());
+                updateProductoCodigo(m.getProductoId(), r.codigo());
             }
         }
     }

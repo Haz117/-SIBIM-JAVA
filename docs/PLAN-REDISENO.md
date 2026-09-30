@@ -1,12 +1,12 @@
 # Plan de rediseño — SIBIM Desktop
 
-Estado: **propuesta**, sin empezar. Este documento fija el rumbo para los cambios de arquitectura que no caben en un arreglo puntual. Cada fase deja la app funcionando y con los tests en verde; se puede detener entre fases sin dejar nada a medias.
+Estado (2026-09-29): **fase 0 hecha, fase 3 avanzada; fases 5 y 6 descartadas** (ver §6). Este documento fija el rumbo para los cambios de arquitectura que no caben en un arreglo puntual. Cada fase deja la app funcionando y con los tests en verde; se puede detener entre fases sin dejar nada a medias.
 
-Tres objetivos:
+Objetivos:
 
 1. **Una sola versión de cada operación.** Hoy la misma regla de negocio está escrita hasta tres veces.
 2. **Dependencias inyectadas.** Hoy cada pantalla fabrica sus propios servicios y todo cuelga de estáticos globales.
-3. **Una API intermedia** entre las PCs y la base de datos. Hoy cada PC entra directo a PostgreSQL.
+3. ~~Una API intermedia entre las PCs y la base de datos.~~ Descartado: Supabase es el backend y las PCs se conectan directo, con el rol de mínimo privilegio (§6).
 
 ---
 
@@ -87,3 +87,21 @@ Cada fase es un PR (o varios pequeños) que no cambia lo que ve el usuario.
 - Framework de la API: Javalin (ligero, poco código) o Spring Boot (más convención, más peso).
 - Dónde corre la API: el mismo servidor que la base o un servicio administrado.
 - Si la fase 5 justifica cambiar la sincronización offline a una cola de operaciones en el servidor, en lugar de la comparación fila por fila actual.
+
+---
+
+## 6. Avance y decisiones (2026-09-29)
+
+**Fase 0 — hecha.** `src/test/java/com/sibim/contrato/ContratoInventario` corre la misma batería (alta, entradas/salidas/ajustes, transferencias directas y pendientes, eliminar movimientos, bajas, alertas y estadísticas) contra PostgreSQL (`ContratoSqlTest`), demo (`ContratoDemoTest`) y offline (`ContratoOfflineTest`). Encontró y se corrigieron:
+
+- SQL: `findPendientesTransferencias` buscaba `'TRANSFERENCIA'` y la columna guarda `'transferencia'`: el panel de pendientes siempre salía vacío.
+- Demo/offline: una transferencia no cambiaba el código ni registraba código anterior/nuevo; eliminarla no devolvía el código del área de origen; un movimiento pendiente posterior impedía eliminar el último aplicado.
+- Offline: `products.codigo` era único global (el servidor, desde V14, solo entre activos) — la copia local del inventario fallaba completa en cuanto se reutilizaba un número.
+- Offline: bajas, transferencias pendientes y otras consultas iban a PostgreSQL y se colgaban ~8 s. Ahora `DatabaseConfig.getConnection()` falla al instante sin conexión (salvo el hilo de sincronización).
+- Demo/offline entregaban sus objetos internos (no copias): editar y cancelar cambiaba el bien en memoria y anulaba las validaciones de `ProductoService.save`.
+
+**Fase 3 — avanzada.** Las reglas de movimientos de los almacenes locales viven en `com.sibim.db.ReglasLocales` (una sola copia para demo y offline); las ramas `isDemoMode()` inalcanzables se quitaron de los repositorios y las consultas que solo contemplaban demo leen el almacén local en ambos modos. Lo que solo existe en el servidor (préstamos, comodatos, resguardos, actas, mantenimiento, resguardos por área) lo dice con `DatabaseConfig.exigirServidor(...)` en vez de ignorar la escritura en silencio.
+
+**Fases 5 y 6 — descartadas.** Supabase es el backend; no se mantendrá un servidor propio. El riesgo que atendían (las credenciales de PostgreSQL en el `.env` de cada PC) queda mitigado con `rol_app_minimo.sql` (sin DDL ni borrado de tablas) y por la regla de no poner nunca la clave `service_role` en un `.env` (la app la rechaza). Si más adelante se quiere quitar la contraseña de las PCs, la vía sin servidor propio es Supabase Auth + Row Level Security.
+
+**Pendiente:** fase 1 (composición e inyección), fase 2 (interfaces por agregado más allá de `LocalDataStore`) y fase 4 (estado global fuera de `DatabaseConfig`/`SessionManager`). Son limpieza interna sin efecto visible; conviene hacerlas por partes cuando se toque cada pantalla.

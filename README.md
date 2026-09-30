@@ -24,7 +24,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real; activar/desactivar cuentas (desactivar bloquea el acceso tanto online como en modo offline); la eliminación de un usuario con bienes/movimientos relacionados ofrece desactivar la cuenta como alternativa a borrar
 - **Configuración institucional** — nombre del ayuntamiento, municipio, área responsable y correo de contacto editables desde Configuración (solo Admin); todos los reportes PDF/Excel usan automáticamente estos datos
 - **Áreas y prefijos editables** — el organigrama del municipio y el prefijo con que se numeran los bienes de cada área (p. ej. `TICS/01`) viven en la tabla `areas` y se editan en Configuración → Áreas y prefijos (solo Admin): agregar un área, cambiar de quién depende o su prefijo. El nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan. Sin conexión se usa la última copia descargada en la PC
-- **Formatos oficiales en guinda institucional** — los PDF y Excel (resguardos, actas, préstamos, comodatos, reportes) usan el guinda del ayuntamiento y el logo municipal: el configurado en Configuración o, si no hay, `src/main/resources/img/logo-municipio.png` incluido en la app. La interfaz del sistema conserva su propio color índigo
+- **Formatos oficiales en guinda institucional** — los PDF y Excel (resguardos, actas, préstamos, comodatos, reportes) usan el guinda del ayuntamiento y el logo municipal: el configurado en Configuración (la imagen se guarda en la base, así que todas las PCs imprimen el mismo logo) o, si no hay, `src/main/resources/img/logo-municipio.png` incluido en la app. La interfaz del sistema conserva su propio color índigo
 - **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo; contadores animados de 0 al valor real; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press; animación de transferencia con flecha que se estira al disparar y chip de destino que entra desde la derecha con rebote; efecto shake en errores de validación
 - **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
 - **Notificaciones toast** en tiempo real
@@ -87,7 +87,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V24` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse), eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada, los códigos anterior/nuevo de cada transferencia (V22) el contador de intentos de inicio de sesión compartido entre PCs (V23) y la tabla de áreas del municipio con su prefijo de código (V24, sembrada con las 44 áreas de Ixmiquilpan). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V25` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse), eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada, los códigos anterior/nuevo de cada transferencia (V22) el contador de intentos de inicio de sesión compartido entre PCs (V23) y la tabla de áreas del municipio con su prefijo de código (V24, sembrada con las 44 áreas de Ixmiquilpan) y los PDF firmados de los resguardos por área guardados en la propia base para que cualquier PC los abra (V25). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -178,7 +178,9 @@ Así el código fuente y las credenciales de producción no quedan expuestos en 
 Si una PC no logra conectar a la base de datos real al arrancar (red caída, servidor apagado, etc.), el sistema **no pierde el trabajo**: entra en modo offline automáticamente.
 
 - **Qué sí funciona sin conexión**: Bienes, Movimientos y Categorías — crear, editar, registrar entradas/salidas/ajustes/transferencias — todo se guarda en un archivo local en esa PC (`%USERPROFILE%\.sibim\offline.db`). Un usuario que ya haya iniciado sesión antes en esa PC estando conectado puede seguir entrando sin conexión **hasta 30 días** después de su último login online; pasado ese plazo, la app exige reconexión para renovar el caché de credenciales.
-- **Qué necesita conexión**: crear/editar usuarios, conteos físicos, auditoría, y el cambio de contraseña obligatorio (se pospone hasta el siguiente login ya conectado).
+- **Qué necesita conexión**: crear/editar usuarios, conteos físicos, auditoría, préstamos, comodatos, resguardos, actas, resguardos por área, alertas de mantenimiento, guardar la configuración, aprobar o rechazar transferencias pendientes (dependen de dónde está el bien en el servidor), **dar de baja** un bien y **cambiar su resguardante** (sin conexión no se puede comprobar si está prestado o si un resguardo firmado lo define), y el cambio de contraseña obligatorio (se pospone hasta el siguiente login ya conectado). Esas acciones lo avisan al instante en lugar de quedarse esperando al servidor.
+- **Configuración y logo sin conexión**: los formatos PDF/Excel usan la última configuración descargada en esa PC (nombre del ayuntamiento, municipio, logo); la contraseña SMTP nunca se copia a la PC.
+- **Fotos tomadas sin conexión**: se guardan en la PC y se suben solas al almacenamiento compartido en cuanto vuelve la conexión, para que las demás PCs las vean.
 - **Sincronización**: en cuanto la app detecta que la base de datos real volvió a estar disponible (revisa cada minuto), sube automáticamente todo lo capturado offline — bienes, movimientos, categorías, conteos físicos y entradas de auditoría — en el mismo orden en que se hizo. Un aviso confirma cuántos cambios se sincronizaron.
 - **Resolución de conflictos**: si un bien fue editado en otro equipo mientras esta PC estaba offline, el sistema lo detecta comparando fechas de modificación y muestra un **diálogo de resolución** con ambas versiones lado a lado (campo por campo, con los valores que difieren resaltados en amarillo). El usuario elige para cada bien si conservar la versión del servidor o aplicar la suya, antes de que se escriba cualquier cambio. La detección aplica también a operaciones de **Baja** y **Reactivación**: si un bien fue dado de baja o reactivado offline pero el servidor lo modificó en el ínterin, también se muestra el conflicto. Al resolver a favor de la versión offline, el sistema llama la operación correcta (baja, reactivación o guardado de campos) según el tipo de cambio pendiente.
 - **Fallos permanentes en sincronización**: violaciones de clave foránea, claves únicas y registros no encontrados en el servidor se marcan como descartados en lugar de reintentar indefinidamente — evita que el ciclo de reintento de 60 s se trabe en filas que nunca podrán sincronizarse.
@@ -214,7 +216,7 @@ SIBIM-Java/
 │   │   └── resources/
 │   │       ├── fxml/              # 17 vistas de la interfaz
 │   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
-│   │       ├── db/migration/      # Migraciones Flyway V1–V24, se aplican solas al arrancar
+│   │       ├── db/migration/      # Migraciones Flyway V1–V25, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
 │   └── test/java/com/sibim/
@@ -302,14 +304,14 @@ pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d 
 
 El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta periódicamente fuera de esa PC.
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V25__descripcion.sql` (numeración consecutiva a partir de V24) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V26__descripcion.sql` (numeración consecutiva a partir de V25) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (876 en total)
+# Correr todos los tests (965 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase
