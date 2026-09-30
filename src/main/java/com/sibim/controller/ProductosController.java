@@ -113,6 +113,7 @@ public class ProductosController {
     @FXML private Button btnMovimiento;
     @FXML private Button btnQr;
     @FXML private Button btnFicha;
+    @FXML private MenuButton btnEtiqueta;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
     /** "Solo los seleccionados" submenu of the Exportar menu. */
@@ -287,9 +288,9 @@ public class ProductosController {
             () -> { pageSize = pageSizeBox.getValue(); currentPage = 0; loadPage(); },
             reporteService, movimientoService);
         tableManager.setOnClearFilters(this::onClearFilters);
-        if (btnFicha != null)
-            btnFicha.disableProperty().bind(javafx.beans.binding.Bindings.isEmpty(
-                table.getSelectionModel().getSelectedItems()));
+        var sinSeleccion = javafx.beans.binding.Bindings.isEmpty(table.getSelectionModel().getSelectedItems());
+        if (btnFicha != null) btnFicha.disableProperty().bind(sinSeleccion);
+        if (btnEtiqueta != null) btnEtiqueta.disableProperty().bind(sinSeleccion);
         tableManager.setup();
         ProductosColumnSetup.configureResguardante(colResguardante);
         // Captured now, before the saved column preferences are applied, so it restores the FXML defaults.
@@ -871,6 +872,19 @@ public class ProductosController {
         List<Producto> sel = getSelectedProductos();
         if (sel.isEmpty()) sel = List.copyOf(table.getItems());
         exportarEtiquetaFisica(sel);
+    }
+
+    /** Etiqueta button in the bottom bar: labels for exactly what is selected. */
+    @FXML
+    private void onEtiquetaFisicaSeleccion() {
+        List<Producto> sel = getSelectedProductos();
+        if (!sel.isEmpty()) exportarEtiquetaFisica(sel);
+    }
+
+    @FXML
+    private void onEtiquetaQrSeleccion() {
+        List<Producto> sel = getSelectedProductos();
+        if (!sel.isEmpty()) exportarEtiquetasQr(sel);
     }
 
     private void exportarEtiquetaFisica(List<Producto> productos) {

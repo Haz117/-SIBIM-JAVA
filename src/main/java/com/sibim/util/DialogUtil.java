@@ -176,6 +176,15 @@ public final class DialogUtil {
             }
         }
         pane.setMinHeight(Region.USE_PREF_SIZE);
+        // The window keeps the size it was given before the text grew: without
+        // this the full message pushed the buttons ("Continuar", "Salir") out
+        // of sight and the dialog could not be answered.
+        Scene scene = pane.getScene();
+        Window w = scene != null ? scene.getWindow() : null;
+        if (w == null) return;
+        if (w.isShowing()) w.sizeToScene();
+        else if (w.getProperties().putIfAbsent("sibim.ajusteAlMostrar", Boolean.TRUE) == null)
+            w.addEventHandler(javafx.stage.WindowEvent.WINDOW_SHOWN, e -> w.sizeToScene());
     }
 
     // ── OK button ────────────────────────────────────────────────────────
