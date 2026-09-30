@@ -89,6 +89,23 @@ public class ConfiguracionRepository {
         guardarCopiaLocal(copia);
     }
 
+    /**
+     * Sets {@code clave} to {@code valor} only if it holds something else, in one
+     * statement — so when several PCs race (e.g. the 06:00 scheduled reports)
+     * exactly one of them gets {@code true} and does the work.
+     */
+    public boolean reclamar(String clave, String valor) throws SQLException {
+        DatabaseConfig.exigirServidor("Coordinar tareas programadas");
+        String sql = "INSERT INTO configuracion (clave, valor) VALUES (?, ?) ON CONFLICT (clave) "
+            + "DO UPDATE SET valor = EXCLUDED.valor WHERE configuracion.valor IS DISTINCT FROM EXCLUDED.valor";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, clave);
+            ps.setString(2, valor);
+            return ps.executeUpdate() == 1;
+        }
+    }
+
     // ── Copy on this PC (%USERPROFILE%\.sibim\configuracion.properties) ──────
 
     static Path archivoCopia() {

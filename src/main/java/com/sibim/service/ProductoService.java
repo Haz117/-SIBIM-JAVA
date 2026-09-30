@@ -219,6 +219,16 @@ public class ProductoService {
             p.setStockActual(actual.getStockActual());
             p.setArea(actual.getArea());
             prevCompra = actual.getPrecioCompra();
+            // Secretarías and direcciones update the descriptive data of their
+            // bienes; the código patrimonial and the accounting values are
+            // Patrimonio's (admin), so theirs stay as the database has them.
+            if (!SessionManager.isAdmin()) {
+                p.setCodigo(actual.getCodigo());
+                p.setPrecioCompra(actual.getPrecioCompra());
+                p.setPrecioVenta(actual.getPrecioCompra());
+                p.setVidaUtilAnios(actual.getVidaUtilAnios());
+                p.setValorResidual(actual.getValorResidual());
+            }
             // A signed resguardo says who holds the bien (ResguardoRepository
             // keeps products.resguardante in step with it); an edit — single
             // or in bulk — can't contradict the document.
@@ -279,6 +289,8 @@ public class ProductoService {
 
     public void delete(String id) throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
+        if (!SessionManager.isAdmin())
+            throw new ValidationException("Solo el administrador puede eliminar bienes");
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) return;
         Producto p = opt.get();
@@ -351,6 +363,8 @@ public class ProductoService {
      *  that área (see AreaCodigos, asignarCodigo). */
     public void reactivar(String id) throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
+        if (!SessionManager.isAdmin())
+            throw new ValidationException("Solo el administrador puede reactivar un bien dado de baja");
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();

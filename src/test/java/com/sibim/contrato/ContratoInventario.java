@@ -214,8 +214,15 @@ public interface ContratoInventario {
 
             Producto edit = releer(p.getId());
             edit.setDescripcion("Actualizado por la dirección");
+            edit.setCodigo("ZZZ/99");
+            edit.setPrecioCompra(new BigDecimal("1.00"));
             productos().save(edit);
-            assertEquals("Actualizado por la dirección", releer(p.getId()).getDescripcion());
+            Producto guardado = releer(p.getId());
+            assertEquals("Actualizado por la dirección", guardado.getDescripcion());
+            assertEquals(p.getCodigo(), guardado.getCodigo(), "el código es de Patrimonio");
+            assertEquals(0, new BigDecimal("150.00").compareTo(guardado.getPrecioCompra()),
+                "el valor contable es de Patrimonio");
+            assertThrows(ProductoService.ValidationException.class, () -> productos().reactivar(p.getId()));
         });
         assertEquals(3, releer(p.getId()).getStockActual(), "nada movió la existencia");
     }

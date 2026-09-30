@@ -47,12 +47,26 @@ public class SchedulerService {
         log.info("SchedulerService detenido");
     }
 
+    /** From this hour on (not only at 06:00 sharp: a PC switched on at 08:00 still does it). */
+    static final int HORA_INICIO = 6;
+
+    /**
+     * Runs on every PC, but each day's work is done once: the first PC to
+     * {@link ConfiguracionRepository#reclamar claim} it in the database does
+     * it. Only while an administrator is signed in on this PC — the reports
+     * and summaries must cover every área, and without a session (login
+     * screen) or with an área-scoped one they came out empty or partial.
+     */
     private void tick() {
         try {
-            if (LocalTime.now().getHour() != 6) return;
+            if (LocalTime.now().getHour() < HORA_INICIO) return;
             if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
+            if (!com.sibim.session.SessionManager.isAdmin()) return;
 
             ConfiguracionRepository config = new ConfiguracionRepository();
+            LocalDate hoyAvisos = LocalDate.now();
+            if (config.reclamar("avisos_ultima_ejecucion", hoyAvisos.toString())) enviarAvisos(hoyAvisos);
+
             if (!"true".equals(config.get("reportes_habilitado", "false"))) return;
 
             String frecuencia = config.get("reportes_frecuencia", "MENSUAL");
@@ -65,6 +79,7 @@ public class SchedulerService {
             LocalDate ultimaEj = parseDate(ultimaStr);
 
             if (!esTiempoDeEjecutar(frecuencia, hoy, ultimaEj)) return;
+            if (!config.reclamar(ultimaKey, hoy.toString())) return;   // another PC is doing it
 
             log.info("Generando reportes programados (frecuencia={}, tipos={})", frecuencia, tipos);
             ReporteService reporteService = new ReporteService();
@@ -92,13 +107,19 @@ public class SchedulerService {
                 }
             }
 
-            try { config.set(ultimaKey, hoy.toString()); } catch (java.sql.SQLException ex) {
-                log.warn("No se pudo guardar ultima ejecucion de reportes", ex);
-            }
             log.info("Reportes programados completados para {}", hoy);
             TrayService.notify("Reportes generados",
                 "Reportes del " + hoy + " guardados en " + (carpeta.isBlank() ? "carpeta temporal" : carpeta));
+        } catch (Exception e) {
+            log.error("Error en SchedulerService.tick()", e);
+        }
+    }
 
+    /** Daily reminders (préstamos) and the Monday summary — independent of the
+     *  report frequency, which used to gate them (a "daily" reminder went out
+     *  only when the monthly reports ran). */
+    private void enviarAvisos(LocalDate hoy) {
+        try {
             // Préstamos vencidos/próximos — daily email reminder
             try {
                 PrestamoRepository prestamoRepo = new PrestamoRepository();
@@ -134,7 +155,7 @@ public class SchedulerService {
             }
 
         } catch (Exception e) {
-            log.error("Error en SchedulerService.tick()", e);
+            log.error("Error al enviar los avisos programados", e);
         }
     }
 

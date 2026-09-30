@@ -92,4 +92,11 @@ class ConfiguracionRepositoryIntegrationTest extends IntegrationTestBase {
         assertTrue(java.nio.file.Files.exists(copia));
         assertFalse(java.nio.file.Files.readString(copia).contains("secreta"));
     }
+
+    @Test
+    void reclamar_soloLaPrimeraPcGanaElDia() throws SQLException {
+        assertTrue(repo.reclamar("avisos_ultima_ejecucion", "2026-09-30"), "la primera PC lo toma");
+        assertFalse(repo.reclamar("avisos_ultima_ejecucion", "2026-09-30"), "otra PC ese mismo día no");
+        assertTrue(repo.reclamar("avisos_ultima_ejecucion", "2026-10-01"), "al día siguiente, otra vez");
+    }
 }

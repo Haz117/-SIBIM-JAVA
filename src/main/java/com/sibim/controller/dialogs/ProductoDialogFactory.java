@@ -319,6 +319,15 @@ public final class ProductoDialogFactory {
         // from any step, skipping the rest of the wizard. It stays in the pane
         // (btnGuardar fires it to run the result converter) but out of sight.
         if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
+        // Áreas update the descriptive data; the código and the accounting
+        // values are Patrimonio's (ProductoService keeps them for non-admins).
+        if (!isNewProduct && !com.sibim.session.SessionManager.isAdmin()) {
+            for (javafx.scene.control.Control c : java.util.List.<javafx.scene.control.Control>of(
+                    infoTab.fCodigo, stockTab.fPrecioC, patrimonioTab.fVidaUtil, patrimonioTab.fValorResidual)) {
+                c.setDisable(true);
+                c.setTooltip(new javafx.scene.control.Tooltip("Solo Patrimonio (administrador) puede cambiar este dato"));
+            }
+        }
         Platform.runLater(() -> infoTab.fNombre.requestFocus());
 
         // ── Result converter ─────────────────────────────────────────────────

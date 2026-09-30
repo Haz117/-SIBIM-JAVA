@@ -291,6 +291,9 @@ public final class ProductoBajasDialog {
         btnReactivar.setContentDisplay(ContentDisplay.LEFT);
         btnReactivar.getStyleClass().add("btn-secondary");
         btnReactivar.setOnAction(e -> doReactivar(p, row, list, dialog, productoService, onReactivar));
+        boolean admin = com.sibim.session.SessionManager.isAdmin();   // reactivating is Patrimonio's
+        btnReactivar.setVisible(admin);
+        btnReactivar.setManaged(admin);
 
         row.getChildren().addAll(info, btnReactivar);
 
