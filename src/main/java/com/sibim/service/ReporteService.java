@@ -684,6 +684,11 @@ public class ReporteService {
         return new ReporteFichaTecnicaService().exportFichasTecnicasMasivas(bienes, movimientoService);
     }
 
+    /** Formato MLA: descripción, número de inventario y fotografía de cada bien. */
+    public File exportInventarioFotografico(List<Producto> bienes) throws Exception {
+        return new ReporteInventarioFotograficoService().exportInventarioFotografico(bienes);
+    }
+
     public File exportarResguardoPdf(String resguardante, String area, List<Producto> bienes) throws Exception {
         return new ReporteResguardoService().exportarResguardoPdf(resguardante, area, bienes);
     }

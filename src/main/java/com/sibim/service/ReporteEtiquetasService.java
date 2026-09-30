@@ -274,7 +274,7 @@ public class ReporteEtiquetasService extends ReporteService {
         return tam;
     }
 
-    private static byte[] qrToPngBytes(String content, int size) {
+    static byte[] qrToPngBytes(String content, int size) {
         if (content == null || content.isBlank()) return null;
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(

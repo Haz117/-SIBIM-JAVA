@@ -350,11 +350,14 @@
             <graphic><FontIcon iconLiteral="mdi2q-qrcode" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Ver e imprimir el código QR del bien seleccionado"/></tooltip>
         </Button>
-        <Button fx:id="btnFicha" text="Ficha" onAction="#onExportSeleccionFicha" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="6">
+        <MenuButton fx:id="btnFicha" text="Ficha" styleClass="btn-secondary" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-document-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Ficha técnica en PDF del bien seleccionado (datos, foto, QR y movimientos). Con varios seleccionados, todas en un solo PDF" wrapText="true" maxWidth="260"/></tooltip>
-        </Button>
+            <tooltip><Tooltip text="Formatos en PDF de los bienes seleccionados, con su fotografía" wrapText="true" maxWidth="260"/></tooltip>
+            <items>
+                <MenuItem text="Ficha técnica (foto, datos, QR y movimientos)" onAction="#onExportSeleccionFicha"/>
+                <MenuItem text="Inventario fotográfico (formato MLA)" onAction="#onExportInventarioFotografico"/>
+            </items>
+        </MenuButton>
         <MenuButton fx:id="btnEtiqueta" text="Etiqueta" styleClass="btn-secondary" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2t-tag-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Imprimir la etiqueta del bien seleccionado (o de todos los seleccionados)" wrapText="true" maxWidth="260"/></tooltip>

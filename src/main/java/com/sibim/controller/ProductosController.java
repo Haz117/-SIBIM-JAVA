@@ -112,7 +112,7 @@ public class ProductosController {
     @FXML private Button btnComparar;
     @FXML private Button btnMovimiento;
     @FXML private Button btnQr;
-    @FXML private Button btnFicha;
+    @FXML private MenuButton btnFicha;
     @FXML private MenuButton btnEtiqueta;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
@@ -771,6 +771,18 @@ public class ProductosController {
                 : reporteService.exportFichasTecnicasMasivas(sel, movimientoService),
             file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             ex -> { log.error("Error ficha técnica", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la ficha técnica"); });
+    }
+
+    /** Formato MLA: descripción, número de inventario y fotografía de los bienes seleccionados. */
+    @FXML
+    private void onExportInventarioFotografico() {
+        List<Producto> sel = getSelectedProductos();
+        if (sel.isEmpty()) return;
+        DialogUtil.runAsyncWithProgress(table.getScene(),
+            "Generando inventario fotográfico de " + sel.size() + (sel.size() == 1 ? " bien…" : " bienes…"),
+            () -> reporteService.exportInventarioFotografico(sel),
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+            ex -> NotificacionUtil.error(table.getScene(), "No se pudo generar el inventario fotográfico"));
     }
 
     /** Formato con datos y foto de cada bien seleccionado para que el área pida su baja. */

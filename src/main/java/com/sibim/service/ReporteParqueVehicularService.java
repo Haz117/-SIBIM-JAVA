@@ -1,7 +1,6 @@
 package com.sibim.service;
 
 import com.itextpdf.io.font.constants.StandardFonts;
-import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -157,16 +156,17 @@ public class ReporteParqueVehicularService extends ReporteService {
     }
 
     private Cell buildFotoCell(Producto p, PdfFont reg) {
-        if (p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) {
-            try {
-                Image img = new Image(ImageDataFactory.create(p.getFotoUrl()))
-                    .setAutoScale(true).setMaxWidth(220).setMaxHeight(160);
-                return new Cell()
-                    .add(img.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER))
-                    .setPadding(6).setMinHeight(170)
-                    .setBorder(new SolidBorder(BORDER_LIGHT, 0.8f))
-                    .setVerticalAlignment(VerticalAlignment.MIDDLE);
-            } catch (Exception ignored) {}
+        // Also photos kept in Supabase Storage: ImageDataFactory.create(String)
+        // only read local paths, so a vehicle photographed on another PC showed
+        // the empty placeholder.
+        var fotos = FotosPdf.de(p, 1, 1000);
+        if (!fotos.isEmpty()) {
+            Image img = new Image(fotos.get(0)).scaleToFit(220, 160);
+            return new Cell()
+                .add(img.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER))
+                .setPadding(6).setMinHeight(170)
+                .setBorder(new SolidBorder(BORDER_LIGHT, 0.8f))
+                .setVerticalAlignment(VerticalAlignment.MIDDLE);
         }
         return new Cell()
             .add(new Paragraph("\n\n\n\n\n[ FOTOGRAFÍA DEL VEHÍCULO ]")

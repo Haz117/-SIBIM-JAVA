@@ -2,7 +2,6 @@ package com.sibim.service;
 
 import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.io.image.ImageData;
-import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -24,10 +23,8 @@ import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Producto;
 import com.sibim.util.FormatUtils;
-import com.sibim.util.SupabaseStorage;
 
 import java.io.File;
-import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -244,21 +241,7 @@ public class ReporteSolicitudBajaService extends ReporteService {
     }
 
     private static Image cargarFoto(Producto p) {
-        List<String> candidatas = new ArrayList<>();
-        if (p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) candidatas.add(p.getFotoUrl());
-        if (p.getFotosUrls() != null) candidatas.addAll(p.getFotosUrls());
-        for (String url : candidatas) {
-            try {
-                ImageData data;
-                if (SupabaseStorage.isRemoteUrl(url)) data = ImageDataFactory.create(URI.create(url).toURL());
-                else if (new File(url).isFile()) data = ImageDataFactory.create(url);
-                else continue;
-                return new Image(data);
-            } catch (Exception e) {
-                org.slf4j.LoggerFactory.getLogger(ReporteSolicitudBajaService.class)
-                    .warn("No se pudo cargar la foto '{}' del bien {}: {}", url, p.getCodigo(), e.getMessage());
-            }
-        }
-        return null;
+        List<ImageData> fotos = FotosPdf.de(p, 1, 1000);
+        return fotos.isEmpty() ? null : new Image(fotos.get(0));
     }
 }

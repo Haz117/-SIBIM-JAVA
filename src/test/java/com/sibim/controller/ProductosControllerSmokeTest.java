@@ -67,6 +67,17 @@ class ProductosControllerSmokeTest extends ControllerSmokeTestBase {
         assertTrue(etiqueta.getItems().stream().anyMatch(i -> i.getText().contains("formato oficial")));
     }
 
+    @Test
+    void fichaOfreceFichaTecnicaEInventarioFotografico() throws Exception {
+        TableView<Producto> t = tabla();
+        MenuButton ficha = lookup("#btnFicha").queryAs(MenuButton.class);
+        assertTrue(ficha.isDisabled());
+        interact(() -> t.getSelectionModel().select(0));
+        assertFalse(ficha.isDisabled());
+        assertTrue(ficha.getItems().stream().anyMatch(i -> i.getText().startsWith("Ficha técnica")));
+        assertTrue(ficha.getItems().stream().anyMatch(i -> i.getText().startsWith("Inventario fotográfico")));
+    }
+
     /** At a narrow width with a row selected ("1 seleccionado" appears), every
      *  bottom-bar button must show its full label or just its icon — never "…". */
     @Test
