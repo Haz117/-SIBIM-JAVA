@@ -428,7 +428,9 @@ public final class TutorialOverlay {
             for (String b : s.bullets()) {
                 FontIcon chevron = new FontIcon("mdi2c-chevron-right");
                 chevron.setIconSize(14);
-                chevron.setStyle("-fx-icon-color: " + s.color() + ";");
+                // setIconColor, not setStyle: an inline style on a FontIcon replaced the
+                // icon font and the glyph rendered as an empty box.
+                chevron.setIconColor(Color.web(s.color()));
                 Label lbl = new Label(b);
                 lbl.getStyleClass().add("tutorial-bullet-text");
                 lbl.setWrapText(true);
@@ -441,7 +443,7 @@ public final class TutorialOverlay {
 
             if (s.shortcut() != null) {
                 lblShortcut.setText(s.shortcut());
-                kbIcon.setStyle("-fx-icon-color: " + s.color() + ";");
+                kbIcon.setIconColor(Color.web(s.color()));
                 shortcutPill.setStyle(
                     "-fx-background-color: " + hexToRgba(s.color(), 0.09) + ";"
                     + "-fx-border-color: " + hexToRgba(s.color(), 0.30) + ";");

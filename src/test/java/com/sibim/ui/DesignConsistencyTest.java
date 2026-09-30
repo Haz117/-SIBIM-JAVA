@@ -97,6 +97,25 @@ class DesignConsistencyTest {
         assertTrue(malos.isEmpty(), "Iconos que no existen en Ikonli:\n  " + String.join("\n  ", malos));
     }
 
+    /** An inline style on a FontIcon replaces the style Ikonli uses for its icon
+     *  font, so the glyph renders as an empty box (it happened in the tutorial).
+     *  Color icons with setIconColor(...) or a CSS class instead. */
+    @Test
+    void ningunIcono_seColoreaConSetStyle() throws Exception {
+        Pattern malo = Pattern.compile("\\.setStyle\\(\\s*\"[^\"]*-fx-icon");
+        Path javaDir = Path.of("src/main/java");
+        if (!Files.isDirectory(javaDir)) javaDir = Path.of("../src/main/java");
+        List<String> malos = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(javaDir)) {
+            for (Path f : files.filter(x -> x.toString().endsWith(".java")).toList()) {
+                List<String> lineas = Files.readAllLines(f);
+                for (int i = 0; i < lineas.size(); i++)
+                    if (malo.matcher(lineas.get(i)).find()) malos.add(f.getFileName() + ":" + (i + 1));
+            }
+        }
+        assertTrue(malos.isEmpty(), "Íconos coloreados con setStyle (usa setIconColor):\n  " + String.join("\n  ", malos));
+    }
+
     /** styles.css is only an ordered list of @import of css/partes/. A part that is
      *  not imported (or imported twice) would silently drop (or reorder) its rules,
      *  and each part must parse on its own. */

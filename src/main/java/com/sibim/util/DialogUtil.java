@@ -150,11 +150,15 @@ public final class DialogUtil {
         if (css != null) pane.getStylesheets().add(css.toExternalForm());
         AccessibilityUtils.applyCurrentTextScaleClass(pane);
         pane.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene != null) {
-                AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
-                sinTextosCortados(pane);
-            }
+            if (scene != null) AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
         });
+        // A Dialog's pane already has its scene when it is created, so hook the
+        // things callers add afterwards (buttons, content) instead.
+        Runnable ajustar = () -> sinTextosCortados(pane);
+        pane.getButtonTypes().addListener(
+            (javafx.collections.ListChangeListener<ButtonType>) c -> Platform.runLater(ajustar));
+        pane.contentProperty().addListener((o, a, b) -> Platform.runLater(ajustar));
+        Platform.runLater(ajustar);
     }
 
     /** Dialog buttons and message text never shrink below their own text:
