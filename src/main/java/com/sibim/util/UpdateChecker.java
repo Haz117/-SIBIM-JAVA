@@ -78,6 +78,18 @@ public class UpdateChecker {
         return null;
     }
 
+    /** The running build's version (pom {@code <version>}, filtered into
+     *  app.properties). Falls back to "dev" when run unfiltered from an IDE. */
+    public static String currentVersion() {
+        try {
+            String v = loadAppProperties().getProperty("app.version", "").trim();
+            if (!v.isEmpty() && !v.startsWith("${")) return v;
+        } catch (Exception e) {
+            log.debug("app.properties unreadable: {}", e.getMessage());
+        }
+        return "dev";
+    }
+
     private static Properties loadAppProperties() throws Exception {
         Properties p = new Properties();
         try (InputStream is = UpdateChecker.class.getResourceAsStream("/app.properties")) {

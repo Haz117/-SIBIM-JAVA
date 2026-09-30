@@ -198,8 +198,7 @@ public class NotificacionUtil {
         if (owner == null) return;
 
         FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
-        iconLbl.setIconSize(26);
-        iconLbl.getStyleClass().add("toast-icon-success");
+        iconLbl.getStyleClass().add("transfer-cel-check");
 
         Label titleLbl = new Label("Transferencia registrada");
         titleLbl.getStyleClass().add("transfer-cel-title");
@@ -208,23 +207,27 @@ public class NotificacionUtil {
         productLbl.getStyleClass().add("transfer-cel-product");
         productLbl.setWrapText(true);
 
-        Label fromLbl = new Label(from != null ? from : "—");
-        fromLbl.getStyleClass().add("transfer-cel-chip-from");
-        Label arrowLbl = new Label("→");
+        // Vertical route (origen ↓ destino): área names are long ("Comunicación
+        // Social y Marketing Digital"), and side by side they were cut to "Direcció…"
+        // with the arrow squeezed into "…". Each chip gets the full width and wraps.
+        Label fromLbl = routeChip("De", from, "transfer-cel-chip-from");
+        FontIcon arrowLbl = new FontIcon("mdi2a-arrow-down");
+        arrowLbl.setIconSize(18);
         arrowLbl.getStyleClass().add("transfer-cel-arrow");
-        arrowLbl.setTranslateX(-10);
+        arrowLbl.setTranslateY(-8);
         arrowLbl.setOpacity(0);
-        Label toLbl = new Label(to != null ? to : "—");
-        toLbl.getStyleClass().add("transfer-cel-chip-to");
+        Label toLbl = routeChip("A", to, "transfer-cel-chip-to");
         toLbl.setScaleX(0.6); toLbl.setScaleY(0.6);
         toLbl.setOpacity(0);
-        HBox routeRow = new HBox(8, fromLbl, arrowLbl, toLbl);
+        javafx.scene.layout.VBox routeRow = new javafx.scene.layout.VBox(6, fromLbl, arrowLbl, toLbl);
         routeRow.setAlignment(Pos.CENTER);
+        routeRow.setFillWidth(true);
 
-        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(9, iconLbl, titleLbl, productLbl, routeRow);
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(10, iconLbl, titleLbl, productLbl, routeRow);
         box.setAlignment(Pos.CENTER);
-        box.setPadding(new Insets(22, 30, 22, 30));
-        box.setMaxWidth(340);
+        box.setPadding(new Insets(22, 26, 22, 26));
+        box.setPrefWidth(360);
+        box.setMaxWidth(360);
         box.getStyleClass().add("transfer-cel-card");
 
         var css = NotificacionUtil.class.getResource("/css/styles.css");
@@ -255,7 +258,7 @@ public class NotificacionUtil {
             fadeIn.setToValue(1);
 
             TranslateTransition arrowSlide = new TranslateTransition(Duration.millis(280), arrowLbl);
-            arrowSlide.setToX(0);
+            arrowSlide.setToY(0);
             arrowSlide.setDelay(Duration.millis(260));
             arrowSlide.setInterpolator(Interpolator.EASE_OUT);
             FadeTransition arrowFade = new FadeTransition(Duration.millis(220), arrowLbl);
@@ -287,14 +290,24 @@ public class NotificacionUtil {
         });
     }
 
+    private static Label routeChip(String prefijo, String area, String styleClass) {
+        Label chip = new Label(prefijo + ":  " + (area != null && !area.isBlank() ? area : "—"));
+        chip.getStyleClass().add(styleClass);
+        chip.setWrapText(true);
+        chip.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        chip.setAlignment(Pos.CENTER);
+        chip.setMaxWidth(Double.MAX_VALUE);
+        chip.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        return chip;
+    }
+
     /** Centered pop-in card, simpler than {@link #showTransferencia} (no
      *  route chips) — just icon, title and a subtitle with the item count. */
     private static void showConteoOk(Window owner, int totalItems) {
         if (owner == null) return;
 
         FontIcon iconLbl = new FontIcon("mdi2c-check-circle");
-        iconLbl.setIconSize(26);
-        iconLbl.getStyleClass().add("toast-icon-success");
+        iconLbl.getStyleClass().add("transfer-cel-check");
 
         Label titleLbl = new Label("Conteo completado");
         titleLbl.getStyleClass().add("transfer-cel-title");

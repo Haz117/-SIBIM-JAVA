@@ -87,10 +87,12 @@ public class MovimientosController {
     @FXML private VBox  statCardSalida;
     @FXML private VBox  statCardAjuste;
     @FXML private Button btnDelete;
-    @FXML private MenuButton btnExportarSeleccion;
+    /** "Solo los seleccionados" submenu of the Exportar menu. */
+    @FXML private MenuItem btnExportarSeleccion;
     @FXML private Label  lblSeleccionados;
     @FXML private Button btnClearSearch;
     @FXML private Button btnPendientes;
+    private Label pendientesBadge;
     @FXML private Label helpAjustes;
     @FXML private Label helpResumen;
     @FXML private Label helpTipoChips;
@@ -169,7 +171,10 @@ public class MovimientosController {
         btnNuevo.setVisible(canCreate);
         btnNuevo.setManaged(canCreate);
         if (SessionManager.isAdmin()) {
-            if (btnPendientes != null) { btnPendientes.setVisible(true); btnPendientes.setManaged(true); }
+            if (btnPendientes != null) {
+                btnPendientes.setVisible(true); btnPendientes.setManaged(true);
+                installPendientesBadge();
+            }
             loadPendientesCount();
         } else {
             if (btnPendientes != null) { btnPendientes.setVisible(false); btnPendientes.setManaged(false); }
@@ -244,10 +249,7 @@ public class MovimientosController {
             btnDelete.setDisable(true);
             Tooltip.install(btnDelete, new Tooltip("Selecciona un movimiento para eliminarlo"));
         }
-        if (btnExportarSeleccion != null) {
-            btnExportarSeleccion.setDisable(true);
-            Tooltip.install(btnExportarSeleccion, new Tooltip("Selecciona uno o más movimientos para exportarlos"));
-        }
+        if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(true);
     }
 
     private void restoreStickyFilters() {
@@ -563,9 +565,37 @@ public class MovimientosController {
                 btnPendientes.setText(count > 0 ? "Pendientes (" + count + ")" : "Pendientes");
                 btnPendientes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
                 btnPendientes.getStyleClass().add(count > 0 ? "btn-warning-outline" : "btn-secondary");
+                if (pendientesBadge != null) pendientesBadge.setText(String.valueOf(count));
+                updatePendientesBadge();
             },
             e -> { /* silent */ }
         );
+    }
+
+    /** ResponsiveHeader drops this button to icon-only on narrow windows, which
+     *  hid the count carried in its text — so the icon gets a small badge that
+     *  shows the same count whenever the label is not visible. */
+    private void installPendientesBadge() {
+        if (pendientesBadge != null || btnPendientes.getGraphic() == null) return;
+        pendientesBadge = new Label("0");
+        pendientesBadge.getStyleClass().add("btn-count-badge");
+        pendientesBadge.setMouseTransparent(true);
+        pendientesBadge.setManaged(false);
+        pendientesBadge.setVisible(false);
+        javafx.scene.layout.StackPane graphic =
+            new javafx.scene.layout.StackPane(btnPendientes.getGraphic(), pendientesBadge);
+        pendientesBadge.layoutXProperty().bind(graphic.widthProperty().subtract(4));
+        pendientesBadge.setLayoutY(-9);
+        pendientesBadge.autosize();
+        pendientesBadge.textProperty().addListener(o -> pendientesBadge.autosize());
+        btnPendientes.setGraphic(graphic);
+        btnPendientes.contentDisplayProperty().addListener(o -> updatePendientesBadge());
+    }
+
+    private void updatePendientesBadge() {
+        if (pendientesBadge == null) return;
+        boolean iconOnly = btnPendientes.getContentDisplay() == ContentDisplay.GRAPHIC_ONLY;
+        pendientesBadge.setVisible(iconOnly && !"0".equals(pendientesBadge.getText()));
     }
 
     private void showPendientesDialog(List<Movimiento> pendientes) {

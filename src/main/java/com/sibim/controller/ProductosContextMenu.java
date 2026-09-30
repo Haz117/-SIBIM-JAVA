@@ -59,6 +59,18 @@ final class ProductosContextMenu {
             }
         });
 
+        MenuItem cmSolicitudBaja = new MenuItem("Solicitud de baja (PDF)");
+        cmSolicitudBaja.setGraphic(new FontIcon("mdi2f-file-remove-outline"));
+        cmSolicitudBaja.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) {
+                DialogUtil.runAsyncWithProgress(table.getScene(), "Generando solicitud de baja…",
+                    () -> reporteService.exportSolicitudBaja(List.of(sel)),
+                    file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+                    ex -> { log.error("Error solicitud de baja", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la solicitud de baja"); });
+            }
+        });
+
         MenuItem cmHistorial = new MenuItem("Ver historial de movimientos");
         cmHistorial.setGraphic(new FontIcon("mdi2h-history"));
         cmHistorial.setOnAction(e -> {
@@ -81,7 +93,7 @@ final class ProductosContextMenu {
         });
 
         cm.getItems().add(new SeparatorMenuItem());
-        cm.getItems().addAll(cmFicha, cmHistorial, cmEtiquetaQr, cmEtiquetaFisica);
+        cm.getItems().addAll(cmFicha, cmSolicitudBaja, cmHistorial, cmEtiquetaQr, cmEtiquetaFisica);
 
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());

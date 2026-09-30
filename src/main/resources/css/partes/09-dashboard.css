@@ -1,0 +1,321 @@
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD  — quick actions, section labels, health card
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Quick-action buttons inside the welcome banner */
+.quick-action-btn {
+    -fx-cursor: hand;
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+}
+.quick-action-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.13);
+    -fx-scale-x: 1.06;
+    -fx-scale-y: 1.06;
+}
+.quick-action-btn:pressed {
+    -fx-background-color: rgba(255,255,255,0.20);
+    -fx-scale-x: 0.96;
+    -fx-scale-y: 0.96;
+}
+.qa-label {
+    -fx-text-fill: rgba(255,255,255,0.82);
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+}
+
+/* Standalone quick-action cards (Dashboard section) */
+.quick-action-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.07), 8, 0, 0, 2);
+}
+.quick-action-card:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-border-color: #C7D2FE;
+    -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.18), 14, 0, 0, 4);
+    -fx-translate-y: -2;
+}
+.quick-action-card:pressed {
+    -fx-translate-y: 0;
+    -fx-background-color: #EEF2FF;
+}
+.qa-card-title { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1E1B4B; }
+.qa-card-hint  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
+/* Wrap instead of ellipsizing — five cards share ~990px at the default window size. */
+.qa-card-title, .qa-card-hint { -fx-wrap-text: true; }
+.qa-card-icon-indigo { -fx-icon-color: sibim-indigo-darker; -fx-icon-size: 22; }
+.qa-card-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 22; }
+.qa-card-icon-amber  { -fx-icon-color: sibim-amber; -fx-icon-size: 22; }
+.qa-card-icon-blue   { -fx-icon-color: #2563EB; -fx-icon-size: 22; }
+.qa-card-icon-violet { -fx-icon-color: sibim-violet; -fx-icon-size: 22; }
+
+/* Section divider labels ("RESUMEN DEL INVENTARIO", etc.) */
+.dash-section-label {
+    -fx-text-fill: sibim-slate-600;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 0 2;
+}
+
+/* Small chip badge next to section labels ("Últimos 7 días") */
+.dash-section-badge {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 10;
+}
+
+/* Inventory health card */
+.dash-health-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo;
+    -fx-border-width: 0 1 1 4;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 10, 0, 0, 2);
+}
+.dash-health-title {
+    -fx-font-size: 13.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F172A;
+}
+.dash-health-legend {
+    -fx-font-size: 11px;
+    -fx-text-fill: sibim-slate-500;
+}
+
+/* Recent activity count badge */
+.dash-activity-badge {
+    -fx-background-color: sibim-indigo;
+    -fx-background-radius: 99;
+    -fx-text-fill: white;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1.5 7;
+    -fx-min-height: 18;
+    -fx-min-width: 18;
+    -fx-alignment: CENTER;
+}
+
+
+.alert-banner:hover {
+    -fx-background-color: #FEF9C3;
+    -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.25), 10, 0, 0, 2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ORGANIGRAMA — TitledPane expand arrow coloring
+   ═══════════════════════════════════════════════════════════════════ */
+.titled-pane > .title > .arrow-button > .arrow {
+    -fx-background-color: sibim-indigo;
+    -fx-background-insets: 0;
+    -fx-padding: 3.5;
+}
+.titled-pane > .title:hover > .arrow-button > .arrow {
+    -fx-background-color: sibim-indigo-darker;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOVIMIENTOS — new-row highlight flash (cleared via Timeline in controller)
+   ═══════════════════════════════════════════════════════════════════ */
+.table-row-cell.row-new                  { -fx-background-color: rgba(16,185,129,0.16); }
+.table-row-cell.row-new:selected         { -fx-background-color: rgba(16,185,129,0.32); }
+.table-row-cell.row-new > .table-cell    { -fx-background-color: transparent; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR — collapse toggle button
+   ═══════════════════════════════════════════════════════════════════ */
+/* Icon-only (collapsed) mode — center icons inside the narrower sidebar.
+   8 px of vertical padding (was 10) lets all 15 icons plus the dividers fit at the default window height
+   without scrolling. The rule is repeated per state because the hover / active / focus rules earlier in the
+   file set their own padding with higher specificity. When editing: a rule that ties in specificity but sits
+   LATER in the file wins — put rail overrides here, not next to the base rules. */
+.sidebar-collapsed .nav-btn,
+.sidebar-collapsed .nav-btn:hover,
+.sidebar-collapsed .nav-btn:focused,
+.sidebar-collapsed .nav-btn.nav-active,
+.sidebar-collapsed .nav-btn.nav-active:hover,
+.sidebar-collapsed .nav-btn.nav-active:armed,
+.sidebar-collapsed .nav-btn.nav-active:focused {
+    -fx-alignment: CENTER;
+    -fx-padding: 8 8;
+}
+.sidebar-collapsed .nav-section-items { -fx-spacing: 1; }
+.sidebar-collapsed .logout-btn {
+    -fx-alignment: CENTER;
+    -fx-padding: 10 8;
+}
+
+.sidebar-toggle-btn,
+.sidebar-icon-btn {
+    -fx-background-color: transparent;
+    -fx-padding: 4 6;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-min-width: 28;
+    -fx-min-height: 28;
+    -fx-max-width: 28;
+    -fx-max-height: 28;
+}
+.sidebar-toggle-btn:hover,
+.sidebar-icon-btn:hover {
+    -fx-background-color: rgba(99,102,241,0.08);
+}
+.sidebar-toggle-btn .ikonli-font-icon,
+.sidebar-icon-btn .ikonli-font-icon {
+    -fx-icon-color: #94A3B8;
+    -fx-icon-size: 16;
+}
+.sidebar-toggle-btn:hover .ikonli-font-icon,
+.sidebar-icon-btn:hover .ikonli-font-icon {
+    -fx-icon-color: sibim-indigo;
+}
+
+/* Status bar DB pill — container around icon + label + help badge */
+.status-db-pill {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 20;
+    -fx-padding: 4 10 4 8;
+}
+
+/* Status bar DB icon — changes icon literal + color per connection state */
+.status-dot-icon-ok         { -fx-icon-color: #4ADE80; -fx-icon-size: 16; }
+.status-dot-icon-demo       { -fx-icon-color: #FBBF24; -fx-icon-size: 16; }
+.status-dot-icon-offline    { -fx-icon-color: #F87171; -fx-icon-size: 16; }
+.status-dot-icon-connecting { -fx-icon-color: #FCD34D; -fx-icon-size: 16; }
+.status-db-label         { -fx-font-size: 11px; -fx-font-weight: 600; }
+
+/* Help badge "?" next to the DB status text */
+.status-db-help-badge {
+    -fx-text-fill: #3730A3;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 700;
+    -fx-background-color: #C7D2FE;
+    -fx-background-radius: 50%;
+    -fx-min-width: 14px;
+    -fx-min-height: 14px;
+    -fx-max-width: 14px;
+    -fx-max-height: 14px;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+}
+.status-db-help-badge:hover {
+    -fx-background-color: #A5B4FC;
+    -fx-text-fill: #312E81;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR — version badge at bottom
+   ═══════════════════════════════════════════════════════════════════ */
+.sidebar-version {
+    -fx-text-fill: sibim-slate-600;
+    -fx-font-size: 11px;
+    -fx-alignment: CENTER;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD — shared utility classes (extracted from inline styles)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Accent bar used before section labels */
+.dash-section-bar {
+    -fx-background-color: sibim-indigo;
+    -fx-min-width: 3;
+    -fx-min-height: 16;
+    -fx-background-radius: 2;
+}
+
+/* Date widget inside welcome banner */
+.banner-date-widget {
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-background-radius: 10;
+    -fx-padding: 10 16;
+}
+
+/* Small brand icon in banner */
+.banner-brand-icon { -fx-icon-size: 13; -fx-icon-color: white; -fx-opacity: 0.65; }
+
+/* Alert banner label styles */
+.alert-banner-icon { -fx-icon-color: sibim-indigo-dark; -fx-icon-size: 15; }
+.alert-banner-cta  { -fx-text-fill: sibim-indigo-dark; -fx-font-weight: bold; -fx-font-size: 12px; }
+
+/* Health bar strip */
+.dash-health-bar { -fx-background-radius: 5; }
+
+/* Health legend items that open a detail dialog (Bajo Stock, Agotados) */
+.dash-health-legend-clickable { -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 2 6 2 6; }
+.dash-health-legend-clickable:hover { -fx-background-color: #F1F5F9; }
+
+/* Health legend dot labels */
+.dot-green  { -fx-text-fill: #047857; -fx-font-size: 11px; }
+.dot-amber  { -fx-text-fill: #B45309; -fx-font-size: 11px; }
+.dot-red    { -fx-text-fill: #DC2626; -fx-font-size: 11px; }
+.dot-violet { -fx-text-fill: #6D28D9; -fx-font-size: 11px; }
+
+/* Card-section icon (small, decorative) */
+.card-icon         { -fx-icon-size: 15; -fx-icon-color: sibim-slate-500; }
+.card-icon-indigo  { -fx-icon-size: 15; -fx-icon-color: sibim-indigo; }
+.card-icon-emerald { -fx-icon-size: 15; -fx-icon-color: #059669; }
+
+/* Icon inside area-filter ComboBox cells */
+.area-filter-icon  { -fx-icon-size: 13; -fx-icon-color: sibim-indigo; }
+.combo-cell-label  { -fx-font-size: 12px; }
+
+/* Quick-action icon (large emoji in banner buttons) */
+.qa-icon { -fx-icon-size: 22; -fx-icon-color: white; }
+
+/* Banner internal separators */
+.banner-sep    { -fx-opacity: 0.18; }
+.banner-sep-v  { -fx-opacity: 0.18; }
+
+/* Alert section header icons and subtitles */
+.alert-section-icon       { -fx-icon-size: 18; -fx-icon-color: white; }
+.alert-section-icon-white { -fx-icon-size: 18; -fx-icon-color: white; }
+.alert-section-subtitle   { -fx-text-fill: rgba(255,255,255,0.70); -fx-font-size: 11px; }
+.btn-icon                 { -fx-icon-size: 14; }
+
+/* Recent activity table rounded corners + a bit more breathing room per
+   row than the default .data-table, since this table is the dashboard's
+   closing section and reads flat/cramped at the default 44px cell size */
+.recent-table {
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+}
+.recent-table .table-row-cell { -fx-cell-size: 52px; }
+.recent-table .table-cell     { -fx-padding: 0 16; }
+
+/* "Bien" column — bolder + darker so the product name reads as the row's
+   primary label instead of blending in with Usuario/Fecha */
+.recent-bien-cell { -fx-font-weight: 600; -fx-text-fill: sibim-slate-900; -fx-font-size: 13px; }
+
+/* "Cant." column — sign + color echo the row tint (green in, red out) so
+   the direction of the movement reads at a glance without following the
+   row color all the way across */
+.qty-in      { -fx-font-weight: bold; -fx-text-fill: #047857; }
+.qty-out     { -fx-font-weight: bold; -fx-text-fill: sibim-red; }
+.qty-neutral { -fx-font-weight: 600;  -fx-text-fill: sibim-slate-600; }
+
+
+/* Pagination page label — shared with .pagination-label (Auditoría) */
+.pagination-lbl, .pagination-label { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; -fx-padding: 0 12; }
+
+/* Empty-state large icon (placeholder inside tables) — kept as one rule with
+   .empty-state-icon (util/EmptyStateUtil.java) so the two empty-state code
+   paths (static FXML <placeholder> blocks vs. table.setPlaceholder() built
+   in Java) can never visually drift apart again. */
+.empty-icon-lg { -fx-icon-size: 52; -fx-icon-color: #CBD5E1; }
+.empty-state-icon { -fx-icon-size: 34; -fx-icon-color: sibim-indigo; }
+
+/* Pie chart empty state overlay */
+.pie-empty-state { -fx-min-height: 140; }
+.pie-empty-icon  { -fx-icon-size: 32; -fx-icon-color: #94A3B8; -fx-opacity: 0.50; }
+
+/* Small secondary button variant */
+.btn-sm { -fx-font-size: 11.5px; -fx-padding: 4 12; }

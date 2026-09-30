@@ -41,7 +41,6 @@ public class LoginController {
     @FXML private VBox formHeader;
     @FXML private VBox usernameBox;
     @FXML private VBox passwordBox;
-    @FXML private Label secureBadge;
     @FXML private Label lblCapsLock;
 
     private final AuthService authService = new AuthService();
@@ -149,7 +148,6 @@ public class LoginController {
         if (usernameBox  != null) AnimationUtils.fadeInUp(usernameBox,  300, 700);
         if (passwordBox  != null) AnimationUtils.fadeInUp(passwordBox,  300, 760);
         if (loginButton  != null) AnimationUtils.fadeInUp(loginButton,  300, 820);
-        if (secureBadge  != null) AnimationUtils.fadeInUp(secureBadge,  300, 880);
     }
 
     private void staggerFadeInUp(Iterable<Node> nodes, int baseDelayMs, int staggerMs) {

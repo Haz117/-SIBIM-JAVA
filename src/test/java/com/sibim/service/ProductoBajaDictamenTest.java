@@ -38,6 +38,9 @@ class ProductoBajaDictamenTest {
         SessionManager.setCurrentUser(admin);
 
         service = new ProductoService();
+        // The demo store is shared by every test in the JVM: undo a baja left by
+        // another test, since giving the same bien de baja twice is now rejected.
+        try { service.reactivar(DEMO_PRODUCTO_ID); } catch (Exception yaActivo) { /* nothing to undo */ }
     }
 
     @AfterEach

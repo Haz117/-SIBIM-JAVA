@@ -186,6 +186,7 @@ class ComodatoServiceValidationTest {
         PrestamoRepository prestamoRepo = mock(PrestamoRepository.class);
         AuditLogRepository auditRepo = mock(AuditLogRepository.class);
         Producto producto = new Producto();
+        producto.setStockActual(1);   // an empty bien can no longer be lent
         producto.setNombre("Laptop de préstamo");
         producto.setCodigo("EC-001");
         when(productoRepo.findById(VALID_PRODUCTO_ID)).thenReturn(java.util.Optional.of(producto));
@@ -212,6 +213,7 @@ class ComodatoServiceValidationTest {
         ComodatoRepository comodatoRepo = mock(ComodatoRepository.class);
         ProductoRepository productoRepo = mock(ProductoRepository.class);
         Producto producto = new Producto();
+        producto.setStockActual(1);   // an empty bien can no longer be lent
         producto.setNombre("Laptop");
         when(productoRepo.findById(VALID_PRODUCTO_ID)).thenReturn(java.util.Optional.of(producto));
         when(comodatoRepo.existeVigentePorProducto(VALID_PRODUCTO_ID)).thenReturn(true);
@@ -232,6 +234,7 @@ class ComodatoServiceValidationTest {
         ProductoRepository productoRepo = mock(ProductoRepository.class);
         PrestamoRepository prestamoRepo = mock(PrestamoRepository.class);
         Producto producto = new Producto();
+        producto.setStockActual(1);   // an empty bien can no longer be lent
         producto.setNombre("Laptop");
         when(productoRepo.findById(VALID_PRODUCTO_ID)).thenReturn(java.util.Optional.of(producto));
         when(prestamoRepo.existsActivoForProducto(VALID_PRODUCTO_ID)).thenReturn(true);

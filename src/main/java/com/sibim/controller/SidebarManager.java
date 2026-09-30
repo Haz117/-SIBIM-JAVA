@@ -21,6 +21,10 @@ class SidebarManager {
     static final double SIDEBAR_COLLAPSED_WIDTH = 76;
     private static final double TAB_OVERLAP     = 6;
     private static final double TAB_EXTENSION   = 40;
+    /** Window widths (logical px) where the sidebar folds to the icon rail on
+     *  its own, and unfolds again. The gap keeps it from flickering at the edge. */
+    static final double AUTO_COMPACT_BELOW = 1360;
+    static final double AUTO_EXPAND_ABOVE  = 1440;
 
     private final VBox      sidebar;
     private final Region    sidebarBackdrop;
@@ -31,6 +35,8 @@ class SidebarManager {
     private final List<Button> navButtons;
 
     private boolean sidebarCollapsed = false;
+    /** True while the rail is showing because the window got narrow (not by the user). */
+    private boolean autoCollapsed = false;
     private Button  activeButton;
     private Pane    tabOverlay;
     private Region  tabProtrusion;
@@ -71,6 +77,24 @@ class SidebarManager {
         javafx.application.Platform.runLater(() -> {
             if (activeButton != null) updateTabProtrusion(activeButton);
         });
+
+        // Small screens: fold to the icon rail when the window gets narrow and
+        // unfold when it widens again. Only on crossing a threshold, so a
+        // manual toggle is never undone while the width stays put.
+        outerStack.widthProperty().addListener((o, before, now) ->
+            autoCompact(before.doubleValue(), now.doubleValue()));
+        javafx.application.Platform.runLater(() ->
+            autoCompact(Double.MAX_VALUE, outerStack.getWidth()));
+    }
+
+    private void autoCompact(double before, double now) {
+        if (now <= 0) return;
+        if (now < AUTO_COMPACT_BELOW && before >= AUTO_COMPACT_BELOW && !sidebarCollapsed) {
+            toggle();
+            autoCollapsed = true;
+        } else if (now > AUTO_EXPAND_ABOVE && before <= AUTO_EXPAND_ABOVE && sidebarCollapsed && autoCollapsed) {
+            toggle();
+        }
     }
 
     void setActive(Button btn) {
@@ -96,6 +120,7 @@ class SidebarManager {
 
     void toggle() {
         sidebarCollapsed = !sidebarCollapsed;
+        autoCollapsed = false;
         double targetW = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
 
         sidebar.setMinWidth(Region.USE_PREF_SIZE);

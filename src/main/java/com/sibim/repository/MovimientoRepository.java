@@ -543,7 +543,7 @@ public class MovimientoRepository {
      *  two concurrent online users. */
     public Movimiento addMovimientoAtomicOnline(Movimiento m, Integer expectedStockAnterior) throws SQLException {
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
-        String lockProducto = "SELECT stock_actual, area, codigo FROM products WHERE id = ? FOR UPDATE";
+        String lockProducto = "SELECT stock_actual, area, codigo, fecha_baja FROM products WHERE id = ? FOR UPDATE";
         String insertMov = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
                 area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado,
@@ -565,8 +565,14 @@ public class MovimientoRepository {
                         stockActual = rs.getInt("stock_actual");
                         areaActual = rs.getString("area");
                         codigoActual = rs.getString("codigo");
+                        // Re-checked here, with the row locked: another PC may have given
+                        // it de baja or emptied it since the service read it.
+                        if (rs.getObject("fecha_baja") != null)
+                            throw new SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
                     }
                 }
+                if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && stockActual <= 0)
+                    throw new SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
 
                 if (expectedStockAnterior != null && stockActual != expectedStockAnterior) {
                     throw new SQLException("El stock cambió desde que se capturó el conteo (esperado "
@@ -871,7 +877,7 @@ public class MovimientoRepository {
         if (DatabaseConfig.isDemoMode()) { DemoDataStore.aprobarTransferencia(movimientoId); return; }
         String getMov   = "SELECT producto_id, area_origen, area_destino FROM movements "
             + "WHERE id = ? AND estado = 'PENDIENTE' FOR UPDATE";
-        String lockProd = "SELECT area, codigo, stock_actual FROM products WHERE id = ? FOR UPDATE";
+        String lockProd = "SELECT area, codigo, stock_actual, fecha_baja FROM products WHERE id = ? FOR UPDATE";
         String updProd  = "UPDATE products SET area = ?, codigo = ?, updated_at = NOW() WHERE id = ?";
         String updMov   = "UPDATE movements SET estado = 'APROBADO', stock_anterior = ?, stock_nuevo = ?, "
             + "codigo_anterior = ?, codigo_nuevo = ? WHERE id = ?";
@@ -897,8 +903,11 @@ public class MovimientoRepository {
                         areaActual   = rs.getString("area");
                         codigoActual = rs.getString("codigo");
                         stock        = rs.getInt("stock_actual");
+                        if (rs.getObject("fecha_baja") != null)
+                            throw new SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
                     }
                 }
+                if (stock <= 0) throw new SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
                 if (areaOrigen != null && !areaOrigen.equals(areaActual)) {
                     throw new SQLException("El bien ya no está en " + areaOrigen + " (ahora está en "
                         + areaActual + "): rechaza esta solicitud y registra una nueva si sigue siendo necesaria.");

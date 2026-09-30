@@ -1,0 +1,177 @@
+/* ═══════════════════════════════════════════════════════════════════
+   RICH STAT CARDS — Productos & Movimientos
+   Fondo tintado claro + borde grueso de color + número en el acento
+   ═══════════════════════════════════════════════════════════════════ */
+.rich-stat-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
+}
+
+/* Circular icon badge — the color lives here now, not on the whole card */
+.rich-stat-icon-badge {
+    -fx-min-width: 36; -fx-min-height: 36;
+    -fx-max-width: 36; -fx-max-height: 36;
+    -fx-background-radius: 999;
+}
+.rich-stat-icon-badge .rich-stat-icon { -fx-icon-size: 17; -fx-icon-color: white; -fx-opacity: 1; -fx-padding: 0; }
+.rich-stat-icon-badge-indigo      { -fx-background-color: #5253E5; }
+.rich-stat-icon-badge-teal        { -fx-background-color: #0891B2; }
+.rich-stat-icon-badge-amber       { -fx-background-color: sibim-amber; }
+.rich-stat-icon-badge-purple      { -fx-background-color: sibim-violet; }
+.rich-stat-icon-badge-green       { -fx-background-color: sibim-green; }
+.rich-stat-icon-badge-red         { -fx-background-color: sibim-red; }
+/* Was only ever on the Dashboard's old separate .stat-card family
+   ("Categorías Activas") — added here so that card could move onto the
+   same rich-stat-card the other four list pages already use. */
+.rich-stat-icon-badge-dark-indigo { -fx-background-color: #3730A3; }
+
+/* Dashboard's four top stat cards navigate somewhere on click — the other
+   rich-stat-card users (Bienes, Organigrama, Categorías, Depreciación)
+   don't, so this is opt-in rather than baked into .rich-stat-card itself. */
+.rich-stat-card-clickable { -fx-cursor: hand; }
+/* Extra indigo border on hover distinguishes clickable cards from the plain
+   ones that also lift on hover — makes the interactivity more obvious. */
+.rich-stat-card-clickable:hover {
+    -fx-border-color: #C7D2FE;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 18;
+}
+
+/* Toggled state for a rich-stat-card used as a click-to-filter control
+   (Depreciación's "Totalmente depreciados" card) — a red border marks the
+   filter as active, since there's no other cue when the card itself
+   doesn't otherwise change appearance. */
+.rich-stat-card-clickable:selected {
+    -fx-border-color: sibim-red;
+    -fx-border-width: 2;
+    -fx-border-radius: 18;
+}
+
+/* Alert active — amber card pulses with stronger border+glow */
+.rich-stat-card-alert-active {
+    -fx-border-color: #F59E0B #E0E4ED #E0E4ED #F59E0B;
+    -fx-border-width: 0 1 1 6;
+    -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.40), 18, 0, 0, 4);
+}
+
+/* Filter-active state for stat cards used as click-to-filter controls
+   in list screens (Resguardos, Préstamos, Comodatos). Indigo bottom accent. */
+.rich-stat-card-filter-active {
+    -fx-border-color: transparent transparent sibim-indigo-dark transparent;
+    -fx-border-width: 0 0 3 0;
+    -fx-border-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.30), 22, 0.05, 0, 7);
+}
+
+/* Urgency tint for the "Préstamos Vencidos" card when count > 0 */
+.dash-stat-urgent {
+    -fx-border-color: #EF4444 #E0E4ED #E0E4ED #EF4444;
+    -fx-border-width: 0 1 1 5;
+    -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.35), 16, 0, 0, 3);
+}
+
+/* Descendant selectors (0,0,2,0) — dark text now that the card is white */
+.rich-stat-card .rich-stat-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; -fx-font-weight: bold; }
+.rich-stat-card .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.rich-stat-card .rich-stat-value.rich-stat-value-sm { -fx-font-size: 18px; }
+/* Extra-small variant — a rich-stat-value repurposed as a short description
+   line (e.g. "Acerca de esta función" cards) instead of a big number. */
+.rich-stat-card .rich-stat-value.rich-stat-value-xs { -fx-font-size: 13px; }
+.rich-stat-card .rich-stat-hint  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
+/* Single-class fallbacks for sizing only */
+.rich-stat-label { -fx-font-size: 11px; -fx-font-weight: bold; -fx-wrap-text: true; }  /* two lines beat "VALOR TOTAL DE COM…" */
+.rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; }
+.rich-stat-value-sm { -fx-font-size: 18px; }
+.rich-stat-value-xs { -fx-font-size: 13px; }
+.rich-stat-hint  { -fx-font-size: 11px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — system info section
+   ═══════════════════════════════════════════════════════════════════ */
+.sys-info-col      { -fx-border-color: transparent #E2E8F0 transparent transparent; -fx-border-width: 0 1 0 0; -fx-padding: 0 20 0 0; }
+.sys-info-col-last { -fx-border-color: transparent; -fx-padding: 0 0 0 20; }
+.sys-info-value   { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.sys-info-ok      { -fx-text-fill: #15803D; }
+.sys-info-demo    { -fx-text-fill: #B45309; }
+.rich-stat-icon  { -fx-icon-size: 15; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TEXT AREA — global hover state (non-dialog)
+   ═══════════════════════════════════════════════════════════════════ */
+.text-area:hover .content {
+    -fx-background-color: #FAFBFF;
+}
+.text-area:focused .content {
+    -fx-background-color: white;
+    -fx-border-color: sibim-indigo;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FILTER CHIP — pressed state for tactile feedback
+   ═══════════════════════════════════════════════════════════════════ */
+.filter-chip:pressed {
+    -fx-opacity: 0.80;
+    -fx-translate-y: 1;
+}
+.filter-chip:selected:pressed {
+    -fx-opacity: 0.88;
+    -fx-translate-y: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NAV BUTTON HOVER — stronger lateral light accent
+   ═══════════════════════════════════════════════════════════════════ */
+.nav-btn:hover {
+    -fx-background-color: #F1F5F9;
+    -fx-text-fill: sibim-slate-900;
+    -fx-background-radius: 12;
+    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.55);
+    -fx-border-width: 0 0 0 3;
+}
+.nav-btn:pressed {
+    -fx-background-color: #E2E8F0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOGOUT BUTTON — better hover feedback
+   ═══════════════════════════════════════════════════════════════════ */
+.logout-btn:hover {
+    -fx-background-color: #FECACA;
+    -fx-text-fill: #991B1B;
+    -fx-border-color: #EF4444;
+    -fx-border-width: 0 0 0 3;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RICH STAT CARD — micro lift on hover (shadow can't override inline,
+   but translate-y does lift the card)
+   ═══════════════════════════════════════════════════════════════════ */
+.rich-stat-card:hover {
+    -fx-translate-y: -4;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.14), 28, 0, 0, 9);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPORT CARD — per-color hover glow matching their accent.
+   Re-declares the same base look as plain .report-card (white card,
+   rounded corners, resting shadow) instead of relying purely on it
+   cascading in from the shared class — with two classes on one node
+   the accented cards were rendering without their card shell at rest,
+   only the teal/amber/green *hover* glow was ever being applied.
+   ═══════════════════════════════════════════════════════════════════ */
+.report-card-teal, .report-card-amber, .report-card-green, .report-card-slate {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
+    -fx-cursor: hand;
+}
+.report-card-teal:hover  { -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-amber:hover { -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-green:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-slate:hover { -fx-effect: dropshadow(gaussian, rgba(71,85,105,0.32), 22, 0, 0, 6); -fx-translate-y: -3; }
+.report-card-teal:pressed, .report-card-amber:pressed, .report-card-green:pressed, .report-card-slate:pressed {
+    -fx-translate-y: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
+}

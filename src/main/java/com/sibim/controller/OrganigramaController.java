@@ -348,10 +348,10 @@ public class OrganigramaController {
     }
 
     private List<String> getChildrenForTopLevel(String areaName) {
-        if (Areas.PRESIDENCIA.equals(areaName)) return Areas.DIRECCIONES_PRESIDENCIA;
-        for (Areas.SecretariaInfo sec : Areas.SECRETARIAS)
+        if (Areas.PRESIDENCIA.equals(areaName)) return Areas.direccionesPresidencia();
+        for (Areas.SecretariaInfo sec : Areas.secretarias())
             if (sec.nombre().equals(areaName)) return sec.direcciones();
-        if ("Organismos Autónomos".equals(areaName)) return Areas.AUTONOMOS;
+        if ("Organismos Autónomos".equals(areaName)) return Areas.autonomos();
         return List.of();
     }
 
@@ -396,17 +396,17 @@ public class OrganigramaController {
         Map<String, List<Producto>> rollup = new LinkedHashMap<>();
 
         List<Producto> presidencia = new ArrayList<>(productosPorArea.getOrDefault(Areas.PRESIDENCIA, List.of()));
-        Areas.DIRECCIONES_PRESIDENCIA.forEach(c -> presidencia.addAll(productosPorArea.getOrDefault(c, List.of())));
+        Areas.direccionesPresidencia().forEach(c -> presidencia.addAll(productosPorArea.getOrDefault(c, List.of())));
         if (!presidencia.isEmpty()) rollup.put(Areas.PRESIDENCIA, presidencia);
 
-        for (Areas.SecretariaInfo sec : Areas.SECRETARIAS) {
+        for (Areas.SecretariaInfo sec : Areas.secretarias()) {
             List<Producto> combined = new ArrayList<>(productosPorArea.getOrDefault(sec.nombre(), List.of()));
             sec.direcciones().forEach(c -> combined.addAll(productosPorArea.getOrDefault(c, List.of())));
             if (!combined.isEmpty()) rollup.put(sec.nombre(), combined);
         }
 
         List<Producto> autonomos = new ArrayList<>();
-        Areas.AUTONOMOS.forEach(c -> autonomos.addAll(productosPorArea.getOrDefault(c, List.of())));
+        Areas.autonomos().forEach(c -> autonomos.addAll(productosPorArea.getOrDefault(c, List.of())));
         if (!autonomos.isEmpty()) rollup.put("Organismos Autónomos", autonomos);
 
         return rollup;

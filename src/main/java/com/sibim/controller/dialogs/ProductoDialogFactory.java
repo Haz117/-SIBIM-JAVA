@@ -166,7 +166,7 @@ public final class ProductoDialogFactory {
         btnGuardar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
         btnGuardar.getStyleClass().add("form-submit-btn");
         if (!isNewProduct) btnGuardar.getStyleClass().add("form-submit-btn-edit");
-        btnGuardar.setMaxWidth(Double.MAX_VALUE);
+        btnGuardar.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         btnGuardar.setDisable(true);
         btnGuardar.setOnAction(e -> {
             boolean inv = false;

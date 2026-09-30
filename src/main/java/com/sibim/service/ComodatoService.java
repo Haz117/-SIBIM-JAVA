@@ -88,6 +88,7 @@ public class ComodatoService {
 
         Producto producto = productoRepo.findById(productoId)
             .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
+        PrestamoService.exigirDisponible(producto);
         if (repo.existeVigentePorProducto(productoId))
             throw new IllegalArgumentException("Este bien ya tiene un comodato vigente — concluye o rescinde el anterior primero");
 

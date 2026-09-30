@@ -108,9 +108,12 @@ class ProductoServiceTest {
         assertThrows(ProductoService.ValidationException.class, () -> service.save(productoValido));
     }
 
-    @Test void save_precioVentaNegativo_lanzaValidation() {
+    /** A bien has no sale price: save() overwrites whatever came in with the
+     *  purchase price, so a stray negative value can no longer reach the DB. */
+    @Test void save_precioVenta_siempreCopiaElDeCompra() throws Exception {
         productoValido.setPrecioVenta(BigDecimal.valueOf(-0.01));
-        assertThrows(ProductoService.ValidationException.class, () -> service.save(productoValido));
+        service.save(productoValido);
+        verify(mockProductoRepo).save(argThat(p -> p.getPrecioVenta().compareTo(BigDecimal.valueOf(3000)) == 0));
     }
 
     @Test void save_stockActualNegativo_lanzaValidation() {

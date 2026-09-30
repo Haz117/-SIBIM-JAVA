@@ -10,9 +10,9 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-emerald">
-        <StackPane styleClass="page-header-icon, page-header-icon-emerald">
-            <FontIcon iconLiteral="mdi2c-cube-send" styleClass="page-icon-emoji"/>
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
+        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+            <FontIcon iconLiteral="mdi2c-cube-send" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Préstamos Temporales" styleClass="page-title"/>
@@ -103,16 +103,19 @@
             <graphic><FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Marcar el préstamo seleccionado como devuelto"/></tooltip>
         </Button>
-        <Button fx:id="btnExportarPdf" text="PDF" onAction="#onExportarPdf"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el registro de préstamos visible a PDF"/></tooltip>
-        </Button>
-        <Button fx:id="btnExportarExcel" text="Excel" onAction="#onExportarExcel"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2m-microsoft-excel" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el registro de préstamos visible a Excel"/></tooltip>
-        </Button>
+        <MenuButton fx:id="btnExportarPdf" text="Exportar" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de préstamos visible" wrapText="true" maxWidth="240"/></tooltip>
+            <items>
+                <MenuItem text="PDF" onAction="#onExportarPdf">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                </MenuItem>
+                <MenuItem text="Excel" onAction="#onExportarExcel">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                </MenuItem>
+            </items>
+        </MenuButton>
         <ToggleButton fx:id="btnKanban" text="Vista Kanban" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2v-view-column-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Ver préstamos por columnas de estado (Activos / Vencidos / Devueltos)" wrapText="true" maxWidth="240"/></tooltip>

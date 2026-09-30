@@ -9,14 +9,14 @@
             fx:id="rootScrollPane"
             fx:controller="com.sibim.controller.DashboardController"
             fitToWidth="true" styleClass="page-scroll">
-<VBox spacing="18">
-    <padding><Insets top="22" right="24" bottom="24" left="34"/></padding>
+<VBox spacing="12">
+    <padding><Insets top="16" right="20" bottom="18" left="24"/></padding>
 
     <!-- ══════════════════════════════════════════════════════════
          WELCOME BANNER
          ══════════════════════════════════════════════════════════ -->
     <VBox fx:id="dashBanner" styleClass="dashboard-banner" spacing="0">
-        <padding><Insets top="24" right="28" bottom="24" left="28"/></padding>
+        <padding><Insets top="14" right="22" bottom="14" left="22"/></padding>
 
         <!-- Greeting row -->
         <HBox alignment="CENTER_LEFT" spacing="0">
@@ -57,11 +57,11 @@
         <Region styleClass="dash-section-bar"/>
         <Label text="ACCIONES RÁPIDAS" styleClass="dash-section-label"/>
     </HBox>
-    <HBox fx:id="quickActionsRow" spacing="12">
+    <HBox fx:id="quickActionsRow" spacing="10">
         <VBox fx:id="cardNuevoBien" styleClass="quick-action-card" onMouseClicked="#onAccionNuevoBien"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
               accessibleRole="BUTTON" accessibleText="Nuevo Bien — registrar un activo al inventario">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2p-plus-circle-outline" styleClass="qa-card-icon-indigo"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
@@ -73,7 +73,7 @@
         <VBox fx:id="cardNuevaEntrada" styleClass="quick-action-card" onMouseClicked="#onAccionNuevaEntrada"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
               accessibleRole="BUTTON" accessibleText="Registrar Movimiento — entrada, salida, ajuste o transferencia">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2a-arrow-up-bold-circle-outline" styleClass="qa-card-icon-green"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
@@ -85,7 +85,7 @@
         <VBox styleClass="quick-action-card" onMouseClicked="#onVerAlertas"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
               accessibleRole="BUTTON" accessibleText="Ver Alertas — inventario, garantías y pendientes">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="qa-card-icon-amber"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
@@ -97,7 +97,7 @@
         <VBox styleClass="quick-action-card" onMouseClicked="#onVerReportes"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
               accessibleRole="BUTTON" accessibleText="Generar Reporte — exportar inventario en PDF o Excel">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="qa-card-icon-blue"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
@@ -109,7 +109,7 @@
         <VBox styleClass="quick-action-card" onMouseClicked="#onBusquedaGlobal"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
               accessibleRole="BUTTON" accessibleText="Buscar Bien — búsqueda global, atajo Ctrl+K">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2m-magnify" styleClass="qa-card-icon-violet"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
@@ -158,11 +158,11 @@
         </columnConstraints>
 
         <!-- Total de Bienes — Indigo -->
-        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
               onMouseClicked="#onVerProductos"
               GridPane.columnIndex="0" GridPane.rowIndex="0"
               accessibleRole="BUTTON" accessibleText="Total de bienes — ver inventario completo">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
                     <FontIcon iconLiteral="mdi2p-package-variant" styleClass="rich-stat-icon"/>
@@ -180,11 +180,11 @@
         </VBox>
 
         <!-- Valor Patrimonial — Teal -->
-        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
               onMouseClicked="#onVerReportes"
               GridPane.columnIndex="1" GridPane.rowIndex="0"
               accessibleRole="BUTTON" accessibleText="Valor patrimonial total — ver reportes">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
                     <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
@@ -202,11 +202,11 @@
         </VBox>
 
         <!-- Movimientos Hoy — Violet -->
-        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
               onMouseClicked="#onVerMovimientos"
               GridPane.columnIndex="2" GridPane.rowIndex="0"
               accessibleRole="BUTTON" accessibleText="Movimientos de hoy — ver historial">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
                     <FontIcon iconLiteral="mdi2s-sync" styleClass="rich-stat-icon"/>
@@ -224,11 +224,11 @@
         </VBox>
 
         <!-- Categorías — Indigo oscuro -->
-        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="14"
+        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
               onMouseClicked="#onVerCategorias"
               GridPane.columnIndex="3" GridPane.rowIndex="0"
               accessibleRole="BUTTON" accessibleText="Categorías activas — ver categorías del inventario">
-            <padding><Insets top="18" right="18" bottom="18" left="20"/></padding>
+            <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-dark-indigo">
                     <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="rich-stat-icon"/>
@@ -261,7 +261,7 @@
     </HBox>
 
     <VBox fx:id="activityCard" styleClass="card" spacing="0">
-        <TableView fx:id="tablaReciente" prefHeight="230" styleClass="data-table, recent-table">
+        <TableView fx:id="tablaReciente" prefHeight="190" styleClass="data-table, recent-table">
             <placeholder>
                 <VBox alignment="CENTER" spacing="8">
                     <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>
@@ -293,19 +293,19 @@
     <!-- Charts row -->
     <HBox fx:id="chartsRow" spacing="14">
         <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
-            <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
+            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
                 <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="card-icon-indigo"/>
                 <Label text="Movimientos Semanales" styleClass="card-title" HBox.hgrow="ALWAYS"/>
             </HBox>
-            <LineChart fx:id="chartMovimientos" prefHeight="220" animated="false">
+            <LineChart fx:id="chartMovimientos" prefHeight="190" animated="false">
                 <xAxis><CategoryAxis label="Día"/></xAxis>
                 <yAxis><NumberAxis label="Unidades"/></yAxis>
             </LineChart>
         </VBox>
 
         <VBox styleClass="card" spacing="10" prefWidth="300">
-            <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
+            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
                 <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="card-icon"/>
                 <Label text="Valor por Categoría" styleClass="card-title"/>

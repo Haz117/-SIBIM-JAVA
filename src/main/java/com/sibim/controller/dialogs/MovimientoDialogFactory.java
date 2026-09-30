@@ -19,6 +19,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -358,8 +359,7 @@ public final class MovimientoDialogFactory {
             saving[0] = true;
             if (okBtn instanceof Button b) b.fire();
         });
-        HBox.setHgrow(btnRegistrar, Priority.ALWAYS);
-        btnRegistrar.setMaxWidth(Double.MAX_VALUE);
+        btnRegistrar.setMinWidth(Region.USE_PREF_SIZE);
 
         Node cancelNode = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         Button btnCancelar = new Button("Cancelar");
@@ -369,12 +369,25 @@ public final class MovimientoDialogFactory {
         // Disable OK until product selected, quantity valid, and (for a
         // transfer) a destination area chosen
         if (okBtn != null) {
+            // Errors show only once the user has touched the form — opening the
+            // dialog with a red "Selecciona un bien" before doing anything read as
+            // if something had already gone wrong.
+            boolean[] tocado = { retryFrom != null };
             Runnable validateOk = () -> {
                 DialogUtil.commitSpinner(fCantidad);
                 boolean noProduct = fProducto.getValue() == null;
-                boolean badQty = fCantidad.getValue() <= 0 && fTipo.getValue() != TipoMovimiento.AJUSTE;
                 boolean isTransfer = fTipo.getValue() == TipoMovimiento.TRANSFERENCIA;
+                boolean isAjuste = fTipo.getValue() == TipoMovimiento.AJUSTE;
+                int existencia = noProduct ? 0 : fProducto.getValue().getStockActual();
+                // A transfer moves the whole bien: its quantity is the existencia, fixed.
+                if (isTransfer && !noProduct && fCantidad.getValue() != existencia)
+                    fCantidad.getValueFactory().setValue(existencia);
+                fCantidad.setDisable(isTransfer);
+                boolean badQty = fCantidad.getValue() <= 0 && !isAjuste && !isTransfer;
                 boolean noDestino = isTransfer && fAreaDestino.getValue() == null;
+                boolean sinExistencia = isTransfer && !noProduct && existencia <= 0;
+                boolean ajusteSinCambio = isAjuste && !noProduct && fCantidad.getValue() == existencia;
+                boolean deBaja = !noProduct && fProducto.getValue().isDadoDeBaja();
                 // ProductoUtils.calcularStockNuevo clamps SALIDA at 0 for the
                 // live "Stock Resultante" preview, but MovimientoService
                 // actually rejects any SALIDA over the real stock — without
@@ -383,25 +396,31 @@ public final class MovimientoDialogFactory {
                 // after submitting.
                 boolean exceedsStock = !noProduct && fTipo.getValue() == TipoMovimiento.SALIDA
                     && fCantidad.getValue() > fProducto.getValue().getStockActual();
-                boolean invalid = noProduct || badQty || noDestino || exceedsStock;
+                boolean invalid = noProduct || deBaja || badQty || sinExistencia || noDestino
+                    || exceedsStock || ajusteSinCambio;
                 boolean wasHidden = !lblFormError.isVisible();
                 okBtn.setDisable(invalid);
                 btnRegistrar.setDisable(invalid);
                 String hint = noProduct ? "Selecciona un bien del inventario"
+                    : deBaja ? "Este bien está dado de baja: ya no admite movimientos"
+                    : sinExistencia ? "Este bien tiene cantidad 0: no hay nada que transferir"
                     : noDestino ? "Selecciona el área de destino"
-                    : exceedsStock ? "La cantidad supera el stock disponible (" + fProducto.getValue().getStockActual() + ")"
+                    : exceedsStock ? "La cantidad supera el stock disponible (" + existencia + ")"
+                    : ajusteSinCambio ? "El ajuste no cambia nada: la cantidad ya es " + existencia
                     : "La cantidad debe ser mayor a cero";
+                boolean mostrar = invalid && tocado[0];
                 lblFormError.setText(hint);
-                lblFormError.setVisible(invalid);
-                lblFormError.setManaged(invalid);
-                if (invalid && wasHidden) AnimationUtils.shake(lblFormError);
+                lblFormError.setVisible(mostrar);
+                lblFormError.setManaged(mostrar);
+                if (mostrar && wasHidden) AnimationUtils.shake(lblFormError);
             };
             validateOk.run();
-            fProducto.valueProperty().addListener((obs, o, n) -> validateOk.run());
-            fCantidad.valueProperty().addListener((obs, o, n) -> validateOk.run());
-            fCantidad.getEditor().textProperty().addListener((obs, o, n) -> validateOk.run());
-            fTipo.valueProperty().addListener((obs, o, n) -> validateOk.run());
-            fAreaDestino.valueProperty().addListener((obs, o, n) -> validateOk.run());
+            Runnable alTocar = () -> { tocado[0] = true; validateOk.run(); };
+            fProducto.valueProperty().addListener((obs, o, n) -> alTocar.run());
+            fCantidad.valueProperty().addListener((obs, o, n) -> alTocar.run());
+            fCantidad.getEditor().textProperty().addListener((obs, o, n) -> alTocar.run());
+            fTipo.valueProperty().addListener((obs, o, n) -> alTocar.run());
+            fAreaDestino.valueProperty().addListener((obs, o, n) -> alTocar.run());
         }
 
         int row = 0;
@@ -434,6 +453,9 @@ public final class MovimientoDialogFactory {
             Node bar = dialog.getDialogPane().lookup(".button-bar");
             if (bar != null) { bar.setVisible(false); bar.setManaged(false); }
         });
+        // The window was measured with that bar still counted, which left an empty
+        // band under our own buttons; re-fit it to the real content once shown.
+        dialog.setOnShown(ev -> dialog.getDialogPane().getScene().getWindow().sizeToScene());
 
         AnimationUtils.staggeredFadeInUp(List.of(grid, actionBar), 280, 70);
         // Only the form scrolls — actionBar stays pinned at the bottom so it's

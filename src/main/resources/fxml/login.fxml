@@ -111,13 +111,13 @@
         <VBox fx:id="passwordBox" spacing="7">
             <Label text="Contraseña" styleClass="form-label"/>
             <StackPane>
-                <PasswordField fx:id="passwordField" promptText="••••••••"
+                <PasswordField fx:id="passwordField"
                                onAction="#handleLogin" styleClass="form-input" maxWidth="Infinity"
                                accessibleText="Contraseña — campo obligatorio"/>
                 <!-- PasswordField can't reveal its own text — this plain
                      TextField is kept text-bound to it and swapped in when
                      the eye toggle is on (see LoginController#initialize). -->
-                <TextField fx:id="passwordRevealField" promptText="••••••••"
+                <TextField fx:id="passwordRevealField"
                            onAction="#handleLogin" styleClass="form-input" maxWidth="Infinity"
                            visible="false" managed="false"
                            accessibleText="Contraseña visible — campo obligatorio"/>
@@ -163,12 +163,5 @@
                        styleClass="login-forgot-link"/>
         </HBox>
 
-        <Region prefHeight="10"/>
-
-        <!-- Security badge -->
-        <Label fx:id="secureBadge" text="Sesión encriptada y segura" styleClass="login-secure-badge"
-               maxWidth="Infinity" accessibleText="Conexión segura: las credenciales viajan cifradas">
-            <graphic><FontIcon iconLiteral="mdi2l-lock-outline" styleClass="login-secure-icon"/></graphic>
-        </Label>
     </VBox>
 </HBox>

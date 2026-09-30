@@ -97,7 +97,10 @@ public final class AccessibilityUtils {
      *  never seen by the one-time walk above. */
     public static <T extends Node> T asButton(T node, String accessibleText) {
         node.setAccessibleRole(AccessibleRole.BUTTON);
-        if (accessibleText != null && !accessibleText.isBlank()) node.setAccessibleText(accessibleText);
+        // Chart bars come with accessibleText already bound by XYChart ("series, x, y");
+        // setting it would throw, and that bound text already names the bar.
+        if (accessibleText != null && !accessibleText.isBlank() && !node.accessibleTextProperty().isBound())
+            node.setAccessibleText(accessibleText);
         if (!node.getStyleClass().contains("a11y-focusable")) node.getStyleClass().add("a11y-focusable");
         makeKeyboardActivatable(node);
         return node;
@@ -109,7 +112,8 @@ public final class AccessibilityUtils {
         if (node.getOnMouseClicked() == null) return;
         if (node.getProperties().putIfAbsent(KEY_ACTIVATION_MARK, Boolean.TRUE) != null) return;
 
-        node.setFocusTraversable(true);
+        // XYChart binds a bar's focusTraversable to "accessibility active"; leave that alone.
+        if (!node.focusTraversableProperty().isBound()) node.setFocusTraversable(true);
         node.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             if (e.getTarget() != node) return;
             if (e.getCode() != KeyCode.ENTER && e.getCode() != KeyCode.SPACE) return;

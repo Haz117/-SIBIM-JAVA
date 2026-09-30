@@ -114,28 +114,46 @@ public class MovimientoService {
     private Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad, String motivo,
                                  String referencia, String areaDestino, Integer expectedStockAnterior)
             throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         Optional<Producto> opt = productoRepo.findById(productoId);
         if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
         Producto producto = opt.get();
 
         if (!SessionManager.isAreaAccessible(producto.getArea()))
             throw new ValidationException("No tienes acceso a esa area");
+        if (producto.isDadoDeBaja())
+            throw new ValidationException(BIEN_DE_BAJA);
 
+        int existencia = producto.getStockActual();
         if (tipo == TipoMovimiento.AJUSTE) {
             if (cantidad < 0)
                 throw new ValidationException("El ajuste no puede ser negativo");
+            if (cantidad == existencia)
+                throw new ValidationException("El ajuste no cambia nada: la cantidad ya es " + existencia);
         } else {
             if (cantidad <= 0)
                 throw new ValidationException("La cantidad debe ser mayor a cero");
         }
-        if (tipo == TipoMovimiento.SALIDA && cantidad > producto.getStockActual())
-            throw new ValidationException("La cantidad supera el stock disponible (" + producto.getStockActual() + ")");
+        if (tipo == TipoMovimiento.SALIDA && cantidad > existencia)
+            throw new ValidationException("La cantidad supera el stock disponible (" + existencia + ")");
 
         if (tipo == TipoMovimiento.TRANSFERENCIA) {
             if (areaDestino == null || areaDestino.isBlank())
                 throw new ValidationException("Selecciona el área de destino de la transferencia");
             if (areaDestino.equals(producto.getArea()))
                 throw new ValidationException("El área de destino debe ser distinta al área actual");
+            if (!com.sibim.config.Areas.getAllAreaNames().contains(areaDestino))
+                throw new ValidationException("\"" + areaDestino + "\" no es un área del organigrama");
+            // A transfer relocates the whole bien (área + código); there is no partial transfer.
+            if (existencia <= 0)
+                throw new ValidationException(SIN_EXISTENCIA);
+            if (cantidad != existencia)
+                throw new ValidationException("La transferencia mueve el bien completo: la cantidad debe ser "
+                    + existencia + " (su existencia actual)");
+            boolean yaPendiente = movimientoRepo.findPendientesTransferencias().stream()
+                .anyMatch(p -> productoId.equals(p.getProductoId()));
+            if (yaPendiente)
+                throw new ValidationException("Este bien ya tiene una transferencia pendiente de aprobación");
         }
 
         int stockNuevo = ProductoUtils.calcularStockNuevo(tipo.getCodigo(), producto.getStockActual(), cantidad);
@@ -188,6 +206,7 @@ public class MovimientoService {
     /** The área move and the new código are applied together inside the
      *  repository's transaction (MovimientoRepository#aprobarTransferencia). */
     public void aprobarTransferencia(String movimientoId) throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         requireAdminForTransferWorkflow();
         try {
             movimientoRepo.aprobarTransferencia(movimientoId);
@@ -204,6 +223,7 @@ public class MovimientoService {
     }
 
     public void rechazarTransferencia(String movimientoId, String motivo) throws SQLException {
+        ProductosEnMemoria.invalidar();
         requireAdminForTransferWorkflow();
         movimientoRepo.rechazarTransferencia(movimientoId, motivo);
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_rechazada",
@@ -216,6 +236,7 @@ public class MovimientoService {
      *  @param razon optional reason stored in the new movement's motivo */
     public Movimiento revertirMovimiento(Movimiento original, String razon)
             throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         if (original.getTipo() == TipoMovimiento.TRANSFERENCIA)
             throw new ValidationException(
                 "Las transferencias se gestionan con el flujo de aprobación — usa Rechazar en el panel de pendientes.");
@@ -247,6 +268,7 @@ public class MovimientoService {
      *  else undoes a movement with {@link #revertirMovimiento}, which leaves
      *  both the original and its reversal on record. */
     public void eliminar(String movimientoId) throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         if (!SessionManager.isAdmin())
             throw new ValidationException("Solo el administrador puede eliminar movimientos. "
                 + "Para deshacer uno, ábrelo y usa \"Revertir\".");
@@ -271,9 +293,14 @@ public class MovimientoService {
      *  SQLException from inside a transaction so they trigger the rollback)
      *  from genuine database errors, so the former can surface as a
      *  user-facing ValidationException instead of a generic DB error. */
+    /** Also raised by MovimientoRepository inside the locked transaction. */
+    public static final String BIEN_DE_BAJA = "Este bien está dado de baja: ya no admite movimientos";
+    public static final String SIN_EXISTENCIA = "No hay existencia que transferir: la cantidad del bien es 0";
+
     private static boolean isBusinessRuleMessage(SQLException e) {
         String msg = e.getMessage();
         return msg != null && (msg.startsWith("La cantidad supera el stock disponible")
+                || msg.equals(BIEN_DE_BAJA) || msg.equals(SIN_EXISTENCIA)
                 || msg.startsWith("Solo se puede eliminar el movimiento mas reciente")
                 || msg.startsWith("El bien ya no está en ")
                 || msg.startsWith("El stock cambió desde que se capturó el conteo"));

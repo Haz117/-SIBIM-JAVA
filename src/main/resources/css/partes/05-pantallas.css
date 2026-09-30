@@ -1,0 +1,220 @@
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD — ALERT BANNER
+   ═══════════════════════════════════════════════════════════════════ */
+/* Informative, not alarming: counts that need a look, in the app's own color. */
+.alert-banner {
+    -fx-background-color: #EEF2FF;
+    -fx-border-color: sibim-indigo-dark;
+    -fx-border-width: 0 0 0 4;
+    -fx-background-radius: 0 10 10 0;
+    -fx-border-radius: 0 10 10 0;
+    -fx-cursor: hand;
+}
+.alert-banner .label { -fx-text-fill: sibim-slate-900; -fx-font-weight: bold; }
+
+/* ─── Charts — consolidated ─────────────────────────────────────── */
+.chart                   { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
+.chart-content           { -fx-padding: 0; }
+.chart-plot-background   { -fx-background-color: #F8FAFC; -fx-background-radius: 10; }
+.chart-legend            { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
+.chart-legend-item-symbol { -fx-padding: 4; }
+.chart-alternative-row-fill { -fx-fill: transparent; }
+.chart-vertical-grid-lines   { -fx-stroke: #E2E8F0; }
+.chart-horizontal-grid-lines { -fx-stroke: #E2E8F0; }
+.axis-label { -fx-text-fill: sibim-slate-500; -fx-font-size: 11px; }
+.axis       { -fx-tick-label-fill: sibim-slate-500; -fx-font-size: 11px; }
+/* Line chart series */
+.default-color0.chart-series-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
+.default-color0.chart-line-symbol { -fx-background-color: sibim-indigo, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+.default-color1.chart-series-line { -fx-stroke: #0891B2; -fx-stroke-width: 2.5px; }
+.default-color1.chart-line-symbol { -fx-background-color: #0891B2, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+/* Area chart trend (Entradas = indigo, Salidas = rose) */
+.default-color0.chart-series-area-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
+.default-color0.chart-series-area-fill { -fx-fill: rgba(99,102,241,0.14); }
+.default-color0.chart-area-symbol { -fx-background-color: sibim-indigo, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+.default-color1.chart-series-area-line { -fx-stroke: #E11D48; -fx-stroke-width: 2.5px; }
+.default-color1.chart-series-area-fill { -fx-fill: rgba(225,29,72,0.10); }
+.default-color1.chart-area-symbol { -fx-background-color: #E11D48, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+/* Pie chart — up to 8 categories using the design system palette */
+.default-color0.chart-pie { -fx-pie-color: sibim-indigo; }
+.default-color1.chart-pie { -fx-pie-color: #0891B2; }
+.default-color2.chart-pie { -fx-pie-color: sibim-amber; }
+.default-color3.chart-pie { -fx-pie-color: sibim-violet; }
+.default-color4.chart-pie { -fx-pie-color: sibim-green; }
+.default-color5.chart-pie { -fx-pie-color: #E11D48; }
+.default-color6.chart-pie { -fx-pie-color: #0284C7; }
+.default-color7.chart-pie { -fx-pie-color: sibim-slate-500; }
+/* Pie labels */
+.chart-pie-label      { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
+.chart-pie-label-line { -fx-stroke: #CBD5E1; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ALERTAS  — colored gradient section headers
+   ═══════════════════════════════════════════════════════════════════ */
+.alert-section {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-border-color: #E0E4ED;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.09), 14, 0, 0, 3);
+}
+
+.alert-section-title-inv {
+    -fx-font-size: 14.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.badge-count-inv {
+    -fx-background-color: rgba(255,255,255,0.25);
+    -fx-text-fill: white;
+    -fx-padding: 3 11;
+    -fx-background-radius: 99;
+    -fx-font-weight: bold;
+    -fx-font-size: 11.5px;
+}
+
+.no-alerts {
+    -fx-font-size: 15px;
+    -fx-text-fill: #047857;
+    -fx-font-weight: bold;
+    -fx-padding: 28;
+    -fx-alignment: CENTER;
+    -fx-background-color: #ECFDF5;
+    -fx-background-radius: 12;
+    -fx-border-color: #6EE7B7;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-wrap-text: true;
+}
+
+/* Alert section modifiers */
+.alert-section.alert-danger {
+    -fx-border-color: #FCA5A5 #E0E4ED #E0E4ED #EF4444;
+    -fx-border-width: 0 1 1 4;
+}
+.alert-section.alert-warning {
+    -fx-border-color: #FCD34D #E0E4ED #E0E4ED #F59E0B;
+    -fx-border-width: 0 1 1 4;
+}
+.alert-section.alert-info {
+    -fx-border-color: #A5B4FC #E0E4ED #E0E4ED sibim-indigo;
+    -fx-border-width: 0 1 1 4;
+}
+
+/* Section header title (normal, not inverted) */
+.alert-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F172A;
+}
+
+/* Gradient header bars for alert sections */
+.alert-header-danger {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #DC2626, #EF4444);
+    -fx-background-radius: 10 10 0 0;
+    -fx-padding: 12 16;
+}
+.alert-header-warning {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #B45309, #D97706);
+    -fx-background-radius: 10 10 0 0;
+    -fx-padding: 12 16;
+}
+.alert-header-info {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4338CA, #6366F1);
+    -fx-background-radius: 10 10 0 0;
+    -fx-padding: 12 16;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPORTES
+   ═══════════════════════════════════════════════════════════════════ */
+.report-card {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
+    -fx-cursor: hand;
+}
+.report-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.28), 22, 0, 0, 6);
+    -fx-translate-y: -3;
+}
+.report-card:pressed {
+    -fx-translate-y: 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
+}
+
+/* Circular icon badge — the color lives here now, not on the whole card */
+.report-icon-badge {
+    -fx-min-width: 44; -fx-min-height: 44;
+    -fx-max-width: 44; -fx-max-height: 44;
+    -fx-background-radius: 999;
+}
+.report-icon-badge .report-icon { -fx-icon-size: 19; -fx-icon-color: white; -fx-padding: 0; }
+.report-icon-badge-indigo { -fx-background-color: sibim-indigo; }
+.report-icon-badge-red    { -fx-background-color: #A2232F; }
+.report-icon-badge-teal   { -fx-background-color: #0891B2; }
+.report-icon-badge-amber  { -fx-background-color: sibim-amber; }
+.report-icon-badge-green  { -fx-background-color: #059669; }
+.report-icon-badge-slate  { -fx-background-color: sibim-slate-600; }
+.report-icon-badge-purple { -fx-background-color: sibim-violet; }
+.report-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F172A;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN
+   ═══════════════════════════════════════════════════════════════════ */
+.profile-value {
+    -fx-font-weight: 600;
+    -fx-text-fill: #0F172A;
+    -fx-font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGINACIÓN
+   ═══════════════════════════════════════════════════════════════════ */
+/* .pagination-btn shares its look with .btn-page (Auditoría's First/Prev/
+   Next/Last icon buttons) via combined selectors — was two near-identical
+   copy-pasted rule sets differing only in padding. */
+.pagination-btn, .btn-page {
+    -fx-background-color: white;
+    -fx-border-color: #D1D9E6;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+    -fx-padding: 5 13;
+    -fx-font-size: 13px;
+    -fx-text-fill: #374151;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
+}
+.pagination-btn:hover, .btn-page:hover { -fx-background-color: #F5F7FF; -fx-border-color: #A5B4FC; -fx-text-fill: sibim-indigo-darker; }
+.pagination-btn:disabled, .btn-page:disabled { -fx-background-color: #F8FAFC; -fx-text-fill: #CBD5E1; -fx-cursor: default; -fx-effect: none; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TITLED PANE (Organigrama)
+   ═══════════════════════════════════════════════════════════════════ */
+.titled-pane { -fx-border-radius: 10; -fx-background-radius: 10; }
+.titled-pane > .title {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo;
+    -fx-border-radius: 10;
+    -fx-border-width: 0 1 1 3;
+    -fx-padding: 12 16;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.10), 6, 0, 0, 1);
+}
+.titled-pane > .title:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-border-color: #818CF8 #A5B4FC #A5B4FC #818CF8;
+}
+.titled-pane > .title .text { -fx-font-weight: bold; -fx-text-fill: #0F172A; -fx-font-size: 13.5px; }
+.titled-pane > .content {
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 0 0 10 10;
+    -fx-border-width: 0 1 1 1;
+}

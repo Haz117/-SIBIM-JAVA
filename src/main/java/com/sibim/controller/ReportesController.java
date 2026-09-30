@@ -50,9 +50,6 @@ public class ReportesController {
     @FXML private ProgressIndicator categoriaChartSpinner;
     @FXML private VBox categoriaChartEmptyState;
 
-    private static final java.util.prefs.Preferences STICKY =
-        java.util.prefs.Preferences.userRoot().node("sibim/filters/reportes");
-
     private final ReporteService   reporteService  = ReporteService.getInstance();
     private final ProductoService  productoService = new ProductoService();
     private boolean updatingFromPreset = false;
@@ -65,13 +62,8 @@ public class ReportesController {
         hastaField.setConverter(com.sibim.util.FormatUtils.datePickerConverter());
         desdeField.valueProperty().addListener((o, a, b) -> { applyDateRangeStyle(); if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
         hastaField.valueProperty().addListener((o, a, b) -> { applyDateRangeStyle(); if (!updatingFromPreset) { clearPresetActive(); loadAreaChart(); loadCategoriaChart(); } });
-        switch (STICKY.get("preset", "mes")) {
-            case "hoy"    -> onReportHoy();
-            case "semana" -> onReportSemana();
-            case "anio"   -> onReportAnio();
-            case "todo"   -> onReportTodo();
-            default       -> onReportMes();
-        }
+        // Always open on the whole history: a remembered "Hoy" left the charts empty.
+        onReportTodo();
         if (helpTiposReporte != null) DialogUtil.enableClickToShowTooltip(helpTiposReporte);
         if (helpPeriodo      != null) DialogUtil.enableClickToShowTooltip(helpPeriodo);
 
@@ -106,12 +98,6 @@ public class ReportesController {
         hastaField.setValue(hasta);
         updatingFromPreset = false;
         setPresetActive(source);
-        String key = source == btnPresetHoy    ? "hoy"
-                   : source == btnPresetSemana ? "semana"
-                   : source == btnPresetAnio   ? "anio"
-                   : source == btnPresetTodo   ? "todo"
-                   : "mes";
-        STICKY.put("preset", key);
         loadAreaChart();
         loadCategoriaChart();
     }

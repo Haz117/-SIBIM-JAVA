@@ -112,9 +112,7 @@ public class DepreciacionController {
 
     @FXML private VBox  rangoBox;
     @FXML private Label lblRangoTotal;
-    @FXML private Button btnExportPdf;
-    @FXML private Button btnExportExcel;
-    @FXML private Button btnExportCsv;
+    @FXML private javafx.scene.control.MenuButton btnExportar;
     @FXML private Button btnExportFichas;
 
     /** true mientras la tarjeta "Totalmente depreciados" está activa como filtro. */
@@ -359,9 +357,7 @@ public class DepreciacionController {
         }
         updateChips(q, area);
         boolean noData = mostrar.isEmpty();
-        if (btnExportPdf    != null) btnExportPdf.setDisable(noData);
-        if (btnExportExcel  != null) btnExportExcel.setDisable(noData);
-        if (btnExportCsv    != null) btnExportCsv.setDisable(noData);
+        if (btnExportar != null) btnExportar.setDisable(noData);
         if (btnExportFichas != null) btnExportFichas.setDisable(noData);
     }
 

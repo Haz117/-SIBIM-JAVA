@@ -42,6 +42,6 @@
     <!-- ── Pie: institución (se reemplaza por el nombre configurado) + versión ── -->
     <Label fx:id="lblOrg" text="H. Ayuntamiento de Ixmiquilpan · Hidalgo" styleClass="splash-org"
            StackPane.alignment="BOTTOM_CENTER"/>
-    <Label fx:id="lblVersion" text="v12.3.5" styleClass="splash-version" StackPane.alignment="BOTTOM_RIGHT"/>
+    <Label fx:id="lblVersion" styleClass="splash-version" StackPane.alignment="BOTTOM_RIGHT"/>
 
 </StackPane>

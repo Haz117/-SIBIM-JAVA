@@ -1,0 +1,192 @@
+/* ═══════════════════════════════════════════════════════════════════
+   AUDITORÍA — pagination bar + icon-only buttons
+   ═══════════════════════════════════════════════════════════════════ */
+.pagination-bar {
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+/* .pagination-label / the shared look for .btn-page are defined once,
+   together with .pagination-lbl / .pagination-btn, near "PAGINACIÓN" above.
+   Both are icon-only now (chevrons), so the icon-color rules are shared too. */
+.btn-page .btn-icon, .pagination-btn .btn-icon { -fx-icon-size: 15; -fx-icon-color: sibim-slate-600; }
+.btn-page:hover .btn-icon, .pagination-btn:hover .btn-icon { -fx-icon-color: sibim-indigo-darker; }
+.btn-page:pressed, .pagination-btn:pressed { -fx-background-color: #EEF2FF; }
+.btn-page:disabled {
+    -fx-background-color: #F8FAFC;
+    -fx-cursor: default;
+    -fx-effect: none;
+}
+.btn-page:disabled .btn-icon, .pagination-btn:disabled .btn-icon { -fx-icon-color: #CBD5E1; }
+.btn-icon-only {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 5 8;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+.btn-icon-only .btn-icon { -fx-icon-size: 17; -fx-icon-color: sibim-slate-500; }
+.btn-icon-only:hover {
+    -fx-background-color: rgba(99,102,241,0.08);
+}
+.btn-icon-only:hover .btn-icon { -fx-icon-color: sibim-indigo-darker; }
+.btn-icon-only:pressed { -fx-background-color: rgba(99,102,241,0.15); }
+
+/* Ghost (tertiary) button — transparent default, subtle border on hover.
+   Used for utility actions (refresh, less-important options) in page headers
+   where multiple btn-secondary would create equal visual weight. */
+.btn-ghost {
+    -fx-background-color: transparent;
+    -fx-text-fill: sibim-slate-600;
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-font-size: 12.5px;
+    -fx-padding: 6 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 6;
+}
+.btn-ghost:hover {
+    -fx-background-color: #F1F5F9;
+    -fx-text-fill: #334155;
+    -fx-border-color: #CBD5E1;
+}
+.btn-ghost:pressed  { -fx-background-color: #E2E8F0; -fx-translate-y: 1; }
+.btn-ghost:focused  { -fx-border-color: #4F46E5; -fx-border-width: 2; -fx-padding: 5 13; }
+.btn-ghost:disabled { -fx-text-fill: #CBD5E1; -fx-opacity: 1; -fx-cursor: default; }
+.btn-ghost .btn-icon { -fx-icon-size: 14; -fx-icon-color: sibim-slate-500; }
+.btn-ghost:hover .btn-icon { -fx-icon-color: sibim-slate-600; }
+
+/* Active filter chips (Depreciación) */
+.filter-chip-active {
+    -fx-background-color: #EEF2FF;
+    -fx-border-color: #A5B4FC;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-padding: 3 8 3 12;
+}
+.filter-chip-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #3730A3;
+}
+.filter-chip-close {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: sibim-indigo-dark;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 0 2;
+    -fx-min-width: 16;
+}
+.filter-chip-close:hover { -fx-text-fill: sibim-red; }
+
+/* QR scan — flash highlight on matched conteo row */
+.row-highlight-flash {
+    -fx-background-color: rgba(8,145,178,0.18);
+    -fx-border-color: #0891B2;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+/* Caps Lock warning in Login */
+.caps-lock-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: #92400E;
+    -fx-background-color: #FEF3C7;
+    -fx-background-radius: 6;
+    -fx-padding: 3 8;
+    -fx-graphic-text-gap: 6;
+}
+.caps-lock-icon { -fx-icon-size: 12; -fx-icon-color: #B45309; }
+
+/* Timeline movimientos */
+.timeline-root { -fx-background-color: white; -fx-background-radius: 12; }
+.timeline-list { -fx-background-color: transparent; }
+.timeline-row { -fx-border-color: transparent transparent #E2E8F0 transparent; -fx-border-width: 0 0 1 0; }
+.timeline-row:hover { -fx-background-color: #F8FAFC; }
+.timeline-icon { -fx-fill: #94A3B8; }
+.timeline-detail { -fx-font-size: 11.5px; -fx-text-fill: sibim-slate-600; }
+
+/* Audit action pills */
+.audit-pill-green  { -fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-red    { -fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-blue   { -fx-background-color: #DBEAFE; -fx-text-fill: #1E40AF; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-orange { -fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-slate  { -fx-background-color: #F1F5F9; -fx-text-fill: sibim-slate-600; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.audit-pill-purple { -fx-background-color: #EDE9FE; -fx-text-fill: #5B21B6; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+
+/* Audit detail dialog — read-only TextArea for the "detalle" field */
+.audit-detail-area {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-font-size: 12px;
+    -fx-text-fill: #334155;
+    -fx-control-inner-background: #F8FAFC;
+}
+.audit-detail-area .content { -fx-background-color: #F8FAFC; }
+
+/* Area BarChart — Reportes */
+.area-bar-chart { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
+.area-bar-chart .chart-plot-background { -fx-background-color: #F8FAFC; }
+.area-bar-chart .chart-vertical-grid-lines { -fx-stroke: transparent; }
+.area-bar-chart .chart-horizontal-grid-lines { -fx-stroke: #E2E8F0; -fx-stroke-dash-array: 4 4; }
+.area-bar-chart .default-color0.chart-bar { -fx-bar-fill: #6D28D9; -fx-background-radius: 4 4 0 0; }
+.area-bar-chart .axis-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
+.area-bar-chart .tick-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
+
+/* Search history context menu */
+.search-history-menu { -fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 12, 0, 0, 4); }
+.search-history-menu .menu-item:hover { -fx-background-color: #F1F5F9; }
+.history-menu-header { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; -fx-font-weight: bold; }
+.history-icon { -fx-fill: sibim-slate-500; -fx-icon-size: 14; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONTEXT MENU  (right-click + ContextMenu popups)
+   ═══════════════════════════════════════════════════════════════════ */
+.context-menu {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.16), 18, 0, 0, 6);
+    -fx-padding: 4 0;
+}
+.menu-item {
+    -fx-background-color: transparent;
+    -fx-background-radius: 7;
+    -fx-padding: 7 14;
+    -fx-font-size: 13px;
+    -fx-text-fill: #374151;
+    -fx-cursor: hand;
+}
+.menu-item:focused,
+.menu-item:hover {
+    -fx-background-color: #EEF2FF;
+    -fx-text-fill: sibim-indigo-darker;
+}
+.menu-item .label { -fx-text-fill: inherit; }
+.menu-item .graphic { -fx-padding: 0 6 0 0; }
+.separator-menu-item { -fx-padding: 3 0; }
+.separator-menu-item .separator { -fx-padding: 0; }
+.separator-menu-item .separator .line {
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 0.5 0 0 0;
+}
+
+/* Inline table cell editor — stockMín / stockMáx double-click edit */
+.inline-edit-field {
+    -fx-background-color: white;
+    -fx-border-color: #6D28D9;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-border-width: 1.5;
+    -fx-font-size: 12px;
+    -fx-padding: 2 6;
+    -fx-pref-width: 70;
+}

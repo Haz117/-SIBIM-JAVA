@@ -5,6 +5,7 @@ import com.sibim.db.offline.SyncService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.UpdateChecker;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -32,7 +33,7 @@ class MainAcercaDe {
         g.setHgap(16); g.setVgap(10);
         g.setPadding(new Insets(16, 22, 16, 22));
         String[][] rows = {
-            { "Versión",          "1.0.0" },
+            { "Versión",          UpdateChecker.currentVersion() },
             { "Plataforma",       "Java " + System.getProperty("java.version") + " · JavaFX 21" },
             { "Sistema",          System.getProperty("os.name") + " " + System.getProperty("os.version") },
             { "Modo de datos",    DatabaseConfig.isDemoMode() ? "Demo (sin base de datos)"

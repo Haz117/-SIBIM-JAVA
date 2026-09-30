@@ -32,7 +32,10 @@ class NotificationCenter {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationCenter.class);
 
-    private record Item(String icon, String colorClass, String text, String targetView) {}
+    /** {@code count} is how many bienes/préstamos the row stands for; rows
+     *  that only inform (préstamos about to fall due) carry 0 so the bell's
+     *  number stays equal to the sidebar's Alertas + Préstamos badges. */
+    private record Item(String icon, String colorClass, String text, String targetView, int count) {}
 
     private NotificationCenter() {}
 
@@ -58,7 +61,7 @@ class NotificationCenter {
     static void refreshBadge(Label badge, ProductoService productoService, PrestamoService prestamoService) {
         if (badge == null) return;
         loadItems(productoService, prestamoService, items -> {
-            int total = items.size();
+            int total = items.stream().mapToInt(Item::count).sum();
             if (total > 0) {
                 badge.setText(total > 99 ? "99+" : String.valueOf(total));
                 boolean wasHidden = !badge.isVisible();
@@ -87,14 +90,14 @@ class NotificationCenter {
             try {
                 int n = productoService.getAgotados().size();
                 if (n > 0) items.add(new Item("mdi2p-package-variant-closed", "danger",
-                    n == 1 ? "1 bien agotado" : n + " bienes agotados", "alertas"));
+                    n == 1 ? "1 bien agotado" : n + " bienes agotados", "alertas", n));
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de bienes agotados", e);
             }
             try {
                 int n = productoService.getBajoStock().size();
                 if (n > 0) items.add(new Item("mdi2t-trending-down", "warning",
-                    n == 1 ? "1 bien con stock bajo" : n + " bienes con stock bajo", "alertas"));
+                    n == 1 ? "1 bien con stock bajo" : n + " bienes con stock bajo", "alertas", n));
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de bajo stock", e);
             }
@@ -102,21 +105,21 @@ class NotificationCenter {
                 int n = productoService.getVencidosProximos(30).size();
                 if (n > 0) items.add(new Item("mdi2c-calendar-alert", "warning",
                     n == 1 ? "1 garantía por vencer en 30 días" : n + " garantías por vencer en 30 días",
-                    "alertas"));
+                    "alertas", n));
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de garantías por vencer", e);
             }
             try {
                 int n = prestamoService.countVencidos();
                 if (n > 0) items.add(new Item("mdi2c-clock-alert-outline", "danger",
-                    n == 1 ? "1 préstamo vencido" : n + " préstamos vencidos", "prestamos"));
+                    n == 1 ? "1 préstamo vencido" : n + " préstamos vencidos", "prestamos", n));
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de préstamos vencidos", e);
             }
             try {
                 int n = prestamoService.getProximosAVencer(3).size();
                 if (n > 0) items.add(new Item("mdi2c-clock-outline", "info",
-                    n == 1 ? "1 préstamo vence en 3 días" : n + " préstamos vencen en 3 días", "prestamos"));
+                    n == 1 ? "1 préstamo vence en 3 días" : n + " préstamos vencen en 3 días", "prestamos", 0));
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de préstamos próximos a vencer", e);
             }

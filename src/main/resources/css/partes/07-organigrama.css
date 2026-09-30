@@ -1,0 +1,270 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ORGANIGRAMA IMPROVEMENTS
+   ═══════════════════════════════════════════════════════════════════ */
+.org-area-count {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 10;
+}
+.org-area-count-clickable {
+    -fx-cursor: hand;
+}
+.org-area-count-clickable:hover {
+    -fx-background-color: #C7D2FE;
+    -fx-text-fill: #3730A3;
+}
+.org-area-name {
+    -fx-text-fill: #0F172A;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.org-my-area-badge {
+    -fx-background-color: sibim-violet;
+    -fx-text-fill: white;
+    -fx-padding: 2 8;
+    -fx-background-radius: 99;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.org-child-label {
+    -fx-text-fill: #374151;
+    -fx-font-size: 12.5px;
+}
+.org-area-valor {
+    -fx-text-fill: #047857;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+}
+.org-alert-badge {
+    -fx-background-color: #FEF2F2;
+    -fx-text-fill: #B91C1C;
+    -fx-border-color: #FCA5A5;
+    -fx-border-width: 1;
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+}
+.org-resguardo-badge {
+    -fx-background-color: #EDE9FE;
+    -fx-text-fill: #6D28D9;
+    -fx-border-color: #C4B5FD;
+    -fx-border-width: 1;
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+}
+/* Help badge variant for a colored/dark header (Alertas section titles) —
+   the default .help-badge's indigo-on-lavender look disappears/clashes
+   against a red/orange/blue gradient background. */
+.help-badge-inv {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-color: rgba(255,255,255,0.25);
+    -fx-border-color: rgba(255,255,255,0.5);
+    -fx-border-width: 1;
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-padding: 1 5 1 5;
+    -fx-min-width: 18;
+    -fx-min-height: 18;
+    -fx-alignment: CENTER;
+    -fx-cursor: hand;
+}
+.help-badge-inv:hover { -fx-background-color: rgba(255,255,255,0.4); }
+
+/* Collapse/expand chevron on an Alertas section header (colored gradient bar) */
+.alert-section-chevron {
+    -fx-icon-size: 18;
+    -fx-icon-color: white;
+    -fx-cursor: hand;
+    -fx-opacity: 0.85;
+}
+.alert-section-chevron:hover { -fx-opacity: 1; }
+
+/* Full-size photo viewer (DialogUtil.showPhotoViewer) */
+.photo-viewer-frame {
+    -fx-background-color: #0F172A;
+    -fx-background-radius: 0 0 8 8;
+    -fx-alignment: CENTER;
+}
+.photo-viewer-image {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 16, 0, 0, 4);
+}
+
+.org-alert-badge-clickable { -fx-cursor: hand; }
+.org-alert-badge-clickable:hover {
+    -fx-background-color: #FEE2E2;
+    -fx-border-color: sibim-red;
+}
+.org-prestamo-badge {
+    -fx-background-color: derive(#3b82f6, 85%);
+    -fx-text-fill: #1d4ed8;
+    -fx-border-color: derive(#3b82f6, 40%);
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 11px;
+    -fx-padding: 1 7 1 5;
+    -fx-font-weight: 600;
+}
+.org-comodato-badge {
+    -fx-background-color: derive(#f59e0b, 85%);
+    -fx-text-fill: #92400e;
+    -fx-border-color: derive(#f59e0b, 20%);
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 11px;
+    -fx-padding: 1 7 1 5;
+    -fx-font-weight: 600;
+}
+.org-card-view-card {
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 8, 0, 0, 2);
+    -fx-padding: 16;
+    -fx-cursor: hand;
+    -fx-pref-width: 320;
+    -fx-min-width: 280;
+    -fx-max-width: 360;
+}
+.org-card-view-card:hover {
+    -fx-border-color: sibim-indigo;
+    -fx-translate-y: -3;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 18, 0, 0, 6);
+}
+.org-product-code {
+    -fx-text-fill: sibim-violet;
+    -fx-font-family: monospace;
+    -fx-font-size: 11px;
+}
+.org-more-link {
+    -fx-text-fill: sibim-indigo-dark;
+    -fx-font-size: 11.5px;
+    -fx-padding: 3 0 5 20;
+    -fx-cursor: hand;
+    -fx-underline: false;
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}
+.org-more-link:hover {
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-underline: true;
+}
+.org-product-row {
+    -fx-background-color: transparent;
+    -fx-padding: 5 10;
+    -fx-border-color: transparent transparent #F1F5F9 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.org-product-row:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-background-radius: 6;
+}
+.org-product-name {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #374151;
+    -fx-font-weight: 600;
+}
+.org-product-stock {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: sibim-slate-500;
+}
+
+/* ─── Organigrama child-area card hover ─── */
+.org-child-header {
+    -fx-cursor: hand;
+    -fx-background-color: transparent;
+}
+.org-child-header:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-background-radius: 6 6 0 0;
+}
+
+/* Organigrama — programmatically-built node styles */
+.org-section-icon-badge {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
+    -fx-min-width: 28; -fx-min-height: 28;
+    -fx-max-width: 28; -fx-max-height: 28;
+}
+.org-section-icon { -fx-font-size: 12px; }
+.org-dir-icon     { -fx-font-size: 12px; }
+.org-sep          { -fx-opacity: 0.35; }
+
+/* Child area card with left accent border */
+.org-child-card {
+    -fx-background-color: #FAFBFF;
+    -fx-background-radius: 8;
+    -fx-border-color: #E8ECFF #E8ECFF #E8ECFF #A5B4FC;
+    -fx-border-width: 0 1 1 3;
+    -fx-border-radius: 8;
+}
+.org-child-card-myarea { -fx-border-color: #E8ECFF #E8ECFF #E8ECFF sibim-violet; }
+
+/* Child count badge "my area" override */
+.org-area-count-myarea { -fx-background-color: #EDE9FE; -fx-text-fill: #5B21B6; }
+
+/* ─── Organigrama styled TitledPane sections ─────────────────────── */
+.org-titled-section {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
+}
+.org-titled-section > .title {
+    -fx-background-color: white;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 12 16;
+}
+.org-titled-section:expanded > .title {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #EEF2FF, #F5F3FF);
+    -fx-border-color: #C7D2FE;
+    -fx-border-radius: 12 12 0 0;
+    -fx-background-radius: 12 12 0 0;
+}
+.org-titled-section > .title > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 6 0 0;
+}
+.org-titled-section > .title > .arrow-button > .arrow {
+    -fx-background-color: sibim-indigo;
+}
+.org-titled-section > .content {
+    -fx-background-color: white;
+    -fx-border-color: #C7D2FE;
+    -fx-border-radius: 0 0 12 12;
+    -fx-background-radius: 0 0 12 12;
+    -fx-border-width: 0 1 1 1;
+}
+
+/* ─── Card view accent border variants ───────────────────────────── */
+.org-card-warning {
+    -fx-border-color: #FDE68A #FDE68A #FDE68A #F59E0B;
+    -fx-border-width: 1 1 1 4;
+}
+.org-card-warning:hover {
+    -fx-border-color: #FCD34D #FCD34D #FCD34D #F59E0B;
+}
+.org-card-danger {
+    -fx-border-color: #FCA5A5 #FCA5A5 #FCA5A5 #EF4444;
+    -fx-border-width: 1 1 1 4;
+}
+.org-card-danger:hover {
+    -fx-border-color: #FCA5A5 #FCA5A5 #FCA5A5 sibim-red;
+}
+
+/* Inner product list separator */
+.org-products-inner-box {
+    -fx-border-color: #EEF2FF transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}

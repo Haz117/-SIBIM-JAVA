@@ -35,7 +35,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
         PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
-        DeviceRgb indigo  = new DeviceRgb(99,  102, 241);
+        DeviceRgb indigo  = COLOR_HEADER;   // formatos oficiales en guinda institucional
         DeviceRgb dark    = new DeviceRgb(15,  23,  42);
         DeviceRgb muted   = new DeviceRgb(100, 116, 139);
         DeviceRgb bgLight = new DeviceRgb(241, 245, 249);
@@ -43,7 +43,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
         DeviceRgb green   = new DeviceRgb(22,  163, 74);
         DeviceRgb amber   = new DeviceRgb(180, 83,  9);
         DeviceRgb red     = new DeviceRgb(185, 28,  28);
-        DeviceRgb indigo2 = new DeviceRgb(199, 210, 254);
+        DeviceRgb indigo2 = new DeviceRgb(240, 195, 195);
 
         String generadoEn = "Generado el " + LocalDate.now().format(FMT);
 

@@ -10,9 +10,9 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-blue">
-        <StackPane styleClass="page-header-icon, page-header-icon-blue">
-            <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="page-icon-emoji"/>
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
+        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+            <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Organigrama Municipal" styleClass="page-title"/>
@@ -25,16 +25,19 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recargar distribución de bienes por área (F5)"/></tooltip>
         </Button>
-        <Button text="Exportar PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el organigrama completo con bienes por área a PDF" wrapText="true" maxWidth="240"/></tooltip>
-        </Button>
-        <Button text="Exportar CSV" onAction="#onExportarCsv" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar listado de bienes por área a CSV (Excel compatible)" wrapText="true" maxWidth="240"/></tooltip>
-        </Button>
+        <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el organigrama con los bienes por área" wrapText="true" maxWidth="240"/></tooltip>
+            <items>
+                <MenuItem text="PDF" onAction="#onExportarPdf">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                </MenuItem>
+                <MenuItem text="CSV" onAction="#onExportarCsv">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                </MenuItem>
+            </items>
+        </MenuButton>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>

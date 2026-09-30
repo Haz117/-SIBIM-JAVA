@@ -13,7 +13,7 @@
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
         <!-- Icon badge -->
         <StackPane styleClass="page-header-icon, page-header-icon-indigo">
-            <FontIcon iconLiteral="mdi2p-package-variant" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2p-package-variant" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Bienes Patrimoniales" styleClass="page-title"/>
@@ -116,11 +116,11 @@
         </VBox>
 
         <!-- Sin Etiquetar — rose -->
-        <VBox fx:id="cardSinEtiquetar" styleClass="rich-stat-card, rich-stat-rose"
+        <VBox fx:id="cardSinEtiquetar" styleClass="rich-stat-card, rich-stat-slate"
               HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
             <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-rose">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
                     <FontIcon iconLiteral="mdi2t-tag-off-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Label text="SIN ETIQUETAR" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
@@ -135,15 +135,8 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
-        <Region HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnToggleFiltros" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
-        </Button>
-    </HBox>
-
-    <!-- ══ FILTER BAR ════════════════════════════════════════════════ -->
-    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-indigo">
-        <StackPane prefWidth="280">
+        <!-- Search stays in this row so collapsing the filters never hides it. -->
+        <StackPane prefWidth="340" maxWidth="460" HBox.hgrow="SOMETIMES">
             <TextField fx:id="searchField"
                        promptText="Buscar por nombre, código, proveedor..."
                        maxWidth="Infinity" styleClass="search-field"/>
@@ -154,6 +147,14 @@
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnToggleFiltros" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
+        </Button>
+    </HBox>
+
+    <!-- ══ FILTER BAR (collapsible) ════════════════════════════════════════════════ -->
+    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-indigo">
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="165"/>
         <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="190"/>
         <ComboBox fx:id="resguardanteFilter" promptText="Resguardante..." prefWidth="165"/>
@@ -218,12 +219,41 @@
             <tooltip><Tooltip text="▸ Columnas: usa el botón ⋮ (arriba a la derecha de la tabla) o clic derecho en el encabezado para mostrar u ocultar columnas. Elige 'Restaurar columnas predeterminadas' para verlas todas de nuevo.&#10;&#10;▸ Stock Mín./Máx.: doble clic en la celda para editar el umbral directamente — se guarda solo al salir o presionar Enter." wrapText="true" maxWidth="310"/></tooltip>
         </Label>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="CSV"   onAction="#onExportCsv"   styleClass="btn-csv">
-            <tooltip><Tooltip text="Exportar inventario filtrado a CSV"/></tooltip>
+        <Button fx:id="btnResetColumns" text="Restaurar columnas" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Regresa las columnas a como venían: cuáles se ven, su orden y su ancho" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
-        <Button text="Excel" onAction="#onExportExcel" styleClass="btn-excel">
-            <tooltip><Tooltip text="Exportar inventario filtrado a Excel (.xlsx)"/></tooltip>
-        </Button>
+        <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar los bienes de la lista filtrada, o solo los seleccionados (Ctrl+clic o Shift+clic para elegir varios)" wrapText="true" maxWidth="260"/></tooltip>
+            <items>
+                <MenuItem text="Lista filtrada — CSV" onAction="#onExportCsv">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                </MenuItem>
+                <MenuItem text="Lista filtrada — Excel" onAction="#onExportExcel">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                </MenuItem>
+                <SeparatorMenuItem/>
+                <Menu fx:id="btnExportarSeleccion" text="Solo los seleccionados" disable="true">
+                    <items>
+                        <MenuItem text="Ficha técnica (PDF)" onAction="#onExportSeleccionFicha">
+                            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                        </MenuItem>
+                        <MenuItem text="Solicitud de baja (PDF)" onAction="#onExportSolicitudBaja">
+                            <graphic><FontIcon iconLiteral="mdi2f-file-remove-outline" styleClass="report-export-icon-pdf"/></graphic>
+                        </MenuItem>
+                        <MenuItem text="CSV" onAction="#onExportSeleccionCsv">
+                            <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
+                        </MenuItem>
+                        <MenuItem text="Excel" onAction="#onExportSeleccionExcel">
+                            <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
+                        </MenuItem>
+                    </items>
+                </Menu>
+            </items>
+        </MenuButton>
         <Separator orientation="VERTICAL"/>
         <Button text="Importar CSV / Excel" onAction="#onImportarCsv" styleClass="btn-import"
                 contentDisplay="LEFT" graphicTextGap="6">
@@ -234,16 +264,19 @@
 
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
+        <!-- Minimum widths fit real content (a full código, a category badge, an área
+             name) so a narrow window scrolls sideways instead of turning every cell into "…". -->
         <columns>
-            <TableColumn fx:id="colFoto"      text="Foto"             prefWidth="54"  minWidth="54" maxWidth="54"  sortable="false" resizable="false"/>
-            <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="215" maxWidth="300" sortable="true" minWidth="130"/>
-            <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="105" sortable="true" minWidth="84"/>
-            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="135" sortable="true" minWidth="110"/>
-            <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="195" maxWidth="260" sortable="true" minWidth="120"/>
+            <TableColumn fx:id="colFoto"      text="Foto"             prefWidth="62"  minWidth="62" maxWidth="62"  sortable="false" resizable="false"/>
+            <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="220" maxWidth="320" sortable="true" minWidth="160"/>
+            <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="140" sortable="true" minWidth="128"/>
+            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="150" sortable="true" minWidth="130"/>
+            <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="190" maxWidth="260" sortable="true" minWidth="150"/>
+            <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="170" maxWidth="240" sortable="true" minWidth="130"/>
             <TableColumn fx:id="colStock"     text="Cantidad"           prefWidth="90"  sortable="true" minWidth="90"/>
-            <TableColumn fx:id="colStockMin"  text="Mín."      prefWidth="80"  sortable="true" visible="false" minWidth="72"/>
-            <TableColumn fx:id="colStockMax"  text="Máx."      prefWidth="80"  sortable="true" visible="false" minWidth="72"/>
-            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="155" minWidth="104" sortable="true"/>
+            <TableColumn fx:id="colStockMin"  text="Mín."      prefWidth="62"  sortable="true" visible="false" minWidth="56"/>
+            <TableColumn fx:id="colStockMax"  text="Máx."      prefWidth="62"  sortable="true" visible="false" minWidth="56"/>
+            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="115" minWidth="100" sortable="true"/>
             <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="126" sortable="true" minWidth="126"/>
         </columns>
         <placeholder>
@@ -306,20 +339,6 @@
         <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
         <Label fx:id="lblSeleccionados" text="" styleClass="status-bar-selection" visible="false" managed="false"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <MenuButton fx:id="btnExportarSeleccion" text="Exportar seleccionados" styleClass="btn-secondary"
-                    contentDisplay="LEFT" graphicTextGap="8" disable="true">
-            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exporta solo los bienes seleccionados en la tabla (Ctrl+clic o Shift+clic para elegir varios)" wrapText="true" maxWidth="260"/></tooltip>
-            <items>
-                <MenuItem text="CSV" onAction="#onExportSeleccionCsv">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
-                </MenuItem>
-                <MenuItem text="Excel" onAction="#onExportSeleccionExcel">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
-                </MenuItem>
-            </items>
-        </MenuButton>
-        <Separator orientation="VERTICAL"/>
         <Button fx:id="btnMovimiento" text="Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="btn-icon"/></graphic>

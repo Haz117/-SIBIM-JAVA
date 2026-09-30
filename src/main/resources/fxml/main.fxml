@@ -232,7 +232,7 @@
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label fx:id="statusUserLabel" text="—" styleClass="status-text"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Label text="SIBIM v12.3.5" styleClass="sidebar-version"/>
+        <Label fx:id="statusVersionLabel" text="SIBIM" styleClass="sidebar-version"/>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Label text="⌨ Atajos (F1)" styleClass="status-shortcut-hint" onMouseClicked="#onShowShortcuts"
                accessibleRole="BUTTON" accessibleText="Ver atajos de teclado">
@@ -252,13 +252,13 @@
         </StackPane>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Button fx:id="btnDensity" onAction="#onToggleDensity" styleClass="density-btn"
-                text="Normal" graphicTextGap="5" contentDisplay="LEFT">
+                text="Filas: Normal" graphicTextGap="5" contentDisplay="LEFT">
             <graphic><FontIcon iconLiteral="mdi2v-view-list" styleClass="status-icon"/></graphic>
             <tooltip><Tooltip text="Densidad de filas: Compacto → Normal → Cómodo"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL" styleClass="status-separator"/>
         <Button fx:id="btnTextSize" onAction="#onToggleTextSize" styleClass="density-btn"
-                text="Normal" graphicTextGap="5" contentDisplay="LEFT">
+                text="Texto: Normal" graphicTextGap="5" contentDisplay="LEFT">
             <graphic><FontIcon iconLiteral="mdi2f-format-size" styleClass="status-icon"/></graphic>
             <tooltip><Tooltip text="Tamaño de texto: Normal → Grande → Extra grande" wrapText="true" maxWidth="220"/></tooltip>
         </Button>

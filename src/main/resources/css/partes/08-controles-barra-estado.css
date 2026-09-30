@@ -1,0 +1,415 @@
+/* ═══════════════════════════════════════════════════════════════════
+   DATE PICKER POPUP — closer to a native OS calendar flyout: a flat,
+   understated header (no loud gradient bar) and round day markers
+   instead of the default's tiny square highlight.
+   NOTE: the app's theme is AtlantaFX (PrimerLight), which restructures
+   the DatePicker popup's DOM one level shallower than stock JavaFX/Modena
+   — its own stylesheet targets ".date-picker-popup > .month-year-pane"
+   (direct child), not "> * > .month-year-pane". The previous rules here
+   used the Modena path and silently never matched anything.
+   ═══════════════════════════════════════════════════════════════════ */
+.date-picker-popup > .month-year-pane {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10 12 10 12;
+}
+.date-picker-popup > .month-year-pane > .spinner > .label {
+    -fx-text-fill: sibim-slate-900;
+    -fx-font-weight: bold;
+    -fx-font-size: 1.05em;
+}
+.date-picker-popup > .month-year-pane > .spinner > .button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 99;
+    -fx-padding: 4;
+}
+.date-picker-popup > .month-year-pane > .spinner > .button:hover {
+    -fx-background-color: #E2E8F0;
+}
+.date-picker-popup > .month-year-pane > .spinner > .button > .left-arrow,
+.date-picker-popup > .month-year-pane > .spinner > .button > .right-arrow {
+    -fx-background-color: sibim-slate-600;
+}
+.date-picker-popup > .calendar-grid {
+    -fx-background-radius: 0 0 10 10;
+    -fx-padding: 10;
+}
+.date-picker-popup > .calendar-grid > .day-cell,
+.date-picker-popup > .calendar-grid > .week-number-cell {
+    -fx-background-color: transparent;
+}
+.date-picker-popup > .calendar-grid .day-name-cell {
+    -fx-text-fill: #64748B;
+    -fx-font-weight: bold;
+    -fx-font-size: 0.82em;
+}
+/* Round "today" and "selected" markers — a filled/outlined circle inside
+   the square cell reads as native (Google/macOS/Windows calendars all use
+   a circle here); the default 4px square corner radius does not. */
+.date-picker-popup > .calendar-grid > .date-cell {
+    -fx-background-radius: 99;
+    -fx-alignment: CENTER;
+}
+.date-picker-popup > .calendar-grid > .today {
+    -fx-background-color: transparent;
+    -fx-border-color: sibim-indigo;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 99;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-weight: bold;
+}
+.date-picker-popup > .calendar-grid > .selected,
+.date-picker-popup > .calendar-grid > .previous-month.selected,
+.date-picker-popup > .calendar-grid > .previous-month.today.selected,
+.date-picker-popup > .calendar-grid > .next-month.today.selected,
+.date-picker-popup > .calendar-grid > .next-month.selected {
+    -fx-background-color: sibim-indigo;
+    -fx-border-color: transparent;
+    -fx-background-radius: 99;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.date-picker-popup > .calendar-grid > .day-cell:hover {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
+}
+.date-picker-popup > .calendar-grid > .selected:hover {
+    -fx-background-color: sibim-indigo-dark;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPORT CARD extras
+   ═══════════════════════════════════════════════════════════════════ */
+.report-desc {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: sibim-slate-500;
+}
+.report-icon {
+    -fx-font-size: 28px;
+    -fx-padding: 0 0 4 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ALERT NAV BADGE  — contador de alertas en sidebar
+   ═══════════════════════════════════════════════════════════════════ */
+.alert-nav-badge {
+    -fx-background-color: sibim-indigo-dark;
+    -fx-text-fill: white;
+    -fx-background-radius: 99;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1.5 5;
+    -fx-min-width: 17; -fx-min-height: 17;
+    -fx-max-width: 28;
+    -fx-alignment: CENTER;
+    -fx-effect: none;
+    -fx-translate-x: -10;
+    -fx-translate-y: -8;
+}
+
+/* Count on an icon-only header button (e.g. Movimientos "Pendientes" when
+   ResponsiveHeader hides its "(N)" label). */
+.btn-count-badge {
+    -fx-background-color: sibim-indigo-dark;
+    -fx-text-fill: white;
+    -fx-background-radius: 99;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 4;
+    -fx-min-width: 15; -fx-min-height: 15;
+    -fx-alignment: CENTER;
+}
+
+/* Notification bell badge — same pill as alert-nav-badge but without its
+   translate offset (tuned for a wide sidebar nav row, not a small icon-only
+   status-bar button where the badge should just sit at its StackPane corner). */
+.notif-bell-badge {
+    -fx-background-color: sibim-indigo-dark;
+    -fx-text-fill: white;
+    -fx-background-radius: 99;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1.5 5;
+    -fx-min-width: 16; -fx-min-height: 16;
+    -fx-max-width: 26;
+    -fx-alignment: CENTER;
+    -fx-effect: none;
+}
+
+.notif-center-menu .custom-menu-item { -fx-padding: 2 4; }
+.notif-item-text { -fx-font-size: 12.5px; -fx-text-fill: sibim-slate-900; }
+.notif-item-icon-danger  { -fx-icon-color: sibim-red; -fx-icon-size: 16; }
+.notif-item-icon-warning { -fx-icon-color: sibim-amber; -fx-icon-size: 16; }
+.notif-item-icon-info    { -fx-icon-color: #2563EB; -fx-icon-size: 16; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   OFFLINE / DEMO BANNER  — barra superior cuando no hay BD real
+   ═══════════════════════════════════════════════════════════════════ */
+.offline-banner {
+    -fx-background-color: #FFFBEB;
+    -fx-border-color: transparent transparent #FCD34D transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-min-height: 36;
+    -fx-max-height: 36;
+}
+.offline-banner-demo {
+    -fx-background-color: #EEF2FF;
+    -fx-border-color: transparent transparent #A5B4FC transparent;
+}
+.offline-banner-demo .offline-banner-icon { -fx-icon-color: sibim-indigo; }
+.offline-banner-demo .offline-banner-text { -fx-text-fill: sibim-indigo-darker; }
+.offline-banner-icon {
+    -fx-icon-color: sibim-amber;
+    -fx-icon-size: 16;
+}
+.offline-banner-text {
+    -fx-text-fill: #92400E;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+.offline-banner-btn {
+    -fx-background-color: #FEF3C7;
+    -fx-text-fill: #92400E;
+    -fx-font-size: 11px;
+    -fx-background-radius: 6;
+    -fx-padding: 4 12;
+    -fx-cursor: hand;
+    -fx-border-color: #FCD34D;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+}
+.offline-banner-btn:hover {
+    -fx-background-color: #FDE68A;
+}
+.offline-banner-btn:disabled {
+    -fx-opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATUS BAR  — barra inferior de estado
+   ═══════════════════════════════════════════════════════════════════ */
+.status-bar {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #E2E8F0 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-min-height: 28;
+    -fx-max-height: 28;
+}
+.status-text {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-size: 11px;
+}
+.status-shortcut-hint {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+.status-shortcut-hint:hover {
+    -fx-text-fill: sibim-indigo-darker;
+}
+.status-time {
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-font-family: monospace;
+}
+.status-dot-ok {
+    -fx-text-fill: #15803D;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.status-dot-demo {
+    -fx-text-fill: #B45309;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+/* The hairline belongs on the Separator's inner .line node. A border on the Separator itself (what this rule
+   used to do) boxed all four sides, so every divider rendered as an empty rectangle. */
+.status-separator {
+    -fx-padding: 6 4;
+}
+.status-separator .line {
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 0 0 0 1;
+    -fx-background-color: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB PANE  — formularios con pestañas
+   ═══════════════════════════════════════════════════════════════════ */
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 8 18;
+    -fx-cursor: hand;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent sibim-indigo transparent;
+    -fx-border-width: 0 0 2 0;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-weight: bold;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:hover .tab-label {
+    -fx-text-fill: sibim-indigo-darker;
+}
+.tab-pane > .tab-content-area {
+    -fx-background-color: white;
+    -fx-padding: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BUTTON FOCUS RINGS  — keyboard accessibility
+   ═══════════════════════════════════════════════════════════════════ */
+/* Only while tabbing (:focus-visible): after a mouse click the ring would just
+   look like a stray border. Focus on a filled button = a 2 px WHITE inner ring (6.3:1 against the indigo fill). The ring sits 2 px inside the edge (so it
+   shows against a white page) and border-insets count as layout insets, so padding drops by 4 px to keep the size. */
+.btn-primary:focus-visible {
+    -fx-border-color: white;
+    -fx-border-width: 2;
+    -fx-border-radius: 10;
+    -fx-border-insets: 2;
+    -fx-padding: 4 14;
+}
+.btn-secondary:focus-visible {
+    -fx-border-color: #4F46E5;
+    -fx-border-width: 2;
+    -fx-border-radius: 12;
+    -fx-padding: 6 13;
+}
+.btn-danger:focus-visible {
+    -fx-border-color: white;
+    -fx-border-width: 2;
+    -fx-border-radius: 10;
+    -fx-border-insets: 2;
+    -fx-padding: 4 12;
+}
+.login-btn:focus-visible {
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.7), 0, 0, 0, 0),
+                innershadow(gaussian, rgba(99,102,241,0.35), 6, 0, 0, 0);
+}
+
+/* Java-built click targets opted in via AccessibilityUtils.asButton() — a
+   solid spread shadow traces the node's own shape/radius, so one rule fits
+   cards, badges, thumbnails and chart bars alike. */
+.a11y-focusable:focused {
+    -fx-effect: dropshadow(three-pass-box, #6366F1, 5, 0.85, 0, 0);
+}
+
+/* Click-only surfaces made keyboard-reachable by AccessibilityUtils
+   (accessibleRole="BUTTON" + onMouseClicked). Regions never take focus on
+   mouse click, so these rings only appear while tabbing. */
+.quick-action-card:focused {
+    -fx-background-color: #F5F3FF;
+    -fx-border-color: #818CF8;
+    -fx-border-width: 2;
+}
+.rich-stat-card-clickable:focused {
+    -fx-border-color: #818CF8;
+    -fx-border-width: 2;
+    -fx-border-radius: 18;
+}
+.rich-stat-card-clickable:selected:focused {
+    -fx-border-color: sibim-indigo-dark;
+    -fx-border-width: 3;
+}
+.alert-banner:focused {
+    -fx-background-color: #E0E7FF;
+    -fx-border-color: sibim-indigo-dark;
+    -fx-border-width: 2 2 2 4;
+}
+.status-shortcut-hint:focused {
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-underline: true;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FILTER CHIPS  — quick status toggle buttons (ToggleButton style)
+   ═══════════════════════════════════════════════════════════════════ */
+.filter-chip {
+    -fx-background-color: transparent;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-padding: 4 13;
+    -fx-font-size: 12px;
+    -fx-text-fill: sibim-slate-500;
+    -fx-cursor: hand;
+    -fx-effect: none;
+}
+.filter-chip:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-border-color: #A5B4FC;
+    -fx-text-fill: sibim-indigo-darker;
+}
+.filter-chip:selected {
+    -fx-background-color: sibim-indigo;
+    -fx-border-color: sibim-indigo;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.30), 6, 0, 0, 2);
+}
+.filter-chip:focused { -fx-border-color: #4F46E5; -fx-border-width: 2; }
+
+/* Color-coded chip variants — hover and selected states per semantic color */
+.filter-chip-green:hover   { -fx-background-color: #F0FDF4; -fx-border-color: #6EE7B7; -fx-text-fill: #047857; }
+.filter-chip-green:selected { -fx-background-color: #059669; -fx-border-color: #059669; -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.32), 6, 0, 0, 2); }
+.filter-chip-amber:hover   { -fx-background-color: #FFFBEB; -fx-border-color: #FCD34D; -fx-text-fill: #92400E; }
+.filter-chip-amber:selected { -fx-background-color: #D97706; -fx-border-color: #D97706; -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 6, 0, 0, 2); }
+.filter-chip-danger:hover  { -fx-background-color: #FFF8F8; -fx-border-color: #FCA5A5; -fx-text-fill: #991B1B; }
+.filter-chip-danger:selected { -fx-background-color: #DC2626; -fx-border-color: #DC2626; -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.32), 6, 0, 0, 2); }
+.filter-chip-purple:hover  { -fx-background-color: #FAF5FF; -fx-border-color: #C4B5FD; -fx-text-fill: #5B21B6; }
+.filter-chip-purple:selected { -fx-background-color: #7C3AED; -fx-border-color: #7C3AED; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.32), 6, 0, 0, 2); }
+.filter-chip-teal:hover    { -fx-background-color: #F0FDFA; -fx-border-color: #5EEAD4; -fx-text-fill: #0E7490; }
+.filter-chip-teal:selected  { -fx-background-color: #0891B2; -fx-border-color: #0891B2; -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.32), 6, 0, 0, 2); }
+
+/* PAGE HEADER per-section color overrides */
+.page-header-indigo  { -fx-border-color: #4338CA #E2E8F0 #E2E8F0 #4338CA; -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 10, 0, 0, 2); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CODIGO CELL — monospace badge, signals click-to-copy
+   ═══════════════════════════════════════════════════════════════════ */
+.codigo-cell {
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 4;
+    -fx-padding: 1 6;
+    -fx-cursor: hand;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   FORM INPUT FOCUS  — matching the design system
+   ═══════════════════════════════════════════════════════════════════ */
+.combo-box:focused > .list-cell,
+.date-picker:focused > .text-field,
+.spinner:focused .text-field {
+    -fx-border-color: sibim-indigo;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 7;
+}
+.combo-box-popup .list-view {
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0, 0, 4);
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 8;
+}
+.combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: #EEF2FF;
+    -fx-text-fill: sibim-indigo-darker;
+}

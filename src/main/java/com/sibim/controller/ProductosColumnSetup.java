@@ -166,13 +166,33 @@ class ProductosColumnSetup {
     }
 
     static void configureArea(TableColumn<Producto, String> col) {
-        col.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
-            c.getValue().getArea() != null ? c.getValue().getArea() : ""));
+        configureTextWithTooltip(col, Producto::getArea, null);
+    }
+
+    /** Who holds the bien (kept in sync with its active resguardo); a dash
+     *  instead of an empty cell so "no one" reads as a fact, not missing data. */
+    static void configureResguardante(TableColumn<Producto, String> col) {
+        if (col == null) return;
+        configureTextWithTooltip(col, Producto::getResguardante, "—");
+    }
+
+    private static void configureTextWithTooltip(TableColumn<Producto, String> col,
+            java.util.function.Function<Producto, String> getter, String blankText) {
+        col.setCellValueFactory(c -> {
+            String v = getter.apply(c.getValue());
+            return new javafx.beans.property.SimpleStringProperty(v != null ? v : "");
+        });
         col.setCellFactory(column -> new TableCell<>() {
             private final Tooltip tip = new Tooltip();
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null || item.isBlank()) { setText(null); setTooltip(null); return; }
+                getStyleClass().remove("muted-text");
+                if (empty) { setText(null); setTooltip(null); return; }
+                if (item == null || item.isBlank()) {
+                    setText(blankText); setTooltip(null);
+                    if (blankText != null) getStyleClass().add("muted-text");
+                    return;
+                }
                 setText(item);
                 tip.setText(item);
                 setTooltip(tip);

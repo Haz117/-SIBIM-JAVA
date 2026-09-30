@@ -47,7 +47,7 @@ public class BackupService {
      *  BackupServiceTablasIntegrationTest fails when a migration adds a table
      *  that is in neither this list nor {@link #TABLAS_EXCLUIDAS}. */
     public static final List<String> TABLAS = List.of(
-        "users", "categories", "configuracion", "folios", "filtros_guardados",
+        "areas", "users", "categories", "configuracion", "folios", "filtros_guardados",
         "products", "product_fotos", "price_history", "producto_mantenimiento",
         "movements", "audit_log", "conteos_fisicos", "conteo_items",
         "resguardos", "resguardo_items", "prestamos", "comodatos",
@@ -139,6 +139,7 @@ public class BackupService {
                     if (filas != null) insertarFilas(conn, tabla, filas, TABLA_AUDITORIA.equals(tabla));
                 }
                 conn.commit();
+                ProductosEnMemoria.invalidar();
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
@@ -197,10 +198,15 @@ public class BackupService {
         return referenciadas;
     }
 
+    /** Row order for tables that reference themselves, so a restore inserts
+     *  every parent before its children (areas.padre → areas.nombre). */
+    private static final Map<String, String> ORDEN = Map.of(
+        "areas", " ORDER BY (grupo = 'DIRECCION'), orden");
+
     private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {
         List<Map<String, Object>> filas = new ArrayList<>();
         try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT * FROM " + tabla)) {
+             ResultSet rs = st.executeQuery("SELECT * FROM " + tabla + ORDEN.getOrDefault(tabla, ""))) {
             ResultSetMetaData meta = rs.getMetaData();
             int cols = meta.getColumnCount();
             while (rs.next()) {

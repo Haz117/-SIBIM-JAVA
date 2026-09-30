@@ -113,7 +113,7 @@ class DemoDataStoreTest {
 
     @Test
     void findAllProductos_areaFiltrada_retornaSoloEsaArea() {
-        String area = Areas.SECRETARIAS.get(0).nombre();
+        String area = Areas.secretarias().get(0).nombre();
         List<Producto> filtrados = DemoDataStore.findAllProductos(Set.of(area));
         assertFalse(filtrados.isEmpty());
         filtrados.forEach(p -> assertEquals(area, p.getArea()));

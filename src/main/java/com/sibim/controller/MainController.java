@@ -26,6 +26,7 @@ import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.TutorialOverlay;
+import com.sibim.util.UpdateChecker;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -99,6 +100,7 @@ public class MainController {
     @FXML private Label statusDbLabel;
     @FXML private Tooltip statusDbTooltip;
     @FXML private Label statusUserLabel;
+    @FXML private Label statusVersionLabel;
     @FXML private Label statusTimeLabel;
     @FXML private StackPane outerStack;
     
@@ -174,6 +176,7 @@ public class MainController {
         statusBarManager = new MainStatusBarManager(
             offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
+        if (statusVersionLabel != null) statusVersionLabel.setText("SIBIM v" + UpdateChecker.currentVersion());
         badgeManager   = new MainBadgeManager(alertBadge, loanBadge, alertProductoService, prestamoService);
         startupChecks  = new MainStartupChecks(alertProductoService, prestamoService);
         startupChecks.cleanupStaleTempFiles();
@@ -212,6 +215,13 @@ public class MainController {
                 javafx.application.Platform.runLater(sidebarManager::setup);
                 if (!startupTasksScheduled) {
                     startupTasksScheduled = true;
+                    // Load the bienes list (and open the offline store) now, in the
+                    // background, so the first dialog/screen that needs it doesn't wait
+                    // ~3–8 s for it (see ProductosEnMemoria).
+                    AppExecutor.submit(() -> {
+                        try { alertProductoService.getAll(); }
+                        catch (Exception ex) { log.debug("Precarga de bienes omitida: {}", ex.getMessage()); }
+                    });
                     javafx.application.Platform.runLater(() -> TutorialOverlay.showIfFirstTime(outerStack));
 
                     if (DatabaseConfig.isDemoMode())
@@ -470,7 +480,7 @@ public class MainController {
         if (!DENSITY_CLASSES[densityIndex].isEmpty())
             contentArea.getStyleClass().add(DENSITY_CLASSES[densityIndex]);
         if (btnDensity != null) {
-            btnDensity.setText(DENSITY_LABELS[densityIndex]);
+            btnDensity.setText("Filas: " + DENSITY_LABELS[densityIndex]);
             if (btnDensity.getGraphic() instanceof FontIcon fi)
                 fi.setIconLiteral(DENSITY_ICONS[densityIndex]);
         }
@@ -489,7 +499,7 @@ public class MainController {
         AccessibilityUtils.applyCurrentTextScaleClass(contentArea);
         if (btnTextSize != null) {
             int idx = AccessibilityUtils.getTextScaleIndex();
-            btnTextSize.setText(AccessibilityUtils.TEXT_SCALE_LABELS[idx]);
+            btnTextSize.setText("Texto: " + AccessibilityUtils.TEXT_SCALE_LABELS[idx]);
         }
     }
 
@@ -759,6 +769,7 @@ public class MainController {
     }
 
     private void refreshCurrentView() {
+        ProductoService.invalidarListaEnMemoria();   // F5 = really ask the database again
         // Re-navigate to the current active view to trigger a refresh
         if (sidebarManager.getActive() != null) sidebarManager.getActive().fire();
     }
@@ -775,17 +786,33 @@ public class MainController {
 
     /**
      * Called by the {@link com.sibim.util.BarcodeScanner} when a USB HID scanner
-     * fires a barcode or QR code. Navigates to the Productos screen and triggers
-     * a search for the scanned code. Shows a brief toast so the user has visual
-     * confirmation the scan was registered.
+     * reads a barcode or QR code (etiqueta, ficha, any printed document that
+     * carries the bien's código), from any screen. A código that matches a bien
+     * opens its ficha straight away — details, photo, resguardante, history and
+     * "Imprimir ficha". Anything else falls back to searching it in Bienes.
      */
     private void handleBarcodeScan(String codigo) {
         javafx.scene.Scene scene = contentArea.getScene();
-        NotificacionUtil.info(scene, "Escaneado: " + codigo);
+        String leido = codigo == null ? "" : codigo.strip();
+        DialogUtil.runAsync(
+            () -> alertProductoService.findByCodigo(leido),
+            encontrado -> {
+                if (encontrado.isPresent()) {
+                    com.sibim.controller.dialogs.ProductoDetailDialog.show(
+                        encontrado.get(), scene, new MovimientoService(), log);
+                } else {
+                    NotificacionUtil.info(scene, "Escaneado: " + leido + " — no es el código de un bien, se busca en Bienes");
+                    buscarEnBienes(leido);
+                }
+            },
+            e -> buscarEnBienes(leido));
+    }
+
+    private void buscarEnBienes(String texto) {
         navigateToView("productos");
         javafx.application.Platform.runLater(() -> {
             if (currentController instanceof ProductosController productosCtrl) {
-                productosCtrl.buscarPorCodigo(codigo);
+                productosCtrl.buscarPorCodigo(texto);
             }
         });
     }

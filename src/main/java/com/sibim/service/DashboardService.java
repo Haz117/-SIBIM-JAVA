@@ -45,6 +45,7 @@ public class DashboardService {
         var fCatValores   = async(() -> productoRepo.getValorPorCategoria(),      exec);
         var fAgotados     = async(() -> productoRepo.findAgotados(),              exec);
         var fBajoStock    = async(() -> productoRepo.findBajoStock(),             exec);
+        var fGarantias    = async(() -> productoRepo.findVencidosProximos(30),    exec);
         var fProximasRev  = async(() -> productoRepo.findProximasRevisiones(30),  exec);
         var fMovHoy       = async(() -> movimientoRepo.findToday(),               exec);
         var fMovSemana    = async(() -> movimientoRepo.findLastNDays(7),          exec);
@@ -56,7 +57,7 @@ public class DashboardService {
 
         try {
             CompletableFuture.allOf(
-                fStats, fCatValores, fAgotados, fBajoStock, fProximasRev,
+                fStats, fCatValores, fAgotados, fBajoStock, fGarantias, fProximasRev,
                 fMovHoy, fMovSemana, fMovMensual, fMovMensualValor, fByArea,
                 fMovsActual, fMovsAnterior).join();
         } catch (CompletionException ce) {
@@ -70,7 +71,7 @@ public class DashboardService {
         log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
             stats.total(), stats.categorias(), movHoy.size());
         return new Resumen(stats, fCatValores.join(), fAgotados.join(),
-                           fBajoStock.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
+                           fBajoStock.join(), fGarantias.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
                            fMovMensual.join(), fMovMensualValor.join(),
                            fByArea.join(), fMovsActual.join(), fMovsAnterior.join());
     }
@@ -157,6 +158,8 @@ public class DashboardService {
             List<ProductoRepository.CategoriaValor> catValores,
             List<Producto> agotados,
             List<Producto> bajoStock,
+            /** Garantías vencidas o por vencer en 30 días — same list as the Alertas screen. */
+            List<Producto> garantias,
             List<Producto> proximasRevisiones,
             List<Movimiento> movHoy,
             List<Movimiento> movSemana,

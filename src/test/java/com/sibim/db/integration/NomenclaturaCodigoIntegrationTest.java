@@ -111,7 +111,7 @@ class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
         Producto p = productoService.save(nuevoBien("Bien a transferir", AREA_SGM));
         assertEquals("SGM/01", p.getCodigo());
 
-        movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "traspaso", null, AREA_RH);
+        movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, p.getStockActual(), "traspaso", null, AREA_RH);
 
         Producto transferido = productoRepo.findById(p.getId()).orElseThrow();
         assertEquals(AREA_RH, transferido.getArea());
@@ -123,7 +123,7 @@ class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
         Producto p = productoService.save(nuevoBien("Bien a transferir", AREA_SGM));
         assertEquals("SGM/01", p.getCodigo());
 
-        movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "traspaso", null, AREA_RH);
+        movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, p.getStockActual(), "traspaso", null, AREA_RH);
 
         Producto siguienteEnSgm = productoService.save(nuevoBien("Nuevo bien en SGM", AREA_SGM));
         assertEquals("SGM/01", siguienteEnSgm.getCodigo(), "SGM/01 debe quedar libre tras la transferencia");

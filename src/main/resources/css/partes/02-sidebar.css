@@ -1,0 +1,329 @@
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════════════════════════ */
+/* Sidebar: light card-style panel matching the rest of the app (AtlantaFX
+   PrimerLight — white cards, soft shadows) instead of the old dark navy
+   block, which was the single biggest visual mismatch in the system: every
+   other surface in SIBIM is light, so a dark sidebar read as a different
+   app bolted on the side. Depth now comes from a right-side drop shadow
+   instead of a color change, the same way .card separates itself from
+   .content-area. */
+.sidebar {
+    -fx-background-color: white;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0 24 24 0;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 24, 0, 6, 0);
+}
+
+/* Fills the strip the sidebar sits on top of, so its rounded right corners
+   (see .sidebar above) don't reveal a mismatched gap behind them — matches
+   .content-area's background now that the sidebar itself is light. */
+.sidebar-backdrop {
+    -fx-background-color: #EEF2F7;
+}
+
+/* Scrollable nav section inside the sidebar — transparent so the sidebar's
+   own white background shows through, with a thin unobtrusive scrollbar (only
+   appears if the window is short enough that the nav list actually
+   overflows; keeps the logout button always reachable below it either way). */
+.sidebar-scroll, .sidebar-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+.sidebar-scroll { -fx-border-color: transparent; -fx-padding: 0; }
+.sidebar-scroll .scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 8; }
+.sidebar-scroll .scroll-bar:vertical .thumb { -fx-background-color: rgba(100,116,139,0.25); -fx-background-radius: 99; }
+.sidebar-scroll .scroll-bar:vertical .increment-button,
+.sidebar-scroll .scroll-bar:vertical .decrement-button { -fx-padding: 0; -fx-background-color: transparent; }
+
+/* Logo area */
+.sidebar-logo-badge {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
+    -fx-background-radius: 9;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 10;
+    -fx-min-width: 36;
+    -fx-min-height: 36;
+    -fx-max-width: 36;
+    -fx-max-height: 36;
+    -fx-alignment: CENTER;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 8, 0, 0, 2);
+}
+.sidebar-logo {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: sibim-slate-900;
+}
+.sidebar-logo-area {
+    -fx-padding: 14 12 8 12;
+}
+/* Icon rail: only the search + collapse icons remain in this row — center them. */
+.sidebar-collapsed .sidebar-logo-area { -fx-alignment: CENTER; }
+.sidebar-app-sub {
+    -fx-font-size: 10px;
+    -fx-text-fill: sibim-slate-600;
+    -fx-padding: 0 0 0 1;
+}
+
+/* User area — same light-card treatment as .filter-bar/.dlg-stock-preview
+   elsewhere (pale gray fill + hairline border) instead of a translucent
+   overlay that only read correctly against a dark background. */
+.sidebar-user-box {
+    -fx-background-color: transparent;
+    -fx-background-radius: 14;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 6 8;
+    -fx-cursor: hand;
+}
+.sidebar-user-box:hover { -fx-background-color: #F1F5F9; }
+.user-avatar {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
+    -fx-background-radius: 999;
+    -fx-min-width: 36;
+    -fx-min-height: 36;
+    -fx-max-width: 36;
+    -fx-max-height: 36;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 6, 0, 0, 1);
+}
+.user-avatar-text {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+.sidebar-username {
+    -fx-text-fill: sibim-slate-900;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+.sidebar-userrole {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-size: 11px;
+    -fx-padding: 0;
+}
+/* Icon rail: only the avatar remains, centered. */
+.sidebar-collapsed .sidebar-user-box { -fx-alignment: CENTER; -fx-padding: 6 0; }
+
+/* Nav section labels — same muted-gray uppercase treatment as
+   .dash-section-label in the content area. */
+.nav-section-label {
+    -fx-text-fill: #64748B;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 14 3 16;
+}
+
+/* ── Accordion sections (SidebarSections.java) ───────────────────────────────
+   A section = clickable header (label + optional badge + chevron) + items box.
+   Folding lets all four sections fit without scrolling at the default window
+   height; a folded section still shows where you are and how many alerts it hides. */
+.nav-section {
+    -fx-border-color: #CBD5E1 transparent transparent transparent;
+    -fx-border-width: 1.5 0 0 0;
+    -fx-padding: 4 0 0 0;
+}
+.nav-section-header {
+    -fx-padding: 6 10 3 16;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+.nav-section-header:hover   { -fx-background-color: #F8FAFC; }
+.nav-section-header:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.nav-section-header:focus-visible {
+    -fx-background-color: sibim-indigo-dark, #EEF2FF;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 10, 8;
+}
+.nav-section-header .nav-section-label { -fx-padding: 0; }
+.nav-section-chevron { -fx-icon-size: 14; -fx-icon-color: #94A3B8; }
+.nav-section-header:hover .nav-section-chevron { -fx-icon-color: sibim-indigo; }
+/* The section that holds the active page keeps a hint of where you are, even when folded. */
+.nav-section-active .nav-section-label   { -fx-text-fill: sibim-indigo-dark; }
+.nav-section-active .nav-section-chevron { -fx-icon-color: sibim-indigo; }
+/* Sum of the items' badges (alerts, overdue loans) — only visible while the section is folded. */
+.nav-section-badge {
+    -fx-background-color: sibim-indigo-dark;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 99;
+    -fx-padding: 1 6;
+}
+.nav-section-items { -fx-padding: 0; }
+.nav-list { -fx-spacing: 4; }
+
+/* ── Icon rail (sidebar collapsed) ───────────────────────────────────────────
+   No headers here, so the groups are told apart only by the divider between them. Keep it
+   minimal — the same plain line as when expanded — but darker and a bit thicker, with the same
+   air above and below it. The nav list already has 12 px of side padding here, so the line
+   never touches the sidebar edge. Do NOT add -fx-border-insets: they count as layout insets,
+   narrow the content and make the ScrollPane show a horizontal scrollbar. */
+.sidebar-collapsed .nav-list { -fx-spacing: 4; }
+.sidebar-collapsed .nav-section {
+    -fx-border-color: #CBD5E1 transparent transparent transparent;
+    -fx-border-width: 1.5 0 0 0;
+    -fx-padding: 4 0 0 0;
+}
+/* Nav buttons — radius 12 to match .btn-primary/.btn-secondary (every
+   button in the content area uses 12). */
+.nav-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: sibim-slate-600;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 10 14;
+    -fx-background-radius: 12;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+    -fx-border-insets: 0;
+    /* Prevent AtlantaFX from painting its own accent-colored focus ring over
+       our background when a nav button holds keyboard focus. */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+/* Keyboard focus (Tab) = a 2 px ring in the section's color, drawn as a background
+   layer so the button's box doesn't move. :focus-visible, not :focused — a mouse
+   click also gives the button focus, and the ring then sat on top of the active
+   pill as a heavy double box. */
+.nav-btn:focus-visible {
+    -fx-background-color: sibim-indigo-dark, #EEF2FF;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 12, 10;
+}
+/* Active item: pale indigo pill with strong indigo left-accent — the same
+   "tinted fill + colored border" language as .cell-badge-* elsewhere,
+   just rescaled for a nav row. */
+.nav-btn.nav-active,
+.nav-btn.nav-active:hover,
+.nav-btn.nav-active:armed {
+    -fx-background-color: #EEF2FF;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-weight: 700;
+    -fx-background-radius: 12;
+    -fx-border-color: transparent transparent transparent sibim-indigo;
+    -fx-border-width: 0 0 0 3;
+    -fx-border-insets: 0;
+    -fx-padding: 10 14;
+    -fx-translate-x: 0;
+}
+.nav-btn.nav-active:focus-visible {
+    -fx-background-color: sibim-indigo-dark, #EEF2FF;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 12, 10;
+}
+
+/* Nav FontIcon colors */
+.nav-icon { -fx-icon-size: 16; -fx-icon-color: sibim-slate-500; }
+.nav-btn:hover .nav-icon { -fx-icon-color: sibim-indigo; }
+.nav-btn.nav-active .nav-icon { -fx-icon-color: sibim-indigo; }
+.logout-btn .nav-icon { -fx-icon-color: #94A3B8; }
+.logout-btn:hover .nav-icon { -fx-icon-color: #B91C1C; }
+
+
+/* Protrusion overlay */
+.nav-tab-extension { -fx-background-color: transparent; }
+
+.sidebar-divider .line {
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 1.5;
+}
+
+/* Logout — neutral by default, danger fill only on hover so it doesn't
+   draw the eye permanently away from navigation items. */
+.logout-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: sibim-slate-500;
+    -fx-background-radius: 12;
+    -fx-cursor: hand;
+    -fx-padding: 9 14;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NAV SECTION COLOR ACCENTS
+   Each nav section gets a distinct accent color so the sidebar sections
+   are visually scannable at a glance.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* OPERACIONES — teal */
+.nav-btn.nav-ops:hover {
+    -fx-background-color: #F0FDFA;
+    -fx-text-fill: #0F766E;
+    -fx-border-color: transparent transparent transparent rgba(13,148,136,0.55);
+}
+.nav-btn.nav-ops:hover .nav-icon { -fx-icon-color: #0D9488; }
+.nav-btn.nav-ops:pressed { -fx-background-color: #CCFBF1; }
+.nav-btn.nav-ops.nav-active,
+.nav-btn.nav-ops.nav-active:hover,
+.nav-btn.nav-ops.nav-active:armed {
+    -fx-background-color: #F0FDFA;
+    -fx-text-fill: #0F766E;
+    -fx-border-color: transparent transparent transparent #0D9488;
+}
+.nav-btn.nav-ops.nav-active .nav-icon { -fx-icon-color: #0D9488; }
+.nav-btn.nav-ops:focus-visible,
+.nav-btn.nav-ops.nav-active:focus-visible {
+    -fx-background-color: #0D9488, #F0FDFA;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 12, 10;
+}
+
+/* CONTROL PATRIMONIAL — violet */
+.nav-btn.nav-ctrl:hover {
+    -fx-background-color: #F5F3FF;
+    -fx-text-fill: #6D28D9;
+    -fx-border-color: transparent transparent transparent rgba(124,58,237,0.55);
+}
+.nav-btn.nav-ctrl:hover .nav-icon { -fx-icon-color: sibim-violet; }
+.nav-btn.nav-ctrl:pressed { -fx-background-color: #EDE9FE; }
+.nav-btn.nav-ctrl.nav-active,
+.nav-btn.nav-ctrl.nav-active:hover,
+.nav-btn.nav-ctrl.nav-active:armed {
+    -fx-background-color: #F5F3FF;
+    -fx-text-fill: #6D28D9;
+    -fx-border-color: transparent transparent transparent sibim-violet;
+}
+.nav-btn.nav-ctrl.nav-active .nav-icon { -fx-icon-color: sibim-violet; }
+.nav-btn.nav-ctrl:focus-visible,
+.nav-btn.nav-ctrl.nav-active:focus-visible {
+    -fx-background-color: sibim-violet, #F5F3FF;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 12, 10;
+}
+
+/* SISTEMA — slate */
+.nav-btn.nav-sys:hover { -fx-border-color: transparent transparent transparent rgba(100,116,139,0.55); }
+.nav-btn.nav-sys.nav-active,
+.nav-btn.nav-sys.nav-active:hover,
+.nav-btn.nav-sys.nav-active:armed {
+    -fx-background-color: #F8FAFC;
+    -fx-text-fill: #334155;
+    -fx-border-color: transparent transparent transparent sibim-slate-500;
+}
+.nav-btn.nav-sys.nav-active .nav-icon { -fx-icon-color: sibim-slate-600; }
+.nav-btn.nav-sys:focus-visible,
+.nav-btn.nav-sys.nav-active:focus-visible {
+    -fx-background-color: sibim-slate-600, #F8FAFC;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 12, 10;
+}
+
+/* Badge offset correction when sidebar is collapsed — the fixed -10px
+   translate is tuned for the wide sidebar; reduce it for icon-only mode. */
+.sidebar-collapsed .alert-nav-badge {
+    /* Icon-only rows are ~56px wide, so CENTER_RIGHT lands on the glyph itself —
+       nudge it to the icon's top-right corner as a compact counter instead. */
+    -fx-translate-x: 6;
+    -fx-translate-y: -11;
+    -fx-font-size: 8.5px;
+    -fx-padding: 0 4;
+    -fx-min-width: 15; -fx-min-height: 15;
+}

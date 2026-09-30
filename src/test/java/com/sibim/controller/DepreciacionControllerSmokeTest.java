@@ -29,7 +29,7 @@ class DepreciacionControllerSmokeTest extends ControllerSmokeTestBase {
     void nodosClavePresentes() {
         assertNotNull(lookup("#table").query(),          "table debe existir");
         assertNotNull(lookup("#searchField").query(),    "searchField debe existir");
-        assertNotNull(lookup("#btnExportPdf").query(),   "btnExportPdf debe existir");
+        assertNotNull(lookup("#btnExportar").query(),   "btnExportar debe existir");
         assertNotNull(lookup("#spinner").query(),        "spinner debe existir");
     }
 }

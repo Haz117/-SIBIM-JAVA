@@ -258,15 +258,22 @@ public class DashboardController implements Refreshable {
     }
 
     private void updateAlertBanner(DashboardService.Resumen data) {
-        var stats = data.stats();
+        // Same lists (and so the same numbers) as the Alertas screen, the
+        // sidebar badge and the bell — the stats query excludes expired
+        // bienes from agotados/bajo stock, which made the three disagree.
+        int agotados = data.agotados().size();
+        int bajoStock = data.bajoStock().size();
+        int garantias = data.garantias().size();
         int proximasRevisiones = data.proximasRevisiones().size();
-        boolean showAlert = stats.agotados() > 0 || stats.bajoStock() > 0 || proximasRevisiones > 0;
+        boolean showAlert = agotados + bajoStock + garantias > 0 || proximasRevisiones > 0;
         if (showAlert && lblAlertBannerText != null) {
             java.util.List<String> parts = new java.util.ArrayList<>();
-            if (stats.agotados() > 0)
-                parts.add(stats.agotados() + " agotado" + (stats.agotados() != 1 ? "s" : ""));
-            if (stats.bajoStock() > 0)
-                parts.add(stats.bajoStock() + " con bajo stock");
+            if (agotados > 0)
+                parts.add(agotados + " agotado" + (agotados != 1 ? "s" : ""));
+            if (bajoStock > 0)
+                parts.add(bajoStock + " con bajo stock");
+            if (garantias > 0)
+                parts.add(garantias + (garantias != 1 ? " garantías" : " garantía") + " por vencer");
             if (proximasRevisiones > 0)
                 parts.add(proximasRevisiones + " con revisión próxima");
             lblAlertBannerText.setText(String.join("  ·  ", parts) + " — requieren atención");

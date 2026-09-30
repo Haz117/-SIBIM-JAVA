@@ -97,7 +97,32 @@ public class ReporteService {
             org.slf4j.LoggerFactory.getLogger(ReporteService.class)
                 .warn("No se pudo leer logo_path de configuración: {}", e.getMessage());
         }
-        return null;
+        return bundledLogoPath();
+    }
+
+    /** Resource path of the municipality logo shipped with the app. */
+    static final String BUNDLED_LOGO = "/img/logo-municipio.png";
+    private static volatile String bundledLogoFile;
+
+    /** The shipped municipality logo, copied once to a temp file so every
+     *  consumer can keep passing a plain path to ImageDataFactory. Null when
+     *  the build carries no logo. A logo_path set in Configuración wins. */
+    static String bundledLogoPath() {
+        if (bundledLogoFile != null) return bundledLogoFile;
+        synchronized (ReporteService.class) {
+            if (bundledLogoFile != null) return bundledLogoFile;
+            try (var in = ReporteService.class.getResourceAsStream(BUNDLED_LOGO)) {
+                if (in == null) return null;
+                java.nio.file.Path tmp = java.nio.file.Files.createTempFile("sibim-logo-", ".png");
+                tmp.toFile().deleteOnExit();
+                java.nio.file.Files.copy(in, tmp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                bundledLogoFile = tmp.toString();
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(ReporteService.class)
+                    .warn("No se pudo preparar el logo municipal incluido: {}", e.getMessage());
+            }
+            return bundledLogoFile;
+        }
     }
 
     /**
@@ -473,7 +498,7 @@ public class ReporteService {
             xStyle.setFillForegroundColor(
                 new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)162, (byte)35, (byte)45}, null));
         } else {
-            style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            style.setFillForegroundColor(IndexedColors.MAROON.getIndex());   // closest indexed guinda
         }
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.LEFT);
@@ -651,6 +676,11 @@ public class ReporteService {
 
     public File exportFichaTecnica(Producto p, List<Movimiento> movimientos) throws Exception {
         return new ReporteFichaTecnicaService().exportFichaTecnica(p, movimientos);
+    }
+
+    /** Formato para que un área pida la baja de uno o varios bienes (una página por bien). */
+    public File exportSolicitudBaja(List<Producto> bienes) throws Exception {
+        return new ReporteSolicitudBajaService().exportSolicitudBaja(bienes);
     }
 
     public File exportFichasTecnicasMasivas(List<Producto> bienes,

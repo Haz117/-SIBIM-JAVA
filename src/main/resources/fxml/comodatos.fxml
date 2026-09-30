@@ -10,9 +10,9 @@
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-purple">
-        <StackPane styleClass="page-header-icon, page-header-icon-purple">
-            <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="page-icon-emoji"/>
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
+        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+            <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Comodatos" styleClass="page-title"/>
@@ -98,11 +98,16 @@
         <TextField fx:id="searchField" promptText="Buscar por bien, entidad, contacto o número…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <ComboBox fx:id="estadoFilter" prefWidth="140" promptText="Todos los estados"/>
-        <Button fx:id="btnExportarPdf" text="PDF" onAction="#onExportarPdf"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el registro de comodatos visible a PDF"/></tooltip>
-        </Button>
+        <MenuButton fx:id="btnExportarPdf" text="Exportar" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de comodatos visible" wrapText="true" maxWidth="240"/></tooltip>
+            <items>
+                <MenuItem text="PDF" onAction="#onExportarPdf">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                </MenuItem>
+            </items>
+        </MenuButton>
     </HBox>
 
     <!-- ══ TABLE ══════════════════════════════════════════════════════ -->

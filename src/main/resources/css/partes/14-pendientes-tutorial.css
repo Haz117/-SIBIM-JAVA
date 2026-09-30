@@ -1,0 +1,186 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PENDING TRANSFERS BUTTON — amber outline variant
+   ═══════════════════════════════════════════════════════════════════ */
+.btn-warning-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: sibim-amber;
+    -fx-text-fill: #B45309;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 6 16;
+}
+.btn-warning-outline:hover   { -fx-background-color: #FEF3C7; }
+.btn-warning-outline:pressed { -fx-background-color: #FDE68A; -fx-translate-y: 1; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TUTORIAL OVERLAY — first-time inductive guide
+   ═══════════════════════════════════════════════════════════════════ */
+/* Dim layer — opacity adjusted per step (0.62 for module steps, 0.85 for intro/outro) */
+.tutorial-dim-layer {
+    -fx-background-color: rgba(15, 23, 42, 1.0);
+}
+
+/* Keep old class for any lingering references */
+.tutorial-backdrop {
+    -fx-background-color: rgba(15, 23, 42, 0.70);
+}
+
+/* Nav-tip hint shown below shortcut pill on module steps */
+.tutorial-nav-tip {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+    -fx-padding: 4 0 0 0;
+}
+
+/* Card: border-radius and left-side radius are overridden inline when arrow is shown */
+.tutorial-card {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-color: #E4EAF4;
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.26), 44, 0.04, 0, 14);
+}
+
+/* Header radius is set inline per step (dynamic left-corner); this is a fallback */
+.tutorial-card > StackPane {
+    -fx-background-radius: 20 20 0 0;
+}
+
+/* Floating icon badge — white circle, border + glow set inline per step */
+.tutorial-icon-badge {
+    -fx-background-color: white;
+    -fx-background-radius: 38;
+}
+
+/* Progress track inside header */
+.tutorial-progress-track {
+    -fx-background-color: rgba(255,255,255,0.20);
+    -fx-background-radius: 20 20 0 0;
+}
+
+/* Progress fill — width animated in Java */
+.tutorial-progress-fill {
+    -fx-background-color: rgba(255,255,255,0.90);
+    -fx-background-radius: 0 3 3 0;
+}
+
+/* Step title */
+.tutorial-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F172A;
+    -fx-text-alignment: CENTER;
+    -fx-alignment: CENTER;
+}
+
+/* Bullet rows */
+.tutorial-bullet-row {
+    -fx-padding: 3 0;
+}
+.tutorial-bullet-text {
+    -fx-font-size: 13.5px;
+    -fx-text-fill: #334155;
+    -fx-line-spacing: 1;
+}
+
+/* Shortcut pill — static layout here; dynamic bg/border colors set inline per step */
+.tutorial-shortcut-icon { -fx-icon-size: 13; }
+.tutorial-shortcut-text { -fx-font-size: 12.5px; -fx-font-weight: bold; }
+.tutorial-shortcut-pill {
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-border-width: 1.5;
+    -fx-padding: 6 16;
+}
+
+/* Progress dots */
+.tutorial-dot        { -fx-fill: #CBD5E1; }
+.tutorial-dot-active { -fx-fill: sibim-indigo; }
+
+/* Step counter */
+.tutorial-counter {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748B;
+    -fx-font-weight: 600;
+}
+
+/* Primary action button — background set inline per step */
+.tutorial-btn-primary {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-padding: 10 26;
+    -fx-cursor: hand;
+    -fx-font-size: 13.5px;
+}
+.tutorial-btn-primary:hover   { -fx-opacity: 0.88; }
+.tutorial-btn-primary:pressed { -fx-opacity: 0.74; -fx-translate-y: 1; }
+.tutorial-btn-primary:disabled { -fx-opacity: 0.50; }
+
+/* Secondary (Anterior) button */
+.tutorial-btn-secondary {
+    -fx-background-color: transparent;
+    -fx-text-fill: sibim-slate-500;
+    -fx-background-radius: 10;
+    -fx-padding: 10 18;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.5;
+}
+.tutorial-btn-secondary:hover   { -fx-background-color: #F8FAFC; -fx-text-fill: #334155; }
+.tutorial-btn-secondary:pressed { -fx-background-color: #F1F5F9; -fx-translate-y: 1; }
+
+/* Ghost skip button */
+.tutorial-btn-skip {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748B;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+}
+.tutorial-btn-skip:hover {
+    -fx-text-fill: sibim-slate-600;
+    -fx-background-color: #F1F5F9;
+    -fx-background-radius: 8;
+}
+
+/* Close button (top-right of header) */
+.tutorial-close-btn {
+    -fx-background-color: rgba(255,255,255,0.18);
+    -fx-text-fill: white;
+    -fx-background-radius: 99;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-pref-width: 28; -fx-pref-height: 28;
+    -fx-min-width: 28;  -fx-min-height: 28;
+    -fx-max-width: 28;  -fx-max-height: 28;
+    -fx-padding: 0;
+    -fx-alignment: CENTER;
+}
+.tutorial-close-btn:hover   { -fx-background-color: rgba(255,255,255,0.32); }
+.tutorial-close-btn:pressed { -fx-background-color: rgba(255,255,255,0.48); }
+.tutorial-close-btn:focused { -fx-background-color: rgba(255,255,255,0.32);
+    -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.65), 0, 0, 0, 0); }
+
+/* When arrow-caret is shown, left corners are squared on the card */
+.tutorial-card-with-arrow {
+    -fx-background-radius: 0 20 20 0;
+    -fx-border-radius: 0 20 20 0;
+}
+
+/* Keyboard navigation hint below buttons */
+.tutorial-kb-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748B;
+    -fx-font-style: italic;
+    -fx-padding: 0 0 2 0;
+    -fx-alignment: CENTER;
+}

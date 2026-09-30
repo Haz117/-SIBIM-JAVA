@@ -1,0 +1,139 @@
+/* ═══════════════════════════════════════════════════════════════════
+   LOGIN
+   ═══════════════════════════════════════════════════════════════════ */
+.login-root { -fx-background-color: white; }
+
+/* ── Brand panel (left) ── */
+.login-brand {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #1E1B4B, #3730A3, #5B21B6);
+}
+.login-deco-circle-1 { -fx-fill: #FFFFFF09; }
+.login-deco-circle-2 { -fx-fill: #FFFFFF06; }
+.login-deco-circle-3 { -fx-fill: #FFFFFF0B; }
+.login-deco-circle-4 { -fx-fill: #FFFFFF0E; }
+/* Same brand mark as the splash: flat indigo rounded square with the package icon */
+.brand-logo-badge {
+    -fx-background-color: sibim-indigo-dark;
+    -fx-background-radius: 13;
+    -fx-border-color: rgba(165,180,252,0.35);
+    -fx-border-radius: 13;
+    -fx-border-width: 1;
+    -fx-min-width: 52; -fx-min-height: 52;
+    -fx-max-width: 52; -fx-max-height: 52;
+}
+.brand-logo-icon {
+    -fx-icon-color: white;
+    -fx-icon-size: 24px;
+}
+.brand-title {
+    -fx-font-size: 44px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 6, 0, 0, 2);
+}
+.brand-system-name {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #C4B5FD;
+    -fx-font-weight: 600;
+}
+.brand-feature {
+    -fx-font-size: 13px;
+    -fx-text-fill: #DDD6FE;
+}
+.feature-check-icon { -fx-icon-size: 14; -fx-icon-color: #818cf8; }
+.brand-divider .line { -fx-border-color: rgba(255,255,255,0.15); }
+.brand-hint {
+    -fx-text-fill: #C4B5FD;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.test-btn {
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-text-fill: rgba(255,255,255,0.92);
+    -fx-background-radius: 20;
+    -fx-border-color: rgba(255,255,255,0.25);
+    -fx-border-width: 1;
+    -fx-border-radius: 20;
+    -fx-cursor: hand;
+    -fx-font-size: 11.5px;
+    -fx-padding: 6 14;
+}
+.test-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.25);
+    -fx-border-color: rgba(255,255,255,0.45);
+}
+.test-btn:pressed { -fx-background-color: rgba(255,255,255,0.35); }
+
+/* ── Form panel (right) ── */
+.login-form-panel {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #EDEEFF, white);
+}
+.login-title {
+    -fx-font-size: 27px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F172A;
+}
+.login-subtitle { -fx-text-fill: sibim-slate-500; -fx-font-size: 13.5px; }
+.form-label {
+    -fx-text-fill: #374151;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+}
+.form-input {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1.5;
+    -fx-padding: 11 14;
+    -fx-font-size: 13px;
+    -fx-prompt-text-fill: #64748B;
+}
+.form-input:hover {
+    -fx-background-color: white;
+    -fx-border-color: #A5B4FC;
+}
+.form-input:focused {
+    -fx-background-color: white;
+    -fx-border-color: sibim-indigo;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.20), 8, 0, 0, 0);
+}
+.login-btn {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6366F1, #7C3AED);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 9;
+    -fx-padding: 13;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 12, 0, 0, 4);
+}
+.login-btn:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4F46E5, #6D28D9);
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.60), 16, 0, 0, 6);
+}
+.login-btn:pressed {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4338CA, #5B21B6);
+    -fx-effect: none;
+}
+.login-btn:disabled { -fx-background-color: #C4B5FD; -fx-effect: none; }
+.error-label {
+    -fx-text-fill: #B91C1C;
+    -fx-font-size: 12px;
+    -fx-background-color: #FEF2F2;
+    -fx-border-color: #FCA5A5;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-border-width: 1;
+    -fx-padding: 8 12;
+}
+.error-icon { -fx-icon-size: 13; -fx-icon-color: sibim-red; }
+.login-forgot-link {
+    -fx-text-fill: #64748B;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-background-color: transparent;
+    -fx-padding: 2 4;
+}
+.login-forgot-link:hover { -fx-text-fill: sibim-indigo-dark; -fx-underline: true; }

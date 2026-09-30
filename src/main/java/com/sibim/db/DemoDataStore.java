@@ -34,14 +34,14 @@ public final class DemoDataStore {
     // reordenó y renombró esta misma lista) — el organigrama agrupa por esos
     // nombres exactos, así que cualquier copia suelta aquí vuelve a dejar los
     // productos de demo invisibles en su sección de secretaría/dirección.
-    private static final String SGM   = com.sibim.config.Areas.SECRETARIAS.get(0).nombre();                        // Secretaría General Municipal
-    private static final String RH    = com.sibim.config.Areas.SECRETARIAS.get(1).direcciones().get(4);            // Tesorería — Recursos Humanos y Nómina
-    private static final String ADM   = com.sibim.config.Areas.SECRETARIAS.get(1).direcciones().get(1);            // Tesorería — Administración
-    private static final String BM    = com.sibim.config.Areas.SECRETARIAS.get(0).direcciones().get(3);            // Recursos Materiales y Patrimonio
-    private static final String OBRAS = com.sibim.config.Areas.SECRETARIAS.get(2).nombre();                        // Secretaría de Obras Públicas
-    private static final String PLAN  = com.sibim.config.Areas.SECRETARIAS.get(3).nombre();                        // Secretaría de Planeación
-    private static final String FIN   = com.sibim.config.Areas.SECRETARIAS.get(1).nombre();                        // Tesorería Municipal
-    private static final String SEG   = com.sibim.config.Areas.AUTONOMOS.get(5);                                   // Protección Civil y Bomberos
+    private static final String SGM   = com.sibim.config.Areas.secretarias().get(0).nombre();                        // Secretaría General Municipal
+    private static final String RH    = com.sibim.config.Areas.secretarias().get(1).direcciones().get(4);            // Tesorería — Recursos Humanos y Nómina
+    private static final String ADM   = com.sibim.config.Areas.secretarias().get(1).direcciones().get(1);            // Tesorería — Administración
+    private static final String BM    = com.sibim.config.Areas.secretarias().get(0).direcciones().get(3);            // Recursos Materiales y Patrimonio
+    private static final String OBRAS = com.sibim.config.Areas.secretarias().get(2).nombre();                        // Secretaría de Obras Públicas
+    private static final String PLAN  = com.sibim.config.Areas.secretarias().get(3).nombre();                        // Secretaría de Planeación
+    private static final String FIN   = com.sibim.config.Areas.secretarias().get(1).nombre();                        // Tesorería Municipal
+    private static final String SEG   = com.sibim.config.Areas.autonomos().get(5);                                   // Protección Civil y Bomberos
     private static final String PRES  = com.sibim.config.Areas.PRESIDENCIA;                                        // Despacho de Presidencia
 
     // Hash BCrypt de "admin123456" (factor 12) — solo para demo; la autenticación

@@ -1,0 +1,282 @@
+/* ─── Status mini-cards (dashboard health replacement) ─── */
+.status-mini-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.06), 8, 0, 0, 2);
+}
+.status-mini-card:hover {
+    -fx-translate-y: -2;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 14, 0, 0, 4);
+}
+.status-mini-card:pressed { -fx-translate-y: 0; }
+
+.status-mini-card-green  { -fx-border-color: #A7F3D0; }
+.status-mini-card-amber  { -fx-border-color: #FDE68A; }
+.status-mini-card-red    { -fx-border-color: #FECACA; }
+.status-mini-card-violet { -fx-border-color: #DDD6FE; }
+
+.status-mini-label { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-500; }
+.status-mini-count { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+
+.status-mini-pct         { -fx-font-size: 12px; -fx-font-weight: bold; }
+.status-pct-green        { -fx-text-fill: #047857; }
+.status-pct-amber        { -fx-text-fill: #B45309; }
+.status-pct-red          { -fx-text-fill: sibim-red; }
+.status-pct-violet       { -fx-text-fill: sibim-violet; }
+
+.status-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 16; }
+.status-icon-amber  { -fx-icon-color: sibim-amber; -fx-icon-size: 16; }
+.status-icon-red    { -fx-icon-color: sibim-red; -fx-icon-size: 16; }
+.status-icon-violet { -fx-icon-color: sibim-violet; -fx-icon-size: 16; }
+
+/* ProgressBar styling for status cards.
+   AtlantaFX's own .bar rule reads "-fx-background-color: -color-progress-bar-fill"
+   (its own custom looked-up color, NOT the legacy -fx-accent) — recoloring an
+   instance means overriding that variable on the ProgressBar itself, since a
+   plain -fx-background-color rule on .track/.bar loses to AtlantaFX's rule
+   regardless of author-stylesheet order. */
+.status-pb { -fx-pref-height: 7; -fx-background-radius: 4; }
+.status-pb .track { -fx-background-radius: 4; -fx-background-insets: 0; }
+.status-pb .bar   { -fx-background-radius: 4; -fx-background-insets: 0; }
+.status-pb-green  { -color-progress-bar-fill: #10B981; -color-progress-bar-track: rgba(16,185,129,0.12); }
+.status-pb-amber  { -color-progress-bar-fill: #F59E0B; -color-progress-bar-track: rgba(217,119,6,0.12); }
+.status-pb-red    { -color-progress-bar-fill: #EF4444; -color-progress-bar-track: rgba(220,38,38,0.12); }
+.status-pb-violet { -color-progress-bar-fill: #8B5CF6; -color-progress-bar-track: rgba(124,58,237,0.12); }
+
+/* Belt-and-suspenders: #id selectors have the highest CSS specificity there
+   is, so these win outright no matter what AtlantaFX's own rules do. fx:id
+   in FXML sets the node's id automatically, so these match pbAgotados/
+   pbBajoStock/pbGarantias directly without needing any lookup-color chain. */
+#pbAgotados  > .bar { -fx-background-color: #EF4444; }
+#pbAgotados  > .track { -fx-background-color: rgba(220,38,38,0.12); }
+#pbBajoStock > .bar { -fx-background-color: #F59E0B; }
+#pbBajoStock > .track { -fx-background-color: rgba(217,119,6,0.12); }
+#pbGarantias > .bar { -fx-background-color: #8B5CF6; }
+#pbGarantias > .track { -fx-background-color: rgba(124,58,237,0.12); }
+
+/* ─── Area distribution bars ─── */
+.area-bar-name  { -fx-font-size: 12.5px; -fx-text-fill: #334155; }
+.area-bar-count { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
+.area-bar-pb { -fx-pref-height: 10; -fx-background-radius: 5; }
+.area-bar-pb .track { -fx-background-color: #F1F5F9; -fx-background-radius: 5; -fx-background-insets: 0; }
+.area-bar-pb .bar   { -fx-background-radius: 5; -fx-background-insets: 0; }
+
+/* Colores posicionales para barras de área (evita inline setStyle) */
+.area-bar-pb-1 .bar { -fx-background-color: sibim-indigo-darker; }
+.area-bar-pb-2 .bar { -fx-background-color: #0891B2; }
+.area-bar-pb-3 .bar { -fx-background-color: #059669; }
+.area-bar-pb-4 .bar { -fx-background-color: sibim-amber; }
+.area-bar-pb-5 .bar { -fx-background-color: sibim-red; }
+
+/* ─── Depreciación: barra visual en celda de tabla ─── */
+.depr-bar-cell { -fx-pref-height: 10; -fx-background-radius: 4; }
+.depr-bar-cell .track { -fx-background-color: #F1F5F9; -fx-background-radius: 4; -fx-background-insets: 0; }
+.depr-bar-cell .bar   { -fx-background-radius: 4; -fx-background-insets: 0; }
+.depr-bar-low  .bar   { -fx-background-color: #10B981; }
+.depr-bar-mid  .bar   { -fx-background-color: #F59E0B; }
+.depr-bar-high .bar   { -fx-background-color: #EF4444; }
+.depr-bar-full .bar   { -fx-background-color: sibim-violet; }
+
+/* ─── Depreciación: etiquetas de rangos ─── */
+.depr-range-label { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; -fx-min-width: 75px; }
+.depr-range-count { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;
+                    -fx-min-width: 65px; -fx-alignment: CENTER_RIGHT; }
+
+/* ─── Depreciación: hover sobre puntos del LineChart ─── */
+.chart-point-hover { -fx-scale-x: 1.5; -fx-scale-y: 1.5; }
+
+/* ─── Stat cards: one look everywhere ───
+   Every card is the white .rich-stat-card; the second class
+   ("rich-stat-card, rich-stat-indigo") only picks the icon badge color.
+   Tinted card backgrounds per color used to live here and made each screen
+   a different palette — removed on purpose. */
+.rich-stat-icon-badge-rose  { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fb7185, #f43f5e); }
+.rich-stat-icon-badge-slate { -fx-background-color: sibim-slate-500; }
+.filter-chip-rose { -fx-background-color: #fff1f2; -fx-border-color: #fda4af; -fx-text-fill: #BE123C; }
+.filter-chip-rose:selected { -fx-background-color: #f43f5e; -fx-text-fill: white; -fx-border-color: #e11d48; }
+
+/* ─── Table density toggle ─── */
+.density-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748B;
+    -fx-font-size: 11px;
+    -fx-padding: 2 6 2 6;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: rgba(255,255,255,0.08);
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 4;
+}
+.density-btn:hover { -fx-background-color: rgba(255,255,255,0.07); -fx-text-fill: #4338CA; }
+.density-btn:pressed { -fx-background-color: rgba(255,255,255,0.12); }
+.density-btn .status-icon { -fx-icon-size: 13; -fx-icon-color: #94A3B8; }
+.density-btn:hover .status-icon { -fx-icon-color: #C7D2FE; }
+/* Icon-only status-bar buttons (e.g. the notification bell) aren't
+   .density-btn, so the rule above never reached them — the icon fell back
+   to AtlantaFX's default dark fill and all but disappeared against the
+   status bar's dark navy background. */
+.status-bar .btn-icon-only .status-icon { -fx-icon-size: 15; -fx-icon-color: sibim-slate-500; }
+.status-bar .btn-icon-only:hover .status-icon { -fx-icon-color: sibim-indigo; }
+
+/* Compact: 32px rows / Comfortable: 58px rows (Normal default is 44px) */
+.density-compact .data-table .table-row-cell  { -fx-cell-size: 32px; }
+.density-comfortable .data-table .table-row-cell { -fx-cell-size: 58px; }
+
+/* ─── Text size (accessibility) ───────────────────────────────────────────
+   Applied to the main content area (all screens) and to every dialog pane
+   (see DialogUtil.applyStylesheet) — a curated set of the highest-traffic
+   text selectors, not exhaustive: anything not listed here keeps its
+   default size instead of breaking, so this degrades gracefully. */
+.text-scale-lg .data-table .table-cell     { -fx-font-size: 15px; }
+.text-scale-lg .page-title                 { -fx-font-size: 24px; }
+.text-scale-lg .page-subtitle              { -fx-font-size: 14.5px; }
+.text-scale-lg .form-label                 { -fx-font-size: 14.5px; }
+.text-scale-lg .field-hint                 { -fx-font-size: 13px; }
+.text-scale-lg .dash-section-label         { -fx-font-size: 12px; }
+.text-scale-lg .rich-stat-label            { -fx-font-size: 12px; }
+.text-scale-lg .rich-stat-value            { -fx-font-size: 34px; }
+.text-scale-lg .rich-stat-hint             { -fx-font-size: 13px; }
+.text-scale-lg .dlg-header-title           { -fx-font-size: 18px; }
+.text-scale-lg .dlg-header-subtitle        { -fx-font-size: 13.5px; }
+.text-scale-lg .dlg-message-body           { -fx-font-size: 15px; }
+.text-scale-lg .muted-sm                   { -fx-font-size: 13px; }
+
+.text-scale-xl .data-table .table-cell     { -fx-font-size: 17px; }
+.text-scale-xl .page-title                 { -fx-font-size: 27px; }
+.text-scale-xl .page-subtitle              { -fx-font-size: 16px; }
+.text-scale-xl .form-label                 { -fx-font-size: 16px; }
+.text-scale-xl .field-hint                 { -fx-font-size: 14px; }
+.text-scale-xl .dash-section-label         { -fx-font-size: 13.5px; }
+.text-scale-xl .rich-stat-label            { -fx-font-size: 13.5px; }
+.text-scale-xl .rich-stat-value            { -fx-font-size: 39px; }
+.text-scale-xl .rich-stat-hint             { -fx-font-size: 14px; }
+.text-scale-xl .dlg-header-title           { -fx-font-size: 20px; }
+.text-scale-xl .dlg-header-subtitle        { -fx-font-size: 15px; }
+.text-scale-xl .dlg-message-body           { -fx-font-size: 17px; }
+.text-scale-xl .muted-sm                   { -fx-font-size: 14px; }
+
+/* ─── Dashboard trend indicator ─── */
+.trend-lbl {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 5 1 5;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
+.trend-up   { -fx-text-fill: #047857; -fx-background-color: #D1FAE5; }
+.trend-down { -fx-text-fill: #B91C1C; -fx-background-color: #FEE2E2; }
+.trend-eq   { -fx-text-fill: sibim-slate-600; -fx-background-color: #F1F5F9; }
+
+/* ─── FEATURE 1: Drag & drop zone ─── */
+.drop-zone {
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 2;
+    -fx-border-style: dashed;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-background-color: #F8FAFC;
+    -fx-padding: 28 20;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+.drop-zone:hover, .drop-zone-active {
+    -fx-border-color: sibim-indigo;
+    -fx-background-color: #EEF2FF;
+}
+
+/* ─── FEATURE 3: Empty states ─── */
+/* .empty-state-icon is defined once, together with .empty-icon-lg, near the
+   "Empty-state large icon" rule above. */
+.empty-state-icon-circle {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 99;
+    -fx-padding: 22;
+    -fx-alignment: CENTER;
+}
+.empty-state-box {
+    -fx-padding: 52 24;
+    -fx-alignment: center;
+}
+.empty-state-title, .empty-state-msg {
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-text-fill: sibim-slate-600;
+}
+.empty-state-subtitle, .empty-state-hint {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748B;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-wrap-text: true;
+    -fx-padding: 0 40;
+}
+
+/* ─── FEATURE 4: Skeleton loading ─── */
+.skeleton-container { -fx-padding: 8 0; }
+.skeleton-row {
+    -fx-padding: 8 12;
+    -fx-alignment: center-left;
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #F1F5F9 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.skeleton-block {
+    -fx-background-color: linear-gradient(to right, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%);
+    -fx-background-radius: 4;
+    -fx-min-height: 16;
+}
+
+/* ─── FEATURE 5: Lightbox ─── */
+.foto-thumbnail-clickable { -fx-cursor: hand; }
+.foto-thumbnail-clickable:hover { -fx-opacity: 0.85; -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.4), 8, 0, 0, 0); }
+.lightbox-image { -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 12, 0, 0, 3); }
+.lightbox-counter { -fx-font-size: 13px; -fx-text-fill: sibim-slate-500; }
+.lightbox-nav-bar { -fx-padding: 4 0; }
+.lightbox-nav { -fx-min-width: 36; -fx-min-height: 36; }
+.lightbox-content { -fx-background-color: white; }
+
+/* ─── FEATURE 10: Comparación de bienes ─── */
+.compare-diff { -fx-background-color: #FEF3C7; }
+.compare-header { -fx-font-weight: 700; -fx-background-color: #F1F5F9; }
+
+/* ─── FEATURE 6: Active filter chips bar ─── */
+.active-chips-bar {
+    -fx-padding: 0 0 2 2;
+}
+.active-chip {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 20;
+    -fx-border-color: #A5B4FC;
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+    -fx-padding: 2 4 2 10;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.10), 3, 0, 0, 1);
+}
+.active-chip:hover {
+    -fx-border-color: sibim-indigo;
+    -fx-background-color: #E0E7FF;
+}
+.active-chip-label {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: #3730A3;
+    -fx-font-weight: 500;
+}
+.active-chip-close {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 1 4 1 0;
+    -fx-background-radius: 20;
+    -fx-cursor: hand;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+}
+.active-chip-close .ikonli-font-icon {
+    -fx-icon-color: #9CA3AF;
+    -fx-icon-size: 10;
+}
+.active-chip-close:hover { -fx-background-color: #FEE2E2; }
+.active-chip-close:hover .ikonli-font-icon { -fx-icon-color: sibim-red; }

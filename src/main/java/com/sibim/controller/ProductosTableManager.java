@@ -52,7 +52,7 @@ class ProductosTableManager {
     private final Button btnQr;
     private final Button btnEditar;
     private final Button btnEliminar;
-    private final MenuButton btnExportarSeleccion;
+    private final MenuItem btnExportarSeleccion;
 
     private final Map<String, Image> thumbnailCache;
     private final Logger log;
@@ -98,7 +98,7 @@ class ProductosTableManager {
             Label lblSeleccionados,
             Button btnMovimiento, Button btnQr,
             Button btnEditar, Button btnEliminar,
-            MenuButton btnExportarSeleccion,
+            MenuItem btnExportarSeleccion,
             Map<String, Image> thumbnailCache,
             Logger log,
             boolean canEdit,
@@ -206,7 +206,6 @@ class ProductosTableManager {
         if (btnEditar        != null && canEdit) Tooltip.install(btnEditar,        new Tooltip("Selecciona un bien para editarlo"));
         if (btnEliminar      != null && canEdit) Tooltip.install(btnEliminar,      new Tooltip("Selecciona un bien para darlo de baja"));
         if (btnMovimiento    != null && canEdit) Tooltip.install(btnMovimiento,    new Tooltip("Selecciona un bien para registrar un movimiento"));
-        if (btnExportarSeleccion != null)        Tooltip.install(btnExportarSeleccion, new Tooltip("Selecciona uno o más bienes para exportarlos"));
 
         // Delete key on table — only when exactly one row is selected, same
         // as the "Dar de baja" button (a formal baja needs a motivo per bien,

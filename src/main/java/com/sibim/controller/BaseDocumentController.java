@@ -54,7 +54,8 @@ public abstract class BaseDocumentController<T> {
 
     @FXML protected VBox          rootPane;
     @FXML protected TableView<T>  table;
-    @FXML protected Button        btnExportarPdf;
+    /** The screen's single "Exportar" menu (kept under its old fx:id). */
+    @FXML protected javafx.scene.control.ButtonBase btnExportarPdf;
     @FXML protected ProgressIndicator spinner;
     @FXML protected VBox          resumenBox;
     @FXML protected Button        btnToggleResumen;

@@ -66,17 +66,17 @@ class OrganigramaTreeBuilder {
         Set<String> accessible = SessionManager.getAccessibleAreas();
 
         if (accessible == null || accessible.contains(Areas.PRESIDENCIA)
-                || anyAccessible(accessible, Areas.DIRECCIONES_PRESIDENCIA))
-            addAreaSection(orgTree, Areas.PRESIDENCIA, Areas.DIRECCIONES_PRESIDENCIA, q, true, accessible);
+                || anyAccessible(accessible, Areas.direccionesPresidencia()))
+            addAreaSection(orgTree, Areas.PRESIDENCIA, Areas.direccionesPresidencia(), q, true, accessible);
 
-        for (Areas.SecretariaInfo sec : Areas.SECRETARIAS) {
+        for (Areas.SecretariaInfo sec : Areas.secretarias()) {
             if (accessible == null || accessible.contains(sec.nombre())
                     || anyAccessible(accessible, sec.direcciones()))
                 addAreaSection(orgTree, sec.nombre(), sec.direcciones(), q, false, accessible);
         }
 
-        if (accessible == null || anyAccessible(accessible, Areas.AUTONOMOS))
-            addAreaSection(orgTree, "Organismos Autónomos", Areas.AUTONOMOS, q, false, accessible);
+        if (accessible == null || anyAccessible(accessible, Areas.autonomos()))
+            addAreaSection(orgTree, "Organismos Autónomos", Areas.autonomos(), q, false, accessible);
 
         if (orgTree.getChildren().isEmpty()) {
             FontIcon icon = new FontIcon("mdi2o-office-building-outline");
@@ -99,11 +99,30 @@ class OrganigramaTreeBuilder {
         AnimationUtils.staggeredFadeInUp(orgTree.getChildren(), 270, 50);
     }
 
+    /** No bienes, resguardos, préstamos or comodatos recorded under this exact area name. */
+    private boolean isEmptyArea(String area) {
+        return productosPorArea.getOrDefault(area, List.of()).isEmpty()
+            && resguardosPorArea.getOrDefault(area, List.of()).isEmpty()
+            && prestamosPorArea.getOrDefault(area, List.of()).isEmpty()
+            && comodatosPorArea.getOrDefault(area, List.of()).isEmpty();
+    }
+
+    private static boolean isOwnArea(String area) {
+        return !SessionManager.isAdmin() && SessionManager.getCurrentUser() != null
+            && area.equals(SessionManager.getCurrentUser().getArea());
+    }
+
     private void addAreaSection(VBox orgTree, String parentName, List<String> children,
                                  String filter, boolean expanded, Set<String> accessible) {
         List<Producto> allAreaProds = new ArrayList<>(
             productosPorArea.getOrDefault(parentName, List.of()));
         children.forEach(c -> allAreaProds.addAll(productosPorArea.getOrDefault(c, List.of())));
+
+        // Areas with nothing registered only add scrolling; they still show
+        // when a search names them, and a user always sees their own area.
+        if (filter.isBlank() && isEmptyArea(parentName) && !isOwnArea(parentName)
+                && children.stream().allMatch(c -> isEmptyArea(c) && !isOwnArea(c)))
+            return;
 
         if (soloAlertas) {
             boolean hasAlert = allAreaProds.stream().anyMatch(
@@ -244,6 +263,7 @@ class OrganigramaTreeBuilder {
             List<Producto> childProds = productosPorArea.getOrDefault(child, List.of());
             if (!filter.isBlank() && !child.toLowerCase().contains(filter)
                     && !matchesFilter(childProds, filter)) continue;
+            if (filter.isBlank() && isEmptyArea(child) && !isOwnArea(child)) continue;
 
             boolean isMyArea = !SessionManager.isAdmin()
                 && child.equals(SessionManager.getCurrentUser().getArea());

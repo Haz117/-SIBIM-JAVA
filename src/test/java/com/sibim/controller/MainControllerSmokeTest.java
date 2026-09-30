@@ -35,6 +35,7 @@ class MainControllerSmokeTest extends ControllerSmokeTestBase {
         "configuracion", "auditoria");
 
     private String prefsNode;
+    private Stage stage;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -47,7 +48,9 @@ class MainControllerSmokeTest extends ControllerSmokeTestBase {
         // Mark the first-run tutorial as seen for this fake user so its overlay doesn't cover the UI.
         Preferences.userNodeForPackage(TutorialOverlay.class).putBoolean("tutorial.v6." + adminUser().getUsername(), true);
         Parent root = new FXMLLoader(getClass().getResource("/fxml/main.fxml")).load();
-        Scene scene = new Scene(root, 1280, 800);
+        // Wide enough that the sidebar stays expanded (below SidebarManager.AUTO_COMPACT_BELOW it folds itself).
+        Scene scene = new Scene(root, 1600, 900);
+        this.stage = stage;
         // The real stylesheet matters here: CSS (e.g. .sidebar-logo-area padding) overrides what the FXML declares.
         scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
         stage.setScene(scene);
@@ -143,6 +146,21 @@ class MainControllerSmokeTest extends ControllerSmokeTestBase {
         assertFalse(sidebar.getStyleClass().contains("sidebar-collapsed"));
         assertEquals(logoHeight, logoArea.getBoundsInParent().getHeight(), 0.5, "logo block height after expanding");
         assertEquals(userBoxY, userBox.getBoundsInParent().getMinY(), 0.5, "user card position after expanding");
+    }
+
+    @Test
+    void narrowWindow_foldsTheSidebarToTheRail_andWideningUnfoldsIt() {
+        VBox sidebar = (VBox) lookup("#sidebar").query();
+        sleep(400);
+        assertFalse(sidebar.getStyleClass().contains("sidebar-collapsed"));
+
+        interact(() -> stage.setWidth(SidebarManager.AUTO_COMPACT_BELOW - 160));
+        sleep(700);
+        assertTrue(sidebar.getStyleClass().contains("sidebar-collapsed"), "small window: icon rail");
+
+        interact(() -> stage.setWidth(SidebarManager.AUTO_EXPAND_ABOVE + 160));
+        sleep(700);
+        assertFalse(sidebar.getStyleClass().contains("sidebar-collapsed"), "wide again: full sidebar");
     }
 
     private VBox items(String sectionId) {

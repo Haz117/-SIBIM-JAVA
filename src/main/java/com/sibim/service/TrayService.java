@@ -10,7 +10,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
-/** Manages the Windows system-tray icon for SIBIM. All AWT calls run on
+/** Manages the Windows system-tray icon for SIBIM (notifications only — it
+ *  does not take over minimize). All AWT calls run on
  *  the AWT event thread via EventQueue.invokeLater — never from the FX thread. */
 public final class TrayService {
 
@@ -52,18 +53,10 @@ public final class TrayService {
                 });
 
                 tray.add(trayIcon);
-
-                Platform.runLater(() -> stage.iconifiedProperty().addListener((obs, wasMin, isMin) -> {
-                    if (isMin) {
-                        java.awt.EventQueue.invokeLater(() -> {
-                            if (trayIcon != null)
-                                trayIcon.displayMessage("SIBIM",
-                                    "SIBIM sigue ejecutándose en la bandeja",
-                                    TrayIcon.MessageType.INFO);
-                        });
-                        Platform.runLater(() -> stage.hide());
-                    }
-                }));
+                // Minimizing used to hide() the stage to "send it to the tray". It is
+                // the app's only window, so JavaFX (implicit exit) shut the whole app
+                // down instead. Minimize now behaves normally (taskbar); the tray icon
+                // stays for notifications and the "Abrir / Salir" menu.
 
             } catch (Exception e) {
                 log.warn("No se pudo instalar el ícono en la bandeja del sistema: {}", e.getMessage());

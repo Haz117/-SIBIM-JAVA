@@ -82,6 +82,8 @@ public class ProductosController {
     @FXML private TableColumn<Producto, String> colCodigo;
     @FXML private TableColumn<Producto, String> colCategoria;
     @FXML private TableColumn<Producto, String> colArea;
+    @FXML private TableColumn<Producto, String> colResguardante;
+    @FXML private Button btnResetColumns;
     @FXML private TableColumn<Producto, Integer> colStock;
     @FXML private TableColumn<Producto, Integer> colStockMin;
     @FXML private TableColumn<Producto, Integer> colStockMax;
@@ -112,7 +114,8 @@ public class ProductosController {
     @FXML private Button btnQr;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
-    @FXML private MenuButton btnExportarSeleccion;
+    /** "Solo los seleccionados" submenu of the Exportar menu. */
+    @FXML private MenuItem btnExportarSeleccion;
     @FXML private Button btnNuevoBien;
     @FXML private Button btnConteoFisico;
     @FXML private Button btnClearSearch;
@@ -270,6 +273,9 @@ public class ProductosController {
             reporteService, movimientoService);
         tableManager.setOnClearFilters(this::onClearFilters);
         tableManager.setup();
+        ProductosColumnSetup.configureResguardante(colResguardante);
+        // Captured now, before the saved column preferences are applied, so it restores the FXML defaults.
+        DialogUtil.setupColumnReset(table, btnResetColumns, null);
         // expose empty-state refs set up inside TableManager
         emptyStateMsg         = tableManager.emptyStateMsg;
         emptyStateHint        = tableManager.emptyStateHint;
@@ -726,6 +732,32 @@ public class ProductosController {
     private void onExportSeleccionExcel() {
         ProductosExporter.exportSeleccionExcel(table.getScene(),
             getSelectedProductos(), reporteService, this::onExportSeleccionExcel);
+    }
+
+    /** One bien → its ficha técnica; several → all their fichas in one PDF. */
+    @FXML
+    private void onExportSeleccionFicha() {
+        List<Producto> sel = getSelectedProductos();
+        if (sel.isEmpty()) return;
+        DialogUtil.runAsyncWithProgress(table.getScene(),
+            sel.size() == 1 ? "Generando ficha técnica…" : "Generando " + sel.size() + " fichas técnicas…",
+            () -> sel.size() == 1
+                ? reporteService.exportFichaTecnica(sel.get(0), movimientoService.getByProducto(sel.get(0).getId()))
+                : reporteService.exportFichasTecnicasMasivas(sel, movimientoService),
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+            ex -> { log.error("Error ficha técnica", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la ficha técnica"); });
+    }
+
+    /** Formato con datos y foto de cada bien seleccionado para que el área pida su baja. */
+    @FXML
+    private void onExportSolicitudBaja() {
+        List<Producto> sel = getSelectedProductos();
+        if (sel.isEmpty()) return;
+        DialogUtil.runAsyncWithProgress(table.getScene(),
+            sel.size() == 1 ? "Generando solicitud de baja…" : "Generando " + sel.size() + " solicitudes de baja…",
+            () -> reporteService.exportSolicitudBaja(sel),
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+            ex -> { log.error("Error solicitud de baja", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la solicitud de baja"); });
     }
 
     // ── Bulk actions ─────────────────────────────────────────────────────────

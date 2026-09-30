@@ -69,9 +69,7 @@ public class AuditoriaController {
     @FXML private Button btnAnterior;
     @FXML private Button btnSiguiente;
     @FXML private Button btnUltima;
-    @FXML private Button btnExportPdf;
-    @FXML private Button btnExportExcel;
-    @FXML private Button btnExportCsv;
+    @FXML private javafx.scene.control.MenuButton btnExportar;
     @FXML private ProgressIndicator loadSpinner;
     @FXML private Button btnRefresh;
     @FXML private Button btnResetColumns;
@@ -335,9 +333,7 @@ public class AuditoriaController {
 
     private void updateExportButtons() {
         boolean empty = table.getItems().isEmpty();
-        if (btnExportPdf   != null) btnExportPdf.setDisable(empty);
-        if (btnExportExcel != null) btnExportExcel.setDisable(empty);
-        if (btnExportCsv   != null) btnExportCsv.setDisable(empty);
+        if (btnExportar != null) btnExportar.setDisable(empty);
     }
 
     private String getEntidadValue() {

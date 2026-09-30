@@ -28,15 +28,34 @@ public class ProductoService {
     private final AuditLogRepository auditRepo;
     private final PriceHistoryRepository priceHistoryRepo;
     private final ResguardoActivo resguardoActivo;
+    private final Compromiso compromiso;
 
     /** Folio of the active resguardo covering a bien, if any. */
     @FunctionalInterface
     interface ResguardoActivo { Optional<String> folio(String productoId) throws SQLException; }
 
+    /** Why a bien can't be written off right now (it is out on loan, in comodato
+     *  or has a transfer waiting), or empty when nothing holds it. */
+    @FunctionalInterface
+    interface Compromiso { Optional<String> de(String productoId) throws SQLException; }
+
     public ProductoService() {
         this(new ProductoRepository(), new AuditLogRepository(), new PriceHistoryRepository(),
             id -> new com.sibim.repository.ResguardoRepository().findActivoByProductoId(id)
-                .map(com.sibim.model.Resguardo::getNumero));
+                .map(com.sibim.model.Resguardo::getNumero),
+            ProductoService::compromisoEnBase);
+    }
+
+    private static Optional<String> compromisoEnBase(String id) throws SQLException {
+        if (new com.sibim.repository.PrestamoRepository().existsActivoForProducto(id))
+            return Optional.of("tiene un préstamo activo; registra primero su devolución");
+        if (new com.sibim.repository.ComodatoRepository().existsVigenteForProducto(id))
+            return Optional.of("tiene un comodato vigente; concluye o rescinde primero el comodato");
+        boolean pendiente = new com.sibim.repository.MovimientoRepository().findPendientesTransferencias()
+            .stream().anyMatch(m -> id.equals(m.getProductoId()));
+        if (pendiente)
+            return Optional.of("tiene una transferencia pendiente de aprobación; apruébala o recházala primero");
+        return Optional.empty();
     }
     ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo) {
         this(productoRepo, auditRepo, new PriceHistoryRepository());
@@ -47,14 +66,28 @@ public class ProductoService {
     }
     ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo,
                     PriceHistoryRepository priceHistoryRepo, ResguardoActivo resguardoActivo) {
+        this(productoRepo, auditRepo, priceHistoryRepo, resguardoActivo, id -> Optional.empty());
+    }
+    ProductoService(ProductoRepository productoRepo, AuditLogRepository auditRepo,
+                    PriceHistoryRepository priceHistoryRepo, ResguardoActivo resguardoActivo,
+                    Compromiso compromiso) {
         this.productoRepo     = productoRepo;
         this.auditRepo        = auditRepo;
         this.priceHistoryRepo = priceHistoryRepo;
         this.resguardoActivo  = resguardoActivo;
+        this.compromiso       = compromiso;
     }
 
+    /** Every active bien in the caller's areas. Shared for a few seconds between
+     *  screens and dialogs while connected — see {@link ProductosEnMemoria}. */
     public List<Producto> getAll() throws SQLException {
-        return productoRepo.findAll();
+        return ProductosEnMemoria.obtener(productoRepo::findAll);
+    }
+
+    /** Drops the shared list so the next {@link #getAll()} asks the database
+     *  (Actualizar / F5, or a change this class doesn't make itself). */
+    public static void invalidarListaEnMemoria() {
+        ProductosEnMemoria.invalidar();
     }
 
     // ── API principal con ProductoFiltro ─────────────────────────────────────
@@ -87,6 +120,7 @@ public class ProductoService {
     }
 
     public void marcarEtiquetado(List<String> ids, boolean valor) throws SQLException {
+        ProductosEnMemoria.invalidar();
         productoRepo.marcarEtiquetado(ids, valor);
     }
 
@@ -125,6 +159,11 @@ public class ProductoService {
         return productoRepo.findStats();
     }
 
+    /** Exact código lookup within the caller's areas (barcode/QR scans). */
+    public Optional<Producto> findByCodigo(String codigo) throws SQLException {
+        return productoRepo.findByCodigo(codigo);
+    }
+
     public Optional<Producto> findById(String id) throws SQLException {
         return productoRepo.findById(id);
     }
@@ -146,6 +185,7 @@ public class ProductoService {
     }
 
     public Producto save(Producto p) throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         boolean isNew = p.getId() == null;
         // El código se asigna por área (ver AreaCodigos) al dar de alta un bien
         // nuevo; al editar uno existente el código sigue siendo editable a mano
@@ -230,6 +270,7 @@ public class ProductoService {
     }
 
     public void delete(String id) throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) return;
         Producto p = opt.get();
@@ -260,6 +301,7 @@ public class ProductoService {
                           String tipoDestino, String dictamen,
                           String numeroActa, LocalDate fechaDictamen)
             throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();
@@ -267,6 +309,11 @@ public class ProductoService {
             throw new ValidationException("No tienes acceso a esa area");
         if (motivo == null || motivo.isBlank())
             throw new ValidationException("El motivo de la baja es obligatorio");
+        if (p.isDadoDeBaja())
+            throw new ValidationException("Este bien ya está dado de baja");
+        Optional<String> ocupado = compromiso.de(id);
+        if (ocupado.isPresent())
+            throw new ValidationException("No se puede dar de baja: el bien " + ocupado.get());
         productoRepo.darDeBaja(id, motivo.trim(), tipoDestino, dictamen, numeroActa, fechaDictamen);
         log.info("Baja patrimonial bien [{}] '{}' — motivo: {} destino: {}",
             id, p.getNombre(), motivo.trim(), tipoDestino);
@@ -281,6 +328,7 @@ public class ProductoService {
      *  before the baja may have since been claimed by a different bien in
      *  that área (see AreaCodigos, asignarCodigo). */
     public void reactivar(String id) throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();
@@ -310,6 +358,7 @@ public class ProductoService {
     }
 
     public void saveFotos(String productoId, List<String> fotos) throws SQLException {
+        ProductosEnMemoria.invalidar();
         productoRepo.saveFotos(productoId, fotos);
     }
 

@@ -1,0 +1,35 @@
+/* ═══════════════════════════════════════════════════════════════════
+   KANBAN — Préstamos board
+   ═══════════════════════════════════════════════════════════════════ */
+.kanban-column {
+    -fx-background-color: #F1F5F9;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-min-width: 200;
+}
+.kanban-col-teal   { -fx-border-color: #0D9488; -fx-border-width: 0 0 0 4; }
+.kanban-col-amber  { -fx-border-color: sibim-amber; -fx-border-width: 0 0 0 4; }
+.kanban-col-indigo { -fx-border-color: sibim-indigo-dark; -fx-border-width: 0 0 0 4; }
+.kanban-col-title  { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; }
+.kanban-col-count  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; -fx-font-weight: bold; }
+.kanban-col-icon   { -fx-icon-size: 14; -fx-icon-color: sibim-slate-500; }
+.kanban-col-scroll { -fx-background-color: transparent; -fx-border-color: transparent; }
+.kanban-col-scroll > .viewport { -fx-background-color: transparent; }
+.kanban-empty { -fx-font-size: 12px; -fx-text-fill: #64748B; -fx-padding: 8 0; }
+.kanban-empty-icon { -fx-icon-color: #94A3B8; -fx-opacity: 0.55; }
+.kanban-card {
+    -fx-background-color: white;
+    -fx-background-radius: 7;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 6, 0, 0, 2);
+}
+.kanban-card:hover {
+    -fx-border-color: #94A3B8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 10, 0, 0, 3);
+}
+.kanban-card-title  { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.kanban-card-folio  { -fx-font-size: 11px; -fx-text-fill: sibim-indigo-dark; -fx-font-weight: bold; }
+.kanban-card-meta   { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
+.kanban-card-overdue { -fx-text-fill: sibim-red; -fx-font-weight: bold; }

@@ -57,8 +57,10 @@ public class ProductoRepository {
         // Keeps OfflineStore's local mirror fresh with real data while
         // connected, so a later mid-session disconnect (see SyncService)
         // falls back to what was actually on screen instead of an empty
-        // inventory. Best-effort — never allowed to affect this read.
-        OfflineStore.cacheProductos(result);
+        // inventory. Best-effort — never allowed to affect this read, and done
+        // in the background: the first write of a session also opens the
+        // SQLite store (~5 s measured), which used to hold up the screen.
+        com.sibim.util.AppExecutor.submit(() -> OfflineStore.cacheProductos(result));
         return result;
     }
 

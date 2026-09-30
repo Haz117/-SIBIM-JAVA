@@ -13,6 +13,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.UpdateChecker;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -76,6 +77,7 @@ public class SplashController {
     @FXML
     public void initialize() {
         progressBar.setProgress(0);
+        lblVersion.setText("v" + UpdateChecker.currentVersion());
         dbInitFinished = false;
         Thread.ofVirtual().name("db-init").start(this::initDatabase);
 
@@ -281,6 +283,8 @@ public class SplashController {
             DatabaseConfig.setOfflineMode(true);
             demoRequested = false;
         } finally {
+            // The organigrama/prefixes from the areas table (or this PC's last copy when offline).
+            new com.sibim.service.AreaService().cargarCatalogo();
             if (!demoRequested) {
                 try { SyncService.startWatching(); } catch (Exception se) {
                     log.error("Error al iniciar SyncService", se);

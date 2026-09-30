@@ -57,6 +57,11 @@ public class ResguardoService {
 
     public Resguardo findById(String id) throws SQLException { return repo.findById(id); }
 
+    private static String nombreDe(ResguardoItem it) {
+        return it.getProductoCodigo() != null ? it.getProductoCodigo()
+            : it.getProductoNombre() != null ? "\"" + it.getProductoNombre() + "\"" : "seleccionado";
+    }
+
     public Resguardo crear(String resguardanteNombre, String resguardanteCargo,
                            String resguardanteArea, List<ResguardoItem> items,
                            String observaciones) throws SQLException {
@@ -64,6 +69,18 @@ public class ResguardoService {
             throw new IllegalArgumentException("El nombre del resguardante es obligatorio");
         if (items == null || items.isEmpty())
             throw new IllegalArgumentException("Debe agregar al menos un bien al resguardo");
+        // A signed resguardo says who holds the bien; two at once would contradict each other.
+        java.util.Set<String> vistos = new java.util.HashSet<>();
+        for (ResguardoItem it : items) {
+            String pid = it.getProductoId();
+            if (pid == null) continue;
+            if (!vistos.add(pid))
+                throw new IllegalArgumentException("El bien " + nombreDe(it) + " está repetido en el resguardo");
+            java.util.Optional<Resguardo> otro = repo.findActivoByProductoId(pid);
+            if (otro != null && otro.isPresent())
+                throw new IllegalArgumentException("El bien " + nombreDe(it) + " ya está en el resguardo vigente "
+                    + otro.get().getNumero() + "; cancélalo primero para reasignarlo");
+        }
         Resguardo r = new Resguardo();
         r.setResguardanteNombre(resguardanteNombre.trim());
         r.setResguardanteCargo(resguardanteCargo != null ? resguardanteCargo.trim() : null);
@@ -71,6 +88,7 @@ public class ResguardoService {
         r.setObservaciones(observaciones != null ? observaciones.trim() : null);
         r.setItems(items);
         Resguardo saved = repo.save(r);
+        ProductosEnMemoria.invalidar();   // products.resguardante follows the resguardo
         auditRepo.log("resguardo", saved.getId(), saved.getResguardanteNombre(), "crear",
             "Resguardo " + saved.getNumero() + " · " + items.size()
                 + (items.size() == 1 ? " bien" : " bienes")
@@ -81,6 +99,7 @@ public class ResguardoService {
     public void cancelar(String id) throws SQLException {
         Resguardo r = repo.findById(id);
         repo.cancelar(id);
+        ProductosEnMemoria.invalidar();
         if (r != null)
             auditRepo.log("resguardo", id, r.getResguardanteNombre(), "cancelar",
                 "Resguardo " + r.getNumero() + " cancelado");
@@ -138,7 +157,7 @@ public class ResguardoService {
                 .add(new Paragraph("RESGUARDO DE BIENES").setFont(bold).setFontSize(16)
                     .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.CENTER))
                 .add(new Paragraph(orgName()).setFont(regular).setFontSize(9)
-                    .setFontColor(new DeviceRgb(200, 210, 240)).setTextAlignment(TextAlignment.CENTER))
+                    .setFontColor(new DeviceRgb(240, 195, 195)).setTextAlignment(TextAlignment.CENTER))
                 .setBackgroundColor(COLOR_HEADER).setPadding(14).setBorder(null);
             headerTable.addCell(hCell);
             doc.add(headerTable);

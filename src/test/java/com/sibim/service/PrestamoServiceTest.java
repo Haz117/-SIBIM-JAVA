@@ -43,6 +43,8 @@ class PrestamoServiceTest {
         service = new PrestamoService(mockRepo, mockProductoRepo, mockComodatoRepo, mockCfg, mockAudit);
 
         producto = new Producto();
+
+        producto.setStockActual(1);   // an empty bien can no longer be lent
         producto.setId("p-01");
         producto.setNombre("Laptop Dell");
         producto.setCodigo("INV-001");

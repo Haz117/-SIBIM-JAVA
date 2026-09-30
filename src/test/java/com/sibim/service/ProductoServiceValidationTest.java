@@ -90,14 +90,6 @@ class ProductoServiceValidationTest {
     }
 
     @Test
-    void save_negativePrecioVenta_throwsValidation() {
-        Producto p = validProducto();
-        p.setPrecioVenta(new BigDecimal("-0.01"));
-        var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
-        assertTrue(ex.getMessage().contains("precio") || ex.getMessage().contains("venta"));
-    }
-
-    @Test
     void save_negativeStock_throwsValidation() {
         Producto p = validProducto();
         p.setStockActual(-1);

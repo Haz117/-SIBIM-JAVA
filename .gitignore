@@ -43,8 +43,14 @@ packaging/dist/
 *.webp
 *.pdf
 
-# Excepción: documentos de referencia oficial del proyecto
-!documentos/**
+# Excepción: imágenes que forman parte de la app (íconos, logo municipal
+# img/logo-municipio.png que usan los formatos PDF/Excel).
+!src/main/resources/img/**
+
+# ── Datos personales: escaneos de resguardos/oficios y los SQL generados del
+# inventario real (nombres de resguardantes). Se quedan en la PC, nunca en git.
+documentos/
+tools/output/
 
 # ── Archivos temporales del editor ────────────────────────────────
 *.tmp

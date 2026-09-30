@@ -1,0 +1,192 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIRMATION DIALOG (ConfirmacionUtil)
+   ═══════════════════════════════════════════════════════════════════ */
+.confirm-pane { -fx-background-color: white; }
+
+.confirm-icon-text { -fx-font-size: 22px; }
+
+.confirm-icon-badge {
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-border-width: 2;
+    -fx-min-width: 52; -fx-min-height: 52;
+    -fx-max-width: 52; -fx-max-height: 52;
+}
+/* Default (indigo) and danger (red) badge backgrounds */
+.confirm-icon-badge-default { -fx-background-color: #EEF2FF; -fx-border-color: sibim-indigo33; }
+.confirm-icon-badge-danger  { -fx-background-color: #FEF2F2; -fx-border-color: #EF444433; }
+.confirm-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F172A;
+}
+.confirm-msg {
+    -fx-font-size: 13px;
+    -fx-text-fill: sibim-slate-600;
+}
+.confirm-ok-btn {
+    -fx-background-color: sibim-indigo;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-padding: 8 22;
+}
+.confirm-ok-btn:hover   { -fx-background-color: sibim-indigo-dark; }
+.confirm-ok-btn:pressed { -fx-background-color: sibim-indigo-darker; -fx-translate-y: 1; }
+.confirm-ok-btn-danger          { -fx-background-color: #EF4444; }
+.confirm-ok-btn-danger:hover    { -fx-background-color: sibim-red; }
+.confirm-ok-btn-danger:pressed  { -fx-background-color: #B91C1C; -fx-translate-y: 1; }
+.confirm-cancel-btn {
+    -fx-background-color: white;
+    -fx-text-fill: #374151;
+    -fx-border-color: #D1D9E6;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-padding: 8 22;
+}
+.confirm-cancel-btn:hover {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #94A3B8;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIALOG GRADIENT HEADER (DialogUtil.gradientHeader)
+   ═══════════════════════════════════════════════════════════════════ */
+/* Dialog header (DialogUtil.gradientHeader): white band + divider; the dialog's
+   color only fills the icon badge (set inline per dialog). */
+.dlg-header {
+    -fx-background-color: white;
+    -fx-background-radius: 8 8 0 0;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.dlg-header-icon  { -fx-icon-size: 20; -fx-icon-color: white; }
+.dlg-header-icon-badge {
+    -fx-background-radius: 12;
+    -fx-min-width: 44; -fx-min-height: 44;
+    -fx-max-width: 44; -fx-max-height: 44;
+}
+.dlg-header-title {
+    -fx-text-fill: sibim-slate-900;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+.dlg-header-subtitle {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-size: 12px;
+}
+.dlg-header-action-icon { -fx-icon-size: 16; -fx-icon-color: sibim-slate-500; }
+.dlg-message-body {
+    -fx-text-fill: #334155;
+    -fx-font-size: 13px;
+    -fx-line-spacing: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOAST NOTIFICATIONS (NotificacionUtil)
+   ═══════════════════════════════════════════════════════════════════ */
+.toast-box {
+    -fx-background-radius: 10;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 18, 0, 0, 5);
+}
+.toast-success { -fx-background-color: #F0FDF4; -fx-border-color: #22C55E; }
+.toast-error   { -fx-background-color: #FEF2F2; -fx-border-color: #EF4444; }
+.toast-warning { -fx-background-color: #FFFBEB; -fx-border-color: #F59E0B; }
+.toast-info    { -fx-background-color: #EEF2FF; -fx-border-color: sibim-indigo; }
+
+.toast-icon-badge {
+    -fx-background-radius: 99;
+    -fx-min-width: 26; -fx-min-height: 26; -fx-max-width: 26; -fx-max-height: 26;
+}
+.toast-icon-success { -fx-background-color: #22C55E; -fx-icon-color: white; }
+.toast-icon-error   { -fx-background-color: #EF4444; -fx-icon-color: white; }
+.toast-icon-warning { -fx-background-color: #F59E0B; -fx-icon-color: white; }
+.toast-icon-info    { -fx-background-color: sibim-indigo; -fx-icon-color: white; }
+
+.toast-icon-text {
+    -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: white;
+}
+.toast-success .toast-msg { -fx-text-fill: #14532D; -fx-font-size: 13px; -fx-font-weight: 600; }
+.toast-error .toast-msg   { -fx-text-fill: #7F1D1D; -fx-font-size: 13px; -fx-font-weight: 600; }
+.toast-warning .toast-msg { -fx-text-fill: #78350F; -fx-font-size: 13px; -fx-font-weight: 600; }
+.toast-info .toast-msg    { -fx-text-fill: #1E1B4B; -fx-font-size: 13px; -fx-font-weight: 600; }
+
+.toast-close {
+    -fx-font-size: 16px; -fx-font-weight: bold;
+    -fx-opacity: 0.50; -fx-cursor: hand; -fx-padding: 0 0 0 8;
+    -fx-background-color: transparent;
+}
+.toast-close:hover { -fx-opacity: 0.90; }
+.toast-success .toast-close { -fx-text-fill: #14532D; }
+.toast-error .toast-close   { -fx-text-fill: #7F1D1D; }
+.toast-warning .toast-close { -fx-text-fill: #78350F; }
+.toast-info .toast-close    { -fx-text-fill: #1E1B4B; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIALOG OK BUTTON — base style; color variants applied via CSS class
+   ═══════════════════════════════════════════════════════════════════ */
+.dialog-ok-btn {
+    -fx-background-color: sibim-indigo;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-padding: 8 22;
+}
+.dialog-ok-btn:hover        { -fx-background-color: sibim-indigo-dark; }
+.dialog-ok-btn:pressed      { -fx-background-color: sibim-indigo-darker; -fx-translate-y: 1; }
+.dialog-ok-btn:disabled     { -fx-background-color: #DDE3EF; -fx-text-fill: #8896AA; -fx-font-weight: bold; -fx-padding: 8 22; -fx-opacity: 1; -fx-cursor: default; }
+.dialog-ok-btn-danger       { -fx-background-color: #EF4444; }
+.dialog-ok-btn-danger:hover { -fx-background-color: sibim-red; }
+
+/* Prominent in-form submit button — always visible, fires the hidden OK */
+.form-submit-btn {
+    -fx-background-color: #6D28D9;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 8 20;   /* same height as the Cancelar button next to it */
+    -fx-effect: dropshadow(gaussian, rgba(109,40,217,0.25), 6, 0, 0, 2);
+}
+.form-submit-btn:hover {
+    -fx-background-color: #5B21B6;
+    -fx-effect: dropshadow(gaussian, rgba(109,40,217,0.55), 14, 0, 0, 5);
+}
+.form-submit-btn:pressed {
+    -fx-background-color: #4C1D95;
+    -fx-effect: none;
+    -fx-translate-y: 1;
+}
+.form-submit-btn:disabled {
+    -fx-background-color: #C4B5FD;
+    -fx-text-fill: #EDE9FE;
+    -fx-effect: none;
+    -fx-cursor: default;
+    -fx-opacity: 1;
+}
+/* Edit variant — green accent when updating an existing record */
+.form-submit-btn.form-submit-btn-edit {
+    -fx-background-color: #059669;
+    -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.38), 10, 0, 0, 3);
+}
+.form-submit-btn.form-submit-btn-edit:hover {
+    -fx-background-color: #047857;
+    -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.55), 14, 0, 0, 5);
+}
+.form-submit-btn.form-submit-btn-edit:pressed {
+    -fx-background-color: #065F46;
+    -fx-effect: none;
+    -fx-translate-y: 1;
+}
+.form-submit-btn.form-submit-btn-edit:disabled {
+    -fx-background-color: #6EE7B7;
+    -fx-text-fill: #ECFDF5;
+    -fx-effect: none;
+}

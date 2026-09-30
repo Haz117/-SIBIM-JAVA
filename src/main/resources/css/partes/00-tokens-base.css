@@ -1,0 +1,45 @@
+/* ═══════════════════════════════════════════════════════════════════
+   SIBIM  Design System  v2.3
+   Sistema Integral de Bienes Municipales — H. Ayuntamiento de Ixmiquilpan
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Base ──────────────────────────────────────────────────────── */
+.root {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: #EEF2F7;
+    /* ── Design tokens (JavaFX looked-up colors) ─────────────────── */
+    sibim-indigo:        #6366F1;
+    sibim-indigo-dark:   #4F46E5;
+    sibim-indigo-darker: #4338CA;
+    sibim-slate-900:     #1E293B;
+    sibim-slate-600:     #475569;
+    sibim-slate-500:     #64748B;
+    sibim-slate-300:     #CBD5E1;
+    sibim-slate-200:     #E2E8F0;
+    sibim-surface:       #F8FAFC;
+    sibim-bg:            #EEF2F7;
+    sibim-green:         #16A34A;
+    sibim-red:           #DC2626;
+    sibim-amber:         #D97706;
+    sibim-violet:        #7C3AED;
+}
+
+/* Scrollbars — slim modern style */
+.scroll-bar:vertical   { -fx-pref-width: 8; -fx-background-color: transparent; }
+.scroll-bar:horizontal { -fx-pref-height: 8; -fx-background-color: transparent; }
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #C4CCDA;
+    -fx-background-radius: 10;
+    -fx-background-insets: 1;
+}
+.scroll-bar:vertical .thumb:hover,
+.scroll-bar:horizontal .thumb:hover { -fx-background-color: #8896AB; }
+.scroll-bar:vertical .thumb:pressed,
+.scroll-bar:horizontal .thumb:pressed { -fx-background-color: sibim-indigo; }
+.scroll-bar .track                   { -fx-background-color: transparent; }
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button        { -fx-background-color: transparent; -fx-padding: 0; }
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow         { -fx-shape: ""; -fx-padding: 0; }

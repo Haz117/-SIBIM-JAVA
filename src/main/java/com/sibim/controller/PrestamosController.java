@@ -53,7 +53,6 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     @FXML private TableColumn<Prestamo, String> colEstado;
     @FXML private Button      btnNuevo;
     @FXML private Button      btnDevolver;
-    @FXML private Button      btnExportarExcel;
     @FXML private ComboBox<String>  estadoFilter;
     @FXML private ToggleButton      btnKanban;
     @FXML private HBox              kanbanBoard;

@@ -26,7 +26,9 @@ public class CategoriaService {
         if (c.getNombre() == null || c.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre de la categoría no puede estar vacío");
         }
-        return categoriaRepo.save(c);
+        Categoria saved = categoriaRepo.save(c);
+        ProductosEnMemoria.invalidar();   // bienes show the category name
+        return saved;
     }
 
     public void delete(String id) throws SQLException {
@@ -47,5 +49,6 @@ public class CategoriaService {
         if (sourceId == null || targetId == null || sourceId.equals(targetId))
             throw new IllegalArgumentException("Las categorías origen y destino deben ser distintas");
         categoriaRepo.fusionar(sourceId, targetId);
+        ProductosEnMemoria.invalidar();
     }
 }

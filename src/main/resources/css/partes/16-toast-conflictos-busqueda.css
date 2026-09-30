@@ -1,0 +1,122 @@
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 6 — COUNTDOWN UNDO TOAST + EXPORT PROGRESS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* The content HBox when a countdown bar sits below it — square the bottom corners
+   so the bar joins seamlessly (the outer VBox has no style; the bar provides the radius). */
+.toast-box-top {
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-radius: 10 10 0 0;
+}
+
+/* Countdown progress bar — indigo track & bar, bottom-rounded to close the toast shape */
+.toast-countdown {
+    -fx-pref-height: 4px;
+    -fx-min-height: 4px;
+    -fx-max-height: 4px;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-background-radius: 0 0 10 10;
+    -fx-border-color: transparent;
+}
+.toast-countdown .track {
+    -fx-background-color: rgba(99,102,241,0.18);
+    -fx-background-radius: 0 0 10 10;
+    -fx-background-insets: 0;
+}
+.toast-countdown .bar {
+    -fx-background-color: sibim-indigo;
+    -fx-background-radius: 0 0 10 10;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+/* Indeterminate spinner inside the progress toast */
+.toast-spinner {
+    -fx-progress-color: sibim-indigo;
+}
+.toast-spinner .percentage { visibility: hidden; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONFLICT RESOLUTION DIALOG
+   ═══════════════════════════════════════════════════════════════════ */
+.conflict-scroll {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.conflict-card {
+    -fx-border-color: -color-border-default;
+    -fx-border-radius: 6;
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 6;
+}
+.conflict-card-title { -fx-font-weight: bold; -fx-font-size: 13px; }
+.conflict-differs    { -fx-font-weight: bold; -fx-text-fill: -color-warning-fg; }
+.conflict-bold       { -fx-font-weight: bold; }
+
+/* Categorías — emoji icon inside icon column cell */
+.cat-icon-cell-label { -fx-font-size: 18px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEARCH PALETTE DIALOG (Ctrl+K)
+   ═══════════════════════════════════════════════════════════════════ */
+.search-palette-pane {
+    -fx-background-color: -fx-base;
+    -fx-padding: 0;
+}
+.search-palette-header {
+    -fx-padding: 12 16 12 16;
+    -fx-background-color: -fx-base;
+}
+.search-palette-field {
+    -fx-font-size: 15px;
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+.search-palette-icon {
+    -fx-icon-size: 20px;
+    -fx-fill: -color-fg-muted;
+}
+.search-palette-list {
+    -fx-border-width: 0;
+    -fx-background-insets: 0;
+    -fx-padding: 4 0 4 0;
+}
+.palette-item-box {
+    -fx-padding: 4 8 4 8;
+}
+.palette-item-nombre {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.palette-item-meta {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-fg-muted;
+}
+/* Group header row inside the unified palette list */
+.palette-group-header-cell {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #64748B;
+    -fx-padding: 10 8 3 14;
+    -fx-background-color: transparent;
+}
+.palette-group-header-cell:focused,
+.palette-group-header-cell:selected {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748B;
+}
+/* Navigation entry row inside the palette */
+.palette-nav-cell {
+    -fx-padding: 7 12 7 12;
+}
+.palette-nav-icon {
+    -fx-icon-size: 16;
+    -fx-icon-color: sibim-indigo;
+}
+.batch-reponer-row {
+    -fx-padding: 8 4 8 4;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+}

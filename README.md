@@ -1,6 +1,6 @@
 # SIBIM — Sistema Integral de Bienes Municipales
 
-Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión del inventario patrimonial del **H. Ayuntamiento de Huejutla, Hidalgo**.
+Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión del inventario patrimonial del **H. Ayuntamiento de Ixmiquilpan, Hidalgo** (Presidencia Municipal de Ixmiquilpan).
 
 ---
 
@@ -13,7 +13,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
-- **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con el conteo de bienes agotados, stock bajo, garantías por vencer y préstamos vencidos/por vencer; cada elemento navega directo a la pantalla correspondiente
+- **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con el conteo de bienes agotados, stock bajo, garantías por vencer y préstamos vencidos/por vencer; cada elemento navega directo a la pantalla correspondiente. Su número es la suma de los contadores de Alertas y Préstamos del menú lateral, y el aviso del Dashboard usa las mismas listas que la pantalla de Alertas, así que las tres cifras cuadran
 - **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). La bitácora de auditoría nunca se borra al restaurar (solo se le agregan las entradas del respaldo que falten). Un respaldo de una versión anterior deja intactas las tablas que no incluye; si alguna de ellas depende de los bienes y tiene datos (fotos, comodatos, historial de precios, mantenimiento), se rechaza en vez de borrarlas. Solo disponible conectado a la base de datos real, no en modo offline/demo
 - **Depreciación de activos** — 4 tarjetas (valor compra, valor actual, % promedio, totalmente depreciados); distribución del inventario en 4 rangos de depreciación (0–24 % / 25–49 % / 50–99 % / 100 %+) como barras animadas; columna de visualización con `ProgressBar` codificada por color en la tabla; gráfica de proyección del valor a 10 años; exportable a PDF / Excel / fichas técnicas en lote
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
@@ -23,11 +23,15 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Organigrama** — 4 tarjetas de resumen (áreas, bienes distribuidos, área con más bienes, valor patrimonial total); barras horizontales animadas con las top-5 áreas; **tres modos de vista**: árbol jerárquico por secretaría/dirección, tabla de resumen y tarjetas por área (toggle en la barra de herramientas); las **tarjetas de área** muestran valor patrimonial, stock total, bienes agotados y en bajo stock — con borde de acento ámbar (1–2 alertas) o rojo (3 o más); clic en el botón de área abre un diálogo con tabs de **Bienes**, **Préstamos activos**, **Comodatos** y **Actas de entrega**, con exportación a PDF; salto directo al Inventario filtrado por esa área
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real; activar/desactivar cuentas (desactivar bloquea el acceso tanto online como en modo offline); la eliminación de un usuario con bienes/movimientos relacionados ofrece desactivar la cuenta como alternativa a borrar
 - **Configuración institucional** — nombre del ayuntamiento, municipio, área responsable y correo de contacto editables desde Configuración (solo Admin); todos los reportes PDF/Excel usan automáticamente estos datos
+- **Áreas y prefijos editables** — el organigrama del municipio y el prefijo con que se numeran los bienes de cada área (p. ej. `TICS/01`) viven en la tabla `areas` y se editan en Configuración → Áreas y prefijos (solo Admin): agregar un área, cambiar de quién depende o su prefijo. El nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan. Sin conexión se usa la última copia descargada en la PC
+- **Formatos oficiales en guinda institucional** — los PDF y Excel (resguardos, actas, préstamos, comodatos, reportes) usan el guinda del ayuntamiento y el logo municipal: el configurado en Configuración o, si no hay, `src/main/resources/img/logo-municipio.png` incluido en la app. La interfaz del sistema conserva su propio color índigo
 - **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo; contadores animados de 0 al valor real; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press; animación de transferencia con flecha que se estira al disparar y chip de destino que entra desde la derecha con rebote; efecto shake en errores de validación
 - **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
 - **Notificaciones toast** en tiempo real
 - **Recuperación de formularios** — si falla el guardado (BD caída, validación), el diálogo se reabre con los datos ya capturados en vez de perderlos
 - **Accesibilidad** — texto accesible automático para lectores de pantalla en botones de solo-ícono (toma el texto del tooltip); tamaño de texto ajustable (Normal / Grande / Extra grande) y densidad de filas de tabla (Compacto / Normal / Cómodo), ambos en la barra de estado; interruptor para desactivar animaciones en equipos de gama baja (Configuración → Accesibilidad y rendimiento); el **tutorial de bienvenida** incluye botón de cierre (×), puntos de navegación con etiqueta de paso, y todos los botones tienen texto accesible para lectores de pantalla
+- **Un solo menú "Exportar"** — todas las pantallas exportan desde el mismo menú (PDF / Excel / CSV según la pantalla); en Bienes y Movimientos incluye además "Solo los seleccionados"
+- **Menú lateral adaptable** — en ventanas angostas (menos de 1360 px) el menú lateral se compacta solo a iconos y se vuelve a expandir al agrandar la ventana
 - **Columnas de tabla restaurables** — en las tablas con menú de columnas (Auditoría, Categorías, Movimientos, Depreciación, Alertas), un botón junto a "Actualizar" regresa el orden, ancho y visibilidad de las columnas a como estaban originalmente, sin tener que recordar qué se cambió
 
 ---
@@ -83,7 +87,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V23` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse), eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada, los códigos anterior/nuevo de cada transferencia (V22) y el contador de intentos de inicio de sesión compartido entre PCs (V23). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V24` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse), eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada, los códigos anterior/nuevo de cada transferencia (V22) el contador de intentos de inicio de sesión compartido entre PCs (V23) y la tabla de áreas del municipio con su prefijo de código (V24, sembrada con las 44 áreas de Ixmiquilpan). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -210,7 +214,7 @@ SIBIM-Java/
 │   │   └── resources/
 │   │       ├── fxml/              # 17 vistas de la interfaz
 │   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
-│   │       ├── db/migration/      # Migraciones Flyway V1–V21, se aplican solas al arrancar
+│   │       ├── db/migration/      # Migraciones Flyway V1–V24, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
 │   └── test/java/com/sibim/
@@ -245,7 +249,7 @@ SIBIM-Java/
 | Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV); encabezado institucional configurable |
 | Depreciación | Tarjetas de valor compra/actual/% promedio/totalmente depreciados; distribución en 4 rangos como barras animadas; columna visual `ProgressBar` en la tabla; gráfica de proyección a 10 años; export PDF/Excel/fichas en lote |
 | Auditoría | Registro de acciones de todo el sistema (bienes, movimientos, usuarios, resguardos, préstamos, actas, configuración, inicios de sesión); filtros por entidad/acción/usuario con presets de fecha; tarjetas de resumen; export PDF/Excel/CSV (solo Admin) |
-| Configuración | Datos institucionales editables (nombre, municipio, responsable, correo); gestión de cuentas con activar/desactivar; historial de auditoría; conteos físicos; respaldo/restauración cifrado (solo Admin); interruptor de animaciones |
+| Configuración | Datos institucionales editables (nombre, municipio, responsable, correo); áreas y prefijos de código; gestión de cuentas con activar/desactivar; historial de auditoría; conteos físicos; respaldo/restauración cifrado (solo Admin); interruptor de animaciones |
 
 ---
 
@@ -298,14 +302,14 @@ pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d 
 
 El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta periódicamente fuera de esa PC.
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V24__descripcion.sql` (numeración consecutiva a partir de V23) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V25__descripcion.sql` (numeración consecutiva a partir de V24) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (864 en total)
+# Correr todos los tests (876 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase
@@ -320,5 +324,5 @@ Los tests de integración (`db/integration/`) levantan una instancia efímera de
 
 ## Licencia
 
-Proyecto desarrollado para uso interno del **H. Ayuntamiento de Huejutla, Hidalgo**.
+Proyecto desarrollado para uso interno del **H. Ayuntamiento de Ixmiquilpan, Hidalgo**.
 Todos los derechos reservados.

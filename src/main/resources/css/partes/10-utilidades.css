@@ -1,0 +1,346 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE HEADER ICON BADGES — shared gradient StackPane on each page
+   ═══════════════════════════════════════════════════════════════════ */
+.page-header-icon {
+    -fx-background-radius: 10;
+    -fx-min-width: 44; -fx-min-height: 44;
+    -fx-max-width: 44; -fx-max-height: 44;
+}
+.page-header-icon-indigo {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.40), 8, 0, 0, 2);
+}
+/* Icon label inside the badge */
+.page-icon-symbol { -fx-icon-size: 22; -fx-icon-color: white; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPORT CARD tag color variants
+   ═══════════════════════════════════════════════════════════════════ */
+.report-card-tag-indigo { -fx-text-fill: sibim-indigo-dark; }
+.report-card-tag-teal   { -fx-text-fill: #0E7490; }
+.report-card-tag-amber  { -fx-text-fill: #B45309; }
+.report-card-tag-green  { -fx-text-fill: #047857; }
+.report-card-tag-slate  { -fx-text-fill: sibim-slate-600; }
+.report-card-tag-purple { -fx-text-fill: sibim-violet; }
+.report-card-tag-red    { -fx-text-fill: #A2232F; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — profile section utilities
+   ═══════════════════════════════════════════════════════════════════ */
+/* Decorative badge (org icon in top-right of profile header) */
+.profile-deco-badge { -fx-opacity: 0.55; }
+.profile-deco-icon  { -fx-font-size: 32px; -fx-icon-size: 28; -fx-icon-color: white; }
+.profile-deco-name  { -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; }
+.profile-deco-sub   { -fx-text-fill: white; -fx-font-size: 9px; }
+
+/* Profile field two-column layout */
+.profile-field-col-left {
+    -fx-border-color: transparent #E2E8F0 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 0 24 0 0;
+}
+.profile-field-col-right { -fx-padding: 0 0 0 24; }
+
+/* Small icon badge used in card section headers */
+.section-icon-badge {
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 8;
+    -fx-min-width: 36; -fx-min-height: 36;
+    -fx-max-width: 36; -fx-max-height: 36;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MISC UTILITIES
+   ═══════════════════════════════════════════════════════════════════ */
+/* Subdued helper text (smaller than .muted) */
+.muted-sm  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
+.text-ok   { -fx-text-fill: #047857; }
+.text-warn { -fx-text-fill: #B45309; }
+
+/* Period picker hint label inside report card */
+.report-hint { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
+
+/* Medium card icon (calendar, etc.) */
+.card-icon-lg { -fx-icon-size: 17; }
+
+/* Section accent bar in green variant (reportes page) */
+.dash-section-bar-green {
+    -fx-background-color: #059669;
+    -fx-min-width: 3; -fx-min-height: 16;
+    -fx-background-radius: 2;
+}
+.dash-section-bar-purple {
+    -fx-background-color: sibim-violet;
+    -fx-min-width: 3; -fx-min-height: 16;
+    -fx-background-radius: 2;
+}
+.dash-section-bar-teal {
+    -fx-background-color: #0891B2;
+    -fx-min-width: 3; -fx-min-height: 16;
+    -fx-background-radius: 2;
+}
+
+/* Transparent inner ScrollPane (organigrama tree) */
+.page-scroll-inner {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.page-scroll-inner > .viewport { -fx-background-color: transparent; }
+
+/* Wraps tall dialog content (see DialogUtil.setScrollableContent) so it
+   scrolls instead of growing the dialog past the screen's visible height. */
+.dialog-scroll { -fx-background-color: transparent; -fx-border-color: transparent; }
+.dialog-scroll > .viewport { -fx-background-color: transparent; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIALOG — stock preview widget (Movimientos) & product detail (Productos)
+   ═══════════════════════════════════════════════════════════════════ */
+.dlg-stock-preview   { -fx-background-color: #F8FAFC; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-width: 1; -fx-border-radius: 12; }
+.dlg-stock-tit       { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-500; }
+.dlg-stock-val       { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #374151; }
+.dlg-stock-new-ok    { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #047857; }
+.dlg-stock-new-warn  { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #B45309; }
+.dlg-stock-new-empty { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #DC2626; }
+.dlg-stock-arrow      { -fx-font-size: 18px; -fx-text-fill: #94A3B8; }
+.dlg-stock-arrow-up   { -fx-font-size: 18px; -fx-text-fill: #047857; }
+.dlg-stock-arrow-down { -fx-font-size: 18px; -fx-text-fill: #DC2626; }
+
+/* Área A → Área B preview (Movimientos, transferencia) */
+.dlg-transfer-preview { -fx-background-color: #FAF5FF; -fx-background-radius: 10; -fx-border-color: #E9D5FF; -fx-border-width: 1; -fx-border-radius: 10; }
+.dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #DDD6FE; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 4 10; }
+.dlg-transfer-chip-to  { -fx-border-color: #7C3AED; -fx-background-color: #F5F3FF; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.22), 8, 0, 0, 2); }
+.dlg-transfer-chip-lbl { -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #4C1D95; }
+.dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #6B7280; }
+.dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: sibim-violet; }
+
+/* Product detail dialog header card */
+.dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
+.dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-border-width: 1; }
+.dlg-qr-thumb          { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 4; }
+.dlg-qr-thumb-clickable { -fx-cursor: hand; }
+.dlg-qr-thumb-clickable:hover { -fx-border-color: #6366F1; -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.25), 8, 0, 0, 0); }
+.dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
+.dlg-detail-code   { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
+
+/* Status pill badge variants for detail dialog */
+.dlg-status-ok     { -fx-background-color: #F0FDF4; -fx-text-fill: #15803D; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.dlg-status-warn   { -fx-background-color: #FFFBEB; -fx-text-fill: #B45309; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.dlg-status-danger { -fx-background-color: #FEF2F2; -fx-text-fill: #B91C1C; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.dlg-status-purple { -fx-background-color: #F5F3FF; -fx-text-fill: sibim-violet; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+
+/* Detail grid value styles */
+.dlg-detail-stock-ok   { -fx-text-fill: #15803D; -fx-font-weight: 600; }
+.dlg-detail-stock-warn { -fx-text-fill: #B45309; -fx-font-weight: 600; }
+.dlg-detail-stock-low  { -fx-text-fill: sibim-red; -fx-font-weight: bold; }
+.dlg-detail-total      { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
+
+/* Depreciation progress bar in product detail dialog */
+.dep-progress-bar { -fx-pref-height: 8px; -fx-background-radius: 4px; }
+.dep-progress-bar .track { -fx-background-color: #E2E8F0; -fx-background-radius: 4px; }
+.dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #6366F1, #A78BFA); -fx-background-radius: 4px; -fx-background-insets: 0; }
+.dep-progress-bar.dep-progress-ok .bar      { -fx-background-color: linear-gradient(to right, #16A34A, #4ADE80); }
+.dep-progress-bar.dep-progress-warn .bar    { -fx-background-color: linear-gradient(to right, #D97706, #FCD34D); }
+.dep-progress-bar.dep-progress-danger .bar  { -fx-background-color: linear-gradient(to right, #DC2626, #FCA5A5); }
+
+/* Image picker widget inside product form dialog */
+.dlg-img-placeholder { -fx-text-fill: sibim-slate-500; -fx-font-size: 12px; -fx-text-alignment: center; -fx-alignment: center; }
+.dlg-img-box         { -fx-background-color: #F1F5F9; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-border-width: 1; }
+/* Dialog tab pane — full brand styling */
+.dlg-tabpane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.dlg-tabpane > .tab-header-area > .headers-region > .tab {
+    -fx-pref-width: 160;
+    -fx-background-color: transparent;
+    -fx-padding: 10 20;
+    -fx-cursor: hand;
+}
+.dlg-tabpane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+.dlg-tabpane > .tab-header-area > .headers-region > .tab:hover .tab-label {
+    -fx-text-fill: sibim-indigo-darker;
+}
+.dlg-tabpane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent sibim-indigo-darker transparent;
+    -fx-border-width: 0 0 3 0;
+}
+.dlg-tabpane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-weight: bold;
+}
+.dlg-tabpane > .tab-content-area {
+    -fx-background-color: white;
+    -fx-padding: 0;
+}
+/* Stepper variant of dlg-tabpane — hides native tab headers, replaced by
+   the custom step-indicator bar built in ProductoDialogFactory. */
+.dlg-stepper > .tab-header-area {
+    -fx-padding: 0;
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-max-height: 0;
+    visibility: hidden;
+}
+.stepper-bar {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12 20 10 20;
+    -fx-spacing: 0;
+    -fx-alignment: CENTER;
+}
+.stepper-step {
+    -fx-alignment: CENTER;
+    -fx-spacing: 5;
+    -fx-padding: 0 10 0 10;
+    -fx-cursor: HAND;
+}
+.stepper-circle {
+    -fx-background-color: #CBD5E1;
+    -fx-background-radius: 50;
+    -fx-min-width: 28; -fx-max-width: 28;
+    -fx-min-height: 28; -fx-max-height: 28;
+    -fx-alignment: CENTER;
+}
+.stepper-num   { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; }
+.stepper-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
+.stepper-connector {
+    -fx-background-color: #CBD5E1;
+    -fx-pref-height: 2; -fx-min-height: 2; -fx-max-height: 2;
+}
+.stepper-connector-done { -fx-background-color: sibim-indigo-dark; }
+.stepper-step-active .stepper-circle { -fx-background-color: sibim-indigo-dark; }
+.stepper-step-active .stepper-num    { -fx-text-fill: white; }
+.stepper-step-active .stepper-label  { -fx-font-weight: bold; -fx-text-fill: sibim-indigo-darker; }
+.stepper-step-done .stepper-circle   { -fx-background-color: #10B981; }
+.stepper-step-done .stepper-num      { -fx-text-fill: white; }
+.stepper-step-done .stepper-label    { -fx-text-fill: #047857; }
+.stepper-nav-bar {
+    -fx-padding: 6 22 14 22;
+    -fx-spacing: 10;
+    -fx-alignment: CENTER_LEFT;
+}
+/* Wraps .dlg-tabpane when a tab's content is tall enough to need capping
+   (see ProductoDialogFactory) — transparent so it reads as part of the
+   dialog body, not as a separate scrollable panel. */
+.dlg-tabs-scroll, .dlg-tabs-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.edge-to-edge, .edge-to-edge > .viewport {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DATE PRESET BUTTONS — quick date range shortcuts in filter bars
+   ═══════════════════════════════════════════════════════════════════ */
+.btn-preset {
+    -fx-background-color: #EEF2FF;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-padding: 4 13;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-effect: none;
+    -fx-border-color: transparent;
+}
+.btn-preset:hover {
+    -fx-background-color: #E0E7FF;
+    -fx-text-fill: #3730A3;
+}
+.btn-preset:pressed { -fx-background-color: #C7D2FE; }
+.btn-preset-active {
+    -fx-background-color: sibim-indigo;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.28), 6, 0, 0, 2);
+}
+.btn-preset-clear {
+    -fx-background-color: transparent;
+    -fx-text-fill: sibim-slate-500;
+    -fx-background-radius: 20;
+    -fx-padding: 4 10;
+    -fx-font-size: 11.5px;
+    -fx-cursor: hand;
+    -fx-effect: none;
+    -fx-border-color: transparent;
+}
+.btn-preset-clear:hover { -fx-text-fill: sibim-red; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD — health bar segment color + position variants
+   ═══════════════════════════════════════════════════════════════════ */
+.dash-health-seg-green  { -fx-background-color: #10B981; }
+.dash-health-seg-amber  { -fx-background-color: #F59E0B; }
+.dash-health-seg-red    { -fx-background-color: #EF4444; }
+.dash-health-seg-violet { -fx-background-color: #A78BFA; }
+.dash-health-seg-only   { -fx-background-radius: 5; }
+.dash-health-seg-first  { -fx-background-radius: 5 0 0 5; }
+.dash-health-seg-last   { -fx-background-radius: 0 5 5 0; }
+.dash-health-seg-mid    { -fx-background-radius: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CATEGORY BADGE — shared static styles (color set dynamically via setStyle)
+   ═══════════════════════════════════════════════════════════════════ */
+.cat-badge       { -fx-background-radius: 5; -fx-padding: 2 9; -fx-font-size: 11.5px; -fx-font-weight: bold; }
+.cat-preview-badge { -fx-background-radius: 5; -fx-padding: 3 10; -fx-font-size: 12px; -fx-font-weight: bold; }
+.dlg-monogram      { -fx-font-size: 22px; -fx-font-weight: bold; }
+.dlg-thumb-monogram { -fx-background-radius: 12; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEARCH CLEAR BUTTON — overlaid ✕ inside search TextField
+   ═══════════════════════════════════════════════════════════════════ */
+.search-clear-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: sibim-slate-500;
+    -fx-padding: 0 8 0 0;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-effect: none;
+    -fx-border-color: transparent;
+}
+.search-clear-btn:hover { -fx-text-fill: sibim-slate-600; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SHORTCUT HELP DIALOG
+   ═══════════════════════════════════════════════════════════════════ */
+.shortcut-key {
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-color: #EEF2FF;
+    -fx-background-radius: 4;
+    -fx-padding: 2 8;
+    -fx-border-color: #C7D2FE;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+}
+.shortcut-desc {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #374151;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOVIMIENTO DETAIL DIALOG — value labels
+   ═══════════════════════════════════════════════════════════════════ */
+.dlg-detail-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: sibim-slate-500;
+}
+.dlg-detail-value {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: sibim-slate-900;
+    -fx-wrap-text: true;
+}

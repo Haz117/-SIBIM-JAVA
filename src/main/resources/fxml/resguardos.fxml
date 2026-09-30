@@ -12,7 +12,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
         <StackPane styleClass="page-header-icon, page-header-icon-indigo">
-            <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="page-icon-emoji"/>
+            <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Resguardos de Bienes" styleClass="page-title"/>
@@ -97,11 +97,16 @@
     <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar, filter-bar-indigo">
         <TextField fx:id="searchField" promptText="Buscar por resguardante, área o número…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnExportarPdf" text="Exportar PDF" onAction="#onExportarPdf"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el registro de resguardos visible a PDF"/></tooltip>
-        </Button>
+        <MenuButton fx:id="btnExportarPdf" text="Exportar" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Exportar el registro de resguardos visible" wrapText="true" maxWidth="240"/></tooltip>
+            <items>
+                <MenuItem text="PDF" onAction="#onExportarPdf">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
+                </MenuItem>
+            </items>
+        </MenuButton>
         <Button fx:id="btnCancelar" text="Dar de baja" onAction="#onCancelar"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-delete-circle-outline" styleClass="btn-icon"/></graphic>

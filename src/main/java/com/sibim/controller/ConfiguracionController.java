@@ -182,6 +182,8 @@ public class ConfiguracionController {
             if (backupSection != null) AnimationUtils.fadeInUp(backupSection, 320, 315);
         }
 
+        if (isAdmin) new ConfigAreasSectionBuilder(backupSection).build();
+
         if (isAdmin) {
             AppExecutor.submit(() -> {
                 Map<String, String> cfg;

@@ -196,6 +196,9 @@ public final class DialogUtil {
 
         StackPane badge = new StackPane(iconNode);
         badge.getStyleClass().add("dlg-header-icon-badge");
+        // The dialog's own color lives only here now (see below).
+        badge.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%,"
+            + color1 + "," + color2 + ");");
 
         Label titleLbl = new Label(title);
         titleLbl.getStyleClass().add("dlg-header-title");
@@ -210,10 +213,11 @@ public final class DialogUtil {
 
         HBox header = new HBox(16, badge, text);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(22, 24, 22, 24));
-        // Gradient background is dynamic (per-dialog colors) — irreducible inline style
-        header.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%,"
-            + color1 + "," + color2 + "); -fx-background-radius: 8 8 0 0;");
+        header.setPadding(new Insets(18, 22, 18, 22));
+        // Same calm header on every dialog (white, dark title, thin divider). Each
+        // dialog used to paint the whole band in its own loud gradient — purple,
+        // blue, red — which made the modals look unrelated and heavy.
+        header.getStyleClass().add("dlg-header");
         return header;
     }
 
@@ -225,7 +229,7 @@ public final class DialogUtil {
      */
     public static void addCopyButton(HBox header, String value) {
         FontIcon copyIcon  = new FontIcon("mdi2c-content-copy");
-        copyIcon.getStyleClass().add("dlg-header-icon");
+        copyIcon.getStyleClass().add("dlg-header-action-icon");
         copyIcon.setIconSize(16);
         Button btn = new Button();
         btn.setGraphic(copyIcon);
@@ -237,7 +241,7 @@ public final class DialogUtil {
             cc.putString(value);
             Clipboard.getSystemClipboard().setContent(cc);
             FontIcon ok = new FontIcon("mdi2c-check");
-            ok.getStyleClass().add("dlg-header-icon");
+            ok.getStyleClass().add("dlg-header-action-icon");
             ok.setIconSize(16);
             btn.setGraphic(ok);
             PauseTransition reset = new PauseTransition(Duration.millis(1200));
@@ -345,7 +349,19 @@ public final class DialogUtil {
     public static GridPane formGrid(double labelColWidth) {
         GridPane g = new GridPane();
         g.setHgap(12);
-        g.setVgap(12);
+        // Row spacing as a top margin on each cell instead of vgap: GridPane adds
+        // vgap even for a row whose fields are hidden (e.g. "Área destino" when the
+        // movement isn't a transfer), which left big holes in the form.
+        g.setVgap(0);
+        g.getChildren().addListener((javafx.collections.ListChangeListener<Node>) ch -> {
+            while (ch.next()) {
+                for (Node n : ch.getAddedSubList()) {
+                    Integer r = GridPane.getRowIndex(n);
+                    if (r != null && r > 0 && GridPane.getMargin(n) == null)
+                        GridPane.setMargin(n, new Insets(12, 0, 0, 0));
+                }
+            }
+        });
         g.setPadding(new Insets(18, 22, 20, 22));
         ColumnConstraints c0 = new ColumnConstraints(labelColWidth);
         ColumnConstraints c1 = new ColumnConstraints();
@@ -423,6 +439,13 @@ public final class DialogUtil {
      * columns are configured — the lookup needs the skin, which is resolved
      * lazily via skinProperty().
      */
+    private static final String DEFAULT_VISIBLE = "sibim.col.defaultVisible";
+
+    /** A column's visibility as first declared (FXML), before any saved preference. */
+    private static boolean defaultVisible(TableColumn<?, ?> col) {
+        return (boolean) col.getProperties().getOrDefault(DEFAULT_VISIBLE, Boolean.TRUE);
+    }
+
     public static void setupColumnVisibilityMenu(String prefKeyPrefix,
             TableView<?> table, List<? extends TableColumn<?, ?>> alwaysVisible) {
         table.skinProperty().addListener((obs, old, skin) -> {
@@ -443,7 +466,11 @@ public final class DialogUtil {
                     if (alwaysVisible.contains(col) || col.getText() == null || col.getText().isBlank())
                         continue;
                     String prefKey = prefKeyPrefix + "." + col.getText();
-                    col.setVisible(UI_PREFS.getBoolean(prefKey, true));
+                    // Default = what the FXML declares (e.g. Mín./Máx. start hidden),
+                    // not "everything visible".
+                    boolean porDefecto = col.isVisible();
+                    col.getProperties().put(DEFAULT_VISIBLE, porDefecto);
+                    col.setVisible(UI_PREFS.getBoolean(prefKey, porDefecto));
                     CheckMenuItem item = new CheckMenuItem(col.getText());
                     item.setSelected(col.isVisible());
                     col.visibleProperty().addListener((o, ov, nv) -> item.setSelected(nv));
@@ -461,7 +488,7 @@ public final class DialogUtil {
                 resetItem.setOnAction(e -> {
                     for (TableColumn<?, ?> col : toggleable) {
                         String prefKey = prefKeyPrefix + "." + col.getText();
-                        col.setVisible(true);
+                        col.setVisible(defaultVisible(col));
                         UI_PREFS.remove(prefKey);
                     }
                 });
@@ -523,6 +550,24 @@ public final class DialogUtil {
     public static <T> void makeFilterable(ComboBox<T> combo, java.util.List<T> allItems, Function<T, String> toText) {
         combo.setEditable(true);
         combo.setItems(FXCollections.observableArrayList(allItems));
+        Label vacio = new Label(allItems.isEmpty()
+            ? "No hay registros cargados (¿sin conexión?)" : "Ningún resultado coincide con lo escrito");
+        vacio.getStyleClass().add("muted-sm");
+        vacio.setPadding(new Insets(10));
+        combo.setPlaceholder(vacio);
+        // A click in the field always opens the list. Opening only when the field
+        // GAINED focus meant that, in a dialog where it already had focus, clicking
+        // it did nothing — it looked like an empty, dead picker.
+        combo.getEditor().addEventHandler(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
+            if (!combo.isShowing()) {
+                String text = combo.getEditor().getText();
+                T selected = combo.getValue();
+                boolean filtrando = text != null && !text.isBlank()
+                    && (selected == null || !toText.apply(selected).equals(text));
+                if (!filtrando) combo.setItems(FXCollections.observableArrayList(allItems));
+                combo.show();
+            }
+        });
         // Distinguishes the user typing from this method's own programmatic
         // edits to the editor text (e.g. restoring the label after a pick) —
         // without it, that restore would re-trigger the filter and fight itself.
@@ -972,12 +1017,15 @@ public final class DialogUtil {
     public static Runnable captureColumnReset(TableView table, Preferences prefs) {
         List<TableColumn> defaultOrder = new java.util.ArrayList<>(table.getColumns());
         double[] defaultWidths = new double[defaultOrder.size()];
-        for (int i = 0; i < defaultOrder.size(); i++) defaultWidths[i] = defaultOrder.get(i).getPrefWidth();
+        for (int i = 0; i < defaultOrder.size(); i++) {
+            defaultWidths[i] = defaultOrder.get(i).getPrefWidth();
+            defaultOrder.get(i).getProperties().putIfAbsent(DEFAULT_VISIBLE, defaultOrder.get(i).isVisible());
+        }
 
         return () -> {
             for (int i = 0; i < defaultOrder.size(); i++) {
                 TableColumn col = defaultOrder.get(i);
-                col.setVisible(true);
+                col.setVisible(defaultVisible(col));
                 col.setPrefWidth(defaultWidths[i]);
                 if (prefs != null) prefs.remove("colW.colW." + i);
             }

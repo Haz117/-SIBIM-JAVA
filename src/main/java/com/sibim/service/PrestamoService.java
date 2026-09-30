@@ -1,8 +1,6 @@
 package com.sibim.service;
 
 import com.itextpdf.io.font.constants.StandardFonts;
-import com.itextpdf.io.image.ImageData;
-import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -15,7 +13,6 @@ import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
@@ -73,6 +70,14 @@ public class PrestamoService {
 
     public int actualizarVencidos() throws SQLException { return repo.updateVencidos(); }
 
+    /** A bien de baja or with nothing in existence can't be lent (also used by comodatos). */
+    static void exigirDisponible(Producto producto) {
+        if (producto.isDadoDeBaja())
+            throw new IllegalArgumentException("Este bien está dado de baja: no se puede prestar ni entregar");
+        if (producto.getStockActual() <= 0)
+            throw new IllegalArgumentException("Este bien tiene cantidad 0: no hay nada que entregar");
+    }
+
     public Prestamo crear(String productoId, String areaDestino,
                           String responsableNombre, String responsableCargo,
                           String motivo, LocalDate fechaDevolucionPrevista) throws Exception {
@@ -89,6 +94,9 @@ public class PrestamoService {
 
         Producto producto = productoRepo.findById(productoId)
             .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
+        exigirDisponible(producto);
+        if (areaDestino.trim().equals(producto.getArea()))
+            throw new IllegalArgumentException("El área destino debe ser distinta al área donde está el bien");
         if (repo.existeActivoPorProducto(productoId))
             throw new IllegalArgumentException("Este bien ya tiene un préstamo activo — registra la devolución primero");
 
@@ -142,7 +150,7 @@ public class PrestamoService {
             hFont.setColor(org.apache.poi.ss.usermodel.IndexedColors.WHITE.getIndex());
             hStyle.setFont(hFont);
             hStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
-                new byte[]{(byte)22, (byte)101, (byte)52}, null));
+                new byte[]{(byte)162, (byte)35, (byte)45}, null));   // guinda, like every other formato
             hStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
 
             org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
@@ -201,20 +209,7 @@ public class PrestamoService {
             DeviceRgb hColor = vencido ? new DeviceRgb(146, 64, 14) : COLOR_HEADER;
 
             // Try to load the municipal logo for the header.
-            Image headerLogo = null;
-            String lp = cfgRepo.get("logo_path", null);
-            if (lp != null && new java.io.File(lp).exists()) {
-                try {
-                    ImageData imgData = ImageDataFactory.create(lp);
-                    headerLogo = new Image(imgData);
-                    headerLogo.setMaxHeight(45).setMaxWidth(60).setAutoScale(false);
-                    headerLogo.setHorizontalAlignment(HorizontalAlignment.CENTER);
-                } catch (Exception e) {
-                    org.slf4j.LoggerFactory.getLogger(PrestamoService.class)
-                        .warn("No se pudo cargar el logo municipal '{}': {}", lp, e.getMessage());
-                    headerLogo = null;
-                }
-            }
+            Image headerLogo = ReporteService.getInstance().loadHeaderLogo();
 
             Table headerTable;
             if (headerLogo != null) {

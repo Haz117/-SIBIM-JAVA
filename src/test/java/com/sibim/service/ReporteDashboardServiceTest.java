@@ -69,13 +69,13 @@ class ReporteDashboardServiceTest {
         byArea.put("Sala de cómputo", 12L);
         byArea.put("Secretaria General Municipal", 8L);
 
-        return new DashboardService.Resumen(stats, catValores, agotados, bajoStock, List.of(),
+        return new DashboardService.Resumen(stats, catValores, agotados, bajoStock, List.of(), List.of(),
             movHoy, movSemana, movMensual, List.of(), byArea, 30L, 25L);
     }
 
     private static DashboardService.Resumen buildResumenVacio() {
         var stats = new ProductoRepository.ProductoStats(0, 0, 0, 0, 0, BigDecimal.ZERO, 0);
-        return new DashboardService.Resumen(stats, List.of(), List.of(), List.of(), List.of(),
+        return new DashboardService.Resumen(stats, List.of(), List.of(), List.of(), List.of(), List.of(),
             List.of(), List.of(), List.of(), List.of(), new LinkedHashMap<>(), 0L, 0L);
     }
 

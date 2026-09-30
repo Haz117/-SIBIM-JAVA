@@ -13,6 +13,7 @@ import com.sibim.service.ReporteOrganigramaService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
+import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;

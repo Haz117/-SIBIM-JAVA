@@ -226,4 +226,60 @@ class MovimientoServiceTest {
         assertDoesNotThrow(() -> service.eliminar("mov-x"));
         verify(mockMovimientoRepo).deleteMovimientoAtomic("mov-x");
     }
+
+    // ── Reglas agregadas el 2026-09-26 ────────────────────────────────────────
+
+    private static final String DESTINO = "Dirección de Tecnologías de la Información";
+
+    private String mensaje(org.junit.jupiter.api.function.Executable e) {
+        return assertThrows(MovimientoService.ValidationException.class, e).getMessage();
+    }
+
+    @Test void registrar_sobreBienDadoDeBaja_seRechaza() {
+        SessionManager.setCurrentUser(admin);
+        producto.setFechaBaja(java.time.LocalDate.now());
+        assertEquals(MovimientoService.BIEN_DE_BAJA,
+            mensaje(() -> service.registrar("p-01", TipoMovimiento.ENTRADA, 1, "x", null)));
+    }
+
+    @Test void transferencia_deBienSinExistencia_seRechaza() {
+        SessionManager.setCurrentUser(admin);
+        producto.setStockActual(0);
+        assertEquals(MovimientoService.SIN_EXISTENCIA,
+            mensaje(() -> service.registrar("p-01", TipoMovimiento.TRANSFERENCIA, 1, "x", null, DESTINO)));
+    }
+
+    @Test void transferencia_conCantidadDistintaALaExistencia_seRechaza() {
+        SessionManager.setCurrentUser(admin);
+        assertTrue(mensaje(() -> service.registrar("p-01", TipoMovimiento.TRANSFERENCIA, 5, "x", null, DESTINO))
+            .contains("bien completo"));
+    }
+
+    @Test void transferencia_aUnAreaQueNoExiste_seRechaza() {
+        SessionManager.setCurrentUser(admin);
+        assertTrue(mensaje(() -> service.registrar("p-01", TipoMovimiento.TRANSFERENCIA, 18, "x", null, "Área inventada"))
+            .contains("no es un área"));
+    }
+
+    @Test void transferencia_conOtraPendiente_seRechaza() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        Movimiento pendiente = new Movimiento();
+        pendiente.setProductoId("p-01");
+        when(mockMovimientoRepo.findPendientesTransferencias()).thenReturn(java.util.List.of(pendiente));
+        assertTrue(mensaje(() -> service.registrar("p-01", TipoMovimiento.TRANSFERENCIA, 18, "x", null, DESTINO))
+            .contains("pendiente"));
+    }
+
+    @Test void transferencia_valida_seRegistra() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        when(mockMovimientoRepo.findPendientesTransferencias()).thenReturn(java.util.List.of());
+        service.registrar("p-01", TipoMovimiento.TRANSFERENCIA, 18, "Reasignación", null, DESTINO);
+        verify(mockMovimientoRepo).addMovimientoAtomic(any(), any());
+    }
+
+    @Test void ajuste_alMismoValor_seRechaza() {
+        SessionManager.setCurrentUser(admin);
+        assertTrue(mensaje(() -> service.registrar("p-01", TipoMovimiento.AJUSTE, 18, "x", null))
+            .contains("no cambia"));
+    }
 }
