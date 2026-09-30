@@ -176,6 +176,10 @@
                                 <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="nav-icon"/></graphic>
                                 <tooltip><Tooltip text="Actas de entrega-recepción  (Ctrl+Alt+A)"/></tooltip>
                             </Button>
+                            <Button fx:id="btnBajas" text="Bajas" onAction="#onNavItem" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                                <graphic><FontIcon iconLiteral="mdi2a-archive-arrow-down-outline" styleClass="nav-icon"/></graphic>
+                                <tooltip><Tooltip text="Bajas patrimoniales — solicitudes, dictámenes y actas  (Ctrl+Alt+B)"/></tooltip>
+                            </Button>
                         </VBox>
                     </VBox>
 

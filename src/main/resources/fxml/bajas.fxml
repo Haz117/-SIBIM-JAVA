@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sibim.controller.BajasController"
+      fx:id="rootPane" spacing="12">
+    <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
+
+    <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
+        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+            <FontIcon iconLiteral="mdi2a-archive-arrow-down-outline" styleClass="page-icon-symbol"/>
+        </StackPane>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Bajas patrimoniales" styleClass="page-title"/>
+            <Label text="Bienes fuera del inventario activo, con su solicitud, dictamen y acta" styleClass="page-subtitle"/>
+        </VBox>
+        <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22" visible="false" managed="false"/>
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Actualizar la lista de bajas (F5)"/></tooltip>
+        </Button>
+        <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary">
+            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
+            <items>
+                <MenuItem text="PDF" onAction="#onExportPdf"/>
+                <MenuItem text="Excel" onAction="#onExportExcel"/>
+                <MenuItem text="CSV" onAction="#onExportCsv"/>
+            </items>
+        </MenuButton>
+    </HBox>
+
+    <!-- ══ CÓMO SE DA DE BAJA ═══════════════════════════════════════ -->
+    <HBox fx:id="avisoProceso" alignment="CENTER_LEFT" spacing="10" styleClass="card">
+        <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
+        <FontIcon iconLiteral="mdi2i-information-outline" iconSize="18"/>
+        <Label fx:id="lblProceso" wrapText="true" HBox.hgrow="ALWAYS" styleClass="muted-sm"/>
+    </HBox>
+
+    <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
+    <HBox spacing="12">
+        <VBox styleClass="rich-stat-card, rich-stat-indigo" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                    <FontIcon iconLiteral="mdi2a-archive-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="BIENES DADOS DE BAJA" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblTotal" text="—" styleClass="rich-stat-value"/>
+            <Label text="en tus áreas" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox styleClass="rich-stat-card, rich-stat-teal" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                    <FontIcon iconLiteral="mdi2c-calendar-today" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="ESTE AÑO" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblAnio" text="—" styleClass="rich-stat-value"/>
+            <Label text="bajas registradas" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox styleClass="rich-stat-card, rich-stat-amber" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                    <FontIcon iconLiteral="mdi2c-cash-minus" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="VALOR DADO DE BAJA" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblValor" text="—" styleClass="rich-stat-value"/>
+            <Label text="costo de adquisición" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox styleClass="rich-stat-card, rich-stat-rose" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+            <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-rose">
+                    <FontIcon iconLiteral="mdi2f-file-alert-outline" styleClass="rich-stat-icon"/>
+                </StackPane>
+                <Label text="SIN SOLICITUD REGISTRADA" styleClass="rich-stat-label"/>
+            </HBox>
+            <Label fx:id="lblSinSolicitud" text="—" styleClass="rich-stat-value"/>
+            <Label text="bajas anteriores a la regla" styleClass="rich-stat-hint"/>
+        </VBox>
+    </HBox>
+
+    <!-- ══ FILTROS ══════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <TextField fx:id="searchField" promptText="Buscar por bien, código, motivo, folio o dictamen…"
+                   styleClass="search-field" HBox.hgrow="ALWAYS"/>
+        <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="260"/>
+        <ComboBox fx:id="anioFilter" promptText="Todos los años" prefWidth="150"/>
+        <Button text="Limpiar" onAction="#onLimpiar" styleClass="btn-ghost"/>
+    </HBox>
+
+    <!-- ══ TABLA ════════════════════════════════════════════════════ -->
+    <TableView fx:id="table" styleClass="data-table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colFecha" text="Fecha de baja" prefWidth="110"/>
+            <TableColumn fx:id="colCodigo" text="Código" prefWidth="100"/>
+            <TableColumn fx:id="colNombre" text="Bien" prefWidth="220"/>
+            <TableColumn fx:id="colArea" text="Área" prefWidth="200"/>
+            <TableColumn fx:id="colMotivo" text="Motivo" prefWidth="200"/>
+            <TableColumn fx:id="colSolicitud" text="Solicitud" prefWidth="120"/>
+            <TableColumn fx:id="colDestino" text="Destino" prefWidth="120"/>
+            <TableColumn fx:id="colDictamen" text="Dictamen" prefWidth="140"/>
+            <TableColumn fx:id="colActa" text="No. acta" prefWidth="100"/>
+            <TableColumn fx:id="colValor" text="Valor" prefWidth="110"/>
+        </columns>
+        <placeholder><Label fx:id="lblVacio" text="No hay bienes dados de baja" styleClass="muted"/></placeholder>
+    </TableView>
+
+    <!-- ══ ACCIONES ═════════════════════════════════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
+        <Label fx:id="lblResultados" text="0 resultados" styleClass="muted"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnActa" text="Acta de baja" onAction="#onActa" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2f-file-certificate-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Vuelve a generar el acta de baja del bien seleccionado"/></tooltip>
+        </Button>
+        <Button fx:id="btnFicha" text="Ficha" onAction="#onFicha" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2f-file-document-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Ficha técnica del bien seleccionado"/></tooltip>
+        </Button>
+        <Button fx:id="btnReactivar" text="Reactivar" onAction="#onReactivar" styleClass="btn-primary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2r-restore" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Regresa el bien al inventario activo (solo administrador)"/></tooltip>
+        </Button>
+    </HBox>
+</VBox>

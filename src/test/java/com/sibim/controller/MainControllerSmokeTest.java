@@ -21,7 +21,7 @@ import java.util.prefs.Preferences;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Loads the REAL main.fxml with its controller. main.fxml wires 15 nav buttons, four accordion
+ * Loads the REAL main.fxml with its controller. main.fxml wires 16 nav buttons, four accordion
  * sections and a footer to MainController by fx:id / handler name; nothing else in the suite
  * loads it, so a typo there would otherwise only show up when someone starts the app.
  */
@@ -31,7 +31,7 @@ class MainControllerSmokeTest extends ControllerSmokeTestBase {
     private static final List<String> VIEWS = List.of(
         "dashboard", "organigrama", "productos", "categorias",
         "movimientos", "alertas", "reportes", "depreciacion", "conteo",
-        "resguardos", "prestamos", "comodatos", "actas",
+        "resguardos", "prestamos", "comodatos", "actas", "bajas",
         "configuracion", "auditoria");
 
     private String prefsNode;

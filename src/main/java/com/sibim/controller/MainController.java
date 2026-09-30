@@ -83,6 +83,7 @@ public class MainController {
     @FXML private Button btnPrestamos;
     @FXML private Button btnComodatos;
     @FXML private Button btnActas;
+    @FXML private Button btnBajas;
     @FXML private Button btnConfiguracion;
     @FXML private Button btnAuditoria;
     @FXML private Button btnGlobalSearch;
@@ -355,6 +356,7 @@ public class MainController {
             page("prestamos",     NavSection.CONTROL,     btnPrestamos,     KeyCode.P, ctrlAlt),
             page("comodatos",     NavSection.CONTROL,     btnComodatos,     KeyCode.O, ctrlAlt),
             page("actas",         NavSection.CONTROL,     btnActas,         KeyCode.A, ctrlAlt),
+            page("bajas",         NavSection.CONTROL,     btnBajas,         KeyCode.B, ctrlAlt).withPaletteLabel("Bajas patrimoniales"),
             page("configuracion", NavSection.SISTEMA,     btnConfiguracion, KeyCode.DIGIT9),
             page("auditoria",     NavSection.SISTEMA,     btnAuditoria,     KeyCode.DIGIT0).restrictedToAdmin()));
     }
