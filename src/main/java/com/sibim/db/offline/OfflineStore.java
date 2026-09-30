@@ -281,6 +281,14 @@ public final class OfflineStore {
         } catch (SQLException ignored) {
             log.debug("Offline migration step already applied (idempotent)", ignored);
         }
+        // M1c (2026-09): a transfer's old/new código, same as Postgres V22.
+        for (String col : List.of("codigo_anterior", "codigo_nuevo")) {
+            try (Statement st = c.createStatement()) {
+                st.execute("ALTER TABLE movements ADD COLUMN " + col + " TEXT");
+            } catch (SQLException ignored) {
+                log.debug("Offline migration step already applied (idempotent)", ignored);
+            }
+        }
         // M2 (2025): conteo físico offline outbox
         try (Statement st = c.createStatement()) {
             st.execute("""
@@ -444,6 +452,53 @@ public final class OfflineStore {
                 + "AND producto_id IS NOT NULL)");   // a NULL in NOT IN would match no row at all
         } catch (SQLException ignored) {
             log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
+        codigoUnicoSoloEntreActivos(c);
+    }
+
+    /** M(2026-09b): Postgres (V14) only requires a código to be unique among
+     *  ACTIVE bienes — a bien dado de baja keeps its old código and that número
+     *  is handed out again. The offline mirror still had a global UNIQUE, so
+     *  caching the server's inventory failed as a whole (empty inventory
+     *  offline) and an offline alta reusing a freed número was rejected.
+     *  SQLite can't drop a column constraint: rebuild the table once. */
+    static void codigoUnicoSoloEntreActivos(Connection c) {
+        try {
+            String ddl;
+            try (Statement st = c.createStatement();
+                 ResultSet rs = st.executeQuery(
+                     "SELECT sql FROM sqlite_master WHERE type='table' AND name='products'")) {
+                ddl = rs.next() ? rs.getString(1) : null;
+            }
+            java.util.regex.Pattern unico = java.util.regex.Pattern.compile(
+                "(?i)(\\bcodigo\\s+TEXT\\s+)UNIQUE\\s+");
+            if (ddl != null && unico.matcher(ddl).find()) {
+                String nuevo = unico.matcher(ddl).replaceFirst("$1")
+                    .replaceFirst("(?i)CREATE TABLE\\s+(IF NOT EXISTS\\s+)?\"?products\"?", "CREATE TABLE products__nuevo");
+                boolean auto = c.getAutoCommit();
+                c.setAutoCommit(false);
+                try (Statement st = c.createStatement()) {
+                    st.execute("DROP TABLE IF EXISTS products__nuevo");
+                    st.execute(nuevo);
+                    st.execute("INSERT INTO products__nuevo SELECT * FROM products");
+                    st.execute("DROP TABLE products");
+                    st.execute("ALTER TABLE products__nuevo RENAME TO products");
+                    st.execute("CREATE INDEX IF NOT EXISTS idx_offline_products_area ON products(area)");
+                    c.commit();
+                    log.info("offline.db: código único solo entre bienes activos (igual que el servidor)");
+                } catch (SQLException e) {
+                    c.rollback();
+                    throw e;
+                } finally {
+                    c.setAutoCommit(auto);
+                }
+            }
+            try (Statement st = c.createStatement()) {
+                st.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_offline_products_codigo_activo "
+                    + "ON products(codigo) WHERE fecha_baja IS NULL");
+            }
+        } catch (SQLException e) {
+            log.warn("offline.db: no se pudo ajustar la unicidad del código: {}", e.getMessage());
         }
     }
 
@@ -689,8 +744,9 @@ public final class OfflineStore {
     private static void cacheMovimientoSnapshot(Movimiento m) throws SQLException {
         String sql = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
-                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado,
+                codigo_anterior, codigo_nuevo)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO NOTHING
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
@@ -708,6 +764,8 @@ public final class OfflineStore {
             ps.setString(12, m.getUsuarioNombre());
             ps.setString(13, str(m.getCreadoEn()));
             ps.setString(14, m.getEstado() != null ? m.getEstado() : Movimiento.ESTADO_APROBADO);
+            ps.setString(15, m.getCodigoAnterior());
+            ps.setString(16, m.getCodigoNuevo());
             ps.executeUpdate();
         }
     }
@@ -931,6 +989,21 @@ public final class OfflineStore {
         }
     }
 
+    public static synchronized void updateProductoCodigo(String id, String codigo) throws SQLException {
+        ensureLoaded();
+        PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
+            p.setCodigo(codigo);
+            p.setActualizadoEn(LocalDateTime.now());
+        });
+        try (PreparedStatement ps = conn().prepareStatement(
+                "UPDATE products SET codigo = ?, updated_at = ? WHERE id = ?")) {
+            ps.setString(1, codigo);
+            ps.setString(2, str(LocalDateTime.now()));
+            ps.setString(3, id);
+            ps.executeUpdate();
+        }
+    }
+
     private static void persistProducto(Producto p) throws SQLException {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
@@ -1081,20 +1154,30 @@ public final class OfflineStore {
             if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual) {
                 throw new SQLException("La cantidad supera el stock disponible (" + stockActual + ")");
             }
+            if (p.isDadoDeBaja()) throw new SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
 
             int stockNuevo = ProductoUtils.calcularStockNuevo(m.getTipo().getCodigo(), stockActual, m.getCantidad());
             m.setStockAnterior(stockActual);
             m.setStockNuevo(stockNuevo);
             if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
 
-            if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
+            boolean transferencia = m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null;
+            if (transferencia) {
                 m.setAreaOrigen(p.getArea());
+                // Same rule as online (AreaCodigos): next free número in the
+                // destination; the server re-assigns it when this syncs.
+                m.setCodigoAnterior(p.getCodigo());
+                m.setCodigoNuevo(com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())
+                    ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosActivos())
+                    : p.getCodigo());
             }
             Connection c = conn();
             c.setAutoCommit(false);
             try {
-                if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null)
+                if (transferencia) {
                     updateProductoArea(m.getProductoId(), m.getAreaDestino());
+                    updateProductoCodigo(m.getProductoId(), m.getCodigoNuevo());
+                }
                 persistMovimiento(m);
                 updateProductoStock(m.getProductoId(), stockNuevo);
                 enqueueMovement("ADD", m);
@@ -1107,6 +1190,10 @@ public final class OfflineStore {
                 c.setAutoCommit(true);
             }
         }
+    }
+
+    private static List<String> codigosActivos() {
+        return PRODUCTOS.stream().filter(x -> !x.isDadoDeBaja()).map(Producto::getCodigo).toList();
     }
 
     /** Only the most recent movement for a product may be deleted — same
@@ -1148,8 +1235,9 @@ public final class OfflineStore {
     private static void persistMovimiento(Movimiento m) throws SQLException {
         String sql = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
-                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado,
+                codigo_anterior, codigo_nuevo)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setString(1, m.getId());
@@ -1166,6 +1254,8 @@ public final class OfflineStore {
             ps.setString(12, m.getUsuarioNombre());
             ps.setString(13, str(m.getCreadoEn()));
             ps.setString(14, m.getEstado() != null ? m.getEstado() : Movimiento.ESTADO_APROBADO);
+            ps.setString(15, m.getCodigoAnterior());
+            ps.setString(16, m.getCodigoNuevo());
             ps.executeUpdate();
         }
     }
@@ -1465,6 +1555,8 @@ public final class OfflineStore {
         m.setUsuarioNombre(rs.getString("usuario_nombre"));
         m.setCreadoEn(dt(rs.getString("created_at")));
         m.setEstado(rs.getString("estado"));
+        m.setCodigoAnterior(rs.getString("codigo_anterior"));
+        m.setCodigoNuevo(rs.getString("codigo_nuevo"));
         Producto p = PRODUCTOS_MAP.get(m.getProductoId());
         if (p != null) {
             m.setProductoNombre(p.getNombre());

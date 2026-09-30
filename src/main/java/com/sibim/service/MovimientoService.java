@@ -208,6 +208,7 @@ public class MovimientoService {
     public void aprobarTransferencia(String movimientoId) throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
         requireAdminForTransferWorkflow();
+        requireConexionParaResolver();
         try {
             movimientoRepo.aprobarTransferencia(movimientoId);
         } catch (SQLException e) {
@@ -218,13 +219,14 @@ public class MovimientoService {
             "Transferencia aprobada por administrador");
     }
 
-    public void rechazarTransferencia(String movimientoId) throws SQLException {
+    public void rechazarTransferencia(String movimientoId) throws SQLException, ValidationException {
         rechazarTransferencia(movimientoId, null);
     }
 
-    public void rechazarTransferencia(String movimientoId, String motivo) throws SQLException {
+    public void rechazarTransferencia(String movimientoId, String motivo) throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
         requireAdminForTransferWorkflow();
+        requireConexionParaResolver();
         movimientoRepo.rechazarTransferencia(movimientoId, motivo);
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_rechazada",
             "Transferencia rechazada por administrador"
@@ -261,6 +263,17 @@ public class MovimientoService {
         if (!SessionManager.isAdmin()) {
             throw new SecurityException("Solo el administrador puede aprobar o rechazar transferencias");
         }
+    }
+
+    static final String RESOLVER_REQUIERE_CONEXION =
+        "Aprobar o rechazar una transferencia requiere conexión con el servidor: "
+        + "otra PC pudo haber movido el bien mientras tanto. Inténtalo al reconectar.";
+
+    /** Whether a transfer can still be applied depends on where the bien is on
+     *  the server right now (another PC may have moved it), so an offline copy
+     *  can't decide it. The pending request stays queued until reconnection. */
+    private static void requireConexionParaResolver() throws ValidationException {
+        if (com.sibim.db.DatabaseConfig.isOfflineMode()) throw new ValidationException(RESOLVER_REQUIERE_CONEXION);
     }
 
     /** Deleting erases the movement from the history, so it's reserved for

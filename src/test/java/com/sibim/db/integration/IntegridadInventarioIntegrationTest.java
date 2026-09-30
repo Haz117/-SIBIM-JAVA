@@ -204,7 +204,9 @@ class IntegridadInventarioIntegrationTest extends IntegrationTestBase {
         String areaRh = "Tesorería — Recursos Humanos y Nómina";
         Producto p = nuevoBien("Silla", AREA_SGM, 1);
         Movimiento pendiente = movimientoRepo.addMovimientoPendiente(transferencia(p.getId(), AREA_TICS));
-        movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "otra", null, areaRh);
+        // Another PC moves it first (the service on THIS PC would refuse a
+        // second transfer while one is pending, so go straight to the store).
+        movimientoRepo.addMovimientoAtomic(transferencia(p.getId(), areaRh));
 
         var ex = assertThrows(MovimientoService.ValidationException.class,
             () -> movimientoService.aprobarTransferencia(pendiente.getId()));

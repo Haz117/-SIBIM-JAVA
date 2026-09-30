@@ -111,7 +111,8 @@ class PendientesDialog {
                     ex -> {
                         btnAprobar.setDisable(false); btnRechazar.setDisable(false);
                         NotificacionUtil.error(dialog.getDialogPane().getScene(),
-                            "No se pudo rechazar la transferencia");
+                            ex instanceof MovimientoService.ValidationException
+                                ? ex.getMessage() : "No se pudo rechazar la transferencia");
                     }
                 );
             });

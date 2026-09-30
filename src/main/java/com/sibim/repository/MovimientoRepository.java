@@ -838,9 +838,16 @@ public class MovimientoRepository {
     }
 
     public List<Movimiento> findPendientesTransferencias() throws SQLException {
-        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findPendientesTransferencias();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllMovimientos(null).stream()
+                .filter(m -> m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.isPendiente())
+                .sorted(java.util.Comparator.comparing(Movimiento::getCreadoEn,
+                    java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())))
+                .toList();
+        }
         String sql = BASE_SELECT +
-            " WHERE m.tipo = 'TRANSFERENCIA' AND m.estado = 'PENDIENTE' ORDER BY m.created_at ASC";
+            " WHERE m.tipo = 'transferencia' AND m.estado = 'PENDIENTE' ORDER BY m.created_at ASC";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             return executeQuery(ps);

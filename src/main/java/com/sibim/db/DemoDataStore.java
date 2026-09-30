@@ -18,10 +18,10 @@ public final class DemoDataStore {
     // ConcurrentModificationException or corrupt iteration — the real
     // Postgres path is already protected by row locks, demo mode needs its
     // own equivalent.
-    private static final List<Usuario>   USUARIOS;
-    private static final List<Categoria> CATEGORIAS;
-    private static final List<Producto>  PRODUCTOS;
-    private static final List<Movimiento> MOVIMIENTOS;
+    private static final List<Usuario>   USUARIOS    = Collections.synchronizedList(new ArrayList<>());
+    private static final List<Categoria> CATEGORIAS  = Collections.synchronizedList(new ArrayList<>());
+    private static final List<Producto>  PRODUCTOS   = Collections.synchronizedList(new ArrayList<>());
+    private static final List<Movimiento> MOVIMIENTOS = Collections.synchronizedList(new ArrayList<>());
     private static final int MAX_AUDIT_LOG = 500;
     private static final int MAX_CONTEOS   = 200;
     private static final LinkedList<AuditLog>    AUDIT_LOG = new LinkedList<>();
@@ -48,9 +48,22 @@ public final class DemoDataStore {
     // real usa DEMO_PASSWORDS abajo.
     private static final String HASH = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj1o.FxRzFNS";
 
-    static {
+    static { sembrar(); }
+
+    /** Puts the demo data back exactly as it is at startup — for tests that
+     *  write through demo mode and must not leak into the next test class. */
+    public static void reiniciar() {
+        synchronized (STOCK_LOCK) {
+            AUDIT_LOG.clear();
+            CONTEOS.clear();
+            sembrar();
+        }
+    }
+
+    private static void sembrar() {
         // ── Usuarios ──────────────────────────────────────────────────────────
-        USUARIOS = Collections.synchronizedList(new ArrayList<>(List.of(
+        USUARIOS.clear();
+        USUARIOS.addAll(new ArrayList<>(List.of(
             new Usuario("u-admin",  "superusuario",         HASH,
                 "Administrador del Sistema", "Superusuario", Rol.ADMIN, null,
                 LocalDateTime.now().minusDays(365)),
@@ -75,7 +88,8 @@ public final class DemoDataStore {
         // Production seed users (created via crear-admin.ps1) DO get this flag.
 
         // ── Categorías ────────────────────────────────────────────────────────
-        CATEGORIAS = Collections.synchronizedList(new ArrayList<>(List.of(
+        CATEGORIAS.clear();
+        CATEGORIAS.addAll(new ArrayList<>(List.of(
             new Categoria("cat-mob",  "Mobiliario",                "Escritorios, sillas, archiveros, módulos", "#8B5CF6", "🪑",  LocalDateTime.now()),
             new Categoria("cat-veh",  "Vehículos",                 "Flota vehicular municipal",                 "#3B82F6", "🚗",  LocalDateTime.now()),
             new Categoria("cat-comp", "Equipo de Cómputo",         "Laptops, computadoras, periféricos",        "#10B981", "💻",  LocalDateTime.now()),
@@ -88,7 +102,8 @@ public final class DemoDataStore {
         // Formato: id, nombre, código, catId, catNombre, catColor,
         //          precioCompra, precioVenta,
         //          stockActual, stockMin, stockMax, unidad, área
-        PRODUCTOS = Collections.synchronizedList(new ArrayList<>(List.of(
+        PRODUCTOS.clear();
+        PRODUCTOS.addAll(new ArrayList<>(List.of(
             // MOBILIARIO ──────────────────────────────────────────────────────
             prod("p-01","Escritorio ejecutivo de madera",   "MB-001","cat-mob","Mobiliario","#8B5CF6", 4500, 5000, 18,5,30,UnidadMedida.PIEZA,  SGM),
             prod("p-02","Silla ejecutiva ergonómica",       "MB-002","cat-mob","Mobiliario","#8B5CF6", 3200, 3800,  4,8,40,UnidadMedida.PIEZA,  RH),   // BAJO_STOCK
@@ -250,7 +265,8 @@ public final class DemoDataStore {
         // Formato: id, productoId, productoNombre, catColor,
         //          tipo, cantidad, stockAnterior, stockNuevo,
         //          motivo, referencia, usuarioId, usuarioNombre, fechaHora
-        MOVIMIENTOS = Collections.synchronizedList(new ArrayList<>(List.of(
+        MOVIMIENTOS.clear();
+        MOVIMIENTOS.addAll(new ArrayList<>(List.of(
 
             // ── SEMANA -4 (días 30-22) ────────────────────────────────────────
             mov("m-01","p-05","Laptop Dell Latitude 5440","#10B981",
@@ -707,6 +723,8 @@ public final class DemoDataStore {
             if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual) {
                 throw new java.sql.SQLException("La cantidad supera el stock disponible (" + stockActual + ")");
             }
+            if (opt.get().isDadoDeBaja())
+                throw new java.sql.SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
 
             int stockNuevo = com.sibim.util.ProductoUtils.calcularStockNuevo(
                 m.getTipo().getCodigo(), stockActual, m.getCantidad());
@@ -715,8 +733,15 @@ public final class DemoDataStore {
             m.setEstado(Movimiento.ESTADO_APROBADO);
 
             if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
-                m.setAreaOrigen(opt.get().getArea());
+                Producto p = opt.get();
+                m.setAreaOrigen(p.getArea());
+                m.setCodigoAnterior(p.getCodigo());
+                m.setCodigoNuevo(com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())
+                    ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(),
+                        PRODUCTOS.stream().filter(x -> !x.isDadoDeBaja()).map(Producto::getCodigo).toList())
+                    : p.getCodigo());
                 updateProductoArea(m.getProductoId(), m.getAreaDestino());
+                updateProductoCodigo(m.getProductoId(), m.getCodigoNuevo());
             }
             MOVIMIENTOS.add(0, m);
             updateProductoStock(m.getProductoId(), stockNuevo);

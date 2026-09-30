@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS products (
     id                TEXT PRIMARY KEY,
     nombre            TEXT NOT NULL,
-    codigo            TEXT UNIQUE NOT NULL,
+    codigo            TEXT NOT NULL,   -- único solo entre activos (índice en OfflineStore, igual que V14)
     descripcion       TEXT,
     categoria_id      TEXT NOT NULL,
     precio_compra     REAL NOT NULL DEFAULT 0,
