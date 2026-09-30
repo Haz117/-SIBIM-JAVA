@@ -15,7 +15,9 @@ if %errorlevel% neq 0 (
 )
 
 echo Compilando (actualiza automaticamente si hay cambios)...
-call maven-dist\apache-maven-3.9.9\bin\mvn.cmd package -q
+REM -DskipTests: las pruebas son para desarrollo (mvn test); correrlas aqui
+REM tardaba minutos en cada arranque y una sola falla impedia abrir el sistema.
+call maven-dist\apache-maven-3.9.9\bin\mvn.cmd package -q -DskipTests
 if %errorlevel% neq 0 (
     echo [ERROR] Error al compilar. Revisa los logs.
     pause

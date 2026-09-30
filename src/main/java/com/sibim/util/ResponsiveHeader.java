@@ -71,7 +71,12 @@ public final class ResponsiveHeader {
                 r.setPrefWidth(isSpacer(r) ? 0 : flexMin);
             } else if (c instanceof javafx.scene.control.Label l) {
                 l.setMinWidth(Region.USE_PREF_SIZE);   // counters like "36 resultados"
+                // The counter grows ("1,234 resultados") and "3 seleccionados"
+                // appears on selection without the bar changing width: without
+                // this the buttons are left squeezed to "…" until a resize.
+                l.textProperty().addListener(o -> Platform.runLater(() -> update(header, secondary, primary)));
             }
+            c.managedProperty().addListener(o -> Platform.runLater(() -> update(header, secondary, primary)));
         }
         header.widthProperty().addListener(o -> update(header, secondary, primary));
         Platform.runLater(() -> update(header, secondary, primary));

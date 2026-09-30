@@ -4,6 +4,7 @@ import javafx.concurrent.Task;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Application-wide background executor backed by Java 21 virtual threads.
@@ -19,12 +20,18 @@ public final class AppExecutor {
 
     /** Submit a JavaFX Task (its succeeded/failed callbacks still fire on the FX thread). */
     public static void submit(Task<?> task) {
-        POOL.submit(task);
+        submit((Runnable) task);
     }
 
-    /** Submit any plain Runnable. */
+    /** Submit any plain Runnable. Dropped once the app is closing: a timer or
+     *  animation that fires after {@link #shutdown()} (e.g. the startup
+     *  vencidos check) would otherwise throw on the FX thread while exiting. */
     public static void submit(Runnable task) {
-        POOL.submit(task);
+        try {
+            POOL.submit(task);
+        } catch (RejectedExecutionException e) {
+            if (!POOL.isShutdown()) throw e;
+        }
     }
 
     /** The shared pool itself, for callers that fan out several tasks and
