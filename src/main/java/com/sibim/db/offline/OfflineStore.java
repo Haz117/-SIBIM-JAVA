@@ -858,17 +858,19 @@ public final class OfflineStore {
         return PRODUCTOS.stream()
             .filter(p -> accessibleAreas == null || accessibleAreas.contains(p.getArea()))
             .sorted(Comparator.comparing(Producto::getNombre))
+            .map(Producto::copia)
             .collect(Collectors.toList());
     }
 
+    /** Copies, like a SQL read: callers may edit what they get (see Producto#copia). */
     public static synchronized Optional<Producto> findProductoById(String id) throws SQLException {
         ensureLoaded();
-        return PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst();
+        return PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().map(Producto::copia);
     }
 
     public static synchronized Optional<Producto> findProductoByCodigo(String codigo) throws SQLException {
         ensureLoaded();
-        return PRODUCTOS.stream().filter(p -> p.getCodigo().equalsIgnoreCase(codigo)).findFirst();
+        return PRODUCTOS.stream().filter(p -> p.getCodigo().equalsIgnoreCase(codigo)).findFirst().map(Producto::copia);
     }
 
     public static synchronized boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
@@ -906,8 +908,9 @@ public final class OfflineStore {
         }
     }
 
-    public static synchronized void saveProducto(Producto p) throws SQLException {
+    public static synchronized void saveProducto(Producto recibido) throws SQLException {
         ensureLoaded();
+        Producto p = recibido.copia();   // the caller keeps its object; the store keeps its own
         // Captured BEFORE the local row is overwritten — see serverSnapshot().
         String serverSnapshotAt = serverSnapshot(p.getId());
         Producto anterior = PRODUCTOS_MAP.get(p.getId());

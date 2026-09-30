@@ -9,6 +9,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -164,5 +165,27 @@ class ProductoTest {
         assertEquals(2, p.getFotosUrls().size());
         assertEquals("https://example.com/a.jpg", p.getFotosUrls().get(0));
         assertEquals("https://example.com/b.jpg", p.getFotosUrls().get(1));
+    }
+
+    @Test
+    void copia_esIndependienteDelOriginal() {
+        Producto p = new Producto();
+        p.setId("x");
+        p.setNombre("Silla");
+        p.setResguardante("Ana");
+        p.setStockActual(3);
+        p.setFotosUrls(new java.util.ArrayList<>(java.util.List.of("a.jpg")));
+
+        Producto c = p.copia();
+        assertNotSame(p, c);
+        assertEquals("Silla", c.getNombre());
+        assertEquals(3, c.getStockActual());
+
+        c.setResguardante("Otra");
+        c.setStockActual(9);
+        c.getFotosUrls().add("b.jpg");
+        assertEquals("Ana", p.getResguardante());
+        assertEquals(3, p.getStockActual());
+        assertEquals(1, p.getFotosUrls().size());
     }
 }

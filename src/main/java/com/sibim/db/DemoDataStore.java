@@ -581,15 +581,17 @@ public final class DemoDataStore {
         return PRODUCTOS.stream()
             .filter(p -> accessibleAreas == null || accessibleAreas.contains(p.getArea()))
             .sorted(Comparator.comparing(Producto::getNombre))
+            .map(Producto::copia)
             .collect(Collectors.toList());
     }
 
+    /** Copies, like a SQL read: callers may edit what they get (see Producto#copia). */
     public static Optional<Producto> findProductoById(String id) {
-        return PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst();
+        return PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().map(Producto::copia);
     }
 
     public static Optional<Producto> findProductoByCodigo(String codigo) {
-        return PRODUCTOS.stream().filter(p -> p.getCodigo().equalsIgnoreCase(codigo)).findFirst();
+        return PRODUCTOS.stream().filter(p -> p.getCodigo().equalsIgnoreCase(codigo)).findFirst().map(Producto::copia);
     }
 
     public static boolean existsByCodigo(String codigo, String excludeId) {
@@ -601,7 +603,7 @@ public final class DemoDataStore {
 
     public static void saveProducto(Producto p) {
         PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
-        PRODUCTOS.add(p);
+        PRODUCTOS.add(p.copia());
         if (p.getCategoriaId() != null) {
             long count = PRODUCTOS.stream()
                 .filter(x -> p.getCategoriaId().equals(x.getCategoriaId())).count();

@@ -218,6 +218,9 @@ public class ProductoService {
             // keeps products.resguardante in step with it); an edit — single
             // or in bulk — can't contradict the document.
             if (!java.util.Objects.equals(sinBlancos(p.getResguardante()), sinBlancos(actual.getResguardante()))) {
+                if (com.sibim.db.DatabaseConfig.isOfflineMode())
+                    throw new ValidationException("Sin conexión no se puede comprobar si un resguardo firmado "
+                        + "define al resguardante; cámbialo al reconectar");
                 Optional<String> folio = resguardoActivo.folio(p.getId());
                 if (folio.isPresent())
                     throw new ValidationException("El resguardante lo define el resguardo " + folio.get()
@@ -311,6 +314,12 @@ public class ProductoService {
             throw new ValidationException("El motivo de la baja es obligatorio");
         if (p.isDadoDeBaja())
             throw new ValidationException("Este bien ya está dado de baja");
+        // Préstamos and comodatos live only on the server: offline there is no
+        // way to know whether this bien is lent out, and the baja would be
+        // replayed to the server on reconnection without that check.
+        if (com.sibim.db.DatabaseConfig.isOfflineMode())
+            throw new ValidationException("La baja requiere conexión: sin ella no se puede comprobar "
+                + "si el bien tiene un préstamo o comodato activo");
         Optional<String> ocupado = compromiso.de(id);
         if (ocupado.isPresent())
             throw new ValidationException("No se puede dar de baja: el bien " + ocupado.get());

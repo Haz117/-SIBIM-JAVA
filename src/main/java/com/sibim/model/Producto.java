@@ -12,7 +12,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
-public class Producto {
+public class Producto implements Cloneable {
     private String id;
     private String nombre;
     private String codigo;
@@ -45,6 +45,21 @@ public class Producto {
     private BigDecimal valorResidual;   // defaults to ZERO
     private boolean etiquetado;
     private List<String> fotosUrls = new java.util.ArrayList<>();
+
+    /** An independent copy, the way every SQL read hands out a fresh object.
+     *  The demo and offline stores keep their bienes in memory and return
+     *  copies, so a form that edits the object (and is then cancelled) or a
+     *  save that compares "before" with "after" never touches the store's own
+     *  instance. Every field is immutable except the photo list. */
+    public Producto copia() {
+        try {
+            Producto c = (Producto) super.clone();
+            c.fotosUrls = new java.util.ArrayList<>(fotosUrls);
+            return c;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError(e);
+        }
+    }
 
     public Producto() {}
 
