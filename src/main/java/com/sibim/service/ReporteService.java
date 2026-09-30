@@ -85,6 +85,12 @@ public class ReporteService {
         return mun.isBlank() ? org : org + "  ·  " + mun;
     }
 
+    /** A value from configuracion, or {@code fallback} when it is missing or blank. */
+    protected String config(String clave, String fallback) {
+        String v = configRepo.get(clave, "");
+        return v == null || v.isBlank() ? fallback : v;
+    }
+
     /** A local file with the municipality logo (see {@link LogoMunicipal}), or null. */
     protected String logoPath() {
         return LogoMunicipal.rutaLocal(configRepo);

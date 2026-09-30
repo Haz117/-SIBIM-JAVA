@@ -785,7 +785,14 @@ public final class DialogUtil {
         AppExecutor.submit(() -> {
             R result = null;
             Exception error = null;
-            try { result = task.call(); } catch (Exception ex) { error = ex; }
+            // Every caller only shows a generic toast, so the cause has to be
+            // logged here or it is lost; an Error (e.g. a class missing from
+            // the build) would otherwise leave the "working…" toast up forever.
+            try { result = task.call(); }
+            catch (Exception ex) { error = ex; }
+            catch (Error err) { error = new RuntimeException(err); }
+            if (error != null)
+                org.slf4j.LoggerFactory.getLogger(DialogUtil.class).warn("Falló: {}", mensaje, error);
             final R finalResult = result;
             final Exception finalError = error;
             Platform.runLater(() -> {

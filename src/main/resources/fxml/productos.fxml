@@ -359,7 +359,7 @@
             <graphic><FontIcon iconLiteral="mdi2t-tag-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Imprimir la etiqueta del bien seleccionado (o de todos los seleccionados)" wrapText="true" maxWidth="260"/></tooltip>
             <items>
-                <MenuItem text="Etiqueta de inventario (datos + QR)" onAction="#onEtiquetaFisicaSeleccion"/>
+                <MenuItem text="Etiqueta de inventario (formato oficial)" onAction="#onEtiquetaFisicaSeleccion"/>
                 <MenuItem text="Etiqueta QR" onAction="#onEtiquetaQrSeleccion"/>
             </items>
         </MenuButton>

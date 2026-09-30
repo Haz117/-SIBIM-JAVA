@@ -13,7 +13,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Smoke tests for ReporteEtiquetasService.exportEtiquetasQrPdf.
+ * Smoke tests for ReporteEtiquetasService's QR and official physical labels.
  *
  * ReporteEtiquetasService has a public no-arg constructor and never touches
  * the product/movimiento repos for this export, so no mocking is needed. Demo
@@ -84,6 +84,43 @@ class ReporteEtiquetasServiceTest {
         areaBlanco.setArea("   ");
 
         assertFileProduced(service.exportEtiquetasQrPdf(List.of(areaBlanco)), ".pdf");
+    }
+
+    // ── exportEtiquetaFisicaPdf(List<Producto>) — formato oficial ─────────────
+
+    @Test void exportEtiquetaFisicaPdf_withData_createsNonEmptyFile() throws Exception {
+        Producto completo = new Producto();
+        completo.setId("p-cm"); completo.setNombre("Cinta métrica de fibra de vidrio 50 mts.");
+        completo.setCodigo("SF-DC-2561"); completo.setArea("Dirección de Catastro");
+        completo.setMarca("Truper"); completo.setModelo("TFV-50"); completo.setNumeroSerie("A1B2C3");
+        Producto largo = new Producto();
+        largo.setId("p-lg"); largo.setCodigo("SGM-MM-3261-BIS-2024");
+        largo.setNombre("Archivero metálico ".repeat(20));   // longer than the label holds
+        Producto vacio = new Producto();
+        vacio.setId("p-vc");
+
+        assertFileProduced(service.exportEtiquetaFisicaPdf(List.of(completo, largo, vacio)), ".pdf");
+    }
+
+    @Test void exportEtiquetaFisicaPdf_emptyList_returnsNull() throws Exception {
+        assertNull(service.exportEtiquetaFisicaPdf(List.of()));
+    }
+
+    @Test void departamentoEsLaSecretariaYResguardoLaDireccion() {
+        assertArrayEquals(new String[]{"TESORERÍA MUNICIPAL", "DIRECCIÓN DE CATASTRO"},
+            ReporteEtiquetasService.departamentoYResguardo("Dirección de Catastro"));
+    }
+
+    @Test void areaSinPadreVaEnAmbos() {
+        assertArrayEquals(new String[]{"TESORERÍA MUNICIPAL", "TESORERÍA MUNICIPAL"},
+            ReporteEtiquetasService.departamentoYResguardo("Tesorería Municipal"));
+        assertArrayEquals(new String[]{"SIN ÁREA", "SIN ÁREA"},
+            ReporteEtiquetasService.departamentoYResguardo("  "));
+    }
+
+    @Test void municipioComoEnElFormatoImpreso() {
+        assertEquals("IXMIQUILPAN, HGO.", ReporteEtiquetasService.municipioEtiqueta("Ixmiquilpan, Hidalgo"));
+        assertEquals("PACHUCA", ReporteEtiquetasService.municipioEtiqueta("Pachuca"));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

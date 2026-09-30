@@ -12,10 +12,20 @@ import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.HorizontalAlignment;
+import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.properties.VerticalAlignment;
+import com.sibim.config.AreaCatalog;
+import com.sibim.config.Areas;
 import com.sibim.model.Producto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,12 +101,25 @@ public class ReporteEtiquetasService extends ReporteService {
         return file;
     }
 
-    // ── Etiqueta Física Institucional ────────────────────────────────────────
+    // ── Etiqueta física (formato oficial) ────────────────────────────────────
+
+    // Medidas y colores de la etiqueta oficial del municipio (el ejemplo
+    // impreso de Tesorería): 6.9 × 6.6 cm, con la columna izquierda de un tercio.
+    private static final float ETQ_ANCHO   = 195f;
+    private static final float ETQ_COL_IZQ = 65f;
+    private static final float ETQ_ENCABEZADO = 40f, ETQ_TITULOS = 29f,
+                               ETQ_DEPARTAMENTO = 35f, ETQ_RESGUARDO = 32f, ETQ_NUMERO = 50f;
+    private static final DeviceRgb ETQ_ROJO        = new DeviceRgb(192, 80, 77);
+    private static final DeviceRgb ETQ_LINEA       = new DeviceRgb(38, 38, 38);
+    private static final DeviceRgb ETQ_TEXTO       = new DeviceRgb(30, 30, 30);
+    private static final DeviceRgb ETQ_NUMERO_ROJO = new DeviceRgb(200, 40, 60);
 
     /**
-     * Genera etiquetas físicas en formato institucional (6 por página, 2×3).
-     * Cada etiqueta contiene: encabezado municipal, área, descripción del bien,
-     * marca/modelo/serie y el número de inventario en grande.
+     * Etiquetas físicas con el formato oficial: encabezado con el logo, el
+     * municipio y el periodo del inventario; DEPARTAMENTO (la secretaría) y
+     * RESGUARDO (la dirección que tiene el bien) a la izquierda; descripción,
+     * marca, modelo y serie a la derecha, y el número de inventario en grande.
+     * Ocho por hoja carta, todas del mismo tamaño para recortarlas.
      */
     public File exportEtiquetaFisicaPdf(List<Producto> productos) throws Exception {
         if (productos.isEmpty()) return null;
@@ -106,138 +129,149 @@ public class ReporteEtiquetasService extends ReporteService {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
-        DeviceRgb brandBg   = new DeviceRgb(162, 35, 45);
-        DeviceRgb brandFg   = new DeviceRgb(255, 255, 255);
-        DeviceRgb borderClr = new DeviceRgb(162, 35, 45);
-        DeviceRgb labelBg   = new DeviceRgb(252, 240, 241); // guinda-50
-        DeviceRgb labelFg   = new DeviceRgb(162, 35, 45);
-        DeviceRgb grayFg    = new DeviceRgb(55, 65, 81);
-        DeviceRgb lightBg   = new DeviceRgb(249, 250, 251);
-
-        int anioInicio = java.time.LocalDate.now().getYear();
-        String periodo = anioInicio + " - " + (anioInicio + 3);
-        String org     = orgName();
+        String municipio = municipioEtiqueta(config("municipio", "Ixmiquilpan, Hidalgo"));
+        String periodo   = "INVENTARIO " + config("periodo_inventario", "2024 - 2027");
+        byte[] logo      = leerLogo();
 
         try (PdfWriter  writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document    doc    = new Document(pdfDoc, PageSize.LETTER)) {
 
-            doc.setMargins(18, 18, 18, 18);
-            // Grid 2 columnas
-            Table grid = new Table(UnitValue.createPercentArray(new float[]{1f, 1f}))
-                .useAllAvailableWidth();
-
+            doc.setMargins(12, 12, 12, 12);
+            Table hoja = new Table(UnitValue.createPointArray(new float[]{ETQ_ANCHO + 8, ETQ_ANCHO + 8}))
+                .setHorizontalAlignment(HorizontalAlignment.CENTER);
             for (Producto p : items) {
-                // Contenedor de la tarjeta
-                com.itextpdf.layout.element.Cell card =
-                    new com.itextpdf.layout.element.Cell()
-                        .setPadding(0).setMargin(3)
-                        .setBorder(new com.itextpdf.layout.borders.SolidBorder(borderClr, 1.5f))
-                        .setKeepTogether(true);
-
-                // ── Tabla interna de la tarjeta ──
-                Table inner = new Table(UnitValue.createPercentArray(new float[]{1f, 1.7f}))
-                    .useAllAvailableWidth();
-
-                // Fila cabecera (span completo)
-                com.itextpdf.layout.element.Cell hdr =
-                    new com.itextpdf.layout.element.Cell(1, 2)
-                        .setBackgroundColor(brandBg).setPadding(5)
-                        .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER);
-                hdr.add(new Paragraph(org).setFont(bold).setFontSize(7)
-                    .setFontColor(brandFg)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-                hdr.add(new Paragraph("INVENTARIO " + periodo).setFont(reg).setFontSize(6.5f)
-                    .setFontColor(brandFg)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-                inner.addCell(hdr);
-
-                // Fila 1: DEPARTAMENTO (label izq) | DESCRIPCIÓN DEL BIEN Y No. DE INVENTARIO (label der)
-                inner.addCell(labelCell("DEPARTAMENTO", bold, labelBg, labelFg, borderClr));
-                inner.addCell(labelCell("DESCRIPCIÓN DEL BIEN Y No. DE INVENTARIO",
-                    bold, labelBg, labelFg, borderClr));
-
-                // Fila 2: valor área (izq) | nombre del bien + marca (der)
-                String areaTxt = p.getArea() != null && !p.getArea().isBlank()
-                    ? p.getArea().toUpperCase() : "SIN ÁREA";
-                inner.addCell(valueCell(areaTxt, reg, lightBg, grayFg, borderClr, 6.5f));
-
-                String nombreBien = p.getNombre() != null ? p.getNombre().toUpperCase() : "—";
-                String marcaBien  = p.getMarca() != null && !p.getMarca().isBlank()
-                    ? p.getMarca().toUpperCase() : null;
-                com.itextpdf.layout.element.Cell cNombre =
-                    new com.itextpdf.layout.element.Cell()
-                        .setBorder(new com.itextpdf.layout.borders.SolidBorder(borderClr, 0.4f))
-                        .setPadding(5);
-                cNombre.add(new Paragraph(nombreBien).setFont(bold).setFontSize(7.5f).setFontColor(grayFg));
-                if (marcaBien != null)
-                    cNombre.add(new Paragraph(marcaBien).setFont(reg).setFontSize(6.5f)
-                        .setFontColor(new DeviceRgb(107, 114, 128)));
-                inner.addCell(cNombre);
-
-                // Fila RESGUARDO
-                inner.addCell(labelCell("RESGUARDO", bold, labelBg, labelFg, borderClr));
-
-                // Marca / Modelo / Serie
-                String marca  = nvl(p.getMarca(),  "SIN MARCA");
-                String modelo = nvl(p.getModelo(), "SIN MODELO");
-                String serie  = nvl(p.getNumeroSerie(), "SIN SERIE");
-                String mms    = marca + "\n" + modelo + "   " + serie;
-                inner.addCell(valueCell(mms, reg, lightBg, grayFg, borderClr, 7f));
-
-                // Resguardante izquierdo
-                String resguardanteTxt = p.getResguardante() != null && !p.getResguardante().isBlank()
-                    ? p.getResguardante().toUpperCase() : "SIN RESGUARDANTE";
-                inner.addCell(valueCell(resguardanteTxt, reg, lightBg, grayFg, borderClr, 6.5f));
-
-                // Número de inventario grande (derecha)
-                String codigo = p.getCodigo() != null ? p.getCodigo() : "—";
-                com.itextpdf.layout.element.Cell cCodigo =
-                    new com.itextpdf.layout.element.Cell()
-                        .setBackgroundColor(lightBg)
-                        .setBorder(new com.itextpdf.layout.borders.SolidBorder(borderClr, 0.4f))
-                        .setPadding(8)
-                        .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
-                cCodigo.add(new Paragraph(codigo).setFont(bold).setFontSize(16)
-                    .setFontColor(brandBg)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-                inner.addCell(cCodigo);
-
-                card.add(inner);
-                grid.addCell(card);
+                hoja.addCell(new Cell().add(etiqueta(p, logo, municipio, periodo, bold, reg))
+                    .setBorder(Border.NO_BORDER).setPaddingTop(2).setPaddingBottom(2)
+                    .setPaddingLeft(4).setPaddingRight(4).setKeepTogether(true));
             }
-
-            // Celdas vacías para completar última fila
-            int rem = items.size() % 2;
-            if (rem != 0)
-                grid.addCell(new com.itextpdf.layout.element.Cell().setBorder(
-                    com.itextpdf.layout.borders.Border.NO_BORDER));
-
-            doc.add(grid);
+            if (items.size() % 2 != 0) hoja.addCell(new Cell().setBorder(Border.NO_BORDER));
+            doc.add(hoja);
         }
         return file;
     }
 
-    private static com.itextpdf.layout.element.Cell labelCell(
-            String text, PdfFont bold, DeviceRgb bg, DeviceRgb fg, DeviceRgb border) {
-        return new com.itextpdf.layout.element.Cell()
-            .add(new Paragraph(text).setFont(bold).setFontSize(7).setFontColor(fg))
-            .setBackgroundColor(bg)
-            .setBorder(new com.itextpdf.layout.borders.SolidBorder(border, 0.4f))
-            .setPadding(4);
+    private Table etiqueta(Producto p, byte[] logo, String municipio, String periodo,
+                           PdfFont bold, PdfFont reg) {
+        Table t = new Table(UnitValue.createPointArray(new float[]{ETQ_COL_IZQ, ETQ_ANCHO - ETQ_COL_IZQ}))
+            .setFixedLayout().setWidth(ETQ_ANCHO)
+            .setBorder(new SolidBorder(ETQ_ROJO, 1.8f));
+
+        // Encabezado: logo | municipio y periodo | espacio que deja el texto centrado
+        Table enc = new Table(UnitValue.createPercentArray(new float[]{22, 56, 22})).useAllAvailableWidth();
+        Cell cLogo = sinBorde();
+        if (logo != null) {
+            try {
+                cLogo.add(new Image(ImageDataFactory.create(logo)).scaleToFit(36, 32)
+                    .setHorizontalAlignment(HorizontalAlignment.CENTER));
+            } catch (Exception e) {
+                log.warn("El logo municipal no se pudo poner en la etiqueta: {}", e.getMessage());
+            }
+        }
+        enc.addCell(cLogo);
+        enc.addCell(sinBorde()
+            .add(texto(municipio, bold, 8.5f, ETQ_TEXTO))
+            .add(texto(periodo, bold, 8.5f, ETQ_TEXTO)));
+        enc.addCell(sinBorde());
+        t.addCell(celda(1, 2, ETQ_ENCABEZADO).setPadding(2).add(enc));
+
+        String[] depRes = departamentoYResguardo(p.getArea());
+
+        // Títulos
+        t.addCell(celda(1, 1, ETQ_TITULOS).setBackgroundColor(ETQ_ROJO)
+            .add(texto("DEPARTAMENTO", bold, 6.5f, ETQ_TEXTO)));
+        t.addCell(celda(1, 1, ETQ_TITULOS)
+            .add(texto("DESCRIPCIÓN DEL BIEN Y No. DE INVENTARIO", bold, 5.8f, ETQ_TEXTO)));
+
+        // Departamento | descripción, marca, modelo y serie (ocupa dos filas)
+        t.addCell(celda(1, 1, ETQ_DEPARTAMENTO).add(texto(depRes[0], reg, 5.5f, ETQ_TEXTO)));
+
+        String descripcion = recortar(mayus(p.getNombre(), "SIN DESCRIPCIÓN"), 230);
+        Cell cDesc = celda(2, 1, ETQ_DEPARTAMENTO + ETQ_RESGUARDO)
+            .add(texto(descripcion, reg, tamDescripcion(descripcion.length()), ETQ_TEXTO))
+            .add(texto(mayus(p.getMarca(), "SIN MARCA"), reg, 5.5f, ETQ_TEXTO).setMarginTop(3));
+        Table modeloSerie = new Table(UnitValue.createPercentArray(new float[]{1, 1})).useAllAvailableWidth();
+        modeloSerie.setMarginTop(3);
+        String modelo = mayus(p.getModelo(), "SIN MODELO");
+        String serie  = mayus(p.getNumeroSerie(), "SIN SERIE");
+        float tamMs = Math.max(modelo.length(), serie.length()) > 14 ? 6f : 7.5f;
+        modeloSerie.addCell(sinBorde().add(texto(modelo, reg, tamMs, ETQ_TEXTO)));
+        modeloSerie.addCell(sinBorde().add(texto(serie, reg, tamMs, ETQ_TEXTO)));
+        t.addCell(cDesc.add(modeloSerie));
+
+        t.addCell(celda(1, 1, ETQ_RESGUARDO).setBackgroundColor(ETQ_ROJO)
+            .add(texto("RESGUARDO", bold, 6.5f, ETQ_TEXTO)));
+
+        // Resguardo | número de inventario
+        t.addCell(celda(1, 1, ETQ_NUMERO).add(texto(depRes[1], reg, 5.5f, ETQ_TEXTO)));
+        String codigo = p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "—";
+        t.addCell(celda(1, 1, ETQ_NUMERO)
+            .add(texto(codigo, bold, tamQueCabe(bold, codigo, ETQ_ANCHO - ETQ_COL_IZQ - 10, 17f), ETQ_NUMERO_ROJO)));
+        return t;
     }
 
-    private static com.itextpdf.layout.element.Cell valueCell(
-            String text, PdfFont font, DeviceRgb bg, DeviceRgb fg, DeviceRgb border, float size) {
-        return new com.itextpdf.layout.element.Cell()
-            .add(new Paragraph(text != null ? text : "—").setFont(font).setFontSize(size).setFontColor(fg))
-            .setBackgroundColor(bg)
-            .setBorder(new com.itextpdf.layout.borders.SolidBorder(border, 0.4f))
-            .setPadding(4);
+    /** DEPARTAMENTO es la secretaría (o Presidencia) de la que depende el área;
+     *  RESGUARDO es el área misma. Un área que no depende de otra va en ambos. */
+    static String[] departamentoYResguardo(String area) {
+        if (area == null || area.isBlank()) return new String[]{"SIN ÁREA", "SIN ÁREA"};
+        String a = area.trim();
+        String departamento = Areas.catalogo().buscar(a)
+            .map(AreaCatalog.Entrada::padre)
+            .filter(padre -> padre != null && !padre.isBlank())
+            .orElse(a);
+        return new String[]{departamento.toUpperCase(), a.toUpperCase()};
     }
 
-    private static String nvl(String val, String fallback) {
-        return (val != null && !val.isBlank()) ? val : fallback;
+    /** "Ixmiquilpan, Hidalgo" → "IXMIQUILPAN, HGO.", como en el formato impreso. */
+    static String municipioEtiqueta(String municipio) {
+        return municipio.trim().toUpperCase().replaceAll(",\\s*HIDALGO\\.?$", ", HGO.");
+    }
+
+    private byte[] leerLogo() {
+        String ruta = logoPath();
+        if (ruta == null) return null;
+        try {
+            return java.nio.file.Files.readAllBytes(java.nio.file.Path.of(ruta));
+        } catch (Exception e) {
+            log.warn("No se pudo leer el logo municipal '{}' para las etiquetas: {}", ruta, e.getMessage());
+            return null;
+        }
+    }
+
+    private static Cell celda(int filas, int columnas, float alto) {
+        return new Cell(filas, columnas).setMinHeight(alto).setPadding(3)
+            .setBorder(new SolidBorder(ETQ_LINEA, 0.8f))
+            .setVerticalAlignment(VerticalAlignment.MIDDLE);
+    }
+
+    private static Cell sinBorde() {
+        return new Cell().setBorder(Border.NO_BORDER).setPadding(0)
+            .setVerticalAlignment(VerticalAlignment.MIDDLE);
+    }
+
+    private static Paragraph texto(String s, PdfFont font, float tam, DeviceRgb color) {
+        return new Paragraph(s).setFont(font).setFontSize(tam).setFontColor(color)
+            .setMultipliedLeading(1.1f).setMargin(0).setTextAlignment(TextAlignment.CENTER);
+    }
+
+    private static String mayus(String s, String siVacio) {
+        return s != null && !s.isBlank() ? s.trim().toUpperCase() : siVacio;
+    }
+
+    private static String recortar(String s, int max) {
+        return s.length() <= max ? s : s.substring(0, max - 1).trim() + "…";
+    }
+
+    /** Descriptions run from "SILLA" to a full paragraph; the cell stays the same size. */
+    private static float tamDescripcion(int largo) {
+        return largo <= 90 ? 7f : largo <= 170 ? 6f : 5f;
+    }
+
+    /** The largest size up to {@code max} at which {@code s} fits on one line of {@code ancho}. */
+    private static float tamQueCabe(PdfFont font, String s, float ancho, float max) {
+        float tam = max;
+        while (tam > 8f && font.getWidth(s, tam) > ancho) tam -= 0.5f;
+        return tam;
     }
 
     private static byte[] qrToPngBytes(String content, int size) {

@@ -91,7 +91,7 @@ final class ProductosExporter {
                 }
                 DialogUtil.showExportResultDialog(scene, file);
             },
-            e -> NotificacionUtil.error(scene, "No se pudo generar las etiquetas QR")
+            e -> NotificacionUtil.error(scene, "No se pudo generar las etiquetas QR" + causa(e))
         );
     }
 
@@ -108,8 +108,16 @@ final class ProductosExporter {
                 }
                 DialogUtil.showExportResultDialog(scene, file);
             },
-            e -> NotificacionUtil.error(scene, "No se pudo generar las etiquetas")
+            e -> NotificacionUtil.error(scene, "No se pudo generar las etiquetas" + causa(e))
         );
+    }
+
+    /** ": <reason>" for an error toast, so the user can report what failed. */
+    private static String causa(Exception e) {
+        Throwable t = e.getCause() != null && e instanceof RuntimeException ? e.getCause() : e;
+        String m = t.getMessage();
+        if (m == null || m.isBlank()) m = t.getClass().getSimpleName();
+        return ": " + (m.length() > 140 ? m.substring(0, 140) + "…" : m);
     }
 
     // ── Single QR label preview/save ────────────────────────────────────────
