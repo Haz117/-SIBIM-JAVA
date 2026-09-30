@@ -10,7 +10,10 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Depreciación en línea recta (SAT)** — cada bien puede tener fecha de adquisición, vida útil en años y valor residual; el sistema calcula automáticamente el valor depreciado actual y el porcentaje depreciado, visible en el detalle del bien con una barra de progreso codificada por color (verde / ámbar / rojo)
 - **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino. El **stock y el área de un bien solo cambian con movimientos**: el formulario de edición los muestra en solo lectura, la acción masiva "Transferir" registra transferencias (con aprobación para no-Admin) y guardar una edición nunca pisa un movimiento registrado mientras el formulario estaba abierto (si otro usuario modificó el bien, pide volver a abrirlo). Cada transferencia guarda el código patrimonial anterior y el nuevo. Solo el Admin puede eliminar un movimiento, y solo el más reciente de cada bien; los demás usan **Revertir**, que deja ambos registros
 - **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
-- **Baja patrimonial** — dar de baja un bien pide motivo y lo saca del inventario activo sin borrar su historial (soft-delete), con vista para consultar y reactivar bajas
+- **Baja patrimonial con solicitud** — solo el administrador (Patrimonio) da de baja un bien, y solo con la **solicitud de baja firmada** por el área: la ventana de baja exige su oficio/folio (queda junto al motivo, en la auditoría y en el acta) y permite generar el formato. Secretarías y direcciones ven "Solicitar baja", que genera el formato para firmarlo y entregarlo. La baja saca el bien del inventario activo sin borrar su historial (soft-delete) y genera el acta de baja
+- **Pantalla de Bajas** (Ctrl+Alt+B) — todas las bajas de tus áreas con motivo, folio de la solicitud, destino, dictamen, número de acta y valor; tarjetas (total, este año, valor dado de baja, sin solicitud registrada), filtros por texto/área/año, exportación PDF/Excel/CSV, volver a generar el acta, ficha técnica y reactivar (solo administrador)
+- **Ficha y etiquetas del bien** — en la barra inferior de Bienes: **Ficha** (ficha técnica en PDF; con varios seleccionados, todas en un PDF) y **Etiqueta ▾** (etiqueta de inventario con datos y QR, o solo QR), además de **QR**
+- **Abrir, imprimir y guardar documentos** — cada PDF/Excel generado muestra Guardar como / Imprimir / Abrir / Carpeta / Copiar ruta; si Java no logra abrir el archivo en la PC se usa el mismo mecanismo que el Explorador de Windows. "Imprimir" abre el visor para elegir impresora (Ctrl+P)
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
 - **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con el conteo de bienes agotados, stock bajo, garantías por vencer y préstamos vencidos/por vencer; cada elemento navega directo a la pantalla correspondiente. Su número es la suma de los contadores de Alertas y Préstamos del menú lateral, y el aviso del Dashboard usa las mismas listas que la pantalla de Alertas, así que las tres cifras cuadran
@@ -23,6 +26,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Organigrama** — 4 tarjetas de resumen (áreas, bienes distribuidos, área con más bienes, valor patrimonial total); barras horizontales animadas con las top-5 áreas; **tres modos de vista**: árbol jerárquico por secretaría/dirección, tabla de resumen y tarjetas por área (toggle en la barra de herramientas); las **tarjetas de área** muestran valor patrimonial, stock total, bienes agotados y en bajo stock — con borde de acento ámbar (1–2 alertas) o rojo (3 o más); clic en el botón de área abre un diálogo con tabs de **Bienes**, **Préstamos activos**, **Comodatos** y **Actas de entrega**, con exportación a PDF; salto directo al Inventario filtrado por esa área
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real; activar/desactivar cuentas (desactivar bloquea el acceso tanto online como en modo offline); la eliminación de un usuario con bienes/movimientos relacionados ofrece desactivar la cuenta como alternativa a borrar
 - **Configuración institucional** — nombre del ayuntamiento, municipio, área responsable y correo de contacto editables desde Configuración (solo Admin); todos los reportes PDF/Excel usan automáticamente estos datos
+- **Reportes y avisos programados** — a partir de las 06:00, la primera PC abierta con sesión de administrador genera los reportes programados (según la frecuencia configurada) y envía los avisos diarios de préstamos vencidos y el resumen de los lunes. Cada tarea se "reclama" en la base de datos, así que aunque haya varias PCs abiertas se hace una sola vez al día
 - **Áreas y prefijos editables** — el organigrama del municipio y el prefijo con que se numeran los bienes de cada área (p. ej. `TICS/01`) viven en la tabla `areas` y se editan en Configuración → Áreas y prefijos (solo Admin): agregar un área, cambiar de quién depende o su prefijo. El nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan. Sin conexión se usa la última copia descargada en la PC
 - **Formatos oficiales en guinda institucional** — los PDF y Excel (resguardos, actas, préstamos, comodatos, reportes) usan el guinda del ayuntamiento y el logo municipal: el configurado en Configuración (la imagen se guarda en la base, así que todas las PCs imprimen el mismo logo) o, si no hay, `src/main/resources/img/logo-municipio.png` incluido en la app. La interfaz del sistema conserva su propio color índigo
 - **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo; contadores animados de 0 al valor real; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press; animación de transferencia con flecha que se estira al disparar y chip de destino que entra desde la derecha con rebote; efecto shake en errores de validación
@@ -66,7 +70,7 @@ El sistema implementa múltiples capas de defensa:
 | Sesión activa | Timeout de inactividad a los 30 min con countdown UI; cierre automático o manual. Si un Admin desactiva o elimina la cuenta, o le cambia el rol o el área, la sesión abierta se cierra en menos de un minuto |
 | Credenciales offline | Caché local expira a los **30 días** — requiere conexión periódica al servidor para renovar; el estado `activo` se sincroniza en cada login online — una cuenta desactivada no puede entrar ni en modo offline |
 | Autorización | Guards en capa de servicio/repositorio: `SecurityException` si el rol no tiene permiso (no solo en UI). Como cada PC se conecta directo a PostgreSQL, estos guards no protegen contra quien tenga las credenciales de la base: por eso las PCs deben usar el rol `sibim_app` (ver [Rol de base de datos con mínimo privilegio](#rol-de-base-de-datos-con-mínimo-privilegio)) |
-| Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área. Los préstamos son visibles si el área accesible coincide con el área de origen **o** destino (una transferencia debe verse desde ambos lados); los resguardos se acotan por su área única; las actas de entrega-recepción son documentos de todo el ayuntamiento y no se acotan por área (no tienen un área propia — son un corte de administración completa) |
+| Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área. Los préstamos son visibles si el área accesible coincide con el área de origen **o** destino (una transferencia debe verse desde ambos lados); los resguardos se acotan por su área única; las actas de entrega-recepción son documentos de todo el ayuntamiento y no se acotan por área (no tienen un área propia — son un corte de administración completa) | Solo el administrador da de alta, da de baja, reactiva y registra movimientos; Secretaría y Dirección solo actualizan datos de sus bienes (ver Roles de usuario).
 | Cifrado en tránsito | Configurable via `DB_SSL_MODE` en `.env`; la app emite advertencia en log si la BD es remota y SSL no está en modo `require` |
 | Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías, usuarios, resguardos, préstamos, actas y configuración queda en `audit_log` con usuario y timestamp, incluyendo intentos de inicio de sesión fallidos |
 | Backup | Solo Admin puede ejecutar respaldo/restauración; el archivo debe estar cifrado con AES-256-GCM y una contraseña elegida al momento; los respaldos JSON en claro se rechazan |
@@ -214,7 +218,7 @@ SIBIM-Java/
 │   │   │   ├── session/           # SessionManager (usuario activo, áreas accesibles)
 │   │   │   └── config/            # Áreas del organigrama y configuración de BD
 │   │   └── resources/
-│   │       ├── fxml/              # 17 vistas de la interfaz
+│   │       ├── fxml/              # 18 vistas de la interfaz
 │   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
 │   │       ├── db/migration/      # Migraciones Flyway V1–V25, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
@@ -243,8 +247,9 @@ SIBIM-Java/
 | Módulo | Descripción |
 |---|---|
 | Dashboard | 4 mini-tarjetas de estado con `ProgressBar` animada; gráfica de movimientos semanal; gráfica por categoría; barras de distribución top-5 áreas; contadores animados |
-| Inventario | CRUD completo con búsqueda, filtros combinables, presets guardables, importación CSV masiva, paginación, baja patrimonial con motivo, conteo físico, vista de bajas y panel de depreciación en el detalle |
-| Movimientos | Entradas / salidas / ajustes / transferencias; flujo de aprobación para transferencias de usuarios no-Admin (PENDIENTE hasta que un Admin las autorice o rechace desde el panel "⏳ Pendientes") |
+| Inventario | Búsqueda, filtros combinables, presets guardables, importación CSV masiva (Admin), paginación, conteo físico (Admin), baja con solicitud firmada (Admin) o "Solicitar baja" (áreas), botones Ficha / Etiqueta / QR, fotos que se comparten entre PCs y panel de depreciación en el detalle |
+| Movimientos | Entradas / salidas / ajustes / transferencias, registradas solo por el administrador; eliminar un movimiento deshace su efecto (una transferencia regresa el bien a su área con un código de esa área). Aprobar o rechazar solicitudes de transferencia pendientes requiere conexión |
+| Bajas | Pantalla dedicada: bajas con folio de solicitud, dictamen, destino y acta; filtros, exportación, acta, ficha y reactivación (Admin) |
 | Alertas | 3 tarjetas resumen animadas (Agotados / Bajo Stock / Garantías) con proporciones relativas y desglose vencidas/próximas; búsqueda en tiempo real (Ctrl+F); export a PDF, Excel y CSV; reposición de stock con guardia por rol |
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches) |
 | Organigrama | 4 tarjetas de resumen; barras animadas top-5 áreas; vista árbol / tabla / tarjetas (toggle); tarjetas con borde de acento por nivel de alertas; diálogo por área con tabs Bienes / Préstamos / Comodatos / Actas; acceso directo al Inventario filtrado por área |
@@ -259,9 +264,11 @@ SIBIM-Java/
 
 | Rol | Permisos |
 |---|---|
-| **Admin** | Acceso completo: gestión de usuarios, todas las áreas, reportes globales, aprobación/rechazo de transferencias pendientes |
-| **Secretario** | Acceso a su secretaría y a las direcciones que dependen de ella; las transferencias que registre quedan en PENDIENTE hasta aprobación; deshace movimientos con Revertir (no puede eliminarlos) |
-| **Dirección** | Acceso solo a su área asignada; las transferencias que registre quedan en PENDIENTE hasta aprobación; deshace movimientos con Revertir (no puede eliminarlos) |
+| **Admin (Patrimonio)** | Hace todo: alta, baja y reactivación de bienes, movimientos (y revertirlos), conteo físico, importación, código patrimonial y valores contables, usuarios, áreas y prefijos, configuración, respaldos, auditoría y reportes globales |
+| **Secretario** | Ve su secretaría y las direcciones que dependen de ella. Solo **actualiza los datos** de los bienes asignados ahí (descripción, marca, modelo, serie, ubicación, fotos…). No da de alta ni de baja (genera la **solicitud de baja**), no registra movimientos, y no cambia el código ni los valores contables |
+| **Dirección** | Ve solo su dirección. Mismas reglas que Secretario: actualiza datos de sus bienes y genera solicitudes de baja; no da de alta, no da de baja, no registra movimientos |
+
+Estas reglas se aplican en los servicios (no solo ocultando botones), así que ninguna pantalla ni atajo puede saltárselas.
 
 ---
 
@@ -311,7 +318,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (965 en total)
+# Correr todos los tests (964 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase
