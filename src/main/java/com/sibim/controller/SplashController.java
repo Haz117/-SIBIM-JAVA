@@ -260,12 +260,16 @@ public class SplashController {
                 firstRunAdmin = seedAdminIfEmpty();
                 try {
                     ConfiguracionRepository cr = new ConfiguracionRepository();
+                    cr.findAll();   // also refreshes this PC's copy for offline use
                     String org      = cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan");
                     String mun      = cr.get("municipio",           "Ixmiquilpan, Hidalgo");
-                    String logoPath = cr.get("logo_path",           "");
+                    // Only a logo set in Configuración; otherwise the splash keeps the app's own.
+                    boolean configurado = !cr.get(com.sibim.service.LogoMunicipal.CLAVE_IMAGEN, "").isBlank()
+                        || !cr.get(com.sibim.service.LogoMunicipal.CLAVE_RUTA, "").isBlank();
+                    String logoPath = configurado ? com.sibim.service.LogoMunicipal.rutaLocal(cr) : null;
                     Platform.runLater(() -> {
                         lblOrg.setText(org + "  ·  " + mun);
-                        if (!logoPath.isBlank()) applyLogoIfExists(logoPath);
+                        if (logoPath != null) applyLogoIfExists(logoPath);
                     });
                 } catch (Exception ignored) {
                     log.debug("Could not load org name/logo from ConfiguracionRepository during startup", ignored);

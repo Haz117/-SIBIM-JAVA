@@ -24,13 +24,11 @@ import java.io.File;
 import javafx.stage.FileChooser;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 public final class AreaResguardosDialog {
 
@@ -98,6 +96,14 @@ public final class AreaResguardosDialog {
                             }
                         }
                     });
+                } catch (IllegalStateException e) {   // demo/offline: the PDFs live on the server
+                    Platform.runLater(() -> {
+                        resguardosList.getChildren().clear();
+                        Label sinServidor = new Label(e.getMessage());
+                        sinServidor.setWrapText(true);
+                        sinServidor.getStyleClass().add("muted-sm");
+                        resguardosList.getChildren().add(sinServidor);
+                    });
                 } catch (Exception e) {
                     log.error("Error cargando resguardos", e);
                     Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudieron cargar los resguardos"));
@@ -143,16 +149,16 @@ public final class AreaResguardosDialog {
             String area = areaCombo.getValue();
             if (area == null) { NotificacionUtil.advertencia(scene, "Selecciona un área primero"); return; }
             if (pdfPathHolder[0] == null) { NotificacionUtil.advertencia(scene, "Selecciona un archivo PDF primero"); return; }
+            Path origen = Path.of(pdfPathHolder[0]);
+            String descripcion = fDesc.getText().trim().isEmpty() ? null : fDesc.getText().trim();
+            LocalDate fecha = fFecha.getValue();
             AppExecutor.submit(() -> {
                 try {
-                    Path storageDir = Path.of(System.getProperty("user.home"), ".sibim", "resguardos");
-                    Files.createDirectories(storageDir);
-                    String fileName = UUID.randomUUID() + ".pdf";
-                    Path dest = storageDir.resolve(fileName);
-                    Files.copy(Path.of(pdfPathHolder[0]), dest, StandardCopyOption.REPLACE_EXISTING);
-                    repo.save(area, dest.toString(),
-                        fDesc.getText().trim().isEmpty() ? null : fDesc.getText().trim(),
-                        fFecha.getValue());
+                    // Stored in the database so every PC can open it (V25).
+                    if (Files.size(origen) > AreaResguardoRepository.MAX_PDF_BYTES)
+                        throw new IllegalArgumentException("El PDF pesa más de "
+                            + AreaResguardoRepository.MAX_PDF_BYTES / (1024 * 1024) + " MB");
+                    repo.save(area, Files.readAllBytes(origen), origen.getFileName().toString(), descripcion, fecha);
                     Platform.runLater(() -> {
                         pdfPathHolder[0] = null;
                         lblSelPdf.setText("Sin PDF seleccionado");
@@ -160,6 +166,8 @@ public final class AreaResguardosDialog {
                         reloadList[0].run();
                         NotificacionUtil.exito(scene, "Resguardo guardado correctamente");
                     });
+                } catch (IllegalStateException | IllegalArgumentException | SecurityException e) {
+                    Platform.runLater(() -> NotificacionUtil.error(scene, e.getMessage()));
                 } catch (Exception e) {
                     log.error("Error guardando resguardo", e);
                     Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo guardar el resguardo"));
@@ -202,9 +210,27 @@ public final class AreaResguardosDialog {
         dialog.showAndWait();
     }
 
+    /** A temp copy of the PDF stored in the database, or the local file of a
+     *  pre-V25 row when this is the PC that uploaded it; null when neither. */
+    static File archivoParaAbrir(AreaResguardoRepository.AreaResguardo r, AreaResguardoRepository repo)
+            throws Exception {
+        if (r.tienePdf()) {
+            byte[] pdf = repo.leerPdf(r.id()).orElse(null);
+            if (pdf != null) {
+                Path tmp = Files.createTempFile("sibim-resguardo-", ".pdf");
+                Files.write(tmp, pdf);
+                tmp.toFile().deleteOnExit();
+                return tmp.toFile();
+            }
+        }
+        if (r.pdfUrl() != null && Files.exists(Path.of(r.pdfUrl()))) return new File(r.pdfUrl());
+        return null;
+    }
+
     private static HBox buildResguardoRow(AreaResguardoRepository.AreaResguardo r,
             AreaResguardoRepository repo, Runnable reload, javafx.scene.Scene scene) {
-        String pdfName = r.pdfUrl() != null ? Path.of(r.pdfUrl()).getFileName().toString() : "—";
+        String pdfName = r.pdfNombre() != null ? r.pdfNombre()
+            : r.pdfUrl() != null ? Path.of(r.pdfUrl()).getFileName().toString() : "—";
         String desc = r.descripcion() != null ? r.descripcion() : pdfName;
         String fechaStr = r.fecha() != null ? r.fecha().format(FMT) : "—";
 
@@ -220,16 +246,21 @@ public final class AreaResguardosDialog {
         Button btnAbrir = new Button("Abrir");
         btnAbrir.setGraphic(new FontIcon("mdi2e-eye-outline"));
         btnAbrir.getStyleClass().add("btn-secondary");
-        btnAbrir.setOnAction(ev -> {
+        btnAbrir.setOnAction(ev -> AppExecutor.submit(() -> {
             try {
-                if (r.pdfUrl() != null && Files.exists(Path.of(r.pdfUrl())))
-                    Desktop.getDesktop().open(new File(r.pdfUrl()));
-                else
-                    NotificacionUtil.advertencia(scene, "El archivo PDF ya no existe en la ruta guardada");
+                File archivo = archivoParaAbrir(r, repo);
+                if (archivo == null) {
+                    Platform.runLater(() -> NotificacionUtil.advertencia(scene,
+                        "Este resguardo se registró antes de guardar los PDF en la base y el archivo no está "
+                            + "en esta PC. Ábrelo desde la PC donde se subió y vuelve a cargarlo."));
+                    return;
+                }
+                Desktop.getDesktop().open(archivo);
             } catch (Exception e) {
-                NotificacionUtil.error(scene, "No se pudo abrir el PDF");
+                log.error("Error abriendo resguardo", e);
+                Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo abrir el PDF"));
             }
-        });
+        }));
 
         Button btnElim = new Button();
         btnElim.setGraphic(new FontIcon("mdi2d-delete-outline"));
@@ -240,9 +271,12 @@ public final class AreaResguardosDialog {
                     "¿Eliminar el resguardo \"" + desc + "\"? El archivo PDF también se eliminará.")) {
                 AppExecutor.submit(() -> {
                     try {
-                        if (r.pdfUrl() != null) Files.deleteIfExists(Path.of(r.pdfUrl()));
                         repo.delete(r.id());
+                        // Pre-V25 rows also had a copy on the uploading PC.
+                        if (r.pdfUrl() != null) Files.deleteIfExists(Path.of(r.pdfUrl()));
                         Platform.runLater(reload);
+                    } catch (IllegalStateException e) {
+                        Platform.runLater(() -> NotificacionUtil.error(scene, e.getMessage()));
                     } catch (Exception e) {
                         log.error("Error eliminando resguardo", e);
                         Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo eliminar el resguardo"));

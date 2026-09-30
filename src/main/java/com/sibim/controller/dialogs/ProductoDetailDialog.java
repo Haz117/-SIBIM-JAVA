@@ -603,7 +603,7 @@ public final class ProductoDetailDialog {
                     btnOk.setOnAction(ev -> DialogUtil.runAsync(
                         () -> { mantSvc.marcarCompletada(a.id()); return null; },
                         v -> rebuildHolder[0].run(),
-                        ex -> NotificacionUtil.error(scene, "No se pudo completar la alerta")
+                        ex -> NotificacionUtil.error(scene, ex instanceof IllegalStateException ? ex.getMessage() : "No se pudo completar la alerta")
                     ));
                     javafx.scene.layout.Region sp2 = new javafx.scene.layout.Region();
                     HBox.setHgrow(sp2, Priority.ALWAYS);
@@ -685,7 +685,7 @@ public final class ProductoDetailDialog {
                 DialogUtil.runAsync(
                     () -> { mantSvc.agregarAlerta(p.getId(), descripcion, fecha); return null; },
                     v -> onSaved.run(),
-                    ex -> NotificacionUtil.error(scene, "No se pudo agregar la alerta")
+                    ex -> NotificacionUtil.error(scene, ex instanceof IllegalStateException ? ex.getMessage() : "No se pudo agregar la alerta")
                 );
             }
         });

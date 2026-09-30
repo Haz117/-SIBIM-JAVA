@@ -101,6 +101,31 @@ class BackupServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void elPdfDeUnResguardoDeArea_seRestauraByteAByte() throws Exception {
+        byte[] pdf = new byte[256];
+        for (int i = 0; i < pdf.length; i++) pdf[i] = (byte) i;   // every byte value, incl. 0 and 0x5C
+        try (Connection c = getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                 "INSERT INTO area_resguardos (id, area, pdf, pdf_nombre) VALUES ('ar-1', 'X', ?, 'r.pdf')")) {
+            ps.setBytes(1, pdf);
+            ps.executeUpdate();
+        }
+        File archivo = tmp.resolve("respaldo-pdf.sibim").toFile();
+        service.backup(archivo, PASSWORD);
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("DELETE FROM area_resguardos");
+        }
+
+        service.restore(archivo, PASSWORD);
+
+        try (Connection c = getConnection(); Statement st = c.createStatement();
+             var rs = st.executeQuery("SELECT pdf FROM area_resguardos WHERE id = 'ar-1'")) {
+            assertTrue(rs.next());
+            assertArrayEquals(pdf, rs.getBytes(1));
+        }
+    }
+
+    @Test
     void unRespaldoViejoQueNoIncluyeComodatosNoSeAplica() throws Exception {
         // Shape of a version-1 backup: only the original 11 tables.
         Map<String, Object> raiz = new LinkedHashMap<>();

@@ -132,6 +132,10 @@ public final class SyncService {
      *  later, mid-session, nothing detected it, and every screen just threw
      *  raw SQLExceptions until the app was restarted. */
     private static void tick() {
+        DatabaseConfig.comoSincronizacion(SyncService::tickSinAtajo);
+    }
+
+    private static void tickSinAtajo() {
         if (DatabaseConfig.isDemoMode()) return;
         if (DatabaseConfig.isOfflineMode()) {
             if (postgresReachable()) syncPendingChanges();

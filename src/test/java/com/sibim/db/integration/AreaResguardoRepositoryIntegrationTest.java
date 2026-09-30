@@ -1,10 +1,15 @@
 package com.sibim.db.integration;
 
+import com.sibim.db.DatabaseConfig;
 import com.sibim.repository.AreaResguardoRepository;
 import com.sibim.repository.AreaResguardoRepository.AreaResguardo;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -16,46 +21,81 @@ class AreaResguardoRepositoryIntegrationTest extends IntegrationTestBase {
 
     private static final String AREA_A = "Secretaría General";
     private static final String AREA_B = "Dirección de Obras";
+    private static final byte[] PDF = "%PDF-1.4 resguardo firmado".getBytes(StandardCharsets.US_ASCII);
+
+    @BeforeEach
+    void vaciar() throws SQLException {
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("DELETE FROM area_resguardos");
+        }
+    }
 
     @Test
-    void save_y_findByArea_retornaRegistro() throws SQLException {
-        repo.save(AREA_A, "https://example.com/resguardo.pdf", "Resguardo anual", LocalDate.of(2024, 1, 15));
+    void save_guardaElPdfEnLaBase_yCualquierPcLoPuedeLeer() throws SQLException {
+        repo.save(AREA_A, PDF, "resguardo.pdf", "Resguardo anual", LocalDate.of(2024, 1, 15));
 
         List<AreaResguardo> result = repo.findByArea(AREA_A);
-        assertEquals(1, result.size(), "debe retornar exactamente el registro guardado");
-        assertEquals(AREA_A, result.get(0).area());
-        assertEquals("https://example.com/resguardo.pdf", result.get(0).pdfUrl());
-        assertEquals("Resguardo anual", result.get(0).descripcion());
-        assertEquals(LocalDate.of(2024, 1, 15), result.get(0).fecha());
+        assertEquals(1, result.size());
+        AreaResguardo r = result.get(0);
+        assertEquals(AREA_A, r.area());
+        assertTrue(r.tienePdf());
+        assertNull(r.pdfUrl(), "ya no se guarda una ruta local");
+        assertEquals("resguardo.pdf", r.pdfNombre());
+        assertEquals("Resguardo anual", r.descripcion());
+        assertEquals(LocalDate.of(2024, 1, 15), r.fecha());
+        assertArrayEquals(PDF, repo.leerPdf(r.id()).orElseThrow());
+    }
+
+    @Test
+    void filaAnteriorAV25_conservaSuRutaYNoTienePdf() throws SQLException {
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("INSERT INTO area_resguardos (id, area, pdf_url) VALUES ('viejo', '" + AREA_A
+                + "', 'C:/Users/x/.sibim/resguardos/a.pdf')");
+        }
+        AreaResguardo r = repo.findByArea(AREA_A).get(0);
+        assertFalse(r.tienePdf());
+        assertEquals("C:/Users/x/.sibim/resguardos/a.pdf", r.pdfUrl());
+        assertTrue(repo.leerPdf("viejo").isEmpty());
     }
 
     @Test
     void findByArea_otraArea_retornaVacio() throws SQLException {
-        repo.save(AREA_A, "https://example.com/a.pdf", null, LocalDate.now());
-
-        List<AreaResguardo> result = repo.findByArea(AREA_B);
-        assertTrue(result.isEmpty(), "findByArea para área distinta debe retornar lista vacía");
+        repo.save(AREA_A, PDF, "a.pdf", null, LocalDate.now());
+        assertTrue(repo.findByArea(AREA_B).isEmpty());
     }
 
     @Test
     void save_multiplesParaMismaArea_retornaTodas() throws SQLException {
-        repo.save(AREA_A, "https://example.com/r1.pdf", "Primer resguardo", LocalDate.of(2023, 1, 1));
-        repo.save(AREA_A, "https://example.com/r2.pdf", "Segundo resguardo", LocalDate.of(2024, 1, 1));
-
-        List<AreaResguardo> result = repo.findByArea(AREA_A);
-        assertEquals(2, result.size(), "ambos registros del área deben aparecer");
+        repo.save(AREA_A, PDF, "r1.pdf", "Primer resguardo", LocalDate.of(2023, 1, 1));
+        repo.save(AREA_A, PDF, "r2.pdf", "Segundo resguardo", LocalDate.of(2024, 1, 1));
+        assertEquals(2, repo.findByArea(AREA_A).size());
     }
 
     @Test
     void delete_eliminaRegistro() throws SQLException {
-        repo.save(AREA_A, "https://example.com/del.pdf", "Para eliminar", LocalDate.now());
-        List<AreaResguardo> antes = repo.findByArea(AREA_A);
-        assertEquals(1, antes.size());
+        String id = repo.save(AREA_A, PDF, "del.pdf", "Para eliminar", LocalDate.now());
+        repo.delete(id);
+        assertTrue(repo.findByArea(AREA_A).isEmpty());
+    }
 
-        repo.delete(antes.get(0).id());
+    @Test
+    void save_pdfVacioODemasiadoGrande_seRechaza() {
+        assertThrows(IllegalArgumentException.class, () -> repo.save(AREA_A, new byte[0], "x.pdf", null, null));
+        assertThrows(IllegalArgumentException.class, () -> repo.save(AREA_A,
+            new byte[AreaResguardoRepository.MAX_PDF_BYTES + 1], "x.pdf", null, null));
+    }
 
-        List<AreaResguardo> despues = repo.findByArea(AREA_A);
-        assertTrue(despues.isEmpty(), "el registro eliminado no debe aparecer en findByArea");
+    @Test
+    void sinConexion_diceQueRequiereElServidor_enVezDeNoHacerNada() {
+        DatabaseConfig.setOfflineMode(true);
+        try {
+            IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> repo.save(AREA_A, PDF, "x.pdf", null, null));
+            assertTrue(e.getMessage().contains("requiere conexión"));
+            assertThrows(IllegalStateException.class, () -> repo.findByArea(AREA_A));
+        } finally {
+            DatabaseConfig.setOfflineMode(false);
+        }
     }
 
     @Test

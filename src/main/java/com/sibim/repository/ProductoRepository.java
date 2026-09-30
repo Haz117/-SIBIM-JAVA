@@ -664,7 +664,7 @@ public class ProductoRepository {
 
     /** Returns aggregate product stats for the current user's visible areas. */
     public ProductoStats getStats() throws SQLException {
-        if (DatabaseConfig.isDemoMode()) {
+        if (DatabaseConfig.getLocalDataStore() != null) {
             List<Producto> all = findAll();
             LocalDate hoy = LocalDate.now();
             long venc = 0, agot = 0, bajo = 0;
@@ -717,7 +717,7 @@ public class ProductoRepository {
 
     /** Returns inventory value grouped by category, descending — for the pie chart. */
     public List<CategoriaValor> getValorPorCategoria() throws SQLException {
-        if (DatabaseConfig.isDemoMode()) {
+        if (DatabaseConfig.getLocalDataStore() != null) {
             List<Producto> all = findAll();
             Map<String, BigDecimal> map = new LinkedHashMap<>();
             for (Producto p : all) {
@@ -805,10 +805,7 @@ public class ProductoRepository {
 
     /** COUNT(*) of active bienes visible to the current user — no full load. */
     public long countAll() throws SQLException {
-        if (DatabaseConfig.isDemoMode()) {
-            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
-                .stream().filter(p -> !p.isDadoDeBaja()).count();
-        }
+        if (DatabaseConfig.getLocalDataStore() != null) return findAll(false).size();
         StringBuilder sb = new StringBuilder(
             "SELECT COUNT(*) FROM products p WHERE p.fecha_baja IS NULL");
         List<Object> params = new ArrayList<>();
@@ -883,12 +880,6 @@ public class ProductoRepository {
                     && p.getCreadoEn().getYear() == anio)
                 .count();
         }
-        if (DatabaseConfig.isDemoMode()) {
-            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas()).stream()
-                .filter(p -> !p.isDadoDeBaja() && p.getCreadoEn() != null
-                    && p.getCreadoEn().getYear() == anio)
-                .count();
-        }
         StringBuilder sql = new StringBuilder(
             "SELECT COUNT(*) FROM products p WHERE EXTRACT(YEAR FROM p.created_at) = ?"
             + " AND p.fecha_baja IS NULL");
@@ -913,10 +904,6 @@ public class ProductoRepository {
                 .filter(p -> !p.isDadoDeBaja() && p.getStockActual() == 0)
                 .toList();
         }
-        if (DatabaseConfig.isDemoMode()) {
-            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
-                .stream().filter(p -> !p.isDadoDeBaja() && p.getStockActual() == 0).toList();
-        }
         StringBuilder sb = new StringBuilder(BASE_SELECT
             + " WHERE p.fecha_baja IS NULL AND p.stock_actual = 0");
         List<Object> params = new ArrayList<>();
@@ -940,12 +927,6 @@ public class ProductoRepository {
                 .sorted(Comparator.comparingInt(Producto::getStockActual))
                 .toList();
         }
-        if (DatabaseConfig.isDemoMode()) {
-            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
-                .stream().filter(p -> !p.isDadoDeBaja()
-                    && p.getStockActual() > 0
-                    && p.getStockActual() <= p.getStockMinimo()).toList();
-        }
         StringBuilder sb = new StringBuilder(BASE_SELECT
             + " WHERE p.fecha_baja IS NULL"
             + " AND p.stock_actual > 0 AND p.stock_actual <= p.stock_minimo");
@@ -966,15 +947,6 @@ public class ProductoRepository {
             LocalDate limite = LocalDate.now().plusDays(dias);
             return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
                 .filter(p -> !p.isDadoDeBaja()
-                    && p.getFechaVencimiento() != null
-                    && !p.getFechaVencimiento().isAfter(limite))
-                .sorted(Comparator.comparing(Producto::getFechaVencimiento))
-                .toList();
-        }
-        if (DatabaseConfig.isDemoMode()) {
-            LocalDate limite = LocalDate.now().plusDays(dias);
-            return DemoDataStore.findAllProductos(SessionManager.getAccessibleAreas())
-                .stream().filter(p -> !p.isDadoDeBaja()
                     && p.getFechaVencimiento() != null
                     && !p.getFechaVencimiento().isAfter(limite))
                 .sorted(Comparator.comparing(Producto::getFechaVencimiento))
@@ -1106,7 +1078,6 @@ public class ProductoRepository {
             // offline: fotos stored in Producto.fotosUrls (already loaded)
             return new ArrayList<>();
         }
-        if (DatabaseConfig.isDemoMode()) return new ArrayList<>();
         List<String> fotos = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
@@ -1121,7 +1092,7 @@ public class ProductoRepository {
 
     /** Replaces all photos for a product (deletes then re-inserts in order). */
     public void saveFotos(String productoId, List<String> fotos) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null || DatabaseConfig.isDemoMode()) return;
+        if (DatabaseConfig.getLocalDataStore() != null) return;
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -1157,7 +1128,7 @@ public class ProductoRepository {
 
     /** Returns products whose proxima_revision falls within the next {@code diasAnticipacion} days. */
     public List<Producto> findProximasRevisiones(int diasAnticipacion) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null || DatabaseConfig.isDemoMode())
+        if (DatabaseConfig.getLocalDataStore() != null)
             return new ArrayList<>();
         String sql = BASE_SELECT
             + " WHERE p.fecha_baja IS NULL"

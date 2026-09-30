@@ -197,14 +197,9 @@ public class MovimientoRepository {
     /** Returns the estado of a movement without loading the full record —
      *  used by the service to block deletion of PENDIENTE transfers. */
     public Optional<String> findEstadoById(String movimientoId) throws SQLException {
-        if (DatabaseConfig.isDemoMode()) {
-            return DemoDataStore.findAllMovimientos(null).stream()
-                .filter(m -> movimientoId.equals(m.getId()))
-                .map(Movimiento::getEstado)
-                .findFirst();
-        }
-        if (DatabaseConfig.isOfflineMode()) {
-            return OfflineStore.findAllMovimientos(null).stream()
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllMovimientos(null).stream()
                 .filter(m -> movimientoId.equals(m.getId()))
                 .map(Movimiento::getEstado)
                 .findFirst();

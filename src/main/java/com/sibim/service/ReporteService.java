@@ -85,19 +85,9 @@ public class ReporteService {
         return mun.isBlank() ? org : org + "  ·  " + mun;
     }
 
-    /**
-     * Returns the configured logo file path if it exists on disk, or null.
-     * Subclasses call this instead of duplicating the configRepo + file check.
-     */
+    /** A local file with the municipality logo (see {@link LogoMunicipal}), or null. */
     protected String logoPath() {
-        try {
-            String path = configRepo.get("logo_path", null);
-            if (path != null && new File(path).exists()) return path;
-        } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ReporteService.class)
-                .warn("No se pudo leer logo_path de configuración: {}", e.getMessage());
-        }
-        return bundledLogoPath();
+        return LogoMunicipal.rutaLocal(configRepo);
     }
 
     /** Resource path of the municipality logo shipped with the app. */

@@ -340,6 +340,15 @@ public class ConfiguracionController {
                 configRepo.set("responsable",                resp);
                 configRepo.set("correo_contacto",            correo);
                 configRepo.set("logo_path",                  logoPath);
+                // The image itself goes to the database so every PC prints the
+                // same logo (logo_path alone only exists on this PC). A path
+                // that isn't on this PC — picked on another one — leaves the
+                // stored image as it is.
+                if (logoPath.isEmpty())
+                    configRepo.set(com.sibim.service.LogoMunicipal.CLAVE_IMAGEN, "");
+                else if (java.nio.file.Files.isRegularFile(java.nio.file.Path.of(logoPath)))
+                    configRepo.set(com.sibim.service.LogoMunicipal.CLAVE_IMAGEN,
+                        com.sibim.service.LogoMunicipal.codificar(java.nio.file.Path.of(logoPath)));
                 configRepo.set("inactividad_timeout_minutos", String.valueOf(inactividadMin));
                 new AuditLogRepository().log("configuracion", "general", "Datos generales",
                     "actualizar", "Datos generales del ayuntamiento actualizados");
@@ -356,7 +365,8 @@ public class ConfiguracionController {
                 }
                 if (configCard != null) AnimationUtils.statCardPop(configCard);
             },
-            e -> NotificacionUtil.error(configCard != null ? configCard.getScene() : null, "No se pudo guardar la configuración")
+            e -> NotificacionUtil.error(configCard != null ? configCard.getScene() : null,
+                e instanceof IllegalArgumentException ? e.getMessage() : "No se pudo guardar la configuración")
         );
     }
 

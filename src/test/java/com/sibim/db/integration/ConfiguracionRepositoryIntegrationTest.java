@@ -65,4 +65,31 @@ class ConfiguracionRepositoryIntegrationTest extends IntegrationTestBase {
         String result = repo.get("campo_vacio", "noDefault");
         assertEquals("", result, "null debe guardarse como cadena vacía");
     }
+
+    @Test
+    void sinConexion_usaLaUltimaCopia_sinLaContrasenaSmtp() throws SQLException {
+        repo.set("nombre_ayuntamiento", "H. Ayuntamiento de Prueba");
+        repo.set("smtp_password", "secreta");
+        repo.findAll();   // online read refreshes this PC's copy
+
+        com.sibim.db.DatabaseConfig.setOfflineMode(true);
+        try {
+            assertEquals("H. Ayuntamiento de Prueba", repo.get("nombre_ayuntamiento", "x"));
+            assertEquals("x", repo.get("smtp_password", "x"), "la contraseña SMTP nunca se copia a la PC");
+            assertThrows(IllegalStateException.class, () -> repo.set("municipio", "y"),
+                "sin conexión no se puede guardar");
+        } finally {
+            com.sibim.db.DatabaseConfig.setOfflineMode(false);
+        }
+    }
+
+    @Test
+    void laCopiaEnDisco_noContieneLaContrasenaSmtp() throws Exception {
+        repo.set("smtp_password", "secreta");
+        repo.findAll();
+        java.nio.file.Path copia = java.nio.file.Path.of(System.getProperty("user.home"), ".sibim",
+            "configuracion.properties");
+        assertTrue(java.nio.file.Files.exists(copia));
+        assertFalse(java.nio.file.Files.readString(copia).contains("secreta"));
+    }
 }

@@ -218,6 +218,10 @@ public class BackupService {
                     // to the java.time equivalent so round-tripping is exact.
                     if (valor instanceof Timestamp ts) valor = ts.toLocalDateTime();
                     else if (valor instanceof Date d) valor = d.toLocalDate();
+                    // bytea (e.g. area_resguardos.pdf): PostgreSQL's hex text
+                    // form, which the untyped insert on restore turns back
+                    // into the exact bytes.
+                    else if (valor instanceof byte[] b) valor = "\\x" + java.util.HexFormat.of().formatHex(b);
                     fila.put(meta.getColumnLabel(i), valor);
                 }
                 filas.add(fila);

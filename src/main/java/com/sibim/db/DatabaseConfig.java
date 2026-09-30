@@ -114,7 +114,33 @@ public final class DatabaseConfig {
         dataSource = new HikariDataSource(config);
     }
 
+    /** Set on the sync thread while it probes the server and replays queued
+     *  changes: the only code that may try PostgreSQL while in offline mode. */
+    private static final ThreadLocal<Boolean> SINCRONIZANDO = ThreadLocal.withInitial(() -> false);
+
+    public static final String SIN_CONEXION =
+        "Sin conexión con el servidor: esta información no está disponible en modo offline.";
+
+    /** Runs {@code tarea} with PostgreSQL reachable from this thread even in
+     *  offline mode — for SyncService's reconnection probe and replay. */
+    public static void comoSincronizacion(Runnable tarea) {
+        boolean antes = SINCRONIZANDO.get();
+        SINCRONIZANDO.set(true);
+        try { tarea.run(); } finally { SINCRONIZANDO.set(antes); }
+    }
+
+    /** For features whose data exists only on the server (no demo or offline
+     *  copy): refuses with a clear message instead of silently doing nothing.
+     *  @param funcion what the user tried, e.g. "Guardar un resguardo de área" */
+    public static void exigirServidor(String funcion) {
+        if (demoMode) throw new IllegalStateException(funcion + " no está disponible en modo demo.");
+        if (offlineMode) throw new IllegalStateException(funcion + " requiere conexión con el servidor.");
+    }
+
+    /** In offline mode this fails at once instead of making every screen wait
+     *  for the pool's connection timeout (~8 s) on a server known to be down. */
     public static Connection getConnection() throws SQLException {
+        if (offlineMode && !SINCRONIZANDO.get()) throw new SQLException(SIN_CONEXION, "08001");
         if (dataSource == null) init();
         return dataSource.getConnection();
     }

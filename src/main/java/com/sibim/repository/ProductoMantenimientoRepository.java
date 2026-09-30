@@ -43,7 +43,7 @@ public class ProductoMantenimientoRepository {
     }
 
     public void agregar(String productoId, String descripcion, LocalDate fecha) throws SQLException {
-        if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
+        DatabaseConfig.exigirServidor("Agregar una alerta de mantenimiento");
         String sql = """
             INSERT INTO producto_mantenimiento (id, producto_id, descripcion, fecha, completada)
             VALUES (?, ?, ?, ?, FALSE)
@@ -59,7 +59,7 @@ public class ProductoMantenimientoRepository {
     }
 
     public void marcarCompletada(String id) throws SQLException {
-        if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
+        DatabaseConfig.exigirServidor("Completar una alerta de mantenimiento");
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "UPDATE producto_mantenimiento SET completada = TRUE WHERE id = ?")) {
@@ -69,7 +69,7 @@ public class ProductoMantenimientoRepository {
     }
 
     public void eliminar(String id) throws SQLException {
-        if (DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
+        DatabaseConfig.exigirServidor("Eliminar una alerta de mantenimiento");
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "DELETE FROM producto_mantenimiento WHERE id = ?")) {
