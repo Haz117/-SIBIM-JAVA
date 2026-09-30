@@ -937,8 +937,10 @@ public class ProductosController {
         try {
             Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos);
             boolean isNew = existing == null;
+            String facturaAnterior = existing != null ? existing.getFacturaUrl() : null;
             result.ifPresent(p -> DialogUtil.runAsync(
                 () -> {
+                    ProductoDialogFactory.procesarArchivos(p, facturaAnterior, THUMBNAIL_CACHE, log);
                     Producto saved = productoService.save(p);
                     productoService.saveFotos(saved.getId(), p.getFotosUrls());
                     return saved;

@@ -368,8 +368,8 @@ public final class ProductoDialogFactory {
             DialogUtil.commitSpinner(stockTab.fStockMin);
             DialogUtil.commitSpinner(stockTab.fStockMax);
 
-            Producto p = isNewProduct ? new Producto() : existing;
-            String photoId = p.getId() != null ? p.getId() : UUID.randomUUID().toString();
+            // A copy: the table keeps showing what is saved until the save succeeds.
+            Producto p = isNewProduct ? new Producto() : existing.copia();
             p.setNombre(infoTab.fNombre.getText().trim());
             p.setCodigo(infoTab.fCodigo.getText().trim());
             p.setDescripcion(infoTab.fDesc.getText().trim());
@@ -416,86 +416,104 @@ public final class ProductoDialogFactory {
             p.setNoPolizaSeguro(patrimonioTab.fNoPoliza.getText().trim().isEmpty() ? null : patrimonioTab.fNoPoliza.getText().trim());
             dirty[0] = false;
 
-            // ── Process and save photos ──────────────────────────────────────
-            List<String> savedFotos = new ArrayList<>();
-            Path imgDir = imgDir();
-            boolean useStorage = SupabaseStorage.isAvailable();
-            try {
-                if (!useStorage) Files.createDirectories(imgDir);
-                for (String rawUrl : infoTab.fotosHolder) {
-                    try {
-                        if (SupabaseStorage.isRemoteUrl(rawUrl)) {
-                            savedFotos.add(rawUrl);
-                            continue;
-                        }
-                        Path src = Path.of(rawUrl);
-                        String remoteName = photoId + "_" + savedFotos.size() + ".jpg";
-                        if (useStorage) {
-                            File tmp = Files.createTempFile("sibim-", ".jpg").toFile();
-                            try {
-                                ImageUtils.resizeAndSave(src.toFile(), tmp);
-                                String uploadedUrl = SupabaseStorage.upload(tmp, remoteName);
-                                savedFotos.add(uploadedUrl);
-                            } catch (Exception uploadEx) {
-                                log.warn("Upload a Storage falló para '{}', guardando local: {}", p.getNombre(), uploadEx.getMessage());
-                                Files.createDirectories(imgDir);
-                                Path dest = imgDir.resolve(remoteName);
-                                ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
-                                savedFotos.add(dest.toString());
-                            } finally { tmp.delete(); }
-                        } else {
-                            Path dest = imgDir.resolve(remoteName);
-                            if (!src.equals(dest)) {
-                                ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
-                                thumbnailCache.remove(dest.toString());
-                            }
-                            savedFotos.add(dest.toString());
-                        }
-                    } catch (Exception ex) {
-                        log.error("No se pudo procesar imagen del bien '{}': {}", p.getNombre(), rawUrl, ex);
-                    }
-                }
-            } catch (Exception ex) {
-                log.error("No se pudo crear el directorio de imágenes para '{}'", p.getNombre(), ex);
-            }
-            p.setFotosUrls(savedFotos);
-            p.setFotoUrl(savedFotos.isEmpty() ? null : savedFotos.get(0));
-
-            // ── Process factura ──────────────────────────────────────────────
-            String factUrlFinal = infoTab.facturaHolder[0];
-            if (factUrlFinal != null && !factUrlFinal.isBlank()) {
-                if (!SupabaseStorage.isRemoteUrl(factUrlFinal)) {
-                    try {
-                        if (useStorage) {
-                            File tmp = Files.createTempFile("sibim-fact-", ".jpg").toFile();
-                            try {
-                                ImageUtils.resizeAndSave(Path.of(factUrlFinal).toFile(), tmp);
-                                factUrlFinal = SupabaseStorage.upload(tmp, photoId + "_factura.jpg");
-                            } finally { tmp.delete(); }
-                        } else {
-                            Path factDir = ImageUtils.storageDir().resolve("facturas");
-                            Files.createDirectories(factDir);
-                            Path dest = factDir.resolve(photoId + ".jpg");
-                            Path src = Path.of(factUrlFinal);
-                            if (!src.equals(dest)) {
-                                ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
-                                thumbnailCache.remove(dest.toString());
-                            }
-                            factUrlFinal = dest.toString();
-                        }
-                    } catch (Exception ex) {
-                        log.error("No se pudo procesar factura del bien '{}', se conserva la anterior", p.getNombre(), ex);
-                        factUrlFinal = existing != null ? existing.getFacturaUrl() : null;
-                    }
-                }
-                p.setFacturaUrl(factUrlFinal);
-            } else {
-                p.setFacturaUrl(null);
-            }
+            // Photos and factura are resized/uploaded later, off the UI thread
+            // (procesarArchivos, called by ProductosController before saving).
+            p.setFotosUrls(new ArrayList<>(infoTab.fotosHolder));
+            p.setFacturaUrl(infoTab.facturaHolder[0] == null || infoTab.facturaHolder[0].isBlank()
+                ? null : infoTab.facturaHolder[0]);
             return p;
         });
 
         return dialog.showAndWait();
+    }
+
+    /**
+     * Resizes the photos and factura picked in the form and uploads them to
+     * Storage (or keeps them on this PC when it isn't reachable; see
+     * FotosPendientesService, which shares them later). Network work, so it
+     * runs on a background thread just before the bien is saved.
+     * @param facturaAnterior kept when the new factura can't be processed
+     */
+    public static void procesarArchivos(Producto p, String facturaAnterior,
+                                        Map<String, Image> thumbnailCache, Logger log) {
+        String photoId = p.getId() != null ? p.getId() : UUID.randomUUID().toString();
+        // ── Process and save photos ──────────────────────────────────────
+        List<String> elegidas = new ArrayList<>(p.getFotosUrls());
+        List<String> savedFotos = new ArrayList<>();
+        Path imgDir = imgDir();
+        boolean useStorage = SupabaseStorage.isAvailable();
+        try {
+            if (!useStorage) Files.createDirectories(imgDir);
+            for (String rawUrl : elegidas) {
+                try {
+                    if (SupabaseStorage.isRemoteUrl(rawUrl)) {
+                        savedFotos.add(rawUrl);
+                        continue;
+                    }
+                    Path src = Path.of(rawUrl);
+                    String remoteName = photoId + "_" + savedFotos.size() + ".jpg";
+                    if (useStorage) {
+                        File tmp = Files.createTempFile("sibim-", ".jpg").toFile();
+                        try {
+                            ImageUtils.resizeAndSave(src.toFile(), tmp);
+                            String uploadedUrl = SupabaseStorage.upload(tmp, remoteName);
+                            savedFotos.add(uploadedUrl);
+                        } catch (Exception uploadEx) {
+                            log.warn("Upload a Storage falló para '{}', guardando local: {}", p.getNombre(), uploadEx.getMessage());
+                            Files.createDirectories(imgDir);
+                            Path dest = imgDir.resolve(remoteName);
+                            ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                            savedFotos.add(dest.toString());
+                        } finally { tmp.delete(); }
+                    } else {
+                        Path dest = imgDir.resolve(remoteName);
+                        if (!src.equals(dest)) {
+                            ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                            thumbnailCache.remove(dest.toString());
+                        }
+                        savedFotos.add(dest.toString());
+                    }
+                } catch (Exception ex) {
+                    log.error("No se pudo procesar imagen del bien '{}': {}", p.getNombre(), rawUrl, ex);
+                }
+            }
+        } catch (Exception ex) {
+            log.error("No se pudo crear el directorio de imágenes para '{}'", p.getNombre(), ex);
+        }
+        p.setFotosUrls(savedFotos);
+        p.setFotoUrl(savedFotos.isEmpty() ? null : savedFotos.get(0));
+
+        // ── Process factura ──────────────────────────────────────────────
+        String factUrlFinal = p.getFacturaUrl();
+        if (factUrlFinal != null && !factUrlFinal.isBlank()) {
+            if (!SupabaseStorage.isRemoteUrl(factUrlFinal)) {
+                try {
+                    if (useStorage) {
+                        File tmp = Files.createTempFile("sibim-fact-", ".jpg").toFile();
+                        try {
+                            ImageUtils.resizeAndSave(Path.of(factUrlFinal).toFile(), tmp);
+                            factUrlFinal = SupabaseStorage.upload(tmp, photoId + "_factura.jpg");
+                        } finally { tmp.delete(); }
+                    } else {
+                        Path factDir = ImageUtils.storageDir().resolve("facturas");
+                        Files.createDirectories(factDir);
+                        Path dest = factDir.resolve(photoId + ".jpg");
+                        Path src = Path.of(factUrlFinal);
+                        if (!src.equals(dest)) {
+                            ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
+                            thumbnailCache.remove(dest.toString());
+                        }
+                        factUrlFinal = dest.toString();
+                    }
+                } catch (Exception ex) {
+                    log.error("No se pudo procesar factura del bien '{}', se conserva la anterior", p.getNombre(), ex);
+                    factUrlFinal = facturaAnterior;
+                }
+            }
+            p.setFacturaUrl(factUrlFinal);
+        } else {
+            p.setFacturaUrl(null);
+        }
     }
 
     private static Path imgDir() {

@@ -146,10 +146,13 @@ public final class SyncService {
         else refrescarAreas();
     }
 
-    /** Areas added or edited on another PC show up here within one poll. */
+    /** Areas added or edited on another PC show up here within one poll; photos
+     *  and facturas left on this PC (offline, failed upload) are shared. */
     private static void refrescarAreas() {
         try { new com.sibim.service.AreaService().refrescarSiCambio(); }
         catch (RuntimeException e) { log.debug("Revisión de áreas omitida: {}", e.getMessage()); }
+        try { new com.sibim.service.FotosPendientesService().subirPendientes(); }
+        catch (RuntimeException e) { log.debug("Revisión de fotos pendientes omitida: {}", e.getMessage()); }
     }
 
     /** Mid-session connectivity loss while online — the counterpart to the
