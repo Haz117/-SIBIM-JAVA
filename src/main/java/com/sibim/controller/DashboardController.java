@@ -164,7 +164,8 @@ public class DashboardController implements Refreshable {
     }
 
     private void setupPermissions() {
-        boolean canEdit = SessionManager.isAdmin() || SessionManager.isSecretario();
+        // "Nuevo bien" / "Nueva entrada": alta and movimientos are Patrimonio's (admin).
+        boolean canEdit = SessionManager.isAdmin();
         if (!canEdit) {
             if (cardNuevoBien    != null) { cardNuevoBien.setVisible(false);    cardNuevoBien.setManaged(false); }
             if (cardNuevaEntrada != null) { cardNuevaEntrada.setVisible(false); cardNuevaEntrada.setManaged(false); }

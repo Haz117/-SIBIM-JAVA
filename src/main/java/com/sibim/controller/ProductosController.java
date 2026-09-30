@@ -112,6 +112,7 @@ public class ProductosController {
     @FXML private Button btnComparar;
     @FXML private Button btnMovimiento;
     @FXML private Button btnQr;
+    @FXML private Button btnFicha;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
     /** "Solo los seleccionados" submenu of the Exportar menu. */
@@ -152,7 +153,10 @@ public class ProductosController {
     private boolean refreshing = false;
     private boolean filterSinEtiquetar = false;
     private final AtomicBoolean loading = new AtomicBoolean(false);
+    /** Every role may update the data of the bienes it can see. */
     private boolean canEdit = false;
+    /** Alta, import, movimientos, conteo físico and bajas: Patrimonio (admin) only. */
+    private boolean canManage = false;
     private FilterPresetPanel presetPanel;
     private ProductosChipsManager chipsManager;
     private ProductosBulkBar bulkBarManager;
@@ -167,7 +171,8 @@ public class ProductosController {
 
     @FXML
     public void initialize() {
-        canEdit = SessionManager.isAdmin() || SessionManager.isSecretario();
+        canEdit = SessionManager.isAdmin() || SessionManager.isSecretario() || SessionManager.isDireccion();
+        canManage = SessionManager.isAdmin();
         if (btnToggleFiltros != null && filterBar != null)
             DialogUtil.makeCollapsible("bienes.filtros.colapsado", btnToggleFiltros, filterBar);
         if (btnToggleResumen != null && resumenBox != null)
@@ -181,7 +186,7 @@ public class ProductosController {
         chipsManager = new ProductosChipsManager(
             activeChipsBar, btnClearFilters, btnGuardarPreset, lblTotalAll,
             emptyStateMsg, btnEmptyLimpiar, emptyStateHint,
-            () -> canEdit, () -> filterSinEtiquetar, () -> totalFiltered,
+            () -> canManage, () -> filterSinEtiquetar, () -> totalFiltered,
             estadoChipGroup, desdeRegFilter, hastaRegFilter,
             searchField, categoriaFilter, areaFilter, resguardanteFilter,
             this::applyFilters, this::onCardSinEtiquetar
@@ -189,9 +194,19 @@ public class ProductosController {
         presetPanel = new FilterPresetPanel(presetsBar, presetsHeader, categoriaFilter,
             searchField, areaFilter, resguardanteFilter, estadoChipGroup, this::applyFilters);
         presetPanel.load();
-        if (btnMovimiento != null) { btnMovimiento.setVisible(canEdit); btnMovimiento.setManaged(canEdit); }
+        if (btnMovimiento != null) { btnMovimiento.setVisible(canManage); btnMovimiento.setManaged(canManage); }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
-        if (btnEliminar != null) { btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit); }
+        if (btnEliminar != null) {
+            btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit);
+            // Only Patrimonio (admin) registers a baja; everyone else prints the
+            // solicitud for their área to sign and hand in (see onDelete).
+            if (!SessionManager.isAdmin()) {
+                btnEliminar.setText("Solicitar baja");
+                btnEliminar.getStyleClass().setAll("button", "btn-secondary");
+                btnEliminar.setTooltip(new Tooltip("Genera el formato de solicitud de baja del bien seleccionado "
+                    + "para que el área lo firme y lo entregue a Patrimonio"));
+            }
+        }
         // "Nuevo Bien" and "Conteo físico" both write real inventory data
         // (the latter registers AJUSTE movements for every discrepancy) —
         // they need the same canEdit gate as Editar/Eliminar. Unlike those
@@ -199,13 +214,13 @@ public class ProductosController {
         // them: any logged-in user (including DIRECCION, who can't even see
         // "Editar"/"Eliminar") could create products or run a physical
         // count that silently adjusts stock.
-        if (btnNuevoBien    != null) { btnNuevoBien.setVisible(canEdit);    btnNuevoBien.setManaged(canEdit); }
-        if (btnConteoFisico != null) { btnConteoFisico.setVisible(canEdit); btnConteoFisico.setManaged(canEdit); }
+        if (btnNuevoBien    != null) { btnNuevoBien.setVisible(canManage);    btnNuevoBien.setManaged(canManage); }
+        if (btnConteoFisico != null) { btnConteoFisico.setVisible(canManage); btnConteoFisico.setManaged(canManage); }
         if (rootPane != null && canEdit) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
-                if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
+                if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown() && canManage) {
                     onNuevoBien(); ev.consume();
-                } else if (ev.getCode() == javafx.scene.input.KeyCode.I && ev.isControlDown()) {
+                } else if (ev.getCode() == javafx.scene.input.KeyCode.I && ev.isControlDown() && canManage) {
                     onImportarCsv(); ev.consume();
                 } else if (ev.getCode() == javafx.scene.input.KeyCode.E && ev.isControlDown()
                         && table.getSelectionModel().getSelectedItem() != null) {
@@ -272,6 +287,9 @@ public class ProductosController {
             () -> { pageSize = pageSizeBox.getValue(); currentPage = 0; loadPage(); },
             reporteService, movimientoService);
         tableManager.setOnClearFilters(this::onClearFilters);
+        if (btnFicha != null)
+            btnFicha.disableProperty().bind(javafx.beans.binding.Bindings.isEmpty(
+                table.getSelectionModel().getSelectedItems()));
         tableManager.setup();
         ProductosColumnSetup.configureResguardante(colResguardante);
         // Captured now, before the saved column preferences are applied, so it restores the FXML defaults.
@@ -647,10 +665,16 @@ public class ProductosController {
             NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para dar de baja");
             return;
         }
+        if (!SessionManager.isAdmin()) {
+            NotificacionUtil.info(table.getScene(), "Solo Patrimonio registra bajas: se generó la solicitud "
+                + "de baja para que el área la firme y la entregue.");
+            onExportSolicitudBaja();
+            return;
+        }
         // Baja patrimonial (soft-delete): record + audit trail stay in DB,
         // the bien just stops appearing in active inventory.
         ProductoBajasDialog.BajaResult resultado =
-            ProductoBajasDialog.showBajaInputDialog(seleccionado.getNombre()).orElse(null);
+            ProductoBajasDialog.showBajaInputDialog(seleccionado, table.getScene()).orElse(null);
         if (resultado == null) return;
 
         String nombre = seleccionado.getNombre();

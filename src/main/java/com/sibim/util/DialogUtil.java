@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -149,8 +150,28 @@ public final class DialogUtil {
         if (css != null) pane.getStylesheets().add(css.toExternalForm());
         AccessibilityUtils.applyCurrentTextScaleClass(pane);
         pane.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene != null) AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
+            if (scene != null) {
+                AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
+                sinTextosCortados(pane);
+            }
         });
+    }
+
+    /** Dialog buttons and message text never shrink below their own text:
+     *  the button bar squeezed "Continuar en modo demo" into "Continuar en
+     *  modo …" and cut the message body short with "…". Runs when the pane
+     *  is shown, after the caller added its buttons. */
+    static void sinTextosCortados(DialogPane pane) {
+        for (ButtonType bt : pane.getButtonTypes()) {
+            Node b = pane.lookupButton(bt);
+            if (b instanceof Button button) button.setMinWidth(Region.USE_PREF_SIZE);
+        }
+        if (pane.getContent() instanceof Parent content) {
+            for (Node n : content.lookupAll(".dlg-message-body")) {
+                if (n instanceof Label l) l.setMinHeight(Region.USE_PREF_SIZE);
+            }
+        }
+        pane.setMinHeight(Region.USE_PREF_SIZE);
     }
 
     // ── OK button ────────────────────────────────────────────────────────
@@ -777,7 +798,7 @@ public final class DialogUtil {
         Dialog<ButtonType> dialog = new Dialog<>();
         applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(460);
+        dialog.getDialogPane().setPrefWidth(560);
         applyStylesheet(dialog.getDialogPane());
 
         if (file == null || !file.exists()) {
@@ -788,19 +809,13 @@ public final class DialogUtil {
         String name  = file.getName();
         String ext   = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toUpperCase() : "";
 
-        // Auto-open PDFs as preview before showing the dialog
-        if ("PDF".equals(ext)) {
-            try {
-                if (java.awt.Desktop.isDesktopSupported()
-                        && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
-                    java.awt.Desktop.getDesktop().open(file);
-            } catch (Exception ignored) {}
-        }
+        // PDFs open as a preview right away (in the background; a failure says so).
+        if ("PDF".equals(ext)) ArchivoUtil.abrir(file, scene);
 
         HBox header;
         if ("PDF".equals(ext)) {
-            header = gradientHeader("mdi2c-check-circle-outline", "Vista previa abierta",
-                "El PDF se abrió en tu visor predeterminado. Guárdalo o imprímelo desde aquí.",
+            header = gradientHeader("mdi2c-check-circle-outline", "PDF generado",
+                "Se abre en tu visor de PDF. Desde aquí puedes guardarlo, imprimirlo o volver a abrirlo.",
                 AppColors.SUCCESS_D, AppColors.SUCCESS_DD);
         } else {
             header = gradientHeader("mdi2c-check-circle-outline", "Reporte generado",
@@ -860,47 +875,15 @@ public final class DialogUtil {
         btnImpr.setVisible("PDF".equals(ext));
         btnImpr.setManaged("PDF".equals(ext));
 
-        btnAbrir.setOnAction(e -> {
-            try {
-                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
-                    java.awt.Desktop.getDesktop().open(file);
-                else
-                    NotificacionUtil.advertencia(scene, "No se puede abrir el archivo en este entorno");
-            } catch (Exception ex) { /* best-effort */ }
-        });
-        btnCarpeta.setOnAction(e -> {
-            try {
-                // Temp exports live in a folder with hundreds of unrelated files (see
-                // ReporteService#tempFile) — just opening it (Desktop.open on the parent)
-                // drops the user in that clutter with no indication of which file is theirs.
-                // Windows' /select switch opens Explorer with the file itself highlighted.
-                if (System.getProperty("os.name", "").toLowerCase().contains("win")) {
-                    new ProcessBuilder("explorer.exe", "/select,\"" + file.getAbsolutePath() + "\"").start();
-                } else if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
-                    java.awt.Desktop.getDesktop().open(file.getParentFile());
-                } else {
-                    NotificacionUtil.advertencia(scene, "No se puede abrir la carpeta en este entorno");
-                }
-            } catch (Exception ex) { /* best-effort */ }
-        });
+        btnAbrir.setOnAction(e -> ArchivoUtil.abrir(file, scene));
+        btnCarpeta.setOnAction(e -> ArchivoUtil.mostrarEnCarpeta(file, scene));
         btnCopiar.setOnAction(e -> {
             var content = new ClipboardContent();
             content.putString(file.getAbsolutePath());
             Clipboard.getSystemClipboard().setContent(content);
             NotificacionUtil.info(scene, "Ruta copiada al portapapeles");
         });
-        btnImpr.setOnAction(e -> {
-            // Desktop.print() sends the file straight to the OS default printer with no
-            // dialog or preview at all — surprising for a button labeled "Imprimir". Opening
-            // the file instead lets the user print from their own PDF viewer (Ctrl+P), which
-            // always gives them the printer picker, page range and print preview they expect.
-            try {
-                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
-                    java.awt.Desktop.getDesktop().open(file);
-                else
-                    NotificacionUtil.advertencia(scene, "No se puede abrir el archivo en este entorno");
-            } catch (Exception ex) { NotificacionUtil.error(scene, "No se pudo abrir el archivo para imprimir"); }
-        });
+        btnImpr.setOnAction(e -> ArchivoUtil.imprimir(file, scene));
         btnGuardar.setOnAction(e -> {
             FileChooser fc = new FileChooser();
             fc.setTitle("Guardar " + ext + " como…");
@@ -919,12 +902,12 @@ public final class DialogUtil {
             }
         });
 
-        HBox actions;
-        if ("PDF".equals(ext)) {
-            actions = new HBox(8, btnGuardar, btnImpr, btnAbrir, btnCarpeta, btnCopiar);
-        } else {
-            actions = new HBox(8, btnAbrir, btnGuardar, btnCarpeta, btnCopiar);
-        }
+        // A FlowPane wraps to a second line instead of squeezing the labels
+        // into "Guarda…" / "…" when the buttons don't fit.
+        javafx.scene.layout.FlowPane actions = new javafx.scene.layout.FlowPane(8, 8);
+        if ("PDF".equals(ext)) actions.getChildren().addAll(btnGuardar, btnImpr, btnAbrir, btnCarpeta, btnCopiar);
+        else                   actions.getChildren().addAll(btnAbrir, btnGuardar, btnCarpeta, btnCopiar);
+        for (var n : actions.getChildren()) ((Button) n).setMinWidth(Region.USE_PREF_SIZE);
         actions.setPadding(new Insets(10, 18, 8, 18));
         actions.setAlignment(Pos.CENTER_LEFT);
 

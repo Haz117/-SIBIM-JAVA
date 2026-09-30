@@ -111,10 +111,15 @@ public class MovimientoService {
         return registrar(productoId, TipoMovimiento.AJUSTE, nuevoStock, motivo, referencia, null, expectedStockAnterior);
     }
 
+    static final String SOLO_ADMIN_MOVIMIENTOS =
+        "Solo el administrador (Patrimonio) registra movimientos. Tu área puede actualizar los datos "
+        + "de los bienes que tiene asignados.";
+
     private Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad, String motivo,
                                  String referencia, String areaDestino, Integer expectedStockAnterior)
             throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
+        if (!SessionManager.isAdmin()) throw new ValidationException(SOLO_ADMIN_MOVIMIENTOS);
         Optional<Producto> opt = productoRepo.findById(productoId);
         if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
         Producto producto = opt.get();

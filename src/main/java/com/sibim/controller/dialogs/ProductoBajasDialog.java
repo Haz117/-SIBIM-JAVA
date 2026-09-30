@@ -31,6 +31,8 @@ public final class ProductoBajasDialog {
 
     private ProductoBajasDialog() {}
 
+    /** @param motivo what the user typed plus the folio of the signed solicitud
+     *  de baja, so both stay on the bien's record, the audit log and the acta. */
     public record BajaResult(
         String motivo,
         String tipoDestino,
@@ -39,7 +41,16 @@ public final class ProductoBajasDialog {
         LocalDate fechaDictamen
     ) {}
 
-    public static Optional<BajaResult> showBajaInputDialog(String nombreBien) {
+    /** Folio line appended to the motivo; see {@link BajaResult#motivo()}. */
+    static String motivoConSolicitud(String motivo, String oficio) {
+        return motivo.trim() + " · Solicitud de baja: " + oficio.trim();
+    }
+
+    /** Asks for the baja data. A baja has to be justified by the área's signed
+     *  "solicitud de baja" (the formato can be generated right here), so its
+     *  oficio/folio is required. */
+    public static Optional<BajaResult> showBajaInputDialog(Producto bien, javafx.scene.Scene scene) {
+        String nombreBien = bien.getNombre();
         Dialog<BajaResult> dlg = new Dialog<>();
         dlg.setTitle("Dar de baja");
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -76,14 +87,33 @@ public final class ProductoBajasDialog {
         dpFechaDictamen.setPromptText("Fecha del dictamen (opcional)");
         dpFechaDictamen.setPrefWidth(360);
 
+        TextField tfOficio = new TextField();
+        tfOficio.setPromptText("Oficio o folio de la solicitud firmada (obligatorio)");
+        tfOficio.setPrefWidth(360);
+        Button btnFormato = new Button("Generar formato de solicitud");
+        btnFormato.setGraphic(new FontIcon("mdi2f-file-document-edit-outline"));
+        btnFormato.getStyleClass().add("btn-secondary");
+        btnFormato.setOnAction(e -> DialogUtil.runAsyncWithProgress(scene, "Generando solicitud de baja…",
+            () -> reporteService.exportSolicitudBaja(List.of(bien)),
+            file -> DialogUtil.showExportResultDialog(scene, file),
+            ex -> NotificacionUtil.error(scene, "No se pudo generar la solicitud de baja")));
+        Label lblSolicitud = new Label("El área que tiene el bien llena y firma la solicitud de baja; "
+            + "anota aquí su número de oficio o folio para justificar la baja.");
+        lblSolicitud.setWrapText(true);
+        lblSolicitud.getStyleClass().add("muted-sm");
+
         Node btnOk = dlg.getDialogPane().lookupButton(ButtonType.OK);
         btnOk.setDisable(true);
-        tfMotivo.textProperty().addListener((obs, o, n) -> btnOk.setDisable(n == null || n.isBlank()));
+        Runnable validar = () -> btnOk.setDisable(tfMotivo.getText() == null || tfMotivo.getText().isBlank()
+            || tfOficio.getText() == null || tfOficio.getText().isBlank());
+        tfMotivo.textProperty().addListener((obs, o, n) -> validar.run());
+        tfOficio.textProperty().addListener((obs, o, n) -> validar.run());
 
         VBox form = new VBox(10);
         form.setPadding(new Insets(20, 24, 8, 24));
         form.getChildren().addAll(
             new Label("Motivo de la baja *"), tfMotivo,
+            new Label("Solicitud de baja *"), lblSolicitud, tfOficio, btnFormato,
             new Label("Tipo de destino"),     cbDestino,
             new Label("Dictamen / Resolución"), tfDictamen,
             new Label("No. de Acta"),          tfNumeroActa,
@@ -104,7 +134,7 @@ public final class ProductoBajasDialog {
                 default                          -> null;
             };
             return new BajaResult(
-                tfMotivo.getText().trim(),
+                motivoConSolicitud(tfMotivo.getText(), tfOficio.getText()),
                 tipoDestino,
                 tfDictamen.getText().isBlank()   ? null : tfDictamen.getText().trim(),
                 tfNumeroActa.getText().isBlank() ? null : tfNumeroActa.getText().trim(),

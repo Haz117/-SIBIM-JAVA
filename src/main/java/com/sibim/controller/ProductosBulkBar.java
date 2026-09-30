@@ -51,7 +51,9 @@ final class ProductosBulkBar {
         boolean edit = canEdit.getAsBoolean();
         if (lblBulkCount != null && show)
             lblBulkCount.setText(n + " bienes seleccionados");
-        if (btnBulkArea != null) { btnBulkArea.setVisible(edit); btnBulkArea.setManaged(edit); }
+        // Changing área moves the bienes (a transfer): Patrimonio only.
+        boolean mover = edit && com.sibim.session.SessionManager.isAdmin();
+        if (btnBulkArea != null) { btnBulkArea.setVisible(mover); btnBulkArea.setManaged(mover); }
         if (btnBulkResguardante != null) { btnBulkResguardante.setVisible(edit); btnBulkResguardante.setManaged(edit); }
         if (btnBulkMarcarEtiquetado != null) { btnBulkMarcarEtiquetado.setVisible(edit); btnBulkMarcarEtiquetado.setManaged(edit); }
         if (btnComparar != null) { btnComparar.setVisible(n == 2); btnComparar.setManaged(n == 2); }

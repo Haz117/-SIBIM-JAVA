@@ -167,7 +167,7 @@ public class MovimientosController {
     }
 
     private void setupPermissions() {
-        boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
+        boolean canCreate = SessionManager.isAdmin();   // movimientos: Patrimonio only
         btnNuevo.setVisible(canCreate);
         btnNuevo.setManaged(canCreate);
         if (SessionManager.isAdmin()) {
@@ -182,7 +182,7 @@ public class MovimientosController {
     }
 
     private void setupKeyboardShortcuts() {
-        boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
+        boolean canCreate = SessionManager.isAdmin();   // movimientos: Patrimonio only
         if (rootPane != null && canCreate) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown()) {
@@ -299,7 +299,7 @@ public class MovimientosController {
         btnEmptyLimpiar.getStyleClass().add("btn-secondary");
         btnEmptyLimpiar.setOnAction(e -> onClearFilters());
         btnEmptyLimpiar.setVisible(false); btnEmptyLimpiar.setManaged(false);
-        boolean canAddMov = SessionManager.isAdmin() || SessionManager.isSecretario();
+        boolean canAddMov = SessionManager.isAdmin();
         emptyStateHint = new Label(canAddMov ? "Presiona Ctrl+N para registrar el primer movimiento" : "");
         emptyStateHint.getStyleClass().add("empty-state-hint");
         VBox emptyState = new VBox(12, emptyIcon, emptyStateMsg, btnEmptyLimpiar, emptyStateHint);
@@ -465,7 +465,7 @@ public class MovimientosController {
                 ? "No se encontraron movimientos con esos filtros"
                 : "No hay movimientos registrados en el sistema");
         if (emptyStateHint != null) {
-            boolean canAddMov = SessionManager.isAdmin() || SessionManager.isSecretario();
+            boolean canAddMov = SessionManager.isAdmin();
             emptyStateHint.setVisible(!hasFilters && canAddMov);
             emptyStateHint.setManaged(!hasFilters && canAddMov);
         }

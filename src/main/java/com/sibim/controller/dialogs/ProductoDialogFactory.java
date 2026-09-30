@@ -451,7 +451,15 @@ public final class ProductoDialogFactory {
                         continue;
                     }
                     Path src = Path.of(rawUrl);
-                    String remoteName = photoId + "_" + savedFotos.size() + ".jpg";
+                    // Already one of ours (kept on this PC earlier): nothing to redo —
+                    // FotosPendientesService uploads it once Storage is reachable.
+                    if (!useStorage && src.toAbsolutePath().startsWith(imgDir.toAbsolutePath())) {
+                        savedFotos.add(rawUrl);
+                        continue;
+                    }
+                    // A new name per upload: reusing "<id>_0.jpg" kept the same URL, so the
+                    // table and every PC went on showing the cached old photo.
+                    String remoteName = photoId + "_" + nombreUnico() + ".jpg";
                     if (useStorage) {
                         File tmp = Files.createTempFile("sibim-", ".jpg").toFile();
                         try {
@@ -492,13 +500,14 @@ public final class ProductoDialogFactory {
                         File tmp = Files.createTempFile("sibim-fact-", ".jpg").toFile();
                         try {
                             ImageUtils.resizeAndSave(Path.of(factUrlFinal).toFile(), tmp);
-                            factUrlFinal = SupabaseStorage.upload(tmp, photoId + "_factura.jpg");
+                            factUrlFinal = SupabaseStorage.upload(tmp, photoId + "_factura_" + nombreUnico() + ".jpg");
                         } finally { tmp.delete(); }
                     } else {
                         Path factDir = ImageUtils.storageDir().resolve("facturas");
                         Files.createDirectories(factDir);
-                        Path dest = factDir.resolve(photoId + ".jpg");
                         Path src = Path.of(factUrlFinal);
+                        Path dest = src.toAbsolutePath().startsWith(factDir.toAbsolutePath())
+                            ? src : factDir.resolve(photoId + "_" + nombreUnico() + ".jpg");
                         if (!src.equals(dest)) {
                             ImageUtils.resizeAndSave(src.toFile(), dest.toFile());
                             thumbnailCache.remove(dest.toString());
@@ -514,6 +523,10 @@ public final class ProductoDialogFactory {
         } else {
             p.setFacturaUrl(null);
         }
+    }
+
+    private static String nombreUnico() {
+        return Long.toString(System.currentTimeMillis(), 36) + UUID.randomUUID().toString().substring(0, 4);
     }
 
     private static Path imgDir() {

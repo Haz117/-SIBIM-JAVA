@@ -7,9 +7,7 @@ import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.UpdateChecker;
 import javafx.application.Platform;
-import java.awt.Desktop;
 import java.io.File;
-import java.net.URI;
 import javafx.scene.Scene;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,10 +88,7 @@ class MainStartupChecks {
                     NotificacionUtil.exitoConAccion(scene,
                         "Nueva versión disponible: v" + info.latestVersion(),
                         "Ver actualización",
-                        () -> {
-                            try { Desktop.getDesktop().browse(new URI(info.releaseUrl())); }
-                            catch (Exception ex) { log.warn("No se pudo abrir el navegador", ex); }
-                        }
+                        () -> com.sibim.util.ArchivoUtil.navegar(info.releaseUrl(), scene)
                     )
                 );
             }

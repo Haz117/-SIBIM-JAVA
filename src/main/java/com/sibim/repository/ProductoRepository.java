@@ -1074,9 +1074,16 @@ public class ProductoRepository {
 
     /** Returns the ordered list of photo URLs for a given product. */
     public List<String> findFotos(String productoId) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) {
-            // offline: fotos stored in Producto.fotosUrls (already loaded)
-            return new ArrayList<>();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            // Demo/offline keep the list on the bien itself (Producto.fotosUrls,
+            // saved with it); older rows only have the main photo.
+            return local.findProductoById(productoId).map(p -> {
+                if (!p.getFotosUrls().isEmpty()) return new ArrayList<>(p.getFotosUrls());
+                List<String> una = new ArrayList<>();
+                if (p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) una.add(p.getFotoUrl());
+                return una;
+            }).orElseGet(ArrayList::new);
         }
         List<String> fotos = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();

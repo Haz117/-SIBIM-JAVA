@@ -19,7 +19,6 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Desktop;
 import java.io.File;
 import javafx.stage.FileChooser;
 import java.nio.file.Files;
@@ -255,7 +254,7 @@ public final class AreaResguardosDialog {
                             + "en esta PC. Ábrelo desde la PC donde se subió y vuelve a cargarlo."));
                     return;
                 }
-                Desktop.getDesktop().open(archivo);
+                com.sibim.util.ArchivoUtil.abrir(archivo, scene);
             } catch (Exception e) {
                 log.error("Error abriendo resguardo", e);
                 Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo abrir el PDF"));

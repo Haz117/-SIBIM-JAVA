@@ -162,7 +162,8 @@ public class AlertasController implements Refreshable {
         setupHelpBadges();
         setupCollapsibleSections();
 
-        boolean canWrite = SessionManager.isAdmin() || SessionManager.isSecretario();
+        // Reponer (an entrada) and dar de baja are Patrimonio's (admin).
+        boolean canWrite = SessionManager.isAdmin();
         setupPermissions(canWrite);
         setupSearchField();
         setupTableInteractions(canWrite);
@@ -583,42 +584,27 @@ public class AlertasController implements Refreshable {
     }
 
     private void darDeBajaDesdeAlertas(Producto p) {
-        if (!(SessionManager.isAdmin() || SessionManager.isSecretario())) return;
-
-        Dialog<ButtonType> dlg = new Dialog<>();
-        DialogUtil.applyOwner(dlg);
-        dlg.setTitle("Dar de baja");
-        ButtonType okType = new ButtonType("Dar de baja", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
-
-        HBox header = DialogUtil.gradientHeader("mdi2a-archive-arrow-down-outline",
-            "Dar de baja", p.getNombre(), AppColors.DANGER, AppColors.DANGER_D);
-
-        TextField motivoField = new TextField();
-        motivoField.setPromptText("Ej. Pérdida total, robo, deterioro irreparable…");
-        Label lbl = new Label("Motivo:");
-        lbl.getStyleClass().add("field-label");
-        VBox form = new VBox(6, lbl, motivoField);
-        form.setPadding(new Insets(16));
-
-        dlg.getDialogPane().setContent(new VBox(0, header, form));
-        dlg.getDialogPane().setPrefWidth(460);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        Button okBtn = (Button) dlg.getDialogPane().lookupButton(okType);
-        okBtn.getStyleClass().add("btn-danger");
-        okBtn.setDisable(true);
-        motivoField.textProperty().addListener((obs, o, n) -> okBtn.setDisable(n.isBlank()));
-        Platform.runLater(motivoField::requestFocus);
-
-        Optional<ButtonType> result = dlg.showAndWait();
-        if (result.isEmpty() || result.get() != okType || motivoField.getText().isBlank()) return;
-        String motivo = motivoField.getText().trim();
+        // Same dialog and rule as Bienes: only Patrimonio (admin) registers a
+        // baja, justified by the área's signed solicitud de baja.
+        if (!SessionManager.isAdmin()) {
+            var scene = tableAgotados.getScene();
+            NotificacionUtil.info(scene, "Solo Patrimonio registra bajas: se generó la solicitud de baja "
+                + "para que el área la firme y la entregue.");
+            DialogUtil.runAsyncWithProgress(scene, "Generando solicitud de baja…",
+                () -> reporteService.exportSolicitudBaja(java.util.List.of(p)),
+                file -> DialogUtil.showExportResultDialog(scene, file),
+                ex -> NotificacionUtil.error(scene, "No se pudo generar la solicitud de baja"));
+            return;
+        }
+        var r = com.sibim.controller.dialogs.ProductoBajasDialog
+            .showBajaInputDialog(p, tableAgotados.getScene()).orElse(null);
+        if (r == null) return;
 
         final String nombre = p.getNombre();
         AppExecutor.submit(() -> {
             try {
-                productoService.darDeBaja(p.getId(), motivo);
+                productoService.darDeBaja(p.getId(), r.motivo(), r.tipoDestino(), r.dictamen(),
+                    r.numeroActa(), r.fechaDictamen());
                 Platform.runLater(() -> {
                     loadData();
                     if (tableAgotados.getScene() != null)

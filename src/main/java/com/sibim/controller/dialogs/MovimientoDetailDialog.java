@@ -137,7 +137,7 @@ public final class MovimientoDetailDialog {
         footer.setAlignment(Pos.CENTER_LEFT);
         footer.setPadding(new Insets(12, 16, 4, 16));
 
-        boolean canRevert = (SessionManager.isAdmin() || SessionManager.isSecretario())
+        boolean canRevert = SessionManager.isAdmin()   // a reversal is a movimiento: Patrimonio only
             && m.getTipo() != TipoMovimiento.TRANSFERENCIA
             && !"RECHAZADO".equals(m.getEstado());
         if (canRevert) {

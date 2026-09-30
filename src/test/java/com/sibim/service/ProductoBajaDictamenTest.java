@@ -49,6 +49,23 @@ class ProductoBajaDictamenTest {
         SessionManager.logout();
     }
 
+    // ── Only Patrimonio (admin) registers a baja ──────────────────────────────
+
+    @Test
+    void testDarDeBaja_noAdmin_seRechazaYPideLaSolicitud() throws Exception {
+        Usuario sec = new Usuario();
+        sec.setId("test-sec");
+        sec.setNombre("Secretario");
+        sec.setRol(Rol.SECRETARIO);
+        sec.setArea("Secretaría General Municipal");
+        SessionManager.setCurrentUser(sec);
+
+        ProductoService.ValidationException ex = assertThrows(ProductoService.ValidationException.class,
+            () -> service.darDeBaja(DEMO_PRODUCTO_ID, "Deterioro"));
+        assertTrue(ex.getMessage().contains("solicitud de baja"));
+        assertFalse(service.findById(DEMO_PRODUCTO_ID).orElseThrow().isDadoDeBaja());
+    }
+
     // ── Guard: motivo blank ───────────────────────────────────────────────────
 
     @Test

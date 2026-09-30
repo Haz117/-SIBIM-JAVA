@@ -187,6 +187,11 @@ public class ProductoService {
     public Producto save(Producto p) throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
         boolean isNew = p.getId() == null;
+        // Secretarías and direcciones keep the data of their bienes current;
+        // registering a new bien is Patrimonio's (admin).
+        if (isNew && !SessionManager.isAdmin())
+            throw new ValidationException("Solo el administrador (Patrimonio) puede dar de alta bienes. "
+                + "Tu área puede actualizar los datos de los bienes que tiene asignados.");
         // El código se asigna por área (ver AreaCodigos) al dar de alta un bien
         // nuevo; al editar uno existente el código sigue siendo editable a mano
         // (útil para corregir datos heredados que no siguen este formato).
@@ -293,6 +298,10 @@ public class ProductoService {
     /** Formal baja patrimonial — this is the everyday "remove a bien from
      *  active inventory" action; unlike {@link #delete}, the record and its
      *  full movement history stay in the database for audits. */
+    public static final String SOLO_ADMIN_BAJA =
+        "Solo el administrador puede dar de baja un bien. Genera la solicitud de baja, fírmala "
+        + "y entrégala a Patrimonio para que la registre.";
+
     public void darDeBaja(String id, String motivo) throws SQLException, ValidationException {
         darDeBaja(id, motivo, null, null, null, null);
     }
@@ -305,6 +314,10 @@ public class ProductoService {
                           String numeroActa, LocalDate fechaDictamen)
             throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
+        // Patrimonio (the administrator) registers every baja, against the
+        // signed solicitud de baja the área hands in.
+        if (!SessionManager.isAdmin())
+            throw new ValidationException(SOLO_ADMIN_BAJA);
         Optional<Producto> opt = productoRepo.findById(id);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();

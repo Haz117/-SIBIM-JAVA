@@ -160,48 +160,6 @@ public interface ContratoInventario {
 
     interface Accion { void run() throws Exception; }
 
-    @Test
-    default void transferenciaDeNoAdmin_quedaPendienteHastaQueElAdminAprueba() throws Exception {
-        Producto p = alta(AREA_A, 1, 0);
-        Movimiento[] pendiente = new Movimiento[1];
-        comoDireccion(AREA_A, () -> pendiente[0] = movimientos()
-            .registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B));
-
-        assertTrue(pendiente[0].isPendiente());
-        assertEquals(AREA_A, releer(p.getId()).getArea(), "nada cambia mientras está pendiente");
-        assertEquals(p.getCodigo(), releer(p.getId()).getCodigo());
-        assertTrue(movimientos().getPendientesTransferencias().stream()
-            .anyMatch(m -> m.getId().equals(pendiente[0].getId())));
-
-        // A second request for the same bien is refused while one is pending.
-        comoDireccion(AREA_A, () -> assertThrows(MovimientoService.ValidationException.class,
-            () -> movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "otra", null, AREA_B)));
-        // …and it can't be dado de baja either.
-        assertThrows(ProductoService.ValidationException.class, () -> productos().darDeBaja(p.getId(), "x"));
-
-        String esperado = AreaCodigos.siguienteCodigo(AREA_B, codigosActivos());
-        movimientos().aprobarTransferencia(pendiente[0].getId());
-        Producto t = releer(p.getId());
-        assertEquals(AREA_B, t.getArea());
-        assertEquals(esperado, t.getCodigo());
-        assertTrue(movimientos().getPendientesTransferencias().stream()
-            .noneMatch(m -> m.getId().equals(pendiente[0].getId())));
-    }
-
-    @Test
-    default void transferenciaRechazada_noMueveElBien() throws Exception {
-        Producto p = alta(AREA_A, 1, 0);
-        Movimiento[] pendiente = new Movimiento[1];
-        comoDireccion(AREA_A, () -> pendiente[0] = movimientos()
-            .registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B));
-        movimientos().rechazarTransferencia(pendiente[0].getId(), "no procede");
-        Producto r = releer(p.getId());
-        assertEquals(AREA_A, r.getArea());
-        assertEquals(p.getCodigo(), r.getCodigo());
-        assertTrue(movimientos().getPendientesTransferencias().stream()
-            .noneMatch(m -> m.getId().equals(pendiente[0].getId())));
-    }
-
     // ── Eliminar un movimiento (solo admin) ─────────────────────────────────
 
     @Test
@@ -238,15 +196,28 @@ public interface ContratoInventario {
         assertEquals(4, releer(p.getId()).getStockActual());
     }
 
+    // ── Roles: Secretaría y Dirección solo actualizan datos ──────────────────
+
     @Test
-    default void unaSolicitudPendientePosterior_noImpideEliminarElUltimoMovimientoAplicado() throws Exception {
-        Producto p = alta(AREA_A, 5, 0);
-        Movimiento entrada = movimientos().registrar(p.getId(), TipoMovimiento.ENTRADA, 1, "uno", null);
-        Thread.sleep(5);
-        comoDireccion(AREA_A, () -> movimientos()
-            .registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 6, "contrato", null, AREA_B));
-        movimientos().eliminar(entrada.getId());
-        assertEquals(5, releer(p.getId()).getStockActual());
+    default void direccion_noRegistraMovimientosNiDaDeAlta_peroSiEditaDatos() throws Exception {
+        Producto p = alta(AREA_A, 3, 0);
+        comoDireccion(AREA_A, () -> {
+            assertThrows(MovimientoService.ValidationException.class,
+                () -> movimientos().registrar(p.getId(), TipoMovimiento.ENTRADA, 1, "x", null));
+            assertThrows(MovimientoService.ValidationException.class,
+                () -> movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 3, "x", null, AREA_B));
+            Producto nuevo = releer(p.getId()).copia();
+            nuevo.setId(null);
+            nuevo.setNombre("Alta por la dirección");
+            assertThrows(ProductoService.ValidationException.class, () -> productos().save(nuevo));
+            assertThrows(ProductoService.ValidationException.class, () -> productos().darDeBaja(p.getId(), "x"));
+
+            Producto edit = releer(p.getId());
+            edit.setDescripcion("Actualizado por la dirección");
+            productos().save(edit);
+            assertEquals("Actualizado por la dirección", releer(p.getId()).getDescripcion());
+        });
+        assertEquals(3, releer(p.getId()).getStockActual(), "nada movió la existencia");
     }
 
     // ── Baja y reactivación ─────────────────────────────────────────────────
