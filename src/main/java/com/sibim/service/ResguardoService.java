@@ -65,6 +65,7 @@ public class ResguardoService {
     public Resguardo crear(String resguardanteNombre, String resguardanteCargo,
                            String resguardanteArea, List<ResguardoItem> items,
                            String observaciones) throws SQLException {
+        soloAdministrador();
         if (resguardanteNombre == null || resguardanteNombre.isBlank())
             throw new IllegalArgumentException("El nombre del resguardante es obligatorio");
         if (items == null || items.isEmpty())
@@ -96,7 +97,16 @@ public class ResguardoService {
         return saved;
     }
 
+    /** Like comodatos: only the administrator (Patrimonio) creates or
+     *  cancels a resguardo; áreas only see and print them. */
+    static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los resguardos.";
+
+    private static void soloAdministrador() {
+        if (!com.sibim.session.SessionManager.isAdmin()) throw new SecurityException(SOLO_ADMIN);
+    }
+
     public void cancelar(String id) throws SQLException {
+        soloAdministrador();
         Resguardo r = repo.findById(id);
         repo.cancelar(id);
         ProductosEnMemoria.invalidar();

@@ -38,8 +38,28 @@ class PrestamoServiceTest {
     private Producto producto;
     private final LocalDate manana = LocalDate.now().plusDays(1);
 
+    private static void entrarComo(com.sibim.model.enums.Rol rol) {
+        com.sibim.model.Usuario u = new com.sibim.model.Usuario();
+        u.setId("u-" + rol);
+        u.setNombre("Prueba " + rol);
+        u.setRol(rol);
+        com.sibim.session.SessionManager.setCurrentUser(u);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void salir() { com.sibim.session.SessionManager.logout(); }
+
+    @Test
+    void soloElAdministradorCreaYDevuelve() {
+        entrarComo(com.sibim.model.enums.Rol.SECRETARIO);
+        assertThrows(SecurityException.class,
+            () -> service.crear("p-01", "Área B", "Juan Pérez", null, null, manana));
+        assertThrows(SecurityException.class, () -> service.devolver("pre-01", null));
+    }
+
     @BeforeEach
     void setUp() throws Exception {
+        entrarComo(com.sibim.model.enums.Rol.ADMIN);
         service = new PrestamoService(mockRepo, mockProductoRepo, mockComodatoRepo, mockCfg, mockAudit);
 
         producto = new Producto();

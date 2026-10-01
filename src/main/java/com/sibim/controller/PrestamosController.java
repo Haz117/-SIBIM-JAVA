@@ -116,8 +116,9 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         }
         // Offline they work from this PC's copy (OfflineDocs); only demo mode has none.
         boolean offline = DatabaseConfig.isDemoMode();
-        boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
+        boolean canCreate = SessionManager.isAdmin() && !offline;   // préstamos: Patrimonio only
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
+        if (btnDevolver != null) { btnDevolver.setVisible(canCreate); btnDevolver.setManaged(canCreate); }
         if (offline) {
             Platform.runLater(() -> {
                 if (rootPane.getScene() != null)
@@ -229,7 +230,8 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         MenuItem miPdf = new MenuItem("Exportar comprobante PDF");
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
-        cm.getItems().addAll(miDev, new SeparatorMenuItem(), miPdf);
+        if (SessionManager.isAdmin()) cm.getItems().addAll(miDev, new SeparatorMenuItem());
+        cm.getItems().add(miPdf);
         addLoteExportItem(cm);
         return cm;
     }
@@ -533,6 +535,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
 
     @FXML
     private void onDevolver() {
+        if (!SessionManager.isAdmin()) return;
         Prestamo sel = table.getSelectionModel().getSelectedItem();
         if (sel == null || Prestamo.ESTADO_DEVUELTO.equals(sel.getEstado())) return;
 

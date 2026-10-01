@@ -90,7 +90,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
     @Override
     protected void onInitialize() {
-        boolean canCreate = SessionManager.isAdmin() || SessionManager.isSecretario();
+        boolean canCreate = SessionManager.isAdmin();   // resguardos: Patrimonio only
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         setupDateFilterBar(
             () -> com.sibim.service.ReporteService.getInstance().exportResguardosExcel(exportTarget()),
@@ -98,6 +98,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         );
         setupSearchListener();
 
+        if (btnCancelar != null) { btnCancelar.setVisible(canCreate); btnCancelar.setManaged(canCreate); }
         if (btnCancelar != null)
             btnCancelar.disableProperty().bind(
                 table.getSelectionModel().selectedItemProperty()
@@ -216,7 +217,8 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         MenuItem miCancelar = new MenuItem("Dar de baja");
         miCancelar.setGraphic(new FontIcon("mdi2d-delete-circle-outline"));
         miCancelar.setOnAction(e -> onCancelar());
-        cm.getItems().addAll(miDetalle, miPdf, new SeparatorMenuItem(), miCancelar);
+        cm.getItems().addAll(miDetalle, miPdf);
+        if (SessionManager.isAdmin()) cm.getItems().addAll(new SeparatorMenuItem(), miCancelar);
         addLoteExportItem(cm);
         return cm;
     }
@@ -544,6 +546,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
     @FXML
     private void onCancelar() {
+        if (!SessionManager.isAdmin()) return;
         Resguardo sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) return;
         if (!sel.isActivo()) { NotificacionUtil.advertencia(rootPane.getScene(), "El resguardo ya está cancelado"); return; }

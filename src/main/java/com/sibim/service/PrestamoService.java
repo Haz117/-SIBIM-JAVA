@@ -81,6 +81,7 @@ public class PrestamoService {
     public Prestamo crear(String productoId, String areaDestino,
                           String responsableNombre, String responsableCargo,
                           String motivo, LocalDate fechaDevolucionPrevista) throws Exception {
+        soloAdministrador();
         if (productoId == null || productoId.isBlank())
             throw new IllegalArgumentException("Debe seleccionar un bien");
         if (areaDestino == null || areaDestino.isBlank())
@@ -122,7 +123,16 @@ public class PrestamoService {
         return saved;
     }
 
+    /** Like comodatos: only the administrator (Patrimonio) registers a
+     *  préstamo or its return; áreas only see and print them. */
+    static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los préstamos.";
+
+    private static void soloAdministrador() {
+        if (!com.sibim.session.SessionManager.isAdmin()) throw new SecurityException(SOLO_ADMIN);
+    }
+
     public void devolver(String prestamoId, LocalDate fechaDevolucionReal) throws SQLException {
+        soloAdministrador();
         if (fechaDevolucionReal == null) fechaDevolucionReal = LocalDate.now();
         Prestamo p = repo.findById(prestamoId);
         repo.devolver(prestamoId, fechaDevolucionReal);

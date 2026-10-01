@@ -27,9 +27,29 @@ class ResguardoServiceTest {
 
     private ResguardoService service;
 
+    private static void entrarComo(com.sibim.model.enums.Rol rol) {
+        com.sibim.model.Usuario u = new com.sibim.model.Usuario();
+        u.setId("u-" + rol);
+        u.setNombre("Prueba " + rol);
+        u.setRol(rol);
+        com.sibim.session.SessionManager.setCurrentUser(u);
+    }
+
     @BeforeEach
     void setUp() {
+        entrarComo(com.sibim.model.enums.Rol.ADMIN);
         service = new ResguardoService(mockRepo, mockCfg, mockAudit);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void salir() { com.sibim.session.SessionManager.logout(); }
+
+    @Test
+    void soloElAdministradorCreaYCancela() {
+        entrarComo(com.sibim.model.enums.Rol.SECRETARIO);
+        assertThrows(SecurityException.class,
+            () -> service.crear("Ana García", null, null, List.of(item()), null));
+        assertThrows(SecurityException.class, () -> service.cancelar("r-01"));
     }
 
     // ── Validación: nombre del resguardante ───────────────────────────────────
