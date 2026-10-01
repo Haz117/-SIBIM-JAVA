@@ -59,6 +59,8 @@ public class ReporteGuiaRapidaService extends ReporteService {
             "Bajas: solo con la solicitud firmada del área; anota su folio al dar de baja.",
             "Configuración > Usuarios > \"Cuentas por área\": crea las cuentas que falten y genera el PDF con contraseñas.",
             "Configuración > Usuarios > \"Equipos por cuenta\": muestra qué cuentas aún no entran en ninguna computadora (sin internet no podrán entrar).",
+            "Configuración > \"Errores de equipos\": muestra los errores que SIBIM ha tenido en las computadoras de las áreas.",
+            "Configuración > \"Respaldo automático\": un respaldo cifrado diario en esta computadora; anota la contraseña.",
             "Configuración > \"Publicar actualización\": sube el instalador de una versión nueva (primero sube la versión en pom.xml y genera el instalador en esta PC, que es la que actualiza la base)."},
     };
 

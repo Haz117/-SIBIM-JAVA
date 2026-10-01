@@ -103,6 +103,7 @@ public final class AccesosEquipoDialog {
     }
 
     private static String texto(Equipo e) {
-        return e.nombre() + " (" + (e.ultimoAcceso() != null ? FormatUtils.formatDateTime(e.ultimoAcceso()) : "—") + ")";
+        return e.nombre() + (e.version() != null ? " · v" + e.version() : "")
+            + " (" + (e.ultimoAcceso() != null ? FormatUtils.formatDateTime(e.ultimoAcceso()) : "—") + ")";
     }
 }

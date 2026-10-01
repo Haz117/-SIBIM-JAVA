@@ -67,6 +67,8 @@ public class SchedulerService {
             LocalDate hoyAvisos = LocalDate.now();
             if (config.reclamar("avisos_ultima_ejecucion", hoyAvisos.toString())) enviarAvisos(hoyAvisos);
 
+            RespaldoAutomatico.ejecutarSiToca(hoyAvisos);
+
             if (!"true".equals(config.get("reportes_habilitado", "false"))) return;
 
             String frecuencia = config.get("reportes_frecuencia", "MENSUAL");

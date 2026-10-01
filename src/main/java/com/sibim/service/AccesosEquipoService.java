@@ -22,7 +22,7 @@ import java.util.Map;
  */
 public class AccesosEquipoService {
 
-    public record Equipo(String nombre, LocalDateTime ultimoAcceso) {}
+    public record Equipo(String nombre, LocalDateTime ultimoAcceso, String version) {}
 
     /** One account and the PCs it has signed in on (empty = none yet). */
     public record Cuenta(String username, String nombre, String area, boolean activa, List<Equipo> equipos) {}
@@ -43,10 +43,11 @@ public class AccesosEquipoService {
         if (userId == null || DatabaseConfig.isDemoMode() || DatabaseConfig.isOfflineMode()) return;
         try (Connection c = DatabaseConfig.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                 "INSERT INTO accesos_equipo (user_id, equipo) VALUES (?, ?) "
-                 + "ON CONFLICT (user_id, equipo) DO UPDATE SET ultimo_acceso = NOW()")) {
+                 "INSERT INTO accesos_equipo (user_id, equipo, version) VALUES (?, ?, ?) "
+                 + "ON CONFLICT (user_id, equipo) DO UPDATE SET ultimo_acceso = NOW(), version = EXCLUDED.version")) {
             ps.setString(1, userId);
             ps.setString(2, esteEquipo());
+            ps.setString(3, com.sibim.util.UpdateChecker.currentVersion());
             ps.executeUpdate();
         }
     }
@@ -58,7 +59,7 @@ public class AccesosEquipoService {
         Map<String, Cuenta> cuentas = new LinkedHashMap<>();
         try (Connection c = DatabaseConfig.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                 "SELECT u.id, u.username, u.nombre, u.area, u.activo, a.equipo, a.ultimo_acceso "
+                 "SELECT u.id, u.username, u.nombre, u.area, u.activo, a.equipo, a.ultimo_acceso, a.version "
                  + "FROM users u LEFT JOIN accesos_equipo a ON a.user_id = u.id "
                  + "ORDER BY (a.equipo IS NULL) DESC, u.nombre, a.ultimo_acceso DESC");
              ResultSet rs = ps.executeQuery()) {
@@ -72,7 +73,7 @@ public class AccesosEquipoService {
                 String equipo = rs.getString("equipo");
                 if (equipo != null) {
                     Timestamp t = rs.getTimestamp("ultimo_acceso");
-                    cuenta.equipos().add(new Equipo(equipo, t != null ? t.toLocalDateTime() : null));
+                    cuenta.equipos().add(new Equipo(equipo, t != null ? t.toLocalDateTime() : null, rs.getString("version")));
                 }
             }
         }

@@ -124,6 +124,52 @@ class ConfiguracionBackupManager {
         return backupSection != null ? backupSection.getScene() : null;
     }
 
+    /** Turns this PC's daily encrypted backup on or off (see RespaldoAutomatico). */
+    void onRespaldoAutomatico() {
+        if (!com.sibim.service.RespaldoAutomatico.soportado()) {
+            NotificacionUtil.advertencia(scene(), "El respaldo automático solo está disponible en Windows");
+            return;
+        }
+        String carpeta = com.sibim.service.RespaldoAutomatico.carpeta().toString();
+        if (com.sibim.service.RespaldoAutomatico.activado()) {
+            File ultimo = com.sibim.service.RespaldoAutomatico.ultimo();
+            if (!ConfirmacionUtil.confirmar("Respaldo automático activo",
+                    "Esta computadora guarda un respaldo cifrado cada día en:\n" + carpeta
+                    + "\n\nÚltimo: " + (ultimo != null ? ultimo.getName() : "todavía ninguno")
+                    + "\n\n¿Quieres DESACTIVARLO? (los respaldos ya hechos se conservan)")) return;
+            try {
+                com.sibim.service.RespaldoAutomatico.desactivar();
+                NotificacionUtil.info(scene(), "Respaldo automático desactivado");
+            } catch (java.io.IOException e) {
+                NotificacionUtil.error(scene(), "No se pudo desactivar: " + e.getMessage());
+            }
+            return;
+        }
+        if (!ConfirmacionUtil.confirmar("Activar respaldo automático",
+                "Cada día, con una sesión de administrador abierta en esta computadora, SIBIM guardará un "
+                + "respaldo cifrado en:\n" + carpeta + "\n\nSe conservan los últimos 30. A continuación define la "
+                + "contraseña con la que se cifran: la necesitarás para restaurar, así que anótala en un lugar "
+                + "seguro. Copia esa carpeta de vez en cuando a una memoria o a otro equipo.")) return;
+        Optional<char[]> passwordOpt = promptBackupPassword(true);
+        if (passwordOpt.isEmpty()) return;
+        char[] password = passwordOpt.get();
+        try {
+            com.sibim.service.RespaldoAutomatico.activar(password);
+        } catch (java.io.IOException e) {
+            NotificacionUtil.error(scene(), "No se pudo activar: " + e.getMessage());
+            return;
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+        DialogUtil.runAsyncWithProgress(scene(), "Haciendo el primer respaldo…",
+            () -> { com.sibim.service.RespaldoAutomatico.ejecutarSiToca(LocalDate.now());
+                    return com.sibim.service.RespaldoAutomatico.ultimo(); },
+            archivo -> NotificacionUtil.exito(scene(), archivo != null
+                ? "Respaldo automático activado. Primer respaldo: " + archivo.getName()
+                : "Respaldo automático activado; el primero se hará en la próxima hora"),
+            e -> NotificacionUtil.error(scene(), "Activado, pero el primer respaldo falló: " + e.getMessage()));
+    }
+
     private Optional<char[]> promptBackupPassword(boolean confirmar) {
         Dialog<ButtonType> dialog = new Dialog<>();
         if (MainApp.getPrimaryStage() != null) dialog.initOwner(MainApp.getPrimaryStage());

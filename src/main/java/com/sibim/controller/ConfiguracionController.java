@@ -55,6 +55,7 @@ public class ConfiguracionController {
     @FXML private Label lblSistemaModo;
     @FXML private Label lblSistemaVersion;
     @FXML private Button btnPublicarActualizacion;
+    @FXML private Button btnErroresEquipos;
     @FXML private Label helpUsuarios;
     @FXML private Label helpAuditoria;
     @FXML private Label helpRespaldo;
@@ -130,6 +131,7 @@ public class ConfiguracionController {
             boolean puede = SessionManager.isAdmin() && !DatabaseConfig.isDemoMode();
             btnPublicarActualizacion.setVisible(puede);
             btnPublicarActualizacion.setManaged(puede);
+            if (btnErroresEquipos != null) { btnErroresEquipos.setVisible(puede); btnErroresEquipos.setManaged(puede); }
         }
         if (lblSistemaModo != null) {
             boolean demo    = DatabaseConfig.isDemoMode();
@@ -593,6 +595,15 @@ public class ConfiguracionController {
             v -> NotificacionUtil.exito(scene, "Versión " + v + " publicada: las PCs la verán al abrir SIBIM"),
             e -> NotificacionUtil.error(scene, "No se pudo publicar: " + e.getMessage()));
     }
+
+    /** What has been failing on the áreas' PCs (see ErroresEquipoAppender). */
+    @FXML
+    private void onErroresEquipos() {
+        com.sibim.controller.dialogs.ErroresEquipoDialog.show(usersTable.getScene());
+    }
+
+    @FXML
+    private void onRespaldoAutomatico() { backupManager.onRespaldoAutomatico(); }
 
     /** Which PCs each account has signed in on (ready to work offline there). */
     @FXML

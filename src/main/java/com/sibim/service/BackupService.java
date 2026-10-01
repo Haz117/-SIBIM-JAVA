@@ -59,7 +59,7 @@ public class BackupService {
      *  and the log of which PC each account signed in on. */
     public static final Set<String> TABLAS_EXCLUIDAS = Set.of(
         "flyway_schema_history", "schema_version", "login_attempts",
-        "actualizaciones", "actualizacion_partes", "solicitudes", "accesos_equipo");
+        "actualizaciones", "actualizacion_partes", "solicitudes", "accesos_equipo", "errores_equipo");
 
     /** The audit trail is append-only: a restore never deletes it, it only
      *  adds back the entries the backup has that the database lost — so the

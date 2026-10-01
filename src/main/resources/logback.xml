@@ -26,6 +26,10 @@
         </encoder>
     </appender>
 
+    <!-- Los ERROR de esta PC también van a la base (errores_equipo): Patrimonio los ve
+         en Configuración sin tener que ir al equipo. -->
+    <appender name="ERRORES_EQUIPO" class="com.sibim.util.ErroresEquipoAppender"/>
+
     <!-- Silencia logs de diagnóstico de HikariCP que no aportan en producción -->
     <logger name="com.zaxxer.hikari" level="WARN"/>
     <logger name="org.postgresql"    level="WARN"/>
@@ -33,6 +37,7 @@
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
+        <appender-ref ref="ERRORES_EQUIPO"/>
     </root>
 
 </configuration>

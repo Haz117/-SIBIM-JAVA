@@ -75,6 +75,11 @@
             <Region styleClass="dash-section-bar"/>
             <Label text="INFORMACIÓN DEL SISTEMA" styleClass="dash-section-label"/>
             <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnErroresEquipos" text="Errores de equipos" onAction="#onErroresEquipos"
+                    styleClass="btn-secondary" visible="false" managed="false" contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Errores que SIBIM ha tenido en las computadoras de las áreas, con el equipo, la cuenta y la versión" wrapText="true" maxWidth="280"/></tooltip>
+            </Button>
             <Button fx:id="btnPublicarActualizacion" text="Publicar actualización" onAction="#onPublicarActualizacion"
                     styleClass="btn-secondary" visible="false" managed="false" contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2c-cloud-upload-outline" styleClass="btn-icon"/></graphic>
@@ -341,6 +346,11 @@
                 <Label text="Exporta toda la base de datos a un archivo, o restaura desde un respaldo previo. Solo disponible conectado a la base de datos principal."
                        styleClass="page-subtitle"/>
             </VBox>
+            <Button fx:id="btnRespaldoAuto" text="Respaldo automático" onAction="#onRespaldoAutomatico" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Un respaldo cifrado cada día, hecho por esta computadora sin que nadie lo pida" wrapText="true" maxWidth="280"/></tooltip>
+            </Button>
             <Button fx:id="btnGenerarRespaldo" text="Generar respaldo" onAction="#onGenerarRespaldo" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2d-database-export-outline" styleClass="btn-icon"/></graphic>
