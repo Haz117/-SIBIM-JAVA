@@ -83,7 +83,7 @@
    REPORT CARD extras
    ═══════════════════════════════════════════════════════════════════ */
 .report-desc {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-text-fill: sibim-slate-500;
 }
 .report-icon {
@@ -98,7 +98,7 @@
     -fx-background-color: sibim-indigo-dark;
     -fx-text-fill: white;
     -fx-background-radius: 99;
-    -fx-font-size: 10.5px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-padding: 1.5 5;
     -fx-min-width: 17; -fx-min-height: 17;
@@ -115,7 +115,7 @@
     -fx-background-color: sibim-indigo-dark;
     -fx-text-fill: white;
     -fx-background-radius: 99;
-    -fx-font-size: 10px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-padding: 0 4;
     -fx-min-width: 15; -fx-min-height: 15;
@@ -129,7 +129,7 @@
     -fx-background-color: sibim-indigo-dark;
     -fx-text-fill: white;
     -fx-background-radius: 99;
-    -fx-font-size: 10.5px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-padding: 1.5 5;
     -fx-min-width: 16; -fx-min-height: 16;
@@ -139,7 +139,7 @@
 }
 
 .notif-center-menu .custom-menu-item { -fx-padding: 2 4; }
-.notif-item-text { -fx-font-size: 12.5px; -fx-text-fill: sibim-slate-900; }
+.notif-item-text { -fx-font-size: 13px; -fx-text-fill: sibim-slate-900; }
 .notif-item-icon-danger  { -fx-icon-color: sibim-red; -fx-icon-size: 16; }
 .notif-item-icon-warning { -fx-icon-color: sibim-amber; -fx-icon-size: 16; }
 .notif-item-icon-info    { -fx-icon-color: #2563EB; -fx-icon-size: 16; }

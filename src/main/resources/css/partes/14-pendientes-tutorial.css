@@ -30,7 +30,7 @@
 
 /* Nav-tip hint shown below shortcut pill on module steps */
 .tutorial-nav-tip {
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-padding: 4 0 0 0;
 }
@@ -82,14 +82,14 @@
     -fx-padding: 3 0;
 }
 .tutorial-bullet-text {
-    -fx-font-size: 13.5px;
+    -fx-font-size: 14px;
     -fx-text-fill: sibim-slate-700;
     -fx-line-spacing: 1;
 }
 
 /* Shortcut pill — static layout here; dynamic bg/border colors set inline per step */
 .tutorial-shortcut-icon { -fx-icon-size: 13; }
-.tutorial-shortcut-text { -fx-font-size: 12.5px; -fx-font-weight: bold; }
+.tutorial-shortcut-text { -fx-font-size: 13px; -fx-font-weight: bold; }
 .tutorial-shortcut-pill {
     -fx-background-radius: 99;
     -fx-border-radius: 99;
@@ -115,7 +115,7 @@
     -fx-background-radius: 10;
     -fx-padding: 10 26;
     -fx-cursor: hand;
-    -fx-font-size: 13.5px;
+    -fx-font-size: 14px;
 }
 .tutorial-btn-primary:hover   { -fx-opacity: 0.88; }
 .tutorial-btn-primary:pressed { -fx-opacity: 0.74; -fx-translate-y: 1; }

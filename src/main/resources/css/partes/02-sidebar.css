@@ -62,7 +62,7 @@
 /* Icon rail: only the search + collapse icons remain in this row — center them. */
 .sidebar-collapsed .sidebar-logo-area { -fx-alignment: CENTER; }
 .sidebar-app-sub {
-    -fx-font-size: 10px;
+    -fx-font-size: 11px;
     -fx-text-fill: sibim-slate-600;
     -fx-padding: 0 0 0 1;
 }

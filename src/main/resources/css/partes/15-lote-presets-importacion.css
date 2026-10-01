@@ -129,13 +129,13 @@
 
 /* Step description text */
 .import-step-text {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-text-fill: sibim-gray-700;
 }
 
 /* Summary label — two variants */
 .import-summary-label {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-font-weight: 600;
     -fx-padding: 6 10 6 10;
     -fx-background-radius: 8;
@@ -152,6 +152,6 @@
 
 /* Error text in the Observación column */
 .import-row-error-text {
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-text-fill: sibim-red-dark;
 }

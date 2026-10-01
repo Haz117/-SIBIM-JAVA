@@ -61,7 +61,7 @@
 }
 
 .alert-section-title-inv {
-    -fx-font-size: 14.5px;
+    -fx-font-size: 15px;
     -fx-font-weight: bold;
     -fx-text-fill: white;
 }
@@ -71,7 +71,7 @@
     -fx-padding: 3 11;
     -fx-background-radius: 99;
     -fx-font-weight: bold;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
 }
 
 .no-alerts {
@@ -211,7 +211,7 @@
     -fx-background-color: #F5F3FF;
     -fx-border-color: #818CF8 sibim-indigo-300 sibim-indigo-300 #818CF8;
 }
-.titled-pane > .title .text { -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; -fx-font-size: 13.5px; }
+.titled-pane > .title .text { -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; -fx-font-size: 14px; }
 .titled-pane > .content {
     -fx-background-color: white;
     -fx-border-color: sibim-slate-200;

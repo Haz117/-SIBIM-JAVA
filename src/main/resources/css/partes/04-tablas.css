@@ -19,7 +19,7 @@
 .data-table .column-header .label {
     -fx-font-weight: bold;
     -fx-text-fill: sibim-indigo-200;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
 }
 .data-table .column-header-background {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4338CA, #5B21B6);
@@ -67,6 +67,9 @@
     -fx-padding: 0 14;
     -fx-text-fill: sibim-gray-700;
     -fx-font-size: 13px;
+    /* Rows grow with their tallest cell (category chips, stock bars): keep
+       plain text on the same line as those instead of stuck to the top. */
+    -fx-alignment: CENTER-LEFT;
 }
 .data-table .placeholder .label {
     -fx-text-fill: sibim-slate-500;

@@ -33,23 +33,23 @@
 
 /* Escala de texto (botón "Texto: Normal / Grande / Extra" de la barra de
  * estado): además de los selectores de 18-…-extras.css, sube la base — que
- * heredan los controles sin tamaño propio — y los controles más usados. */
+ * heredan los controles sin tamaño propio — y los controles más usados.
+ * Los botones NO: las barras de acciones no tienen ancho de sobra y su texto
+ * se cortaba ("Dados de b…", "Nuevo Bi…"). */
 .text-scale-lg { -fx-font-size: 15px; }
 .text-scale-xl { -fx-font-size: 17px; }
 
-.text-scale-lg .btn-primary, .text-scale-lg .btn-secondary, .text-scale-lg .btn-danger,
-.text-scale-lg .btn-ghost, .text-scale-lg .nav-btn, .text-scale-lg .search-field,
+.text-scale-lg .nav-btn, .text-scale-lg .search-field,
 .text-scale-lg .form-input, .text-scale-lg .text-field, .text-scale-lg .text-area,
 .text-scale-lg .combo-box, .text-scale-lg .dialog-field-label, .text-scale-lg .check-box,
 .text-scale-lg .radio-button, .text-scale-lg .tab-label, .text-scale-lg .menu-item > .label,
-.text-scale-lg .table-view .column-header .label, .text-scale-lg .filter-chip {
+.text-scale-lg .table-view .column-header .label {
     -fx-font-size: 14.5px;
 }
-.text-scale-xl .btn-primary, .text-scale-xl .btn-secondary, .text-scale-xl .btn-danger,
-.text-scale-xl .btn-ghost, .text-scale-xl .nav-btn, .text-scale-xl .search-field,
+.text-scale-xl .nav-btn, .text-scale-xl .search-field,
 .text-scale-xl .form-input, .text-scale-xl .text-field, .text-scale-xl .text-area,
 .text-scale-xl .combo-box, .text-scale-xl .dialog-field-label, .text-scale-xl .check-box,
 .text-scale-xl .radio-button, .text-scale-xl .tab-label, .text-scale-xl .menu-item > .label,
-.text-scale-xl .table-view .column-header .label, .text-scale-xl .filter-chip {
+.text-scale-xl .table-view .column-header .label {
     -fx-font-size: 16px;
 }

@@ -31,11 +31,11 @@
 }
 .org-child-label {
     -fx-text-fill: sibim-gray-700;
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
 }
 .org-area-valor {
     -fx-text-fill: sibim-green-dark;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
 }
 .org-alert-badge {
@@ -64,7 +64,7 @@
    the default .help-badge's indigo-on-lavender look disappears/clashes
    against a red/orange/blue gradient background. */
 .help-badge-inv {
-    -fx-font-size: 10.5px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-text-fill: white;
     -fx-background-color: rgba(255,255,255,0.25);
@@ -149,7 +149,7 @@
 }
 .org-more-link {
     -fx-text-fill: sibim-indigo-dark;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-padding: 3 0 5 20;
     -fx-cursor: hand;
     -fx-underline: false;
@@ -171,12 +171,12 @@
     -fx-background-radius: 6;
 }
 .org-product-name {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-text-fill: sibim-gray-700;
     -fx-font-weight: 600;
 }
 .org-product-stock {
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-text-fill: sibim-slate-500;
 }
 

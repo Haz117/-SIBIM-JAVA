@@ -30,8 +30,8 @@
 /* Decorative badge (org icon in top-right of profile header) */
 .profile-deco-badge { -fx-opacity: 0.55; }
 .profile-deco-icon  { -fx-font-size: 32px; -fx-icon-size: 28; -fx-icon-color: white; }
-.profile-deco-name  { -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; }
-.profile-deco-sub   { -fx-text-fill: white; -fx-font-size: 9px; }
+.profile-deco-name  { -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold; }
+.profile-deco-sub   { -fx-text-fill: white; -fx-font-size: 11px; }
 
 /* Profile field two-column layout */
 .profile-field-col-left {
@@ -109,7 +109,7 @@
 .dlg-transfer-preview { -fx-background-color: #FAF5FF; -fx-background-radius: 10; -fx-border-color: #E9D5FF; -fx-border-width: 1; -fx-border-radius: 10; }
 .dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #DDD6FE; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 4 10; }
 .dlg-transfer-chip-to  { -fx-border-color: sibim-violet; -fx-background-color: #F5F3FF; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.22), 8, 0, 0, 2); }
-.dlg-transfer-chip-lbl { -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #4C1D95; }
+.dlg-transfer-chip-lbl { -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #4C1D95; }
 .dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #6B7280; }
 .dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: sibim-violet; }
 
@@ -249,7 +249,7 @@
     -fx-background-radius: 20;
     -fx-border-radius: 20;
     -fx-padding: 4 13;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-cursor: hand;
     -fx-effect: none;
@@ -270,7 +270,7 @@
     -fx-text-fill: sibim-slate-500;
     -fx-background-radius: 20;
     -fx-padding: 4 10;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-cursor: hand;
     -fx-effect: none;
     -fx-border-color: transparent;
@@ -292,7 +292,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    CATEGORY BADGE — shared static styles (color set dynamically via setStyle)
    ═══════════════════════════════════════════════════════════════════ */
-.cat-badge       { -fx-background-radius: 5; -fx-padding: 2 9; -fx-font-size: 11.5px; -fx-font-weight: bold; }
+.cat-badge       { -fx-background-radius: 5; -fx-padding: 2 9; -fx-font-size: 12px; -fx-font-weight: bold; }
 .cat-preview-badge { -fx-background-radius: 5; -fx-padding: 3 10; -fx-font-size: 12px; -fx-font-weight: bold; }
 .dlg-monogram      { -fx-font-size: 22px; -fx-font-weight: bold; }
 .dlg-thumb-monogram { -fx-background-radius: 12; }
@@ -316,7 +316,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 .shortcut-key {
     -fx-font-family: "Consolas", "Courier New", monospace;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-text-fill: sibim-indigo-darker;
     -fx-background-color: sibim-indigo-50;
@@ -327,7 +327,7 @@
     -fx-border-width: 1;
 }
 .shortcut-desc {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-text-fill: sibim-gray-700;
 }
 
@@ -340,7 +340,7 @@
     -fx-text-fill: sibim-slate-500;
 }
 .dlg-detail-value {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-text-fill: sibim-slate-900;
     -fx-wrap-text: true;
 }

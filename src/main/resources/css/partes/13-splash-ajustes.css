@@ -146,7 +146,7 @@
    HELP BADGE  (? tooltip trigger next to field labels in dialogs)
    ═══════════════════════════════════════════════════════════════════ */
 .help-badge {
-    -fx-font-size: 10.5px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-text-fill: sibim-indigo-darker;
     -fx-background-color: sibim-indigo-50;
@@ -183,7 +183,7 @@
     -fx-text-fill: #1E1B4B;
 }
 .transfer-cel-product {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-text-fill: sibim-indigo-dark;
     -fx-font-weight: 600;
     -fx-text-alignment: center;
@@ -216,7 +216,7 @@
 
 /* ── Password strength indicator ─────────────────────────────────────── */
 .pwd-strength-lbl {
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: 700;
     -fx-padding: 0 2 0 2;
 }
@@ -301,4 +301,4 @@
 .field-hint-error { -fx-text-fill: sibim-red; }
 .field-hint-warn  { -fx-text-fill: sibim-amber-dark; }
 .row-highlight-amber { -fx-background-color: #FFFBEB; }
-.col-header { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; -fx-padding: 0 4 0 0; }
+.col-header { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; -fx-padding: 0 4 0 0; }

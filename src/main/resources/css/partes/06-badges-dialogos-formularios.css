@@ -4,7 +4,7 @@
 .cell-badge {
     -fx-background-radius: 99;
     -fx-padding: 3 10;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-alignment: CENTER;
 }
@@ -33,8 +33,8 @@
 .cell-badge-blue    .cell-badge-text { -fx-text-fill: #1E3A8A; }
 .cell-badge-teal    .cell-badge-text { -fx-text-fill: #134E4A; }
 
-.badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: sibim-red-dark; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
-.badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 11.5px; }
+.badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: sibim-red-dark; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 12px; }
+.badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 12px; }
 
 /* ─── Row tints (movimientos por tipo) ─── */
 .data-table .table-row-cell.row-entrada            { -fx-background-color: #F6FEF9; }
@@ -100,13 +100,13 @@
 .foto-placeholder { -fx-font-size: 16px; -fx-icon-color: #64748B; }
 
 /* Stock movement arrow cell (Mov. → Nuevo) */
-.stock-before        { -fx-font-size: 11.5px; -fx-text-fill: sibim-slate-500; }
+.stock-before        { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 .stock-arrow-up      { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #15803D; }
 .stock-arrow-down    { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-red; }
 .stock-arrow-neutral { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-500; }
-.stock-after-ok      { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: #15803D; }
-.stock-after-warn    { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: sibim-amber-dark; }
-.stock-after-empty   { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: sibim-red; }
+.stock-after-ok      { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #15803D; }
+.stock-after-warn    { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-amber-dark; }
+.stock-after-empty   { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-red; }
 
 /* Category icon cell — icono is a plain-text emoji (🪑, 🚗, ...), and JavaFX
    does NOT fall back to an emoji-capable font for glyphs missing from the
@@ -116,7 +116,7 @@
 
 /* Category product count cell */
 .cat-count-active { -fx-text-fill: sibim-green-dark; -fx-font-weight: bold; }
-.cat-hex-label    { -fx-font-size: 11.5px; -fx-text-fill: sibim-slate-600; }
+.cat-hex-label    { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
 
 /* Category dialog: color swatch picker (replaces raw hex/RGBA entry) */
 .color-swatch {
@@ -229,7 +229,7 @@
 }
 .dialog-pane .grid-pane .label {
     -fx-text-fill: sibim-gray-700;
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
 /* Matches the global .text-field/.combo-box/.spinner look (white fill,
@@ -316,7 +316,7 @@
     -fx-background-color: rgba(255,255,255,0.22);
     -fx-background-radius: 99;
     -fx-text-fill: white;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-padding: 4 14;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 4, 0, 0, 1);
@@ -377,7 +377,7 @@
 }
 .banner-date-month {
     -fx-text-fill: sibim-indigo-300;
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-alignment: CENTER_RIGHT;
 }
@@ -395,7 +395,7 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.06), 6, 0, 0, 2);
 }
 .status-bar-selection {
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-text-fill: sibim-indigo-darker;
     -fx-background-color: sibim-indigo-50;
@@ -430,7 +430,7 @@
    ALERTAS — empty state "todo en orden"
    ═══════════════════════════════════════════════════════════════════ */
 .alert-ok-icon  { -fx-icon-color: #16A34A; }
-.alert-ok-label { -fx-text-fill: sibim-slate-500; -fx-font-size: 12.5px; -fx-font-weight: 600; }
+.alert-ok-label { -fx-text-fill: sibim-slate-500; -fx-font-size: 13px; -fx-font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════════════
    EMPTY STATE — ver la regla combinada con .empty-state-title/.empty-
@@ -457,5 +457,5 @@
 .dialog-field-label {
     -fx-font-weight: bold;
     -fx-text-fill: sibim-gray-700;
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
 }

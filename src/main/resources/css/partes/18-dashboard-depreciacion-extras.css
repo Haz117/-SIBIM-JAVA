@@ -58,7 +58,7 @@
 #pbGarantias > .track { -fx-background-color: rgba(124,58,237,0.12); }
 
 /* ─── Area distribution bars ─── */
-.area-bar-name  { -fx-font-size: 12.5px; -fx-text-fill: sibim-slate-700; }
+.area-bar-name  { -fx-font-size: 13px; -fx-text-fill: sibim-slate-700; }
 .area-bar-count { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 .area-bar-pb { -fx-pref-height: 10; -fx-background-radius: 5; }
 .area-bar-pb .track { -fx-background-color: sibim-slate-100; -fx-background-radius: 5; -fx-background-insets: 0; }
@@ -261,7 +261,7 @@
     -fx-background-color: #E0E7FF;
 }
 .active-chip-label {
-    -fx-font-size: 11.5px;
+    -fx-font-size: 12px;
     -fx-text-fill: sibim-indigo-900;
     -fx-font-weight: 500;
 }
