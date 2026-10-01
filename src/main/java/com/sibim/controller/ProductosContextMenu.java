@@ -108,7 +108,7 @@ final class ProductosContextMenu {
         cm.getItems().addAll(cmFicha, cmSolicitudBaja, cmDictamenBaja, cmHistorial, cmEtiquetaQr, cmEtiquetaFisica);
 
         // Areas ask Patrimonio for a préstamo or a resguardo of their own bien.
-        if (!com.sibim.session.SessionManager.isAdmin() && com.sibim.service.SolicitudService.disponible()) {
+        if (com.sibim.session.Permisos.pideDocumentos() && com.sibim.service.SolicitudService.disponible()) {
             MenuItem cmPedirPrestamo = new MenuItem("Solicitar préstamo…");
             cmPedirPrestamo.setGraphic(new FontIcon("mdi2c-cube-send"));
             cmPedirPrestamo.setOnAction(e -> {

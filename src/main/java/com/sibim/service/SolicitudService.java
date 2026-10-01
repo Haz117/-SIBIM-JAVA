@@ -49,12 +49,12 @@ public class SolicitudService {
 
     /** The administrator's inbox (empty for everyone else and without a connection). */
     public List<Solicitud> pendientes() throws SQLException {
-        if (!disponible() || !SessionManager.isAdmin()) return List.of();
+        if (!disponible() || !com.sibim.session.Permisos.atiendeSolicitudes()) return List.of();
         return repo.findPendientes();
     }
 
     public int countPendientes() throws SQLException {
-        if (!disponible() || !SessionManager.isAdmin()) return 0;
+        if (!disponible() || !com.sibim.session.Permisos.atiendeSolicitudes()) return 0;
         return repo.countPendientes();
     }
 
@@ -146,7 +146,7 @@ public class SolicitudService {
     }
 
     private Solicitud pendiente(String id) throws SQLException {
-        if (!SessionManager.isAdmin())
+        if (!com.sibim.session.Permisos.atiendeSolicitudes())
             throw new SecurityException("Solo el administrador (Patrimonio) atiende las solicitudes.");
         DatabaseConfig.exigirServidor("Atender solicitudes");
         Solicitud s = repo.findById(id);

@@ -123,7 +123,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         }
         // Offline they work from this PC's copy (OfflineDocs); only demo mode has none.
         boolean offline = DatabaseConfig.isDemoMode();
-        boolean canCreate = SessionManager.isAdmin() && !offline;   // comodatos: Patrimonio only
+        boolean canCreate = com.sibim.session.Permisos.gestionaDocumentos() && !offline;
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         setupDateFilterBar(
             () -> ReporteService.getInstance().exportComodatosExcel(exportTarget()),
@@ -203,7 +203,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         MenuItem miPdf = new MenuItem("Exportar PDF");
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
-        if (SessionManager.isAdmin()) cm.getItems().addAll(miConcluir, miRescindir, new SeparatorMenuItem());
+        if (com.sibim.session.Permisos.gestionaDocumentos()) cm.getItems().addAll(miConcluir, miRescindir, new SeparatorMenuItem());
         cm.getItems().add(miPdf);
         addLoteExportItem(cm);
         return cm;

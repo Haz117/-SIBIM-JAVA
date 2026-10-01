@@ -128,7 +128,7 @@ public class PrestamoService {
     static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los préstamos.";
 
     private static void soloAdministrador() {
-        if (!com.sibim.session.SessionManager.isAdmin()) throw new SecurityException(SOLO_ADMIN);
+        com.sibim.session.Permisos.exigirGestionDeDocumentos(SOLO_ADMIN);
     }
 
     public void devolver(String prestamoId, LocalDate fechaDevolucionReal) throws SQLException {

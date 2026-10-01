@@ -70,7 +70,8 @@ public class ActualizacionService {
     /** Uploads an installer as version {@code version} (admin only). */
     public void publicar(File instalador, String version, String notas, DoubleConsumer avance)
             throws SQLException, IOException {
-        if (!SessionManager.isAdmin()) throw new SecurityException("Solo el administrador publica actualizaciones");
+        if (!com.sibim.session.Permisos.publicaActualizaciones())
+            throw new SecurityException("Solo el administrador publica actualizaciones");
         if (DatabaseConfig.isOfflineMode()) throw new IllegalStateException("Publicar requiere conexión con el servidor");
         if (version == null || !version.matches("\\d+\\.\\d+\\.\\d+"))
             throw new IllegalArgumentException("La versión debe ser como 1.2.0");

@@ -122,7 +122,7 @@ public class ComodatoService {
     static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los comodatos.";
 
     private static void soloAdministrador() {
-        if (!com.sibim.session.SessionManager.isAdmin()) throw new SecurityException(SOLO_ADMIN);
+        com.sibim.session.Permisos.exigirGestionDeDocumentos(SOLO_ADMIN);
     }
 
     public void concluir(String id, LocalDate fechaDevolucionReal) throws SQLException {

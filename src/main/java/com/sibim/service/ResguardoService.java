@@ -102,7 +102,7 @@ public class ResguardoService {
     static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los resguardos.";
 
     private static void soloAdministrador() {
-        if (!com.sibim.session.SessionManager.isAdmin()) throw new SecurityException(SOLO_ADMIN);
+        com.sibim.session.Permisos.exigirGestionDeDocumentos(SOLO_ADMIN);
     }
 
     public void cancelar(String id) throws SQLException {
