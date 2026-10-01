@@ -86,15 +86,25 @@ class AreaResguardoRepositoryIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void sinConexion_diceQueRequiereElServidor_enVezDeNoHacerNada() {
+    void sinConexion_seGuardaEnLaPcYSeAbre() throws Exception {
         DatabaseConfig.setOfflineMode(true);
         try {
-            IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> repo.save(AREA_A, PDF, "x.pdf", null, null));
-            assertTrue(e.getMessage().contains("requiere conexión"));
-            assertThrows(IllegalStateException.class, () -> repo.findByArea(AREA_A));
+            String id = repo.save(AREA_A, PDF, "x.pdf", null, null);
+            assertEquals(1, repo.findByArea(AREA_A).stream().filter(r -> r.id().equals(id)).count());
+            assertArrayEquals(PDF, repo.leerPdf(id).orElseThrow());
         } finally {
             DatabaseConfig.setOfflineMode(false);
+            limpiarColaLocal();
+        }
+    }
+
+    /** The offline upload above waits in the PC's queue; other tests count it. */
+    private static void limpiarColaLocal() throws Exception {
+        var m = com.sibim.db.offline.OfflineStore.class.getDeclaredMethod("sharedConnection");
+        m.setAccessible(true);
+        try (java.sql.Statement st = ((java.sql.Connection) m.invoke(null)).createStatement()) {
+            st.executeUpdate("DELETE FROM doc_outbox");
+            st.executeUpdate("DELETE FROM doc_cache");
         }
     }
 

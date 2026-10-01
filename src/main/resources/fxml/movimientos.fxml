@@ -39,11 +39,17 @@
         <Label fx:id="helpResumen" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
         </Label>
+        <Button fx:id="btnPorRecibir" text="Por recibir" onAction="#onVerPorRecibir"
+                styleClass="btn-secondary" visible="false" managed="false"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2i-inbox-arrow-down-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Bienes transferidos a tu área que falta confirmar que recibiste"/></tooltip>
+        </Button>
         <Button fx:id="btnPendientes" text="Pendientes" onAction="#onVerPendientes"
                 styleClass="btn-secondary" visible="false" managed="false"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Ver transferencias pendientes de aprobación (solo administradores)"/></tooltip>
+            <tooltip><Tooltip text="Transferencias pendientes de aprobación"/></tooltip>
         </Button>
         <Button fx:id="btnNuevo" text="Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">

@@ -71,6 +71,18 @@ final class ProductosContextMenu {
             }
         });
 
+        MenuItem cmDictamenBaja = new MenuItem("Dictamen técnico de baja (PDF)");
+        cmDictamenBaja.setGraphic(new FontIcon("mdi2f-file-certificate-outline"));
+        cmDictamenBaja.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) {
+                DialogUtil.runAsyncWithProgress(table.getScene(), "Generando dictamen técnico de baja…",
+                    () -> reporteService.exportDictamenBaja(List.of(sel)),
+                    file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+                    ex -> { log.error("Error dictamen de baja", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar el dictamen técnico de baja"); });
+            }
+        });
+
         MenuItem cmHistorial = new MenuItem("Ver historial de movimientos");
         cmHistorial.setGraphic(new FontIcon("mdi2h-history"));
         cmHistorial.setOnAction(e -> {
@@ -93,7 +105,7 @@ final class ProductosContextMenu {
         });
 
         cm.getItems().add(new SeparatorMenuItem());
-        cm.getItems().addAll(cmFicha, cmSolicitudBaja, cmHistorial, cmEtiquetaQr, cmEtiquetaFisica);
+        cm.getItems().addAll(cmFicha, cmSolicitudBaja, cmDictamenBaja, cmHistorial, cmEtiquetaQr, cmEtiquetaFisica);
 
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());

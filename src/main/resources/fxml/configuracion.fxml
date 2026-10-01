@@ -74,12 +74,18 @@
         <HBox alignment="CENTER_LEFT" spacing="10">
             <Region styleClass="dash-section-bar"/>
             <Label text="INFORMACIÓN DEL SISTEMA" styleClass="dash-section-label"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnPublicarActualizacion" text="Publicar actualización" onAction="#onPublicarActualizacion"
+                    styleClass="btn-secondary" visible="false" managed="false" contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2c-cloud-upload-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Sube el instalador de una versión nueva: las demás PCs lo verán al abrir SIBIM y se actualizarán con un clic" wrapText="true" maxWidth="280"/></tooltip>
+            </Button>
         </HBox>
         <HBox spacing="0">
             <!-- Versión -->
             <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col">
                 <Label text="VERSIÓN" styleClass="profile-field-key"/>
-                <Label text="SIBIM v1.0" styleClass="sys-info-value"/>
+                <Label fx:id="lblSistemaVersion" text="SIBIM" styleClass="sys-info-value"/>
             </VBox>
             <!-- Modo -->
             <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col">
@@ -213,6 +219,11 @@
                        styleClass="page-subtitle"/>
             </VBox>
             <ProgressIndicator fx:id="usersSpinner" prefWidth="18" prefHeight="18" visible="false" managed="false"/>
+            <Button text="Cuentas por área" onAction="#onCuentasPorArea" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2a-account-group-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Crea una cuenta compartida para cada área que todavía no tenga y genera un PDF con usuarios y contraseñas para entregar" wrapText="true" maxWidth="280"/></tooltip>
+            </Button>
             <Button text="Nuevo Usuario" onAction="#onNuevoUsuario" styleClass="btn-primary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>

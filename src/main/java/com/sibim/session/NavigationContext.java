@@ -17,6 +17,18 @@ public final class NavigationContext {
     private static String  pendingProductId;
     private static boolean pendingNuevoBien;
     private static boolean pendingNuevoMovimiento;
+    private static String  pendingAccionMovimientos;
+
+    /** Set before navigating to Movimientos to open one of its panels
+     *  ("por-recibir" or "pendientes") — used by the notification bell. */
+    public static void setPendingAccionMovimientos(String accion) { pendingAccionMovimientos = accion; }
+
+    /** Reads and clears it; "" when none. */
+    public static String consumePendingAccionMovimientos() {
+        String v = pendingAccionMovimientos;
+        pendingAccionMovimientos = null;
+        return v != null ? v : "";
+    }
 
     public static void setPendingAreaFilter(String area) {
         pendingAreaFilter = area;

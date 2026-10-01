@@ -774,7 +774,7 @@ public final class ConteoFisicoDialog {
                     BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
                     return new MultiFormatReader().decode(bitmap).getText();
                 },
-                codeField::setText,
+                texto -> codeField.setText(com.sibim.util.QrUtils.codigoLeido(texto)),
                 ex -> NotificacionUtil.advertencia(
                     scanDlg.getDialogPane().getScene(), "No se pudo decodificar la imagen")
             );
@@ -784,7 +784,7 @@ public final class ConteoFisicoDialog {
         btnBuscar.getStyleClass().add("btn-primary");
         btnBuscar.setDefaultButton(true);
         btnBuscar.setOnAction(ev -> {
-            String code = codeField.getText() == null ? "" : codeField.getText().trim();
+            String code = com.sibim.util.QrUtils.codigoLeido(codeField.getText());
             if (code.isBlank()) return;
             for (int i = 0; i < rows.size(); i++) {
                 Row r = rows.get(i);
@@ -811,6 +811,12 @@ public final class ConteoFisicoDialog {
         VBox content = new VBox(10, codeField, new HBox(8, btnCargar, btnBuscar));
         content.setPadding(new Insets(14));
         scanDlg.getDialogPane().setContent(new VBox(0, header, content));
+        // A handheld scanner types a SIBIM QR's every line: take the código
+        // (first line) and swallow the rest instead of searching each line.
+        scanDlg.setOnShown(ev -> com.sibim.util.BarcodeScanner.attach(scanDlg.getDialogPane().getScene(), leido -> {
+            codeField.setText(com.sibim.util.QrUtils.codigoLeido(leido));
+            btnBuscar.fire();
+        }));
         scanDlg.showAndWait();
     }
 }

@@ -81,6 +81,10 @@ Write-Host "Using jpackage: $JpackagePath"
 
 # ── Verify WiX when needed ────────────────────────────────────────────────────
 if ($Type -ne "app-image") {
+    # Portable WiX unzipped into tools\wix314 (git-ignored) — no admin needed:
+    # https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip
+    $LocalWix = "$Root\tools\wix314"
+    if (Test-Path "$LocalWix\candle.exe") { $env:PATH = "$LocalWix;$env:PATH" }
     $candle = Get-Command candle.exe -ErrorAction SilentlyContinue
     if (-not $candle) {
         Write-Host ""
@@ -136,7 +140,7 @@ if (-not $SkipTests) {
 
 # ── Build fat JAR ─────────────────────────────────────────────────────────────
 Write-Host "`n[$step/$steps] Building fat JAR..."
-& $Maven -f "$Root\pom.xml" --no-transfer-progress package -DskipTests -q
+& $Maven -f "$Root\pom.xml" --no-transfer-progress clean package -DskipTests -q
 if ($LASTEXITCODE -ne 0) { throw "Maven build failed (exit $LASTEXITCODE)" }
 $step++
 
@@ -156,6 +160,18 @@ if (Test-Path $Stage) { Remove-Item -Recurse -Force $Stage }
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 Copy-Item $Jar.FullName $Stage
 
+# Connection settings the installed app uses when the PC has no
+# %APPDATA%\SIBIM\.env of its own — so installing is just running the .exe.
+# packaging\sibim.env is git-ignored (it holds the sibim_app password: a
+# least-privilege DB user, see scripts\sql\rol_app_minimo.sql).
+$BundledEnv = "$PSScriptRoot\sibim.env"
+if (Test-Path $BundledEnv) {
+    Copy-Item $BundledEnv "$Stage\sibim.env"
+    Write-Host "Including connection settings: packaging\sibim.env"
+} else {
+    Write-Host "[WARN] packaging\sibim.env not found: the installed app will open OFFLINE until each PC is configured." -ForegroundColor Yellow
+}
+
 # ── Run jpackage ──────────────────────────────────────────────────────────────
 Write-Host "`n[$step/$steps] Creating $Type → $Out"
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
@@ -173,13 +189,23 @@ $jargs = @(
     "--main-class",  "com.sibim.Main",
     "--dest",        $Out,
     "--java-options", "-Xmx512m",
-    "--java-options", "-Dfile.encoding=UTF-8"
+    "--java-options", "-Dfile.encoding=UTF-8",
+    # jpackage expands $APPDIR to the installed app folder (where sibim.env lands).
+    "--java-options", '-Dsibim.config.dir=$APPDIR'
 )
 
 if (Test-Path $Icon) { $jargs += "--icon", $Icon }
 
 if ($Type -ne "app-image") {
-    $jargs += "--win-menu", "--win-shortcut", "--win-dir-chooser"
+    # Fixed upgrade code: installing a newer version replaces the old one
+    # instead of adding a second "SIBIM Desktop" to Programs and Features.
+    # Per-user: installs under %LOCALAPPDATA% without administrator rights, so
+    # municipal staff (usually not Windows admins) can take the updates SIBIM
+    # offers at startup (Configuración > Publicar actualización).
+    $jargs += "--win-per-user-install"
+    $jargs += "--win-menu", "--win-shortcut", "--win-dir-chooser",
+              "--win-menu-group", "SIBIM",
+              "--win-upgrade-uuid", "6f1c2a52-7d0e-4b8a-9f3e-5b1d2c4e8a71"
 }
 
 & $JpackagePath @jargs
@@ -200,6 +226,7 @@ if ($ZipOutput -or $Type -eq "app-image") {
     $exeFile = Get-ChildItem $Out -Filter "SIBIM Desktop-*.exe" | Select-Object -First 1
     if ($exeFile) {
         $cleanName = "$Out\SIBIM-Desktop-$Version-win64-setup.exe"
+        if (Test-Path $cleanName) { Remove-Item $cleanName -Force }
         Rename-Item $exeFile.FullName $cleanName
         $sizeMb = [math]::Round((Get-Item $cleanName).Length / 1MB, 1)
         Write-Host "Installer: $cleanName  ($sizeMb MB)"

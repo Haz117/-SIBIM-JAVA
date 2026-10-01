@@ -55,7 +55,7 @@ public class ReporteEtiquetasService extends ReporteService {
             grid.setMarginBottom(0);
 
             for (Producto p : items) {
-                byte[] qrBytes = qrToPngBytes(p.getCodigo() != null ? p.getCodigo() : p.getNombre(), 160);
+                byte[] qrBytes = qrToPngBytes(com.sibim.util.QrUtils.contenidoBien(p), 160);
 
                 com.itextpdf.layout.element.Cell card = new com.itextpdf.layout.element.Cell();
                 card.setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(203, 213, 225), 0.5f));
@@ -278,7 +278,8 @@ public class ReporteEtiquetasService extends ReporteService {
         if (content == null || content.isBlank()) return null;
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(
-                content, BarcodeFormat.QR_CODE, size, size, java.util.Map.of(EncodeHintType.MARGIN, 1));
+                content, BarcodeFormat.QR_CODE, size, size,
+                java.util.Map.of(EncodeHintType.MARGIN, 1, EncodeHintType.CHARACTER_SET, "UTF-8"));
             java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(size, size,
                 java.awt.image.BufferedImage.TYPE_INT_RGB);
             for (int x = 0; x < size; x++)

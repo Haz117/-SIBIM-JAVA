@@ -938,6 +938,35 @@ public class MovimientoRepository {
         rechazarTransferencia(movimientoId, null);
     }
 
+    /** Approved transfers whose destination is one of {@code areas} (null =
+     *  every área) that nobody there has confirmed receiving yet. Server
+     *  only: the offline mirror doesn't track reception. */
+    public List<Movimiento> findPorRecibir(java.util.Set<String> areas) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.findPorRecibir(areas);
+        if (DatabaseConfig.isOfflineMode()) return List.of();
+        String sql = BASE_SELECT + " WHERE m.tipo = 'transferencia' AND m.estado = 'APROBADO' AND m.recibido_en IS NULL"
+            + (areas != null ? " AND m.area_destino = ANY(?)" : "") + " ORDER BY m.created_at ASC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (areas != null) ps.setArray(1, conn.createArrayOf("text", areas.toArray(new String[0])));
+            return executeQuery(ps);
+        }
+    }
+
+    /** Marks an approved transfer as received. False if it was already
+     *  confirmed (e.g. by someone else on another PC) or isn't one. */
+    public boolean confirmarRecepcion(String movimientoId, String recibidoPor) throws SQLException {
+        if (DatabaseConfig.isDemoMode()) return DemoDataStore.confirmarRecepcion(movimientoId, recibidoPor);
+        String sql = "UPDATE movements SET recibido_por = ?, recibido_en = NOW() WHERE id = ? "
+            + "AND tipo = 'transferencia' AND estado = 'APROBADO' AND recibido_en IS NULL";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, recibidoPor);
+            ps.setString(2, movimientoId);
+            return ps.executeUpdate() == 1;
+        }
+    }
+
     public void rechazarTransferencia(String movimientoId, String motivo) throws SQLException {
         if (DatabaseConfig.isDemoMode()) { DemoDataStore.rechazarTransferencia(movimientoId); return; }
         String sql = motivo != null && !motivo.isBlank()
@@ -981,6 +1010,9 @@ public class MovimientoRepository {
         }
         m.setCodigoAnterior(columnaOpcional(rs, "codigo_anterior"));
         m.setCodigoNuevo(columnaOpcional(rs, "codigo_nuevo"));
+        m.setRecibidoPor(columnaOpcional(rs, "recibido_por"));
+        String recibidoEn = columnaOpcional(rs, "recibido_en");
+        if (recibidoEn != null) m.setRecibidoEn(Timestamp.valueOf(recibidoEn).toLocalDateTime());
         return m;
     }
 

@@ -200,8 +200,7 @@ public final class ProductoDetailDialog {
         nameSection.getChildren().addAll(nameLbl, meta);
 
         // QR thumbnail — small preview, click to expand
-        javafx.scene.image.Image qrSmall = QrUtils.generateQr(
-            p.getCodigo() != null ? p.getCodigo() : p.getNombre(), 104);
+        javafx.scene.image.Image qrSmall = QrUtils.generateQr(QrUtils.contenidoBien(p), 104);
         StackPane qrPane = new StackPane();
         qrPane.setMinSize(52, 52); qrPane.setMaxSize(52, 52);
         qrPane.getStyleClass().add("dlg-qr-thumb");
@@ -692,8 +691,7 @@ public final class ProductoDetailDialog {
     }
 
     private static void showQrPopup(Producto p, javafx.scene.image.Image qrSmall, Scene scene) {
-        javafx.scene.image.Image qrFull = QrUtils.generateQr(
-            p.getCodigo() != null ? p.getCodigo() : p.getNombre(), 300);
+        javafx.scene.image.Image qrFull = QrUtils.generateQr(QrUtils.contenidoBien(p), 300);
         if (qrFull == null) return;
 
         ButtonType savePng = new ButtonType("Guardar PNG", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);

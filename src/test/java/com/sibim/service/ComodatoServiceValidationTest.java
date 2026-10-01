@@ -247,4 +247,17 @@ class ComodatoServiceValidationTest {
                 null, null, null, null, VALID_FECHA_INICIO, VALID_FECHA_FIN));
         assertTrue(ex.getMessage().contains("préstamo activo"));
     }
+
+    @Test
+    void soloElAdministradorGestionaComodatos() {
+        Usuario secretario = new Usuario();
+        secretario.setId("u-sec");
+        secretario.setRol(Rol.SECRETARIO);
+        secretario.setArea("Tesorería Municipal");
+        SessionManager.setCurrentUser(secretario);
+        assertThrows(SecurityException.class, () -> service.crear("p-01", "DIF", "Marta", null, null, null, null,
+            VALID_FECHA_INICIO, VALID_FECHA_FIN));
+        assertThrows(SecurityException.class, () -> service.concluir("c-1", null));
+        assertThrows(SecurityException.class, () -> service.rescindir("c-1", "x"));
+    }
 }

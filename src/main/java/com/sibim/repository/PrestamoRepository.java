@@ -1,6 +1,7 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.OfflineDocs;
 import com.sibim.model.Prestamo;
 import com.sibim.session.SessionManager;
 
@@ -47,8 +48,30 @@ public class PrestamoRepository {
         }
     }
 
+    /** Offline: this PC's copy (see OfflineDocs), scoped like scopeCondicion. */
+    private static List<Prestamo> locales() throws SQLException {
+        Set<String> acc = SessionManager.getAccessibleAreas();
+        return OfflineDocs.todos(OfflineDocs.PRESTAMO, Prestamo.class).stream()
+            .filter(p -> acc == null || acc.contains(p.getAreaOrigen()) || acc.contains(p.getAreaDestino()))
+            .sorted(java.util.Comparator.comparing(Prestamo::getCreadoEn,
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+            .toList();
+    }
+
+    /** Offline there's no nightly UPDATE turning ACTIVO into VENCIDO: decide by date. */
+    private static boolean vencidoLocal(Prestamo p) {
+        return Prestamo.ESTADO_VENCIDO.equals(p.getEstado())
+            || (Prestamo.ESTADO_ACTIVO.equals(p.getEstado()) && p.getFechaDevolucionPrevista() != null
+                && p.getFechaDevolucionPrevista().isBefore(LocalDate.now()));
+    }
+
+    private static boolean abiertoLocal(Prestamo p) {
+        return Prestamo.ESTADO_ACTIVO.equals(p.getEstado()) || Prestamo.ESTADO_VENCIDO.equals(p.getEstado());
+    }
+
     public List<Prestamo> findAll() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales();
         List<Prestamo> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
@@ -61,11 +84,16 @@ public class PrestamoRepository {
                 while (rs.next()) list.add(mapRow(rs));
             }
         }
+        OfflineDocs.guardarTodos(OfflineDocs.PRESTAMO, list, Prestamo::getId);
         return list;
     }
 
     public List<Prestamo> findActivos() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales().stream().filter(PrestamoRepository::abiertoLocal)
+            .sorted(java.util.Comparator.comparing(Prestamo::getFechaDevolucionPrevista,
+                java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
+            .toList();
         List<Prestamo> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
@@ -82,7 +110,9 @@ public class PrestamoRepository {
     }
 
     public Prestamo findById(String id) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return null;
+        if (DatabaseConfig.isDemoMode()) return null;
+        if (OfflineDocs.activo())
+            return locales().stream().filter(p -> p.getId().equals(id)).findFirst().orElse(null);
         List<Object> scopeParams = new ArrayList<>();
         String scope = scopeCondicion(scopeParams);
         String sql = "SELECT * FROM prestamos WHERE id = ?" + (scope != null ? " AND " + scope : "");
@@ -99,7 +129,8 @@ public class PrestamoRepository {
     /** True when {@code productoId} already has an open préstamo (ACTIVO or VENCIDO) —
      *  used to stop the same bien from being lent out to two áreas at once. */
     public boolean existeActivoPorProducto(String productoId) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        if (DatabaseConfig.isDemoMode()) return false;
+        if (OfflineDocs.activo()) return abiertoParaProducto(productoId);
         String sql = "SELECT 1 FROM prestamos WHERE producto_id = ? AND estado IN ('ACTIVO','VENCIDO') LIMIT 1";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -110,17 +141,38 @@ public class PrestamoRepository {
         }
     }
 
-    public Prestamo save(Prestamo prestamo) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null)
-            throw new IllegalStateException("Préstamos no disponibles en modo offline/demo");
-        if (prestamo.getId() == null) prestamo.setId(UUID.randomUUID().toString());
-        if (prestamo.getNumero() == null) prestamo.setNumero(nextNumero());
+    /** Unscoped, like the SQL checks: a bien can't be lent twice, whoever asks. */
+    private static boolean abiertoParaProducto(String productoId) throws SQLException {
+        return OfflineDocs.todos(OfflineDocs.PRESTAMO, Prestamo.class).stream()
+            .anyMatch(p -> productoId.equals(p.getProductoId()) && abiertoLocal(p));
+    }
 
+    public Prestamo save(Prestamo prestamo) throws SQLException {
+        if (DatabaseConfig.isDemoMode())
+            throw new IllegalStateException("Préstamos no disponibles en modo demo");
+        if (prestamo.getId() == null) prestamo.setId(UUID.randomUUID().toString());
         com.sibim.model.Usuario u = SessionManager.getCurrentUser();
         if (u != null) {
             prestamo.setCreadoPorId(u.getId());
             prestamo.setCreadoPorNombre(u.getNombre());
         }
+        if (OfflineDocs.activo()) {
+            prestamo.setNumero(OfflineDocs.folioProvisional("PRS", prestamo.getId()));
+            prestamo.setEstado(Prestamo.ESTADO_ACTIVO);
+            if (prestamo.getFechaPrestamo() == null) prestamo.setFechaPrestamo(LocalDate.now());
+            prestamo.setCreadoEn(LocalDateTime.now());
+            OfflineDocs.registrar(OfflineDocs.PRESTAMO, "CREAR", prestamo.getId(), prestamo);
+            return prestamo;
+        }
+        return saveOnline(prestamo);
+    }
+
+    /** Server write regardless of the offline flag (SyncService replays offline
+     *  préstamos here); a provisional folio is replaced by the next real one. */
+    public Prestamo saveOnline(Prestamo prestamo) throws SQLException {
+        if (prestamo.getId() == null) prestamo.setId(UUID.randomUUID().toString());
+        if (prestamo.getNumero() == null || prestamo.getNumero().contains("-PROV-"))
+            prestamo.setNumero(nextNumero());
 
         String sql = """
             INSERT INTO prestamos
@@ -154,7 +206,19 @@ public class PrestamoRepository {
     }
 
     public void devolver(String id, LocalDate fechaDevolucionReal) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return;
+        if (DatabaseConfig.isDemoMode()) return;
+        if (OfflineDocs.activo()) {
+            Prestamo p = locales().stream().filter(x -> x.getId().equals(id) && abiertoLocal(x)).findFirst()
+                .orElseThrow(() -> new SQLException("El préstamo no existe, ya fue devuelto, o no tienes acceso a su área (id=" + id + ")"));
+            p.setEstado(Prestamo.ESTADO_DEVUELTO);
+            p.setFechaDevolucionReal(fechaDevolucionReal);
+            OfflineDocs.registrar(OfflineDocs.PRESTAMO, "DEVOLVER", id, p);
+            return;
+        }
+        devolverOnline(id, fechaDevolucionReal);
+    }
+
+    public void devolverOnline(String id, LocalDate fechaDevolucionReal) throws SQLException {
         List<Object> scopeParams = new ArrayList<>();
         String scope = scopeCondicion(scopeParams);
         String sql = "UPDATE prestamos SET estado = 'DEVUELTO', fecha_devolucion_real = ? "
@@ -171,7 +235,7 @@ public class PrestamoRepository {
     }
 
     public int updateVencidos() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return 0;
+        if (DatabaseConfig.getLocalDataStore() != null) return 0;   // offline: decided by date on read
         String sql = """
             UPDATE prestamos SET estado = 'VENCIDO'
             WHERE estado = 'ACTIVO' AND fecha_devolucion_prevista < CURRENT_DATE
@@ -183,7 +247,8 @@ public class PrestamoRepository {
     }
 
     public List<Prestamo> findVencidos() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales().stream().filter(PrestamoRepository::vencidoLocal).toList();
         List<Prestamo> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
@@ -200,7 +265,15 @@ public class PrestamoRepository {
     }
 
     public List<Prestamo> findProximosAVencer(int days) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) {
+            LocalDate hoy = LocalDate.now();
+            return locales().stream()
+                .filter(p -> Prestamo.ESTADO_ACTIVO.equals(p.getEstado()) && p.getFechaDevolucionPrevista() != null
+                    && !p.getFechaDevolucionPrevista().isBefore(hoy)
+                    && !p.getFechaDevolucionPrevista().isAfter(hoy.plusDays(days)))
+                .toList();
+        }
         List<Prestamo> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         params.add(days);
@@ -220,7 +293,8 @@ public class PrestamoRepository {
     }
 
     public int countVencidos() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return 0;
+        if (DatabaseConfig.isDemoMode()) return 0;
+        if (OfflineDocs.activo()) return (int) locales().stream().filter(PrestamoRepository::vencidoLocal).count();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
         String sql = "SELECT COUNT(*) FROM prestamos WHERE estado = 'VENCIDO'"
@@ -236,7 +310,8 @@ public class PrestamoRepository {
     }
 
     public List<Prestamo> findByProductoId(String productoId) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales().stream().filter(p -> productoId.equals(p.getProductoId())).toList();
         List<Object> params = new ArrayList<>();
         params.add(productoId);
         String scope = scopeCondicion(params);
@@ -255,7 +330,8 @@ public class PrestamoRepository {
     }
 
     public boolean existsActivoForProducto(String productoId) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        if (DatabaseConfig.isDemoMode()) return false;
+        if (OfflineDocs.activo()) return abiertoParaProducto(productoId);
         String sql = "SELECT 1 FROM prestamos WHERE producto_id = ? AND estado IN ('ACTIVO','VENCIDO') LIMIT 1";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -271,7 +347,9 @@ public class PrestamoRepository {
     }
 
     public int countActivos() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return 0;
+        if (DatabaseConfig.isDemoMode()) return 0;
+        if (OfflineDocs.activo())
+            return (int) locales().stream().filter(p -> Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
         String sql = "SELECT COUNT(*) FROM prestamos WHERE estado = 'ACTIVO'"

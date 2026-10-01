@@ -386,6 +386,13 @@ public class ProductoRepository {
      *  form or an offline snapshot would undo concurrent movements, and on
      *  sync it double-counts: the offline copy already includes the movement
      *  that SyncService replays right after the product. */
+    /** The bien as the server has it, whatever the offline flag says and
+     *  with no área filter — SyncService needs it while still offline. */
+    public Optional<Producto> findByIdOnline(String id) throws SQLException {
+        List<Producto> r = queryDynamic(BASE_SELECT + " WHERE p.id = ?", List.of(id));
+        return r.isEmpty() ? Optional.empty() : Optional.of(r.get(0));
+    }
+
     public Producto saveOnline(Producto p) throws SQLException {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,

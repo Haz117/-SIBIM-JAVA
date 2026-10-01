@@ -793,15 +793,25 @@ public class MainController {
      * opens its ficha straight away — details, photo, resguardante, history and
      * "Imprimir ficha". Anything else falls back to searching it in Bienes.
      */
+    /** A scanned bien opens its ficha técnica (PDF, same as "Ficha técnica" in
+     *  Bienes); anything else is searched in Bienes. */
     private void handleBarcodeScan(String codigo) {
         javafx.scene.Scene scene = contentArea.getScene();
-        String leido = codigo == null ? "" : codigo.strip();
+        String leido = com.sibim.util.QrUtils.codigoLeido(codigo);
         DialogUtil.runAsync(
             () -> alertProductoService.findByCodigo(leido),
             encontrado -> {
                 if (encontrado.isPresent()) {
-                    com.sibim.controller.dialogs.ProductoDetailDialog.show(
-                        encontrado.get(), scene, new MovimientoService(), log);
+                    Producto bien = encontrado.get();
+                    MovimientoService movimientos = new MovimientoService();
+                    DialogUtil.runAsyncWithProgress(scene, "Abriendo ficha técnica de " + bien.getCodigo() + "…",
+                        () -> com.sibim.service.ReporteService.getInstance()
+                            .exportFichaTecnica(bien, movimientos.getByProducto(bien.getId())),
+                        ficha -> com.sibim.util.ArchivoUtil.abrir(ficha, scene),
+                        e -> {   // no PDF (e.g. no viewer): the on-screen ficha
+                            log.warn("No se pudo abrir la ficha técnica de {}", bien.getCodigo(), e);
+                            com.sibim.controller.dialogs.ProductoDetailDialog.show(bien, scene, movimientos, log);
+                        });
                 } else {
                     NotificacionUtil.info(scene, "Escaneado: " + leido + " — no es el código de un bien, se busca en Bienes");
                     buscarEnBienes(leido);

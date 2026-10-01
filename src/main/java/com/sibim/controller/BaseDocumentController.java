@@ -121,10 +121,21 @@ public abstract class BaseDocumentController<T> {
 
     // ── Implemented common methods ───────────────────────────────────────────
 
+    /** Offline the list is this PC's copy (OfflineDocs): empty there can mean
+     *  this PC never opened the section with a connection, not that there are
+     *  none — "Sin … registrados" made it look like data was lost. */
+    private javafx.scene.Node emptyState() {
+        if (com.sibim.db.DatabaseConfig.isOfflineMode())
+            return EmptyStateUtil.build("mdi2c-cloud-off-outline", "Sin documentos guardados en esta PC",
+                "Sin conexión se muestran los que esta PC consultó conectada. Lo que registres ahora "
+                + "se guarda aquí y se sube solo al volver la conexión.");
+        return EmptyStateUtil.build(emptyStateIcon(), emptyStateTitle(), emptyStateSubtitle());
+    }
+
     protected void setupTableBase() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         table.setItems(data);
-        table.setPlaceholder(EmptyStateUtil.build(emptyStateIcon(), emptyStateTitle(), emptyStateSubtitle()));
+        table.setPlaceholder(emptyState());
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         table.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && table.getSelectionModel().getSelectedItem() != null)
@@ -165,7 +176,7 @@ public abstract class BaseDocumentController<T> {
             table.setPlaceholder(EmptyStateUtil.buildNoResults(q, this::clearFilters));
         } else {
             table.setPlaceholder(
-                EmptyStateUtil.build(emptyStateIcon(), emptyStateTitle(), emptyStateSubtitle()));
+                emptyState());
         }
     }
 

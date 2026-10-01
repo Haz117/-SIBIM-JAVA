@@ -31,7 +31,8 @@ module com.sibim {
     requires transitive org.slf4j;
     requires ch.qos.logback.classic;
     requires io.github.cdimascio.dotenv.java;
-    requires org.flywaydb.core;
+    requires flyway.core;                    // Flyway 10: automatic module names (no Automatic-Module-Name)
+    requires flyway.database.postgresql;
     requires atlantafx.base;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.materialdesign2;
@@ -43,7 +44,7 @@ module com.sibim {
     opens com.sibim.model.enums to javafx.base;
     // Flyway (named module) needs to read SQL files in db/migration at runtime.
     // Without this, the module system blocks getResourceAsStream on the package.
-    opens db.migration to org.flywaydb.core;
+    opens db.migration to flyway.core;
 
     exports com.sibim;
     exports com.sibim.controller;

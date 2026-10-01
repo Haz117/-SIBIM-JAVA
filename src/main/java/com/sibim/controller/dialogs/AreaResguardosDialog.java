@@ -95,7 +95,7 @@ public final class AreaResguardosDialog {
                             }
                         }
                     });
-                } catch (IllegalStateException e) {   // demo/offline: the PDFs live on the server
+                } catch (IllegalStateException e) {   // demo: there are no área resguardos
                     Platform.runLater(() -> {
                         resguardosList.getChildren().clear();
                         Label sinServidor = new Label(e.getMessage());
@@ -255,6 +255,8 @@ public final class AreaResguardosDialog {
                     return;
                 }
                 com.sibim.util.ArchivoUtil.abrir(archivo, scene);
+            } catch (IllegalStateException e) {   // offline, never opened on this PC
+                Platform.runLater(() -> NotificacionUtil.advertencia(scene, e.getMessage()));
             } catch (Exception e) {
                 log.error("Error abriendo resguardo", e);
                 Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo abrir el PDF"));

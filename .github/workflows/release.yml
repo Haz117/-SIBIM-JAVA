@@ -130,6 +130,9 @@ jobs:
             --win-menu `
             --win-shortcut `
             --win-dir-chooser `
+            --win-menu-group "SIBIM" `
+            --win-per-user-install `
+            --win-upgrade-uuid "6f1c2a52-7d0e-4b8a-9f3e-5b1d2c4e8a71" `
             @iconArg
 
           if ($LASTEXITCODE -ne 0) { throw "jpackage (exe) failed with exit $LASTEXITCODE" }

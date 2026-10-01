@@ -244,6 +244,9 @@
                         <MenuItem text="Solicitud de baja (PDF)" onAction="#onExportSolicitudBaja">
                             <graphic><FontIcon iconLiteral="mdi2f-file-remove-outline" styleClass="report-export-icon-pdf"/></graphic>
                         </MenuItem>
+                        <MenuItem text="Dictamen técnico de baja (PDF)" onAction="#onExportDictamenBaja">
+                            <graphic><FontIcon iconLiteral="mdi2f-file-certificate-outline" styleClass="report-export-icon-pdf"/></graphic>
+                        </MenuItem>
                         <MenuItem text="CSV" onAction="#onExportSeleccionCsv">
                             <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
                         </MenuItem>

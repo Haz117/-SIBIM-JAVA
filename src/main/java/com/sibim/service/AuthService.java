@@ -68,43 +68,34 @@ public class AuthService {
                 AuthAttemptStore.clear(key); // ventana expirada — reiniciar
             }
 
-            // Users aren't part of the offline sync scope (see the
-            // offline-mode plan), but login still has to work — verifies
-            // against a local read-only cache populated the last time this
-            // user logged in while actually online (see the cacheUser call
-            // below). UsuarioRepository itself has no offline branch: it
-            // would otherwise fall through to its real-Postgres path here
-            // and fail outright since there's no connection.
-            if (DatabaseConfig.isOfflineMode()) {
-                Optional<Usuario> cached = OfflineStore.findCachedUserByUsername(key);
-                if (cached.isEmpty()) {
-                    throw new AuthException("No hay conexión. El acceso sin conexión requiere haber iniciado sesión "
-                        + "en esta PC con conexión activa en los últimos "
-                        + com.sibim.db.offline.OfflineUserCache.OFFLINE_CACHE_TTL_DAYS + " días.");
-                }
-                Usuario user = cached.get();
-                if (!user.isActivo())
-                    throw new AuthException("Tu cuenta está desactivada. Contacta al administrador.");
-                BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash());
-                if (!result.verified) {
-                    registrarFallo(key);
-                    throw new AuthException("Usuario o contraseña incorrectos");
-                }
-                AuthAttemptStore.clear(key); // login exitoso — limpiar contadores
-                SessionManager.setCurrentUser(user);
-                return new LoginResult(user, null);
-            }
+            if (DatabaseConfig.isOfflineMode()) return loginOffline(key, password);
 
             // Shared lockout (every PC): the local counter above only covers
             // this computer and lives in a file the user can delete.
             boolean compartido = !DatabaseConfig.isDemoMode();
-            if (compartido) {
-                long minsCompartido = minutosBloqueoCompartido(key);
-                if (minsCompartido > 0) throw new AuthException(
-                    "Demasiados intentos fallidos. Espera " + minsCompartido + " minuto(s) antes de volver a intentar.");
+            Optional<Usuario> opt;
+            try {
+                if (compartido) {
+                    long minsCompartido = minutosBloqueoCompartido(key);
+                    if (minsCompartido > 0) throw new AuthException(
+                        "Demasiados intentos fallidos. Espera " + minsCompartido + " minuto(s) antes de volver a intentar.");
+                }
+                opt = usuarioRepo.findByUsername(key);
+            } catch (SQLException | com.zaxxer.hikari.pool.HikariPool.PoolInitializationException e) {
+                // PoolInitializationException: the pool had to start from scratch with no server.
+                if (!esFallaDeConexion(e)) {
+                    if (e instanceof SQLException se) throw se;
+                    throw (RuntimeException) e;
+                }
+                // The connection dropped while the app was still online (the
+                // login screen after a logout, or the session timeout): the
+                // background watcher only notices on its next poll, so until
+                // then every login failed with "no se pudo conectar". Go
+                // offline now and check this PC's cached credentials instead.
+                log.warn("Sin conexión con el servidor al iniciar sesión — cambiando a modo offline: {}", e.getMessage());
+                DatabaseConfig.setOfflineMode(true);
+                return loginOffline(key, password);
             }
-
-            Optional<Usuario> opt = usuarioRepo.findByUsername(key);
             if (opt.isEmpty()) {
                 registrarFallo(key);
                 throw new AuthException("Usuario o contraseña incorrectos");
@@ -150,6 +141,45 @@ public class AuthService {
         }
     }
 
+    /** Users aren't part of the offline sync scope, but login still has to
+     *  work: it verifies against a local read-only cache populated the last
+     *  time this user logged in while actually online (see cacheUser in
+     *  login). UsuarioRepository has no offline branch of its own. */
+    private LoginResult loginOffline(String key, String password) throws AuthException, SQLException {
+        Optional<Usuario> cached = OfflineStore.findCachedUserByUsername(key);
+        if (cached.isEmpty()) {
+            throw new AuthException("No hay conexión. El acceso sin conexión requiere haber iniciado sesión "
+                + "en esta PC con conexión activa en los últimos "
+                + com.sibim.db.offline.OfflineUserCache.OFFLINE_CACHE_TTL_DAYS + " días.");
+        }
+        Usuario user = cached.get();
+        if (!user.isActivo())
+            throw new AuthException("Tu cuenta está desactivada. Contacta al administrador.");
+        BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash());
+        if (!result.verified) {
+            registrarFallo(key);
+            throw new AuthException("Usuario o contraseña incorrectos");
+        }
+        AuthAttemptStore.clear(key); // login exitoso — limpiar contadores
+        SessionManager.setCurrentUser(user);
+        return new LoginResult(user, null);
+    }
+
+    /** No route to the server (no internet, DNS, pool timeout) as opposed to
+     *  an error the server itself returned. SQLState class 08 is "connection
+     *  exception"; HikariCP's pool timeout is a SQLTransientConnectionException. */
+    static boolean esFallaDeConexion(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof java.sql.SQLTransientConnectionException
+                || t instanceof java.sql.SQLNonTransientConnectionException
+                || t instanceof java.net.UnknownHostException
+                || t instanceof java.net.SocketException
+                || t instanceof java.net.SocketTimeoutException) return true;
+            if (t instanceof SQLException se && se.getSQLState() != null && se.getSQLState().startsWith("08")) return true;
+        }
+        return false;
+    }
+
     /** Bumps the in-memory rate-limit counter AND writes an audit entry —
      *  before this, a failed login only ever touched AuthAttemptStore (purely
      *  in-memory, reset on every app restart), so a brute-force attempt or
@@ -168,9 +198,10 @@ public class AuthService {
 
     /** A failure to read the shared counter (e.g. the table isn't there yet)
      *  must not lock everyone out — the local counter still applies. */
-    private long minutosBloqueoCompartido(String key) {
+    private long minutosBloqueoCompartido(String key) throws SQLException {
         try { return intentosRepo.minutosBloqueo(key, MAX_INTENTOS, VENTANA_MS); }
         catch (SQLException e) {
+            if (esFallaDeConexion(e)) throw e; // no server at all: the caller goes offline
             log.warn("No se pudo consultar el contador de intentos de '{}' en el servidor", key, e);
             return 0;
         }

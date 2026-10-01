@@ -1,33 +1,20 @@
 package com.sibim.service;
 
 import com.itextpdf.io.font.constants.StandardFonts;
-import com.itextpdf.io.image.ImageData;
-import com.itextpdf.kernel.colors.ColorConstants;
-import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.utils.PdfMerger;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
-import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.properties.HorizontalAlignment;
-import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Producto;
 import com.sibim.util.FormatUtils;
 
 import java.io.File;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,44 +25,17 @@ import java.util.List;
  * It records nothing and burns no folio — Patrimonio assigns one on receipt and
  * the baja itself is still registered in SIBIM (which issues the Acta de baja).
  */
-public class ReporteSolicitudBajaService extends ReporteService {
-
-    private static final DeviceRgb DARK    = new DeviceRgb(15, 23, 42);
-    private static final DeviceRgb MUTED   = new DeviceRgb(100, 116, 139);
-    private static final DeviceRgb BG_BAND = new DeviceRgb(248, 241, 242);   // guinda, very light
-    private static final DeviceRgb BG_ALT  = new DeviceRgb(252, 248, 248);
-    private static final DeviceRgb LINE    = new DeviceRgb(203, 213, 225);
-    private static final DeviceRgb GUINDA_CLARO = new DeviceRgb(240, 195, 195);
+public class ReporteSolicitudBajaService extends ReporteFormatoBajaBase {
 
     public ReporteSolicitudBajaService() { super(); }
 
     /** One bien → one page; several → one PDF with a page per bien. */
     public File exportSolicitudBaja(List<Producto> bienes) throws Exception {
-        if (bienes == null || bienes.isEmpty())
-            throw new IllegalArgumentException("Selecciona al menos un bien");
-        if (bienes.size() == 1) return exportUna(bienes.get(0));
-
-        File output = tempFile("solicitudes_baja_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".pdf");
-        List<File> partes = new ArrayList<>();
-        try (PdfWriter writer = new PdfWriter(output.getAbsolutePath());
-             PdfDocument merged = new PdfDocument(writer)) {
-            PdfMerger merger = new PdfMerger(merged);
-            for (Producto p : bienes) {
-                File parte = exportUna(p);
-                partes.add(parte);
-                try (PdfDocument src = new PdfDocument(new PdfReader(parte.getAbsolutePath()))) {
-                    merger.merge(src, 1, src.getNumberOfPages());
-                }
-            }
-        } finally {
-            partes.forEach(File::delete);
-        }
-        return output;
+        return unaPaginaPorBien("solicitudes_baja", bienes, this::exportUna);
     }
 
     private File exportUna(Producto p) throws Exception {
-        String safe = p.getCodigo() != null ? p.getCodigo().replaceAll("[^a-zA-Z0-9_\\-]", "_") : "bien";
-        File file = tempFile("solicitud_baja_" + safe, ".pdf");
+        File file = tempFile("solicitud_baja_" + nombreArchivo(p), ".pdf");
 
         PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
@@ -85,30 +45,8 @@ public class ReporteSolicitudBajaService extends ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4)) {
             doc.setMargins(26, 36, 26, 36);
 
-            // ── Header band (logo + institution + title) ──
-            Table header = new Table(new float[]{0.7f, 3f, 1.3f}).useAllAvailableWidth();
-            Image logo = loadHeaderLogo();
-            Cell logoCell = new Cell().setBackgroundColor(COLOR_HEADER).setPadding(10)
-                .setBorder(Border.NO_BORDER).setVerticalAlignment(VerticalAlignment.MIDDLE);
-            if (logo != null) logoCell.add(logo);
-            header.addCell(logoCell);
-            header.addCell(new Cell()
-                .add(new Paragraph(orgName()).setFont(bold).setFontSize(10f).setFontColor(ColorConstants.WHITE).setMarginBottom(2))
-                .add(new Paragraph("SOLICITUD DE BAJA DE BIEN PATRIMONIAL").setFont(bold).setFontSize(14f)
-                    .setFontColor(ColorConstants.WHITE).setMarginBottom(1))
-                .add(new Paragraph("Para entregar a Recursos Materiales y Patrimonio").setFont(regular).setFontSize(8f)
-                    .setFontColor(GUINDA_CLARO))
-                .setBackgroundColor(COLOR_HEADER).setPadding(10).setBorder(Border.NO_BORDER));
-            header.addCell(new Cell()
-                .add(new Paragraph("Folio: ____________").setFont(regular).setFontSize(8.5f)
-                    .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.RIGHT).setMarginBottom(6))
-                .add(new Paragraph("Fecha: ____/____/______").setFont(regular).setFontSize(8.5f)
-                    .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.RIGHT))
-                .add(new Paragraph("(folio lo asigna Patrimonio)").setFont(regular).setFontSize(6.5f)
-                    .setFontColor(GUINDA_CLARO).setTextAlignment(TextAlignment.RIGHT))
-                .setBackgroundColor(COLOR_HEADER).setPadding(10).setBorder(Border.NO_BORDER)
-                .setVerticalAlignment(VerticalAlignment.MIDDLE));
-            doc.add(header);
+            encabezado(doc, "SOLICITUD DE BAJA DE BIEN PATRIMONIAL",
+                "Para entregar a Recursos Materiales y Patrimonio", "(folio lo asigna Patrimonio)", bold, regular);
             doc.add(spacer(5));
 
             // ── Código + área solicitante ──
@@ -138,110 +76,38 @@ public class ReporteSolicitudBajaService extends ReporteService {
                     bold, regular, i++);
             datosYFoto.addCell(new Cell().add(sectionTitle("DATOS DEL BIEN", bold, COLOR_HEADER)).add(datos)
                 .setBorder(Border.NO_BORDER).setPaddingRight(10));
-            datosYFoto.addCell(fotoCell(p, bold, regular));
+            datosYFoto.addCell(fotoCell(p, bold, regular, 190));
             doc.add(datosYFoto);
             doc.add(spacer(8));
 
             // ── Motivo ──
             doc.add(sectionTitle("MOTIVO DE LA SOLICITUD  (marque uno)", bold, COLOR_HEADER));
-            Table motivos = new Table(new float[]{1f, 1f, 1f}).useAllAvailableWidth();
-            for (String m : new String[]{"Inservible / descompuesto", "Obsoleto", "Desgaste por uso",
-                                         "Extravío", "Robo (anexar denuncia)", "Siniestro"}) {
-                motivos.addCell(new Cell().add(new Paragraph("[   ]  " + m).setFont(regular).setFontSize(9f))
-                    .setBorder(Border.NO_BORDER).setPadding(3));
-            }
-            doc.add(motivos);
+            doc.add(casillas(3, regular, List.of("Inservible / descompuesto", "Obsoleto", "Desgaste por uso",
+                                                 "Extravío", "Robo (anexar denuncia)", "Siniestro"), null));
             doc.add(new Paragraph("Otro: ________________________________________________________________________")
                 .setFont(regular).setFontSize(9f).setMarginTop(2));
             doc.add(spacer(6));
 
             // ── Estado actual (to be written by hand) ──
             doc.add(sectionTitle("DESCRIPCIÓN DEL ESTADO ACTUAL DEL BIEN", bold, COLOR_HEADER));
-            Table lineas = new Table(1).useAllAvailableWidth();
-            for (int k = 0; k < 3; k++)
-                lineas.addCell(new Cell().setHeight(18).setBorder(Border.NO_BORDER)
-                    .setBorderBottom(new SolidBorder(LINE, 0.8f)));
-            doc.add(lineas);
+            doc.add(renglones(3, 18));
             doc.add(spacer(8));
 
             // ── Documentos anexos ──
             doc.add(sectionTitle("DOCUMENTOS QUE SE ANEXAN", bold, COLOR_HEADER));
-            Table anexos = new Table(new float[]{1f, 1f}).useAllAvailableWidth();
-            for (String a : new String[]{"Dictamen técnico del bien", "Fotografías del estado actual",
-                                         "Copia del resguardo", "Acta circunstanciada / denuncia (robo o extravío)"}) {
-                anexos.addCell(new Cell().add(new Paragraph("[   ]  " + a).setFont(regular).setFontSize(9f))
-                    .setBorder(Border.NO_BORDER).setPadding(3));
-            }
-            doc.add(anexos);
+            doc.add(casillas(2, regular, List.of("Dictamen técnico del bien", "Fotografías del estado actual",
+                                                 "Copia del resguardo", "Acta circunstanciada / denuncia (robo o extravío)"), null));
             doc.add(spacer(26));
 
-            // ── Firmas ──
-            Table firmas = new Table(new float[]{1f, 1f, 1f}).useAllAvailableWidth();
-            for (String[] f : new String[][]{
-                    {"Solicita", "Titular del área"},
-                    {"Entrega", "Resguardante del bien"},
-                    {"Recibe", "Recursos Materiales y Patrimonio"}}) {
-                firmas.addCell(new Cell()
-                    .add(new Paragraph("___________________________").setFont(regular).setFontSize(10f)
-                        .setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER))
-                    .add(new Paragraph(f[0]).setFont(bold).setFontSize(9f).setFontColor(DARK)
-                        .setTextAlignment(TextAlignment.CENTER))
-                    .add(new Paragraph(f[1] + " · Nombre y firma").setFont(regular).setFontSize(7.5f)
-                        .setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER))
-                    .setBorder(Border.NO_BORDER).setPadding(4));
-            }
-            doc.add(firmas);
+            doc.add(firmas(bold, regular,
+                new String[]{"Solicita", "Titular del área"},
+                new String[]{"Entrega", "Resguardante del bien"},
+                new String[]{"Recibe", "Recursos Materiales y Patrimonio"}));
 
             doc.add(spacer(8));
-            doc.add(new Paragraph("Esta solicitud no da de baja el bien por sí misma: Patrimonio la revisa y, "
-                + "si procede, registra la baja en SIBIM, que emite el Acta de baja patrimonial.")
-                .setFont(regular).setFontSize(7.5f).setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph("SIBIM — Sistema Integral de Bienes Municipales  |  " + orgName()
-                + "  |  Generado el " + LocalDate.now().format(FMT))
-                .setFont(regular).setFontSize(7.5f).setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER));
+            pie(doc, "Esta solicitud no da de baja el bien por sí misma: Patrimonio la revisa y, "
+                + "si procede, registra la baja en SIBIM, que emite el Acta de baja patrimonial.", regular);
         }
         return file;
-    }
-
-    private static Cell bandCell(String label, String value, float size, PdfFont bold, PdfFont regular) {
-        return new Cell()
-            .add(new Paragraph(label).setFont(regular).setFontSize(7.5f).setFontColor(MUTED).setMarginBottom(2))
-            .add(new Paragraph(value != null && !value.isBlank() ? value : "—").setFont(bold).setFontSize(size).setFontColor(DARK))
-            .setBackgroundColor(BG_BAND).setPadding(10).setBorder(Border.NO_BORDER);
-    }
-
-    private static void fila(Table t, String key, String value, PdfFont bold, PdfFont regular, int i) {
-        DeviceRgb bg = i % 2 == 1 ? BG_ALT : new DeviceRgb(255, 255, 255);
-        t.addCell(new Cell().add(new Paragraph(key).setFont(bold).setFontSize(8.5f).setFontColor(MUTED))
-            .setBackgroundColor(bg).setPadding(5).setBorder(Border.NO_BORDER));
-        t.addCell(new Cell().add(new Paragraph(value != null && !value.isBlank() ? value : "—")
-                .setFont(regular).setFontSize(9f).setFontColor(DARK))
-            .setBackgroundColor(bg).setPadding(5).setBorder(Border.NO_BORDER));
-    }
-
-    /** The bien's photo (main one, else the first of its gallery), or a framed
-     *  space to paste one when it has none. */
-    private Cell fotoCell(Producto p, PdfFont bold, PdfFont regular) {
-        Cell c = new Cell().add(sectionTitle("FOTOGRAFÍA DEL BIEN", bold, COLOR_HEADER))
-            .setBorder(Border.NO_BORDER).setPaddingLeft(4);
-        Image img = cargarFoto(p);
-        if (img != null) {
-            img.setMaxWidth(170).setMaxHeight(190).setAutoScale(false)
-               .setHorizontalAlignment(HorizontalAlignment.CENTER)
-               .setBorder(new SolidBorder(LINE, 0.8f));
-            c.add(img);
-        } else {
-            c.add(new Table(1).useAllAvailableWidth().addCell(new Cell()
-                .add(new Paragraph("Sin fotografía registrada\n\nPegue aquí una foto actual del bien")
-                    .setFont(regular).setFontSize(8.5f).setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER))
-                .setHeight(170).setVerticalAlignment(VerticalAlignment.MIDDLE)
-                .setBorder(new SolidBorder(LINE, 1f))));
-        }
-        return c;
-    }
-
-    private static Image cargarFoto(Producto p) {
-        List<ImageData> fotos = FotosPdf.de(p, 1, 1000);
-        return fotos.isEmpty() ? null : new Image(fotos.get(0));
     }
 }

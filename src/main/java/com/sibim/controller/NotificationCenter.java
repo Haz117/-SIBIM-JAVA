@@ -123,6 +123,20 @@ class NotificationCenter {
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de préstamos próximos a vencer", e);
             }
+            try {
+                var movimientos = new com.sibim.service.MovimientoService();
+                int n = movimientos.getPorRecibir().size();
+                if (n > 0) items.add(0, new Item("mdi2i-inbox-arrow-down-outline", "warning",
+                    n == 1 ? "1 bien por recibir" : n + " bienes por recibir", "movimientos:por-recibir", n));
+                if (com.sibim.session.SessionManager.isAdmin()) {
+                    int p = movimientos.getPendientesTransferencias().size();
+                    if (p > 0) items.add(0, new Item("mdi2t-timer-sand", "warning",
+                        p == 1 ? "1 transferencia por aprobar" : p + " transferencias por aprobar",
+                        "movimientos:pendientes", p));
+                }
+            } catch (Exception e) {
+                log.warn("No se pudo calcular el aviso de transferencias", e);
+            }
             return items;
         }, onLoaded, ex -> onLoaded.accept(List.of()));
     }
@@ -149,7 +163,13 @@ class NotificationCenter {
             HBox row = new HBox(10, icon, lbl);
             row.setAlignment(Pos.CENTER_LEFT);
             CustomMenuItem mi = new CustomMenuItem(row, true);
-            mi.setOnAction(e -> { menu.hide(); navigate.accept(item.targetView()); });
+            mi.setOnAction(e -> {
+                menu.hide();
+                // "vista:panel" opens a panel of that view once it loads.
+                String[] destino = item.targetView().split(":", 2);
+                if (destino.length == 2) com.sibim.session.NavigationContext.setPendingAccionMovimientos(destino[1]);
+                navigate.accept(destino[0]);
+            });
             menuItems.add(mi);
         }
         return menuItems;

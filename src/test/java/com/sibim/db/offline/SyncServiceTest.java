@@ -43,6 +43,7 @@ class SyncServiceTest extends IntegrationTestBase {
             st.executeUpdate("DELETE FROM movement_outbox");
             st.executeUpdate("DELETE FROM product_outbox");
             st.executeUpdate("DELETE FROM category_outbox");
+            st.executeUpdate("DELETE FROM doc_outbox");
         }
         // Tests run with offline mode off so resolveConflicto doesn't call Platform.runLater()
         DatabaseConfig.setOfflineMode(false);
@@ -260,6 +261,66 @@ class SyncServiceTest extends IntegrationTestBase {
         assertTrue(conflicts.isEmpty());
         assertTrue(pgExists("products", prodId));
         assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId));
+    }
+
+    @Test
+    void syncProductos_SAVE_sinCamposExtendidos_noBorraLosDelServidor() throws Exception {
+        String catId = insertPgCategory("Vehículos");
+        String prodId = insertPgProduct("Camioneta", "VEH-001", catId);
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("UPDATE products SET fecha_adquisicion = DATE '2020-05-01', "
+                 + "vida_util_anios = 5, valor_residual = 1000, no_motor = 'MTR-77', estado_fisico = 'BUENO', "
+                 + "numero_factura = 'F-123' WHERE id = ?")) {
+            ps.setString(1, prodId);
+            ps.executeUpdate();
+        }
+        // Queued the way an older SIBIM did it: none of those columns.
+        insertProductOutbox("SAVE", prodId, "Camioneta editada", "VEH-001", catId, null, null);
+
+        SyncService.syncProductos(new AtomicInteger(), new AtomicInteger());
+
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT nombre, fecha_adquisicion, vida_util_anios, "
+                 + "valor_residual, no_motor, estado_fisico, numero_factura FROM products WHERE id = ?")) {
+            ps.setString(1, prodId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("Camioneta editada", rs.getString("nombre"), "la edición offline sí se aplica");
+                assertEquals(java.sql.Date.valueOf("2020-05-01"), rs.getDate("fecha_adquisicion"));
+                assertEquals(5, rs.getInt("vida_util_anios"));
+                assertEquals(0, new java.math.BigDecimal("1000").compareTo(rs.getBigDecimal("valor_residual")));
+                assertEquals("MTR-77", rs.getString("no_motor"));
+                assertEquals("BUENO", rs.getString("estado_fisico"));
+                assertEquals("F-123", rs.getString("numero_factura"));
+            }
+        }
+    }
+
+    @Test
+    void syncProductos_SAVE_camposExtendidosEditadosOffline_llegan() throws Exception {
+        String catId = insertPgCategory("Mobiliario");
+        String prodId = insertPgProduct("Escritorio", "MOB-001", catId);
+        int rowId = insertProductOutbox("SAVE", prodId, "Escritorio", "MOB-001", catId, null, null);
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
+                "UPDATE product_outbox SET fecha_adquisicion = '2021-03-15', vida_util_anios = '10', "
+                + "color = 'Nogal' WHERE id = ?")) {
+            ps.setInt(1, rowId);
+            ps.executeUpdate();
+        }
+
+        SyncService.syncProductos(new AtomicInteger(), new AtomicInteger());
+
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                 "SELECT fecha_adquisicion, vida_util_anios, color FROM products WHERE id = ?")) {
+            ps.setString(1, prodId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(java.sql.Date.valueOf("2021-03-15"), rs.getDate("fecha_adquisicion"));
+                assertEquals(10, rs.getInt("vida_util_anios"));
+                assertEquals("Nogal", rs.getString("color"));
+            }
+        }
     }
 
     @Test

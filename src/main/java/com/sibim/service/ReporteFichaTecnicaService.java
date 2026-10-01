@@ -185,7 +185,8 @@ public class ReporteFichaTecnicaService extends ReporteService {
         der.add(new Paragraph(mayus(p.getNombre())).setFont(bold).setFontSize(11f).setFontColor(OSCURO)
             .setMultipliedLeading(1.15f).setMargin(0).setMarginTop(2));
 
-        Table chips = new Table(2).setMarginTop(6).setMarginBottom(6);
+        // As many columns as chips: an incomplete row breaks the table's bottom border.
+        Table chips = new Table(hay(p.getEstadoFisico()) ? 2 : 1).setMarginTop(6).setMarginBottom(6);
         chips.addCell(chip(p.isDadoDeBaja() ? "DADO DE BAJA" : "ACTIVO", p.isDadoDeBaja() ? ROJO : VERDE, bold));
         if (hay(p.getEstadoFisico()))
             chips.addCell(chip("ESTADO: " + p.getEstadoFisico().toUpperCase(), colorEstadoFisico(p.getEstadoFisico()), bold));
@@ -200,7 +201,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
         filaDato(datos, "Categoría", mayus(p.getCategoriaNombre()), bold, reg);
         der.add(datos);
 
-        byte[] qr = ReporteEtiquetasService.qrToPngBytes(p.getCodigo(), 180);
+        byte[] qr = ReporteEtiquetasService.qrToPngBytes(com.sibim.util.QrUtils.contenidoBien(p), 180);
         if (qr != null) {
             Table qrT = new Table(UnitValue.createPercentArray(new float[]{30, 70})).useAllAvailableWidth()
                 .setMarginTop(8);

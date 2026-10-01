@@ -85,24 +85,11 @@ public final class SupabaseStorage {
         if (initialized) return;
         synchronized (LOCK) {
             if (initialized) return;
-            String appData = System.getenv("APPDATA");
-            String prodDir = (appData != null && !appData.isBlank())
-                ? appData + File.separator + "SIBIM"
-                : System.getProperty("user.home") + File.separator + ".sibim";
-
-            Dotenv prod = Dotenv.configure().directory(prodDir).ignoreIfMissing().load();
-            supabaseUrl = prod.get("SUPABASE_URL");
-            anonKey     = prod.get("SUPABASE_ANON_KEY");
-
-            if (supabaseUrl == null || supabaseUrl.isBlank()) {
-                Dotenv dev = Dotenv.configure().ignoreIfMissing().load();
-                supabaseUrl = dev.get("SUPABASE_URL");
-                anonKey     = dev.get("SUPABASE_ANON_KEY");
-            }
-            if (supabaseUrl == null || supabaseUrl.isBlank()) {
-                supabaseUrl = System.getenv("SUPABASE_URL");
-                anonKey     = System.getenv("SUPABASE_ANON_KEY");
-            }
+            // Same .env the connection uses (this PC's, the installed one or
+            // the working directory's), then the environment.
+            Dotenv conf = com.sibim.db.DatabaseConfig.dotenv();
+            supabaseUrl = com.sibim.db.DatabaseConfig.setting("SUPABASE_URL", null);
+            anonKey     = com.sibim.db.DatabaseConfig.setting("SUPABASE_ANON_KEY", null);
             if (supabaseUrl != null) supabaseUrl = supabaseUrl.trim();
             if (anonKey     != null) anonKey     = anonKey.trim();
             if (esClaveSecreta(anonKey)) {
@@ -111,7 +98,7 @@ public final class SupabaseStorage {
                 anonKey = null;
             }
             for (String clave : new String[]{"SUPABASE_SERVICE_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"}) {
-                if (prod.get(clave) != null || Dotenv.configure().ignoreIfMissing().load().get(clave) != null) {
+                if (conf.get(clave) != null) {
                     log.error("El .env de esta PC contiene {}: una clave de servicio de Supabase da control total "
                         + "del proyecto a quien abra el archivo. SIBIM no la usa; bórrala del .env y rótala en Supabase.", clave);
                 }

@@ -217,6 +217,41 @@ class AuthServiceTest {
         }
     }
 
+    // ── Sin internet con la app en modo online ────────────────────────────────
+
+    @Test
+    void login_seCaeLaConexion_entraOfflineConLaCredencialGuardada() throws Exception {
+        String hash = BCrypt.withDefaults().hashToString(4, "buena".toCharArray());
+        Usuario u = usuario(hash);
+        u.setId("u-sin-red");
+        u.setUsername("sinred");
+        com.sibim.db.offline.OfflineStore.cacheUser(u);
+        java.sql.SQLException sinRed = new java.sql.SQLTransientConnectionException(
+            "HikariPool-1 - Connection is not available", new java.net.UnknownHostException("pooler.supabase.com"));
+        intentosConstruction.close();
+        try (MockedConstruction<LoginAttemptRepository> caido = mockConstruction(LoginAttemptRepository.class,
+                 (mock, ctx) -> when(mock.minutosBloqueo(anyString(), anyInt(), anyLong())).thenThrow(sinRed));
+             MockedConstruction<UsuarioRepository> repo = mockConstruction(UsuarioRepository.class)) {
+            AuthService.LoginResult r = new AuthService().login("SinRed", "buena");
+            assertEquals("u-sin-red", r.user().getId());
+            assertTrue(DatabaseConfig.isOfflineMode(), "debe quedar en modo offline");
+            verifyNoInteractions(repo.constructed().get(0));
+            assertThrows(AuthService.AuthException.class, () -> new AuthService().login("sinred", "mala"));
+        } finally {
+            DatabaseConfig.setOfflineMode(false);
+            intentosConstruction = mockConstruction(LoginAttemptRepository.class);
+        }
+    }
+
+    @Test
+    void esFallaDeConexion_distingueRedDeErrorDelServidor() {
+        assertTrue(AuthService.esFallaDeConexion(new java.sql.SQLException("x", "08001")));
+        assertTrue(AuthService.esFallaDeConexion(new java.sql.SQLTransientConnectionException("timeout")));
+        assertFalse(AuthService.esFallaDeConexion(new java.sql.SQLException("permission denied", "42501")));
+        assertTrue(AuthService.esFallaDeConexion(new com.zaxxer.hikari.pool.HikariPool.PoolInitializationException(
+            new java.sql.SQLException("El intento de conexión falló.", "08001"))));
+    }
+
     // ── Modo Demo ─────────────────────────────────────────────────────────────
 
     @Test

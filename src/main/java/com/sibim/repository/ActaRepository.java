@@ -1,6 +1,7 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.OfflineDocs;
 import com.sibim.model.ActaEntregaRecepcion;
 import com.sibim.session.SessionManager;
 
@@ -16,7 +17,12 @@ public class ActaRepository {
     private final FolioRepository folioRepo = new FolioRepository();
 
     public List<ActaEntregaRecepcion> findAll() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo())
+            return OfflineDocs.todos(OfflineDocs.ACTA, ActaEntregaRecepcion.class).stream()
+                .sorted(java.util.Comparator.comparing(ActaEntregaRecepcion::getCreadoEn,
+                    java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+                .toList();
         List<ActaEntregaRecepcion> list = new ArrayList<>();
         String sql = "SELECT * FROM actas_entrega_recepcion ORDER BY created_at DESC";
         try (Connection conn = DatabaseConfig.getConnection();
@@ -24,22 +30,35 @@ public class ActaRepository {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) list.add(mapRow(rs));
         }
+        OfflineDocs.guardarTodos(OfflineDocs.ACTA, list, ActaEntregaRecepcion::getId);
         return list;
     }
 
     public ActaEntregaRecepcion save(ActaEntregaRecepcion acta) throws SQLException {
         if (!SessionManager.isAdmin())
             throw new SecurityException("Solo el administrador puede generar actas de entrega-recepción");
-        if (DatabaseConfig.getLocalDataStore() != null)
-            throw new IllegalStateException("Actas no disponibles en modo offline/demo");
+        if (DatabaseConfig.isDemoMode())
+            throw new IllegalStateException("Actas no disponibles en modo demo");
         if (acta.getId() == null) acta.setId(UUID.randomUUID().toString());
-        if (acta.getNumero() == null) acta.setNumero(nextNumero());
-
         com.sibim.model.Usuario u = SessionManager.getCurrentUser();
         if (u != null) {
             acta.setCreadoPorId(u.getId());
             acta.setCreadoPorNombre(u.getNombre());
         }
+        if (OfflineDocs.activo()) {
+            acta.setNumero(OfflineDocs.folioProvisional("AER", acta.getId()));
+            acta.setCreadoEn(LocalDateTime.now());
+            OfflineDocs.registrar(OfflineDocs.ACTA, "CREAR", acta.getId(), acta);
+            return acta;
+        }
+        return saveOnline(acta);
+    }
+
+    /** Server write regardless of the offline flag (SyncService replays offline
+     *  actas here); a provisional folio is replaced by the next real one. */
+    public ActaEntregaRecepcion saveOnline(ActaEntregaRecepcion acta) throws SQLException {
+        if (acta.getId() == null) acta.setId(UUID.randomUUID().toString());
+        if (acta.getNumero() == null || acta.getNumero().contains("-PROV-")) acta.setNumero(nextNumero());
 
         String sql = """
             INSERT INTO actas_entrega_recepcion

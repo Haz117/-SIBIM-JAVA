@@ -121,8 +121,9 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             estadoFilter.valueProperty().addListener((obs, o, n) -> updateStatHighlight(n));
             setupStatCardFilters();
         }
-        boolean offline = DatabaseConfig.getLocalDataStore() != null;
-        boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
+        // Offline they work from this PC's copy (OfflineDocs); only demo mode has none.
+        boolean offline = DatabaseConfig.isDemoMode();
+        boolean canCreate = SessionManager.isAdmin() && !offline;   // comodatos: Patrimonio only
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         setupDateFilterBar(
             () -> ReporteService.getInstance().exportComodatosExcel(exportTarget()),
@@ -153,7 +154,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             if (searchField != null) searchField.requestFocus();
             if (offline && rootPane.getScene() != null)
                 NotificacionUtil.advertencia(rootPane.getScene(),
-                    "Comodatos no está disponible en modo offline/demo — conéctate a internet para usarlo");
+                    "Comodatos no está disponible en modo demo");
         });
     }
 
@@ -202,7 +203,8 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         MenuItem miPdf = new MenuItem("Exportar PDF");
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
-        cm.getItems().addAll(miConcluir, miRescindir, new SeparatorMenuItem(), miPdf);
+        if (SessionManager.isAdmin()) cm.getItems().addAll(miConcluir, miRescindir, new SeparatorMenuItem());
+        cm.getItems().add(miPdf);
         addLoteExportItem(cm);
         return cm;
     }

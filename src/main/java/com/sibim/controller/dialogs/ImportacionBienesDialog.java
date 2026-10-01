@@ -372,18 +372,34 @@ public class ImportacionBienesDialog {
 
     // ── XLSX parsing ─────────────────────────────────────────────────────
 
-    private static String cellVal(org.apache.poi.ss.usermodel.Row row, int idx) {
+    static String cellVal(org.apache.poi.ss.usermodel.Row row, int idx) {
         if (idx < 0 || row == null) return "";
         org.apache.poi.ss.usermodel.Cell cell = row.getCell(idx, org.apache.poi.ss.usermodel.Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
         if (cell == null) return "";
         CellType type = cell.getCellType();
-        if (type == CellType.NUMERIC) return String.valueOf((long) cell.getNumericCellValue());
-        if (type == CellType.STRING)  return cell.getStringCellValue().trim();
-        if (type == CellType.FORMULA) {
-            try { return String.valueOf((long) cell.getNumericCellValue()); }
-            catch (Exception e) { return cell.getStringCellValue().trim(); }
-        }
-        return "";
+        // A formula counts as the value it last computed; one that errored
+        // (#REF!, #N/A…) is empty — it used to come through as the bien's name.
+        if (type == CellType.FORMULA) type = cell.getCachedFormulaResultType();
+        return switch (type) {
+            case NUMERIC -> org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)
+                ? cell.getLocalDateTimeCellValue().toLocalDate().toString()
+                // Keeps decimals: the (long) cast turned a 1234.56 price into 1234.
+                : BigDecimal.valueOf(cell.getNumericCellValue()).stripTrailingZeros().toPlainString();
+            case STRING  -> limpiar(cell.getStringCellValue());
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            default      -> "";
+        };
+    }
+
+    private static final java.util.regex.Pattern ERROR_EXCEL =
+        java.util.regex.Pattern.compile("#(REF!|N/A|VALUE!|DIV/0!|NAME\\?|NUM!|NULL!|SPILL!|CALC!)");
+
+    /** Trims, and drops Excel error values (#REF!, #N/A…) that a CSV exported
+     *  from a sheet with broken formulas carries as plain text. */
+    static String limpiar(String v) {
+        if (v == null) return "";
+        String t = v.trim();
+        return ERROR_EXCEL.matcher(t.toUpperCase()).matches() ? "" : t;
     }
 
     private static List<ParsedRow> parseXlsxFile(File file, List<Categoria> categorias) throws Exception {
@@ -771,7 +787,7 @@ public class ImportacionBienesDialog {
     static String col(String[] cols, Map<String, Integer> idx, String key) {
         Integer i = idx.get(key);
         if (i == null || i >= cols.length) return "";
-        return cols[i] == null ? "" : cols[i].trim();
+        return limpiar(cols[i]);
     }
 
     static String normalize(String s) {

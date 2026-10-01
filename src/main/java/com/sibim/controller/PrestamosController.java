@@ -114,14 +114,15 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             estadoFilter.valueProperty().addListener((obs, o, n) -> updateStatHighlight(n));
             setupStatCardFilters();
         }
-        boolean offline = DatabaseConfig.getLocalDataStore() != null;
+        // Offline they work from this PC's copy (OfflineDocs); only demo mode has none.
+        boolean offline = DatabaseConfig.isDemoMode();
         boolean canCreate = (SessionManager.isAdmin() || SessionManager.isSecretario()) && !offline;
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         if (offline) {
             Platform.runLater(() -> {
                 if (rootPane.getScene() != null)
                     NotificacionUtil.advertencia(rootPane.getScene(),
-                        "Préstamos no está disponible en modo offline/demo — conéctate a internet para usarlo");
+                        "Préstamos no está disponible en modo demo");
             });
         }
         setupDateFilterBar(

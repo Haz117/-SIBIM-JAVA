@@ -99,6 +99,32 @@ class MovimientoRepositoryIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void transferenciaAprobada_quedaPorRecibirHastaQueElDestinoConfirma() throws SQLException {
+        String pid = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(pid, 1));
+        Movimiento m = buildMovimiento(pid, TipoMovimiento.TRANSFERENCIA, 1);
+        m.setAreaDestino("Archivo Municipal");
+        repo.addMovimientoPendiente(m);
+        assertTrue(repo.findPorRecibir(null).stream().noneMatch(x -> x.getId().equals(m.getId())),
+            "pendiente de aprobar todavía no es 'por recibir'");
+
+        repo.aprobarTransferencia(m.getId());
+
+        assertTrue(repo.findPorRecibir(java.util.Set.of(AREA)).stream().noneMatch(x -> x.getId().equals(m.getId())));
+        List<Movimiento> porRecibir = repo.findPorRecibir(java.util.Set.of("Archivo Municipal"));
+        assertEquals(1, porRecibir.stream().filter(x -> x.getId().equals(m.getId())).count());
+        assertNull(porRecibir.get(0).getRecibidoEn());
+
+        assertTrue(repo.confirmarRecepcion(m.getId(), "Archivo"));
+        assertFalse(repo.confirmarRecepcion(m.getId(), "Archivo"), "no se confirma dos veces");
+        assertTrue(repo.findPorRecibir(null).stream().noneMatch(x -> x.getId().equals(m.getId())));
+        Movimiento recibido = repo.findByProducto(pid).stream()
+            .filter(x -> x.getId().equals(m.getId())).findFirst().orElseThrow();
+        assertEquals("Archivo", recibido.getRecibidoPor());
+        assertNotNull(recibido.getRecibidoEn());
+    }
+
+    @Test
     void addMovimientoAtomicOnline_salida_decrementsStock() throws SQLException {
         String pid = UUID.randomUUID().toString();
         productoRepo.saveOnline(buildProducto(pid, 20));

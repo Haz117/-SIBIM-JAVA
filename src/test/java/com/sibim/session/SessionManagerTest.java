@@ -184,4 +184,20 @@ class SessionManagerTest {
         u.setArea(area);
         return u;
     }
+
+    @Test
+    void cuentaCompartida_registraQuienLaUsa_sinTocarLaCuenta() {
+        com.sibim.model.Usuario u = new com.sibim.model.Usuario();
+        u.setId("u-catastro");
+        u.setNombre("Dirección de Catastro");
+        u.setRol(com.sibim.model.enums.Rol.DIRECCION);
+        u.setArea("Dirección de Catastro");
+        SessionManager.setCurrentUser(u);
+        SessionManager.setOperador("  Juan Pérez ");
+        assertEquals("Juan Pérez · Dirección de Catastro", SessionManager.getCurrentUser().getNombre());
+        assertEquals("Dirección de Catastro", SessionManager.getCurrentUser().getArea(), "el área no cambia");
+        SessionManager.setOperador("  ");
+        assertEquals("Juan Pérez · Dirección de Catastro", SessionManager.getCurrentUser().getNombre());
+        SessionManager.logout();
+    }
 }

@@ -92,6 +92,7 @@ public class MovimientosController {
     @FXML private Label  lblSeleccionados;
     @FXML private Button btnClearSearch;
     @FXML private Button btnPendientes;
+    @FXML private Button btnPorRecibir;
     private Label pendientesBadge;
     @FXML private Label helpAjustes;
     @FXML private Label helpResumen;
@@ -144,6 +145,11 @@ public class MovimientosController {
         setupSelectionListener();
         restoreStickyFilters();
 
+        switch (NavigationContext.consumePendingAccionMovimientos()) {
+            case "por-recibir" -> Platform.runLater(this::onVerPorRecibir);
+            case "pendientes"  -> Platform.runLater(this::onVerPendientes);
+            default -> { }
+        }
         if (NavigationContext.consumePendingNuevoMovimiento())
             Platform.runLater(this::onNuevoMovimiento);
 
@@ -167,18 +173,21 @@ public class MovimientosController {
     }
 
     private void setupPermissions() {
-        boolean canCreate = SessionManager.isAdmin();   // movimientos: Patrimonio only
-        btnNuevo.setVisible(canCreate);
-        btnNuevo.setManaged(canCreate);
-        if (SessionManager.isAdmin()) {
-            if (btnPendientes != null) {
-                btnPendientes.setVisible(true); btnPendientes.setManaged(true);
-                installPendientesBadge();
-            }
-            loadPendientesCount();
-        } else {
-            if (btnPendientes != null) { btnPendientes.setVisible(false); btnPendientes.setManaged(false); }
+        // Patrimonio registers every movement; an área only requests transfers.
+        if (!SessionManager.isAdmin()) {
+            btnNuevo.setText("Solicitar transferencia");
+            if (btnNuevo.getTooltip() != null)
+                btnNuevo.getTooltip().setText("Pide mover un bien de tu área a otra; Patrimonio la aprueba");
+            if (btnPendientes != null && btnPendientes.getTooltip() != null)
+                btnPendientes.getTooltip().setText("Transferencias de tus áreas que esperan la aprobación de Patrimonio");
         }
+        if (btnPendientes != null) {
+            btnPendientes.setVisible(true); btnPendientes.setManaged(true);
+            installPendientesBadge();
+        }
+        loadPendientesCount();
+        if (btnPorRecibir != null) { btnPorRecibir.setVisible(true); btnPorRecibir.setManaged(true); }
+        loadPorRecibirCount();
     }
 
     private void setupKeyboardShortcuts() {
@@ -562,7 +571,8 @@ public class MovimientosController {
             () -> movimientoService.getPendientesTransferencias().size(),
             count -> {
                 if (btnPendientes == null) return;
-                btnPendientes.setText(count > 0 ? "Pendientes (" + count + ")" : "Pendientes");
+                String base = SessionManager.isAdmin() ? "Pendientes" : "Mis solicitudes";
+                btnPendientes.setText(count > 0 ? base + " (" + count + ")" : base);
                 btnPendientes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
                 btnPendientes.getStyleClass().add(count > 0 ? "btn-warning-outline" : "btn-secondary");
                 if (pendientesBadge != null) pendientesBadge.setText(String.valueOf(count));
@@ -600,6 +610,28 @@ public class MovimientosController {
 
     private void showPendientesDialog(List<Movimiento> pendientes) {
         pendientesDialog.show(pendientes);
+    }
+
+    @FXML
+    private void onVerPorRecibir() {
+        DialogUtil.runAsync(
+            () -> movimientoService.getPorRecibir(),
+            lista -> new PorRecibirDialog(movimientoService, () -> { loadData(); loadPorRecibirCount(); }).show(lista),
+            e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar los bienes por recibir")
+        );
+    }
+
+    private void loadPorRecibirCount() {
+        if (btnPorRecibir == null) return;
+        DialogUtil.runAsync(
+            () -> movimientoService.getPorRecibir().size(),
+            count -> {
+                btnPorRecibir.setText(count > 0 ? "Por recibir (" + count + ")" : "Por recibir");
+                btnPorRecibir.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
+                btnPorRecibir.getStyleClass().add(count > 0 ? "btn-warning-outline" : "btn-secondary");
+            },
+            e -> { /* silent */ }
+        );
     }
 
     @FXML private void onPresetHoy() {

@@ -1,6 +1,8 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.OfflineDocs;
+import com.sibim.db.offline.OfflineStore;
 import com.sibim.model.Comodato;
 import com.sibim.session.SessionManager;
 
@@ -42,8 +44,41 @@ public class ComodatoRepository {
         }
     }
 
+    /** Offline: this PC's copy (see OfflineDocs), scoped by the bien's área
+     *  in the offline bienes mirror, like scopeCondicion does on the server. */
+    private static List<Comodato> locales() throws SQLException {
+        Set<String> acc = SessionManager.getAccessibleAreas();
+        List<Comodato> todos = OfflineDocs.todos(OfflineDocs.COMODATO, Comodato.class);
+        List<Comodato> visibles = new ArrayList<>();
+        for (Comodato c : todos) {
+            if (acc == null || OfflineStore.findProductoById(c.getProductoId())
+                    .map(p -> acc.contains(p.getArea())).orElse(false))
+                visibles.add(c);
+        }
+        visibles.sort(java.util.Comparator.comparing(Comodato::getCreatedAt,
+            java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+        return visibles;
+    }
+
+    /** Offline there's no UPDATE turning VIGENTE into VENCIDO: decide by date. */
+    private static boolean vencidoLocal(Comodato c) {
+        return Comodato.ESTADO_VENCIDO.equals(c.getEstado())
+            || (Comodato.ESTADO_VIGENTE.equals(c.getEstado()) && c.getFechaFin() != null
+                && c.getFechaFin().isBefore(LocalDate.now()));
+    }
+
+    private static boolean abiertoLocal(Comodato c) {
+        return Comodato.ESTADO_VIGENTE.equals(c.getEstado()) || Comodato.ESTADO_VENCIDO.equals(c.getEstado());
+    }
+
+    private static boolean abiertoParaProducto(String productoId) throws SQLException {
+        return OfflineDocs.todos(OfflineDocs.COMODATO, Comodato.class).stream()
+            .anyMatch(c -> productoId.equals(c.getProductoId()) && abiertoLocal(c));
+    }
+
     public List<Comodato> findAll() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales();
         List<Comodato> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
@@ -57,11 +92,14 @@ public class ComodatoRepository {
                 while (rs.next()) list.add(mapRow(rs));
             }
         }
+        OfflineDocs.guardarTodos(OfflineDocs.COMODATO, list, Comodato::getId);
         return list;
     }
 
     public List<Comodato> findVigentes() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales().stream()
+            .filter(c -> Comodato.ESTADO_VIGENTE.equals(c.getEstado()) && !vencidoLocal(c)).toList();
         List<Comodato> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
@@ -79,7 +117,8 @@ public class ComodatoRepository {
     }
 
     public List<Comodato> findVencidos() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales().stream().filter(ComodatoRepository::vencidoLocal).toList();
         List<Comodato> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
@@ -97,7 +136,9 @@ public class ComodatoRepository {
     }
 
     public Comodato findById(String id) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return null;
+        if (DatabaseConfig.isDemoMode()) return null;
+        if (OfflineDocs.activo())
+            return locales().stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null);
         List<Object> scopeParams = new ArrayList<>();
         String scope = scopeCondicion(scopeParams);
         String sql = "SELECT c.* FROM comodatos c WHERE c.id = ?" + (scope != null ? " AND " + scope : "");
@@ -114,7 +155,8 @@ public class ComodatoRepository {
     /** True when {@code productoId} already has an open comodato (VIGENTE or VENCIDO) —
      *  used to stop the same bien from being loaned out to two entities at once. */
     public boolean existeVigentePorProducto(String productoId) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        if (DatabaseConfig.isDemoMode()) return false;
+        if (OfflineDocs.activo()) return abiertoParaProducto(productoId);
         String sql = "SELECT 1 FROM comodatos WHERE producto_id = ? AND estado IN ('VIGENTE','VENCIDO') LIMIT 1";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -126,10 +168,31 @@ public class ComodatoRepository {
     }
 
     public Comodato save(Comodato c) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null)
-            throw new IllegalStateException("Comodatos no disponibles en modo offline/demo");
+        if (DatabaseConfig.isDemoMode())
+            throw new IllegalStateException("Comodatos no disponibles en modo demo");
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
-        if (c.getNumero() == null) c.setNumero(nextNumero());
+        if (OfflineDocs.activo()) {
+            com.sibim.model.Usuario yo = SessionManager.getCurrentUser();
+            if (yo != null) {
+                c.setCreadoPorId(yo.getId());
+                c.setCreadoPorNombre(yo.getNombre());
+            }
+            c.setNumero(OfflineDocs.folioProvisional("CDT", c.getId()));
+            c.setEstado(Comodato.ESTADO_VIGENTE);
+            if (c.getFechaInicio() == null) c.setFechaInicio(LocalDate.now());
+            c.setCreatedAt(LocalDateTime.now());
+            c.setUpdatedAt(LocalDateTime.now());
+            OfflineDocs.registrar(OfflineDocs.COMODATO, "CREAR", c.getId(), c);
+            return c;
+        }
+        return saveOnline(c);
+    }
+
+    /** Server write regardless of the offline flag (SyncService replays offline
+     *  comodatos here); a provisional folio is replaced by the next real one. */
+    public Comodato saveOnline(Comodato c) throws SQLException {
+        if (c.getId() == null) c.setId(UUID.randomUUID().toString());
+        if (c.getNumero() == null || c.getNumero().contains("-PROV-")) c.setNumero(nextNumero());
 
         com.sibim.model.Usuario u = SessionManager.getCurrentUser();
         if (u != null) {
@@ -171,7 +234,24 @@ public class ComodatoRepository {
     }
 
     public void concluir(String id, LocalDate fechaReal) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return;
+        if (DatabaseConfig.isDemoMode()) return;
+        if (OfflineDocs.activo()) {
+            Comodato c = abiertoLocal(id);
+            c.setEstado(Comodato.ESTADO_CONCLUIDO);
+            c.setFechaDevolucionReal(fechaReal != null ? fechaReal : LocalDate.now());
+            c.setUpdatedAt(LocalDateTime.now());
+            OfflineDocs.registrar(OfflineDocs.COMODATO, "CONCLUIR", id, c);
+            return;
+        }
+        concluirOnline(id, fechaReal);
+    }
+
+    private Comodato abiertoLocal(String id) throws SQLException {
+        return locales().stream().filter(x -> x.getId().equals(id) && abiertoLocal(x)).findFirst()
+            .orElseThrow(() -> new SQLException("El comodato no existe, ya fue concluido/rescindido, o no tienes acceso a su área (id=" + id + ")"));
+    }
+
+    public void concluirOnline(String id, LocalDate fechaReal) throws SQLException {
         List<Object> scopeParams = new ArrayList<>();
         String scope = scopeCondicion(scopeParams);
         String sql = "UPDATE comodatos AS c SET estado = 'CONCLUIDO', fecha_devolucion_real = ?, updated_at = NOW() "
@@ -188,7 +268,18 @@ public class ComodatoRepository {
     }
 
     public void rescindir(String id) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return;
+        if (DatabaseConfig.isDemoMode()) return;
+        if (OfflineDocs.activo()) {
+            Comodato c = abiertoLocal(id);
+            c.setEstado(Comodato.ESTADO_RESCINDIDO);
+            c.setUpdatedAt(LocalDateTime.now());
+            OfflineDocs.registrar(OfflineDocs.COMODATO, "RESCINDIR", id, c);
+            return;
+        }
+        rescindirOnline(id);
+    }
+
+    public void rescindirOnline(String id) throws SQLException {
         List<Object> scopeParams = new ArrayList<>();
         String scope = scopeCondicion(scopeParams);
         String sql = "UPDATE comodatos AS c SET estado = 'RESCINDIDO', updated_at = NOW() "
@@ -217,7 +308,8 @@ public class ComodatoRepository {
     }
 
     public boolean existsVigenteForProducto(String productoId) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return false;
+        if (DatabaseConfig.isDemoMode()) return false;
+        if (OfflineDocs.activo()) return abiertoParaProducto(productoId);
         String sql = "SELECT 1 FROM comodatos WHERE producto_id = ? AND estado IN ('VIGENTE','VENCIDO') LIMIT 1";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

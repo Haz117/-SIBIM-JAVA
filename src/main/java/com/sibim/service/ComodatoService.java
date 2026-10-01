@@ -75,6 +75,7 @@ public class ComodatoService {
                           String contactoNombre, String contactoCargo,
                           String domicilio, String motivo, String condiciones,
                           LocalDate fechaInicio, LocalDate fechaFin) throws Exception {
+        soloAdministrador();
         if (productoId == null || productoId.isBlank())
             throw new IllegalArgumentException("Debe seleccionar un bien");
         if (entidadReceptora == null || entidadReceptora.isBlank())
@@ -116,7 +117,16 @@ public class ComodatoService {
         return saved;
     }
 
+    /** A comodato lends a bien to an outside entity: only the administrator
+     *  (Patrimonio) creates, concludes or rescinds one; áreas only see them. */
+    static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los comodatos.";
+
+    private static void soloAdministrador() {
+        if (!com.sibim.session.SessionManager.isAdmin()) throw new SecurityException(SOLO_ADMIN);
+    }
+
     public void concluir(String id, LocalDate fechaDevolucionReal) throws SQLException {
+        soloAdministrador();
         if (fechaDevolucionReal == null) fechaDevolucionReal = LocalDate.now();
         Comodato c = repo.findById(id);
         repo.concluir(id, fechaDevolucionReal);
@@ -126,6 +136,7 @@ public class ComodatoService {
     }
 
     public void rescindir(String id, String motivo) throws SQLException {
+        soloAdministrador();
         Comodato c = repo.findById(id);
         repo.rescindir(id);
         if (c != null)

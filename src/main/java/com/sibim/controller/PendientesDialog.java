@@ -33,9 +33,13 @@ class PendientesDialog {
         dialog.getDialogPane().setPrefWidth(660);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
+        // Only Patrimonio (admin) resolves requests; an área sees its own in
+        // read-only form to know they're still waiting.
+        boolean resuelve = com.sibim.session.SessionManager.isAdmin();
         HBox header = DialogUtil.gradientHeader("mdi2t-timer-sand",
-            "Transferencias Pendientes de Aprobación",
-            "Solicitudes de traslado que requieren tu autorización",
+            resuelve ? "Transferencias Pendientes de Aprobación" : "Mis solicitudes de transferencia",
+            resuelve ? "Solicitudes de traslado que requieren tu autorización"
+                     : "Esperan la aprobación de Patrimonio; al aprobarlas, el área que recibe confirma la recepción",
             AppColors.WARNING, AppColors.WARNING_D);
 
         VBox list = new VBox(6);
@@ -119,6 +123,12 @@ class PendientesDialog {
 
             HBox actions = new HBox(8, btnAprobar, btnRechazar);
             actions.setAlignment(Pos.CENTER_RIGHT);
+            if (!resuelve) {
+                Label espera = new Label("En espera de Patrimonio");
+                espera.getStyleClass().add("muted-sm");
+                espera.setMinWidth(Region.USE_PREF_SIZE);
+                actions.getChildren().setAll(espera);
+            }
             row.getChildren().addAll(info, actions);
             list.getChildren().add(row);
         }

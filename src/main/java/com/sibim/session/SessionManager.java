@@ -83,6 +83,15 @@ public final class SessionManager {
         return null;
     }
 
+    /** For a shared área account: who is using it right now. Only in this
+     *  session — every record that stores the user's name (bitácora,
+     *  movimientos, documentos) then says "Juan Pérez · Dirección de Catastro"
+     *  instead of just the área. The account itself is not modified. */
+    public static void setOperador(String persona) {
+        if (currentUser == null || persona == null || persona.isBlank()) return;
+        currentUser.setNombre(persona.trim() + " · " + currentUser.getNombre());
+    }
+
     public static boolean isAreaAccessible(String area) {
         if (isAdmin()) return true;
         if (area == null || area.isBlank()) return false;

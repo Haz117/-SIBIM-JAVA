@@ -203,13 +203,13 @@ El proyecto sigue [Semantic Versioning](https://semver.org/) con el formato `MAY
 
 ## 6. Auto-actualización en la app
 
-`UpdateChecker.java` consulta la API de GitHub al iniciar sesión:
+Las versiones nuevas viajan por la base de datos, no por GitHub Releases: el instalador lleva la configuración de conexión y el repositorio es público.
 
-```
-GET https://api.github.com/repos/Haz117/-SIBIM-JAVA/releases/latest
-```
+1. Sube `<version>` en `pom.xml` y genera el instalador en la PC de administración (`packaging\build-installer.ps1`).
+2. Abre esa versión en la PC de administración (aplica las migraciones) y entra a **Configuración › Publicar actualización**: `ActualizacionService` guarda el instalador en la tabla `actualizaciones` (V27), en partes de 5 MB con su SHA-256.
+3. Al abrir SIBIM, cada PC compara la última versión publicada con la suya (comparación semver en `UpdateChecker`). Si es mayor, muestra **"Nueva versión disponible"** con el botón **"Instalar"**: descarga el instalador, verifica el SHA-256, lo ejecuta y cierra SIBIM.
 
-Si la versión del release más reciente es mayor que la versión actual (comparación semver), la app muestra un toast con un botón **"Ver actualización"** que abre el navegador en la página del release.
+Sin conexión, en modo demo o al correr desde el IDE (versión `dev`) no se ofrece ninguna actualización.
 
 La versión actual se inyecta en tiempo de compilación mediante Maven resource filtering. En `src/main/resources/app.properties`:
 
@@ -260,7 +260,7 @@ El script detecta si existe el directorio `maven-dist/` en el repositorio local 
 | `jpackage not found` | `JAVA_HOME` no apunta a JDK 21 | `$env:JAVA_HOME = "C:\Path\To\JDK21"` |
 | `mvn: command not found` | Maven no esta en PATH y no existe `maven-dist/` | Instalar Maven o asegurarse de tener `maven-dist/` en el repo |
 | Release workflow no dispara | El tag no coincide con el patron `v*.*.*` | Verificar formato: `v1.0.0` es valido, `1.0.0` no lo es |
-| `UpdateChecker` siempre retorna null | Sin releases publicados en GitHub o sin acceso a internet | Normal en entorno de desarrollo; en produccion crear al menos un release |
+| No aparece "Nueva versión disponible" | No se ha publicado una versión mayor, la PC está sin conexión o corre desde el IDE (versión `dev`) | Publicar el instalador en Configuración › Publicar actualización con una versión mayor a la instalada |
 
 ---
 
@@ -276,6 +276,8 @@ packaging/
 src/main/resources/
   app.properties        <- Version inyectada por Maven (filtrada en tiempo de build)
 src/main/java/.../util/
-  UpdateChecker.java    <- Consulta GitHub API; notifica al usuario si hay version nueva
+  UpdateChecker.java    <- Version del build en ejecucion y comparacion semver
+src/main/java/.../service/
+  ActualizacionService.java <- Publica y descarga el instalador de una version nueva (tabla actualizaciones)
 pom.xml                 <- versions-maven-plugin para el estampado de version desde el tag
 ```

@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class MovimientoService {
 
@@ -113,13 +114,16 @@ public class MovimientoService {
 
     static final String SOLO_ADMIN_MOVIMIENTOS =
         "Solo el administrador (Patrimonio) registra movimientos. Tu área puede actualizar los datos "
-        + "de los bienes que tiene asignados.";
+        + "de los bienes que tiene asignados y solicitar transferencias.";
 
     private Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad, String motivo,
                                  String referencia, String areaDestino, Integer expectedStockAnterior)
             throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
-        if (!SessionManager.isAdmin()) throw new ValidationException(SOLO_ADMIN_MOVIMIENTOS);
+        // Areas may only REQUEST a transfer of their bienes (it waits for
+        // Patrimonio's approval, below); every other movement is Patrimonio's.
+        if (!SessionManager.isAdmin() && tipo != TipoMovimiento.TRANSFERENCIA)
+            throw new ValidationException(SOLO_ADMIN_MOVIMIENTOS);
         Optional<Producto> opt = productoRepo.findById(productoId);
         if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
         Producto producto = opt.get();
@@ -204,8 +208,39 @@ public class MovimientoService {
         }
     }
 
+    /** Admin: every request. Anyone else: the requests that leave or reach
+     *  their áreas, so an área can follow what it asked for. */
     public List<Movimiento> getPendientesTransferencias() throws SQLException {
-        return movimientoRepo.findPendientesTransferencias();
+        List<Movimiento> todas = movimientoRepo.findPendientesTransferencias();
+        Set<String> areas = SessionManager.getAccessibleAreas();
+        if (areas == null) return todas;
+        return todas.stream()
+            .filter(m -> areas.contains(m.getAreaOrigen()) || areas.contains(m.getAreaDestino()))
+            .toList();
+    }
+
+    /** Transfers already applied that the receiving área hasn't confirmed:
+     *  for an área, those coming to it; for the admin, all of them (to follow
+     *  up). Empty offline — reception is only tracked on the server. */
+    public List<Movimiento> getPorRecibir() throws SQLException {
+        return movimientoRepo.findPorRecibir(SessionManager.getAccessibleAreas());
+    }
+
+    static final String RECIBIR_REQUIERE_CONEXION =
+        "Confirmar que recibiste un bien requiere conexión con el servidor. Inténtalo al reconectar.";
+
+    /** The destination área (or the admin, e.g. for an área without an
+     *  account) confirms it physically has the bien. */
+    public void confirmarRecepcion(Movimiento m) throws SQLException, ValidationException {
+        if (com.sibim.db.DatabaseConfig.isOfflineMode()) throw new ValidationException(RECIBIR_REQUIERE_CONEXION);
+        if (!SessionManager.isAreaAccessible(m.getAreaDestino()))
+            throw new ValidationException("Solo el área que recibe (" + m.getAreaDestino() + ") puede confirmar la recepción");
+        var yo = SessionManager.getCurrentUser();
+        if (yo == null) throw new IllegalStateException("No hay sesión activa");
+        if (!movimientoRepo.confirmarRecepcion(m.getId(), yo.getNombre()))
+            throw new ValidationException("Esta transferencia ya se había confirmado como recibida");
+        auditRepo.log("movimiento", m.getId(), m.getProductoNombre(), "transferencia_recibida",
+            "Recibido en " + m.getAreaDestino() + " por " + yo.getNombre());
     }
 
     /** The área move and the new código are applied together inside the

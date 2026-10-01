@@ -195,7 +195,15 @@ public class ProductosController {
         presetPanel = new FilterPresetPanel(presetsBar, presetsHeader, categoriaFilter,
             searchField, areaFilter, resguardanteFilter, estadoChipGroup, this::applyFilters);
         presetPanel.load();
-        if (btnMovimiento != null) { btnMovimiento.setVisible(canManage); btnMovimiento.setManaged(canManage); }
+        // Everyone sees it: Patrimonio registers any movement, an área requests a transfer.
+        if (btnMovimiento != null && !canManage) {
+            btnMovimiento.setText("Solicitar transferencia");
+            btnMovimiento.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2s-swap-horizontal"));
+            btnMovimiento.getGraphic().getStyleClass().add("btn-icon");
+            if (btnMovimiento.getTooltip() != null)
+                btnMovimiento.getTooltip().setText("Pide mover el bien seleccionado a otra área; Patrimonio aprueba "
+                    + "la solicitud y el área que recibe confirma la recepción");
+        }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
         if (btnEliminar != null) {
             btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit);
@@ -634,7 +642,8 @@ public class ProductosController {
     private void onNuevoMovimiento() {
         Producto sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) {
-            NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para registrar un movimiento");
+            NotificacionUtil.advertencia(table.getScene(), canManage
+                ? "Selecciona un bien para registrar un movimiento" : "Selecciona el bien que quieres transferir");
             return;
         }
         try {
@@ -795,6 +804,18 @@ public class ProductosController {
             () -> reporteService.exportSolicitudBaja(sel),
             file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             ex -> { log.error("Error solicitud de baja", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar la solicitud de baja"); });
+    }
+
+    /** Dictamen técnico de baja de cada bien seleccionado, para que el área técnica lo llene y firme. */
+    @FXML
+    private void onExportDictamenBaja() {
+        List<Producto> sel = getSelectedProductos();
+        if (sel.isEmpty()) return;
+        DialogUtil.runAsyncWithProgress(table.getScene(),
+            sel.size() == 1 ? "Generando dictamen técnico de baja…" : "Generando " + sel.size() + " dictámenes de baja…",
+            () -> reporteService.exportDictamenBaja(sel),
+            file -> DialogUtil.showExportResultDialog(table.getScene(), file),
+            ex -> { log.error("Error dictamen de baja", ex); NotificacionUtil.error(table.getScene(), "No se pudo generar el dictamen técnico de baja"); });
     }
 
     // ── Bulk actions ─────────────────────────────────────────────────────────

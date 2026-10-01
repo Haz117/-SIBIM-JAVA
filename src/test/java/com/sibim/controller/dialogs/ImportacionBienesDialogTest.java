@@ -218,4 +218,38 @@ class ImportacionBienesDialogTest {
     @Test void parseDateSafe_formatoInvalido_retornaNull() {
         assertNull(ImportacionBienesDialog.parseDateSafe("no es una fecha"));
     }
+
+    // ── Valores de Excel ─────────────────────────────────────────────────────
+
+    @Test
+    void erroresDeExcelEnTexto_quedanVacios() {
+        assertEquals("", ImportacionBienesDialog.limpiar("#REF!"));
+        assertEquals("", ImportacionBienesDialog.limpiar(" #N/A "));
+        assertEquals("", ImportacionBienesDialog.limpiar("#name?"));
+        assertEquals("Escritorio #2", ImportacionBienesDialog.limpiar(" Escritorio #2 "));
+    }
+
+    @Test
+    void celdasXlsx_decimalesFechasYFormulasConError() throws Exception {
+        try (var wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            var row = wb.createSheet().createRow(0);
+            row.createCell(0).setCellValue(1234.56);
+            row.createCell(1).setCellValue(15);
+            var fecha = row.createCell(2);
+            fecha.setCellValue(java.time.LocalDate.of(2024, 3, 15));
+            var estilo = wb.createCellStyle();
+            estilo.setDataFormat(wb.getCreationHelper().createDataFormat().getFormat("dd/mm/yyyy"));
+            fecha.setCellStyle(estilo);
+            var formula = row.createCell(3);
+            formula.setCellFormula("1/0");
+            wb.getCreationHelper().createFormulaEvaluator().evaluateFormulaCell(formula);
+            row.createCell(4).setCellValue("  Silla  ");
+
+            assertEquals("1234.56", ImportacionBienesDialog.cellVal(row, 0), "el precio conserva los decimales");
+            assertEquals("15", ImportacionBienesDialog.cellVal(row, 1));
+            assertEquals("2024-03-15", ImportacionBienesDialog.cellVal(row, 2));
+            assertEquals("", ImportacionBienesDialog.cellVal(row, 3), "#DIV/0! no se importa como texto");
+            assertEquals("Silla", ImportacionBienesDialog.cellVal(row, 4));
+        }
+    }
 }

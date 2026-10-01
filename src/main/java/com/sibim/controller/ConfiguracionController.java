@@ -53,6 +53,8 @@ public class ConfiguracionController {
     @FXML private Label lblDecoSub;
     @FXML private Label dotSistemaModo;
     @FXML private Label lblSistemaModo;
+    @FXML private Label lblSistemaVersion;
+    @FXML private Button btnPublicarActualizacion;
     @FXML private Label helpUsuarios;
     @FXML private Label helpAuditoria;
     @FXML private Label helpRespaldo;
@@ -122,6 +124,13 @@ public class ConfiguracionController {
         // isDemoMode(), so a PC working offline (real, unplanned case) saw
         // "Base de datos activa" with a green dot here — actively wrong at
         // exactly the moment a user most needs to know they're offline.
+        if (lblSistemaVersion != null)
+            lblSistemaVersion.setText("SIBIM v" + com.sibim.util.UpdateChecker.currentVersion());
+        if (btnPublicarActualizacion != null) {
+            boolean puede = SessionManager.isAdmin() && !DatabaseConfig.isDemoMode();
+            btnPublicarActualizacion.setVisible(puede);
+            btnPublicarActualizacion.setManaged(puede);
+        }
         if (lblSistemaModo != null) {
             boolean demo    = DatabaseConfig.isDemoMode();
             boolean offline = DatabaseConfig.isOfflineMode();
@@ -543,6 +552,71 @@ public class ConfiguracionController {
 
     @FXML
     private void onNuevoUsuario() { showUserDialog(null, false); }
+
+    /** Uploads a newer installer (packaging/dist) so every PC can update itself
+     *  at startup (see ActualizacionService and MainStartupChecks). */
+    @FXML
+    private void onPublicarActualizacion() {
+        var scene = usersTable.getScene();
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Instalador de la nueva versión");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Instalador de SIBIM (*.exe, *.msi)", "*.exe", "*.msi"));
+        File dist = new File("packaging/dist");
+        if (dist.isDirectory()) fc.setInitialDirectory(dist);
+        File exe = fc.showOpenDialog(scene.getWindow());
+        if (exe == null) return;
+
+        TextInputDialog dlg = new TextInputDialog(
+            com.sibim.service.ActualizacionService.versionDelArchivo(exe.getName()).orElse(""));
+        dlg.setTitle("Publicar actualización");
+        dlg.setHeaderText("Versión de " + exe.getName() + " (" + (exe.length() / (1024 * 1024)) + " MB)\n"
+            + "Debe ser mayor que la instalada en las PCs (esta es v" + com.sibim.util.UpdateChecker.currentVersion() + ").");
+        dlg.setContentText("Versión:");
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        String version = dlg.showAndWait().map(String::trim).orElse(null);
+        if (version == null || version.isBlank()) return;
+
+        TextInputDialog dlgNotas = new TextInputDialog();
+        dlgNotas.setTitle("Publicar actualización");
+        dlgNotas.setHeaderText("¿Qué trae la versión " + version + "? (opcional, lo verán al actualizar)");
+        dlgNotas.setContentText("Novedades:");
+        DialogUtil.applyOwner(dlgNotas);
+        DialogUtil.applyStylesheet(dlgNotas.getDialogPane());
+        String notas = dlgNotas.showAndWait().map(String::trim).orElse("");
+
+        DialogUtil.runAsyncWithProgress(scene, "Publicando la versión " + version + "…",
+            () -> { new com.sibim.service.ActualizacionService().publicar(exe, version, notas, null); return version; },
+            v -> NotificacionUtil.exito(scene, "Versión " + v + " publicada: las PCs la verán al abrir SIBIM"),
+            e -> NotificacionUtil.error(scene, "No se pudo publicar: " + e.getMessage()));
+    }
+
+    /** One shared account per área that doesn't have one yet, plus a PDF with
+     *  the credentials to hand out (see CuentasAreaService). */
+    @FXML
+    private void onCuentasPorArea() {
+        var scene = usersTable.getScene();
+        if (!com.sibim.util.ConfirmacionUtil.confirmar("Cuentas por área",
+                "Se creará una cuenta para cada área del organigrama que todavía no tenga.\n\n"
+                + "• Recursos Materiales y Patrimonio: administrador.\n"
+                + "• Presidencia y secretarías: ven su secretaría y sus direcciones.\n"
+                + "• Direcciones y organismos autónomos: solo su área.\n\n"
+                + "Las cuentas que ya existen no se modifican. Al terminar se abre un PDF con los usuarios "
+                + "y contraseñas nuevos para entregar a cada área.")) return;
+        DialogUtil.runAsyncWithProgress(scene, "Creando cuentas por área…",
+            () -> {
+                var cuentas = new com.sibim.service.CuentasAreaService().crearFaltantes();
+                long nuevas = cuentas.stream().filter(com.sibim.service.CuentasAreaService.Cuenta::nueva).count();
+                return java.util.Map.entry(nuevas, new com.sibim.service.ReporteCuentasService().exportCuentas(cuentas));
+            },
+            r -> {
+                loadUsers();
+                NotificacionUtil.exito(scene, r.getKey() == 0 ? "Todas las áreas ya tenían cuenta"
+                    : r.getKey() + " cuenta(s) creadas");
+                DialogUtil.showExportResultDialog(scene, r.getValue());
+            },
+            e -> NotificacionUtil.error(scene, "No se pudieron crear las cuentas: " + e.getMessage()));
+    }
 
     @FXML
     private void onEditUsuario() {

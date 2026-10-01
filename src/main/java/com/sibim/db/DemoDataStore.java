@@ -489,6 +489,12 @@ public final class DemoDataStore {
             if (m.getEstado() == null)
                 m.setEstado(m.getTipo() == TipoMovimiento.TRANSFERENCIA
                     ? Movimiento.ESTADO_PENDIENTE : Movimiento.ESTADO_APROBADO);
+            // Like V26 does with real data: transfers already approved in the
+            // seed count as received.
+            if (m.isPorRecibir()) {
+                m.setRecibidoEn(m.getCreadoEn());
+                m.setRecibidoPor(m.getUsuarioNombre());
+            }
         });
 
         // ── Auditoría inicial ─────────────────────────────────────────────────
@@ -779,6 +785,25 @@ public final class DemoDataStore {
             m.setCodigoNuevo(codigo);
             updateProductoArea(m.getProductoId(), m.getAreaDestino());
             updateProductoCodigo(m.getProductoId(), codigo);
+        }
+    }
+
+    public static List<Movimiento> findPorRecibir(java.util.Set<String> areas) {
+        return MOVIMIENTOS.stream()
+            .filter(Movimiento::isPorRecibir)
+            .filter(m -> areas == null || areas.contains(m.getAreaDestino()))
+            .sorted(Comparator.comparing(Movimiento::getCreadoEn))
+            .collect(Collectors.toList());
+    }
+
+    public static boolean confirmarRecepcion(String id, String recibidoPor) {
+        synchronized (STOCK_LOCK) {
+            Movimiento m = MOVIMIENTOS.stream().filter(x -> x.getId().equals(id) && x.isPorRecibir())
+                .findFirst().orElse(null);
+            if (m == null) return false;
+            m.setRecibidoPor(recibidoPor);
+            m.setRecibidoEn(LocalDateTime.now());
+            return true;
         }
     }
 

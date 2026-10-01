@@ -22,7 +22,12 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
+import com.sibim.model.Producto;
+
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.time.LocalDate;
 
 public class ReportesController {
@@ -184,6 +189,43 @@ public class ReportesController {
             var bienes = productoService.getAll();
             return reporteService.exportEntregaRecepcionPdf(bienes);
         });
+    }
+
+    // ─── Dictamen técnico de baja ───
+    /** Asks for the código(s) of the bien(es) — one page per bien. */
+    @FXML private void onDictamenBajaBien(ActionEvent event) {
+        Scene scene = spinner.getScene();
+        if (scene == null) return;
+        TextInputDialog dlg = new TextInputDialog();
+        dlg.setTitle("Dictamen técnico de baja");
+        dlg.setHeaderText("Código del bien a dictaminar (varios, separados por coma)");
+        dlg.setContentText("Código:");
+        DialogUtil.applyOwner(dlg);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        dlg.showAndWait().map(String::trim).filter(t -> !t.isBlank()).ifPresent(texto -> {
+            List<String> codigos = Arrays.stream(texto.split(","))
+                .map(String::trim).filter(c -> !c.isBlank()).distinct().toList();
+            List<String> noEncontrados = new ArrayList<>();
+            DialogUtil.runAsyncWithProgress(scene, "Generando dictamen técnico de baja…",
+                () -> {
+                    List<Producto> bienes = new ArrayList<>();
+                    for (String c : codigos) {
+                        productoService.findByCodigo(c).ifPresentOrElse(bienes::add, () -> noEncontrados.add(c));
+                    }
+                    return bienes.isEmpty() ? null : reporteService.exportDictamenBaja(bienes);
+                },
+                file -> {
+                    if (!noEncontrados.isEmpty()) NotificacionUtil.advertencia(scene,
+                        "No se encontró ningún bien con código " + String.join(", ", noEncontrados)
+                        + (file != null ? " — el dictamen se generó con los demás." : "."));
+                    if (file != null) DialogUtil.showExportResultDialog(scene, file);
+                },
+                e -> NotificacionUtil.error(scene, "No se pudo generar el dictamen técnico de baja"));
+        });
+    }
+
+    @FXML private void onDictamenBajaEnBlanco(ActionEvent event) {
+        exportar(event, reporteService::exportDictamenBajaEnBlanco);
     }
 
     private void loadAreaChart() {

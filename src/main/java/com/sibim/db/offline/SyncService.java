@@ -235,6 +235,7 @@ public final class SyncService {
             conflicts.addAll(syncProductos(synced, failed));
             syncMovimientos(synced, failed);
             syncConteos(synced, failed);
+            syncDocumentos(synced, failed);
             syncAuditLog(synced, failed);
         } catch (Exception e) {
             log.error("SyncService: fallo inesperado durante la sincronización", e);
@@ -359,7 +360,7 @@ public final class SyncService {
                                String ubicacion, String area,
                                String resguardante, String motivoBaja, String serverSnapshotAt,
                                boolean etiquetado, String fotosUrls,
-                               String estadoFisico, String numeroFactura, int retryCount) {}
+                               Producto extras, int retryCount) {}
 
     static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
             throws SQLException {
@@ -369,6 +370,8 @@ public final class SyncService {
                 "SELECT * FROM product_outbox WHERE status = '" + STATUS_PENDING + "' ORDER BY id");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
+                Producto extras = new Producto();
+                ProductoExtras.leer(rs, extras);
                 rows.add(new ProductRow(rs.getInt("id"), rs.getString("operacion"), rs.getString("producto_id"),
                     rs.getString("nombre"), rs.getString("codigo"), rs.getString("descripcion"),
                     rs.getString("categoria_id"), rs.getString("precio_compra"), rs.getString("precio_venta"),
@@ -380,7 +383,7 @@ public final class SyncService {
                     rs.getString("resguardante"), rs.getString("motivo_baja"),
                     rs.getString("server_snapshot_at"),
                     rs.getInt("etiquetado") != 0, rs.getString("fotos_urls"),
-                    rs.getString("estado_fisico"), rs.getString("numero_factura"), rs.getInt("retry_count")));
+                    extras, rs.getInt("retry_count")));
             }
         }
         ProductoRepository repo = new ProductoRepository();
@@ -421,7 +424,7 @@ public final class SyncService {
                 switch (r.operacion()) {
                     case "BAJA" -> repo.darDeBajaOnline(r.productoId(), r.motivoBaja());
                     case "REACTIVAR" -> repo.reactivarOnline(r.productoId());
-                    default -> repo.saveOnline(productFromRow(r));
+                    default -> repo.saveOnline(conDatosDelServidor(repo, productFromRow(r)));
                 }
                 LocalDateTime nuevoBaseline = fetchServerUpdatedAt(r.productoId());
                 if (nuevoBaseline != null) {
@@ -484,8 +487,7 @@ public final class SyncService {
         p.setEtiquetado(r.etiquetado());
         if (r.fotosUrls() != null && !r.fotosUrls().isBlank())
             p.setFotosUrls(new ArrayList<>(Arrays.asList(r.fotosUrls().split("\\|\\|"))));
-        p.setEstadoFisico(r.estadoFisico());
-        p.setNumeroFactura(r.numeroFactura());
+        ProductoExtras.completarConServidor(p, r.extras());   // p has none of them yet: copies them all
         return p;
     }
 
@@ -503,6 +505,14 @@ public final class SyncService {
             log.warn("SyncService: no se pudo consultar updated_at del producto {}", productoId, e);
         }
         return null;
+    }
+
+    /** saveOnline writes the whole row: fields this offline change doesn't
+     *  carry (queued by an older SIBIM, or from a mirror not refreshed since)
+     *  keep the server's value instead of being wiped. */
+    private static Producto conDatosDelServidor(ProductoRepository repo, Producto offline) throws SQLException {
+        ProductoExtras.completarConServidor(offline, repo.findByIdOnline(offline.getId()).orElse(null));
+        return offline;
     }
 
     private static Producto fetchServerProduct(String productoId) {
@@ -556,7 +566,7 @@ public final class SyncService {
                 } else if ("REACTIVAR".equals(operacion)) {
                     repo.reactivarOnline(versionOffline.getId());
                 } else {
-                    repo.saveOnline(versionOffline);
+                    repo.saveOnline(conDatosDelServidor(repo, versionOffline));
                 }
                 markOutbox("product_outbox", outboxId, STATUS_SYNCED, null);
                 log.info("SyncService: conflicto {} ({}) resuelto — versión offline aplicada", outboxId, operacion);
@@ -765,6 +775,67 @@ public final class SyncService {
         }
     }
 
+    // ─────────────────────────────── Documentos ────────────────────────────
+
+    /** Resguardos, préstamos, comodatos and actas made or changed offline
+     *  (see OfflineDocs), in the order they were made. A document created
+     *  offline gets its real folio here; the copy on this PC is updated so
+     *  it shows that folio from now on. */
+    static void syncDocumentos(AtomicInteger synced, AtomicInteger failed) throws SQLException {
+        var resguardos = new com.sibim.repository.ResguardoRepository();
+        var prestamos  = new com.sibim.repository.PrestamoRepository();
+        var comodatos  = new com.sibim.repository.ComodatoRepository();
+        var actas      = new com.sibim.repository.ActaRepository();
+        var areaResguardos = new com.sibim.repository.AreaResguardoRepository();
+        for (OfflineDocs.Pendiente r : OfflineDocs.pendientes()) {
+            try {
+                String clave = r.tipo() + ":" + r.operacion();
+                switch (clave) {
+                    case "resguardo:CREAR" -> {
+                        var d = OfflineDocs.leer(r.json(), com.sibim.model.Resguardo.class);
+                        OfflineDocs.guardar(r.tipo(), d.getId(), resguardos.saveOnline(d));
+                    }
+                    case "resguardo:CANCELAR" -> resguardos.cancelarOnline(r.docId());
+                    case "prestamo:CREAR" -> {
+                        var d = OfflineDocs.leer(r.json(), com.sibim.model.Prestamo.class);
+                        OfflineDocs.guardar(r.tipo(), d.getId(), prestamos.saveOnline(d));
+                    }
+                    case "prestamo:DEVOLVER" -> {
+                        var d = OfflineDocs.leer(r.json(), com.sibim.model.Prestamo.class);
+                        prestamos.devolverOnline(r.docId(), d.getFechaDevolucionReal());
+                    }
+                    case "comodato:CREAR" -> {
+                        var d = OfflineDocs.leer(r.json(), com.sibim.model.Comodato.class);
+                        OfflineDocs.guardar(r.tipo(), d.getId(), comodatos.saveOnline(d));
+                    }
+                    case "comodato:CONCLUIR" -> {
+                        var d = OfflineDocs.leer(r.json(), com.sibim.model.Comodato.class);
+                        comodatos.concluirOnline(r.docId(), d.getFechaDevolucionReal());
+                    }
+                    case "comodato:RESCINDIR" -> comodatos.rescindirOnline(r.docId());
+                    case "acta:CREAR" -> {
+                        var d = OfflineDocs.leer(r.json(), com.sibim.model.ActaEntregaRecepcion.class);
+                        OfflineDocs.guardar(r.tipo(), d.getId(), actas.saveOnline(d));
+                    }
+                    case "area_resguardo:CREAR" -> {
+                        var d = OfflineDocs.leer(r.json(), com.sibim.repository.AreaResguardoRepository.Local.class);
+                        areaResguardos.saveOnline(d);
+                    }
+                    case "area_resguardo:ELIMINAR" -> areaResguardos.deleteOnline(r.docId());
+                    default -> throw new SQLException("Operación desconocida en la cola de documentos: " + clave);
+                }
+                markOutbox("doc_outbox", r.id(), STATUS_SYNCED, null);
+                writeAuditEntry(r.tipo(), r.docId(), r.docId(), r.operacion().toLowerCase(), "Replicado desde modo offline");
+                synced.incrementAndGet();
+            } catch (Exception ex) {
+                log.error("SyncService: no se pudo sincronizar {} {} ({})", r.tipo(), r.docId(), r.operacion(), ex);
+                markOutbox("doc_outbox", r.id(),
+                    resolveFailureStatus(ex, r.reintentos(), r.tipo(), r.docId(), r.docId()), ex.getMessage());
+                failed.incrementAndGet();
+            }
+        }
+    }
+
     // ─────────────────────────────── Outbox bookkeeping ────────────────────
 
     /** True for failures that will never succeed on retry (FK violations, duplicate keys,
@@ -837,7 +908,7 @@ public final class SyncService {
         int total = 0;
         for (String table : new String[]{
                 "category_outbox", "product_outbox", "movement_outbox",
-                "conteo_outbox", "audit_log_outbox"}) {
+                "conteo_outbox", "audit_log_outbox", "doc_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                     "SELECT COUNT(*) FROM " + table + " WHERE status IN ('" + STATUS_PENDING + "', '" + STATUS_FAILED + "')");
                  ResultSet rs = ps.executeQuery()) {
@@ -853,7 +924,7 @@ public final class SyncService {
     static void requeueFailedChanges() {
         for (String table : new String[]{
                 "category_outbox", "product_outbox", "movement_outbox",
-                "conteo_outbox", "audit_log_outbox"}) {
+                "conteo_outbox", "audit_log_outbox", "doc_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                     "UPDATE " + table + " SET status = ? WHERE status = ?")) {
                 ps.setString(1, STATUS_PENDING);
@@ -872,7 +943,7 @@ public final class SyncService {
     private static void purgeSyncedRows() {
         for (String table : new String[]{
                 "category_outbox", "product_outbox", "movement_outbox",
-                "conteo_outbox", "audit_log_outbox"}) {
+                "conteo_outbox", "audit_log_outbox", "doc_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                     "DELETE FROM " + table + " WHERE status = ?")) {
                 ps.setString(1, STATUS_SYNCED);
@@ -943,6 +1014,7 @@ public final class SyncService {
         queryDiscarded("movement_outbox",  "Movimiento",  "movimiento_id","tipo",            result);
         queryDiscarded("conteo_outbox",    "Conteo físico","conteo_id",   "usuario_nombre",  result);
         queryDiscarded("audit_log_outbox", "Auditoría",   "audit_id",     "entidad_nombre",  result);
+        queryDiscarded("doc_outbox",       "Documento",   "doc_id",       "tipo",            result);
         result.sort((a, b) -> b.createdAt().compareTo(a.createdAt()));
         return result;
     }
@@ -977,7 +1049,7 @@ public final class SyncService {
         int total = 0;
         for (String table : new String[]{
                 "category_outbox", "product_outbox", "movement_outbox",
-                "conteo_outbox", "audit_log_outbox"}) {
+                "conteo_outbox", "audit_log_outbox", "doc_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                     "SELECT COUNT(*) FROM " + table + " WHERE status = 'DISCARDED'");
                  ResultSet rs = ps.executeQuery()) {
@@ -998,7 +1070,7 @@ public final class SyncService {
         }
         for (String table : new String[]{
                 "category_outbox", "product_outbox", "movement_outbox",
-                "conteo_outbox", "audit_log_outbox"}) {
+                "conteo_outbox", "audit_log_outbox", "doc_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                     "DELETE FROM " + table + " WHERE status = 'DISCARDED'")) {
                 ps.executeUpdate();

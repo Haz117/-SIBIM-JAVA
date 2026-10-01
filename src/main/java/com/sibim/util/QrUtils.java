@@ -16,12 +16,62 @@ public final class QrUtils {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(QrUtils.class);
     private QrUtils() {}
 
+    /** UTF-8 so accents and ñ read right on any phone. */
+    private static final Map<EncodeHintType, Object> OPCIONES =
+        Map.of(EncodeHintType.MARGIN, 1, EncodeHintType.CHARACTER_SET, "UTF-8");
+
+    /**
+     * What a bien's QR carries: its ficha técnica in short, readable by any
+     * phone camera with no app and no internet. The código goes alone on the
+     * first line — a handheld scanner "types" the QR and ends at the first
+     * line break, so SIBIM's own scanner still gets just the código (see
+     * BarcodeScanner, which ignores the rest of the burst).
+     */
+    public static String contenidoBien(com.sibim.model.Producto p) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "SIN CÓDIGO");
+        linea(sb, null, recortar(p.getNombre(), 70));
+        linea(sb, "Área", p.getArea());
+        linea(sb, "Resguardante", p.getResguardante());
+        StringBuilder equipo = new StringBuilder();
+        for (String[] kv : new String[][]{{"Marca", p.getMarca()}, {"Modelo", p.getModelo()}, {"Serie", p.getNumeroSerie()}}) {
+            if (kv[1] != null && !kv[1].isBlank())
+                equipo.append(equipo.length() > 0 ? " · " : "").append(kv[0]).append(": ").append(kv[1].trim());
+        }
+        linea(sb, null, equipo.toString());
+        linea(sb, "Estado", p.isDadoDeBaja() ? "DADO DE BAJA" : p.getEstadoFisico());
+        sb.append("\nInventario patrimonial · SIBIM");
+        return sb.toString();
+    }
+
+    private static void linea(StringBuilder sb, String etiqueta, String valor) {
+        if (valor == null || valor.isBlank()) return;
+        sb.append('\n');
+        if (etiqueta != null) sb.append(etiqueta).append(": ");
+        sb.append(valor.trim());
+    }
+
+    private static String recortar(String s, int max) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.length() <= max ? t : t.substring(0, max - 1) + "…";
+    }
+
+    /** The código from something a scanner read: the first line of a SIBIM
+     *  QR, or the whole text of an old QR / barcode that carried just it. */
+    public static String codigoLeido(String leido) {
+        if (leido == null) return "";
+        String t = leido.strip();
+        int salto = t.indexOf('\n');
+        return (salto >= 0 ? t.substring(0, salto) : t).strip();
+    }
+
     /** Returns a JavaFX Image with black modules on transparent background.
      *  Transparent renders as white on any opaque UI surface. */
     public static Image generateQr(String content, int size) {
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size,
-                Map.of(EncodeHintType.MARGIN, 1));
+                OPCIONES);
             WritableImage image = new WritableImage(size, size);
             PixelWriter pw = image.getPixelWriter();
             for (int x = 0; x < size; x++) {
@@ -40,7 +90,7 @@ public final class QrUtils {
     public static byte[] toPngBytes(String content, int size) {
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size,
-                Map.of(EncodeHintType.MARGIN, 1));
+                OPCIONES);
             java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
                 size, size, java.awt.image.BufferedImage.TYPE_INT_RGB);
             for (int x = 0; x < size; x++)

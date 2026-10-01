@@ -15,6 +15,13 @@ import java.util.UUID;
 
 public class UsuarioRepository {
 
+    /** The generic área accounts (CuentasAreaService), shared by several people. */
+    private static final class CuentasCompartidas {
+        static boolean es(Usuario u) {
+            return u != null && com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(u.getCargo());
+        }
+    }
+
     private void requireAdmin() {
         if (!SessionManager.isAdmin()) {
             throw new SecurityException("Solo el administrador puede gestionar usuarios");
@@ -137,17 +144,22 @@ public class UsuarioRepository {
      */
     public void updatePassword(String userId, String newHash) throws SQLException {
         requireAdmin();
-        String nombre = findById(userId).map(Usuario::getNombre).orElse(userId);
+        Optional<Usuario> cuenta = findById(userId);
+        String nombre = cuenta.map(Usuario::getNombre).orElse(userId);
+        // A shared área account keeps the password Patrimonio just set: forcing
+        // a change would let the first person in lock out the rest of the área.
+        boolean obligarCambio = !cuenta.map(CuentasCompartidas::es).orElse(false);
         if (DatabaseConfig.isDemoMode()) {
-            DemoDataStore.updateUsuarioPassword(userId, newHash, true);
+            DemoDataStore.updateUsuarioPassword(userId, newHash, obligarCambio);
             new AuditLogRepository().log("usuario", userId, nombre, "actualizar", "Contraseña restablecida");
             return;
         }
-        String sql = "UPDATE users SET password = ?, debe_cambiar_password = TRUE WHERE id = ?";
+        String sql = "UPDATE users SET password = ?, debe_cambiar_password = ? WHERE id = ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, newHash);
-            ps.setString(2, userId);
+            ps.setBoolean(2, obligarCambio);
+            ps.setString(3, userId);
             ps.executeUpdate();
         }
         new AuditLogRepository().log("usuario", userId, nombre, "actualizar", "Contraseña restablecida");
@@ -162,6 +174,9 @@ public class UsuarioRepository {
         Usuario currentUser = SessionManager.getCurrentUser();
         if (currentUser == null || !userId.equals(currentUser.getId())) {
             throw new SecurityException("Solo puedes cambiar la contraseña de tu propia cuenta");
+        }
+        if (CuentasCompartidas.es(currentUser) && !SessionManager.isAdmin()) {
+            throw new SecurityException("La contraseña de la cuenta del área la cambia Recursos Materiales y Patrimonio");
         }
         if (DatabaseConfig.isDemoMode()) {
             DemoDataStore.updateUsuarioPassword(userId, newHash, false);

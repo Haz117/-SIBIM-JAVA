@@ -453,6 +453,13 @@ public final class OfflineStore {
         } catch (SQLException ignored) {
             log.debug("Offline migration step already applied (idempotent)", ignored);
         }
+        // M(2026-09c): depreciation, inventario físico, vehicle and dictamen
+        // columns — without them an offline edit wiped them on the server.
+        try { OfflineDocs.crearTablas(c); } catch (SQLException e) {
+            log.warn("OfflineStore: no se pudieron crear las tablas de documentos offline", e);
+        }
+        ProductoExtras.migrar(c, "products");
+        ProductoExtras.migrar(c, "product_outbox");
         codigoUnicoSoloEntreActivos(c);
     }
 
@@ -663,8 +670,10 @@ public final class OfflineStore {
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante, fecha_baja, motivo_baja,
-                etiquetado, fotos_urls, created_at, updated_at, server_updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                etiquetado, fotos_urls, created_at, updated_at, server_updated_at""" + ProductoExtras.columnas() + """
+            )
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?""" + ProductoExtras.marcadores() + """
+            )
             ON CONFLICT(id) DO UPDATE SET
                 nombre=excluded.nombre, codigo=excluded.codigo, descripcion=excluded.descripcion,
                 categoria_id=excluded.categoria_id, precio_compra=excluded.precio_compra,
@@ -677,7 +686,8 @@ public final class OfflineStore {
                 ubicacion=excluded.ubicacion, area=excluded.area, resguardante=excluded.resguardante,
                 fecha_baja=excluded.fecha_baja, motivo_baja=excluded.motivo_baja,
                 etiquetado=excluded.etiquetado, fotos_urls=excluded.fotos_urls,
-                updated_at=excluded.updated_at, server_updated_at=excluded.server_updated_at
+                updated_at=excluded.updated_at, server_updated_at=excluded.server_updated_at""" + ProductoExtras.actualizar() + """
+
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setString(28, str(p.getActualizadoEn()));
@@ -709,6 +719,7 @@ public final class OfflineStore {
             ps.setString(25, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
             ps.setString(26, str(p.getCreadoEn()));
             ps.setString(27, str(p.getActualizadoEn()));
+            ProductoExtras.enlazar(ps, 29, p);
             ps.executeUpdate();
         }
     }
@@ -908,6 +919,24 @@ public final class OfflineStore {
         }
     }
 
+    /** A resguardo made offline names who holds its bienes: show it in this
+     *  PC's copy now. Not queued — creating the resguardo on the server sets
+     *  products.resguardante itself (ResguardoRepository.asignarResguardante). */
+    public static synchronized void asignarResguardanteLocal(List<String> productoIds, String resguardante)
+            throws SQLException {
+        ensureLoaded();
+        try (PreparedStatement ps = conn().prepareStatement("UPDATE products SET resguardante = ? WHERE id = ?")) {
+            for (String id : productoIds) {
+                Producto p = PRODUCTOS_MAP.get(id);
+                if (p != null) p.setResguardante(resguardante);
+                ps.setString(1, resguardante);
+                ps.setString(2, id);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
     public static synchronized void saveProducto(Producto recibido) throws SQLException {
         ensureLoaded();
         Producto p = recibido.copia();   // the caller keeps its object; the store keeps its own
@@ -1012,8 +1041,10 @@ public final class OfflineStore {
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
                 fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante, fecha_baja, motivo_baja,
-                etiquetado, fotos_urls, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                etiquetado, fotos_urls, created_at, updated_at""" + ProductoExtras.columnas() + """
+            )
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?""" + ProductoExtras.marcadores() + """
+            )
             ON CONFLICT(id) DO UPDATE SET
                 nombre=excluded.nombre, codigo=excluded.codigo, descripcion=excluded.descripcion,
                 categoria_id=excluded.categoria_id, precio_compra=excluded.precio_compra,
@@ -1026,7 +1057,8 @@ public final class OfflineStore {
                 ubicacion=excluded.ubicacion, area=excluded.area, resguardante=excluded.resguardante,
                 fecha_baja=excluded.fecha_baja, motivo_baja=excluded.motivo_baja,
                 etiquetado=excluded.etiquetado, fotos_urls=excluded.fotos_urls,
-                updated_at=excluded.updated_at
+                updated_at=excluded.updated_at""" + ProductoExtras.actualizar() + """
+
             """;
         LocalDateTime now = LocalDateTime.now();
         if (p.getCreadoEn() == null) p.setCreadoEn(now);
@@ -1060,6 +1092,7 @@ public final class OfflineStore {
             ps.setString(25, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
             ps.setString(26, str(p.getCreadoEn()));
             ps.setString(27, str(now));
+            ProductoExtras.enlazar(ps, 28, p);
             ps.executeUpdate();
         }
     }
@@ -1279,9 +1312,10 @@ public final class OfflineStore {
             INSERT INTO product_outbox (operacion, producto_id, nombre, codigo, descripcion,
                 categoria_id, precio_compra, precio_venta, stock_actual, stock_minimo, stock_maximo,
                 unidad, proveedor, fecha_vencimiento, foto_url, factura_url, numero_serie, marca, modelo, ubicacion, area, resguardante,
-                motivo_baja, created_at, server_snapshot_at, etiquetado, fotos_urls,
-                estado_fisico, numero_factura)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                motivo_baja, created_at, server_snapshot_at, etiquetado, fotos_urls""" + ProductoExtras.columnas() + """
+            )
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?""" + ProductoExtras.marcadores() + """
+            )
             """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             int i = 1;
@@ -1313,8 +1347,7 @@ public final class OfflineStore {
             ps.setInt(i++, p.isEtiquetado() ? 1 : 0);
             List<String> fotos = p.getFotosUrls();
             ps.setString(i++, (fotos == null || fotos.isEmpty()) ? null : String.join("||", fotos));
-            ps.setString(i++, p.getEstadoFisico());
-            ps.setString(i, p.getNumeroFactura());
+            ProductoExtras.enlazar(ps, i, p);
             ps.executeUpdate();
         }
     }
@@ -1519,6 +1552,7 @@ public final class OfflineStore {
         }
         p.setCreadoEn(dt(rs.getString("created_at")));
         p.setActualizadoEn(dt(rs.getString("updated_at")));
+        ProductoExtras.leer(rs, p);
         return p;
     }
 

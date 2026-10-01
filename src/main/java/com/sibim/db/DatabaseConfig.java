@@ -90,13 +90,19 @@ public final class DatabaseConfig {
         config.setJdbcUrl(url);
         config.setUsername(user);
         config.setPassword(password);
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(3);
+        // Every PC of the municipality shares the Supabase pooler's connection
+        // limit, so each one keeps few open: 1 idle (was 3), at most 6 (was 10).
+        config.setMaximumPoolSize(6);
+        config.setMinimumIdle(1);
         config.setConnectionTimeout(8_000);
         // 8 s gives enough time for VPN / remote DB connections to establish.
         config.setInitializationFailTimeout(8_000);
-        config.setIdleTimeout(600_000);
-        config.setMaxLifetime(1_800_000);
+        config.setIdleTimeout(180_000);
+        // The pooler drops connections left idle, which surfaced as "Failed to
+        // validate connection … closed" and, on a bad moment, a false switch to
+        // offline mode. Ping idle ones and renew them before that happens.
+        config.setKeepaliveTime(120_000);
+        config.setMaxLifetime(600_000);
         // PostgreSQL JDBC driver properties (pgjdbc)
         config.addDataSourceProperty("prepareThreshold", "3");
         config.addDataSourceProperty("preparedStatementCacheQueries", "25");
@@ -105,6 +111,7 @@ public final class DatabaseConfig {
         // of HikariCP's own initializationFailTimeout.
         config.addDataSourceProperty("connectTimeout", "8");
         config.addDataSourceProperty("socketTimeout", "30");
+        config.addDataSourceProperty("tcpKeepAlive", "true");
 
         // Remote connections default to "require"; local connections to "prefer".
         String sslMode = resolveSslMode(getEnv(dotenv, "DB_SSL_MODE", null), isRemote);
@@ -264,6 +271,16 @@ public final class DatabaseConfig {
         return getEnv(loadDotenv(), key, fallback);
     }
 
+    /** The .env this PC uses — see {@link #loadDotenv()} for the order. */
+    public static Dotenv dotenv() {
+        return loadDotenv();
+    }
+
+    /** File the installer ships next to the app (packaging/build-installer.ps1
+     *  stages it; the launcher passes its folder as -Dsibim.config.dir), so a
+     *  fresh install connects without anyone configuring anything. */
+    static final String CONFIG_INSTALADA = "sibim.env";
+
     private static Dotenv loadDotenv() {
         // 1. Production: %APPDATA%\SIBIM\.env  (Windows) or ~/.sibim/.env
         String appData = System.getenv("APPDATA");
@@ -274,7 +291,16 @@ public final class DatabaseConfig {
         if (candidate.get("DB_URL") != null || candidate.get("DB_PASSWORD") != null)
             return candidate;
 
-        // 2. Dev fallback: working directory / project root
+        // 2. The configuration bundled with the installed app. A PC's own
+        //    %APPDATA% file (above) still wins, e.g. the admin PC's.
+        String instalada = System.getProperty("sibim.config.dir");
+        if (instalada != null && !instalada.isBlank()) {
+            Dotenv bundled = Dotenv.configure().directory(instalada).filename(CONFIG_INSTALADA)
+                .ignoreIfMissing().load();
+            if (bundled.get("DB_URL") != null) return bundled;
+        }
+
+        // 3. Dev fallback: working directory / project root
         return Dotenv.configure().ignoreIfMissing().load();
     }
 

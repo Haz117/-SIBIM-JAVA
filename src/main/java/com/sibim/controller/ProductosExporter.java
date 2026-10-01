@@ -124,7 +124,7 @@ final class ProductosExporter {
 
     /** Shows a preview dialog for one bien's QR with an optional "Guardar PNG". */
     static void showQrDialog(Scene scene, Producto producto, Logger log) {
-        Image qrImg = QrUtils.generateQr(producto.getCodigo(), 300);
+        Image qrImg = QrUtils.generateQr(QrUtils.contenidoBien(producto), 300);
         if (qrImg == null) { NotificacionUtil.error(scene, "No se pudo generar el QR"); return; }
 
         ButtonType savePng = new ButtonType("Guardar PNG", ButtonBar.ButtonData.OK_DONE);

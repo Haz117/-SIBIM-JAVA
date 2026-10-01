@@ -204,8 +204,9 @@ public interface ContratoInventario {
         comoDireccion(AREA_A, () -> {
             assertThrows(MovimientoService.ValidationException.class,
                 () -> movimientos().registrar(p.getId(), TipoMovimiento.ENTRADA, 1, "x", null));
-            assertThrows(MovimientoService.ValidationException.class,
-                () -> movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 3, "x", null, AREA_B));
+            // A transfer from an área is only a request: it waits for Patrimonio.
+            assertTrue(movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 3, "x", null, AREA_B).isPendiente());
+            assertEquals(AREA_A, releer(p.getId()).getArea(), "la solicitud no mueve el bien");
             Producto nuevo = releer(p.getId()).copia();
             nuevo.setId(null);
             nuevo.setNombre("Alta por la dirección");

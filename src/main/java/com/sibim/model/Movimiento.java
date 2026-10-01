@@ -89,6 +89,21 @@ public class Movimiento {
     public String getCodigoNuevo() { return codigoNuevo; }
     public void setCodigoNuevo(String codigoNuevo) { this.codigoNuevo = codigoNuevo; }
 
+    /** Who in the destination área confirmed they have the bien, and when
+     *  (V26). Null on an approved transfer = still "por recibir". */
+    private String recibidoPor;
+    private java.time.LocalDateTime recibidoEn;
+
+    public String getRecibidoPor() { return recibidoPor; }
+    public void setRecibidoPor(String recibidoPor) { this.recibidoPor = recibidoPor; }
+    public java.time.LocalDateTime getRecibidoEn() { return recibidoEn; }
+    public void setRecibidoEn(java.time.LocalDateTime recibidoEn) { this.recibidoEn = recibidoEn; }
+
+    /** An approved transfer the destination área hasn't confirmed yet. */
+    public boolean isPorRecibir() {
+        return tipo == com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA && isAprobado() && recibidoEn == null;
+    }
+
     public boolean isPendiente()  { return ESTADO_PENDIENTE.equals(estado); }
     public boolean isAprobado()   { return ESTADO_APROBADO.equals(estado) || estado == null; }
     public boolean isRechazado()  { return ESTADO_RECHAZADO.equals(estado); }

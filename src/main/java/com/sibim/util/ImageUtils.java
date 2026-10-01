@@ -1,6 +1,5 @@
 package com.sibim.util;
 
-import io.github.cdimascio.dotenv.Dotenv;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -48,19 +47,9 @@ public final class ImageUtils {
     }
 
     private static String resolveImgDir() {
-        // 1. %APPDATA%\SIBIM\.env (production location, same as DatabaseConfig)
-        String appData = System.getenv("APPDATA");
-        String prodDir = (appData != null && !appData.isBlank())
-            ? appData + File.separator + "SIBIM"
-            : System.getProperty("user.home") + File.separator + ".sibim";
-        Dotenv prod = Dotenv.configure().directory(prodDir).ignoreIfMissing().load();
-        String val = prod.get("IMG_DIR");
-        if (val != null && !val.isBlank()) return val;
-        // 2. Working directory / project root
-        val = Dotenv.configure().ignoreIfMissing().load().get("IMG_DIR");
-        if (val != null && !val.isBlank()) return val;
-        // 3. System environment variable
-        return System.getenv("IMG_DIR");
+        // Same .env the connection uses (this PC's, the installed one or the
+        // working directory's), then the environment.
+        return com.sibim.db.DatabaseConfig.setting("IMG_DIR", null);
     }
 
     /** Lets callers reject an oversized file at selection time, before

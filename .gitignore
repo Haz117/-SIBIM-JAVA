@@ -62,3 +62,10 @@ __pycache__/
 # ── Inventario físico real del ayuntamiento (miles de .docx/.xlsx, ~4 GB) ──
 # Son datos de trabajo, no código: nunca deben llegar a GitHub.
 INV.DIG MLA/
+
+# ── WiX portable para jpackage (se descarga, no se versiona) ──────
+tools/wix314/
+
+# ── Configuración que el instalador lleva dentro (contraseña de sibim_app) ──
+packaging/sibim.env
+packaging/crear-rol-sibim_app.sql

@@ -383,6 +383,36 @@
             </Button>
         </VBox>
 
+        <!-- ── Dictamen técnico de baja — slate ── -->
+        <VBox styleClass="report-card, report-card-slate" spacing="10"
+              GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2">
+            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <StackPane styleClass="report-icon-badge, report-icon-badge-slate">
+                    <FontIcon iconLiteral="mdi2f-file-certificate-outline" styleClass="report-icon"/>
+                </StackPane>
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Dictamen Técnico de Baja" styleClass="report-title"/>
+                    <Label text="Diagnóstico · procede o no procede · destino final"
+                           styleClass="report-card-tag, report-card-tag-slate"/>
+                </VBox>
+            </HBox>
+            <Label text="Formato que llena el área técnica que revisó el bien para justificar su baja: estado encontrado, diagnóstico, causa, si es reparable, si procede la baja y el destino final recomendado. Se anexa a la solicitud de baja firmada."
+                   styleClass="report-desc" wrapText="true"/>
+            <MenuButton text="Generar dictamen" styleClass="report-export-btn, report-export-slate"
+                        contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+                <items>
+                    <MenuItem text="De un bien (por código)…" onAction="#onDictamenBajaBien">
+                        <graphic><FontIcon iconLiteral="mdi2m-magnify" styleClass="report-export-icon-pdf"/></graphic>
+                    </MenuItem>
+                    <MenuItem text="Formato en blanco" onAction="#onDictamenBajaEnBlanco">
+                        <graphic><FontIcon iconLiteral="mdi2f-file-outline" styleClass="report-export-icon-pdf"/></graphic>
+                    </MenuItem>
+                </items>
+            </MenuButton>
+        </VBox>
+
     </GridPane>
 
 </VBox>

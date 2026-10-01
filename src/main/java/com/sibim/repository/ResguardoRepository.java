@@ -1,6 +1,7 @@
 package com.sibim.repository;
 
 import com.sibim.db.DatabaseConfig;
+import com.sibim.db.offline.OfflineDocs;
 import com.sibim.model.Resguardo;
 import com.sibim.model.ResguardoItem;
 import com.sibim.session.SessionManager;
@@ -39,8 +40,19 @@ public class ResguardoRepository {
         }
     }
 
+    /** Offline: this PC's copy (see OfflineDocs), with the same área scope. */
+    private static List<Resguardo> locales() throws SQLException {
+        java.util.Set<String> acc = SessionManager.getAccessibleAreas();
+        return OfflineDocs.todos(OfflineDocs.RESGUARDO, Resguardo.class).stream()
+            .filter(r -> acc == null || acc.contains(r.getResguardanteArea()))
+            .sorted(java.util.Comparator.comparing(Resguardo::getCreadoEn,
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+            .toList();
+    }
+
     public List<Resguardo> findAll() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales();
         List<Resguardo> list = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
@@ -55,12 +67,35 @@ public class ResguardoRepository {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) list.add(mapRow(rs));
             }
+            cargarItems(list, conn);
         }
+        OfflineDocs.guardarTodos(OfflineDocs.RESGUARDO, list, Resguardo::getId);
         return list;
     }
 
+    /** Items of every resguardo in one query — the offline copy needs them to
+     *  print a resguardo without a connection. */
+    private void cargarItems(List<Resguardo> resguardos, Connection conn) throws SQLException {
+        if (resguardos.isEmpty()) return;
+        java.util.Map<String, Resguardo> porId = new java.util.HashMap<>();
+        resguardos.forEach(r -> { r.setItems(new ArrayList<>()); porId.put(r.getId(), r); });
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT * FROM resguardo_items WHERE resguardo_id = ANY(?) ORDER BY id")) {
+            ps.setArray(1, conn.createArrayOf("text", porId.keySet().toArray(new String[0])));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ResguardoItem item = mapItem(rs);
+                    Resguardo r = porId.get(item.getResguardoId());
+                    if (r != null) r.getItems().add(item);
+                }
+            }
+        }
+    }
+
     public Resguardo findById(String id) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return null;
+        if (DatabaseConfig.isDemoMode()) return null;
+        if (OfflineDocs.activo())
+            return locales().stream().filter(r -> r.getId().equals(id)).findFirst().orElse(null);
         List<Object> scopeParams = new ArrayList<>();
         String scope = scopeCondicion(scopeParams);
         String sql = "SELECT * FROM resguardos r WHERE r.id = ?" + (scope != null ? " AND " + scope : "");
@@ -80,16 +115,40 @@ public class ResguardoRepository {
     }
 
     public Resguardo save(Resguardo resguardo) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null)
-            throw new IllegalStateException("Resguardos no disponibles en modo offline/demo");
+        if (DatabaseConfig.isDemoMode())
+            throw new IllegalStateException("Resguardos no disponibles en modo demo");
         if (resguardo.getId() == null) resguardo.setId(UUID.randomUUID().toString());
-        if (resguardo.getNumero() == null) resguardo.setNumero(nextNumero());
-
         com.sibim.model.Usuario u = SessionManager.getCurrentUser();
         if (u != null) {
             resguardo.setCreadoPorId(u.getId());
             resguardo.setCreadoPorNombre(u.getNombre());
         }
+        if (OfflineDocs.activo()) {
+            // Saved on this PC with a provisional folio; SyncService creates it
+            // on the server (real folio) when the connection is back.
+            resguardo.setNumero(OfflineDocs.folioProvisional("RSG", resguardo.getId()));
+            resguardo.setEstado(Resguardo.ESTADO_ACTIVO);
+            resguardo.setCreadoEn(LocalDateTime.now());
+            for (ResguardoItem item : resguardo.getItems()) {
+                if (item.getId() == null) item.setId(UUID.randomUUID().toString());
+                item.setResguardoId(resguardo.getId());
+            }
+            OfflineDocs.registrar(OfflineDocs.RESGUARDO, "CREAR", resguardo.getId(), resguardo);
+            com.sibim.db.offline.OfflineStore.asignarResguardanteLocal(resguardo.getItems().stream()
+                .map(ResguardoItem::getProductoId).filter(java.util.Objects::nonNull).toList(),
+                resguardo.getResguardanteNombre());
+            return resguardo;
+        }
+        return saveOnline(resguardo);
+    }
+
+    /** Writes to the server whatever the offline flag says — SyncService
+     *  replays offline resguardos through here. A provisional folio is
+     *  replaced by the next real one. */
+    public Resguardo saveOnline(Resguardo resguardo) throws SQLException {
+        if (resguardo.getId() == null) resguardo.setId(UUID.randomUUID().toString());
+        if (resguardo.getNumero() == null || resguardo.getNumero().contains("-PROV-"))
+            resguardo.setNumero(nextNumero());
 
         String sql = """
             INSERT INTO resguardos
@@ -137,7 +196,18 @@ public class ResguardoRepository {
     public void cancelar(String id) throws SQLException {
         if (!SessionManager.isAdmin())
             throw new SecurityException("Solo el administrador puede cancelar resguardos");
-        if (DatabaseConfig.getLocalDataStore() != null) return;
+        if (DatabaseConfig.isDemoMode()) return;
+        if (OfflineDocs.activo()) {
+            Resguardo r = OfflineDocs.uno(OfflineDocs.RESGUARDO, id, Resguardo.class)
+                .orElseThrow(() -> new SQLException("Resguardo no encontrado en esta PC: " + id));
+            r.setEstado(Resguardo.ESTADO_CANCELADO);
+            OfflineDocs.registrar(OfflineDocs.RESGUARDO, "CANCELAR", id, r);
+            return;
+        }
+        cancelarOnline(id);
+    }
+
+    public void cancelarOnline(String id) throws SQLException {
         // The bienes of a cancelled resguardo are left without resguardante —
         // unless another active resguardo still covers them.
         String liberar = """
@@ -177,7 +247,10 @@ public class ResguardoRepository {
     }
 
     public List<Resguardo> findByProductoId(String productoId) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
+        if (DatabaseConfig.isDemoMode()) return List.of();
+        if (OfflineDocs.activo()) return locales().stream()
+            .filter(r -> r.getItems().stream().anyMatch(i -> productoId.equals(i.getProductoId())))
+            .toList();
         List<Resguardo> list = new ArrayList<>();
         List<Object> scopeParams = new ArrayList<>();
         String scope = scopeCondicion(scopeParams);
@@ -260,7 +333,9 @@ public class ResguardoRepository {
     }
 
     public int countActivos() throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) return 0;
+        if (DatabaseConfig.isDemoMode()) return 0;
+        if (OfflineDocs.activo())
+            return (int) locales().stream().filter(r -> Resguardo.ESTADO_ACTIVO.equals(r.getEstado())).count();
         List<Object> params = new ArrayList<>();
         String scope = scopeCondicion(params);
         String sql = "SELECT COUNT(*) FROM resguardos WHERE estado = 'ACTIVO'"

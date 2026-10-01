@@ -18,6 +18,10 @@ public final class BarcodeScanner {
 
     private final StringBuilder buffer   = new StringBuilder();
     private       long          lastTime = 0;
+    /** After a scan, the rest of the same burst: a SIBIM QR carries the
+     *  bien's ficha in several lines and the scanner types them all, each
+     *  ending in Enter. Only the first line (the código) counts. */
+    private       boolean       restoDeRafaga = false;
 
     private BarcodeScanner() {}
 
@@ -34,14 +38,20 @@ public final class BarcodeScanner {
 
             if (now - bs.lastTime > THRESHOLD_MS) {
                 bs.buffer.setLength(0);
+                bs.restoDeRafaga = false;   // a pause: whatever comes next is new input
             }
             bs.lastTime = now;
 
+            if (bs.restoDeRafaga) {   // the ficha lines after the código: swallow them
+                event.consume();
+                return;
+            }
             KeyCode code = event.getCode();
             if (code == KeyCode.ENTER || code == KeyCode.TAB) {
                 String scanned = bs.buffer.toString().trim();
                 bs.buffer.setLength(0);
                 if (scanned.length() >= MIN_LENGTH) {
+                    bs.restoDeRafaga = true;
                     onScan.accept(scanned);
                     event.consume(); // prevent Enter from triggering focused buttons
                 }
@@ -50,7 +60,15 @@ public final class BarcodeScanner {
                 bs.buffer.append(event.getText());
             }
         };
+        // Keeps the rest of a burst from being typed into the focused field.
+        javafx.event.EventHandler<KeyEvent> tecleo = event -> {
+            if (bs.restoDeRafaga && System.currentTimeMillis() - bs.lastTime <= THRESHOLD_MS) event.consume();
+        };
         scene.addEventFilter(KeyEvent.KEY_PRESSED, handler);
-        return () -> scene.removeEventFilter(KeyEvent.KEY_PRESSED, handler);
+        scene.addEventFilter(KeyEvent.KEY_TYPED, tecleo);
+        return () -> {
+            scene.removeEventFilter(KeyEvent.KEY_PRESSED, handler);
+            scene.removeEventFilter(KeyEvent.KEY_TYPED, tecleo);
+        };
     }
 }

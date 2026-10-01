@@ -5,7 +5,6 @@ import com.sibim.service.ProductoService;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
-import com.sibim.util.UpdateChecker;
 import javafx.application.Platform;
 import java.io.File;
 import javafx.scene.Scene;
@@ -80,18 +79,44 @@ class MainStartupChecks {
         });
     }
 
+    /** A newer version published by Patrimonio (Configuración › Publicar
+     *  actualización) is offered once per start; installing it downloads the
+     *  installer from the database, runs it and closes SIBIM. */
     void checkForUpdate(Scene scene) {
+        var servicio = new com.sibim.service.ActualizacionService();
         AppExecutor.submit(() -> {
-            UpdateChecker.UpdateInfo info = UpdateChecker.checkForUpdate();
-            if (info != null) {
-                Platform.runLater(() ->
+            try {
+                servicio.disponible().ifPresent(v -> Platform.runLater(() ->
                     NotificacionUtil.exitoConAccion(scene,
-                        "Nueva versión disponible: v" + info.latestVersion(),
-                        "Ver actualización",
-                        () -> com.sibim.util.ArchivoUtil.navegar(info.releaseUrl(), scene)
-                    )
-                );
+                        "Nueva versión disponible: v" + v.version(),
+                        "Instalar",
+                        () -> instalar(servicio, v, scene))));
+            } catch (Exception e) {
+                log.debug("No se pudo revisar si hay actualizaciones: {}", e.getMessage());
             }
         });
+    }
+
+    private void instalar(com.sibim.service.ActualizacionService servicio,
+                          com.sibim.service.ActualizacionService.Version v, Scene scene) {
+        String notas = v.notas() != null && !v.notas().isBlank() ? "\n\nNovedades:\n" + v.notas() : "";
+        if (!com.sibim.util.ConfirmacionUtil.confirmar("Actualizar SIBIM",
+                "Se descargará la versión " + v.version() + " (" + (v.tamano() / (1024 * 1024)) + " MB) y se abrirá "
+                + "su instalador. SIBIM se cerrará: guarda lo que estés capturando." + notas)) return;
+        File destino = new File(System.getProperty("java.io.tmpdir"), v.archivo());
+        DialogUtil.runAsyncWithProgress(scene, "Descargando la versión " + v.version() + "…",
+            () -> { servicio.descargar(v, destino, null); return destino; },
+            instalador -> {
+                try {
+                    new ProcessBuilder(instalador.getAbsolutePath()).start();
+                    log.info("Instalador de la versión {} iniciado; cerrando SIBIM", v.version());
+                    Platform.exit();
+                    System.exit(0);
+                } catch (Exception e) {
+                    log.error("No se pudo abrir el instalador {}", instalador, e);
+                    NotificacionUtil.error(scene, "No se pudo abrir el instalador. Está en " + instalador.getAbsolutePath());
+                }
+            },
+            e -> NotificacionUtil.error(scene, "No se pudo descargar la actualización: " + e.getMessage()));
     }
 }

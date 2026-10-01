@@ -679,6 +679,16 @@ public class ReporteService {
         return new ReporteSolicitudBajaService().exportSolicitudBaja(bienes);
     }
 
+    /** Dictamen técnico que el área técnica anexa a la solicitud de baja (una página por bien). */
+    public File exportDictamenBaja(List<Producto> bienes) throws Exception {
+        return new ReporteDictamenBajaService().exportDictamenBaja(bienes);
+    }
+
+    /** El dictamen técnico de baja sin datos, para llenarlo a mano. */
+    public File exportDictamenBajaEnBlanco() throws Exception {
+        return new ReporteDictamenBajaService().exportDictamenBajaEnBlanco();
+    }
+
     public File exportFichasTecnicasMasivas(List<Producto> bienes,
             MovimientoService movimientoService) throws Exception {
         return new ReporteFichaTecnicaService().exportFichasTecnicasMasivas(bienes, movimientoService);
