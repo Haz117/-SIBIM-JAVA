@@ -258,7 +258,7 @@
             </items>
         </MenuButton>
         <Separator orientation="VERTICAL"/>
-        <Button text="Importar CSV / Excel" onAction="#onImportarCsv" styleClass="btn-import"
+        <Button fx:id="btnImportar" text="Importar CSV / Excel" onAction="#onImportarCsv" styleClass="btn-import"
                 contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Importar bienes en lote desde un archivo CSV — descarga la plantilla desde el mismo diálogo" wrapText="true" maxWidth="250"/></tooltip>
@@ -273,7 +273,7 @@
             <TableColumn fx:id="colFoto"      text="Foto"             prefWidth="62"  minWidth="62" maxWidth="62"  sortable="false" resizable="false"/>
             <TableColumn fx:id="colNombre"    text="Nombre"          prefWidth="220" maxWidth="320" sortable="true" minWidth="160"/>
             <TableColumn fx:id="colCodigo"    text="Código"          prefWidth="140" sortable="true" minWidth="128"/>
-            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="150" sortable="true" minWidth="130"/>
+            <TableColumn fx:id="colCategoria" text="Categoría"       prefWidth="185" sortable="true" minWidth="150"/>
             <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="190" maxWidth="260" sortable="true" minWidth="150"/>
             <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="170" maxWidth="240" sortable="true" minWidth="130"/>
             <TableColumn fx:id="colStock"     text="Cantidad"           prefWidth="90"  sortable="true" minWidth="90"/>

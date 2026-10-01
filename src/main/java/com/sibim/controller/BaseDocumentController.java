@@ -381,7 +381,8 @@ public abstract class BaseDocumentController<T> {
             if (excelFn != null || csvFn != null) {
                 Separator vs2 = new Separator();
                 vs2.setOrientation(javafx.geometry.Orientation.VERTICAL);
-                MenuButton btnExp = new MenuButton();
+                MenuButton btnExp = new MenuButton("Exportar lista");
+                btnExp.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
                 btnExp.setGraphic(new FontIcon("mdi2d-download"));
                 btnExp.getStyleClass().add("btn-secondary");
                 btnExp.setTooltip(new Tooltip("Exportar lista actual"));

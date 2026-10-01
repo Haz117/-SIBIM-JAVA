@@ -3,7 +3,7 @@ package com.sibim.model.enums;
 public enum Rol {
     ADMIN("admin", "Administrador"),
     SECRETARIO("secretario", "Secretario"),
-    DIRECCION("direccion", "Direccion");
+    DIRECCION("direccion", "Dirección");
 
     private final String codigo;
     private final String etiqueta;

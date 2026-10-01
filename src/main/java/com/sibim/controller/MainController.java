@@ -199,9 +199,13 @@ public class MainController {
         navRegistry.tuneTooltips(Duration.millis(700), Duration.millis(200));
         setupNavHover(navRegistry.buttons().toArray(new Button[0]));
 
-        if (btnAuditoria != null) {
-            btnAuditoria.setVisible(SessionManager.isAdmin());
-            btnAuditoria.setManaged(SessionManager.isAdmin());
+        // The áreas get a short menu: what only Patrimonio works with (catalogue,
+        // depreciation, physical count, actas, bajas, audit) is not shown to them.
+        boolean admin = SessionManager.isAdmin();
+        for (NavItem it : navRegistry.items()) {
+            if (!it.adminOnly() || it.button() == null) continue;
+            it.button().setVisible(admin);
+            it.button().setManaged(admin);
         }
 
         // Single scene listener — consolidates what were three separate listeners.
@@ -346,17 +350,17 @@ public class MainController {
             page("dashboard",     NavSection.NAVEGACION,  btnDashboard,     KeyCode.DIGIT1),
             page("organigrama",   NavSection.NAVEGACION,  btnOrganigrama,   KeyCode.DIGIT2),
             page("productos",     NavSection.NAVEGACION,  btnProductos,     KeyCode.DIGIT3).withPaletteLabel("Bienes / Inventario"),
-            page("categorias",    NavSection.NAVEGACION,  btnCategorias,    KeyCode.DIGIT4),
+            page("categorias",    NavSection.NAVEGACION,  btnCategorias,    KeyCode.DIGIT4).restrictedToAdmin(),
             page("movimientos",   NavSection.OPERACIONES, btnMovimientos,   KeyCode.DIGIT5),
             page("alertas",       NavSection.OPERACIONES, btnAlertas,       KeyCode.DIGIT6),
             page("reportes",      NavSection.OPERACIONES, btnReportes,      KeyCode.DIGIT7),
-            page("depreciacion",  NavSection.OPERACIONES, btnDepreciacion,  KeyCode.DIGIT8),
-            action("conteo",      NavSection.OPERACIONES, btnConteoFisico,  this::onConteoFisico, KeyCode.C, ctrlAlt).hiddenFromPalette(),
+            page("depreciacion",  NavSection.OPERACIONES, btnDepreciacion,  KeyCode.DIGIT8).restrictedToAdmin(),
+            action("conteo",      NavSection.OPERACIONES, btnConteoFisico,  this::onConteoFisico, KeyCode.C, ctrlAlt).hiddenFromPalette().restrictedToAdmin(),
             page("resguardos",    NavSection.CONTROL,     btnResguardos,    KeyCode.G, ctrlAlt),
             page("prestamos",     NavSection.CONTROL,     btnPrestamos,     KeyCode.P, ctrlAlt),
             page("comodatos",     NavSection.CONTROL,     btnComodatos,     KeyCode.O, ctrlAlt),
-            page("actas",         NavSection.CONTROL,     btnActas,         KeyCode.A, ctrlAlt),
-            page("bajas",         NavSection.CONTROL,     btnBajas,         KeyCode.B, ctrlAlt).withPaletteLabel("Bajas patrimoniales"),
+            page("actas",         NavSection.CONTROL,     btnActas,         KeyCode.A, ctrlAlt).restrictedToAdmin(),
+            page("bajas",         NavSection.CONTROL,     btnBajas,         KeyCode.B, ctrlAlt).withPaletteLabel("Bajas patrimoniales").restrictedToAdmin(),
             page("configuracion", NavSection.SISTEMA,     btnConfiguracion, KeyCode.DIGIT9),
             page("auditoria",     NavSection.SISTEMA,     btnAuditoria,     KeyCode.DIGIT0).restrictedToAdmin()));
     }

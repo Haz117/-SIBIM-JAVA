@@ -73,6 +73,7 @@ public class ProductosController {
     @FXML private TextField searchField;
     @FXML private ComboBox<Categoria> categoriaFilter;
     @FXML private ComboBox<String> areaFilter;
+    @FXML private Button btnImportar;
     @FXML private ComboBox<String> resguardanteFilter;
     @FXML private HBox statusChipsBar;
     @FXML private Button btnClearFilters;
@@ -225,6 +226,7 @@ public class ProductosController {
         // count that silently adjusts stock.
         if (btnNuevoBien    != null) { btnNuevoBien.setVisible(canManage);    btnNuevoBien.setManaged(canManage); }
         if (btnConteoFisico != null) { btnConteoFisico.setVisible(canManage); btnConteoFisico.setManaged(canManage); }
+        if (btnImportar     != null) { btnImportar.setVisible(canManage);     btnImportar.setManaged(canManage); }
         if (rootPane != null && canEdit) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown() && canManage) {
@@ -368,6 +370,9 @@ public class ProductosController {
         areaFilter.setCellFactory(lv -> ProductosListCells.areaListCell());
         areaFilter.setButtonCell(ProductosListCells.areaListCell());
         areaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
+        // An account that only sees one área has nothing to choose here.
+        java.util.Set<String> misAreas = SessionManager.getAccessibleAreas();
+        if (misAreas != null && misAreas.size() <= 1) { areaFilter.setVisible(false); areaFilter.setManaged(false); }
 
         resguardanteFilter.setConverter(new javafx.util.StringConverter<>() {
             public String toString(String r) { return r == null ? "Todos los resguardantes" : r; }
@@ -623,7 +628,7 @@ public class ProductosController {
 
     @FXML
     private void onImportarCsv() {
-        if (!canEdit) {
+        if (!SessionManager.isAdmin()) {   // importing registers new bienes
             NotificacionUtil.advertencia(table.getScene(), "No tienes permiso para importar bienes");
             return;
         }

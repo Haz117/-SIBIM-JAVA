@@ -244,7 +244,9 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     protected String getLoadErrorMessage() { return "No se pudieron cargar los préstamos"; }
     @Override protected String emptyStateIcon()     { return "mdi2c-cube-send"; }
     @Override protected String emptyStateTitle()    { return "Sin préstamos activos"; }
-    @Override protected String emptyStateSubtitle() { return "Registra préstamos temporales de bienes entre áreas"; }
+    @Override protected String emptyStateSubtitle() { return com.sibim.session.Permisos.gestionaDocumentos()
+        ? "Registra préstamos temporales de bienes entre áreas"
+        : "Para pedir uno: Bienes > clic derecho sobre el bien > Solicitar préstamo"; }
 
     @Override
     protected void onTableDoubleClick(Prestamo item) { mostrarDetalle(item); }

@@ -68,66 +68,6 @@
         </FlowPane>
     </VBox>
 
-    <!-- ══ GRÁFICA BIENES POR ÁREA ══════════════════════════════════════ -->
-    <VBox styleClass="card" spacing="8">
-        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
-        <HBox alignment="CENTER_LEFT" spacing="10">
-            <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-lg"/>
-            <Label text="Distribución de bienes por área" styleClass="card-title" HBox.hgrow="ALWAYS"/>
-            <Label text="?" styleClass="help-badge">
-                <tooltip><Tooltip text="Muestra hasta las 20 áreas con más bienes asignados, de mayor a menor, dentro del período seleccionado arriba. Un área sin ningún bien asignado en ese período simplemente no aparece — no es que falte, es que no tiene nada que mostrar." wrapText="true" maxWidth="300"/></tooltip>
-            </Label>
-            <ProgressIndicator fx:id="chartSpinner" prefWidth="18" prefHeight="18"
-                               visible="false" managed="false"/>
-        </HBox>
-        <BarChart fx:id="areaChart" prefHeight="300" animated="false"
-                  styleClass="area-bar-chart" legendVisible="false">
-            <xAxis><CategoryAxis fx:id="chartXAxis" tickLabelRotation="-35"/></xAxis>
-            <yAxis><NumberAxis fx:id="chartYAxis" label="Bienes" minorTickVisible="false"/></yAxis>
-        </BarChart>
-        <VBox fx:id="chartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
-              visible="false" managed="false" styleClass="empty-state-pane">
-            <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
-            <Label text="Sin bienes en este período" styleClass="empty-state-msg"/>
-            <Label text="Ningún bien con área asignada se registró entre las fechas elegidas" styleClass="empty-state-hint"/>
-            <Button text="Ver todos los registros" onAction="#onReportTodo" styleClass="btn-secondary, btn-sm"
-                    contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove-outline" styleClass="btn-icon"/></graphic>
-                <tooltip><Tooltip text="Quitar el filtro de fechas e incluir todos los registros  (Alt+5)"/></tooltip>
-            </Button>
-        </VBox>
-    </VBox>
-
-    <!-- ══ GRÁFICA VALOR POR CATEGORÍA ══════════════════════════════════ -->
-    <VBox styleClass="card" spacing="8">
-        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
-        <HBox alignment="CENTER_LEFT" spacing="10">
-            <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-lg"/>
-            <Label text="Valor patrimonial por categoría" styleClass="card-title" HBox.hgrow="ALWAYS"/>
-            <Label text="?" styleClass="help-badge">
-                <tooltip><Tooltip text="Suma del valor de los bienes (precio × existencias) agrupados por categoría, dentro del período seleccionado arriba. Útil para ver en qué tipo de bienes está concentrado el patrimonio." wrapText="true" maxWidth="290"/></tooltip>
-            </Label>
-            <ProgressIndicator fx:id="categoriaChartSpinner" prefWidth="18" prefHeight="18"
-                               visible="false" managed="false"/>
-        </HBox>
-        <BarChart fx:id="categoriaChart" prefHeight="300" animated="false"
-                  styleClass="area-bar-chart" legendVisible="false">
-            <xAxis><CategoryAxis fx:id="categoriaChartXAxis" tickLabelRotation="-35"/></xAxis>
-            <yAxis><NumberAxis fx:id="categoriaChartYAxis" label="Valor ($)" minorTickVisible="false"/></yAxis>
-        </BarChart>
-        <VBox fx:id="categoriaChartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
-              visible="false" managed="false" styleClass="empty-state-pane">
-            <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
-            <Label text="Sin valor patrimonial en este período" styleClass="empty-state-msg"/>
-            <Label text="Ningún bien con categoría y precio se registró entre las fechas elegidas" styleClass="empty-state-hint"/>
-            <Button text="Ver todos los registros" onAction="#onReportTodo" styleClass="btn-secondary, btn-sm"
-                    contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove-outline" styleClass="btn-icon"/></graphic>
-                <tooltip><Tooltip text="Quitar el filtro de fechas e incluir todos los registros  (Alt+5)"/></tooltip>
-            </Button>
-        </VBox>
-    </VBox>
-
     <!-- ══ CARDS DE REPORTES ═══════════════════════════════════════════
          Separador visual
          ══════════════════════════════════════════════════════════════ -->
@@ -414,6 +354,66 @@
         </VBox>
 
     </GridPane>
+
+    <!-- ══ GRÁFICA BIENES POR ÁREA ══════════════════════════════════════ -->
+    <VBox styleClass="card" spacing="8">
+        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-lg"/>
+            <Label text="Distribución de bienes por área" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label text="?" styleClass="help-badge">
+                <tooltip><Tooltip text="Muestra hasta las 20 áreas con más bienes asignados, de mayor a menor, dentro del período seleccionado arriba. Un área sin ningún bien asignado en ese período simplemente no aparece — no es que falte, es que no tiene nada que mostrar." wrapText="true" maxWidth="300"/></tooltip>
+            </Label>
+            <ProgressIndicator fx:id="chartSpinner" prefWidth="18" prefHeight="18"
+                               visible="false" managed="false"/>
+        </HBox>
+        <BarChart fx:id="areaChart" prefHeight="300" animated="false"
+                  styleClass="area-bar-chart" legendVisible="false">
+            <xAxis><NumberAxis fx:id="chartXAxis" label="Bienes" minorTickVisible="false"/></xAxis>
+            <yAxis><CategoryAxis fx:id="chartYAxis"/></yAxis>
+        </BarChart>
+        <VBox fx:id="chartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
+              visible="false" managed="false" styleClass="empty-state-pane">
+            <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
+            <Label text="Sin bienes en este período" styleClass="empty-state-msg"/>
+            <Label text="Ningún bien con área asignada se registró entre las fechas elegidas" styleClass="empty-state-hint"/>
+            <Button text="Ver todos los registros" onAction="#onReportTodo" styleClass="btn-secondary, btn-sm"
+                    contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Quitar el filtro de fechas e incluir todos los registros  (Alt+5)"/></tooltip>
+            </Button>
+        </VBox>
+    </VBox>
+
+    <!-- ══ GRÁFICA VALOR POR CATEGORÍA ══════════════════════════════════ -->
+    <VBox styleClass="card" spacing="8">
+        <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-lg"/>
+            <Label text="Valor patrimonial por categoría" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+            <Label text="?" styleClass="help-badge">
+                <tooltip><Tooltip text="Suma del valor de los bienes (precio × existencias) agrupados por categoría, dentro del período seleccionado arriba. Útil para ver en qué tipo de bienes está concentrado el patrimonio." wrapText="true" maxWidth="290"/></tooltip>
+            </Label>
+            <ProgressIndicator fx:id="categoriaChartSpinner" prefWidth="18" prefHeight="18"
+                               visible="false" managed="false"/>
+        </HBox>
+        <BarChart fx:id="categoriaChart" prefHeight="300" animated="false"
+                  styleClass="area-bar-chart" legendVisible="false">
+            <xAxis><NumberAxis fx:id="categoriaChartXAxis" label="Valor ($)" minorTickVisible="false"/></xAxis>
+            <yAxis><CategoryAxis fx:id="categoriaChartYAxis"/></yAxis>
+        </BarChart>
+        <VBox fx:id="categoriaChartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
+              visible="false" managed="false" styleClass="empty-state-pane">
+            <FontIcon iconLiteral="mdi2c-chart-bar-stacked" iconSize="44" styleClass="empty-icon-lg"/>
+            <Label text="Sin valor patrimonial en este período" styleClass="empty-state-msg"/>
+            <Label text="Ningún bien con categoría y precio se registró entre las fechas elegidas" styleClass="empty-state-hint"/>
+            <Button text="Ver todos los registros" onAction="#onReportTodo" styleClass="btn-secondary, btn-sm"
+                    contentDisplay="LEFT" graphicTextGap="6">
+                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Quitar el filtro de fechas e incluir todos los registros  (Alt+5)"/></tooltip>
+            </Button>
+        </VBox>
+    </VBox>
 
 </VBox>
 </ScrollPane>

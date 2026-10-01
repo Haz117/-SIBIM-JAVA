@@ -44,14 +44,15 @@ public class ReportesController {
     @FXML private Button btnPresetTodo;
     @FXML private Label helpTiposReporte;
     @FXML private Label helpPeriodo;
-    @FXML private BarChart<String, Number> areaChart;
-    @FXML private CategoryAxis  chartXAxis;
-    @FXML private NumberAxis    chartYAxis;
+    // Horizontal bars: long área names read on one line instead of slanted.
+    @FXML private BarChart<Number, String> areaChart;
+    @FXML private NumberAxis    chartXAxis;
+    @FXML private CategoryAxis  chartYAxis;
     @FXML private ProgressIndicator chartSpinner;
     @FXML private VBox chartEmptyState;
-    @FXML private BarChart<String, Number> categoriaChart;
-    @FXML private CategoryAxis  categoriaChartXAxis;
-    @FXML private NumberAxis    categoriaChartYAxis;
+    @FXML private BarChart<Number, String> categoriaChart;
+    @FXML private NumberAxis    categoriaChartXAxis;
+    @FXML private CategoryAxis  categoriaChartYAxis;
     @FXML private ProgressIndicator categoriaChartSpinner;
     @FXML private VBox categoriaChartEmptyState;
 
@@ -235,9 +236,12 @@ public class ReportesController {
         AppExecutor.submit(() -> {
             try {
                 var counts = productoService.countByArea(20, desde, hasta);
-                XYChart.Series<String, Number> series = new XYChart.Series<>();
-                counts.forEach((area, cnt) -> series.getData().add(new XYChart.Data<>(area, cnt)));
+                XYChart.Series<Number, String> series = new XYChart.Series<>();
+                // A vertical category axis draws its first entry at the bottom: add in reverse
+                // so the área with the most bienes ends up on top.
+                counts.forEach((area, cnt) -> series.getData().add(0, new XYChart.Data<>(cnt, area)));
                 Platform.runLater(() -> {
+                    areaChart.setPrefHeight(alturaBarras(series.getData().size()));
                     areaChart.getData().setAll(series);
                     if (chartSpinner != null) { chartSpinner.setVisible(false); chartSpinner.setManaged(false); }
                     boolean empty = series.getData().isEmpty();
@@ -268,9 +272,10 @@ public class ReportesController {
         AppExecutor.submit(() -> {
             try {
                 var valores = productoService.getValorPorCategoria(20, desde, hasta);
-                XYChart.Series<String, Number> series = new XYChart.Series<>();
-                valores.forEach(cv -> series.getData().add(new XYChart.Data<>(cv.nombre(), cv.valor())));
+                XYChart.Series<Number, String> series = new XYChart.Series<>();
+                valores.forEach(cv -> series.getData().add(0, new XYChart.Data<>(cv.valor(), cv.nombre())));
                 Platform.runLater(() -> {
+                    categoriaChart.setPrefHeight(alturaBarras(series.getData().size()));
                     categoriaChart.getData().setAll(series);
                     if (categoriaChartSpinner != null) { categoriaChartSpinner.setVisible(false); categoriaChartSpinner.setManaged(false); }
                     boolean empty = series.getData().isEmpty();
@@ -339,11 +344,16 @@ public class ReportesController {
         );
     }
 
-    private void installBarClickHandlers(XYChart.Series<String, Number> series) {
-        for (XYChart.Data<String, Number> data : series.getData()) {
+    /** Tall enough for one readable bar per row, whatever the number of rows. */
+    private static double alturaBarras(int filas) {
+        return Math.max(180, 70 + filas * 34.0);
+    }
+
+    private void installBarClickHandlers(XYChart.Series<Number, String> series) {
+        for (XYChart.Data<Number, String> data : series.getData()) {
             javafx.scene.Node node = data.getNode();
             if (node == null) continue;
-            String area = data.getXValue();
+            String area = data.getYValue();
             Tooltip.install(node, new Tooltip(area + "\nClic para ver en Bienes"));
             node.setCursor(javafx.scene.Cursor.HAND);
             node.setOnMouseClicked(e -> {

@@ -186,7 +186,9 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
     protected String getLoadErrorMessage() { return "No se pudieron cargar los comodatos"; }
     @Override protected String emptyStateIcon()     { return "mdi2c-clipboard-list-outline"; }
     @Override protected String emptyStateTitle()    { return "Sin comodatos registrados"; }
-    @Override protected String emptyStateSubtitle() { return "Registra préstamos formales a entidades externas"; }
+    @Override protected String emptyStateSubtitle() { return com.sibim.session.Permisos.gestionaDocumentos()
+        ? "Registra préstamos formales a entidades externas"
+        : "Los comodatos de tus bienes aparecerán aquí; los registra Patrimonio"; }
 
     @Override
     protected void onTableDoubleClick(Comodato item) { mostrarDetalle(item); }

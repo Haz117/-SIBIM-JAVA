@@ -184,7 +184,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     protected String getLoadErrorMessage() { return "No se pudieron cargar los resguardos"; }
     @Override protected String emptyStateIcon()     { return "mdi2b-badge-account-outline"; }
     @Override protected String emptyStateTitle()    { return "Sin resguardos registrados"; }
-    @Override protected String emptyStateSubtitle() { return "Asigna bienes a servidores públicos desde la sección Bienes"; }
+    @Override protected String emptyStateSubtitle() { return com.sibim.session.Permisos.gestionaDocumentos()
+        ? "Asigna bienes a servidores públicos con \"Nuevo Resguardo\""
+        : "Para pedir uno: Bienes > clic derecho sobre el bien > Solicitar resguardo"; }
 
     @Override
     protected boolean isFilterActive() {

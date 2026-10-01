@@ -553,13 +553,27 @@ public final class DialogUtil {
      *  custom show/hide labels — for sections that aren't a filter bar
      *  (e.g. a summary/stats block on a dashboard-like page). */
     public static void makeCollapsible(String prefKey, Button toggle, Region content, String showLabel, String hideLabel) {
-        boolean collapsed = UI_PREFS.getBoolean(prefKey, false);
+        // Summary blocks start folded on a low screen (a 1366x768 laptop left the
+        // table 3 rows); once the user toggles one, their choice is what counts.
+        boolean resumen = !"Mostrar filtros".equals(showLabel);
+        boolean collapsed = UI_PREFS.getBoolean(prefKey, resumen && pantallaBaja());
         applyCollapsed(toggle, content, collapsed, showLabel, hideLabel);
         toggle.setOnAction(e -> {
             boolean wasExpanded = content.isVisible();
             applyCollapsed(toggle, content, wasExpanded, showLabel, hideLabel);
             UI_PREFS.putBoolean(prefKey, wasExpanded);
         });
+    }
+
+    private static boolean pantallaBaja() {
+        try {
+            javafx.stage.Stage ventana = MainApp.getPrimaryStage();
+            double alto = ventana != null && ventana.getHeight() > 0 ? ventana.getHeight()
+                : javafx.stage.Screen.getPrimary().getVisualBounds().getHeight();
+            return alto < 800;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     private static void applyCollapsed(Button toggle, Region content, boolean collapsed, String showLabel, String hideLabel) {
