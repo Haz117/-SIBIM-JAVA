@@ -594,6 +594,12 @@ public class ConfiguracionController {
             e -> NotificacionUtil.error(scene, "No se pudo publicar: " + e.getMessage()));
     }
 
+    /** Which PCs each account has signed in on (ready to work offline there). */
+    @FXML
+    private void onEquiposPorCuenta() {
+        com.sibim.controller.dialogs.AccesosEquipoDialog.show(usersTable.getScene());
+    }
+
     /** One shared account per área that doesn't have one yet, plus a PDF with
      *  the credentials to hand out (see CuentasAreaService). */
     @FXML

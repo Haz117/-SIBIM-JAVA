@@ -36,7 +36,7 @@ class OfflineCodigoUnicoMigrationTest {
             insertar(c, "1", "TICS/01", "2026-01-01");
             assertThrows(SQLException.class, () -> insertar(c, "2", "TICS/01", null), "antes: único global");
 
-            OfflineStore.codigoUnicoSoloEntreActivos(c);
+            OfflineSchema.codigoUnicoSoloEntreActivos(c);
 
             insertar(c, "2", "TICS/01", null);   // el número de la baja se reutiliza
             assertThrows(SQLException.class, () -> insertar(c, "3", "TICS/01", null),
@@ -47,7 +47,7 @@ class OfflineCodigoUnicoMigrationTest {
                 assertEquals(2, rs.getInt(1), "la fila original sigue ahí");
             }
 
-            OfflineStore.codigoUnicoSoloEntreActivos(c);   // idempotente
+            OfflineSchema.codigoUnicoSoloEntreActivos(c);   // idempotente
         }
     }
 }

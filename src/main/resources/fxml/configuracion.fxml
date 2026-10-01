@@ -219,6 +219,11 @@
                        styleClass="page-subtitle"/>
             </VBox>
             <ProgressIndicator fx:id="usersSpinner" prefWidth="18" prefHeight="18" visible="false" managed="false"/>
+            <Button text="Equipos por cuenta" onAction="#onEquiposPorCuenta" styleClass="btn-secondary"
+                    contentDisplay="LEFT" graphicTextGap="8">
+                <graphic><FontIcon iconLiteral="mdi2l-laptop" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="En qué computadoras ya entró cada cuenta: las que no han entrado en ninguna no podrán entrar sin internet" wrapText="true" maxWidth="280"/></tooltip>
+            </Button>
             <Button text="Cuentas por área" onAction="#onCuentasPorArea" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2a-account-group-outline" styleClass="btn-icon"/></graphic>

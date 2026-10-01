@@ -127,6 +127,15 @@ public class AuthService {
                 "Inicio de sesión — " + (DatabaseConfig.isDemoMode() ? "modo demo" : "base de datos"));
             String offlineWarning = null;
             if (!DatabaseConfig.isDemoMode()) {
+                // Patrimonio sees which PCs each account is ready to use offline.
+                // In the background: signing in must not wait for it.
+                String userId = user.getId();
+                com.sibim.util.AppExecutor.submit(() -> {
+                    try { new AccesosEquipoService().registrar(userId); }
+                    catch (SQLException | RuntimeException ex) {
+                        log.warn("No se pudo anotar el acceso en este equipo: {}", ex.getMessage());
+                    }
+                });
                 try {
                     OfflineStore.cacheUser(user);
                 } catch (SQLException ex) {

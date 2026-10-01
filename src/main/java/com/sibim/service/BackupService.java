@@ -55,10 +55,11 @@ public class BackupService {
 
     /** Tables deliberately left out: migration bookkeeping, transient login
      *  counters, the published installers (~110 MB each, regenerable) and the
-     *  areas' requests (the préstamo or resguardo they led to is what counts). */
+     *  areas' requests (the préstamo or resguardo they led to is what counts)
+     *  and the log of which PC each account signed in on. */
     public static final Set<String> TABLAS_EXCLUIDAS = Set.of(
         "flyway_schema_history", "schema_version", "login_attempts",
-        "actualizaciones", "actualizacion_partes", "solicitudes");
+        "actualizaciones", "actualizacion_partes", "solicitudes", "accesos_equipo");
 
     /** The audit trail is append-only: a restore never deletes it, it only
      *  adds back the entries the backup has that the database lost — so the
