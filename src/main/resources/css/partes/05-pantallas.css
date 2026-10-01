@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 /* Informative, not alarming: counts that need a look, in the app's own color. */
 .alert-banner {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 0 0 0 4;
     -fx-background-radius: 0 10 10 0;
@@ -15,12 +15,12 @@
 /* ─── Charts — consolidated ─────────────────────────────────────── */
 .chart                   { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
 .chart-content           { -fx-padding: 0; }
-.chart-plot-background   { -fx-background-color: #F8FAFC; -fx-background-radius: 10; }
+.chart-plot-background   { -fx-background-color: sibim-surface; -fx-background-radius: 10; }
 .chart-legend            { -fx-background-color: transparent; -fx-padding: 4 0 0 0; }
 .chart-legend-item-symbol { -fx-padding: 4; }
 .chart-alternative-row-fill { -fx-fill: transparent; }
-.chart-vertical-grid-lines   { -fx-stroke: #E2E8F0; }
-.chart-horizontal-grid-lines { -fx-stroke: #E2E8F0; }
+.chart-vertical-grid-lines   { -fx-stroke: sibim-slate-200; }
+.chart-horizontal-grid-lines { -fx-stroke: sibim-slate-200; }
 .axis-label { -fx-text-fill: sibim-slate-500; -fx-font-size: 11px; }
 .axis       { -fx-tick-label-fill: sibim-slate-500; -fx-font-size: 11px; }
 /* Line chart series */
@@ -46,7 +46,7 @@
 .default-color7.chart-pie { -fx-pie-color: sibim-slate-500; }
 /* Pie labels */
 .chart-pie-label      { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
-.chart-pie-label-line { -fx-stroke: #CBD5E1; }
+.chart-pie-label-line { -fx-stroke: sibim-slate-300; }
 
 /* ═══════════════════════════════════════════════════════════════════
    ALERTAS  — colored gradient section headers
@@ -76,7 +76,7 @@
 
 .no-alerts {
     -fx-font-size: 15px;
-    -fx-text-fill: #047857;
+    -fx-text-fill: sibim-green-dark;
     -fx-font-weight: bold;
     -fx-padding: 28;
     -fx-alignment: CENTER;
@@ -90,7 +90,7 @@
 
 /* Alert section modifiers */
 .alert-section.alert-danger {
-    -fx-border-color: #FCA5A5 #E0E4ED #E0E4ED #EF4444;
+    -fx-border-color: #FCA5A5 #E0E4ED #E0E4ED sibim-red-500;
     -fx-border-width: 0 1 1 4;
 }
 .alert-section.alert-warning {
@@ -98,7 +98,7 @@
     -fx-border-width: 0 1 1 4;
 }
 .alert-section.alert-info {
-    -fx-border-color: #A5B4FC #E0E4ED #E0E4ED sibim-indigo;
+    -fx-border-color: sibim-indigo-300 #E0E4ED #E0E4ED sibim-indigo;
     -fx-border-width: 0 1 1 4;
 }
 
@@ -106,7 +106,7 @@
 .alert-section-title {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
 }
 
 /* Gradient header bars for alert sections */
@@ -162,7 +162,7 @@
 .report-title {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -170,7 +170,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 .profile-value {
     -fx-font-weight: 600;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
     -fx-font-size: 13px;
 }
 
@@ -188,11 +188,11 @@
     -fx-cursor: hand;
     -fx-padding: 5 13;
     -fx-font-size: 13px;
-    -fx-text-fill: #374151;
+    -fx-text-fill: sibim-gray-700;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
 }
-.pagination-btn:hover, .btn-page:hover { -fx-background-color: #F5F7FF; -fx-border-color: #A5B4FC; -fx-text-fill: sibim-indigo-darker; }
-.pagination-btn:disabled, .btn-page:disabled { -fx-background-color: #F8FAFC; -fx-text-fill: #CBD5E1; -fx-cursor: default; -fx-effect: none; }
+.pagination-btn:hover, .btn-page:hover { -fx-background-color: #F5F7FF; -fx-border-color: sibim-indigo-300; -fx-text-fill: sibim-indigo-darker; }
+.pagination-btn:disabled, .btn-page:disabled { -fx-background-color: sibim-surface; -fx-text-fill: sibim-slate-300; -fx-cursor: default; -fx-effect: none; }
 
 /* ═══════════════════════════════════════════════════════════════════
    TITLED PANE (Organigrama)
@@ -201,7 +201,7 @@
 .titled-pane > .title {
     -fx-background-color: white;
     -fx-background-radius: 10;
-    -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo;
+    -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo;
     -fx-border-radius: 10;
     -fx-border-width: 0 1 1 3;
     -fx-padding: 12 16;
@@ -209,12 +209,12 @@
 }
 .titled-pane > .title:hover {
     -fx-background-color: #F5F3FF;
-    -fx-border-color: #818CF8 #A5B4FC #A5B4FC #818CF8;
+    -fx-border-color: #818CF8 sibim-indigo-300 sibim-indigo-300 #818CF8;
 }
-.titled-pane > .title .text { -fx-font-weight: bold; -fx-text-fill: #0F172A; -fx-font-size: 13.5px; }
+.titled-pane > .title .text { -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; -fx-font-size: 13.5px; }
 .titled-pane > .content {
     -fx-background-color: white;
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-radius: 0 0 10 10;
     -fx-border-width: 0 1 1 1;
 }

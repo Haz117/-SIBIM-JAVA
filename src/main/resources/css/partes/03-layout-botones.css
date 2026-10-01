@@ -1,14 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════════
    CONTENT AREA
    ═══════════════════════════════════════════════════════════════════ */
-.content-area { -fx-background-color: #EEF2F7; }
+.content-area { -fx-background-color: sibim-bg; }
 .page-scroll {
-    -fx-background-color: #EEF2F7;
+    -fx-background-color: sibim-bg;
     -fx-background: #EEF2F7;
     -fx-border-color: transparent;
     -fx-border-width: 0;
 }
-.page-scroll > .viewport { -fx-background-color: #EEF2F7; }
+.page-scroll > .viewport { -fx-background-color: sibim-bg; }
 
 /* ═══════════════════════════════════════════════════════════════════
    TIPOGRAFÍA
@@ -16,7 +16,7 @@
 .page-title {
     -fx-font-size: 21px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
 }
 .page-subtitle {
     -fx-font-size: 12.5px;
@@ -26,7 +26,7 @@
 .card-title {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -35,7 +35,7 @@
 .page-header {
     -fx-background-color: white;
     -fx-background-radius: 12;
-    -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo;
+    -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo;
     -fx-border-width: 0 1 1 4;
     -fx-border-radius: 12;
     -fx-padding: 16 20;
@@ -63,7 +63,7 @@
 .filter-bar {
     -fx-background-color: white;
     -fx-background-radius: 12;
-    -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo;
+    -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo;
     -fx-border-width: 0 1 1 3;
     -fx-border-radius: 12;
     -fx-padding: 10 14;
@@ -74,17 +74,17 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
 }
 /* Page-specific filter bar accent variants */
-.filter-bar-purple { -fx-border-color: sibim-violet #E2E8F0 #E2E8F0 sibim-violet; }
+.filter-bar-purple { -fx-border-color: sibim-violet sibim-slate-200 sibim-slate-200 sibim-violet; }
 .filter-bar-purple:hover { -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.10), 8, 0, 0, 2); }
-.filter-bar-teal   { -fx-border-color: #0891B2 #E2E8F0 #E2E8F0 #0891B2; }
+.filter-bar-teal   { -fx-border-color: #0891B2 sibim-slate-200 sibim-slate-200 #0891B2; }
 .filter-bar-teal:hover   { -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.10), 8, 0, 0, 2); }
-.filter-bar-danger { -fx-border-color: #EF4444 #E2E8F0 #E2E8F0 #EF4444; }
+.filter-bar-danger { -fx-border-color: sibim-red-500 sibim-slate-200 sibim-slate-200 sibim-red-500; }
 .filter-bar-danger:hover { -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.10), 8, 0, 0, 2); }
-.filter-bar-indigo { -fx-border-color: sibim-indigo-darker #E2E8F0 #E2E8F0 sibim-indigo-darker; }
+.filter-bar-indigo { -fx-border-color: sibim-indigo-darker sibim-slate-200 sibim-slate-200 sibim-indigo-darker; }
 .filter-bar-indigo:hover { -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 8, 0, 0, 2); }
-.filter-bar-blue   { -fx-border-color: #1D4ED8 #E2E8F0 #E2E8F0 #1D4ED8; }
+.filter-bar-blue   { -fx-border-color: #1D4ED8 sibim-slate-200 sibim-slate-200 #1D4ED8; }
 .filter-bar-blue:hover   { -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.10), 8, 0, 0, 2); }
-.filter-bar-emerald { -fx-border-color: #059669 #E2E8F0 #E2E8F0 #059669; }
+.filter-bar-emerald { -fx-border-color: #059669 sibim-slate-200 sibim-slate-200 #059669; }
 .filter-bar-emerald:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.10), 8, 0, 0, 2); }
 
 /* Copy-folio button inside gradient headers */
@@ -146,7 +146,7 @@
 .stat-icon-badge-amber       { -fx-background-color: sibim-amber; }
 .stat-icon-badge-rose        { -fx-background-color: #E11D48; }
 .stat-icon-badge-violet      { -fx-background-color: sibim-violet; }
-.stat-icon-badge-dark-indigo { -fx-background-color: #3730A3; }
+.stat-icon-badge-dark-indigo { -fx-background-color: sibim-indigo-900; }
 
 .stat-card .stat-label { -fx-text-fill: sibim-slate-600; -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-padding: 0 0 2 0; }
 .stat-card .stat-value { -fx-font-size: 33px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
@@ -176,7 +176,7 @@
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.55), 12, 0, 0, 4);
 }
 .btn-primary:pressed  { -fx-background-color: sibim-indigo-darker; -fx-effect: none; }
-.btn-primary:disabled { -fx-background-color: #C7D2FE; -fx-text-fill: rgba(255,255,255,0.75); -fx-cursor: default; -fx-effect: none; }
+.btn-primary:disabled { -fx-background-color: sibim-indigo-200; -fx-text-fill: rgba(255,255,255,0.75); -fx-cursor: default; -fx-effect: none; }
 
 /* MenuButtons stack modena's own label + arrow padding on top of the button's,
    ending up taller than the plain buttons beside them — match their height. */
@@ -185,7 +185,7 @@
 
 .btn-secondary {
     -fx-background-color: white;
-    -fx-text-fill: #374151;
+    -fx-text-fill: sibim-gray-700;
     -fx-border-color: #D1D9E6;
     -fx-border-width: 1;
     -fx-border-radius: 12;
@@ -197,11 +197,11 @@
 }
 .btn-secondary:hover {
     -fx-background-color: #F5F7FF;
-    -fx-border-color: #A5B4FC;
+    -fx-border-color: sibim-indigo-300;
     -fx-text-fill: sibim-indigo-darker;
 }
-.btn-secondary:pressed  { -fx-background-color: #EEF2FF; }
-.btn-secondary:disabled { -fx-background-color: #F8FAFC; -fx-text-fill: #CBD5E1; -fx-border-color: #F1F5F9; -fx-cursor: default; -fx-effect: none; }
+.btn-secondary:pressed  { -fx-background-color: sibim-indigo-50; }
+.btn-secondary:disabled { -fx-background-color: sibim-surface; -fx-text-fill: sibim-slate-300; -fx-border-color: sibim-slate-100; -fx-cursor: default; -fx-effect: none; }
 
 /* ── Vista toggle group (Árbol | Tarjetas | Tabla) ── */
 .toggle-view-group { -fx-alignment: CENTER_LEFT; }
@@ -217,7 +217,7 @@
     -fx-text-fill: white;
     -fx-border-color: sibim-indigo-darker;
 }
-.toggle-view-btn:selected:hover { -fx-background-color: #3730A3; }
+.toggle-view-btn:selected:hover { -fx-background-color: sibim-indigo-900; }
 .toggle-view-btn:focused {
     -fx-border-color: sibim-indigo;
     -fx-border-width: 2;
@@ -227,10 +227,10 @@
 .toggle-view-btn:selected:focused { -fx-border-color: #312E81; }
 
 /* Muted zero value in table cells */
-.muted-text { -fx-text-fill: #64748B; }
+.muted-text { -fx-text-fill: sibim-slate-500; }
 
 .btn-danger {
-    -fx-background-color: #DC2626;
+    -fx-background-color: sibim-red;
     -fx-text-fill: white;
     -fx-background-radius: 12;
     -fx-cursor: hand;
@@ -238,8 +238,8 @@
     -fx-font-size: 13px;
     -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.32), 7, 0, 0, 2);
 }
-.btn-danger:hover   { -fx-background-color: #DC2626; -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.50), 12, 0, 0, 4); }
-.btn-danger:pressed { -fx-background-color: #B91C1C; -fx-effect: none; }
+.btn-danger:hover   { -fx-background-color: sibim-red; -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.50), 12, 0, 0, 4); }
+.btn-danger:pressed { -fx-background-color: sibim-red-dark; -fx-effect: none; }
 .btn-danger:disabled { -fx-background-color: #FECACA; -fx-text-fill: rgba(255,255,255,0.75); -fx-cursor: default; -fx-effect: none; }
 
 .btn-warning {
@@ -252,10 +252,10 @@
 }
 .btn-warning:hover { -fx-background-color: sibim-amber; }
 
-.btn-excel { -fx-background-color: #16A34A; -fx-text-fill: white; -fx-background-radius: 7; -fx-cursor: hand; -fx-padding: 7 13; -fx-font-size: 12px; -fx-effect: dropshadow(gaussian, rgba(22,163,74,0.25), 4, 0, 0, 1); }
+.btn-excel { -fx-background-color: sibim-green; -fx-text-fill: white; -fx-background-radius: 7; -fx-cursor: hand; -fx-padding: 7 13; -fx-font-size: 12px; -fx-effect: dropshadow(gaussian, rgba(22,163,74,0.25), 4, 0, 0, 1); }
 .btn-csv   { -fx-background-color: sibim-slate-600; -fx-text-fill: white; -fx-background-radius: 7; -fx-cursor: hand; -fx-padding: 7 13; -fx-font-size: 12px; }
 .btn-excel:hover { -fx-background-color: #15803D; }
-.btn-csv:hover   { -fx-background-color: #334155; }
+.btn-csv:hover   { -fx-background-color: sibim-slate-700; }
 
 /* ═══════════════════════════════════════════════════════════════════
    REPORT EXPORT BUTTON — one "Exportar ▾" menu per report card instead
@@ -281,13 +281,13 @@
 .report-export-teal   { -fx-background-color: #0891B2; }
 .report-export-teal:hover   { -fx-background-color: #0E7490; }
 .report-export-amber  { -fx-background-color: sibim-amber; }
-.report-export-amber:hover  { -fx-background-color: #B45309; }
+.report-export-amber:hover  { -fx-background-color: sibim-amber-dark; }
 .report-export-green  { -fx-background-color: #059669; }
-.report-export-green:hover  { -fx-background-color: #047857; }
+.report-export-green:hover  { -fx-background-color: sibim-green-dark; }
 .report-export-slate  { -fx-background-color: sibim-slate-600; }
-.report-export-slate:hover  { -fx-background-color: #334155; }
+.report-export-slate:hover  { -fx-background-color: sibim-slate-700; }
 .report-export-purple { -fx-background-color: sibim-violet; }
-.report-export-purple:hover { -fx-background-color: #6D28D9; }
+.report-export-purple:hover { -fx-background-color: sibim-violet-dark; }
 /* Format icons inside the dropdown menu keep their usual color coding
    (red/green/dark) so PDF vs. Excel vs. CSV is still a glance, not a read. */
 .report-export-icon-pdf   { -fx-icon-size: 15; -fx-icon-color: #EF4444; }

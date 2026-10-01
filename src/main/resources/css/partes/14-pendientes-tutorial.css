@@ -4,7 +4,7 @@
 .btn-warning-outline {
     -fx-background-color: transparent;
     -fx-border-color: sibim-amber;
-    -fx-text-fill: #B45309;
+    -fx-text-fill: sibim-amber-dark;
     -fx-border-width: 1.5;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -72,7 +72,7 @@
 .tutorial-title {
     -fx-font-size: 20px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
     -fx-text-alignment: CENTER;
     -fx-alignment: CENTER;
 }
@@ -83,7 +83,7 @@
 }
 .tutorial-bullet-text {
     -fx-font-size: 13.5px;
-    -fx-text-fill: #334155;
+    -fx-text-fill: sibim-slate-700;
     -fx-line-spacing: 1;
 }
 
@@ -98,13 +98,13 @@
 }
 
 /* Progress dots */
-.tutorial-dot        { -fx-fill: #CBD5E1; }
+.tutorial-dot        { -fx-fill: sibim-slate-300; }
 .tutorial-dot-active { -fx-fill: sibim-indigo; }
 
 /* Step counter */
 .tutorial-counter {
     -fx-font-size: 11px;
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-font-weight: 600;
 }
 
@@ -129,17 +129,17 @@
     -fx-padding: 10 18;
     -fx-cursor: hand;
     -fx-font-size: 13px;
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-radius: 10;
     -fx-border-width: 1.5;
 }
-.tutorial-btn-secondary:hover   { -fx-background-color: #F8FAFC; -fx-text-fill: #334155; }
-.tutorial-btn-secondary:pressed { -fx-background-color: #F1F5F9; -fx-translate-y: 1; }
+.tutorial-btn-secondary:hover   { -fx-background-color: sibim-surface; -fx-text-fill: sibim-slate-700; }
+.tutorial-btn-secondary:pressed { -fx-background-color: sibim-slate-100; -fx-translate-y: 1; }
 
 /* Ghost skip button */
 .tutorial-btn-skip {
     -fx-background-color: transparent;
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-background-radius: 8;
     -fx-padding: 10 12;
     -fx-cursor: hand;
@@ -147,7 +147,7 @@
 }
 .tutorial-btn-skip:hover {
     -fx-text-fill: sibim-slate-600;
-    -fx-background-color: #F1F5F9;
+    -fx-background-color: sibim-slate-100;
     -fx-background-radius: 8;
 }
 
@@ -179,7 +179,7 @@
 /* Keyboard navigation hint below buttons */
 .tutorial-kb-hint {
     -fx-font-size: 11px;
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-font-style: italic;
     -fx-padding: 0 0 2 0;
     -fx-alignment: CENTER;

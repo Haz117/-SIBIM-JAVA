@@ -47,9 +47,9 @@
 
 /* Chip outer container — pill border */
 .preset-chip-box {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 20;
-    -fx-border-color: #A5B4FC;
+    -fx-border-color: sibim-indigo-300;
     -fx-border-radius: 20;
     -fx-border-width: 1;
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.10), 3, 0, 0, 1);
@@ -66,7 +66,7 @@
     -fx-cursor: hand;
 }
 .preset-chip:hover { -fx-background-color: #E0E7FF; }
-.preset-chip:pressed { -fx-background-color: #C7D2FE; }
+.preset-chip:pressed { -fx-background-color: sibim-indigo-200; }
 
 /* Delete (×) button inside chip */
 .preset-chip-delete {
@@ -88,9 +88,9 @@
 
 /* Toolbar import button — indigo outline, matches export buttons' weight */
 .btn-import {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-text-fill: sibim-indigo-darker;
-    -fx-border-color: #A5B4FC;
+    -fx-border-color: sibim-indigo-300;
     -fx-border-width: 1.5;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -100,7 +100,7 @@
     -fx-padding: 5 12;
 }
 .btn-import:hover  { -fx-background-color: #E0E7FF; -fx-border-color: #818CF8; }
-.btn-import:pressed { -fx-background-color: #C7D2FE; }
+.btn-import:pressed { -fx-background-color: sibim-indigo-200; }
 .btn-import .btn-icon { -fx-icon-color: sibim-indigo-darker; }
 
 /* Instructions card inside the dialog */
@@ -130,7 +130,7 @@
 /* Step description text */
 .import-step-text {
     -fx-font-size: 12.5px;
-    -fx-text-fill: #374151;
+    -fx-text-fill: sibim-gray-700;
 }
 
 /* Summary label — two variants */
@@ -153,5 +153,5 @@
 /* Error text in the Observación column */
 .import-row-error-text {
     -fx-font-size: 11.5px;
-    -fx-text-fill: #B91C1C;
+    -fx-text-fill: sibim-red-dark;
 }

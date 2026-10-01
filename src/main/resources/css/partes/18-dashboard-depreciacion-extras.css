@@ -2,7 +2,7 @@
 .status-mini-card {
     -fx-background-color: white;
     -fx-background-radius: 12;
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.06), 8, 0, 0, 2);
@@ -22,8 +22,8 @@
 .status-mini-count { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
 
 .status-mini-pct         { -fx-font-size: 12px; -fx-font-weight: bold; }
-.status-pct-green        { -fx-text-fill: #047857; }
-.status-pct-amber        { -fx-text-fill: #B45309; }
+.status-pct-green        { -fx-text-fill: sibim-green-dark; }
+.status-pct-amber        { -fx-text-fill: sibim-amber-dark; }
 .status-pct-red          { -fx-text-fill: sibim-red; }
 .status-pct-violet       { -fx-text-fill: sibim-violet; }
 
@@ -50,7 +50,7 @@
    is, so these win outright no matter what AtlantaFX's own rules do. fx:id
    in FXML sets the node's id automatically, so these match pbAgotados/
    pbBajoStock/pbGarantias directly without needing any lookup-color chain. */
-#pbAgotados  > .bar { -fx-background-color: #EF4444; }
+#pbAgotados  > .bar { -fx-background-color: sibim-red-500; }
 #pbAgotados  > .track { -fx-background-color: rgba(220,38,38,0.12); }
 #pbBajoStock > .bar { -fx-background-color: #F59E0B; }
 #pbBajoStock > .track { -fx-background-color: rgba(217,119,6,0.12); }
@@ -58,10 +58,10 @@
 #pbGarantias > .track { -fx-background-color: rgba(124,58,237,0.12); }
 
 /* ─── Area distribution bars ─── */
-.area-bar-name  { -fx-font-size: 12.5px; -fx-text-fill: #334155; }
+.area-bar-name  { -fx-font-size: 12.5px; -fx-text-fill: sibim-slate-700; }
 .area-bar-count { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 .area-bar-pb { -fx-pref-height: 10; -fx-background-radius: 5; }
-.area-bar-pb .track { -fx-background-color: #F1F5F9; -fx-background-radius: 5; -fx-background-insets: 0; }
+.area-bar-pb .track { -fx-background-color: sibim-slate-100; -fx-background-radius: 5; -fx-background-insets: 0; }
 .area-bar-pb .bar   { -fx-background-radius: 5; -fx-background-insets: 0; }
 
 /* Colores posicionales para barras de área (evita inline setStyle) */
@@ -73,16 +73,16 @@
 
 /* ─── Depreciación: barra visual en celda de tabla ─── */
 .depr-bar-cell { -fx-pref-height: 10; -fx-background-radius: 4; }
-.depr-bar-cell .track { -fx-background-color: #F1F5F9; -fx-background-radius: 4; -fx-background-insets: 0; }
+.depr-bar-cell .track { -fx-background-color: sibim-slate-100; -fx-background-radius: 4; -fx-background-insets: 0; }
 .depr-bar-cell .bar   { -fx-background-radius: 4; -fx-background-insets: 0; }
 .depr-bar-low  .bar   { -fx-background-color: #10B981; }
 .depr-bar-mid  .bar   { -fx-background-color: #F59E0B; }
-.depr-bar-high .bar   { -fx-background-color: #EF4444; }
+.depr-bar-high .bar   { -fx-background-color: sibim-red-500; }
 .depr-bar-full .bar   { -fx-background-color: sibim-violet; }
 
 /* ─── Depreciación: etiquetas de rangos ─── */
 .depr-range-label { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; -fx-min-width: 75px; }
-.depr-range-count { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #334155;
+.depr-range-count { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-700;
                     -fx-min-width: 65px; -fx-alignment: CENTER_RIGHT; }
 
 /* ─── Depreciación: hover sobre puntos del LineChart ─── */
@@ -101,7 +101,7 @@
 /* ─── Table density toggle ─── */
 .density-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-font-size: 11px;
     -fx-padding: 2 6 2 6;
     -fx-background-radius: 4px;
@@ -111,7 +111,7 @@
     -fx-cursor: hand;
     -fx-graphic-text-gap: 4;
 }
-.density-btn:hover { -fx-background-color: rgba(255,255,255,0.07); -fx-text-fill: #4338CA; }
+.density-btn:hover { -fx-background-color: rgba(255,255,255,0.07); -fx-text-fill: sibim-indigo-darker; }
 .density-btn:pressed { -fx-background-color: rgba(255,255,255,0.12); }
 .density-btn .status-icon { -fx-icon-size: 13; -fx-icon-color: #64748B; }
 .density-btn:hover .status-icon { -fx-icon-color: #C7D2FE; }
@@ -167,32 +167,32 @@
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
 }
-.trend-up   { -fx-text-fill: #047857; -fx-background-color: #D1FAE5; }
-.trend-down { -fx-text-fill: #B91C1C; -fx-background-color: #FEE2E2; }
-.trend-eq   { -fx-text-fill: sibim-slate-600; -fx-background-color: #F1F5F9; }
+.trend-up   { -fx-text-fill: sibim-green-dark; -fx-background-color: #D1FAE5; }
+.trend-down { -fx-text-fill: sibim-red-dark; -fx-background-color: #FEE2E2; }
+.trend-eq   { -fx-text-fill: sibim-slate-600; -fx-background-color: sibim-slate-100; }
 
 /* ─── FEATURE 1: Drag & drop zone ─── */
 .drop-zone {
-    -fx-border-color: #CBD5E1;
+    -fx-border-color: sibim-slate-300;
     -fx-border-width: 2;
     -fx-border-style: dashed;
     -fx-border-radius: 10;
     -fx-background-radius: 10;
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: sibim-surface;
     -fx-padding: 28 20;
     -fx-cursor: hand;
     -fx-alignment: center;
 }
 .drop-zone:hover, .drop-zone-active {
     -fx-border-color: sibim-indigo;
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
 }
 
 /* ─── FEATURE 3: Empty states ─── */
 /* .empty-state-icon is defined once, together with .empty-icon-lg, near the
    "Empty-state large icon" rule above. */
 .empty-state-icon-circle {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
     -fx-padding: 22;
     -fx-alignment: CENTER;
@@ -208,7 +208,7 @@
 }
 .empty-state-subtitle, .empty-state-hint {
     -fx-font-size: 13px;
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-text-alignment: center;
     -fx-alignment: center;
     -fx-wrap-text: true;
@@ -221,7 +221,7 @@
     -fx-padding: 8 12;
     -fx-alignment: center-left;
     -fx-background-color: white;
-    -fx-border-color: transparent transparent #F1F5F9 transparent;
+    -fx-border-color: transparent transparent sibim-slate-100 transparent;
     -fx-border-width: 0 0 1 0;
 }
 .skeleton-block {
@@ -241,16 +241,16 @@
 
 /* ─── FEATURE 10: Comparación de bienes ─── */
 .compare-diff { -fx-background-color: #FEF3C7; }
-.compare-header { -fx-font-weight: 700; -fx-background-color: #F1F5F9; }
+.compare-header { -fx-font-weight: 700; -fx-background-color: sibim-slate-100; }
 
 /* ─── FEATURE 6: Active filter chips bar ─── */
 .active-chips-bar {
     -fx-padding: 0 0 2 2;
 }
 .active-chip {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 20;
-    -fx-border-color: #A5B4FC;
+    -fx-border-color: sibim-indigo-300;
     -fx-border-radius: 20;
     -fx-border-width: 1;
     -fx-padding: 2 4 2 10;
@@ -262,7 +262,7 @@
 }
 .active-chip-label {
     -fx-font-size: 11.5px;
-    -fx-text-fill: #3730A3;
+    -fx-text-fill: sibim-indigo-900;
     -fx-font-weight: 500;
 }
 .active-chip-close {

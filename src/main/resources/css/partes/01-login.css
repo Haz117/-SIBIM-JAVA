@@ -71,27 +71,27 @@
 .login-title {
     -fx-font-size: 27px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
 }
 .login-subtitle { -fx-text-fill: sibim-slate-500; -fx-font-size: 13.5px; }
 .form-label {
-    -fx-text-fill: #374151;
+    -fx-text-fill: sibim-gray-700;
     -fx-font-size: 12.5px;
     -fx-font-weight: bold;
 }
 .form-input {
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: sibim-surface;
     -fx-background-radius: 10;
     -fx-border-radius: 10;
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-width: 1.5;
     -fx-padding: 11 14;
     -fx-font-size: 13px;
-    -fx-prompt-text-fill: #64748B;
+    -fx-prompt-text-fill: sibim-slate-500;
 }
 .form-input:hover {
     -fx-background-color: white;
-    -fx-border-color: #A5B4FC;
+    -fx-border-color: sibim-indigo-300;
 }
 .form-input:focused {
     -fx-background-color: white;
@@ -118,7 +118,7 @@
 }
 .login-btn:disabled { -fx-background-color: #C4B5FD; -fx-effect: none; }
 .error-label {
-    -fx-text-fill: #B91C1C;
+    -fx-text-fill: sibim-red-dark;
     -fx-font-size: 12px;
     -fx-background-color: #FEF2F2;
     -fx-border-color: #FCA5A5;
@@ -129,7 +129,7 @@
 }
 .error-icon { -fx-icon-size: 13; -fx-icon-color: sibim-red; }
 .login-forgot-link {
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-font-size: 12px;
     -fx-cursor: hand;
     -fx-border-width: 0;

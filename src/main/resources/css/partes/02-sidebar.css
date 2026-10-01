@@ -19,7 +19,7 @@
    (see .sidebar above) don't reveal a mismatched gap behind them — matches
    .content-area's background now that the sidebar itself is light. */
 .sidebar-backdrop {
-    -fx-background-color: #EEF2F7;
+    -fx-background-color: sibim-bg;
 }
 
 /* Scrollable nav section inside the sidebar — transparent so the sidebar's
@@ -77,7 +77,7 @@
     -fx-padding: 6 8;
     -fx-cursor: hand;
 }
-.sidebar-user-box:hover { -fx-background-color: #F1F5F9; }
+.sidebar-user-box:hover { -fx-background-color: sibim-slate-100; }
 .user-avatar {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
     -fx-background-radius: 999;
@@ -108,7 +108,7 @@
 /* Nav section labels — same muted-gray uppercase treatment as
    .dash-section-label in the content area. */
 .nav-section-label {
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-padding: 12 14 3 16;
@@ -119,7 +119,7 @@
    Folding lets all four sections fit without scrolling at the default window
    height; a folded section still shows where you are and how many alerts it hides. */
 .nav-section {
-    -fx-border-color: #CBD5E1 transparent transparent transparent;
+    -fx-border-color: sibim-slate-300 transparent transparent transparent;
     -fx-border-width: 1.5 0 0 0;
     -fx-padding: 4 0 0 0;
 }
@@ -128,13 +128,13 @@
     -fx-background-radius: 10;
     -fx-cursor: hand;
 }
-.nav-section-header:hover   { -fx-background-color: #F8FAFC; }
+.nav-section-header:hover   { -fx-background-color: sibim-surface; }
 .nav-section-header:focused {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
 .nav-section-header:focus-visible {
-    -fx-background-color: sibim-indigo-dark, #EEF2FF;
+    -fx-background-color: sibim-indigo-dark, sibim-indigo-50;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 10, 8;
 }
@@ -164,7 +164,7 @@
    narrow the content and make the ScrollPane show a horizontal scrollbar. */
 .sidebar-collapsed .nav-list { -fx-spacing: 4; }
 .sidebar-collapsed .nav-section {
-    -fx-border-color: #CBD5E1 transparent transparent transparent;
+    -fx-border-color: sibim-slate-300 transparent transparent transparent;
     -fx-border-width: 1.5 0 0 0;
     -fx-padding: 4 0 0 0;
 }
@@ -191,7 +191,7 @@
    click also gives the button focus, and the ring then sat on top of the active
    pill as a heavy double box. */
 .nav-btn:focus-visible {
-    -fx-background-color: sibim-indigo-dark, #EEF2FF;
+    -fx-background-color: sibim-indigo-dark, sibim-indigo-50;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }
@@ -201,7 +201,7 @@
 .nav-btn.nav-active,
 .nav-btn.nav-active:hover,
 .nav-btn.nav-active:armed {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-text-fill: sibim-indigo-darker;
     -fx-font-weight: 700;
     -fx-background-radius: 12;
@@ -212,7 +212,7 @@
     -fx-translate-x: 0;
 }
 .nav-btn.nav-active:focus-visible {
-    -fx-background-color: sibim-indigo-dark, #EEF2FF;
+    -fx-background-color: sibim-indigo-dark, sibim-indigo-50;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }
@@ -229,7 +229,7 @@
 .nav-tab-extension { -fx-background-color: transparent; }
 
 .sidebar-divider .line {
-    -fx-border-color: #CBD5E1;
+    -fx-border-color: sibim-slate-300;
     -fx-border-width: 1.5;
 }
 
@@ -279,7 +279,7 @@
 /* CONTROL PATRIMONIAL — violet */
 .nav-btn.nav-ctrl:hover {
     -fx-background-color: #F5F3FF;
-    -fx-text-fill: #6D28D9;
+    -fx-text-fill: sibim-violet-dark;
     -fx-border-color: transparent transparent transparent rgba(124,58,237,0.55);
 }
 .nav-btn.nav-ctrl:hover .nav-icon { -fx-icon-color: sibim-violet; }
@@ -288,7 +288,7 @@
 .nav-btn.nav-ctrl.nav-active:hover,
 .nav-btn.nav-ctrl.nav-active:armed {
     -fx-background-color: #F5F3FF;
-    -fx-text-fill: #6D28D9;
+    -fx-text-fill: sibim-violet-dark;
     -fx-border-color: transparent transparent transparent sibim-violet;
 }
 .nav-btn.nav-ctrl.nav-active .nav-icon { -fx-icon-color: sibim-violet; }
@@ -304,14 +304,14 @@
 .nav-btn.nav-sys.nav-active,
 .nav-btn.nav-sys.nav-active:hover,
 .nav-btn.nav-sys.nav-active:armed {
-    -fx-background-color: #F8FAFC;
-    -fx-text-fill: #334155;
+    -fx-background-color: sibim-surface;
+    -fx-text-fill: sibim-slate-700;
     -fx-border-color: transparent transparent transparent sibim-slate-500;
 }
 .nav-btn.nav-sys.nav-active .nav-icon { -fx-icon-color: sibim-slate-600; }
 .nav-btn.nav-sys:focus-visible,
 .nav-btn.nav-sys.nav-active:focus-visible {
-    -fx-background-color: sibim-slate-600, #F8FAFC;
+    -fx-background-color: sibim-slate-600, sibim-surface;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }

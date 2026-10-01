@@ -18,8 +18,8 @@
    ═══════════════════════════════════════════════════════════════════ */
 .report-card-tag-indigo { -fx-text-fill: sibim-indigo-dark; }
 .report-card-tag-teal   { -fx-text-fill: #0E7490; }
-.report-card-tag-amber  { -fx-text-fill: #B45309; }
-.report-card-tag-green  { -fx-text-fill: #047857; }
+.report-card-tag-amber  { -fx-text-fill: sibim-amber-dark; }
+.report-card-tag-green  { -fx-text-fill: sibim-green-dark; }
 .report-card-tag-slate  { -fx-text-fill: sibim-slate-600; }
 .report-card-tag-purple { -fx-text-fill: sibim-violet; }
 .report-card-tag-red    { -fx-text-fill: #A2232F; }
@@ -35,7 +35,7 @@
 
 /* Profile field two-column layout */
 .profile-field-col-left {
-    -fx-border-color: transparent #E2E8F0 transparent transparent;
+    -fx-border-color: transparent sibim-slate-200 transparent transparent;
     -fx-border-width: 0 1 0 0;
     -fx-padding: 0 24 0 0;
 }
@@ -43,7 +43,7 @@
 
 /* Small icon badge used in card section headers */
 .section-icon-badge {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 8;
     -fx-min-width: 36; -fx-min-height: 36;
     -fx-max-width: 36; -fx-max-height: 36;
@@ -54,8 +54,8 @@
    ═══════════════════════════════════════════════════════════════════ */
 /* Subdued helper text (smaller than .muted) */
 .muted-sm  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
-.text-ok   { -fx-text-fill: #047857; }
-.text-warn { -fx-text-fill: #B45309; }
+.text-ok   { -fx-text-fill: sibim-green-dark; }
+.text-warn { -fx-text-fill: sibim-amber-dark; }
 
 /* Period picker hint label inside report card */
 .report-hint { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
@@ -95,48 +95,48 @@
 /* ═══════════════════════════════════════════════════════════════════
    DIALOG — stock preview widget (Movimientos) & product detail (Productos)
    ═══════════════════════════════════════════════════════════════════ */
-.dlg-stock-preview   { -fx-background-color: #F8FAFC; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-width: 1; -fx-border-radius: 12; }
+.dlg-stock-preview   { -fx-background-color: sibim-surface; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-width: 1; -fx-border-radius: 12; }
 .dlg-stock-tit       { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-500; }
-.dlg-stock-val       { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #374151; }
-.dlg-stock-new-ok    { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #047857; }
-.dlg-stock-new-warn  { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #B45309; }
-.dlg-stock-new-empty { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #DC2626; }
-.dlg-stock-arrow      { -fx-font-size: 18px; -fx-text-fill: #64748B; }
-.dlg-stock-arrow-up   { -fx-font-size: 18px; -fx-text-fill: #047857; }
-.dlg-stock-arrow-down { -fx-font-size: 18px; -fx-text-fill: #DC2626; }
+.dlg-stock-val       { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-gray-700; }
+.dlg-stock-new-ok    { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-green-dark; }
+.dlg-stock-new-warn  { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-amber-dark; }
+.dlg-stock-new-empty { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-red; }
+.dlg-stock-arrow      { -fx-font-size: 18px; -fx-text-fill: sibim-slate-500; }
+.dlg-stock-arrow-up   { -fx-font-size: 18px; -fx-text-fill: sibim-green-dark; }
+.dlg-stock-arrow-down { -fx-font-size: 18px; -fx-text-fill: sibim-red; }
 
 /* Área A → Área B preview (Movimientos, transferencia) */
 .dlg-transfer-preview { -fx-background-color: #FAF5FF; -fx-background-radius: 10; -fx-border-color: #E9D5FF; -fx-border-width: 1; -fx-border-radius: 10; }
 .dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #DDD6FE; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 4 10; }
-.dlg-transfer-chip-to  { -fx-border-color: #7C3AED; -fx-background-color: #F5F3FF; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.22), 8, 0, 0, 2); }
+.dlg-transfer-chip-to  { -fx-border-color: sibim-violet; -fx-background-color: #F5F3FF; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.22), 8, 0, 0, 2); }
 .dlg-transfer-chip-lbl { -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #4C1D95; }
 .dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #6B7280; }
 .dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: sibim-violet; }
 
 /* Product detail dialog header card */
-.dlg-detail-header { -fx-background-color: #F8FAFC; -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
-.dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-border-width: 1; }
-.dlg-qr-thumb          { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 4; }
+.dlg-detail-header { -fx-background-color: sibim-surface; -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
+.dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-radius: 12; -fx-border-width: 1; }
+.dlg-qr-thumb          { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: sibim-slate-200; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 4; }
 .dlg-qr-thumb-clickable { -fx-cursor: hand; }
-.dlg-qr-thumb-clickable:hover { -fx-border-color: #6366F1; -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.25), 8, 0, 0, 0); }
-.dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
+.dlg-qr-thumb-clickable:hover { -fx-border-color: sibim-indigo; -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.25), 8, 0, 0, 0); }
+.dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
 .dlg-detail-code   { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 
 /* Status pill badge variants for detail dialog */
 .dlg-status-ok     { -fx-background-color: #F0FDF4; -fx-text-fill: #15803D; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
-.dlg-status-warn   { -fx-background-color: #FFFBEB; -fx-text-fill: #B45309; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
-.dlg-status-danger { -fx-background-color: #FEF2F2; -fx-text-fill: #B91C1C; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.dlg-status-warn   { -fx-background-color: #FFFBEB; -fx-text-fill: sibim-amber-dark; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.dlg-status-danger { -fx-background-color: #FEF2F2; -fx-text-fill: sibim-red-dark; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .dlg-status-purple { -fx-background-color: #F5F3FF; -fx-text-fill: sibim-violet; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 
 /* Detail grid value styles */
 .dlg-detail-stock-ok   { -fx-text-fill: #15803D; -fx-font-weight: 600; }
-.dlg-detail-stock-warn { -fx-text-fill: #B45309; -fx-font-weight: 600; }
+.dlg-detail-stock-warn { -fx-text-fill: sibim-amber-dark; -fx-font-weight: 600; }
 .dlg-detail-stock-low  { -fx-text-fill: sibim-red; -fx-font-weight: bold; }
-.dlg-detail-total      { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0F172A; }
+.dlg-detail-total      { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
 
 /* Depreciation progress bar in product detail dialog */
 .dep-progress-bar { -fx-pref-height: 8px; -fx-background-radius: 4px; }
-.dep-progress-bar .track { -fx-background-color: #E2E8F0; -fx-background-radius: 4px; }
+.dep-progress-bar .track { -fx-background-color: sibim-slate-200; -fx-background-radius: 4px; }
 .dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #6366F1, #A78BFA); -fx-background-radius: 4px; -fx-background-insets: 0; }
 .dep-progress-bar.dep-progress-ok .bar      { -fx-background-color: linear-gradient(to right, #16A34A, #4ADE80); }
 .dep-progress-bar.dep-progress-warn .bar    { -fx-background-color: linear-gradient(to right, #D97706, #FCD34D); }
@@ -144,11 +144,11 @@
 
 /* Image picker widget inside product form dialog */
 .dlg-img-placeholder { -fx-text-fill: sibim-slate-500; -fx-font-size: 12px; -fx-text-alignment: center; -fx-alignment: center; }
-.dlg-img-box         { -fx-background-color: #F1F5F9; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-border-width: 1; }
+.dlg-img-box         { -fx-background-color: sibim-slate-100; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-radius: 12; -fx-border-width: 1; }
 /* Dialog tab pane — full brand styling */
 .dlg-tabpane > .tab-header-area > .tab-header-background {
-    -fx-background-color: #F8FAFC;
-    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-background-color: sibim-surface;
+    -fx-border-color: transparent transparent sibim-slate-200 transparent;
     -fx-border-width: 0 0 1 0;
 }
 .dlg-tabpane > .tab-header-area > .headers-region > .tab {
@@ -188,8 +188,8 @@
     visibility: hidden;
 }
 .stepper-bar {
-    -fx-background-color: #F8FAFC;
-    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-background-color: sibim-surface;
+    -fx-border-color: transparent transparent sibim-slate-200 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 12 20 10 20;
     -fx-spacing: 0;
@@ -202,7 +202,7 @@
     -fx-cursor: HAND;
 }
 .stepper-circle {
-    -fx-background-color: #CBD5E1;
+    -fx-background-color: sibim-slate-300;
     -fx-background-radius: 50;
     -fx-min-width: 28; -fx-max-width: 28;
     -fx-min-height: 28; -fx-max-height: 28;
@@ -211,7 +211,7 @@
 .stepper-num   { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; }
 .stepper-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 .stepper-connector {
-    -fx-background-color: #CBD5E1;
+    -fx-background-color: sibim-slate-300;
     -fx-pref-height: 2; -fx-min-height: 2; -fx-max-height: 2;
 }
 .stepper-connector-done { -fx-background-color: sibim-indigo-dark; }
@@ -220,7 +220,7 @@
 .stepper-step-active .stepper-label  { -fx-font-weight: bold; -fx-text-fill: sibim-indigo-darker; }
 .stepper-step-done .stepper-circle   { -fx-background-color: #10B981; }
 .stepper-step-done .stepper-num      { -fx-text-fill: white; }
-.stepper-step-done .stepper-label    { -fx-text-fill: #047857; }
+.stepper-step-done .stepper-label    { -fx-text-fill: sibim-green-dark; }
 .stepper-nav-bar {
     -fx-padding: 6 22 14 22;
     -fx-spacing: 10;
@@ -244,7 +244,7 @@
    DATE PRESET BUTTONS — quick date range shortcuts in filter bars
    ═══════════════════════════════════════════════════════════════════ */
 .btn-preset {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-text-fill: sibim-indigo-darker;
     -fx-background-radius: 20;
     -fx-border-radius: 20;
@@ -257,9 +257,9 @@
 }
 .btn-preset:hover {
     -fx-background-color: #E0E7FF;
-    -fx-text-fill: #3730A3;
+    -fx-text-fill: sibim-indigo-900;
 }
-.btn-preset:pressed { -fx-background-color: #C7D2FE; }
+.btn-preset:pressed { -fx-background-color: sibim-indigo-200; }
 .btn-preset-active {
     -fx-background-color: sibim-indigo;
     -fx-text-fill: white;
@@ -282,7 +282,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 .dash-health-seg-green  { -fx-background-color: #10B981; }
 .dash-health-seg-amber  { -fx-background-color: #F59E0B; }
-.dash-health-seg-red    { -fx-background-color: #EF4444; }
+.dash-health-seg-red    { -fx-background-color: sibim-red-500; }
 .dash-health-seg-violet { -fx-background-color: #A78BFA; }
 .dash-health-seg-only   { -fx-background-radius: 5; }
 .dash-health-seg-first  { -fx-background-radius: 5 0 0 5; }
@@ -319,16 +319,16 @@
     -fx-font-size: 11.5px;
     -fx-font-weight: bold;
     -fx-text-fill: sibim-indigo-darker;
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 4;
     -fx-padding: 2 8;
-    -fx-border-color: #C7D2FE;
+    -fx-border-color: sibim-indigo-200;
     -fx-border-radius: 4;
     -fx-border-width: 1;
 }
 .shortcut-desc {
     -fx-font-size: 12.5px;
-    -fx-text-fill: #374151;
+    -fx-text-fill: sibim-gray-700;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

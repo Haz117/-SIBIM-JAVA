@@ -17,11 +17,11 @@
 .list-view:focus-visible,
 .tree-view:focus-visible,
 .tree-table-view:focus-visible {
-    -fx-border-color: #4F46E5;
+    -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 2;
 }
 .tab-pane:focus-visible > .tab-header-area > .headers-region > .tab:selected .focus-indicator {
-    -fx-border-color: #4F46E5;
+    -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 2;
     -fx-border-radius: 4;
     -fx-border-insets: -4 -4 -6 -5;

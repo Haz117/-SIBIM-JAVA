@@ -9,9 +9,9 @@
    used the Modena path and silently never matched anything.
    ═══════════════════════════════════════════════════════════════════ */
 .date-picker-popup > .month-year-pane {
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: sibim-surface;
     -fx-background-radius: 10 10 0 0;
-    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-border-color: transparent transparent sibim-slate-200 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 10 12 10 12;
 }
@@ -26,7 +26,7 @@
     -fx-padding: 4;
 }
 .date-picker-popup > .month-year-pane > .spinner > .button:hover {
-    -fx-background-color: #E2E8F0;
+    -fx-background-color: sibim-slate-200;
 }
 .date-picker-popup > .month-year-pane > .spinner > .button > .left-arrow,
 .date-picker-popup > .month-year-pane > .spinner > .button > .right-arrow {
@@ -41,7 +41,7 @@
     -fx-background-color: transparent;
 }
 .date-picker-popup > .calendar-grid .day-name-cell {
-    -fx-text-fill: #64748B;
+    -fx-text-fill: sibim-slate-500;
     -fx-font-weight: bold;
     -fx-font-size: 0.82em;
 }
@@ -72,7 +72,7 @@
     -fx-font-weight: bold;
 }
 .date-picker-popup > .calendar-grid > .day-cell:hover {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
 }
 .date-picker-popup > .calendar-grid > .selected:hover {
@@ -155,8 +155,8 @@
     -fx-max-height: 36;
 }
 .offline-banner-demo {
-    -fx-background-color: #EEF2FF;
-    -fx-border-color: transparent transparent #A5B4FC transparent;
+    -fx-background-color: sibim-indigo-50;
+    -fx-border-color: transparent transparent sibim-indigo-300 transparent;
 }
 .offline-banner-demo .offline-banner-icon { -fx-icon-color: sibim-indigo; }
 .offline-banner-demo .offline-banner-text { -fx-text-fill: sibim-indigo-darker; }
@@ -191,8 +191,8 @@
    STATUS BAR  — barra inferior de estado
    ═══════════════════════════════════════════════════════════════════ */
 .status-bar {
-    -fx-background-color: #F8FAFC;
-    -fx-border-color: #E2E8F0 transparent transparent transparent;
+    -fx-background-color: sibim-surface;
+    -fx-border-color: sibim-slate-200 transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
     -fx-min-height: 28;
     -fx-max-height: 28;
@@ -221,7 +221,7 @@
     -fx-font-weight: bold;
 }
 .status-dot-demo {
-    -fx-text-fill: #B45309;
+    -fx-text-fill: sibim-amber-dark;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
@@ -231,7 +231,7 @@
     -fx-padding: 6 4;
 }
 .status-separator .line {
-    -fx-border-color: #CBD5E1;
+    -fx-border-color: sibim-slate-300;
     -fx-border-width: 0 0 0 1;
     -fx-background-color: transparent;
 }
@@ -240,8 +240,8 @@
    TAB PANE  — formularios con pestañas
    ═══════════════════════════════════════════════════════════════════ */
 .tab-pane > .tab-header-area > .tab-header-background {
-    -fx-background-color: #F8FAFC;
-    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-background-color: sibim-surface;
+    -fx-border-color: transparent transparent sibim-slate-200 transparent;
     -fx-border-width: 0 0 1 0;
 }
 .tab-pane > .tab-header-area > .headers-region > .tab {
@@ -285,7 +285,7 @@
     -fx-padding: 4 14;
 }
 .btn-secondary:focus-visible {
-    -fx-border-color: #4F46E5;
+    -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 2;
     -fx-border-radius: 12;
     -fx-padding: 6 13;
@@ -341,7 +341,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 .filter-chip {
     -fx-background-color: transparent;
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-radius: 20;
     -fx-background-radius: 20;
     -fx-padding: 4 13;
@@ -352,7 +352,7 @@
 }
 .filter-chip:hover {
     -fx-background-color: #F5F3FF;
-    -fx-border-color: #A5B4FC;
+    -fx-border-color: sibim-indigo-300;
     -fx-text-fill: sibim-indigo-darker;
 }
 .filter-chip:selected {
@@ -362,22 +362,22 @@
     -fx-font-weight: bold;
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.30), 6, 0, 0, 2);
 }
-.filter-chip:focused { -fx-border-color: #4F46E5; -fx-border-width: 2; }
+.filter-chip:focused { -fx-border-color: sibim-indigo-dark; -fx-border-width: 2; }
 
 /* Color-coded chip variants — hover and selected states per semantic color */
-.filter-chip-green:hover   { -fx-background-color: #F0FDF4; -fx-border-color: #6EE7B7; -fx-text-fill: #047857; }
+.filter-chip-green:hover   { -fx-background-color: #F0FDF4; -fx-border-color: #6EE7B7; -fx-text-fill: sibim-green-dark; }
 .filter-chip-green:selected { -fx-background-color: #059669; -fx-border-color: #059669; -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.32), 6, 0, 0, 2); }
 .filter-chip-amber:hover   { -fx-background-color: #FFFBEB; -fx-border-color: #FCD34D; -fx-text-fill: #92400E; }
-.filter-chip-amber:selected { -fx-background-color: #D97706; -fx-border-color: #D97706; -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 6, 0, 0, 2); }
+.filter-chip-amber:selected { -fx-background-color: sibim-amber; -fx-border-color: sibim-amber; -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 6, 0, 0, 2); }
 .filter-chip-danger:hover  { -fx-background-color: #FFF8F8; -fx-border-color: #FCA5A5; -fx-text-fill: #991B1B; }
-.filter-chip-danger:selected { -fx-background-color: #DC2626; -fx-border-color: #DC2626; -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.32), 6, 0, 0, 2); }
+.filter-chip-danger:selected { -fx-background-color: sibim-red; -fx-border-color: sibim-red; -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.32), 6, 0, 0, 2); }
 .filter-chip-purple:hover  { -fx-background-color: #FAF5FF; -fx-border-color: #C4B5FD; -fx-text-fill: #5B21B6; }
-.filter-chip-purple:selected { -fx-background-color: #7C3AED; -fx-border-color: #7C3AED; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.32), 6, 0, 0, 2); }
+.filter-chip-purple:selected { -fx-background-color: sibim-violet; -fx-border-color: sibim-violet; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.32), 6, 0, 0, 2); }
 .filter-chip-teal:hover    { -fx-background-color: #F0FDFA; -fx-border-color: #5EEAD4; -fx-text-fill: #0E7490; }
 .filter-chip-teal:selected  { -fx-background-color: #0891B2; -fx-border-color: #0891B2; -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.32), 6, 0, 0, 2); }
 
 /* PAGE HEADER per-section color overrides */
-.page-header-indigo  { -fx-border-color: #4338CA #E2E8F0 #E2E8F0 #4338CA; -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 10, 0, 0, 2); }
+.page-header-indigo  { -fx-border-color: sibim-indigo-darker sibim-slate-200 sibim-slate-200 sibim-indigo-darker; -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 10, 0, 0, 2); }
 
 /* ═══════════════════════════════════════════════════════════════════
    CODIGO CELL — monospace badge, signals click-to-copy
@@ -386,7 +386,7 @@
     -fx-font-family: "Consolas", "Courier New", monospace;
     -fx-font-size: 12px;
     -fx-text-fill: sibim-indigo-darker;
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 4;
     -fx-padding: 1 6;
     -fx-cursor: hand;
@@ -406,10 +406,10 @@
 .combo-box-popup .list-view {
     -fx-background-radius: 8;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0, 0, 4);
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-radius: 8;
 }
 .combo-box-popup .list-view .list-cell:filled:hover {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-text-fill: sibim-indigo-darker;
 }

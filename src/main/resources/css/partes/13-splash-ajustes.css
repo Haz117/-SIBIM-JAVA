@@ -43,7 +43,7 @@
 }
 .splash-subtitle {
     -fx-font-size: 12px;
-    -fx-text-fill: #A5B4FC;
+    -fx-text-fill: sibim-indigo-300;
     -fx-font-family: 'Segoe UI';
 }
 
@@ -137,7 +137,7 @@
 .empty-state-pane {
     -fx-background-color: white;
     -fx-background-radius: 14;
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-radius: 14;
     -fx-border-width: 1;
 }
@@ -149,9 +149,9 @@
     -fx-font-size: 10.5px;
     -fx-font-weight: bold;
     -fx-text-fill: sibim-indigo-darker;
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
-    -fx-border-color: #C7D2FE;
+    -fx-border-color: sibim-indigo-200;
     -fx-border-width: 1;
     -fx-border-radius: 99;
     -fx-padding: 1 5 1 5;
@@ -194,7 +194,7 @@
     -fx-padding: 8 12;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-text-fill: #374151;
+    -fx-text-fill: sibim-gray-700;
     -fx-border-color: #D1D5DB;
     -fx-border-width: 1;
     -fx-border-radius: 7;
@@ -203,7 +203,7 @@
 /* Big green check on the white card (toast-icon-success is white-on-green-circle). */
 .transfer-cel-check { -fx-icon-color: #16A34A; -fx-icon-size: 34; }
 .transfer-cel-chip-to {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 7;
     -fx-padding: 8 12;
     -fx-font-size: 12px;
@@ -220,9 +220,9 @@
     -fx-font-weight: 700;
     -fx-padding: 0 2 0 2;
 }
-.pwd-strength-weak   { -fx-text-fill: #DC2626; }
-.pwd-strength-fair   { -fx-text-fill: #B45309; }
-.pwd-strength-strong { -fx-text-fill: #047857; }
+.pwd-strength-weak   { -fx-text-fill: sibim-red; }
+.pwd-strength-fair   { -fx-text-fill: sibim-amber-dark; }
+.pwd-strength-strong { -fx-text-fill: sibim-green-dark; }
 
 /* ── Organigrama product rows hover ──────────────────────────────────── */
 .org-product-row:hover {
@@ -246,7 +246,7 @@
 
 /* ── Audit log row hover ─────────────────────────────────────────────── */
 .dlg-detail-header:hover {
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: sibim-surface;
     -fx-background-radius: 8;
     -fx-cursor: default;
 }
@@ -259,10 +259,10 @@
 .btn-preset-active:pressed { -fx-background-color: sibim-indigo-darker; }
 
 /* ── Filter chip selected+hover — keep white text on colored background ── */
-.filter-chip-green:selected:hover  { -fx-background-color: #047857; -fx-text-fill: white; -fx-border-color: #047857; }
-.filter-chip-amber:selected:hover  { -fx-background-color: #B45309; -fx-text-fill: white; -fx-border-color: #B45309; }
-.filter-chip-danger:selected:hover { -fx-background-color: #B91C1C; -fx-text-fill: white; -fx-border-color: #B91C1C; }
-.filter-chip-purple:selected:hover { -fx-background-color: #6D28D9; -fx-text-fill: white; -fx-border-color: #6D28D9; }
+.filter-chip-green:selected:hover  { -fx-background-color: sibim-green-dark; -fx-text-fill: white; -fx-border-color: sibim-green-dark; }
+.filter-chip-amber:selected:hover  { -fx-background-color: sibim-amber-dark; -fx-text-fill: white; -fx-border-color: sibim-amber-dark; }
+.filter-chip-danger:selected:hover { -fx-background-color: sibim-red-dark; -fx-text-fill: white; -fx-border-color: sibim-red-dark; }
+.filter-chip-purple:selected:hover { -fx-background-color: sibim-violet-dark; -fx-text-fill: white; -fx-border-color: sibim-violet-dark; }
 .filter-chip-teal:selected:hover   { -fx-background-color: #0E7490; -fx-text-fill: white; -fx-border-color: #0E7490; }
 .filter-chip:selected:hover        { -fx-background-color: sibim-indigo-dark; -fx-text-fill: white; -fx-border-color: sibim-indigo-dark; }
 
@@ -289,7 +289,7 @@
 .inactivity-countdown {
     -fx-font-size: 44px;
     -fx-font-weight: bold;
-    -fx-text-fill: #B45309;
+    -fx-text-fill: sibim-amber-dark;
 }
 
 /* ── Inline field validation hints ──────────────────────────────────── */
@@ -297,8 +297,8 @@
     -fx-font-size: 11px;
     -fx-padding: 1 0 0 2;
 }
-.field-hint-ok    { -fx-text-fill: #047857; }
+.field-hint-ok    { -fx-text-fill: sibim-green-dark; }
 .field-hint-error { -fx-text-fill: sibim-red; }
-.field-hint-warn  { -fx-text-fill: #B45309; }
+.field-hint-warn  { -fx-text-fill: sibim-amber-dark; }
 .row-highlight-amber { -fx-background-color: #FFFBEB; }
 .col-header { -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; -fx-padding: 0 4 0 0; }

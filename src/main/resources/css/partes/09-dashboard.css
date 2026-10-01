@@ -28,7 +28,7 @@
 .quick-action-card {
     -fx-background-color: white;
     -fx-background-radius: 12;
-    -fx-border-color: #E2E8F0;
+    -fx-border-color: sibim-slate-200;
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-cursor: hand;
@@ -36,13 +36,13 @@
 }
 .quick-action-card:hover {
     -fx-background-color: #F5F3FF;
-    -fx-border-color: #C7D2FE;
+    -fx-border-color: sibim-indigo-200;
     -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.18), 14, 0, 0, 4);
     -fx-translate-y: -2;
 }
 .quick-action-card:pressed {
     -fx-translate-y: 0;
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
 }
 .qa-card-title { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1E1B4B; }
 .qa-card-hint  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
@@ -64,7 +64,7 @@
 
 /* Small chip badge next to section labels ("Últimos 7 días") */
 .dash-section-badge {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
     -fx-text-fill: sibim-indigo-darker;
     -fx-font-size: 11px;
@@ -76,7 +76,7 @@
 .dash-health-card {
     -fx-background-color: white;
     -fx-background-radius: 12;
-    -fx-border-color: sibim-indigo #E2E8F0 #E2E8F0 sibim-indigo;
+    -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo;
     -fx-border-width: 0 1 1 4;
     -fx-border-radius: 12;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 10, 0, 0, 2);
@@ -84,7 +84,7 @@
 .dash-health-title {
     -fx-font-size: 13.5px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0F172A;
+    -fx-text-fill: sibim-slate-950;
 }
 .dash-health-legend {
     -fx-font-size: 11px;
@@ -180,7 +180,7 @@
 
 /* Status bar DB pill — container around icon + label + help badge */
 .status-db-pill {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 20;
     -fx-padding: 4 10 4 8;
 }
@@ -194,10 +194,10 @@
 
 /* Help badge "?" next to the DB status text */
 .status-db-help-badge {
-    -fx-text-fill: #3730A3;
+    -fx-text-fill: sibim-indigo-900;
     -fx-font-size: 10.5px;
     -fx-font-weight: 700;
-    -fx-background-color: #C7D2FE;
+    -fx-background-color: sibim-indigo-200;
     -fx-background-radius: 50%;
     -fx-min-width: 14px;
     -fx-min-height: 14px;
@@ -207,7 +207,7 @@
     -fx-cursor: hand;
 }
 .status-db-help-badge:hover {
-    -fx-background-color: #A5B4FC;
+    -fx-background-color: sibim-indigo-300;
     -fx-text-fill: #312E81;
 }
 
@@ -251,13 +251,13 @@
 
 /* Health legend items that open a detail dialog (Bajo Stock, Agotados) */
 .dash-health-legend-clickable { -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 2 6 2 6; }
-.dash-health-legend-clickable:hover { -fx-background-color: #F1F5F9; }
+.dash-health-legend-clickable:hover { -fx-background-color: sibim-slate-100; }
 
 /* Health legend dot labels */
-.dot-green  { -fx-text-fill: #047857; -fx-font-size: 11px; }
-.dot-amber  { -fx-text-fill: #B45309; -fx-font-size: 11px; }
-.dot-red    { -fx-text-fill: #DC2626; -fx-font-size: 11px; }
-.dot-violet { -fx-text-fill: #6D28D9; -fx-font-size: 11px; }
+.dot-green  { -fx-text-fill: sibim-green-dark; -fx-font-size: 11px; }
+.dot-amber  { -fx-text-fill: sibim-amber-dark; -fx-font-size: 11px; }
+.dot-red    { -fx-text-fill: sibim-red; -fx-font-size: 11px; }
+.dot-violet { -fx-text-fill: sibim-violet-dark; -fx-font-size: 11px; }
 
 /* Card-section icon (small, decorative) */
 .card-icon         { -fx-icon-size: 15; -fx-icon-color: sibim-slate-500; }
@@ -298,7 +298,7 @@
 /* "Cant." column — sign + color echo the row tint (green in, red out) so
    the direction of the movement reads at a glance without following the
    row color all the way across */
-.qty-in      { -fx-font-weight: bold; -fx-text-fill: #047857; }
+.qty-in      { -fx-font-weight: bold; -fx-text-fill: sibim-green-dark; }
 .qty-out     { -fx-font-weight: bold; -fx-text-fill: sibim-red; }
 .qty-neutral { -fx-font-weight: 600;  -fx-text-fill: sibim-slate-600; }
 
