@@ -135,8 +135,6 @@ class OrganigramaDialogs {
                 if (empty || item == null || getTableRow() == null || getTableRow().getItem() == null) return;
                 setText(item);
                 getStyleClass().add(switch (getTableRow().getItem().getEstado()) {
-                    case AGOTADO    -> "stock-low";
-                    case BAJO_STOCK -> "stock-warn";
                     default         -> "stock-ok";
                 });
             }
@@ -146,8 +144,6 @@ class OrganigramaDialogs {
         cEstado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
         cEstado.setPrefWidth(100);
         cEstado.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
-            case "Agotado"    -> "cell-badge-danger";
-            case "Bajo Stock" -> "cell-badge-warning";
             case "Vencido"    -> "cell-badge-purple";
             default           -> "cell-badge-success";
         }));

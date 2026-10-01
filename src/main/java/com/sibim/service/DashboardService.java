@@ -43,8 +43,6 @@ public class DashboardService {
         ExecutorService exec = AppExecutor.pool();
         var fStats        = async(() -> productoRepo.getStats(),                  exec);
         var fCatValores   = async(() -> productoRepo.getValorPorCategoria(),      exec);
-        var fAgotados     = async(() -> productoRepo.findAgotados(),              exec);
-        var fBajoStock    = async(() -> productoRepo.findBajoStock(),             exec);
         var fGarantias    = async(() -> productoRepo.findVencidosProximos(30),    exec);
         var fProximasRev  = async(() -> productoRepo.findProximasRevisiones(30),  exec);
         var fMovHoy       = async(() -> movimientoRepo.findToday(),               exec);
@@ -57,7 +55,7 @@ public class DashboardService {
 
         try {
             CompletableFuture.allOf(
-                fStats, fCatValores, fAgotados, fBajoStock, fGarantias, fProximasRev,
+                fStats, fCatValores, fGarantias, fProximasRev,
                 fMovHoy, fMovSemana, fMovMensual, fMovMensualValor, fByArea,
                 fMovsActual, fMovsAnterior).join();
         } catch (CompletionException ce) {
@@ -70,8 +68,8 @@ public class DashboardService {
         var movHoy = fMovHoy.join();
         log.debug("Dashboard (paralelo): {} bienes, {} categorías, {} movs hoy",
             stats.total(), stats.categorias(), movHoy.size());
-        return new Resumen(stats, fCatValores.join(), fAgotados.join(),
-                           fBajoStock.join(), fGarantias.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
+        return new Resumen(stats, fCatValores.join(),
+                           fGarantias.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
                            fMovMensual.join(), fMovMensualValor.join(),
                            fByArea.join(), fMovsActual.join(), fMovsAnterior.join());
     }
@@ -156,8 +154,6 @@ public class DashboardService {
     public record Resumen(
             ProductoRepository.ProductoStats stats,
             List<ProductoRepository.CategoriaValor> catValores,
-            List<Producto> agotados,
-            List<Producto> bajoStock,
             /** Garantías vencidas o por vencer en 30 días — same list as the Alertas screen. */
             List<Producto> garantias,
             List<Producto> proximasRevisiones,

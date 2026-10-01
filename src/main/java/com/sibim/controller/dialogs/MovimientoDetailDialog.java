@@ -154,7 +154,7 @@ public final class MovimientoDetailDialog {
                 reasonDlg.setHeaderText("Motivo de la reversión (opcional):");
                 reasonDlg.setContentText("Razón:");
                 DialogUtil.applyOwner(reasonDlg);
-                DialogUtil.applyStylesheet(reasonDlg.getDialogPane());
+                DialogUtil.conEncabezado(reasonDlg, "mdi2u-undo-variant");
                 reasonDlg.showAndWait().ifPresent(razon -> {
                     if (!ConfirmacionUtil.confirmar("Confirmar reversión",
                             "Se creará una " + tipoInverso + " de " + m.getCantidad()

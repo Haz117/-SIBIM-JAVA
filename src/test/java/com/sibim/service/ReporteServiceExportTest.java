@@ -69,14 +69,14 @@ class ReporteServiceExportTest {
         activo.setPrecioCompra(BigDecimal.valueOf(15000)); activo.setPrecioVenta(BigDecimal.valueOf(18000));
         activo.setStockActual(5); activo.setStockMinimo(2); activo.setStockMaximo(10);
 
-        // stock = 0 → EstadoProducto.AGOTADO
+        // cantidad 0
         agotado = new Producto();
         agotado.setId("p-ag"); agotado.setNombre("Cartuchos de Tinta"); agotado.setCodigo("INF-002");
         agotado.setArea("Secretaria General Municipal");
         agotado.setPrecioVenta(BigDecimal.valueOf(500));
         agotado.setStockActual(0); agotado.setStockMinimo(5); agotado.setStockMaximo(20);
 
-        // stock < minimo → EstadoProducto.BAJO_STOCK
+        // cantidad por debajo del antiguo mínimo
         bajoStock = new Producto();
         bajoStock.setId("p-bs"); bajoStock.setNombre("Papel Bond"); bajoStock.setCodigo("PAP-001");
         bajoStock.setArea("Secretaria General Municipal");

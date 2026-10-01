@@ -577,7 +577,7 @@ public class ConfiguracionController {
             + "Debe ser mayor que la instalada en las PCs (esta es v" + com.sibim.util.UpdateChecker.currentVersion() + ").");
         dlg.setContentText("Versión:");
         DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        DialogUtil.conEncabezado(dlg, "mdi2c-cloud-upload-outline");
         String version = dlg.showAndWait().map(String::trim).orElse(null);
         if (version == null || version.isBlank()) return;
 
@@ -586,7 +586,7 @@ public class ConfiguracionController {
         dlgNotas.setHeaderText("¿Qué trae la versión " + version + "? (opcional, lo verán al actualizar)");
         dlgNotas.setContentText("Novedades:");
         DialogUtil.applyOwner(dlgNotas);
-        DialogUtil.applyStylesheet(dlgNotas.getDialogPane());
+        DialogUtil.conEncabezado(dlgNotas, "mdi2c-cloud-upload-outline");
         String notas = dlgNotas.showAndWait().map(String::trim).orElse("");
 
         DialogUtil.runAsyncWithProgress(scene, "Publicando la versión " + version + "…",

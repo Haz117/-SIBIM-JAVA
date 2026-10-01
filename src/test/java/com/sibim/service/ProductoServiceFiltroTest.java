@@ -78,7 +78,7 @@ class ProductoServiceFiltroTest {
 
     @Test
     void countFiltrado_filtro_delegaAlRepo() throws SQLException {
-        ProductoFiltro filtro = ProductoFiltro.vacio().conEstado(EstadoProducto.AGOTADO);
+        ProductoFiltro filtro = ProductoFiltro.vacio().conEstado(EstadoProducto.VENCIDO);
         when(mockRepo.countFiltrado(filtro)).thenReturn(7);
 
         int result = service.countFiltrado(filtro);

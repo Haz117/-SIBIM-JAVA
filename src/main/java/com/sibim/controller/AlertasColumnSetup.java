@@ -17,54 +17,6 @@ class AlertasColumnSetup {
 
     private AlertasColumnSetup() {}
 
-    static void configureAgotados(
-            TableColumn<Producto, String> colNombre,
-            TableColumn<Producto, String> colCodigo,
-            TableColumn<Producto, String> colArea) {
-        colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        colCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
-        colArea.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getArea()));
-        colArea.setCellFactory(col -> new TableCell<>() {
-            private final Tooltip tip = new Tooltip();
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) { setText(null); setTooltip(null); return; }
-                setText(item); tip.setText(item); setTooltip(tip);
-            }
-        });
-    }
-
-    static void configureBajoStock(
-            TableColumn<Producto, String> colNombre,
-            TableColumn<Producto, String> colCodigo,
-            TableColumn<Producto, Integer> colStock,
-            TableColumn<Producto, Integer> colMin) {
-        colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        colCodigo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCodigo()));
-        colStock.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
-        colMin.setCellValueFactory(new PropertyValueFactory<>("stockMinimo"));
-
-        colStock.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(Integer item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().removeAll("stock-low", "stock-warn");
-                if (empty || item == null) { setText(null); return; }
-                setText(String.valueOf(item));
-                Producto p = getTableRow() != null ? getTableRow().getItem() : null;
-                getStyleClass().add(p != null && item <= p.getStockMinimo() ? "stock-low" : "stock-warn");
-            }
-        });
-        colMin.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(Integer item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().remove("cell-muted");
-                if (empty || item == null) { setText(null); return; }
-                setText(String.valueOf(item));
-                getStyleClass().add("cell-muted");
-            }
-        });
-    }
-
     /** All columns are nullable — the "Mantenimiento" section is optional in the FXML. */
     static void configureMantenimiento(
             TableColumn<Producto, String> colNombre,

@@ -141,8 +141,6 @@ public class SchedulerService {
                     com.sibim.repository.MovimientoRepository movRepo  = new com.sibim.repository.MovimientoRepository();
                     PrestamoRepository prestamoRepo2 = new PrestamoRepository();
 
-                    java.util.List<com.sibim.model.Producto> agotados   = prodRepo.findAgotados();
-                    java.util.List<com.sibim.model.Producto> bajoStock   = prodRepo.findBajoStock();
                     java.util.List<com.sibim.model.Producto> proximasRev = prodRepo.findProximasRevisiones(30);
                     java.util.List<Prestamo> prestVencidos               = prestamoRepo2.findVencidos();
                     java.util.List<Prestamo> prestActivos                = prestamoRepo2.findActivos();
@@ -150,7 +148,7 @@ public class SchedulerService {
                         .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado())).toList();
                     int movSemana = movRepo.findByDateRange(hoy.minusDays(7), hoy).size();
 
-                    new EmailService().enviarResumenSemanal(agotados, bajoStock, proximasRev, prestVencidos, prestActivos, rsgActivos, movSemana);
+                    new EmailService().enviarResumenSemanal(proximasRev, prestVencidos, prestActivos, rsgActivos, movSemana);
                 } catch (Exception e) {
                     log.error("Error al enviar resumen semanal", e);
                 }

@@ -61,30 +61,6 @@
     <VBox fx:id="resumenBox" spacing="20">
     <!-- ══ RESUMEN RÁPIDO ═══════════════════════════════════════════ -->
     <HBox spacing="12">
-        <VBox fx:id="statCardAgotados" visible="false" managed="false" styleClass="status-mini-card, status-mini-card-red"
-              HBox.hgrow="ALWAYS" spacing="5">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="status-icon-red"/>
-                <Label text="AGOTADOS" styleClass="status-mini-label"/>
-            </HBox>
-            <Label fx:id="lblSumAgotados" text="0" styleClass="status-mini-count"/>
-            <Label text="bienes sin stock" styleClass="rich-stat-hint"/>
-            <ProgressBar fx:id="pbAgotados" progress="0" maxWidth="Infinity"
-                         styleClass="status-pb, status-pb-red"/>
-        </VBox>
-        <VBox fx:id="statCardBajoStockSum" visible="false" managed="false" styleClass="status-mini-card, status-mini-card-amber"
-              HBox.hgrow="ALWAYS" spacing="5">
-            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="status-icon-amber"/>
-                <Label text="BAJO STOCK" styleClass="status-mini-label"/>
-            </HBox>
-            <Label fx:id="lblSumBajoStock" text="0" styleClass="status-mini-count"/>
-            <Label text="por debajo del mínimo" styleClass="rich-stat-hint"/>
-            <ProgressBar fx:id="pbBajoStock" progress="0" maxWidth="Infinity"
-                         styleClass="status-pb, status-pb-amber"/>
-        </VBox>
         <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card, status-mini-card-violet"
               HBox.hgrow="ALWAYS" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
@@ -124,99 +100,6 @@
            styleClass="no-alerts" visible="false" managed="false" maxWidth="Infinity">
         <graphic><FontIcon iconLiteral="mdi2c-check-circle-outline"/></graphic>
     </Label>
-
-    <!-- ══ BIENES AGOTADOS ═══════════════════════════════════════════ -->
-    <VBox fx:id="sectionAgotados" visible="false" managed="false" styleClass="alert-section, alert-danger" spacing="0">
-        <!-- Header gradiente -->
-        <HBox fx:id="headerAgotados" styleClass="alert-header-danger" alignment="CENTER_LEFT" spacing="12">
-            <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="alert-section-icon"/>
-            <VBox HBox.hgrow="ALWAYS" spacing="1">
-                <Label text="Bienes Agotados" styleClass="alert-section-title-inv"/>
-                <Label text="Stock = 0 · Requieren reposición inmediata"
-                       styleClass="alert-section-subtitle"/>
-            </VBox>
-            <Label fx:id="helpAgotados" text="?" styleClass="help-badge-inv">
-                <tooltip><Tooltip text="Bienes activos con stock actual en 0. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="250"/></tooltip>
-            </Label>
-            <Label fx:id="lblAgotadosCount" styleClass="badge-count-inv"/>
-            <FontIcon fx:id="chevronAgotados" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
-        </HBox>
-
-        <VBox fx:id="contentAgotados" spacing="10">
-            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
-            <TableView fx:id="tableAgotados" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
-                <columns>
-                    <TableColumn fx:id="colAgNombre" text="Nombre"   prefWidth="240" sortable="true"/>
-                    <TableColumn fx:id="colAgCodigo" text="Código"   prefWidth="120" sortable="true"/>
-                    <TableColumn fx:id="colAgArea"   text="Área"     prefWidth="240" sortable="true"/>
-                </columns>
-                <placeholder>
-                    <VBox alignment="CENTER" spacing="4">
-                        <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="alert-ok-icon"/>
-                        <Label text="Sin bienes agotados" styleClass="empty-state-msg"/>
-                    </VBox>
-                </placeholder>
-            </TableView>
-            <HBox alignment="CENTER_RIGHT" spacing="8">
-                <Label text="Selecciona un bien y registra la reposición de stock"
-                       styleClass="muted" HBox.hgrow="ALWAYS"/>
-                <Button fx:id="btnReponerTodos" text="Reponer siguiente" onAction="#onReponerTodosAgotados" styleClass="btn-secondary"
-                        contentDisplay="LEFT" graphicTextGap="8">
-                    <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Abre el formulario de entrada para el primer bien agotado pendiente"/></tooltip>
-                </Button>
-                <Button fx:id="btnReponerAgotado" text="Reponer seleccionado" onAction="#onReponerAgotado" styleClass="btn-primary" disable="true"
-                        contentDisplay="LEFT" graphicTextGap="8">
-                    <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado  (Enter)"/></tooltip>
-                </Button>
-            </HBox>
-        </VBox>
-    </VBox>
-
-    <!-- ══ EXISTENCIAS BAJAS ══════════════════════════════════════════ -->
-    <VBox fx:id="sectionBajoStock" visible="false" managed="false" styleClass="alert-section, alert-warning" spacing="0">
-        <HBox fx:id="headerBajoStock" styleClass="alert-header-warning" alignment="CENTER_LEFT" spacing="12">
-            <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="alert-section-icon-white"/>
-            <VBox HBox.hgrow="ALWAYS" spacing="1">
-                <Label text="Existencias Bajas" styleClass="alert-section-title-inv"/>
-                <Label text="Stock actual por debajo del mínimo establecido"
-                       styleClass="alert-section-subtitle"/>
-            </VBox>
-            <Label fx:id="helpBajoStock" text="?" styleClass="help-badge-inv">
-                <tooltip><Tooltip text="Bienes activos cuyo stock actual está por debajo del stock mínimo configurado (pero aún no en 0). Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
-            </Label>
-            <Label fx:id="lblBajoStockCount" styleClass="badge-count-inv"/>
-            <FontIcon fx:id="chevronBajoStock" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
-        </HBox>
-
-        <VBox fx:id="contentBajoStock" spacing="10">
-            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
-            <TableView fx:id="tableBajoStock" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
-                <columns>
-                    <TableColumn fx:id="colBsNombre" text="Nombre"       prefWidth="210" sortable="true"/>
-                    <TableColumn fx:id="colBsCodigo" text="Código"       prefWidth="120" sortable="true"/>
-                    <TableColumn fx:id="colBsStock"  text="Stock Actual" prefWidth="115" sortable="true"/>
-                    <TableColumn fx:id="colBsMin"    text="Stock Mínimo" prefWidth="115" sortable="true"/>
-                </columns>
-                <placeholder>
-                    <VBox alignment="CENTER" spacing="4">
-                        <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="alert-ok-icon"/>
-                        <Label text="Sin existencias bajas" styleClass="empty-state-msg"/>
-                    </VBox>
-                </placeholder>
-            </TableView>
-            <HBox alignment="CENTER_RIGHT" spacing="8">
-                <Label text="Selecciona un bien para solicitar reposición"
-                       styleClass="muted"/>
-                <Button fx:id="btnReponerBajoStock" text="Reponer seleccionado" onAction="#onSolicitarBajoStock" styleClass="btn-warning" disable="true"
-                        contentDisplay="LEFT" graphicTextGap="8">
-                    <graphic><FontIcon iconLiteral="mdi2u-upload-outline" styleClass="btn-icon"/></graphic>
-                    <tooltip><Tooltip text="Registrar una entrada de stock para el bien seleccionado  (Enter)"/></tooltip>
-                </Button>
-            </HBox>
-        </VBox>
-    </VBox>
 
     <!-- ══ GARANTÍAS POR VENCER ═══════════════════════════════════════ -->
     <VBox fx:id="sectionGarantias" styleClass="alert-section, alert-info" spacing="0">

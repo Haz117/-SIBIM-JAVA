@@ -168,14 +168,6 @@ public class ProductoService {
         return productoRepo.findById(id);
     }
 
-    public List<Producto> getAgotados() throws SQLException {
-        return productoRepo.findAgotados();
-    }
-
-    public List<Producto> getBajoStock() throws SQLException {
-        return productoRepo.findBajoStock();
-    }
-
     public List<Producto> getVencidosProximos(int dias) throws SQLException {
         return productoRepo.findVencidosProximos(dias);
     }

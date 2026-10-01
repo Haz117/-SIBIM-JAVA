@@ -36,8 +36,8 @@ class ProductoFiltroTest {
     @Test
     void conEstado_soloModificaEstado() {
         ProductoFiltro base = ProductoFiltro.vacio().conArea("PRES");
-        ProductoFiltro result = base.conEstado(EstadoProducto.AGOTADO);
-        assertEquals(EstadoProducto.AGOTADO, result.estado());
+        ProductoFiltro result = base.conEstado(EstadoProducto.VENCIDO);
+        assertEquals(EstadoProducto.VENCIDO, result.estado());
         assertEquals("PRES", result.area());
         assertNull(result.busqueda());
     }
@@ -67,12 +67,12 @@ class ProductoFiltroTest {
         ProductoFiltro f = ProductoFiltro.vacio()
             .conBusqueda("impresora")
             .conArea("PRES")
-            .conEstado(EstadoProducto.BAJO_STOCK)
+            .conEstado(EstadoProducto.VENCIDO)
             .conRango(desde, null);
 
         assertEquals("impresora", f.busqueda());
         assertEquals("PRES", f.area());
-        assertEquals(EstadoProducto.BAJO_STOCK, f.estado());
+        assertEquals(EstadoProducto.VENCIDO, f.estado());
         assertEquals(desde, f.desdeReg());
         assertNull(f.hastaReg());
         assertFalse(f.incluirBaja());
@@ -90,7 +90,7 @@ class ProductoFiltroTest {
     @Test
     void igualdad_diferenteEstadoNoIgual() {
         ProductoFiltro a = ProductoFiltro.vacio().conEstado(EstadoProducto.ACTIVO);
-        ProductoFiltro b = ProductoFiltro.vacio().conEstado(EstadoProducto.AGOTADO);
+        ProductoFiltro b = ProductoFiltro.vacio().conEstado(EstadoProducto.VENCIDO);
         assertNotEquals(a, b);
     }
 }

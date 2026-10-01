@@ -89,8 +89,6 @@ class DashboardServiceCacheTest {
         var stats = new ProductoRepository.ProductoStats(0L, 0L, 0L, 0L, 0L, BigDecimal.ZERO, 0L);
         when(mockProductoRepo.getStats()).thenReturn(stats);
         when(mockProductoRepo.getValorPorCategoria()).thenReturn(List.of());
-        when(mockProductoRepo.findAgotados()).thenReturn(List.of());
-        when(mockProductoRepo.findBajoStock()).thenReturn(List.of());
         when(mockProductoRepo.countByArea(anyInt())).thenReturn(new LinkedHashMap<>());
         when(mockMovimientoRepo.findToday()).thenReturn(List.of());
         when(mockMovimientoRepo.findLastNDays(anyInt())).thenReturn(List.of());

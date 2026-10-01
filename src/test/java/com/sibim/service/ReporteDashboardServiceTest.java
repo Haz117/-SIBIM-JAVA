@@ -59,8 +59,7 @@ class ReporteDashboardServiceTest {
         var stats = new ProductoRepository.ProductoStats(50, 40, 5, 3, 2, BigDecimal.valueOf(150000), 8);
         List<ProductoRepository.CategoriaValor> catValores =
             List.of(new ProductoRepository.CategoriaValor("Equipo de Cómputo", BigDecimal.valueOf(90000)));
-        List<Producto> agotados  = List.of(buildProducto("p-ag", "Cartuchos de Tinta"));
-        List<Producto> bajoStock = List.of(buildProducto("p-bs", "Papel Bond"));
+        List<Producto> garantias = List.of(buildProducto("p-ga", "Extintor"));
         List<Movimiento> movHoy     = List.of(buildMovimiento());
         List<Movimiento> movSemana  = List.of(buildMovimiento());
         List<MovimientoRepository.MonthlyStats> movMensual =
@@ -69,13 +68,13 @@ class ReporteDashboardServiceTest {
         byArea.put("Sala de cómputo", 12L);
         byArea.put("Secretaria General Municipal", 8L);
 
-        return new DashboardService.Resumen(stats, catValores, agotados, bajoStock, List.of(), List.of(),
+        return new DashboardService.Resumen(stats, catValores, garantias, List.of(),
             movHoy, movSemana, movMensual, List.of(), byArea, 30L, 25L);
     }
 
     private static DashboardService.Resumen buildResumenVacio() {
         var stats = new ProductoRepository.ProductoStats(0, 0, 0, 0, 0, BigDecimal.ZERO, 0);
-        return new DashboardService.Resumen(stats, List.of(), List.of(), List.of(), List.of(), List.of(),
+        return new DashboardService.Resumen(stats, List.of(), List.of(), List.of(),
             List.of(), List.of(), List.of(), List.of(), new LinkedHashMap<>(), 0L, 0L);
     }
 

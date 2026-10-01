@@ -229,8 +229,6 @@ class ProductosColumnSetup {
                 bar.setManaged(false);
                 numLabel.setText(String.valueOf(value));
                 String statusClass = p == null ? "stock-ok" : switch (p.getEstado()) {
-                    case AGOTADO    -> "stock-low";
-                    case BAJO_STOCK -> "stock-warn";
                     default         -> "stock-ok";
                 };
                 getStyleClass().add(statusClass);
@@ -249,14 +247,10 @@ class ProductosColumnSetup {
 
         col.setCellFactory(DialogUtil.iconBadgeCellFactory(
             item -> switch (item) {
-                case "Agotado"    -> "cell-badge-danger";
-                case "Bajo Stock" -> "cell-badge-warning";
                 case "Vencido"    -> "cell-badge-purple";
                 default           -> "cell-badge-success";
             },
             item -> switch (item) {
-                case "Agotado"    -> "mdi2a-alert-circle-outline";
-                case "Bajo Stock" -> "mdi2a-alert-outline";
                 case "Vencido"    -> "mdi2c-clock-alert-outline";
                 default           -> "mdi2c-check-circle-outline";
             }
@@ -356,8 +350,6 @@ class ProductosColumnSetup {
                 getStyleClass().removeAll("row-danger","row-warning","row-vencido","row-new");
                 if (!empty && p != null) {
                     switch (p.getEstado()) {
-                        case AGOTADO    -> getStyleClass().add("row-danger");
-                        case BAJO_STOCK -> getStyleClass().add("row-warning");
                         case VENCIDO    -> getStyleClass().add("row-vencido");
                         default -> {}
                     }

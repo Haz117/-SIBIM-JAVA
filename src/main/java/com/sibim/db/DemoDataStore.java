@@ -106,50 +106,50 @@ public final class DemoDataStore {
         PRODUCTOS.addAll(new ArrayList<>(List.of(
             // MOBILIARIO ──────────────────────────────────────────────────────
             prod("p-01","Escritorio ejecutivo de madera",   "MB-001","cat-mob","Mobiliario","#8B5CF6", 4500, 5000, 18,5,30,UnidadMedida.PIEZA,  SGM),
-            prod("p-02","Silla ejecutiva ergonómica",       "MB-002","cat-mob","Mobiliario","#8B5CF6", 3200, 3800,  4,8,40,UnidadMedida.PIEZA,  RH),   // BAJO_STOCK
-            prod("p-03","Archivero metálico 4 gavetas",     "MB-003","cat-mob","Mobiliario","#8B5CF6", 2800, 3200,  0,3,20,UnidadMedida.PIEZA,  SGM),  // AGOTADO
+            prod("p-02","Silla ejecutiva ergonómica",       "MB-002","cat-mob","Mobiliario","#8B5CF6", 3200, 3800,  4,8,40,UnidadMedida.PIEZA,  RH),
+            prod("p-03","Archivero metálico 4 gavetas",     "MB-003","cat-mob","Mobiliario","#8B5CF6", 2800, 3200,  0,3,20,UnidadMedida.PIEZA,  SGM),
             prod("p-09","Mesa de reuniones 10 personas",    "MB-004","cat-mob","Mobiliario","#8B5CF6", 9500,10500,  3,2, 8,UnidadMedida.PIEZA,  SGM),
             prod("p-10","Estantería metálica 5 niveles",    "MB-005","cat-mob","Mobiliario","#8B5CF6", 1800, 2200, 12,5,30,UnidadMedida.PIEZA,  ADM),
             prod("p-11","Silla de espera 3 plazas",         "MB-006","cat-mob","Mobiliario","#8B5CF6", 2200, 2600,  8,5,20,UnidadMedida.PIEZA,  OBRAS),
-            prod("p-12","Módulo de trabajo L-shape",        "MB-007","cat-mob","Mobiliario","#8B5CF6", 6800, 7500,  1,3,10,UnidadMedida.PIEZA,  FIN),  // BAJO_STOCK
+            prod("p-12","Módulo de trabajo L-shape",        "MB-007","cat-mob","Mobiliario","#8B5CF6", 6800, 7500,  1,3,10,UnidadMedida.PIEZA,  FIN),
             prod("p-13","Lockers metálicos 6 puertas",      "MB-008","cat-mob","Mobiliario","#8B5CF6", 3500, 4000,  6,3,15,UnidadMedida.PIEZA,  SEG),
-            prod("p-14","Librero de madera ejecutivo",      "MB-009","cat-mob","Mobiliario","#8B5CF6", 4200, 4800,  0,2, 8,UnidadMedida.PIEZA,  RH),   // AGOTADO
+            prod("p-14","Librero de madera ejecutivo",      "MB-009","cat-mob","Mobiliario","#8B5CF6", 4200, 4800,  0,2, 8,UnidadMedida.PIEZA,  RH),
 
             // VEHÍCULOS ───────────────────────────────────────────────────────
-            prod("p-04","Camioneta pick-up Ford Ranger",    "VH-001","cat-veh","Vehículos","#3B82F6",380000,420000, 1,1, 5,UnidadMedida.UNIDAD,OBRAS),  // BAJO_STOCK (stock=min)
+            prod("p-04","Camioneta pick-up Ford Ranger",    "VH-001","cat-veh","Vehículos","#3B82F6",380000,420000, 1,1, 5,UnidadMedida.UNIDAD,OBRAS),
             prod("p-18","Automóvil Nissan Versa 2023",      "VH-002","cat-veh","Vehículos","#3B82F6",240000,260000, 2,1, 4,UnidadMedida.UNIDAD,PRES),
             prod("p-19","Motocicleta Honda CB150 2022",     "VH-003","cat-veh","Vehículos","#3B82F6", 28000, 32000, 3,2, 6,UnidadMedida.UNIDAD,SEG),
-            prod("p-20","Pipa de agua 10,000 L",            "VH-004","cat-veh","Vehículos","#3B82F6",320000,340000, 1,1, 2,UnidadMedida.UNIDAD,OBRAS), // BAJO_STOCK
+            prod("p-20","Pipa de agua 10,000 L",            "VH-004","cat-veh","Vehículos","#3B82F6",320000,340000, 1,1, 2,UnidadMedida.UNIDAD,OBRAS),
 
             // EQUIPO DE CÓMPUTO ───────────────────────────────────────────────
             prod("p-05","Laptop Dell Latitude 5440",        "EC-001","cat-comp","Equipo de Cómputo","#10B981", 22000,25000,10,5,30,UnidadMedida.EQUIPO,PLAN),
             prod("p-22","Computadora HP All-in-One",        "EC-002","cat-comp","Equipo de Cómputo","#10B981", 16000,18000, 8,5,20,UnidadMedida.EQUIPO,SGM),
-            prod("p-23","Tablet Samsung Galaxy A8",         "EC-003","cat-comp","Equipo de Cómputo","#10B981",  8500, 9500, 0,2,10,UnidadMedida.EQUIPO,FIN),  // AGOTADO
-            prod("p-24","Mouse inalámbrico Logitech M705",  "EC-004","cat-comp","Equipo de Cómputo","#10B981",   450,  600, 3,5,30,UnidadMedida.PIEZA, ADM),  // BAJO_STOCK
-            prod("p-25","Teclado HP USB multimedio",        "EC-005","cat-comp","Equipo de Cómputo","#10B981",   350,  480, 5,5,30,UnidadMedida.PIEZA, SGM),  // BAJO_STOCK (stock=min)
+            prod("p-23","Tablet Samsung Galaxy A8",         "EC-003","cat-comp","Equipo de Cómputo","#10B981",  8500, 9500, 0,2,10,UnidadMedida.EQUIPO,FIN),
+            prod("p-24","Mouse inalámbrico Logitech M705",  "EC-004","cat-comp","Equipo de Cómputo","#10B981",   450,  600, 3,5,30,UnidadMedida.PIEZA, ADM),
+            prod("p-25","Teclado HP USB multimedio",        "EC-005","cat-comp","Equipo de Cómputo","#10B981",   350,  480, 5,5,30,UnidadMedida.PIEZA, SGM),
             prod("p-26","Monitor LG 24\" Full HD",          "EC-006","cat-comp","Equipo de Cómputo","#10B981",  4800, 5500,12,5,25,UnidadMedida.EQUIPO,SGM),
 
             // EQUIPO DE OFICINA ────────────────────────────────────────────────
-            prod("p-06","Impresora multifuncional Epson",   "EO-001","cat-ofi","Equipo de Oficina","#F59E0B",  8500, 9500, 2,2,10,UnidadMedida.EQUIPO,SGM),  // BAJO_STOCK
-            prod("p-29","Fotocopiadora Ricoh MPC2004",      "EO-002","cat-ofi","Equipo de Oficina","#F59E0B", 45000,50000, 1,1, 3,UnidadMedida.EQUIPO,SGM),  // BAJO_STOCK
+            prod("p-06","Impresora multifuncional Epson",   "EO-001","cat-ofi","Equipo de Oficina","#F59E0B",  8500, 9500, 2,2,10,UnidadMedida.EQUIPO,SGM),
+            prod("p-29","Fotocopiadora Ricoh MPC2004",      "EO-002","cat-ofi","Equipo de Oficina","#F59E0B", 45000,50000, 1,1, 3,UnidadMedida.EQUIPO,SGM),
             prod("p-30","Teléfono IP Grandstream GXP1625",  "EO-003","cat-ofi","Equipo de Oficina","#F59E0B",  1400, 1700,15,5,30,UnidadMedida.EQUIPO,SGM),
             prod("p-31","Calculadora financiera Casio FC",  "EO-004","cat-ofi","Equipo de Oficina","#F59E0B",   800, 1000,10,5,20,UnidadMedida.PIEZA, FIN),
             prod("p-32","Trituradora de papel HSM",         "EO-005","cat-ofi","Equipo de Oficina","#F59E0B",  3200, 3800, 3,2, 8,UnidadMedida.EQUIPO,SGM),
-            prod("p-33","Escáner de documentos Fujitsu",    "EO-006","cat-ofi","Equipo de Oficina","#F59E0B",  6500, 7500, 0,1, 5,UnidadMedida.EQUIPO,ADM),  // AGOTADO
+            prod("p-33","Escáner de documentos Fujitsu",    "EO-006","cat-ofi","Equipo de Oficina","#F59E0B",  6500, 7500, 0,1, 5,UnidadMedida.EQUIPO,ADM),
 
             // HERRAMIENTAS Y MAQUINARIA ────────────────────────────────────────
-            prod("p-07","Retroexcavadora CAT 420F",         "HM-001","cat-maq","Herramientas y Maquinaria","#EF4444",850000,900000,1,1,3,UnidadMedida.UNIDAD,OBRAS), // BAJO_STOCK
+            prod("p-07","Retroexcavadora CAT 420F",         "HM-001","cat-maq","Herramientas y Maquinaria","#EF4444",850000,900000,1,1,3,UnidadMedida.UNIDAD,OBRAS),
             prod("p-35","Compresor de aire 50 L Truper",    "HM-002","cat-maq","Herramientas y Maquinaria","#EF4444",  4200, 4800, 2,1, 5,UnidadMedida.EQUIPO,OBRAS),
             prod("p-36","Taladro percutor Bosch GSB 550",   "HM-003","cat-maq","Herramientas y Maquinaria","#EF4444",  1800, 2200, 5,3,15,UnidadMedida.EQUIPO,OBRAS),
-            prod("p-37","Motosierra Stihl MS 180",          "HM-004","cat-maq","Herramientas y Maquinaria","#EF4444",  5500, 6200, 2,2, 8,UnidadMedida.EQUIPO,OBRAS), // BAJO_STOCK
-            prod("p-38","Podadora de pasto Honda GX160",    "HM-005","cat-maq","Herramientas y Maquinaria","#EF4444",  8200, 9000, 0,1, 5,UnidadMedida.EQUIPO,OBRAS), // AGOTADO
+            prod("p-37","Motosierra Stihl MS 180",          "HM-004","cat-maq","Herramientas y Maquinaria","#EF4444",  5500, 6200, 2,2, 8,UnidadMedida.EQUIPO,OBRAS),
+            prod("p-38","Podadora de pasto Honda GX160",    "HM-005","cat-maq","Herramientas y Maquinaria","#EF4444",  8200, 9000, 0,1, 5,UnidadMedida.EQUIPO,OBRAS),
             prod("p-45","Extintor PQS 6 kg (lote A-2024)",  "HM-006","cat-maq","Herramientas y Maquinaria","#EF4444",   480,  600, 8,5,20,UnidadMedida.PIEZA, BM),   // → VENCIDO (ajuste abajo)
 
             // EQUIPO AUDIOVISUAL ──────────────────────────────────────────────
             prod("p-08","Cámara videovigilancia PTZ Dahua", "AV-001","cat-av","Equipo Audiovisual","#EC4899",  4800, 5500,22,5,50,UnidadMedida.PIEZA, SEG),
             prod("p-40","Proyector Epson EW-450 3LCD",      "AV-002","cat-av","Equipo Audiovisual","#EC4899", 12000,14000, 3,2, 8,UnidadMedida.EQUIPO,SGM),
             prod("p-41","Pantalla de proyección 100\"",     "AV-003","cat-av","Equipo Audiovisual","#EC4899",  2800, 3200, 4,2,10,UnidadMedida.PIEZA, SGM),
-            prod("p-42","Sistema de audio para sala",       "AV-004","cat-av","Equipo Audiovisual","#EC4899", 18000,21000, 1,1, 3,UnidadMedida.EQUIPO,PRES), // BAJO_STOCK
+            prod("p-42","Sistema de audio para sala",       "AV-004","cat-av","Equipo Audiovisual","#EC4899", 18000,21000, 1,1, 3,UnidadMedida.EQUIPO,PRES),
             prod("p-43","Cámara fotográfica Canon EOS",     "AV-005","cat-av","Equipo Audiovisual","#EC4899", 22000,25000, 2,1, 5,UnidadMedida.EQUIPO,SGM),
 
             // DADO DE BAJA ────────────────────────────────────────────────────

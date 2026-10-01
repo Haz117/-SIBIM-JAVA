@@ -404,6 +404,22 @@ public final class DialogUtil {
         return g;
     }
 
+    /** Gives a stock JavaFX input dialog (TextInputDialog, ChoiceDialog) the
+     *  same header as every other dialog: its title and header text move into
+     *  the system header with {@code icon}, instead of the default grey strip. */
+    public static void conEncabezado(Dialog<?> dialog, String icon) {
+        DialogPane pane = dialog.getDialogPane();
+        applyStylesheet(pane);
+        String titulo = dialog.getTitle() != null ? dialog.getTitle() : "";
+        String detalle = pane.getHeaderText() != null ? pane.getHeaderText() : "";
+        pane.setHeaderText(null);
+        pane.setGraphic(null);
+        pane.setHeader(gradientHeader(icon, titulo, detalle, AppColors.PRIMARY_D, AppColors.INDIGO));
+        if (pane.getPrefWidth() < 460) pane.setPrefWidth(460);
+        Node ok = pane.lookupButton(ButtonType.OK);
+        if (ok != null && !ok.getStyleClass().contains("dialog-ok-btn")) ok.getStyleClass().add("dialog-ok-btn");
+    }
+
     /** Bold form field label using the dialog-field-label CSS class. */
     public static Label fieldLabel(String text) {
         Label l = new Label(text);

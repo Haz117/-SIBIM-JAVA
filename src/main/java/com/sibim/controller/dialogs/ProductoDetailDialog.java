@@ -187,8 +187,6 @@ public final class ProductoDetailDialog {
 
         Label statusBadge = new Label(p.getEstado().getEtiqueta());
         statusBadge.getStyleClass().add(switch (p.getEstado()) {
-            case AGOTADO    -> "dlg-status-danger";
-            case BAJO_STOCK -> "dlg-status-warn";
             case VENCIDO    -> "dlg-status-purple";
             default         -> "dlg-status-ok";
         });
@@ -224,8 +222,6 @@ public final class ProductoDetailDialog {
         g.getColumnConstraints().addAll(colConstraint(140, false), colConstraint(300, true));
 
         String stockClass = switch (p.getEstado()) {
-            case AGOTADO    -> "dlg-detail-stock-low";
-            case BAJO_STOCK -> "dlg-detail-stock-warn";
             default         -> "dlg-detail-stock-ok";
         };
 

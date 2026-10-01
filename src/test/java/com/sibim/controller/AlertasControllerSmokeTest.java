@@ -9,6 +9,7 @@ import javafx.stage.Stage;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AlertasControllerSmokeTest extends ControllerSmokeTestBase {
 
@@ -27,7 +28,8 @@ class AlertasControllerSmokeTest extends ControllerSmokeTestBase {
 
     @Test
     void nodosClavePresentes() {
-        assertNotNull(lookup("#tableAgotados").query(),   "tableAgotados debe existir");
+        assertTrue(lookup("#tableAgotados").queryAll().isEmpty(), "ya no hay tabla de agotados: no es una tienda");
+        assertNotNull(lookup("#tableMantenimiento").query(), "tableMantenimiento debe existir");
         assertNotNull(lookup("#tableGarantias").query(),  "tableGarantias debe existir");
         assertNotNull(lookup("#searchField").query(),     "searchField debe existir");
         assertNotNull(lookup("#spinner").query(),         "spinner debe existir");

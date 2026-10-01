@@ -259,8 +259,6 @@ public interface ContratoInventario {
         Producto bajoMin = alta(AREA_A, 1, 3);
         Producto normal  = alta(AREA_A, 9, 3);
 
-        assertTrue(productos().getAgotados().isEmpty(), "no existen bienes \"agotados\"");
-        assertTrue(productos().getBajoStock().isEmpty(), "ni \"bajo stock\"");
         for (Producto x : List.of(enCero, bajoMin, normal))
             assertEquals(EstadoProducto.ACTIVO, releer(x.getId()).getEstado());
     }

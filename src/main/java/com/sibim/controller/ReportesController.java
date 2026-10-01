@@ -202,7 +202,7 @@ public class ReportesController {
         dlg.setHeaderText("Código del bien a dictaminar (varios, separados por coma)");
         dlg.setContentText("Código:");
         DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        DialogUtil.conEncabezado(dlg, "mdi2f-file-certificate-outline");
         dlg.showAndWait().map(String::trim).filter(t -> !t.isBlank()).ifPresent(texto -> {
             List<String> codigos = Arrays.stream(texto.split(","))
                 .map(String::trim).filter(c -> !c.isBlank()).distinct().toList();

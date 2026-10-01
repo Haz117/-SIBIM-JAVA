@@ -403,8 +403,6 @@ class OrganigramaTreeBuilder {
             : resguardante + " · Cant. " + p.getStockActual());
         stock.getStyleClass().add("org-product-stock");
         stock.getStyleClass().add(switch (p.getEstado()) {
-            case AGOTADO    -> "stock-low";
-            case BAJO_STOCK -> "stock-warn";
             default         -> "stock-ok";
         });
         row.getChildren().addAll(code, name, stock);

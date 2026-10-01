@@ -155,7 +155,7 @@ public final class SolicitudesDialog {
             motivo.setHeaderText("¿Por qué se rechaza? El área verá este motivo.");
             motivo.setContentText("Motivo:");
             DialogUtil.applyOwner(motivo);
-            DialogUtil.applyStylesheet(motivo.getDialogPane());
+            DialogUtil.conEncabezado(motivo, "mdi2c-close-circle-outline");
             String texto = motivo.showAndWait().map(String::trim).orElse(null);
             if (texto == null) return;
             btnAprobar.setDisable(true); btnRechazar.setDisable(true);

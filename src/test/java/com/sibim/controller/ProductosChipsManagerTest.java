@@ -36,8 +36,9 @@ class ProductosChipsManagerTest {
 
     @Test
     void parseEstado_isCaseInsensitive() {
-        assertEquals(EstadoProducto.AGOTADO, ProductosChipsManager.parseEstado("agotado"));
-        assertEquals(EstadoProducto.BAJO_STOCK, ProductosChipsManager.parseEstado("bajo stock"));
+        assertEquals(EstadoProducto.ACTIVO, ProductosChipsManager.parseEstado("activo"));
+        assertNull(ProductosChipsManager.parseEstado("agotado"), "estado de tienda: ya no existe");
+        assertNull(ProductosChipsManager.parseEstado("bajo stock"));
         assertEquals(EstadoProducto.VENCIDO, ProductosChipsManager.parseEstado("VENCIDO"));
     }
 

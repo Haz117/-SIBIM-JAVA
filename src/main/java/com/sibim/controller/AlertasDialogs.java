@@ -17,44 +17,6 @@ class AlertasDialogs {
 
     private AlertasDialogs() {}
 
-    static void showProductoInfo(Producto p, boolean agotado) {
-        Dialog<ButtonType> dlg = new Dialog<>();
-        DialogUtil.applyOwner(dlg);
-        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dlg.getDialogPane().setPrefWidth(420);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
-
-        String color1 = agotado ? AppColors.DANGER : AppColors.WARNING;
-        String color2 = agotado ? AppColors.DANGER_D : AppColors.WARNING_D;
-        String icon   = agotado ? "mdi2a-alert-octagon-outline" : "mdi2a-alert-circle-outline";
-        String sub    = agotado ? "Stock agotado — requiere reposición inmediata"
-                                : "Stock actual por debajo del mínimo establecido";
-
-        HBox header = DialogUtil.gradientHeader(icon, p.getNombre(), sub, color1, color2);
-
-        GridPane grid = DialogUtil.formGrid(100);
-        int r = 0;
-        grid.add(DialogUtil.fieldLabel("Código"), 0, r);
-        Label codLbl = new Label(p.getCodigo());
-        codLbl.getStyleClass().add("codigo-cell");
-        grid.add(codLbl, 1, r++);
-        grid.add(DialogUtil.fieldLabel("Área"),       0, r); grid.add(new Label(p.getArea() != null ? p.getArea() : "—"), 1, r++);
-
-        Label stockLbl = new Label(String.valueOf(p.getStockActual()));
-        stockLbl.getStyleClass().add(agotado ? "stock-low" : "stock-warn");
-        grid.add(DialogUtil.fieldLabel("Stock actual"), 0, r); grid.add(stockLbl, 1, r++);
-
-        if (p.getStockMinimo() > 0) {
-            grid.add(DialogUtil.fieldLabel("Stock mínimo"), 0, r);
-            grid.add(new Label(String.valueOf(p.getStockMinimo())), 1, r++);
-        }
-
-        VBox content = new VBox(0, header, grid);
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
-        dlg.getDialogPane().setContent(content);
-        dlg.showAndWait();
-    }
-
     static void showGarantiaInfo(Producto p) {
         Dialog<ButtonType> dlg = new Dialog<>();
         DialogUtil.applyOwner(dlg);

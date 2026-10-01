@@ -209,23 +209,7 @@ class ProductoServiceTest {
         assertThrows(ProductoService.ValidationException.class, () -> service.reactivar("p-01"));
     }
 
-    // ── getAgotados() / getBajoStock() / getVencidosProximos() ───────────────
-
-    @Test void getAgotados_retornaProductosConStockCero() throws Exception {
-        Producto ag = productoConStock(0, 5, 20);
-        when(mockProductoRepo.findAgotados()).thenReturn(List.of(ag));
-        List<Producto> r = service.getAgotados();
-        assertEquals(1, r.size());
-        assertEquals(EstadoProducto.ACTIVO, r.get(0).getEstado(), "cantidad 0 ya no es un estado de alerta");
-    }
-
-    @Test void getBajoStock_retornaProductosPorDebajoDeMinimo() throws Exception {
-        Producto bajo = productoConStock(3, 5, 20);
-        when(mockProductoRepo.findBajoStock()).thenReturn(List.of(bajo));
-        List<Producto> r = service.getBajoStock();
-        assertEquals(1, r.size());
-        assertEquals(EstadoProducto.ACTIVO, r.get(0).getEstado(), "no hay mínimo que incumplir");
-    }
+    // ── getVencidosProximos() ────────────────────────────────────────────────
 
     @Test void getVencidosProximos_incluyeVencidoYProximoAVencer() throws Exception {
         Producto v = productoConVencimiento(LocalDate.now().minusDays(1));

@@ -12,8 +12,6 @@ import java.util.function.Consumer;
 class AlertasDataLoader {
 
     record AlertasResult(
-        List<Producto> agotados,
-        List<Producto> bajoStock,
         List<Producto> garantias,
         List<Producto> mantenimiento,
         List<Comodato> comodatosVencidos,
@@ -33,8 +31,6 @@ class AlertasDataLoader {
             () -> {
                 comodatoService.actualizarVencidos();
                 return new AlertasResult(
-                    productoService.getAgotados(),
-                    productoService.getBajoStock(),
                     productoService.getVencidosProximos(30),
                     productoService.getProximasRevisiones(30),
                     comodatoService.getVencidos(),

@@ -24,8 +24,8 @@ public class EmailService {
             && !config.get("alertas_correo_destino", "").isBlank();
     }
 
-    public void enviarAlertas(List<Producto> agotados, List<Producto> bajoStock, List<Producto> vencidos) {
-        if (!isHabilitado() || (agotados.isEmpty() && bajoStock.isEmpty() && vencidos.isEmpty())) return;
+    public void enviarAlertas(List<Producto> vencidos) {
+        if (!isHabilitado() || vencidos.isEmpty()) return;
         try {
             String host     = config.get("smtp_host", "");
             String port     = config.get("smtp_port", "587");
@@ -47,8 +47,6 @@ public class EmailService {
 
             StringBuilder html = new StringBuilder("<html><body style='font-family:sans-serif'>");
             html.append("<h2 style='color:#4C1D95'>&#9888; Alertas de Inventario — SIBIM</h2>");
-            appendSection(html, "Bienes Agotados (stock = 0)", agotados, "#DC2626");
-            appendSection(html, "Existencias Bajas (por debajo del mínimo)", bajoStock, "#D97706");
             appendSection(html, "Garantías por Vencer (próximos 30 días)", vencidos, "#2563EB");
             html.append("</body></html>");
 
@@ -134,8 +132,7 @@ public class EmailService {
         }
     }
 
-    public void enviarResumenSemanal(List<Producto> agotados, List<Producto> bajoStock,
-                                      List<Producto> proximasRevisiones,
+    public void enviarResumenSemanal(List<Producto> proximasRevisiones,
                                       List<Prestamo> prestamosVencidos, List<Prestamo> prestamosActivos,
                                       List<com.sibim.model.Resguardo> resguardosActivos,
                                       int totalMovimientos) {
@@ -185,22 +182,6 @@ public class EmailService {
                         .append(p.getProductoNombre()).append(" · ").append(p.getResponsableNombre()).append("</li>");
                 html.append("</ul>");
             }
-            if (!agotados.isEmpty()) {
-                html.append("<h3 style='color:#DC2626;font-size:13px;margin:12px 0 6px'>BIENES AGOTADOS (")
-                    .append(agotados.size()).append(")</h3><ul style='margin:0;padding-left:18px'>");
-                for (Producto p : agotados)
-                    html.append("<li style='font-size:12px;margin-bottom:3px'><b>").append(p.getNombre())
-                        .append("</b> [").append(p.getCodigo()).append("] — ").append(p.getArea()).append("</li>");
-                html.append("</ul>");
-            }
-            if (!bajoStock.isEmpty()) {
-                html.append("<h3 style='color:#D97706;font-size:13px;margin:12px 0 6px'>BAJO STOCK (")
-                    .append(bajoStock.size()).append(")</h3><ul style='margin:0;padding-left:18px'>");
-                for (Producto p : bajoStock)
-                    html.append("<li style='font-size:12px;margin-bottom:3px'><b>").append(p.getNombre())
-                        .append("</b> — stock: ").append(p.getStockActual()).append("</li>");
-                html.append("</ul>");
-            }
             if (!proximasRevisiones.isEmpty()) {
                 html.append("<h3 style='color:#0891B2;font-size:13px;margin:12px 0 6px'>REVISIONES PRÓXIMAS (")
                     .append(proximasRevisiones.size()).append(")</h3><ul style='margin:0;padding-left:18px'>");
@@ -210,7 +191,7 @@ public class EmailService {
                             ? p.getProximaRevision().format(fmt) : "—").append("</li>");
                 html.append("</ul>");
             }
-            if (prestamosVencidos.isEmpty() && agotados.isEmpty() && bajoStock.isEmpty() && proximasRevisiones.isEmpty())
+            if (prestamosVencidos.isEmpty() && proximasRevisiones.isEmpty())
                 html.append("<p style='color:#059669;font-size:13px'>&#10003; Sin alertas pendientes esta semana.</p>");
 
             html.append("</div><div style='background:#F1F5F9;padding:10px 24px;font-size:11px;color:#94A3B8;border-radius:0 0 8px 8px'>")

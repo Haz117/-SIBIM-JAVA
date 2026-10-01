@@ -898,16 +898,7 @@ public class ProductoRepository {
         }
     }
 
-    /** Always empty: a patrimonial inventory has no "agotados" (see
-     *  ProductoUtils.computeEstado). Kept while its callers are retired. */
-    public List<Producto> findAgotados() {
-        return List.of();
-    }
 
-    /** Always empty, like {@link #findAgotados()}: there is no minimum to fall under. */
-    public List<Producto> findBajoStock() {
-        return List.of();
-    }
 
     /** Bienes expiring within the next {@code dias} days (inclusive of already-expired). */
     public List<Producto> findVencidosProximos(int dias) throws SQLException {

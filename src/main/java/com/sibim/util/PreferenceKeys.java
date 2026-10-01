@@ -38,8 +38,6 @@ public final class PreferenceKeys {
     public static final String KEY_SOLO_ALERTAS          = "soloAlertas";
 
     // ── Collapsible section keys (alertas view) ──────────────────────────
-    public static final String KEY_ALERTAS_AGOTADOS_COL      = "alertas.agotados.colapsado";
-    public static final String KEY_ALERTAS_BAJOSTOCK_COL     = "alertas.bajostock.colapsado";
     public static final String KEY_ALERTAS_GARANTIAS_COL     = "alertas.garantias.colapsado";
     public static final String KEY_ALERTAS_MANTENIMIENTO_COL = "alertas.mantenimiento.colapsado";
     public static final String KEY_ALERTAS_COMODATOS_COL     = "alertas.comodatos.colapsado";

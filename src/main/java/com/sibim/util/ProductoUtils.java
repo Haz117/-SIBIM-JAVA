@@ -12,10 +12,8 @@ public final class ProductoUtils {
         if (fechaVencimiento != null && fechaVencimiento.isBefore(LocalDate.now())) {
             return EstadoProducto.VENCIDO;
         }
-        // This is a patrimonial inventory, not a shop: nothing is sold or restocked,
-        // so a bien is never "agotado" or "bajo stock" — those states (and the
-        // minimum they compared against) are no longer produced. The enum keeps
-        // the two constants only so old exports and filters still parse.
+        // A patrimonial inventory, not a shop: nothing is sold or restocked, so the
+        // quantity never makes a bien "agotado" or "bajo stock" — only its warranty matters.
         return EstadoProducto.ACTIVO;
     }
 

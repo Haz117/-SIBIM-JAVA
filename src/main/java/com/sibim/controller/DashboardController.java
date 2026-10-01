@@ -96,8 +96,6 @@ public class DashboardController implements Refreshable {
     private final ConfiguracionRepository configRepo = new ConfiguracionRepository();
     private final ReporteService reporteService = ReporteService.getInstance();
 
-    private List<Producto> lastAgotados  = List.of();
-    private List<Producto> lastBajoStock = List.of();
     private DashboardService.Resumen lastResumen;
     private Timeline autoRefresh;
     private ChangeListener<Scene> sceneReadyListener;
@@ -220,8 +218,6 @@ public class DashboardController implements Refreshable {
     }
 
     private void updateUI(DashboardService.Resumen data) {
-        lastAgotados  = data.agotados();
-        lastBajoStock = data.bajoStock();
         lastResumen   = data;
 
         updateStatCards(data);
@@ -260,19 +256,12 @@ public class DashboardController implements Refreshable {
 
     private void updateAlertBanner(DashboardService.Resumen data) {
         // Same lists (and so the same numbers) as the Alertas screen, the
-        // sidebar badge and the bell — the stats query excludes expired
-        // bienes from agotados/bajo stock, which made the three disagree.
-        int agotados = data.agotados().size();
-        int bajoStock = data.bajoStock().size();
+        // sidebar badge and the bell.
         int garantias = data.garantias().size();
         int proximasRevisiones = data.proximasRevisiones().size();
-        boolean showAlert = agotados + bajoStock + garantias > 0 || proximasRevisiones > 0;
+        boolean showAlert = garantias > 0 || proximasRevisiones > 0;
         if (showAlert && lblAlertBannerText != null) {
             java.util.List<String> parts = new java.util.ArrayList<>();
-            if (agotados > 0)
-                parts.add(agotados + " agotado" + (agotados != 1 ? "s" : ""));
-            if (bajoStock > 0)
-                parts.add(bajoStock + " con bajo stock");
             if (garantias > 0)
                 parts.add(garantias + (garantias != 1 ? " garantías" : " garantía") + " por vencer");
             if (proximasRevisiones > 0)
@@ -397,23 +386,7 @@ public class DashboardController implements Refreshable {
     @FXML private void onVerCategorias()   { navigarA("Categorias"); }
     @FXML private void onVerAlertas()      { navigarA("Alertas"); }
 
-    @FXML
-    private void onVerAgotados() {
-        if (lastAgotados.isEmpty()) { navigarA("Alertas"); return; }
-        DashboardMiniPanelDialog.show(statsGrid != null ? statsGrid.getScene() : null,
-            "Bienes Agotados", "mdi2a-alert-octagon-outline",
-            "Existencia 0 · " + FormatUtils.plural(lastAgotados.size(), "bien requiere", "bienes requieren") + " reposición",
-            AppColors.DANGER, AppColors.DANGER_D, lastAgotados, () -> navigarA("Alertas"));
-    }
 
-    @FXML
-    private void onVerBajoStock() {
-        if (lastBajoStock.isEmpty()) { navigarA("Alertas"); return; }
-        DashboardMiniPanelDialog.show(statsGrid != null ? statsGrid.getScene() : null,
-            "Existencias Bajas", "mdi2a-alert-circle-outline",
-            "Por debajo del mínimo · " + FormatUtils.plural(lastBajoStock.size(), "bien", "bienes"),
-            AppColors.WARNING, AppColors.WARNING_D, lastBajoStock, () -> navigarA("Alertas"));
-    }
 
     // ── Helpers ──────────────────────────────────────────────────────
 

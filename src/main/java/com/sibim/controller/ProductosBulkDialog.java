@@ -62,7 +62,7 @@ final class ProductosBulkDialog {
             + (SessionManager.isAdmin() ? "" : "\n(quedarán pendientes hasta que un administrador las apruebe)"));
         dlg.setContentText("Área destino:");
         DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        DialogUtil.conEncabezado(dlg, "mdi2s-swap-horizontal");
         dlg.showAndWait().ifPresent(area -> {
             List<Producto> aMover = sel.stream().filter(p -> !area.equals(p.getArea())).toList();
             if (aMover.isEmpty()) {
@@ -106,7 +106,7 @@ final class ProductosBulkDialog {
         dlg.setHeaderText("Nuevo resguardante para " + sel.size() + " bienes seleccionados");
         dlg.setContentText("Nombre:");
         DialogUtil.applyOwner(dlg);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        DialogUtil.conEncabezado(dlg, "mdi2b-badge-account-outline");
         dlg.showAndWait().map(String::trim).filter(s -> !s.isBlank()).ifPresent(nombre -> {
             table.lookupAll(".table-row-cell:selected")
                  .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));

@@ -87,16 +87,6 @@ class DashboardServiceTest {
     // ── cargarResumen — listas vacías son manejeadas con gracia ──────────────
 
     @Test
-    void cargarResumen_sinAgotados_listaAgotadosEsVacia() throws Exception {
-        when(mockProductoRepo.findAgotados()).thenReturn(List.of());
-
-        DashboardService.Resumen r = service.cargarResumen();
-
-        assertNotNull(r.agotados());
-        assertTrue(r.agotados().isEmpty());
-    }
-
-    @Test
     void cargarResumen_sinMovimientosHoy_listaMovHoyEsVacia() throws Exception {
         when(mockMovimientoRepo.findToday()).thenReturn(List.of());
 
@@ -120,20 +110,6 @@ class DashboardServiceTest {
     }
 
     // ── cargarResumen — bajoStock y proximasRevisiones ────────────────────────
-
-    @Test
-    void cargarResumen_conBienesEnBajoStock_seIncluyen() throws Exception {
-        Producto p = new Producto();
-        p.setNombre("Papel bond");
-        p.setStockActual(2);
-        p.setStockMinimo(10);
-        when(mockProductoRepo.findBajoStock()).thenReturn(List.of(p));
-
-        DashboardService.Resumen r = service.cargarResumen();
-
-        assertEquals(1, r.bajoStock().size());
-        assertEquals("Papel bond", r.bajoStock().get(0).getNombre());
-    }
 
     @Test
     void cargarResumen_conProximasRevisiones_seIncluyen() throws Exception {
@@ -209,8 +185,6 @@ class DashboardServiceTest {
             BigDecimal.ZERO, 0L);
         when(mockProductoRepo.getStats()).thenReturn(stats);
         when(mockProductoRepo.getValorPorCategoria()).thenReturn(List.of());
-        when(mockProductoRepo.findAgotados()).thenReturn(List.of());
-        when(mockProductoRepo.findBajoStock()).thenReturn(List.of());
         when(mockProductoRepo.findProximasRevisiones(anyInt())).thenReturn(List.of());
         when(mockProductoRepo.countByArea(anyInt())).thenReturn(new LinkedHashMap<>());
         when(mockMovimientoRepo.findToday()).thenReturn(List.of());

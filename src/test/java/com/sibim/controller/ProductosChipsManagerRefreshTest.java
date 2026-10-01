@@ -170,7 +170,7 @@ class ProductosChipsManagerRefreshTest {
 
     @Test
     void estadoFilter_chipRemoval_resetsToggleGroupToTodos() {
-        manager.refresh("", null, null, null, EstadoProducto.AGOTADO, null, null);
+        manager.refresh("", null, null, null, EstadoProducto.VENCIDO, null, null);
 
         assertEquals(1, activeChipsBar.getChildren().size());
         assertFalse(todosToggle.isSelected());
