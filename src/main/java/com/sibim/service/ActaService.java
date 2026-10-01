@@ -164,7 +164,7 @@ public class ActaService {
 
             Table resumenTable = new Table(UnitValue.createPercentArray(new float[]{3, 1, 1, 1}))
                 .useAllAvailableWidth();
-            String[] resHeaders = {"Área / Dirección", "Total Bienes", "Agotados", "Valor Patrimonial"};
+            String[] resHeaders = {"Área / Dirección", "Total Bienes", "Sin resguardante", "Valor Patrimonial"};
             for (String h : resHeaders) {
                 resumenTable.addHeaderCell(new com.itextpdf.layout.element.Cell()
                     .add(new Paragraph(h).setFont(bold).setFontSize(8).setFontColor(ColorConstants.WHITE))
@@ -177,7 +177,7 @@ public class ActaService {
                 BigDecimal valorArea = ps.stream().map(Producto::getValorTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
                 long agotados = ps.stream()
-                    .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.AGOTADO).count();
+                    .filter(p -> p.getResguardante() == null || p.getResguardante().isBlank()).count();
                 boolean alt = rowIdx++ % 2 == 0;
                 DeviceRgb bg = alt ? COLOR_SUBHEAD : null;
                 addResumenRow(resumenTable, regular, bg,
@@ -203,7 +203,7 @@ public class ActaService {
                 .setFont(bold).setFontSize(9).setFontColor(dark)
                 .setMarginTop(16).setMarginBottom(4));
 
-            String[] detHeaders = {"Código", "Nombre del Bien", "Resguardante", "Stock", "Estado", "Valor"};
+            String[] detHeaders = {"Código", "Nombre del Bien", "Resguardante", "Cantidad", "Estado", "Valor"};
             float[] detWidths   = {1.2f, 3f, 2f, 0.7f, 1.2f, 1.3f};
             Table detTable = new Table(detWidths).useAllAvailableWidth();
             for (String h : detHeaders) {

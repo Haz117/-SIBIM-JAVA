@@ -428,7 +428,7 @@ public class ProductoService {
         if (p.getPrecioVenta() == null || p.getPrecioVenta().signum() < 0)
             throw new ValidationException("El precio de venta no puede ser negativo");
         if (p.getStockActual() < 0)
-            throw new ValidationException("El stock no puede ser negativo");
+            throw new ValidationException("La cantidad no puede ser negativa");
         if (p.getStockMinimo() < 0)
             throw new ValidationException("El stock minimo no puede ser negativo");
         if (p.getStockMaximo() < 0)

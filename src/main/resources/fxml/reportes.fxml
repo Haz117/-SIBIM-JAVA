@@ -161,12 +161,12 @@
                     <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="report-icon"/>
                 </StackPane>
                 <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Alertas de Inventario" styleClass="report-title"/>
-                    <Label text="Agotados · bajo stock · garantías vencidas"
+                    <Label text="Alertas y pendientes" styleClass="report-title"/>
+                    <Label text="Garantías por vencer · garantías vencidas"
                            styleClass="report-card-tag, report-card-tag-amber"/>
                 </VBox>
             </HBox>
-            <Label text="Bienes agotados, con existencias bajas y garantías próximas a vencer — para gestión inmediata."
+            <Label text="Bienes con garantía vencida o próxima a vencer — para gestión inmediata."
                    styleClass="report-desc" wrapText="true"/>
             <MenuButton text="Exportar" styleClass="report-export-btn, report-export-amber"
                         contentDisplay="LEFT" graphicTextGap="6">

@@ -94,11 +94,11 @@
                 </StackPane>
                 <Label text="ENTRADAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpEntradas" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Movimientos de tipo Entrada dentro del período filtrado — suman al stock." wrapText="true" maxWidth="230"/></tooltip>
+                    <tooltip><Tooltip text="Movimientos de tipo Entrada dentro del período filtrado — suman a la cantidad." wrapText="true" maxWidth="230"/></tooltip>
                 </Label>
             </HBox>
             <Label fx:id="lblStatEntradas" text="—" styleClass="rich-stat-value"/>
-            <Label text="incrementan el stock" styleClass="rich-stat-hint"/>
+            <Label text="aumentan la cantidad" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Salidas — slate (a normal operation, not an alarm) -->
@@ -111,11 +111,11 @@
                 </StackPane>
                 <Label text="SALIDAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpSalidas" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Movimientos de tipo Salida dentro del período filtrado — restan del stock." wrapText="true" maxWidth="230"/></tooltip>
+                    <tooltip><Tooltip text="Movimientos de tipo Salida dentro del período filtrado — restan de la cantidad." wrapText="true" maxWidth="230"/></tooltip>
                 </Label>
             </HBox>
             <Label fx:id="lblStatSalidas" text="—" styleClass="rich-stat-value"/>
-            <Label text="reducen el stock" styleClass="rich-stat-hint"/>
+            <Label text="reducen la cantidad" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Ajustes / Transferencias — indigo (not an alarm) -->
@@ -128,7 +128,7 @@
                 </StackPane>
                 <Label text="AJUSTES / TRANSF." styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpAjustes" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Ajuste: corrección manual de stock. Transferencia: bien trasladado de un área a otra (requiere aprobación)." wrapText="true" maxWidth="260"/></tooltip>
+                    <tooltip><Tooltip text="Ajuste: corrección manual de la cantidad. Transferencia: bien trasladado de un área a otra (requiere aprobación)." wrapText="true" maxWidth="260"/></tooltip>
                 </Label>
             </HBox>
             <Label fx:id="lblStatAjustes" text="—" styleClass="rich-stat-value"/>
@@ -144,7 +144,7 @@
         <!-- Search stays in this row so collapsing the filters never hides it. -->
         <StackPane prefWidth="340" maxWidth="460" HBox.hgrow="SOMETIMES">
             <TextField fx:id="searchField"
-                       promptText="Buscar por producto, motivo o referencia..."
+                       promptText="Buscar por bien, motivo o referencia..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
@@ -164,7 +164,7 @@
         <!-- Tipo filter chips (populated by controller) -->
         <HBox fx:id="tipoChipsBar" spacing="5" alignment="CENTER_LEFT"/>
         <Label fx:id="helpTipoChips" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Filtra por tipo de movimiento:&#10;• Entrada — suma al stock&#10;• Salida — resta del stock&#10;• Ajuste — corrección manual&#10;• Transferencia — traslado entre áreas (requiere aprobación)" wrapText="true" maxWidth="260"/></tooltip>
+            <tooltip><Tooltip text="Filtra por tipo de movimiento:&#10;• Entrada — suma a la cantidad&#10;• Salida — resta de la cantidad&#10;• Ajuste — corrección manual&#10;• Transferencia — traslado entre áreas (requiere aprobación)" wrapText="true" maxWidth="260"/></tooltip>
         </Label>
         <Separator orientation="VERTICAL"/>
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="170">
@@ -238,7 +238,7 @@
     <!-- ══ DATA TABLE ════════════════════════════════════════════════ -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
-            <TableColumn fx:id="colProducto"   text="Bien / Producto"    prefWidth="230" maxWidth="280" sortable="true" minWidth="140"/>
+            <TableColumn fx:id="colProducto"   text="Bien"    prefWidth="230" maxWidth="280" sortable="true" minWidth="140"/>
             <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="115" sortable="true" minWidth="96"/>
             <TableColumn fx:id="colCantidad"   text="Cant."           prefWidth="86"  sortable="true" minWidth="80"/>
             <TableColumn fx:id="colStock"      text="Cantidad ant. → nueva" prefWidth="148" sortable="false" minWidth="150"/>

@@ -40,7 +40,7 @@ class MovimientoServiceValidationTest {
     void registrar_productoInexistente_throwsValidation() {
         var ex = assertThrows(MovimientoService.ValidationException.class,
             () -> service.registrar("no-existe", TipoMovimiento.ENTRADA, 5, "test", null));
-        assertTrue(ex.getMessage().toLowerCase().contains("producto"));
+        assertTrue(ex.getMessage().toLowerCase().contains("bien"));
     }
 
     @Test

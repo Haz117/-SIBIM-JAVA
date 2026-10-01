@@ -216,7 +216,7 @@ class ProductoServiceTest {
         when(mockProductoRepo.findAgotados()).thenReturn(List.of(ag));
         List<Producto> r = service.getAgotados();
         assertEquals(1, r.size());
-        assertEquals(EstadoProducto.AGOTADO, r.get(0).getEstado());
+        assertEquals(EstadoProducto.ACTIVO, r.get(0).getEstado(), "cantidad 0 ya no es un estado de alerta");
     }
 
     @Test void getBajoStock_retornaProductosPorDebajoDeMinimo() throws Exception {
@@ -224,7 +224,7 @@ class ProductoServiceTest {
         when(mockProductoRepo.findBajoStock()).thenReturn(List.of(bajo));
         List<Producto> r = service.getBajoStock();
         assertEquals(1, r.size());
-        assertEquals(EstadoProducto.BAJO_STOCK, r.get(0).getEstado());
+        assertEquals(EstadoProducto.ACTIVO, r.get(0).getEstado(), "no hay mínimo que incumplir");
     }
 
     @Test void getVencidosProximos_incluyeVencidoYProximoAVencer() throws Exception {

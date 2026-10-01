@@ -139,9 +139,9 @@ public final class TutorialOverlay {
             // ── Alertas ──────────────────────────────────────────────────────────
             new Step("mdi2b-bell-outline", "#DC2626", "#991B1B",
                 "Alertas", "Ctrl + 6", "alertas", new String[]{
-                "Se generan automáticamente: bienes agotados, bajo stock y garantías por vencer",
+                "Se generan solas: garantías por vencer, mantenimientos próximos y comodatos vencidos",
                 "El badge rojo en el sidebar muestra cuántas alertas activas hay sin atender",
-                "Usa 'Reponer' en cada sección para registrar una entrada y limpiar la alerta"
+                "Pendientes patrimoniales lista los bienes sin resguardante o sin etiqueta física"
             }),
 
             // ── Reportes ─────────────────────────────────────────────────────────

@@ -121,7 +121,7 @@ public final class MovimientoDialogFactory {
         // up front; the prompt text reinforces it once Ajuste is selected.
         Runnable updateCantidadPrompt = () -> {
             boolean isAjuste = fTipo.getValue() == TipoMovimiento.AJUSTE;
-            fCantidad.setPromptText(isAjuste ? "Valor final del stock (no un delta)" : null);
+            fCantidad.setPromptText(isAjuste ? "Cantidad final (no una diferencia)" : null);
         };
         updateCantidadPrompt.run();
         fTipo.valueProperty().addListener((o, a, b) -> updateCantidadPrompt.run());
@@ -293,7 +293,7 @@ public final class MovimientoDialogFactory {
         stockPreview.getStyleClass().add("dlg-stock-preview");
 
         VBox stockAntes = new VBox(2);
-        Label lblAntesTit = new Label("STOCK ACTUAL");
+        Label lblAntesTit = new Label("ACTUAL");
         lblAntesTit.getStyleClass().add("dlg-stock-tit");
         Label lblStockActual = new Label("—");
         lblStockActual.getStyleClass().add("dlg-stock-val");
@@ -303,7 +303,7 @@ public final class MovimientoDialogFactory {
         arrow.getStyleClass().add("dlg-stock-arrow");
 
         VBox stockDespues = new VBox(2);
-        Label lblDespuesTit = new Label("STOCK RESULTANTE");
+        Label lblDespuesTit = new Label("RESULTANTE");
         lblDespuesTit.getStyleClass().add("dlg-stock-tit");
         Label lblStockNuevo = new Label("—");
         lblStockNuevo.getStyleClass().add("dlg-stock-val");
@@ -415,7 +415,7 @@ public final class MovimientoDialogFactory {
                     : deBaja ? "Este bien está dado de baja: ya no admite movimientos"
                     : sinExistencia ? "Este bien tiene cantidad 0: no hay nada que transferir"
                     : noDestino ? "Selecciona el área de destino"
-                    : exceedsStock ? "La cantidad supera el stock disponible (" + existencia + ")"
+                    : exceedsStock ? "La cantidad supera la existencia disponible (" + existencia + ")"
                     : ajusteSinCambio ? "El ajuste no cambia nada: la cantidad ya es " + existencia
                     : "La cantidad debe ser mayor a cero";
                 boolean mostrar = invalid && tocado[0];
@@ -434,24 +434,25 @@ public final class MovimientoDialogFactory {
         }
 
         int row = 0;
-        grid.add(DialogUtil.fieldLabel("Producto *"),    0, row); grid.add(fProducto,    1, row++);
+        grid.add(DialogUtil.fieldLabel("Bien *"),    0, row); grid.add(fProducto,    1, row++);
         grid.add(DialogUtil.fieldLabelWithHelp("Tipo *",
-            "Entrada: suma unidades al stock actual.\n" +
-            "Salida: resta unidades del stock.\n" +
-            "Ajuste: la cantidad REEMPLAZA el stock actual (corrección manual).\n" +
+            "Entrada: suma unidades a la cantidad actual.\n" +
+            "Salida: resta unidades de la cantidad.\n" +
+            "Ajuste: la cantidad REEMPLAZA la cantidad actual (corrección manual).\n" +
             "Transferencia: mueve el bien a otra área del organigrama."),
                                                          0, row); grid.add(fTipo,        1, row++);
         grid.add(lblAreaDestino,                         0, row); grid.add(fAreaDestino, 1, row++);
         grid.add(transferPreview,                        0, row++);
         grid.add(DialogUtil.fieldLabelWithHelp("Cantidad *",
             "Unidades a registrar.\n" +
-            "Para Ajuste: este valor se convierte en el nuevo stock total\n(no se suma ni se resta)."),
+            "Para Ajuste: este valor se convierte en la nueva cantidad total\n(no se suma ni se resta)."),
                                                          0, row); grid.add(fCantidad,    1, row++);
-        grid.add(DialogUtil.fieldLabel("Movimiento"),    0, row); grid.add(stockPreview, 1, row++);
+        grid.add(DialogUtil.fieldLabel("Cantidad del bien"),    0, row); grid.add(stockPreview, 1, row++);
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);
         grid.add(DialogUtil.fieldLabel("Referencia"),    0, row); grid.add(fRef,         1, row);
 
-        HBox actionBar = new HBox(10, btnCancelar, btnRegistrar);
+        // Same order as every other dialog: the action first, Cancelar last.
+        HBox actionBar = new HBox(10, btnRegistrar, btnCancelar);
         actionBar.setAlignment(Pos.CENTER_RIGHT);
         actionBar.setPadding(new Insets(8, 22, 16, 22));
 

@@ -118,7 +118,7 @@ public class ReporteOrganigramaService extends ReporteService {
 
                 // Bienes table
                 Table t = createPdfTable(
-                    new String[]{"Nombre del bien", "Código", "Categoría", "Estado", "Stock", "Valor compra"},
+                    new String[]{"Nombre del bien", "Código", "Categoría", "Estado", "Cantidad", "Valor compra"},
                     new float[]{3f, 1.2f, 1.6f, 1f, 0.7f, 1.4f});
                 for (int i = 0; i < bienes.size(); i++) {
                     Producto p = bienes.get(i);

@@ -112,20 +112,9 @@ class ProductoTabStockFields {
             + "Aparece en Alertas 30 días antes."),
                                                                   0, rs); principal.add(fVenc,     1, rs++);
 
-        // ── Optional quantity control ─────────────────────────────────────────
-        GridPane existencias = DialogUtil.formGrid(140);
-        int re = 0;
-        existencias.add(DialogUtil.fieldLabelWithHelp("Existencia mínima",
-            "Cuando la cantidad baje de este número se generará\nuna alerta en el módulo de Alertas."),
-                                                                  0, re); existencias.add(fStockMin, 1, re++);
-        existencias.add(DialogUtil.fieldLabelWithHelp("Existencia máxima",
-            "Límite de referencia. No bloquea entradas;\nsirve para reportes y alertas de exceso."),
-                                                                  0, re); existencias.add(fStockMax, 1, re++);
-        TitledPane control = new TitledPane("Control de existencias (solo para bienes por lote o consumibles)", existencias);
-        control.setExpanded(existing != null && existing.getStockMaximo() > 1);
-        control.getStyleClass().add("form-optional-section");
-
-        grid = new VBox(12, principal, control);
+        // No minimum/maximum: a patrimonial bien is not restocked. The two spinners stay
+        // as plain holders so an existing bien keeps whatever values it had.
+        grid = new VBox(12, principal);
     }
 
     /** Attaches dirty-tracking listeners on all editable fields. Call AFTER

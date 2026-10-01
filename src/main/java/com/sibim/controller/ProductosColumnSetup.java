@@ -224,9 +224,9 @@ class ProductosColumnSetup {
                 getStyleClass().removeAll("stock-ok","stock-warn","stock-low");
                 if (empty || value == null) { setGraphic(null); return; }
                 Producto p = getTableRow() != null ? getTableRow().getItem() : null;
-                int max = p != null && p.getStockMaximo() > 0 ? p.getStockMaximo() : Math.max(value, 1);
-                double pct = Math.min(1.0, (double) value / max);
-                bar.setProgress(pct);
+                // Just the number: a bar against a "maximum stock" is shop logic.
+                bar.setVisible(false);
+                bar.setManaged(false);
                 numLabel.setText(String.valueOf(value));
                 String statusClass = p == null ? "stock-ok" : switch (p.getEstado()) {
                     case AGOTADO    -> "stock-low";
@@ -237,7 +237,7 @@ class ProductosColumnSetup {
                 bar.getStyleClass().removeAll("stock-progress-ok","stock-progress-warn","stock-progress-low");
                 bar.getStyleClass().add(statusClass.replace("stock-ok","stock-progress-ok")
                     .replace("stock-warn","stock-progress-warn").replace("stock-low","stock-progress-low"));
-                Tooltip.install(box, new Tooltip(value + " / " + max + " (máx)"));
+
                 setGraphic(box);
             }
         });

@@ -319,8 +319,6 @@ public class ProductosController {
         String[][] chips = {
             {"Todos",      null},
             {"Activo",     "filter-chip-green"},
-            {"Bajo Stock", "filter-chip-amber"},
-            {"Agotado",    "filter-chip-danger"},
             {"Vencido",    "filter-chip-purple"}
         };
         for (String[] entry : chips) {

@@ -200,7 +200,7 @@ class DashboardTablaRecienteSetup {
         bienRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         grid.add(DialogUtil.fieldLabel("Bien"),    0, r); grid.add(bienRow,  1, r++);
-        grid.add(DialogUtil.fieldLabel("Stock"),   0, r); grid.add(stockRow, 1, r++);
+        grid.add(DialogUtil.fieldLabel("Cantidad"),   0, r); grid.add(stockRow, 1, r++);
         grid.add(DialogUtil.fieldLabel("Motivo"),  0, r); grid.add(new Label(m.getMotivo() != null ? m.getMotivo() : "—"), 1, r++);
         grid.add(DialogUtil.fieldLabel("Usuario"), 0, r); grid.add(new Label(m.getUsuarioNombre()), 1, r++);
         grid.add(DialogUtil.fieldLabel("Fecha"),   0, r); grid.add(new Label(FormatUtils.formatDateTime(m.getCreadoEn())), 1, r);

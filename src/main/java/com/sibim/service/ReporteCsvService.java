@@ -70,7 +70,7 @@ public class ReporteCsvService extends ReporteService {
     public File exportMovimientosCsv(List<Movimiento> movimientos) throws Exception {
         File file = tempFile("movimientos", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Producto,Tipo,Cantidad,Stock Anterior,Stock Nuevo,Motivo,Referencia,Usuario,Fecha");
+            pw.println("Bien,Tipo,Cantidad,Cantidad anterior,Cantidad nueva,Motivo,Referencia,Usuario,Fecha");
             for (Movimiento m : movimientos) {
                 pw.printf("\"%s\",\"%s\",%d,%d,%d,\"%s\",\"%s\",\"%s\",\"%s\"%n",
                     esc(m.getProductoNombre()), m.getTipo().getEtiqueta(),
@@ -97,12 +97,12 @@ public class ReporteCsvService extends ReporteService {
 
         File file = tempFile("distribucion", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Área,Total Bienes,Valor Total,Agotados,Bajo Stock");
+            pw.println("Área,Total Bienes,Valor Total,Sin resguardante,Sin etiquetar");
             for (Map.Entry<String, List<Producto>> entry : porArea.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey()).toList()) {
                 List<Producto> ps = entry.getValue();
-                long agotados  = ps.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
-                long bajoStock = ps.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
+                long agotados  = ps.stream().filter(p -> p.getResguardante() == null || p.getResguardante().isBlank()).count();
+                long bajoStock = ps.stream().filter(p -> !p.isEtiquetado()).count();
                 BigDecimal valor = ps.stream().map(Producto::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
                 pw.printf("\"%s\",%d,%.2f,%d,%d%n",
                     esc(entry.getKey()), ps.size(), valor, agotados, bajoStock);
@@ -115,19 +115,20 @@ public class ReporteCsvService extends ReporteService {
 
     public File exportAlertasCsv() throws Exception {
         List<Producto> todos     = guardExportSize(productoRepo.findAll(), "bienes");
-        List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
+        List<Producto> garantias = productoRepo.findVencidosProximos(30);
         File file = tempFile("alertas", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Estado,Nombre,Codigo,Stock Actual,Stock Minimo,Area,Proveedor");
-            for (Producto p : agotados)
-                pw.printf("\"Agotado\",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\"%n",
-                    esc(p.getNombre()), esc(p.getCodigo()), p.getStockActual(), p.getStockMinimo(),
-                    esc(p.getArea()), esc(p.getProveedor()));
-            for (Producto p : bajoStock)
-                pw.printf("\"Bajo Stock\",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\"%n",
-                    esc(p.getNombre()), esc(p.getCodigo()), p.getStockActual(), p.getStockMinimo(),
-                    esc(p.getArea()), esc(p.getProveedor()));
+            pw.println("Alerta,Nombre,Codigo,Area,Garantia hasta");
+            for (Producto p : garantias)
+                pw.printf("\"Garantía vencida o por vencer\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                    esc(p.getNombre()), esc(p.getCodigo()), esc(p.getArea()),
+                    p.getFechaVencimiento() != null ? p.getFechaVencimiento().toString() : "");
+            for (Producto p : todos) {
+                String pendiente = ReporteService.pendientePatrimonial(p);
+                if (pendiente != null)
+                    pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"\"%n",
+                        pendiente, esc(p.getNombre()), esc(p.getCodigo()), esc(p.getArea()));
+            }
         }
         return file;
     }

@@ -373,6 +373,10 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
         ObservableList<ResguardoItem> itemsAgregados = FXCollections.observableArrayList();
         TableView<ResguardoItem> itemsTable = new TableView<>(itemsAgregados);
+        itemsTable.getStyleClass().add("data-table");
+        Label sinBienes = new Label("Agrega aquí los bienes que tendrá a su cargo");
+        sinBienes.getStyleClass().add("muted-sm");
+        itemsTable.setPlaceholder(sinBienes);
         itemsTable.setPrefHeight(160);
         itemsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 

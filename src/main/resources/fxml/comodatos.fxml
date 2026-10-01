@@ -98,7 +98,7 @@
         <TextField fx:id="searchField" promptText="Buscar por bien, entidad, contacto o número…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <ComboBox fx:id="estadoFilter" prefWidth="140" promptText="Todos los estados"/>
-        <MenuButton fx:id="btnExportarPdf" text="Exportar" styleClass="btn-secondary"
+        <MenuButton fx:id="btnExportarPdf" text="Exportar" minWidth="-Infinity" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el registro de comodatos visible" wrapText="true" maxWidth="240"/></tooltip>

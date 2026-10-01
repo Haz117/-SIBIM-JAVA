@@ -225,7 +225,9 @@
 .stepper-step-done .stepper-num      { -fx-text-fill: white; }
 .stepper-step-done .stepper-label    { -fx-text-fill: sibim-green-dark; }
 .stepper-nav-bar {
-    -fx-padding: 6 22 14 22;
+    -fx-padding: 10 22 12 22;
+    -fx-border-color: sibim-slate-200 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
     -fx-spacing: 10;
     -fx-alignment: CENTER_LEFT;
 }

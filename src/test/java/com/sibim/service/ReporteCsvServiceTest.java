@@ -172,7 +172,7 @@ class ReporteCsvServiceTest {
         List<String> l = lineas(service.exportMovimientosCsv(List.of(movimiento("Laptop HP"))));
 
         assertEquals(2, l.size());
-        assertTrue(l.get(0).startsWith("Producto,Tipo,Cantidad,Stock Anterior,Stock Nuevo"));
+        assertTrue(l.get(0).startsWith("Bien,Tipo,Cantidad,Cantidad anterior,Cantidad nueva"));
         assertTrue(l.get(1).startsWith("\"Laptop HP\",\"Entrada\",3,2,5,\"Compra\",\"FAC-1\",\"Admin\""));
     }
 
@@ -198,22 +198,23 @@ class ReporteCsvServiceTest {
         assertEquals(3, l.size(), "encabezado + 'Sala A' + área sin asignar");
         // Se valida por contenido, no por posición de la fila.
         String salaA = l.stream().filter(s -> s.startsWith("\"Sala A\"")).findFirst().orElseThrow();
-        // 2 bienes (activo + agotado): valor 5*15000 + 0*500 = 75000.00, 1 agotado, 0 bajo stock
-        assertEquals("\"Sala A\",2,75000.00,1,0", salaA);
+        // 2 bienes: valor 5*15000 + 0*500 = 75000.00; las dos últimas columnas son
+        // "sin resguardante" y "sin etiquetar" (ninguno de los dos tiene resguardo ni etiqueta).
+        assertEquals("\"Sala A\",2,75000.00,2,2", salaA);
         String sinArea = l.stream().filter(s -> s.startsWith("\"Sin ")).findFirst().orElseThrow();
-        // 1 bien (bajoStock, sin área): valor 2*300 = 600.00, 0 agotados, 1 bajo stock
-        assertTrue(sinArea.endsWith(",1,600.00,0,1"), sinArea);
+        assertTrue(sinArea.endsWith(",1,600.00,1,1"), sinArea);
     }
 
     @Test
-    void exportAlertasCsv_soloAgotadosYBajoStock() throws Exception {
+    void exportAlertasCsv_listaPendientesPatrimoniales() throws Exception {
         when(productoRepo.findAll()).thenReturn(List.of(activo, agotado, bajoStock));
 
         List<String> l = lineas(service.exportAlertasCsv());
 
-        assertEquals(3, l.size(), "encabezado + 1 agotado + 1 bajo stock (el activo no se lista)");
-        assertTrue(l.get(1).startsWith("\"Agotado\",\"Cartuchos\""));
-        assertTrue(l.get(2).startsWith("\"Bajo Stock\",\"Papel Bond\""));
+        assertEquals("Alerta,Nombre,Codigo,Area,Garantia hasta", l.get(0));
+        assertEquals(4, l.size(), "encabezado + los 3 bienes, que no tienen resguardante ni etiqueta");
+        assertTrue(l.stream().skip(1).allMatch(s -> s.startsWith("\"Sin resguardante · Sin etiquetar\"")), l.toString());
+        assertTrue(l.stream().noneMatch(s -> s.contains("Agotado") || s.contains("Bajo Stock")));
     }
 
     // ── Documentos patrimoniales ─────────────────────────────────────────────

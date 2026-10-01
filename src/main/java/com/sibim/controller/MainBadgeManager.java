@@ -33,9 +33,7 @@ class MainBadgeManager {
 
     void loadAlertBadge() {
         DialogUtil.runAsync(
-            () -> alertProductoService.getAgotados().size()
-                + alertProductoService.getBajoStock().size()
-                + alertProductoService.getVencidosProximos(30).size(),
+            () -> alertProductoService.getVencidosProximos(30).size(),
             total -> {
                 if (alertBadge == null) return;
                 if (total > 0) {

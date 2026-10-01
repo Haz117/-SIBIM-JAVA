@@ -139,7 +139,7 @@ class IntegridadInventarioIntegrationTest extends IntegrationTestBase {
 
         var ex = assertThrows(MovimientoService.ValidationException.class,
             () -> movimientoService.eliminar(primero.getId()));
-        assertTrue(ex.getMessage().contains("mas reciente"), ex.getMessage());
+        assertTrue(ex.getMessage().contains("más reciente"), ex.getMessage());
 
         movimientoService.eliminar(segundo.getId());
         assertEquals(15, productoRepo.findById(p.getId()).orElseThrow().getStockActual());

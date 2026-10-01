@@ -55,7 +55,7 @@ class OrganigramaDialogs {
     void showAreaProductsDialog(String areaName, List<Producto> allProds, boolean soloAlertas, Scene scene) {
         List<Producto> prods = soloAlertas
             ? allProds.stream()
-                .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
+                .filter(p -> p.getEstado() == EstadoProducto.VENCIDO)
                 .toList()
             : allProds;
 
@@ -101,7 +101,7 @@ class OrganigramaDialogs {
 
         HBox header = soloAlertas
             ? DialogUtil.gradientHeader("mdi2a-alert-circle-outline", areaName,
-                prods.size() + (prods.size() == 1 ? " bien agotado o con bajo stock" : " bienes agotados o con bajo stock"),
+                prods.size() + (prods.size() == 1 ? " bien con garantía vencida" : " bienes con garantía vencida"),
                 AppColors.WARNING, AppColors.WARNING_D)
             : DialogUtil.gradientHeader("mdi2f-folder-outline", areaName,
                 prods.size() + (prods.size() == 1 ? " bien registrado en esta área" : " bienes registrados en esta área"),
@@ -125,7 +125,7 @@ class OrganigramaDialogs {
             c.getValue().getResguardante() != null ? c.getValue().getResguardante() : "—"));
         cResguard.setPrefWidth(110);
 
-        TableColumn<Producto, String> cStock = new TableColumn<>("Stock");
+        TableColumn<Producto, String> cStock = new TableColumn<>("Cantidad");
         cStock.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().getStockActual())));
         cStock.setPrefWidth(65);
         cStock.setCellFactory(col -> new TableCell<>() {

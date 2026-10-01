@@ -866,7 +866,7 @@ public final class OfflineStore {
         ensureLoaded();
         if (m.getId() == null) m.setId(UUID.randomUUID().toString());
         Producto p = PRODUCTOS_MAP.get(m.getProductoId());
-        if (p == null) throw new SQLException("Producto no encontrado: " + m.getProductoId());
+        if (p == null) throw new SQLException("Bien no encontrado: " + m.getProductoId());
         Connection c = conn();
         c.setAutoCommit(false);
         try {
@@ -893,7 +893,7 @@ public final class OfflineStore {
         ensureLoaded();
         synchronized (LOCK) {
             Producto p = PRODUCTOS_MAP.get(m.getProductoId());
-            if (p == null) throw new SQLException("Producto no encontrado: " + m.getProductoId());
+            if (p == null) throw new SQLException("Bien no encontrado: " + m.getProductoId());
             // Same rules as online; a transfer's código is re-assigned by the
             // server when this movement syncs.
             com.sibim.db.ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosActivos());

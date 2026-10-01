@@ -721,7 +721,7 @@ public final class DemoDataStore {
     public static void addMovimiento(Movimiento m, Integer expectedStockAnterior) throws java.sql.SQLException {
         synchronized (STOCK_LOCK) {
             Producto p = findProductoById(m.getProductoId()).orElseThrow(() ->
-                new java.sql.SQLException("Producto no encontrado: " + m.getProductoId()));
+                new java.sql.SQLException("Bien no encontrado: " + m.getProductoId()));
             ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosActivos());
             if (m.getAreaOrigen() != null) {   // transferencia
                 updateProductoArea(m.getProductoId(), m.getAreaDestino());
@@ -768,7 +768,7 @@ public final class DemoDataStore {
             Movimiento m = MOVIMIENTOS.stream().filter(x -> x.getId().equals(id) && x.isPendiente()).findFirst()
                 .orElseThrow(() -> new java.sql.SQLException("Transferencia pendiente no encontrada: " + id));
             Producto p = findProductoById(m.getProductoId()).orElseThrow(() ->
-                new java.sql.SQLException("Producto no encontrado: " + m.getProductoId()));
+                new java.sql.SQLException("Bien no encontrado: " + m.getProductoId()));
             if (p.isDadoDeBaja()) throw new java.sql.SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
             if (p.getStockActual() <= 0)
                 throw new java.sql.SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);

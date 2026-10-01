@@ -126,7 +126,7 @@ class OrganigramaTreeBuilder {
 
         if (soloAlertas) {
             boolean hasAlert = allAreaProds.stream().anyMatch(
-                p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK);
+                p -> p.getEstado() == EstadoProducto.VENCIDO);
             if (!hasAlert) return;
         }
 
@@ -172,7 +172,7 @@ class OrganigramaTreeBuilder {
         header.getChildren().addAll(iconBadge, nameLabel, valorLabel, countLabel);
 
         long alertasArea = allAreaProds.stream()
-            .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
+            .filter(p -> p.getEstado() == EstadoProducto.VENCIDO)
             .count();
         if (alertasArea > 0) {
             FontIcon alertIcon = new FontIcon("mdi2a-alert-circle");
@@ -183,7 +183,7 @@ class OrganigramaTreeBuilder {
             alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
             alertDot.setOnMouseClicked(e -> { e.consume(); onAreaClick.show(parentName, allAreaProds, true); });
             AccessibilityUtils.asButton(alertDot, "Ver bienes con alerta de " + parentName);
-            Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) agotado(s) o bajo stock en esta área — clic para verlos"));
+            Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) con garantía vencida en esta área — clic para verlos"));
             header.getChildren().add(alertDot);
         }
 
@@ -296,7 +296,7 @@ class OrganigramaTreeBuilder {
             childHeader.getChildren().addAll(dirIcon, childName, childValor, childCount);
 
             long alertasChild = childProds.stream()
-                .filter(p -> p.getEstado() == EstadoProducto.AGOTADO || p.getEstado() == EstadoProducto.BAJO_STOCK)
+                .filter(p -> p.getEstado() == EstadoProducto.VENCIDO)
                 .count();
             if (alertasChild > 0) {
                 FontIcon alertIcon = new FontIcon("mdi2a-alert-circle");
@@ -307,7 +307,7 @@ class OrganigramaTreeBuilder {
                 alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
                 alertDot.setOnMouseClicked(e -> { e.consume(); onAreaClick.show(child, childProds, true); });
                 AccessibilityUtils.asButton(alertDot, "Ver bienes con alerta de " + child);
-                Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) agotado(s) o bajo stock en " + child + " — clic para verlos"));
+                Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) con garantía vencida en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(alertDot);
             }
 

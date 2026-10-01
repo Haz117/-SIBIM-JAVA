@@ -208,8 +208,7 @@ public class OrganigramaController {
                 continue;
 
             long alertas = areaProds.stream()
-                .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.AGOTADO
-                          || p.getEstado() == com.sibim.model.enums.EstadoProducto.BAJO_STOCK)
+                .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.VENCIDO)
                 .count();
 
             VBox card = new VBox(8);
@@ -533,8 +532,7 @@ public class OrganigramaController {
 
             java.math.BigDecimal valor = OrganigramaTreeBuilder.valorPatrimonial(areaProds);
             int alertas = (int) areaProds.stream()
-                .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.AGOTADO
-                          || p.getEstado() == com.sibim.model.enums.EstadoProducto.BAJO_STOCK)
+                .filter(p -> p.getEstado() == com.sibim.model.enums.EstadoProducto.VENCIDO)
                 .count();
 
             List<String> children = getChildrenForTopLevel(areaName);

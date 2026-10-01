@@ -102,7 +102,7 @@
     <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar, filter-bar-indigo">
         <TextField fx:id="searchField" promptText="Buscar por resguardante, área o número…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
-        <MenuButton fx:id="btnExportarPdf" text="Exportar" styleClass="btn-secondary"
+        <MenuButton fx:id="btnExportarPdf" text="Exportar" minWidth="-Infinity" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el registro de resguardos visible" wrapText="true" maxWidth="240"/></tooltip>

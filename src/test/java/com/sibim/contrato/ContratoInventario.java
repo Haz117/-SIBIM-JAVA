@@ -254,20 +254,15 @@ public interface ContratoInventario {
     // ── Los números cuadran ─────────────────────────────────────────────────
 
     @Test
-    default void alertas_agotadosYBajoStock_segunElEstadoDeCadaBien() throws Exception {
-        Producto agotado = alta(AREA_A, 0, 1);
-        Producto bajo    = alta(AREA_A, 1, 3);
+    default void sinAlertasDeExistencias_esInventarioPatrimonialNoTienda() throws Exception {
+        Producto enCero  = alta(AREA_A, 0, 1);
+        Producto bajoMin = alta(AREA_A, 1, 3);
         Producto normal  = alta(AREA_A, 9, 3);
 
-        List<String> agotados = productos().getAgotados().stream().map(Producto::getId).toList();
-        List<String> bajos    = productos().getBajoStock().stream().map(Producto::getId).toList();
-        assertTrue(agotados.contains(agotado.getId()));
-        assertTrue(bajos.contains(bajo.getId()));
-        assertFalse(agotados.contains(normal.getId()) || bajos.contains(normal.getId()));
-        assertFalse(bajos.contains(agotado.getId()), "agotado y bajo stock no se enciman");
-
-        for (Producto x : productos().getAgotados()) assertEquals(EstadoProducto.AGOTADO, x.getEstado());
-        for (Producto x : productos().getBajoStock()) assertEquals(EstadoProducto.BAJO_STOCK, x.getEstado());
+        assertTrue(productos().getAgotados().isEmpty(), "no existen bienes \"agotados\"");
+        assertTrue(productos().getBajoStock().isEmpty(), "ni \"bajo stock\"");
+        for (Producto x : List.of(enCero, bajoMin, normal))
+            assertEquals(EstadoProducto.ACTIVO, releer(x.getId()).getEstado());
     }
 
     @Test

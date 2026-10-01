@@ -232,8 +232,8 @@ public final class ConteoFisicoDialog {
         VBox stats = new VBox(8);
         stats.setPadding(new Insets(16, 22, 20, 22));
         stats.getChildren().addAll(
-            summaryRow("Concordantes (stock OK)", concordantes, "text-ok"),
-            summaryRow("Con diferencias de stock", conDiff,    conDiff    > 0 ? "text-warn" : "text-ok"),
+            summaryRow("Concordantes", concordantes, "text-ok"),
+            summaryRow("Con diferencias de cantidad", conDiff,    conDiff    > 0 ? "text-warn" : "text-ok"),
             summaryRow("Mal estado",               malEstado,  malEstado  > 0 ? "text-warn" : "muted"),
             summaryRow("En otra área",             otraArea,   otraArea   > 0 ? "text-warn" : "muted"),
             summaryRow("Faltante",                 faltante,   faltante   > 0 ? "text-warn" : "muted")
@@ -241,7 +241,7 @@ public final class ConteoFisicoDialog {
         if (sinRevisar > 0)
             stats.getChildren().add(summaryRow("Sin revisar en esta sesión", sinRevisar, "text-warn"));
         if (conDiff > 0) {
-            Label note = new Label("Se registrarán " + conDiff + " ajuste(s) de stock al confirmar.");
+            Label note = new Label("Se registrarán " + conDiff + " ajuste(s) de cantidad al confirmar.");
             note.getStyleClass().add("muted-sm");
             note.setWrapText(true);
             stats.getChildren().add(note);

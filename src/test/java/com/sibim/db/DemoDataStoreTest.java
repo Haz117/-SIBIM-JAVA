@@ -162,11 +162,11 @@ class DemoDataStoreTest {
     }
 
     @Test
-    void productos_conStockCero_sonAgotados() {
+    void productos_conCantidadCero_noGeneranAlerta() {
         DemoDataStore.findAllProductos(null).stream()
             .filter(p -> p.getStockActual() == 0 && p.getFechaVencimiento() == null && !p.isDadoDeBaja())
-            .forEach(p -> assertEquals(EstadoProducto.AGOTADO, p.getEstado(),
-                p.getNombre() + " con stock 0 debe ser AGOTADO"));
+            .forEach(p -> assertEquals(EstadoProducto.ACTIVO, p.getEstado(),
+                p.getNombre() + " con cantidad 0 sigue ACTIVO: no hay bienes \"agotados\""));
     }
 
     @Test

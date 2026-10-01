@@ -185,26 +185,22 @@ class ProductoFilterLogicTest {
     // ── Estado (chip) filter ─────────────────────────────────────────────────
 
     @Test
-    void filterEstado_Agotado() {
-        // impresora: stockActual=0 → AGOTADO
+    void filterEstado_Agotado_yaNoExiste() {
+        // impresora: cantidad 0, pero un inventario patrimonial no tiene "agotados"
         List<Producto> result = filter(all(), "", null, null, null, "Agotado");
-        assertEquals(List.of(impresora), result);
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void filterEstado_Activo_excludesAgotado() {
+    void filterEstado_Activo_incluyeCantidadCero() {
         List<Producto> result = filter(all(), "", null, null, null, "Activo");
-        assertFalse(result.contains(impresora));
+        assertTrue(result.contains(impresora));
     }
 
     @Test
-    void filterEstado_BajoStock() {
-        // silla: stockActual=3, stockMinimo=3 → BAJO_STOCK
-        // escritorio: stockActual=2, stockMinimo=5 → BAJO_STOCK
+    void filterEstado_BajoStock_yaNoExiste() {
         List<Producto> result = filter(all(), "", null, null, null, "Bajo Stock");
-        assertTrue(result.containsAll(List.of(silla, escritorio)));
-        assertFalse(result.contains(laptop));
-        assertFalse(result.contains(impresora));
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -242,8 +238,8 @@ class ProductoFilterLogicTest {
 
     @Test
     void categoriaAndEstado() {
-        List<Producto> result = filter(all(), "", "cat-ti", null, null, "Agotado");
-        assertEquals(List.of(impresora), result);
+        List<Producto> result = filter(all(), "", "cat-ti", null, null, "Activo");
+        assertTrue(result.contains(impresora));
     }
 
     @Test

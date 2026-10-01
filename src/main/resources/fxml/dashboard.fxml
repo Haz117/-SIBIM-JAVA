@@ -169,7 +169,7 @@
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpTotalBienes" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, sin importar su estado de stock." wrapText="true" maxWidth="240"/></tooltip>
+                    <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, dados de baja excluidos." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
             <VBox spacing="5">

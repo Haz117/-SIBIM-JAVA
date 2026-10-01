@@ -108,7 +108,7 @@
             <graphic><FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Marcar el préstamo seleccionado como devuelto"/></tooltip>
         </Button>
-        <MenuButton fx:id="btnExportarPdf" text="Exportar" styleClass="btn-secondary"
+        <MenuButton fx:id="btnExportarPdf" text="Exportar" minWidth="-Infinity" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el registro de préstamos visible" wrapText="true" maxWidth="240"/></tooltip>

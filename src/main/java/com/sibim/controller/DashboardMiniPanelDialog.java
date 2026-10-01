@@ -40,7 +40,7 @@ final class DashboardMiniPanelDialog {
         cCodigo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getCodigo()));
         cCodigo.setPrefWidth(110);
 
-        TableColumn<Producto, Integer> cStock = new TableColumn<>("Stock");
+        TableColumn<Producto, Integer> cStock = new TableColumn<>("Cantidad");
         cStock.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getStockActual()));
         cStock.setPrefWidth(70);
         cStock.setCellFactory(col -> new TableCell<>() {

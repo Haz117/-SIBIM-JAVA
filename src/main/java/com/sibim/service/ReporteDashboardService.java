@@ -41,8 +41,6 @@ public class ReporteDashboardService extends ReporteService {
             String[][] statsRows = {
                 {"Total de bienes",      String.valueOf(stats.total())},
                 {"Bienes activos",       String.valueOf(stats.activos())},
-                {"Agotados",             String.valueOf(resumen.agotados().size())},
-                {"Bajo stock",           String.valueOf(resumen.bajoStock().size())},
                 {"Categorías",           String.valueOf(stats.categorias())},
                 {"Valor total (compra)", com.sibim.util.FormatUtils.formatCurrency(stats.valorTotal())},
             };

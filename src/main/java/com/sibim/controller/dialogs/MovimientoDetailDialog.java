@@ -88,7 +88,7 @@ public final class MovimientoDetailDialog {
             l.getStyleClass().add("dlg-detail-value");
 
         grid.add(DialogUtil.fieldLabel("Bien"),           0, r); grid.add(fProducto, 1, r++);
-        grid.add(DialogUtil.fieldLabel("Stock"),          0, r); grid.add(stockRow,  1, r++);
+        grid.add(DialogUtil.fieldLabel("Cantidad"),          0, r); grid.add(stockRow,  1, r++);
         if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
             HBox areaRow = new HBox(8);
             areaRow.setAlignment(Pos.CENTER_LEFT);

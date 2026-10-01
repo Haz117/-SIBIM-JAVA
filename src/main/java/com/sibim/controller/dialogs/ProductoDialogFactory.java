@@ -58,7 +58,7 @@ public final class ProductoDialogFactory {
         List<String> sugestProveedores = productoService.getProveedores();
         List<String> sugestUbicaciones = productoService.getUbicaciones();
 
-        Dialog<Producto> dialog = DialogUtil.create(520);
+        Dialog<Producto> dialog = DialogUtil.create(580);
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
 
         HBox dialogHeader = DialogUtil.gradientHeader(
@@ -232,7 +232,9 @@ public final class ProductoDialogFactory {
 
         ScrollPane tabsScroll = new ScrollPane(tabs);
         tabsScroll.setFitToWidth(true);
-        tabsScroll.setMaxHeight(420);
+        // As tall as the screen allows (was a fixed 420, which scrolled even on a big monitor).
+        tabsScroll.setMaxHeight(Math.max(380, Math.min(580,
+            javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() - 380)));
         tabsScroll.getStyleClass().add("dlg-tabs-scroll");
 
         // ── Stepper navigation buttons ───────────────────────────────────────

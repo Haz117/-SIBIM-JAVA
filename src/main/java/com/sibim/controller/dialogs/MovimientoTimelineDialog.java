@@ -151,7 +151,7 @@ public final class MovimientoTimelineDialog {
                 default            -> "audit-pill-orange";
             };
             String detalle = (m.getCantidad() > 0 ? "+" : "") + m.getCantidad()
-                + "  →  stock: " + m.getStockAnterior() + " → " + m.getStockNuevo()
+                + "  →  cantidad: " + m.getStockAnterior() + " → " + m.getStockNuevo()
                 + (m.getMotivo() != null && !m.getMotivo().isBlank() ? "  ·  " + m.getMotivo() : "")
                 + "  ·  " + (m.getUsuarioNombre() != null ? m.getUsuarioNombre() : "—");
             entradas.add(new Entrada(m.getCreadoEn(), Fuente.MOVIMIENTO, iconLit, badgeClass,

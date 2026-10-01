@@ -154,7 +154,7 @@ class ReporteExcelServiceTest {
     void exportMovimientosExcel_lista_escribeTipoYCantidades() throws Exception {
         try (Workbook wb = abrir(service.exportMovimientosExcel(List.of(movimiento("Laptop HP"))))) {
             Sheet s = wb.getSheet("Movimientos");
-            assertEquals("Producto", celda(s, 0, 0));
+            assertEquals("Bien", celda(s, 0, 0));
             assertEquals("Laptop HP", celda(s, 1, 0));
             assertEquals("Salida", celda(s, 1, 1));
             assertEquals("1", celda(s, 1, 2));
@@ -190,7 +190,7 @@ class ReporteExcelServiceTest {
             assertEquals("Sala A", celda(resumen, fila, 0));
             assertEquals("2", celda(resumen, fila, 1));      // bienes
             assertEquals("75000", celda(resumen, fila, 2));  // valor total
-            assertEquals("1", celda(resumen, fila, 3));      // agotados
+            assertEquals("2", celda(resumen, fila, 3));      // sin resguardante
 
             Sheet detalle = wb.getSheetAt(1);
             assertEquals(3, filasDeDatos(detalle), "un renglón por bien");
@@ -198,14 +198,13 @@ class ReporteExcelServiceTest {
     }
 
     @Test
-    void exportAlertasExcel_soloAgotadosYBajoStock() throws Exception {
+    void exportAlertasExcel_listaPendientesPatrimoniales() throws Exception {
         when(productoRepo.findAll()).thenReturn(List.of(activo, agotado, bajoStock));
 
         try (Workbook wb = abrir(service.exportAlertasExcel())) {
             Sheet s = wb.getSheet("Alertas");
-            assertEquals(2, filasDeDatos(s), "el bien activo no genera alerta");
-            assertEquals("Cartuchos", celda(s, 1, 0));   // agotados primero
-            assertEquals("Papel Bond", celda(s, 2, 0));
+            assertEquals(3, filasDeDatos(s), "los 3 bienes: ninguno tiene resguardante ni etiqueta");
+            assertEquals("Sin resguardante · Sin etiquetar", celda(s, 1, 0));
         }
     }
 

@@ -16,8 +16,8 @@
             <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Alertas de Inventario" styleClass="page-title"/>
-            <Label text="Bienes agotados, existencias bajas y garantías por vencer" styleClass="page-subtitle"/>
+            <Label text="Alertas y pendientes" styleClass="page-title"/>
+            <Label text="Garantías por vencer, mantenimientos, comodatos y pendientes patrimoniales" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
                            visible="false" managed="false"/>
@@ -45,7 +45,7 @@
         <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
                 accessibleText="Restaurar columnas">
             <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Restaurar columnas de las 4 tablas (agotados, stock bajo, garantías y mantenimiento) a su configuración original"
+            <tooltip><Tooltip text="Restaurar las columnas de las tablas a su configuración original"
                               wrapText="true" maxWidth="270"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
@@ -61,7 +61,7 @@
     <VBox fx:id="resumenBox" spacing="20">
     <!-- ══ RESUMEN RÁPIDO ═══════════════════════════════════════════ -->
     <HBox spacing="12">
-        <VBox fx:id="statCardAgotados" styleClass="status-mini-card, status-mini-card-red"
+        <VBox fx:id="statCardAgotados" visible="false" managed="false" styleClass="status-mini-card, status-mini-card-red"
               HBox.hgrow="ALWAYS" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
@@ -73,7 +73,7 @@
             <ProgressBar fx:id="pbAgotados" progress="0" maxWidth="Infinity"
                          styleClass="status-pb, status-pb-red"/>
         </VBox>
-        <VBox fx:id="statCardBajoStockSum" styleClass="status-mini-card, status-mini-card-amber"
+        <VBox fx:id="statCardBajoStockSum" visible="false" managed="false" styleClass="status-mini-card, status-mini-card-amber"
               HBox.hgrow="ALWAYS" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
@@ -126,7 +126,7 @@
     </Label>
 
     <!-- ══ BIENES AGOTADOS ═══════════════════════════════════════════ -->
-    <VBox fx:id="sectionAgotados" styleClass="alert-section, alert-danger" spacing="0">
+    <VBox fx:id="sectionAgotados" visible="false" managed="false" styleClass="alert-section, alert-danger" spacing="0">
         <!-- Header gradiente -->
         <HBox fx:id="headerAgotados" styleClass="alert-header-danger" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="alert-section-icon"/>
@@ -175,7 +175,7 @@
     </VBox>
 
     <!-- ══ EXISTENCIAS BAJAS ══════════════════════════════════════════ -->
-    <VBox fx:id="sectionBajoStock" styleClass="alert-section, alert-warning" spacing="0">
+    <VBox fx:id="sectionBajoStock" visible="false" managed="false" styleClass="alert-section, alert-warning" spacing="0">
         <HBox fx:id="headerBajoStock" styleClass="alert-header-warning" alignment="CENTER_LEFT" spacing="12">
             <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="alert-section-icon-white"/>
             <VBox HBox.hgrow="ALWAYS" spacing="1">

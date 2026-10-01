@@ -73,7 +73,7 @@
     <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar, filter-bar-blue">
         <TextField fx:id="searchField" promptText="Buscar por saliente, entrante o folio…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
-        <MenuButton fx:id="btnExportarPdf" text="Exportar" styleClass="btn-secondary"
+        <MenuButton fx:id="btnExportarPdf" text="Exportar" minWidth="-Infinity" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el registro de actas visible" wrapText="true" maxWidth="240"/></tooltip>

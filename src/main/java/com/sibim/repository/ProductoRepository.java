@@ -72,8 +72,6 @@ public class ProductoRepository {
     /** SQL expression that mirrors ProductoUtils.computeEstado logic. */
     private static final String ESTADO_SQL =
         "CASE WHEN p.fecha_vencimiento IS NOT NULL AND p.fecha_vencimiento < CURRENT_DATE THEN 'vencido' " +
-        "WHEN p.stock_actual = 0 THEN 'agotado' " +
-        "WHEN p.stock_actual <= p.stock_minimo THEN 'bajo_stock' " +
         "ELSE 'activo' END";
 
     /** Builds a WHERE clause (with leading space) and populates {@code params}
@@ -690,12 +688,9 @@ public class ProductoRepository {
         StringBuilder sb = new StringBuilder("""
             SELECT
               COUNT(*) AS total,
-              COUNT(*) FILTER (WHERE stock_actual > stock_minimo
-                AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE)) AS activos,
-              COUNT(*) FILTER (WHERE stock_actual > 0 AND stock_actual <= stock_minimo
-                AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE)) AS bajo_stock,
-              COUNT(*) FILTER (WHERE stock_actual = 0
-                AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE)) AS agotados,
+              COUNT(*) FILTER (WHERE fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE) AS activos,
+              0 AS bajo_stock,
+              0 AS agotados,
               COUNT(*) FILTER (WHERE fecha_vencimiento IS NOT NULL AND fecha_vencimiento < CURRENT_DATE) AS vencidos,
               COALESCE(SUM(precio_compra * stock_actual), 0) AS valor_total,
               COUNT(DISTINCT categoria_id) AS categorias
@@ -903,48 +898,15 @@ public class ProductoRepository {
         }
     }
 
-    /** Bienes with stock_actual = 0 (agotados) — filtered in SQL. */
-    public List<Producto> findAgotados() throws SQLException {
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) {
-            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
-                .filter(p -> !p.isDadoDeBaja() && p.getStockActual() == 0)
-                .toList();
-        }
-        StringBuilder sb = new StringBuilder(BASE_SELECT
-            + " WHERE p.fecha_baja IS NULL AND p.stock_actual = 0");
-        List<Object> params = new ArrayList<>();
-        Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
-            sb.append(" AND p.area = ANY(?)");
-            params.add(accessible.toArray(new String[0]));
-        }
-        sb.append(" ORDER BY p.nombre");
-        return queryDynamic(sb.toString(), params);
+    /** Always empty: a patrimonial inventory has no "agotados" (see
+     *  ProductoUtils.computeEstado). Kept while its callers are retired. */
+    public List<Producto> findAgotados() {
+        return List.of();
     }
 
-    /** Bienes whose stock is above zero but at or below their minimum threshold. */
-    public List<Producto> findBajoStock() throws SQLException {
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) {
-            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
-                .filter(p -> !p.isDadoDeBaja()
-                    && p.getStockActual() > 0
-                    && p.getStockActual() <= p.getStockMinimo())
-                .sorted(Comparator.comparingInt(Producto::getStockActual))
-                .toList();
-        }
-        StringBuilder sb = new StringBuilder(BASE_SELECT
-            + " WHERE p.fecha_baja IS NULL"
-            + " AND p.stock_actual > 0 AND p.stock_actual <= p.stock_minimo");
-        List<Object> params = new ArrayList<>();
-        Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
-            sb.append(" AND p.area = ANY(?)");
-            params.add(accessible.toArray(new String[0]));
-        }
-        sb.append(" ORDER BY p.stock_actual ASC");
-        return queryDynamic(sb.toString(), params);
+    /** Always empty, like {@link #findAgotados()}: there is no minimum to fall under. */
+    public List<Producto> findBajoStock() {
+        return List.of();
     }
 
     /** Bienes expiring within the next {@code dias} days (inclusive of already-expired). */

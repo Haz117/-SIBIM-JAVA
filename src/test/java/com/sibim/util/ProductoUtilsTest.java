@@ -17,23 +17,24 @@ class ProductoUtilsTest {
     }
 
     @Test
-    void computeEstado_stockCero_esAgotado() {
-        assertEquals(EstadoProducto.AGOTADO, ProductoUtils.computeEstado(0, 5, null));
+    void computeEstado_cantidadCero_sigueActivo() {
+        // Inventario patrimonial: no hay "agotado" ni "bajo stock".
+        assertEquals(EstadoProducto.ACTIVO, ProductoUtils.computeEstado(0, 5, null));
     }
 
     @Test
-    void computeEstado_stockIgualAlMinimo_esBajoStock() {
-        assertEquals(EstadoProducto.BAJO_STOCK, ProductoUtils.computeEstado(5, 5, null));
+    void computeEstado_cantidadIgualAlMinimo_esActivo() {
+        assertEquals(EstadoProducto.ACTIVO, ProductoUtils.computeEstado(5, 5, null));
     }
 
     @Test
-    void computeEstado_stockMenorQueMinimo_esBajoStock() {
-        assertEquals(EstadoProducto.BAJO_STOCK, ProductoUtils.computeEstado(3, 5, null));
+    void computeEstado_cantidadMenorQueMinimo_esActivo() {
+        assertEquals(EstadoProducto.ACTIVO, ProductoUtils.computeEstado(3, 5, null));
     }
 
     @Test
-    void computeEstado_stockUno_minimoUno_esBajoStock() {
-        assertEquals(EstadoProducto.BAJO_STOCK, ProductoUtils.computeEstado(1, 1, null));
+    void computeEstado_cantidadUno_minimoUno_esActivo() {
+        assertEquals(EstadoProducto.ACTIVO, ProductoUtils.computeEstado(1, 1, null));
     }
 
     @Test

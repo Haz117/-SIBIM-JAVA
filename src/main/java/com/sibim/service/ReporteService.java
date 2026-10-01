@@ -227,39 +227,47 @@ public class ReporteService {
     }
 
     public File exportAlertasPdf() throws Exception {
-        List<Producto> todos     = guardExportSize(productoRepo.findAll(), "bienes");
-        List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
+        List<Producto> todos      = guardExportSize(productoRepo.findAll(), "bienes");
+        List<Producto> garantias  = productoRepo.findVencidosProximos(30);
+        List<Producto> pendientes = todos.stream().filter(p -> pendientePatrimonial(p) != null).toList();
         File file = tempFile("alertas", ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4)) {
             String folio = generateFolio("ALE");
-            addPdfHeader(doc, "Alertas de Stock", null, null, folio);
+            addPdfHeader(doc, "Alertas y pendientes", null, null, folio);
             PdfFont sectionFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-            doc.add(new Paragraph("Bienes Agotados (" + agotados.size() + ")")
+            doc.add(new Paragraph("Garantías vencidas o por vencer en 30 días (" + garantias.size() + ")")
                 .setFont(sectionFont).setFontSize(11).setFontColor(new DeviceRgb(185, 28, 28)));
-            String[] headers = {"Nombre", "Código", "Stock", "Mínimo", "Área"};
-            float[] widths = {3f, 1.5f, 1f, 1f, 2f};
-            Table t1 = createPdfTable(headers, widths);
-            for (Producto p : agotados) {
+            Table t1 = createPdfTable(new String[]{"Nombre", "Código", "Área", "Garantía hasta"},
+                new float[]{3f, 1.5f, 2.5f, 1.5f});
+            for (Producto p : garantias) {
                 t1.addCell(cell(p.getNombre())); t1.addCell(cell(p.getCodigo()));
-                t1.addCell(cell(String.valueOf(p.getStockActual()))); t1.addCell(cell(String.valueOf(p.getStockMinimo())));
                 t1.addCell(cell(p.getArea() != null ? p.getArea() : ""));
+                t1.addCell(cell(p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : ""));
             }
             doc.add(t1);
-            doc.add(new Paragraph("Existencias Bajas (" + bajoStock.size() + ")")
+            doc.add(new Paragraph("Pendientes patrimoniales (" + pendientes.size() + ")")
                 .setFont(sectionFont).setFontSize(11).setFontColor(new DeviceRgb(180, 83, 9)));
-            Table t2 = createPdfTable(headers, widths);
-            for (Producto p : bajoStock) {
+            Table t2 = createPdfTable(new String[]{"Nombre", "Código", "Área", "Pendiente"},
+                new float[]{3f, 1.5f, 2.5f, 2f});
+            for (Producto p : pendientes) {
                 t2.addCell(cell(p.getNombre())); t2.addCell(cell(p.getCodigo()));
-                t2.addCell(cell(String.valueOf(p.getStockActual()))); t2.addCell(cell(String.valueOf(p.getStockMinimo())));
                 t2.addCell(cell(p.getArea() != null ? p.getArea() : ""));
+                t2.addCell(cell(pendientePatrimonial(p)));
             }
             doc.add(t2);
-            addPdfFooter(doc, agotados.size() + bajoStock.size(), folio);
+            addPdfFooter(doc, garantias.size() + pendientes.size(), folio);
         }
         return file;
+    }
+
+    /** "Sin resguardante" / "Sin etiquetar": what an audit asks about a bien. */
+    static String pendientePatrimonial(Producto p) {
+        boolean sinResguardo = p.getResguardante() == null || p.getResguardante().isBlank();
+        if (sinResguardo && !p.isEtiquetado()) return "Sin resguardante · Sin etiquetar";
+        if (sinResguardo) return "Sin resguardante";
+        return p.isEtiquetado() ? null : "Sin etiquetar";
     }
 
     public File exportDistribucionPdf() throws Exception {
@@ -272,13 +280,13 @@ public class ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("DIS");
             addPdfHeader(doc, "Distribución por Área", null, null, folio);
-            String[] headers = {"Área", "Total Bienes", "Valor Total", "Agotados", "Bajo Stock"};
+            String[] headers = {"Área", "Total Bienes", "Valor Total", "Sin resguardante", "Sin etiquetar"};
             float[] widths = {3f, 1.5f, 2f, 1.2f, 1.5f};
             Table table = createPdfTable(headers, widths);
             porArea.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
                 List<Producto> ps = entry.getValue();
-                long agotados  = ps.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
-                long bajo      = ps.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
+                long agotados  = ps.stream().filter(p -> p.getResguardante() == null || p.getResguardante().isBlank()).count();
+                long bajo      = ps.stream().filter(p -> !p.isEtiquetado()).count();
                 BigDecimal valor = ps.stream().map(Producto::getValorTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
                 table.addCell(cell(entry.getKey()));
@@ -324,7 +332,7 @@ public class ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("INV");
             addPdfHeader(doc, "Inventario General", desde, hasta, folio);
-            String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Stock", "Valor", "Estado"};
+            String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Cantidad", "Valor", "Estado"};
             float[] widths = {3f, 1.5f, 1.5f, 2f, 1f, 1.5f, 1.2f};
             Table table = createPdfTable(headers, widths);
             int idx = 0;
@@ -356,7 +364,7 @@ public class ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("MOV");
             addPdfHeader(doc, "Registro de Movimientos", desde, hasta, folio);
-            String[] headers = {"Producto", "Tipo", "Cantidad", "Ant.", "Nuevo", "Usuario", "Fecha"};
+            String[] headers = {"Bien", "Tipo", "Cantidad", "Ant.", "Nuevo", "Usuario", "Fecha"};
             float[] widths = {3f, 1.5f, 1f, 1f, 1f, 2f, 2f};
             Table table = createPdfTable(headers, widths);
             int idx = 0;

@@ -22,7 +22,7 @@ public final class ReglasLocales {
     private ReglasLocales() {}
 
     public static final String SOLO_EL_MAS_RECIENTE =
-        "Solo se puede eliminar el movimiento mas reciente de este producto: "
+        "Solo se puede eliminar el movimiento más reciente de este bien: "
         + "existen movimientos registrados despues de este.";
 
     /**
@@ -36,10 +36,10 @@ public final class ReglasLocales {
         int stockActual = p.getStockActual();
         if (p.isDadoDeBaja()) throw new SQLException(MovimientoService.BIEN_DE_BAJA);
         if (expectedStockAnterior != null && stockActual != expectedStockAnterior)
-            throw new SQLException("El stock cambió desde que se capturó el conteo (esperado "
+            throw new SQLException("La cantidad cambió desde que se capturó el conteo (esperado "
                 + expectedStockAnterior + ", actual " + stockActual + ") — no se aplicó el ajuste.");
         if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual)
-            throw new SQLException("La cantidad supera el stock disponible (" + stockActual + ")");
+            throw new SQLException("La cantidad supera la existencia disponible (" + stockActual + ")");
         if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && stockActual <= 0)
             throw new SQLException(MovimientoService.SIN_EXISTENCIA);
 

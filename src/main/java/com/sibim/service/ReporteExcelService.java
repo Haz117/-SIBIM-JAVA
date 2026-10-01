@@ -49,7 +49,7 @@ public class ReporteExcelService extends ReporteService {
     }
 
     private File exportInventarioExcel(List<Producto> productos, LocalDate desde, LocalDate hasta) throws Exception {
-        String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Stock", "Min", "Max",
+        String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Cantidad", "Min", "Max",
                             "Valor Unitario", "Valor Total", "Estado", "Proveedor", "Marca", "Modelo",
                             "N° de Serie", "Ubicacion", "Fecha Registro", "Estado Físico", "N° Factura"};
         File file = tempFile("inventario", ".xlsx");
@@ -99,7 +99,7 @@ public class ReporteExcelService extends ReporteService {
     }
 
     private File exportMovimientosExcelImpl(List<Movimiento> movimientos, LocalDate desde, LocalDate hasta) throws Exception {
-        String[] headers = {"Producto", "Tipo", "Cantidad", "Stock Anterior", "Stock Nuevo",
+        String[] headers = {"Bien", "Tipo", "Cantidad", "Cantidad anterior", "Cantidad nueva",
                             "Motivo", "Referencia", "Usuario", "Fecha"};
         File file = tempFile("movimientos", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
@@ -136,14 +136,14 @@ public class ReporteExcelService extends ReporteService {
         try (Workbook wb = new XSSFWorkbook()) {
             // Sheet 1: summary per area
             Sheet summary = createSheet(wb, "Resumen por Área");
-            String[] sumHeaders = {"Área", "Total Bienes", "Valor Total ($)", "Agotados", "Bajo Stock"};
+            String[] sumHeaders = {"Área", "Total Bienes", "Valor Total ($)", "Sin resguardante", "Sin etiquetar"};
             writeHeader(summary, sumHeaders, wb);
             int row = 1;
             for (Map.Entry<String, List<Producto>> entry : porArea.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey()).toList()) {
                 List<Producto> ps = entry.getValue();
-                long agotados  = ps.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).count();
-                long bajoStock = ps.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).count();
+                long agotados  = ps.stream().filter(p -> p.getResguardante() == null || p.getResguardante().isBlank()).count();
+                long bajoStock = ps.stream().filter(p -> !p.isEtiquetado()).count();
                 BigDecimal valor = ps.stream().map(Producto::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
                 Row r = summary.createRow(row++);
                 r.createCell(0).setCellValue(entry.getKey());
@@ -183,35 +183,31 @@ public class ReporteExcelService extends ReporteService {
 
     public File exportAlertasExcel() throws Exception {
         List<Producto> todos     = guardExportSize(productoRepo.findAll(), "bienes");
-        List<Producto> agotados  = todos.stream().filter(p -> p.getEstado() == EstadoProducto.AGOTADO).toList();
-        List<Producto> bajoStock = todos.stream().filter(p -> p.getEstado() == EstadoProducto.BAJO_STOCK).toList();
-        String[] headers = {"Nombre", "Codigo", "Stock Actual", "Stock Minimo", "Estado"};
+        List<Producto> garantias = productoRepo.findVencidosProximos(30);
+        String[] headers = {"Alerta", "Nombre", "Codigo", "Area", "Garantia hasta"};
         File file = tempFile("alertas", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = createSheet(wb, "Alertas");
             writeHeader(sheet, headers, wb);
             int row = 1;
-            for (Producto p : agotados) {
-                Row r = sheet.createRow(row++);
-                fillAlertRow(r, p);
-            }
-            for (Producto p : bajoStock) {
-                Row r = sheet.createRow(row++);
-                fillAlertRow(r, p);
+            for (Producto p : garantias) fillAlertRow(sheet.createRow(row++), p, "Garantía vencida o por vencer");
+            for (Producto p : todos) {
+                String pendiente = ReporteService.pendientePatrimonial(p);
+                if (pendiente != null) fillAlertRow(sheet.createRow(row++), p, pendiente);
             }
             autosizeColumns(sheet, headers.length);
-            addExcelInfoSheet(wb, "Alertas de Stock", null, null);
+            addExcelInfoSheet(wb, "Alertas", null, null);
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
     }
 
-    private void fillAlertRow(Row r, Producto p) {
-        r.createCell(0).setCellValue(p.getNombre());
-        r.createCell(1).setCellValue(p.getCodigo());
-        r.createCell(2).setCellValue(p.getStockActual());
-        r.createCell(3).setCellValue(p.getStockMinimo());
-        r.createCell(4).setCellValue(p.getEstado().getEtiqueta());
+    private void fillAlertRow(Row r, Producto p, String alerta) {
+        r.createCell(0).setCellValue(alerta);
+        r.createCell(1).setCellValue(p.getNombre());
+        r.createCell(2).setCellValue(p.getCodigo());
+        r.createCell(3).setCellValue(p.getArea() != null ? p.getArea() : "");
+        r.createCell(4).setCellValue(p.getFechaVencimiento() != null ? p.getFechaVencimiento().toString() : "");
     }
 
     // ──────────────────────── Resguardos ────────────────────────────────

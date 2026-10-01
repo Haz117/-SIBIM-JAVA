@@ -204,9 +204,11 @@ public class ConfiguracionController {
                 javafx.application.Platform.runLater(() -> {
                     new ConfigEmailSectionBuilder(backupSection, configRepo).build(cfgFinal);
                     new ConfigSchedulerSectionBuilder(backupSection, configRepo).build(cfgFinal);
+                    ConfigIndice.actualizar(profileCard);
                 });
             });
         }
+        javafx.application.Platform.runLater(() -> ConfigIndice.actualizar(profileCard));
 
         if (isAdmin) {
             setupUsersTable();

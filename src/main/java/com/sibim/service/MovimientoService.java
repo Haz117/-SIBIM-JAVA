@@ -125,7 +125,7 @@ public class MovimientoService {
         if (!SessionManager.isAdmin() && tipo != TipoMovimiento.TRANSFERENCIA)
             throw new ValidationException(SOLO_ADMIN_MOVIMIENTOS);
         Optional<Producto> opt = productoRepo.findById(productoId);
-        if (opt.isEmpty()) throw new ValidationException("Producto no encontrado");
+        if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto producto = opt.get();
 
         if (!SessionManager.isAreaAccessible(producto.getArea()))
@@ -144,7 +144,7 @@ public class MovimientoService {
                 throw new ValidationException("La cantidad debe ser mayor a cero");
         }
         if (tipo == TipoMovimiento.SALIDA && cantidad > existencia)
-            throw new ValidationException("La cantidad supera el stock disponible (" + existencia + ")");
+            throw new ValidationException("La cantidad supera la existencia disponible (" + existencia + ")");
 
         if (tipo == TipoMovimiento.TRANSFERENCIA) {
             if (areaDestino == null || areaDestino.isBlank())
@@ -197,7 +197,7 @@ public class MovimientoService {
             Movimiento saved = movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
             auditRepo.log("movimiento", saved.getId(), m.getProductoNombre(), "crear",
                 "Movimiento " + tipo.getCodigo() + ": " + cantidad
-                    + " uds (stock " + m.getStockAnterior() + " → " + m.getStockNuevo() + ")");
+                    + " uds (cantidad " + m.getStockAnterior() + " → " + m.getStockNuevo() + ")");
             log.info("Movimiento {} [{}] '{}' {} uds — stock {} → {}",
                 tipo, saved.getId(), m.getProductoNombre(), m.getCantidad(),
                 m.getStockAnterior(), m.getStockNuevo());
@@ -352,11 +352,11 @@ public class MovimientoService {
 
     private static boolean isBusinessRuleMessage(SQLException e) {
         String msg = e.getMessage();
-        return msg != null && (msg.startsWith("La cantidad supera el stock disponible")
+        return msg != null && (msg.startsWith("La cantidad supera la existencia disponible")
                 || msg.equals(BIEN_DE_BAJA) || msg.equals(SIN_EXISTENCIA)
-                || msg.startsWith("Solo se puede eliminar el movimiento mas reciente")
+                || msg.startsWith("Solo se puede eliminar el movimiento más reciente")
                 || msg.startsWith("El bien ya no está en ")
-                || msg.startsWith("El stock cambió desde que se capturó el conteo"));
+                || msg.startsWith("La cantidad cambió desde que se capturó el conteo"));
     }
 
     public static class ValidationException extends Exception {

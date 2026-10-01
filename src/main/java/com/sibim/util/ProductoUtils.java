@@ -12,12 +12,10 @@ public final class ProductoUtils {
         if (fechaVencimiento != null && fechaVencimiento.isBefore(LocalDate.now())) {
             return EstadoProducto.VENCIDO;
         }
-        if (stockActual == 0) {
-            return EstadoProducto.AGOTADO;
-        }
-        if (stockActual <= stockMinimo) {
-            return EstadoProducto.BAJO_STOCK;
-        }
+        // This is a patrimonial inventory, not a shop: nothing is sold or restocked,
+        // so a bien is never "agotado" or "bajo stock" — those states (and the
+        // minimum they compared against) are no longer produced. The enum keeps
+        // the two constants only so old exports and filters still parse.
         return EstadoProducto.ACTIVO;
     }
 

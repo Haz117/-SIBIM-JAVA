@@ -556,7 +556,7 @@ public class MovimientoRepository {
                 try (PreparedStatement ps = conn.prepareStatement(lockProducto)) {
                     ps.setString(1, m.getProductoId());
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) throw new SQLException("Producto no encontrado: " + m.getProductoId());
+                        if (!rs.next()) throw new SQLException("Bien no encontrado: " + m.getProductoId());
                         stockActual = rs.getInt("stock_actual");
                         areaActual = rs.getString("area");
                         codigoActual = rs.getString("codigo");
@@ -570,12 +570,12 @@ public class MovimientoRepository {
                     throw new SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
 
                 if (expectedStockAnterior != null && stockActual != expectedStockAnterior) {
-                    throw new SQLException("El stock cambió desde que se capturó el conteo (esperado "
+                    throw new SQLException("La cantidad cambió desde que se capturó el conteo (esperado "
                         + expectedStockAnterior + ", actual " + stockActual + ") — no se aplicó el ajuste.");
                 }
 
                 if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual) {
-                    throw new SQLException("La cantidad supera el stock disponible (" + stockActual + ")");
+                    throw new SQLException("La cantidad supera la existencia disponible (" + stockActual + ")");
                 }
 
                 int stockNuevo = ProductoUtils.calcularStockNuevo(m.getTipo().getCodigo(), stockActual, m.getCantidad());
@@ -714,7 +714,7 @@ public class MovimientoRepository {
                         ps.setTimestamp(3, creado);
                         try (ResultSet rs = ps.executeQuery()) {
                             if (rs.next()) throw new SQLException(
-                                "Solo se puede eliminar el movimiento mas reciente de este producto: "
+                                "Solo se puede eliminar el movimiento más reciente de este bien: "
                                 + "existen movimientos registrados despues de este.");
                         }
                     }
@@ -800,7 +800,7 @@ public class MovimientoRepository {
                 try (PreparedStatement ps = conn.prepareStatement(lockProducto)) {
                     ps.setString(1, m.getProductoId());
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) throw new SQLException("Producto no encontrado: " + m.getProductoId());
+                        if (!rs.next()) throw new SQLException("Bien no encontrado: " + m.getProductoId());
                         stockActual = rs.getInt("stock_actual");
                         areaActual  = rs.getString("area");
                     }
@@ -901,7 +901,7 @@ public class MovimientoRepository {
                 try (PreparedStatement ps = conn.prepareStatement(lockProd)) {
                     ps.setString(1, productoId);
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) throw new SQLException("Producto no encontrado: " + productoId);
+                        if (!rs.next()) throw new SQLException("Bien no encontrado: " + productoId);
                         areaActual   = rs.getString("area");
                         codigoActual = rs.getString("codigo");
                         stock        = rs.getInt("stock_actual");

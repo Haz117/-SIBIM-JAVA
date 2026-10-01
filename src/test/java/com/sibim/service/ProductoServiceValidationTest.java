@@ -94,7 +94,7 @@ class ProductoServiceValidationTest {
         Producto p = validProducto();
         p.setStockActual(-1);
         var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
-        assertTrue(ex.getMessage().contains("stock"));
+        assertTrue(ex.getMessage().contains("cantidad"));
     }
 
     @Test

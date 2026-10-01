@@ -74,7 +74,7 @@
                 </StackPane>
                 <Label text="TOTAL DE BIENES" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpTotal" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, sin importar su estado de stock." wrapText="true" maxWidth="240"/></tooltip>
+                    <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, dados de baja excluidos." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
@@ -106,13 +106,13 @@
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
                     <FontIcon iconLiteral="mdi2b-bell-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="BIENES CON ALERTA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="GARANTÍA VENCIDA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
                 <Label fx:id="helpAlertas" text="?" styleClass="help-badge">
-                    <tooltip><Tooltip text="Bienes agotados (stock = 0) o con existencias por debajo del mínimo configurado." wrapText="true" maxWidth="240"/></tooltip>
+                    <tooltip><Tooltip text="Bienes cuya garantía ya venció." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
             <Label fx:id="lblStatAlertas" text="—" styleClass="rich-stat-value"/>
-            <Label text="agotados · bajo stock" styleClass="rich-stat-hint"/>
+            <Label text="bienes con garantía vencida" styleClass="rich-stat-hint"/>
         </VBox>
 
         <!-- Sin Etiquetar — rose -->
@@ -178,7 +178,7 @@
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
         <Label fx:id="helpChips" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Filtra por estado de stock:&#10;• Activo — stock por encima del mínimo configurado&#10;• Bajo Stock — existencias por debajo del mínimo&#10;• Agotado — sin existencias (stock = 0)&#10;• Vencido — fecha de vencimiento superada&#10;&#10;Se combina con el resto de filtros activos." wrapText="true" maxWidth="280"/></tooltip>
+            <tooltip><Tooltip text="Filtra por estado:&#10;• Activo — garantía vigente o sin garantía registrada&#10;• Vencido — garantía vencida&#10;&#10;Se combina con el resto de filtros activos." wrapText="true" maxWidth="280"/></tooltip>
         </Label>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"

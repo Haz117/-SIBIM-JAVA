@@ -178,7 +178,7 @@ public class ImportacionBienesDialog {
             return new SimpleStringProperty(p != null && p.getArea() != null ? p.getArea() : "—");
         });
 
-        TableColumn<ParsedRow, String> colCant = new TableColumn<>("Stock");
+        TableColumn<ParsedRow, String> colCant = new TableColumn<>("Cantidad");
         colCant.setPrefWidth(58);
         colCant.setCellValueFactory(c -> {
             Producto p = c.getValue().producto();
