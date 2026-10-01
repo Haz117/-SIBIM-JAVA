@@ -137,6 +137,14 @@ class NotificationCenter {
             } catch (Exception e) {
                 log.warn("No se pudo calcular el aviso de transferencias", e);
             }
+            try {
+                int s = new com.sibim.service.SolicitudService().countPendientes();
+                if (s > 0) items.add(0, new Item("mdi2t-timer-sand", "warning",
+                    s == 1 ? "1 solicitud de préstamo o resguardo" : s + " solicitudes de préstamo o resguardo",
+                    "prestamos", s));
+            } catch (Exception e) {
+                log.warn("No se pudo calcular el aviso de solicitudes", e);
+            }
             return items;
         }, onLoaded, ex -> onLoaded.accept(List.of()));
     }

@@ -107,7 +107,7 @@ public final class TutorialOverlay {
                 "Consulta e imprime el PDF del resguardo para firma",
                 SessionManager.isAdmin()
                     ? "Cancela el resguardo cuando el bien cambia de responsable o de área"
-                    : "Solo Patrimonio crea o cancela resguardos: si necesitas uno, pídelo a Patrimonio"
+                    : "Solo Patrimonio los crea: pídelo desde Bienes > clic derecho > Solicitar resguardo"
             }),
 
             // ── Préstamos ────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ public final class TutorialOverlay {
                 "Préstamos", null, "prestamos", new String[]{
                 SessionManager.isAdmin()
                     ? "Registra el préstamo temporal de un bien con fecha de devolución esperada"
-                    : "Aquí ves los préstamos de tu área; solo Patrimonio los registra y recibe la devolución",
+                    : "Solo Patrimonio los registra: pídelo desde Bienes > clic derecho > Solicitar préstamo",
                 "Vista kanban: columnas Activos / Vencidos / Devueltos para control rápido",
                 "Exporta el comprobante en PDF para firma"
             }),

@@ -92,6 +92,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     protected void onInitialize() {
         boolean canCreate = SessionManager.isAdmin();   // resguardos: Patrimonio only
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
+        actualizarSolicitudes();
         setupDateFilterBar(
             () -> com.sibim.service.ReporteService.getInstance().exportResguardosExcel(exportTarget()),
             () -> com.sibim.service.ReporteService.getInstance().exportResguardosCsv(exportTarget())
@@ -127,6 +128,33 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
         restoreFilterPrefs();
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+    }
+
+    @FXML private Button btnSolicitudes;
+
+    /** Patrimonio's inbox of requests, or what this área asked for. */
+    @FXML
+    private void onSolicitudes() {
+        com.sibim.controller.dialogs.SolicitudesDialog.show(rootPane.getScene(), () -> {
+            loadData();
+            actualizarSolicitudes();
+        });
+    }
+
+    private void actualizarSolicitudes() {
+        if (btnSolicitudes == null) return;
+        boolean hay = com.sibim.service.SolicitudService.disponible();
+        btnSolicitudes.setVisible(hay); btnSolicitudes.setManaged(hay);
+        if (!hay) return;
+        if (!SessionManager.isAdmin()) { btnSolicitudes.setText("Mis solicitudes"); return; }
+        DialogUtil.runAsync(
+            () -> new com.sibim.service.SolicitudService().countPendientes(),
+            n -> {
+                btnSolicitudes.setText(n > 0 ? "Solicitudes (" + n + ")" : "Solicitudes");
+                btnSolicitudes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
+                btnSolicitudes.getStyleClass().add(n > 0 ? "btn-warning-outline" : "btn-secondary");
+            },
+            e -> { });
     }
 
     @Override
