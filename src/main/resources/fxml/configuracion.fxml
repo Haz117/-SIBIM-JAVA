@@ -311,17 +311,17 @@
                 <Label text="Historial de cambios en bienes, categorías y usuarios; y de tomas de inventario físico"
                        styleClass="page-subtitle"/>
             </VBox>
-            <Button text="Ver historial de cambios" onAction="#onVerAuditoria" styleClass="btn-secondary"
+            <Button text="Ver historial de cambios" minWidth="-Infinity" onAction="#onVerAuditoria" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2h-history" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Ver el historial de auditoría de cambios"/></tooltip>
             </Button>
-            <Button text="Ver conteos físicos" onAction="#onVerConteos" styleClass="btn-secondary"
+            <Button text="Ver conteos físicos" minWidth="-Infinity" onAction="#onVerConteos" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Ver el historial de tomas de inventario físico"/></tooltip>
             </Button>
-            <Button text="Errores offline" onAction="#onVerErroresOutbox" styleClass="btn-ghost"
+            <Button text="Errores offline" minWidth="-Infinity" onAction="#onVerErroresOutbox" styleClass="btn-ghost"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Ver cambios offline que no pudieron sincronizarse con el servidor"/></tooltip>
@@ -344,19 +344,19 @@
                     </Label>
                 </HBox>
                 <Label text="Exporta toda la base de datos a un archivo, o restaura desde un respaldo previo. Solo disponible conectado a la base de datos principal."
-                       styleClass="page-subtitle"/>
+                       styleClass="page-subtitle" wrapText="true"/>
             </VBox>
-            <Button fx:id="btnRespaldoAuto" text="Respaldo automático" onAction="#onRespaldoAutomatico" styleClass="btn-secondary"
+            <Button fx:id="btnRespaldoAuto" minWidth="-Infinity" text="Respaldo automático" onAction="#onRespaldoAutomatico" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Un respaldo cifrado cada día, hecho por esta computadora sin que nadie lo pida" wrapText="true" maxWidth="280"/></tooltip>
             </Button>
-            <Button fx:id="btnGenerarRespaldo" text="Generar respaldo" onAction="#onGenerarRespaldo" styleClass="btn-secondary"
+            <Button fx:id="btnGenerarRespaldo" minWidth="-Infinity" text="Generar respaldo" onAction="#onGenerarRespaldo" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2d-database-export-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Exportar toda la base de datos a un archivo .json"/></tooltip>
             </Button>
-            <Button fx:id="btnRestaurar" text="Restaurar desde archivo" onAction="#onRestaurar" styleClass="btn-danger"
+            <Button fx:id="btnRestaurar" minWidth="-Infinity" text="Restaurar desde archivo" onAction="#onRestaurar" styleClass="btn-danger"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2d-database-import-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Reemplaza TODOS los datos actuales con los del archivo de respaldo elegido"/></tooltip>

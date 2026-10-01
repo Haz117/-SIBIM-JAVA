@@ -42,6 +42,9 @@
 .profile-field-col-right { -fx-padding: 0 0 0 24; }
 
 /* Small icon badge used in card section headers */
+/* The symbol is white for the solid page-header badge; on this pale one it
+   was invisible (white on indigo-50). */
+.section-icon-badge .page-icon-symbol { -fx-icon-color: sibim-indigo-dark; -fx-icon-size: 18; }
 .section-icon-badge {
     -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 8;

@@ -100,7 +100,7 @@
         <!-- Username -->
         <VBox fx:id="usernameBox" spacing="7">
             <Label text="Usuario" styleClass="form-label"/>
-            <TextField fx:id="usernameField" promptText="nombre.apellido"
+            <TextField fx:id="usernameField" promptText="Usuario de tu área"
                        onAction="#handleLogin" styleClass="form-input" maxWidth="Infinity"
                        accessibleText="Usuario — escribe tu nombre de usuario"/>
         </VBox>
