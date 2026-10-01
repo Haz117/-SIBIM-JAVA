@@ -31,6 +31,9 @@ public class ActualizacionService {
     /** 5 MB per row: a ~110 MB installer never has to fit in memory whole. */
     static final int PARTE = 5 * 1024 * 1024;
 
+    /** Published installers kept in the database; older ones are deleted. */
+    static final int CONSERVAR = 2;
+
     private static final Pattern VERSION_EN_NOMBRE = Pattern.compile("(\\d+\\.\\d+\\.\\d+)");
 
     public record Version(String version, String archivo, long tamano, String sha256, String notas, int partes) {}
@@ -105,6 +108,12 @@ public class ActualizacionService {
                         ps.executeUpdate();
                         if (avance != null) avance.accept((n + 1) / (double) partes);
                     }
+                }
+                // Each installer is ~110 MB: keep this version and the one before it.
+                try (PreparedStatement ps = c.prepareStatement(
+                         "DELETE FROM actualizaciones WHERE version NOT IN "
+                         + "(SELECT version FROM actualizaciones ORDER BY publicado_en DESC LIMIT " + CONSERVAR + ")")) {
+                    ps.executeUpdate();
                 }
                 c.commit();
             } catch (SQLException | IOException | RuntimeException e) {

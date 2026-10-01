@@ -1,0 +1,55 @@
+/* ── Accesibilidad: foco de teclado, letra mínima y escala de texto ──────────
+ *
+ * Va al final a propósito: completa lo que las partes anteriores no cubren.
+ * :focus-visible (no :focused) para que el anillo solo aparezca al navegar con
+ * Tab, no tras un clic. Se dibuja con -fx-effect, que no mueve el layout. */
+.btn-ghost:focus-visible,
+.toggle-button:focus-visible,
+.hyperlink:focus-visible,
+.menu-button:focus-visible,
+.split-menu-button:focus-visible,
+.filter-chip:focus-visible,
+.check-box:focus-visible > .box,
+.radio-button:focus-visible > .radio {
+    -fx-effect: dropshadow(three-pass-box, #4F46E5, 4, 0.9, 0, 0);
+}
+.table-view:focus-visible,
+.list-view:focus-visible,
+.tree-view:focus-visible,
+.tree-table-view:focus-visible {
+    -fx-border-color: #4F46E5;
+    -fx-border-width: 2;
+}
+.tab-pane:focus-visible > .tab-header-area > .headers-region > .tab:selected .focus-indicator {
+    -fx-border-color: #4F46E5;
+    -fx-border-width: 2;
+    -fx-border-radius: 4;
+    -fx-border-insets: -4 -4 -6 -5;
+}
+
+/* Letra mínima legible: nada por debajo de 11px. */
+.profile-deco-name,
+.profile-deco-sub { -fx-font-size: 11px; }
+
+/* Escala de texto (botón "Texto: Normal / Grande / Extra" de la barra de
+ * estado): además de los selectores de 18-…-extras.css, sube la base — que
+ * heredan los controles sin tamaño propio — y los controles más usados. */
+.text-scale-lg { -fx-font-size: 15px; }
+.text-scale-xl { -fx-font-size: 17px; }
+
+.text-scale-lg .btn-primary, .text-scale-lg .btn-secondary, .text-scale-lg .btn-danger,
+.text-scale-lg .btn-ghost, .text-scale-lg .nav-btn, .text-scale-lg .search-field,
+.text-scale-lg .form-input, .text-scale-lg .text-field, .text-scale-lg .text-area,
+.text-scale-lg .combo-box, .text-scale-lg .dialog-field-label, .text-scale-lg .check-box,
+.text-scale-lg .radio-button, .text-scale-lg .tab-label, .text-scale-lg .menu-item > .label,
+.text-scale-lg .table-view .column-header .label, .text-scale-lg .filter-chip {
+    -fx-font-size: 14.5px;
+}
+.text-scale-xl .btn-primary, .text-scale-xl .btn-secondary, .text-scale-xl .btn-danger,
+.text-scale-xl .btn-ghost, .text-scale-xl .nav-btn, .text-scale-xl .search-field,
+.text-scale-xl .form-input, .text-scale-xl .text-field, .text-scale-xl .text-area,
+.text-scale-xl .combo-box, .text-scale-xl .dialog-field-label, .text-scale-xl .check-box,
+.text-scale-xl .radio-button, .text-scale-xl .tab-label, .text-scale-xl .menu-item > .label,
+.text-scale-xl .table-view .column-header .label, .text-scale-xl .filter-chip {
+    -fx-font-size: 16px;
+}

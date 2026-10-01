@@ -113,7 +113,7 @@
 }
 .density-btn:hover { -fx-background-color: rgba(255,255,255,0.07); -fx-text-fill: #4338CA; }
 .density-btn:pressed { -fx-background-color: rgba(255,255,255,0.12); }
-.density-btn .status-icon { -fx-icon-size: 13; -fx-icon-color: #94A3B8; }
+.density-btn .status-icon { -fx-icon-size: 13; -fx-icon-color: #64748B; }
 .density-btn:hover .status-icon { -fx-icon-color: #C7D2FE; }
 /* Icon-only status-bar buttons (e.g. the notification bell) aren't
    .density-btn, so the rule above never reached them — the icon fell back
@@ -275,7 +275,7 @@
     -fx-min-height: 20;
 }
 .active-chip-close .ikonli-font-icon {
-    -fx-icon-color: #9CA3AF;
+    -fx-icon-color: #64748B;
     -fx-icon-size: 10;
 }
 .active-chip-close:hover { -fx-background-color: #FEE2E2; }

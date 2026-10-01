@@ -91,9 +91,13 @@ public final class DatabaseConfig {
         config.setUsername(user);
         config.setPassword(password);
         // Every PC of the municipality shares the Supabase pooler's connection
-        // limit, so each one keeps few open: 1 idle (was 3), at most 6 (was 10).
-        config.setMaximumPoolSize(6);
-        config.setMinimumIdle(1);
+        // limit (they all connect as the same database user), so a PC nobody is
+        // using holds none: connections close after 3 idle minutes and reopen
+        // on the next click. At most 6 while working. DB_POOL_MAX and
+        // DB_POOL_MIN_IDLE in the .env override both.
+        int poolMax = Math.max(1, enteroEnv(dotenv, "DB_POOL_MAX", 6));
+        config.setMaximumPoolSize(poolMax);
+        config.setMinimumIdle(Math.max(0, Math.min(poolMax, enteroEnv(dotenv, "DB_POOL_MIN_IDLE", 0))));
         config.setConnectionTimeout(8_000);
         // 8 s gives enough time for VPN / remote DB connections to establish.
         config.setInitializationFailTimeout(8_000);
@@ -104,7 +108,10 @@ public final class DatabaseConfig {
         config.setKeepaliveTime(120_000);
         config.setMaxLifetime(600_000);
         // PostgreSQL JDBC driver properties (pgjdbc)
-        config.addDataSourceProperty("prepareThreshold", "3");
+        // The pooler's transaction mode (port 6543) hands every transaction a
+        // different server connection, where a server-side prepared statement
+        // from the previous one does not exist: never prepare there.
+        config.addDataSourceProperty("prepareThreshold", url.contains(":6543/") ? "0" : "3");
         config.addDataSourceProperty("preparedStatementCacheQueries", "25");
         // connectTimeout: TCP connect itself (seconds). Without this, a dropped-packet
         // scenario (Supabase unreachable) blocks for the OS default (~2 min) regardless
@@ -302,6 +309,15 @@ public final class DatabaseConfig {
 
         // 3. Dev fallback: working directory / project root
         return Dotenv.configure().ignoreIfMissing().load();
+    }
+
+    private static int enteroEnv(Dotenv dotenv, String key, int fallback) {
+        try {
+            return Integer.parseInt(getEnv(dotenv, key, String.valueOf(fallback)).trim());
+        } catch (NumberFormatException e) {
+            log.warn("{} no es un número; se usa {}", key, fallback);
+            return fallback;
+        }
     }
 
     private static String getEnv(Dotenv dotenv, String key, String fallback) {

@@ -153,7 +153,12 @@ public class NotificacionUtil {
         iconPop.setToX(1.0);   iconPop.setToY(1.0);
         iconPop.setInterpolator(Interpolator.EASE_OUT);
 
-        long ms = (tipo == Tipo.ERROR || tipo == Tipo.ADVERTENCIA) ? 4500 : 2800;
+        // Reading time grows with the text: a two-line error needs longer than "Guardado".
+        long base = (tipo == Tipo.ERROR || tipo == Tipo.ADVERTENCIA) ? 4500 : 2800;
+        long ms = Math.min(12_000, base + 45L * Math.max(0, (mensaje == null ? 0 : mensaje.length()) - 40));
+        // Screen readers get the message from the toast itself.
+        box.setAccessibleRole(javafx.scene.AccessibleRole.TEXT);
+        box.setAccessibleText((tipo == Tipo.ERROR ? "Error: " : tipo == Tipo.ADVERTENCIA ? "Aviso: " : "") + mensaje);
         PauseTransition pause = new PauseTransition(Duration.millis(ms));
 
         TranslateTransition slideOut = new TranslateTransition(Duration.millis(260), box);

@@ -105,7 +105,7 @@ class MainStartupChecks {
                 + "su instalador. SIBIM se cerrará: guarda lo que estés capturando." + notas)) return;
         File destino = new File(System.getProperty("java.io.tmpdir"), v.archivo());
         DialogUtil.runAsyncWithProgress(scene, "Descargando la versión " + v.version() + "…",
-            () -> { servicio.descargar(v, destino, null); return destino; },
+            (DialogUtil.TareaConAvance<File>) avance -> { servicio.descargar(v, destino, avance); return destino; },
             instalador -> {
                 try {
                     new ProcessBuilder(instalador.getAbsolutePath()).start();

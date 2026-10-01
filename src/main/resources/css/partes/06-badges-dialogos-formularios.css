@@ -97,7 +97,7 @@
 .foto-cell-box    { -fx-background-color: #F1F5F9; -fx-background-radius: 7; }
 .foto-cell-box-clickable { -fx-cursor: hand; }
 .foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 6, 0.3, 0, 0); }
-.foto-placeholder { -fx-font-size: 16px; -fx-icon-color: #94A3B8; }
+.foto-placeholder { -fx-font-size: 16px; -fx-icon-color: #64748B; }
 
 /* Stock movement arrow cell (Mov. → Nuevo) */
 .stock-before        { -fx-font-size: 11.5px; -fx-text-fill: sibim-slate-500; }
@@ -429,7 +429,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    ALERTAS — empty state "todo en orden"
    ═══════════════════════════════════════════════════════════════════ */
-.alert-ok-icon  { -fx-icon-color: #22C55E; }
+.alert-ok-icon  { -fx-icon-color: #16A34A; }
 .alert-ok-label { -fx-text-fill: sibim-slate-500; -fx-font-size: 12.5px; -fx-font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════════════

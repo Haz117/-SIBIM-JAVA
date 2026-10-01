@@ -170,7 +170,7 @@
 }
 .sidebar-toggle-btn .ikonli-font-icon,
 .sidebar-icon-btn .ikonli-font-icon {
-    -fx-icon-color: #94A3B8;
+    -fx-icon-color: #64748B;
     -fx-icon-size: 16;
 }
 .sidebar-toggle-btn:hover .ikonli-font-icon,
@@ -186,9 +186,9 @@
 }
 
 /* Status bar DB icon — changes icon literal + color per connection state */
-.status-dot-icon-ok         { -fx-icon-color: #4ADE80; -fx-icon-size: 16; }
-.status-dot-icon-demo       { -fx-icon-color: #FBBF24; -fx-icon-size: 16; }
-.status-dot-icon-offline    { -fx-icon-color: #F87171; -fx-icon-size: 16; }
+.status-dot-icon-ok         { -fx-icon-color: #16A34A; -fx-icon-size: 16; }
+.status-dot-icon-demo       { -fx-icon-color: #B45309; -fx-icon-size: 16; }
+.status-dot-icon-offline    { -fx-icon-color: #DC2626; -fx-icon-size: 16; }
 .status-dot-icon-connecting { -fx-icon-color: #FCD34D; -fx-icon-size: 16; }
 .status-db-label         { -fx-font-size: 11px; -fx-font-weight: 600; }
 

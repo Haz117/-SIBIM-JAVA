@@ -35,6 +35,7 @@ public final class AccessibilityUtils {
     public static void applyAccessibleTextFromTooltips(Node root) {
         if (root == null) return;
         makeKeyboardActivatable(root);
+        if (root instanceof javafx.scene.layout.GridPane grid) etiquetarCampos(grid);
         if (root instanceof Labeled labeled) {
             boolean noVisibleText = labeled.getText() == null || labeled.getText().isBlank();
             boolean noAccessibleTextYet = labeled.getAccessibleText() == null || labeled.getAccessibleText().isBlank();
@@ -46,6 +47,55 @@ public final class AccessibilityUtils {
             }
         }
         forEachChild(root, AccessibilityUtils::applyAccessibleTextFromTooltips);
+    }
+
+    /** Forms are GridPanes with the label in one column and its field in the
+     *  next: without {@code labelFor} a screen reader announces "campo de
+     *  texto" and never says which one. Ties each label to the control on its
+     *  right in the same row. */
+    private static void etiquetarCampos(javafx.scene.layout.GridPane grid) {
+        for (Node n : grid.getChildren()) {
+            javafx.scene.control.Label etiqueta = etiquetaDe(n);
+            if (etiqueta == null || etiqueta.getLabelFor() != null) continue;
+            String texto = etiqueta.getText();
+            if (texto == null || texto.isBlank()) continue;
+            int fila = indice(javafx.scene.layout.GridPane.getRowIndex(n));
+            int col  = indice(javafx.scene.layout.GridPane.getColumnIndex(n));
+            for (Node otro : grid.getChildren()) {
+                if (indice(javafx.scene.layout.GridPane.getRowIndex(otro)) != fila
+                        || indice(javafx.scene.layout.GridPane.getColumnIndex(otro)) != col + 1) continue;
+                javafx.scene.control.Control campo = campoDe(otro);
+                if (campo == null) continue;
+                etiqueta.setLabelFor(campo);
+                if ((campo.getAccessibleText() == null || campo.getAccessibleText().isBlank())
+                        && !campo.accessibleTextProperty().isBound())
+                    campo.setAccessibleText(texto.replace("*", "").replace(":", "").trim());
+                break;
+            }
+        }
+    }
+
+    private static int indice(Integer i) { return i == null ? 0 : i; }
+
+    /** The label itself, or the one inside a "label + ? help badge" row. */
+    private static javafx.scene.control.Label etiquetaDe(Node n) {
+        if (n instanceof javafx.scene.control.Label l) return l;
+        if (n instanceof javafx.scene.layout.HBox fila && !fila.getChildren().isEmpty()
+                && fila.getChildren().get(0) instanceof javafx.scene.control.Label l) return l;
+        return null;
+    }
+
+    /** The input itself, or the first one inside a row of "field + button". */
+    private static javafx.scene.control.Control campoDe(Node n) {
+        if (n instanceof javafx.scene.control.TextInputControl || n instanceof javafx.scene.control.ComboBoxBase<?>
+                || n instanceof javafx.scene.control.Spinner<?> || n instanceof javafx.scene.control.ChoiceBox<?>)
+            return (javafx.scene.control.Control) n;
+        if (n instanceof javafx.scene.layout.Pane p)
+            for (Node hijo : p.getChildren()) {
+                javafx.scene.control.Control c = campoDe(hijo);
+                if (c != null) return c;
+            }
+        return null;
     }
 
     /** Visits {@code root} and every node below it, including content that is

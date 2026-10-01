@@ -140,7 +140,7 @@
 }
 .dialog-ok-btn:hover        { -fx-background-color: sibim-indigo-dark; }
 .dialog-ok-btn:pressed      { -fx-background-color: sibim-indigo-darker; -fx-translate-y: 1; }
-.dialog-ok-btn:disabled     { -fx-background-color: #DDE3EF; -fx-text-fill: #8896AA; -fx-font-weight: bold; -fx-padding: 8 22; -fx-opacity: 1; -fx-cursor: default; }
+.dialog-ok-btn:disabled     { -fx-background-color: #DDE3EF; -fx-text-fill: #64748B; -fx-font-weight: bold; -fx-padding: 8 22; -fx-opacity: 1; -fx-cursor: default; }
 .dialog-ok-btn-danger       { -fx-background-color: #EF4444; }
 .dialog-ok-btn-danger:hover { -fx-background-color: sibim-red; }
 

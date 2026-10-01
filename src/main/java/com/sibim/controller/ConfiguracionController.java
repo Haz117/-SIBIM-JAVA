@@ -586,7 +586,10 @@ public class ConfiguracionController {
         String notas = dlgNotas.showAndWait().map(String::trim).orElse("");
 
         DialogUtil.runAsyncWithProgress(scene, "Publicando la versión " + version + "…",
-            () -> { new com.sibim.service.ActualizacionService().publicar(exe, version, notas, null); return version; },
+            (DialogUtil.TareaConAvance<String>) avance -> {
+                new com.sibim.service.ActualizacionService().publicar(exe, version, notas, avance);
+                return version;
+            },
             v -> NotificacionUtil.exito(scene, "Versión " + v + " publicada: las PCs la verán al abrir SIBIM"),
             e -> NotificacionUtil.error(scene, "No se pudo publicar: " + e.getMessage()));
     }

@@ -44,8 +44,8 @@ public final class TutorialOverlay {
         String rolDesc = SessionManager.isAdmin()
             ? "Tienes acceso completo como Administrador — incluye gestión de usuarios y auditoría"
             : SessionManager.isSecretario()
-                ? "Tu rol de Secretario te da acceso a todos los módulos de inventario y reportes"
-                : "Tu rol te da acceso a inventario, movimientos, reportes y depreciación";
+                ? "Ves los bienes de tu secretaría y sus direcciones: actualizas sus datos y pides transferencias"
+                : "Ves los bienes de tu área: actualizas sus datos y pides transferencias a Patrimonio";
 
         List<Step> list = new ArrayList<>(List.of(
             // ── Bienvenida personalizada ──────────────────────────────────────────
@@ -83,25 +83,41 @@ public final class TutorialOverlay {
             // ── Movimientos ──────────────────────────────────────────────────────
             new Step("mdi2s-swap-vertical", "#7C3AED", "#5B21B6",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
-                "Registra Entrada para equipo nuevo y Salida para bajas oficiales",
-                "Las transferencias entre áreas quedan pendientes hasta que el admin las aprueba",
-                "Desde el detalle de un movimiento puedes ver el historial completo del bien"
+                SessionManager.isAdmin()
+                    ? "Registra Entrada para equipo nuevo y Salida para bajas oficiales"
+                    : "Pide una transferencia desde Bienes: selecciona el bien > Solicitar transferencia",
+                SessionManager.isAdmin()
+                    ? "\"Pendientes\" reúne las transferencias que piden las áreas: apruébalas o recházalas"
+                    : "\"Mis solicitudes\" muestra si Patrimonio ya aprobó lo que pediste",
+                "El área que recibe confirma en \"Por recibir\" cuando ya tiene el bien físicamente"
+            }),
+
+            // ── Sin conexión ─────────────────────────────────────────────────────
+            new Step("mdi2w-wifi-off", "#B45309", "#78350F",
+                "Sin internet", null, null, new String[]{
+                "Si se va el internet aparece la franja \"Sin conexión\" y puedes seguir trabajando",
+                "Lo que captures se guarda en esta computadora y se sube solo al volver la conexión",
+                "Los documentos nuevos llevan un folio provisional; el definitivo se asigna al sincronizar"
             }),
 
             // ── Resguardos ───────────────────────────────────────────────────────
             new Step("mdi2c-clipboard-account-outline", "#0891B2", "#0E7490",
                 "Resguardos", null, "resguardos", new String[]{
-                "Vincula cada bien a un responsable — registra quién lo tiene a su cargo",
-                "Genera el PDF del resguardo para firma: es el documento oficial de asignación",
-                "Cancela el resguardo cuando el bien cambia de responsable o de área"
+                "Cada resguardo dice quién tiene un bien a su cargo — es el documento oficial de asignación",
+                "Consulta e imprime el PDF del resguardo para firma",
+                SessionManager.isAdmin()
+                    ? "Cancela el resguardo cuando el bien cambia de responsable o de área"
+                    : "Solo Patrimonio crea o cancela resguardos: si necesitas uno, pídelo a Patrimonio"
             }),
 
             // ── Préstamos ────────────────────────────────────────────────────────
             new Step("mdi2s-swap-horizontal", "#D97706", "#92400E",
                 "Préstamos", null, "prestamos", new String[]{
-                "Registra el préstamo temporal de un bien con fecha de devolución esperada",
-                "Vista kanban: columnas Vigente / Por vencer / Vencido para control rápido",
-                "Registra la devolución con un clic — el bien regresa a su área automáticamente"
+                SessionManager.isAdmin()
+                    ? "Registra el préstamo temporal de un bien con fecha de devolución esperada"
+                    : "Aquí ves los préstamos de tu área; solo Patrimonio los registra y recibe la devolución",
+                "Vista kanban: columnas Activos / Vencidos / Devueltos para control rápido",
+                "Exporta el comprobante en PDF para firma"
             }),
 
             // ── Actas de Entrega-Recepción ───────────────────────────────────────
@@ -173,8 +189,12 @@ public final class TutorialOverlay {
             // ── Primeros pasos: cierre accionable ────────────────────────────────
             new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
                 "¡Listo para empezar!", null, "dashboard", new String[]{
-                "① Crea categorías (Ctrl+4), da de alta bienes (Ctrl+3 → Ctrl+N) y registra la primera entrada",
-                "② Asigna resguardos a los responsables y documenta préstamos temporales",
+                SessionManager.isAdmin()
+                    ? "① Crea categorías (Ctrl+4), da de alta bienes (Ctrl+3 → Ctrl+N) y registra la primera entrada"
+                    : "① Revisa tus bienes (Ctrl+3) y actualiza ubicación, fotos y estado físico",
+                SessionManager.isAdmin()
+                    ? "② Asigna resguardos a los responsables y documenta préstamos temporales"
+                    : "② La guía rápida imprimible está en el menú de tu cuenta",
                 "③ F2 en cualquier momento reabre este tutorial · F1 muestra todos los atajos"
             })
         ));

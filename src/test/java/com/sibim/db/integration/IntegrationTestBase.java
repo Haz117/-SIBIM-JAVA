@@ -97,7 +97,7 @@ public abstract class IntegrationTestBase {
             st.execute(
                 "TRUNCATE resguardo_items, resguardos, prestamos, actas_entrega_recepcion, " +
                 "price_history, conteo_items, conteos_fisicos, movements, products, categories, " +
-                "users, audit_log, area_resguardos, configuracion CASCADE"
+                "users, audit_log, area_resguardos, configuracion, actualizaciones CASCADE"
             );
         }
         // Re-seed the admin user row so FK constraints on movements and

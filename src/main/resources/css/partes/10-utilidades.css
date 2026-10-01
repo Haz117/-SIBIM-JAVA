@@ -101,7 +101,7 @@
 .dlg-stock-new-ok    { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #047857; }
 .dlg-stock-new-warn  { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #B45309; }
 .dlg-stock-new-empty { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #DC2626; }
-.dlg-stock-arrow      { -fx-font-size: 18px; -fx-text-fill: #94A3B8; }
+.dlg-stock-arrow      { -fx-font-size: 18px; -fx-text-fill: #64748B; }
 .dlg-stock-arrow-up   { -fx-font-size: 18px; -fx-text-fill: #047857; }
 .dlg-stock-arrow-down { -fx-font-size: 18px; -fx-text-fill: #DC2626; }
 

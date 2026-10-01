@@ -749,6 +749,20 @@ public final class DialogUtil {
     public static <R> void runAsyncWithProgress(Scene scene, String mensaje,
             java.util.concurrent.Callable<R> task,
             Consumer<R> onSuccess, Consumer<Exception> onError) {
+        runAsyncWithProgress(scene, mensaje, (TareaConAvance<R>) avance -> task.call(), onSuccess, onError);
+    }
+
+    /** A long task that reports how far it is (0..1), e.g. a download. */
+    @FunctionalInterface
+    public interface TareaConAvance<R> {
+        R call(java.util.function.DoubleConsumer avance) throws Exception;
+    }
+
+    /** Like {@link #runAsyncWithProgress(Scene, String, java.util.concurrent.Callable, Consumer, Consumer)}
+     *  but the toast shows the percentage the task reports. */
+    public static <R> void runAsyncWithProgress(Scene scene, String mensaje,
+            TareaConAvance<R> task,
+            Consumer<R> onSuccess, Consumer<Exception> onError) {
         Window owner = scene == null ? null : scene.getWindow();
 
         ProgressIndicator spinner = new ProgressIndicator(-1);
@@ -788,7 +802,17 @@ public final class DialogUtil {
             // Every caller only shows a generic toast, so the cause has to be
             // logged here or it is lost; an Error (e.g. a class missing from
             // the build) would otherwise leave the "working…" toast up forever.
-            try { result = task.call(); }
+            int[] ultimo = { -1 };
+            java.util.function.DoubleConsumer avance = p -> {
+                int pct = (int) Math.round(Math.max(0, Math.min(1, p)) * 100);
+                if (pct == ultimo[0]) return;
+                ultimo[0] = pct;
+                Platform.runLater(() -> {
+                    spinner.setProgress(pct / 100.0);
+                    lbl.setText(mensaje + " " + pct + "%");
+                });
+            };
+            try { result = task.call(avance); }
             catch (Exception ex) { error = ex; }
             catch (Error err) { error = new RuntimeException(err); }
             if (error != null)

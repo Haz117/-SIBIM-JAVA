@@ -52,6 +52,27 @@ class ActualizacionServiceIntegrationTest extends IntegrationTestBase {
         assertEquals(1.0, ultimoAvance[0], 1e-9);
     }
 
+    @Test
+    void soloSeConservanLasDosUltimasVersiones(@TempDir Path dir) throws Exception {
+        File exe = dir.resolve("SIBIM-Desktop-99.0.0-win64-setup.exe").toFile();
+        Files.write(exe.toPath(), new byte[1024]);
+        var servicio = new ActualizacionService();
+        entrarComo(Rol.ADMIN);
+        for (String v : new String[]{"99.0.0", "99.0.1", "99.0.2"}) servicio.publicar(exe, v, null, null);
+
+        try (var c = com.sibim.db.DatabaseConfig.getConnection();
+             var rs = c.createStatement().executeQuery("SELECT version FROM actualizaciones ORDER BY version")) {
+            java.util.List<String> quedan = new java.util.ArrayList<>();
+            while (rs.next()) quedan.add(rs.getString(1));
+            assertEquals(java.util.List.of("99.0.1", "99.0.2"), quedan);
+        }
+        try (var c = com.sibim.db.DatabaseConfig.getConnection();
+             var rs = c.createStatement().executeQuery("SELECT COUNT(DISTINCT version) FROM actualizacion_partes")) {
+            rs.next();
+            assertEquals(2, rs.getInt(1), "las partes de la versión borrada también se van");
+        }
+    }
+
     private static void entrarComo(Rol rol) {
         Usuario u = new Usuario();
         u.setId("u-" + rol);

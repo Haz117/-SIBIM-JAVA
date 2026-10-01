@@ -76,7 +76,7 @@
     -fx-cursor: hand;
 }
 .preset-chip-delete .ikonli-font-icon {
-    -fx-icon-color: #9CA3AF;
+    -fx-icon-color: #64748B;
     -fx-icon-size: 11;
 }
 .preset-chip-delete:hover { -fx-background-color: #FEE2E2; }

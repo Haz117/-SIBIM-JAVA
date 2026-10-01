@@ -139,7 +139,7 @@
     -fx-background-radius: 10, 8;
 }
 .nav-section-header .nav-section-label { -fx-padding: 0; }
-.nav-section-chevron { -fx-icon-size: 14; -fx-icon-color: #94A3B8; }
+.nav-section-chevron { -fx-icon-size: 14; -fx-icon-color: #64748B; }
 .nav-section-header:hover .nav-section-chevron { -fx-icon-color: sibim-indigo; }
 /* The section that holds the active page keeps a hint of where you are, even when folded. */
 .nav-section-active .nav-section-label   { -fx-text-fill: sibim-indigo-dark; }
@@ -221,7 +221,7 @@
 .nav-icon { -fx-icon-size: 16; -fx-icon-color: sibim-slate-500; }
 .nav-btn:hover .nav-icon { -fx-icon-color: sibim-indigo; }
 .nav-btn.nav-active .nav-icon { -fx-icon-color: sibim-indigo; }
-.logout-btn .nav-icon { -fx-icon-color: #94A3B8; }
+.logout-btn .nav-icon { -fx-icon-color: #64748B; }
 .logout-btn:hover .nav-icon { -fx-icon-color: #B91C1C; }
 
 
