@@ -98,7 +98,7 @@ public class ResguardoService {
         return saved;
     }
 
-    static final String SIN_PERMISO = "Inicia sesión para asignar un resguardo.";
+    static final String SIN_PERMISO = "Solo Patrimonio (administrador) asigna resguardos.";
     static final String FUERA_DE_AREA = "Solo puedes asignar resguardos de los bienes de tus áreas, a personas de tus áreas.";
 
     /** Patrimonio assigns any bien; a secretaría or dirección only its own, to its own people. */

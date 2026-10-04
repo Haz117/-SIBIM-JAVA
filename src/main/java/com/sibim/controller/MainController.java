@@ -201,7 +201,7 @@ public class MainController {
         setupNavHover(navRegistry.buttons().toArray(new Button[0]));
 
         // The áreas get a short menu: what only Patrimonio works with (catalogue,
-        // movements, depreciation, physical count, comodatos, actas, bajas, audit)
+        // movements, depreciation, physical count, resguardos, préstamos, comodatos, actas, bajas, audit)
         // is not shown to them.
         boolean admin = SessionManager.isAdmin();
         for (NavItem it : navRegistry.items()) {
@@ -358,8 +358,8 @@ public class MainController {
             page("reportes",      NavSection.OPERACIONES, btnReportes,      KeyCode.DIGIT7),
             page("depreciacion",  NavSection.OPERACIONES, btnDepreciacion,  KeyCode.DIGIT8).restrictedToAdmin(),
             action("conteo",      NavSection.OPERACIONES, btnConteoFisico,  this::onConteoFisico, KeyCode.C, ctrlAlt).hiddenFromPalette().restrictedToAdmin(),
-            page("resguardos",    NavSection.CONTROL,     btnResguardos,    KeyCode.G, ctrlAlt),
-            page("prestamos",     NavSection.CONTROL,     btnPrestamos,     KeyCode.P, ctrlAlt),
+            page("resguardos",    NavSection.CONTROL,     btnResguardos,    KeyCode.G, ctrlAlt).restrictedToAdmin(),
+            page("prestamos",     NavSection.CONTROL,     btnPrestamos,     KeyCode.P, ctrlAlt).restrictedToAdmin(),
             page("comodatos",     NavSection.CONTROL,     btnComodatos,     KeyCode.O, ctrlAlt).restrictedToAdmin(),
             page("actas",         NavSection.CONTROL,     btnActas,         KeyCode.A, ctrlAlt).restrictedToAdmin(),
             page("bajas",         NavSection.CONTROL,     btnBajas,         KeyCode.B, ctrlAlt).withPaletteLabel("Bajas patrimoniales").restrictedToAdmin(),
@@ -728,6 +728,7 @@ public class MainController {
             try { var d = alertProductoService.getAll();
                   javafx.application.Platform.runLater(() -> mProductos.addAll(d)); }
             catch (Exception e) { log.warn("Palette: no se pudieron cargar bienes", e); }
+            if (!SessionManager.isAdmin()) return;   // resguardos and préstamos are Patrimonio's screens
             try { var d = new ResguardoService().getAll();
                   javafx.application.Platform.runLater(() -> mResguardos.addAll(d)); }
             catch (Exception e) { log.warn("Palette: no se pudieron cargar resguardos", e); }
@@ -742,9 +743,9 @@ public class MainController {
                 navigateTo("productos", btnProductos);
             },
             mResguardos,
-            rsg -> navigateTo("resguardos", btnResguardos),
+            rsg -> navigateToView("resguardos"),
             mPrestamos,
-            prs -> navigateTo("prestamos", btnPrestamos),
+            prs -> navigateToView("prestamos"),
             navEntries);
     }
 

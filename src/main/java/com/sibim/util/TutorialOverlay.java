@@ -203,7 +203,7 @@ public final class TutorialOverlay {
 
         if (!SessionManager.isAdmin())
             list.removeIf(paso -> paso.navigateId() != null
-                && java.util.Set.of("movimientos", "comodatos", "actas", "bajas", "categorias", "depreciacion")
+                && java.util.Set.of("movimientos", "comodatos", "actas", "bajas", "categorias", "depreciacion", "resguardos", "prestamos")
                     .contains(paso.navigateId()));
 
         if (SessionManager.isAdmin()) {

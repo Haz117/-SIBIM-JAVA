@@ -52,6 +52,13 @@ class OrganigramaDialogs {
         this.log               = log;
     }
 
+    /** Hides a "Ver en … →" button from the áreas: those screens are Patrimonio's. */
+    private static void soloPatrimonio(javafx.scene.Node boton) {
+        if (boton == null || com.sibim.session.SessionManager.isAdmin()) return;
+        boton.setVisible(false);
+        boton.setManaged(false);
+    }
+
     void showAreaProductsDialog(String areaName, List<Producto> allProds, boolean soloAlertas, Scene scene) {
         List<Producto> prods = soloAlertas
             ? allProds.stream()
@@ -339,6 +346,7 @@ class OrganigramaDialogs {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         javafx.scene.Node verRsgBtn = dialog.getDialogPane().lookupButton(btnVerResguardos);
+        soloPatrimonio(verRsgBtn);
         if (verRsgBtn != null) {
             verRsgBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
                 if (MainController.getInstance() != null) MainController.getInstance().navigateTo("resguardos");
@@ -402,6 +410,7 @@ class OrganigramaDialogs {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         javafx.scene.Node verBtn = dialog.getDialogPane().lookupButton(btnVerPrestamos);
+        soloPatrimonio(verBtn);
         if (verBtn != null) {
             verBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
                 if (MainController.getInstance() != null) MainController.getInstance().navigateTo("prestamos");
@@ -487,6 +496,7 @@ class OrganigramaDialogs {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         javafx.scene.Node verBtn = dialog.getDialogPane().lookupButton(btnVerComodatos);
+        soloPatrimonio(verBtn);
         if (verBtn != null) {
             verBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
                 if (MainController.getInstance() != null) MainController.getInstance().navigateTo("comodatos");

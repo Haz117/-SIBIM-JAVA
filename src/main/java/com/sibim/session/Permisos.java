@@ -5,13 +5,11 @@ package com.sibim.session;
  * buttons to show and services ask here before acting, so a rule lives in one
  * place instead of being repeated as role checks on both sides.
  *
- * <p>Who does what (decided 2026-10-01):
+ * <p>Who does what (decided 2026-10-01, préstamos and resguardos revised 2026-10-04):
  * <ul>
- *   <li>Movimientos and comodatos: only Patrimonio (administrator).</li>
- *   <li>Préstamos: Patrimonio, and a secretario between the áreas of his own
- *       secretaría (the secretaría and its direcciones).</li>
- *   <li>Resguardos: Patrimonio, secretarios and direcciones, for the bienes of
- *       their own áreas.</li>
+ *   <li>Movimientos, comodatos, préstamos and resguardos: only Patrimonio
+ *       (administrator). Secretarios and direcciones neither register them nor
+ *       have those screens.</li>
  *   <li>The áreas do not send requests through SIBIM: what they need is asked
  *       of Finanzas, outside the system.</li>
  *   <li>The áreas keep four things of a bien current — ubicación, descripción,
@@ -29,12 +27,10 @@ public final class Permisos {
     public static boolean gestionaDocumentos() { return SessionManager.isAdmin(); }
 
     /** Registers a préstamo or its return. */
-    public static boolean prestaBienes() { return SessionManager.isAdmin() || SessionManager.isSecretario(); }
+    public static boolean prestaBienes() { return SessionManager.isAdmin(); }
 
     /** Assigns a resguardo to someone. */
-    public static boolean creaResguardos() {
-        return SessionManager.isAdmin() || SessionManager.isSecretario() || SessionManager.isDireccion();
-    }
+    public static boolean creaResguardos() { return SessionManager.isAdmin(); }
 
     /** Whether {@code area} is one the caller answers for: any área for
      *  Patrimonio; for a secretario his secretaría and its direcciones; for a

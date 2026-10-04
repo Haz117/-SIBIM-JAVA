@@ -124,7 +124,7 @@ public class PrestamoService {
         return saved;
     }
 
-    static final String SIN_PERMISO = "Solo Patrimonio y los secretarios registran préstamos.";
+    static final String SIN_PERMISO = "Solo Patrimonio (administrador) registra préstamos y sus devoluciones.";
     static final String FUERA_DE_SECRETARIA =
         "Un secretario solo presta bienes de su secretaría, y solo a sus propias direcciones.";
 

@@ -67,24 +67,22 @@ class PermisosDocumentosIntegrationTest extends IntegrationTestBase {
     void salir() { SessionManager.logout(); }
 
     @Test
-    void elSecretarioPrestaSoloEntreLasAreasDeSuSecretaria() throws Exception {
+    void elSecretarioNoPrestaNiDevuelve() throws Exception {
+        entrarComo(Rol.ADMIN, null);
+        Prestamo dePatrimonio = prestamos.crear("p-sec", direccion, "Ana Ruiz", "Analista", "Evento", devolucion);
+        assertNotNull(dePatrimonio.getNumero());
+
         entrarComo(Rol.SECRETARIO, secretaria);
-        Prestamo aSuDireccion = prestamos.crear("p-sec", direccion, "Ana Ruiz", "Analista", "Evento", devolucion);
-        assertNotNull(aSuDireccion.getNumero());
-        assertNotNull(prestamos.crear("p-dir", secretaria, "Luis Mora", null, null, devolucion).getNumero(),
-            "también de una dirección suya a la secretaría");
+        SecurityException e = assertThrows(SecurityException.class,
+            () -> prestamos.crear("p-dir", secretaria, "Luis Mora", null, null, devolucion),
+            "ni siquiera entre las áreas de su propia secretaría");
+        assertTrue(e.getMessage().contains("Patrimonio"));
+        assertThrows(SecurityException.class, () -> prestamos.devolver(dePatrimonio.getId(), LocalDate.now()));
 
-        SecurityException fuera = assertThrows(SecurityException.class,
-            () -> prestamos.crear("p-dir2", ajena, "Eva Sol", null, null, devolucion),
-            "no presta a un área que no es de su secretaría");
-        assertTrue(fuera.getMessage().contains("secretaría"));
-        assertThrows(Exception.class,
-            () -> prestamos.crear("p-ajeno", direccion, "Eva Sol", null, null, devolucion),
-            "no presta un bien que no es de su secretaría");
-
-        prestamos.devolver(aSuDireccion.getId(), LocalDate.now());
+        entrarComo(Rol.ADMIN, null);
+        prestamos.devolver(dePatrimonio.getId(), LocalDate.now());
         assertEquals(Prestamo.ESTADO_DEVUELTO, prestamos.getAll().stream()
-            .filter(p -> p.getId().equals(aSuDireccion.getId())).findFirst().orElseThrow().getEstado());
+            .filter(p -> p.getId().equals(dePatrimonio.getId())).findFirst().orElseThrow().getEstado());
     }
 
     @Test
@@ -99,27 +97,29 @@ class PermisosDocumentosIntegrationTest extends IntegrationTestBase {
 
         entrarComo(Rol.SECRETARIO, secretaria);
         assertThrows(SecurityException.class, () -> prestamos.devolver(dePatrimonio.getId(), LocalDate.now()),
-            "el secretario no cierra un préstamo que salió de su secretaría hacia otra");
+            "el secretario tampoco");
     }
 
     @Test
-    void lasAreasAsignanResguardosDeSusPropiosBienes() throws Exception {
+    void lasAreasNoAsignanResguardos() throws Exception {
         entrarComo(Rol.DIRECCION, direccion);
+        SecurityException e = assertThrows(SecurityException.class,
+            () -> resguardos.crear("Luis Mora", "Jefe", direccion, List.of(item("p-dir", "Proyector", "PRM/02")), null),
+            "ni de un bien de su propia área");
+        assertTrue(e.getMessage().contains("Patrimonio"));
+
+        entrarComo(Rol.SECRETARIO, secretaria);
+        assertThrows(SecurityException.class,
+            () -> resguardos.crear("Eva Sol", null, direccion, List.of(item("p-dir2", "Escritorio", "PRM/04")), null),
+            "el secretario tampoco");
+
+        entrarComo(Rol.ADMIN, null);
         Resguardo propio = resguardos.crear("Luis Mora", "Jefe", direccion, List.of(item("p-dir", "Proyector", "PRM/02")), null);
         assertNotNull(propio.getNumero());
 
-        assertThrows(Exception.class,
-            () -> resguardos.crear("Luis Mora", null, direccion, List.of(item("p-ajeno", "Silla", "PRM/03")), null),
-            "no de un bien de otra área");
-        assertThrows(SecurityException.class,
-            () -> resguardos.crear("Luis Mora", null, ajena, List.of(item("p-dir2", "Escritorio", "PRM/04")), null),
-            "ni a nombre de alguien de otra área");
+        entrarComo(Rol.DIRECCION, direccion);
         assertThrows(SecurityException.class, () -> resguardos.cancelar(propio.getId()),
             "cancelar libera el bien: solo Patrimonio");
-
-        entrarComo(Rol.SECRETARIO, secretaria);
-        assertNotNull(resguardos.crear("Eva Sol", null, direccion, List.of(item("p-dir2", "Escritorio", "PRM/04")), null)
-            .getNumero(), "el secretario, de los bienes de sus direcciones");
 
         entrarComo(Rol.ADMIN, null);
         resguardos.cancelar(propio.getId());

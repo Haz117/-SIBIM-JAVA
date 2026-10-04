@@ -96,14 +96,16 @@ class NotificationCenter {
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de garantías por vencer", e);
             }
-            try {
+            // Préstamos and the old requests are Patrimonio's: the áreas have no such screen.
+            boolean admin = com.sibim.session.SessionManager.isAdmin();
+            if (admin) try {
                 int n = prestamoService.countVencidos();
                 if (n > 0) items.add(new Item("mdi2c-clock-alert-outline", "danger",
                     n == 1 ? "1 préstamo vencido" : n + " préstamos vencidos", "prestamos", n));
             } catch (Exception e) {
                 log.warn("No se pudo calcular la alerta de préstamos vencidos", e);
             }
-            try {
+            if (admin) try {
                 int n = prestamoService.getProximosAVencer(3).size();
                 if (n > 0) items.add(new Item("mdi2c-clock-outline", "info",
                     n == 1 ? "1 préstamo vence en 3 días" : n + " préstamos vencen en 3 días", "prestamos", 0));
@@ -124,7 +126,7 @@ class NotificationCenter {
             } catch (Exception e) {
                 log.warn("No se pudo calcular el aviso de transferencias", e);
             }
-            try {
+            if (admin) try {
                 int s = new com.sibim.service.SolicitudService().countPendientes();
                 if (s > 0) items.add(0, new Item("mdi2t-timer-sand", "warning",
                     s == 1 ? "1 solicitud de préstamo o resguardo" : s + " solicitudes de préstamo o resguardo",
