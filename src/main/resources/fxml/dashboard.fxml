@@ -202,7 +202,7 @@
         </VBox>
 
         <!-- Movimientos Hoy — Violet -->
-        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
+        <VBox fx:id="cardMovimientosHoy" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
               onMouseClicked="#onVerMovimientos"
               GridPane.columnIndex="2" GridPane.rowIndex="0"
               accessibleRole="BUTTON" accessibleText="Movimientos de hoy — ver historial">
@@ -219,12 +219,12 @@
             <VBox spacing="5">
                 <Label text="MOVIMIENTOS HOY" styleClass="rich-stat-label"/>
                 <Label fx:id="lblMovimientosHoy" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver historial →" styleClass="rich-stat-hint"/>
+                <Label fx:id="hintMovimientosHoy" text="Ver historial →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
 
         <!-- Categorías — Indigo oscuro -->
-        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
+        <VBox fx:id="cardCategorias" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
               onMouseClicked="#onVerCategorias"
               GridPane.columnIndex="3" GridPane.rowIndex="0"
               accessibleRole="BUTTON" accessibleText="Categorías activas — ver categorías del inventario">
@@ -241,7 +241,7 @@
             <VBox spacing="5">
                 <Label text="CATEGORÍAS ACTIVAS" styleClass="rich-stat-label"/>
                 <Label fx:id="lblCategorias" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver categorías →" styleClass="rich-stat-hint"/>
+                <Label fx:id="hintCategorias" text="Ver categorías →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
     </GridPane>

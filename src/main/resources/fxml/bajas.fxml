@@ -100,15 +100,15 @@
     <!-- ══ TABLA ════════════════════════════════════════════════════ -->
     <TableView fx:id="table" styleClass="data-table" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn fx:id="colFecha" text="Fecha de baja" prefWidth="110"/>
-            <TableColumn fx:id="colCodigo" text="Código" prefWidth="100"/>
+            <TableColumn fx:id="colFecha" text="Fecha de baja" prefWidth="130" minWidth="130"/>
+            <TableColumn fx:id="colCodigo" text="Código" prefWidth="100" minWidth="90"/>
             <TableColumn fx:id="colNombre" text="Bien" prefWidth="220"/>
             <TableColumn fx:id="colArea" text="Área" prefWidth="200"/>
             <TableColumn fx:id="colMotivo" text="Motivo" prefWidth="200"/>
             <TableColumn fx:id="colSolicitud" text="Solicitud" prefWidth="120"/>
             <TableColumn fx:id="colDestino" text="Destino" prefWidth="120"/>
             <TableColumn fx:id="colDictamen" text="Dictamen" prefWidth="140"/>
-            <TableColumn fx:id="colActa" text="No. acta" prefWidth="100"/>
+            <TableColumn fx:id="colActa" text="No. acta" prefWidth="100" minWidth="95"/>
             <TableColumn fx:id="colValor" text="Valor" prefWidth="110"/>
         </columns>
         <placeholder><Label fx:id="lblVacio" text="No hay bienes dados de baja" styleClass="muted"/></placeholder>

@@ -64,50 +64,21 @@ public class SolicitudService {
         return repo.findDeMisAreas();
     }
 
+    /** The áreas no longer ask Patrimonio for documents through SIBIM: a
+     *  secretario registers his own préstamos and every área its resguardos.
+     *  What is left of this service is the inbox of requests sent before that. */
+    static final String SIN_SOLICITUDES =
+        "Las áreas ya no envían solicitudes por SIBIM: los préstamos los registra el secretario o Patrimonio, "
+        + "y los resguardos cada área.";
+
     public Solicitud solicitarPrestamo(String productoId, String areaDestino, String responsable, String cargo,
                                        String motivo, LocalDate fechaDevolucion) throws SQLException {
-        if (areaDestino == null || areaDestino.isBlank())
-            throw new IllegalArgumentException("El área destino es obligatoria");
-        if (fechaDevolucion == null || !fechaDevolucion.isAfter(LocalDate.now()))
-            throw new IllegalArgumentException("La fecha de devolución debe ser posterior a hoy");
-        Producto p = bien(productoId, responsable);
-        if (areaDestino.trim().equals(p.getArea()))
-            throw new IllegalArgumentException("El área destino debe ser distinta al área donde está el bien");
-        return guardar(Solicitud.TIPO_PRESTAMO, p, areaDestino.trim(), responsable, cargo, motivo, fechaDevolucion);
+        throw new SecurityException(SIN_SOLICITUDES);
     }
 
     public Solicitud solicitarResguardo(String productoId, String resguardante, String cargo, String observaciones)
             throws SQLException {
-        Producto p = bien(productoId, resguardante);
-        return guardar(Solicitud.TIPO_RESGUARDO, p, null, resguardante, cargo, observaciones, null);
-    }
-
-    private Producto bien(String productoId, String responsable) throws SQLException {
-        if (SessionManager.getCurrentUser() == null) throw new SecurityException("Inicia sesión para enviar solicitudes");
-        if (productoId == null || productoId.isBlank()) throw new IllegalArgumentException("Debe seleccionar un bien");
-        if (responsable == null || responsable.isBlank())
-            throw new IllegalArgumentException("El nombre del responsable es obligatorio");
-        // findById is scoped to the caller's áreas: nobody asks for someone else's bien.
-        Producto p = productoRepo.findById(productoId)
-            .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
-        PrestamoService.exigirDisponible(p);
-        return p;
-    }
-
-    private Solicitud guardar(String tipo, Producto p, String areaDestino, String responsable, String cargo,
-                              String motivo, LocalDate fecha) throws SQLException {
-        if (repo.existePendiente(p.getId(), tipo))
-            throw new IllegalArgumentException("Este bien ya tiene una solicitud de "
-                + (Solicitud.TIPO_PRESTAMO.equals(tipo) ? "préstamo" : "resguardo") + " esperando respuesta");
-        Usuario yo = SessionManager.getCurrentUser();
-        Solicitud guardada = repo.save(new Solicitud(null, tipo, p.getId(), p.getNombre(), p.getCodigo(),
-            p.getArea() != null ? p.getArea() : "Sin área", yo.getNombre(),
-            areaDestino, responsable.trim(), limpio(cargo), limpio(motivo), fecha,
-            Solicitud.ESTADO_PENDIENTE, null, null, null, null, null));
-        auditRepo.log("solicitud", guardada.id(), p.getNombre(), "crear",
-            "Solicitud de " + guardada.tipoTexto().toLowerCase() + " · " + guardada.area()
-                + " · Responsable: " + guardada.responsable());
-        return guardada;
+        throw new SecurityException(SIN_SOLICITUDES);
     }
 
     /** Creates the préstamo or resguardo that was asked for and returns its folio. */

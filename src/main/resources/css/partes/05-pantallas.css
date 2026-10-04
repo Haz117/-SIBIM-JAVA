@@ -49,101 +49,43 @@
 .chart-pie-label-line { -fx-stroke: sibim-slate-300; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ALERTAS  — colored gradient section headers
+   ALERTAS  — summary cards as tabs over one panel
    ═══════════════════════════════════════════════════════════════════ */
-.alert-section {
+/* The summary cards are the tabs of the screen: the chosen one is outlined. */
+.alert-tab { -fx-cursor: hand; }
+.alert-tab:selected {
+    -fx-background-color: sibim-indigo-50;
+    -fx-border-color: sibim-indigo;
+    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.30), 12, 0, 0, 3);
+}
+.alert-tab:focused { -fx-border-color: sibim-indigo-300; }
+.alert-tab:selected:focused { -fx-border-color: sibim-indigo-dark; }
+/* One panel with the table of the chosen category. */
+.alert-panel {
     -fx-background-color: white;
     -fx-background-radius: 14;
     -fx-border-radius: 14;
-    -fx-border-color: #E0E4ED;
+    -fx-border-color: sibim-slate-200;
     -fx-border-width: 1;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.09), 14, 0, 0, 3);
-}
-
-.alert-section-title-inv {
-    -fx-font-size: 15px;
-    -fx-font-weight: bold;
-    -fx-text-fill: white;
-}
-.badge-count-inv {
-    -fx-background-color: rgba(255,255,255,0.25);
-    -fx-text-fill: white;
-    -fx-padding: 3 11;
-    -fx-background-radius: 99;
-    -fx-font-weight: bold;
-    -fx-font-size: 12px;
-}
-
-.no-alerts {
-    -fx-font-size: 15px;
-    -fx-text-fill: sibim-green-dark;
-    -fx-font-weight: bold;
-    -fx-padding: 28;
-    -fx-alignment: CENTER;
-    -fx-background-color: #ECFDF5;
-    -fx-background-radius: 12;
-    -fx-border-color: #6EE7B7;
-    -fx-border-radius: 12;
-    -fx-border-width: 1;
-    -fx-wrap-text: true;
-}
-
-/* Alert section modifiers */
-.alert-section.alert-danger {
-    -fx-border-color: #FCA5A5 #E0E4ED #E0E4ED sibim-red-500;
-    -fx-border-width: 0 1 1 4;
-}
-.alert-section.alert-warning {
-    -fx-border-color: #FCD34D #E0E4ED #E0E4ED #F59E0B;
-    -fx-border-width: 0 1 1 4;
-}
-.alert-section.alert-info {
-    -fx-border-color: sibim-indigo-300 #E0E4ED #E0E4ED sibim-indigo;
-    -fx-border-width: 0 1 1 4;
-}
-
-/* Section header title (normal, not inverted) */
-.alert-section-title {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-text-fill: sibim-slate-950;
-}
-
-/* Gradient header bars for alert sections */
-.alert-header-danger {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #DC2626, #EF4444);
-    -fx-background-radius: 10 10 0 0;
-    -fx-padding: 12 16;
-}
-.alert-header-warning {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #B45309, #D97706);
-    -fx-background-radius: 10 10 0 0;
-    -fx-padding: 12 16;
-}
-.alert-header-info {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4338CA, #6366F1);
-    -fx-background-radius: 10 10 0 0;
-    -fx-padding: 12 16;
+    -fx-padding: 16 18 18 18;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 14, 0, 0, 3);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    REPORTES
    ═══════════════════════════════════════════════════════════════════ */
-.report-card {
+/* One white card per group of reports; each report is a row inside it. */
+.report-list {
     -fx-background-color: white;
-    -fx-background-radius: 20;
-    -fx-border-width: 0;
+    -fx-background-radius: 16;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
-    -fx-cursor: hand;
 }
-.report-card:hover {
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.28), 22, 0, 0, 6);
-    -fx-translate-y: -3;
+.report-row {
+    -fx-padding: 14 20;
+    -fx-border-color: transparent transparent sibim-slate-200 transparent;
+    -fx-border-width: 0 0 1 0;
 }
-.report-card:pressed {
-    -fx-translate-y: 0;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
-}
+.report-row-last { -fx-border-color: transparent; }
 
 /* Circular icon badge — the color lives here now, not on the whole card */
 .report-icon-badge {

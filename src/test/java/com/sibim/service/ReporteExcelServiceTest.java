@@ -189,7 +189,9 @@ class ReporteExcelServiceTest {
             int fila = celda(resumen, 1, 0).equals("Sala A") ? 1 : 2;
             assertEquals("Sala A", celda(resumen, fila, 0));
             assertEquals("2", celda(resumen, fila, 1));      // bienes
-            assertEquals("75000", celda(resumen, fila, 2));  // valor total
+            // valor total: still a number underneath, shown as currency
+            assertEquals(75000.0, resumen.getRow(fila).getCell(2).getNumericCellValue(), 0.001);
+            assertEquals("$75,000.00", celda(resumen, fila, 2));
             assertEquals("2", celda(resumen, fila, 3));      // sin resguardante
 
             Sheet detalle = wb.getSheetAt(1);

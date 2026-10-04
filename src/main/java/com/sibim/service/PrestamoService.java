@@ -81,7 +81,7 @@ public class PrestamoService {
     public Prestamo crear(String productoId, String areaDestino,
                           String responsableNombre, String responsableCargo,
                           String motivo, LocalDate fechaDevolucionPrevista) throws Exception {
-        soloAdministrador();
+        if (!com.sibim.session.Permisos.prestaBienes()) throw new SecurityException(SIN_PERMISO);
         if (productoId == null || productoId.isBlank())
             throw new IllegalArgumentException("Debe seleccionar un bien");
         if (areaDestino == null || areaDestino.isBlank())
@@ -96,6 +96,7 @@ public class PrestamoService {
         Producto producto = productoRepo.findById(productoId)
             .orElseThrow(() -> new IllegalArgumentException("Bien no encontrado"));
         exigirDisponible(producto);
+        exigirEntreAreasPropias(producto.getArea(), areaDestino.trim());
         if (areaDestino.trim().equals(producto.getArea()))
             throw new IllegalArgumentException("El área destino debe ser distinta al área donde está el bien");
         if (repo.existeActivoPorProducto(productoId))
@@ -123,18 +124,24 @@ public class PrestamoService {
         return saved;
     }
 
-    /** Like comodatos: only the administrator (Patrimonio) registers a
-     *  préstamo or its return; áreas only see and print them. */
-    static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los préstamos.";
+    static final String SIN_PERMISO = "Solo Patrimonio y los secretarios registran préstamos.";
+    static final String FUERA_DE_SECRETARIA =
+        "Un secretario solo presta bienes de su secretaría, y solo a sus propias direcciones.";
 
-    private static void soloAdministrador() {
-        com.sibim.session.Permisos.exigirGestionDeDocumentos(SOLO_ADMIN);
+    /** Patrimonio lends between any two áreas; a secretario only inside his
+     *  secretaría — the bien must be his and so must the área that receives it. */
+    private static void exigirEntreAreasPropias(String areaOrigen, String areaDestino) {
+        if (!com.sibim.session.Permisos.prestaBienes()) throw new SecurityException(SIN_PERMISO);
+        if (!com.sibim.session.Permisos.esAreaPropia(areaOrigen) || !com.sibim.session.Permisos.esAreaPropia(areaDestino))
+            throw new SecurityException(FUERA_DE_SECRETARIA);
     }
 
     public void devolver(String prestamoId, LocalDate fechaDevolucionReal) throws SQLException {
-        soloAdministrador();
+        if (!com.sibim.session.Permisos.prestaBienes()) throw new SecurityException(SIN_PERMISO);
         if (fechaDevolucionReal == null) fechaDevolucionReal = LocalDate.now();
         Prestamo p = repo.findById(prestamoId);
+        if (p != null) exigirEntreAreasPropias(p.getAreaOrigen(), p.getAreaDestino());
+        else com.sibim.session.Permisos.exigirGestionDeDocumentos(SIN_PERMISO);
         repo.devolver(prestamoId, fechaDevolucionReal);
         if (p != null)
             auditRepo.log("prestamo", prestamoId, p.getProductoNombre(), "devolver",

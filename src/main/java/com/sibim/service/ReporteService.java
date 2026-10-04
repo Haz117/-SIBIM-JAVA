@@ -166,26 +166,82 @@ public class ReporteService {
         return u != null ? u.getNombre() : "_______________";
     }
 
+    /** Relative column widths that hold. iText reads a plain {@code float[]} as
+     *  points and then sizes the columns by their content, so two tables given
+     *  the same widths did not line up and narrow columns were crushed. */
+    protected static Table tabla(float... relativos) {
+        return new Table(com.itextpdf.layout.properties.UnitValue.createPercentArray(relativos))
+            .useAllAvailableWidth().setFixedLayout();
+    }
+
+    /** Signature block: {title, name or null, role} per signer. Kept in one piece,
+     *  so a page never ends with the titles and starts with the lines. */
     protected void addFirmasBlock(Document doc, String[]... firmas) throws IOException {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         DeviceRgb grayFg  = new DeviceRgb(55,  65,  81);
         DeviceRgb grayMut = new DeviceRgb(107, 114, 128);
-        doc.add(new Paragraph("").setMarginTop(28));
         float[] cols = new float[firmas.length];
         Arrays.fill(cols, 1f);
-        Table t = new Table(cols).useAllAvailableWidth().setMarginTop(8);
+        Table t = tabla(cols).setMarginTop(26).setKeepTogether(true);
         for (String[] f : firmas) {
+            boolean conNombre = f[1] != null && !f[1].isBlank() && !f[1].startsWith("___");
             com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
-                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER).setPadding(6)
+                .setBorder(Border.NO_BORDER).setPaddingLeft(14).setPaddingRight(14)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
-            c.add(new Paragraph(f[0] != null ? f[0] : "").setFont(bold).setFontSize(8).setFontColor(grayFg));
-            c.add(new Paragraph("\n\n________________________").setFont(reg).setFontSize(9));
-            c.add(new Paragraph(f[1] != null ? f[1] : "_______________").setFont(bold).setFontSize(7.5f).setMarginTop(2));
-            c.add(new Paragraph(f[2] != null ? f[2] : "").setFont(reg).setFontSize(7).setFontColor(grayMut));
+            c.add(new Paragraph(f[0] != null ? f[0] : "").setFont(bold).setFontSize(8).setFontColor(grayFg)
+                .setMargin(0).setMarginBottom(30));
+            c.add(new Table(1).useAllAvailableWidth().addCell(new com.itextpdf.layout.element.Cell()
+                .setHeight(1).setPadding(0).setBorder(Border.NO_BORDER)
+                .setBorderTop(new SolidBorder(grayFg, 0.7f))));
+            c.add(new Paragraph(conNombre ? f[1] : "Nombre y firma").setFont(conNombre ? bold : reg)
+                .setFontSize(7.5f).setFontColor(conNombre ? grayFg : grayMut).setMargin(0).setMarginTop(3));
+            c.add(new Paragraph(f[2] != null ? f[2] : "").setFont(reg).setFontSize(7).setFontColor(grayMut).setMargin(0));
             t.addCell(c);
         }
         doc.add(t);
+    }
+
+    /** Stamps "Página N de M" and the institution at the foot of every page. Done
+     *  on the finished file: the total is not known while the document is laid
+     *  out, and iText has already flushed the earlier pages by then. */
+    protected File numerarPaginas(File pdf) {
+        if (pdf == null) return null;
+        File tmp = null;
+        try {
+            tmp = File.createTempFile("sibim_paginas_", ".pdf");
+            PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+            DeviceRgb gris = new DeviceRgb(107, 114, 128);
+            try (PdfDocument d = new PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf.getAbsolutePath()),
+                                                 new PdfWriter(tmp.getAbsolutePath()));
+                 Document doc = new Document(d)) {
+                int total = d.getNumberOfPages();
+                String org = "SIBIM  ·  " + orgName();
+                for (int i = 1; i <= total; i++) {
+                    com.itextpdf.kernel.geom.Rectangle hoja = d.getPage(i).getPageSize();
+                    doc.showTextAligned(new Paragraph(org).setFont(font).setFontSize(6.5f).setFontColor(gris),
+                        hoja.getLeft() + 28, hoja.getBottom() + 12, i,
+                        com.itextpdf.layout.properties.TextAlignment.LEFT,
+                        com.itextpdf.layout.properties.VerticalAlignment.BOTTOM, 0);
+                    doc.showTextAligned(new Paragraph("Página " + i + " de " + total).setFont(font).setFontSize(6.5f).setFontColor(gris),
+                        hoja.getRight() - 28, hoja.getBottom() + 12, i,
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT,
+                        com.itextpdf.layout.properties.VerticalAlignment.BOTTOM, 0);
+                }
+            }
+            java.nio.file.Files.move(tmp.toPath(), pdf.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(ReporteService.class)
+                .warn("No se pudieron numerar las páginas de {}: {}", pdf.getName(), e.getMessage());
+            if (tmp != null) tmp.delete();
+        }
+        return pdf;
+    }
+
+    /** For the reports that audit the inventory as a whole. */
+    private static void soloPatrimonio() {
+        if (!com.sibim.session.Permisos.veReportesDeControl())
+            throw new SecurityException(com.sibim.session.Permisos.SOLO_PATRIMONIO_REPORTE);
     }
 
     protected static <T> List<T> guardExportSize(List<T> rows, String entidad) throws Exception {
@@ -211,6 +267,7 @@ public class ReporteService {
     }
 
     public File exportMovimientosExcel(LocalDate desde, LocalDate hasta) throws Exception {
+        soloPatrimonio();
         return new ReporteExcelService(productoRepo, movimientoRepo).exportMovimientosExcel(desde, hasta);
     }
 
@@ -238,28 +295,34 @@ public class ReporteService {
             addPdfHeader(doc, "Alertas y pendientes", null, null, folio);
             PdfFont sectionFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
             doc.add(new Paragraph("Garantías vencidas o por vencer en 30 días (" + garantias.size() + ")")
-                .setFont(sectionFont).setFontSize(11).setFontColor(new DeviceRgb(185, 28, 28)));
-            Table t1 = createPdfTable(new String[]{"Nombre", "Código", "Área", "Garantía hasta"},
-                new float[]{3f, 1.5f, 2.5f, 1.5f});
+                .setFont(sectionFont).setFontSize(11).setFontColor(COLOR_HEADER).setMarginTop(8).setMarginBottom(0));
+            Table t1 = createPdfTable(new String[]{"Bien", "Código", "Área", "Garantía hasta"},
+                new float[]{3f, 1.2f, 2.6f, 2.7f});
+            int i1 = 0;
             for (Producto p : garantias) {
-                t1.addCell(cell(p.getNombre())); t1.addCell(cell(p.getCodigo()));
-                t1.addCell(cell(p.getArea() != null ? p.getArea() : ""));
-                t1.addCell(cell(p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : ""));
+                boolean alt = (i1++ % 2) == 1;
+                t1.addCell(fila(p.getNombre(), alt)); t1.addCell(fila(p.getCodigo(), alt));
+                t1.addCell(fila(p.getArea(), alt));
+                t1.addCell(fila(p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "", alt));
             }
+            if (garantias.isEmpty()) sinRegistros(t1, 4, "Sin garantías vencidas ni por vencer");
             doc.add(t1);
             doc.add(new Paragraph("Pendientes patrimoniales (" + pendientes.size() + ")")
-                .setFont(sectionFont).setFontSize(11).setFontColor(new DeviceRgb(180, 83, 9)));
-            Table t2 = createPdfTable(new String[]{"Nombre", "Código", "Área", "Pendiente"},
-                new float[]{3f, 1.5f, 2.5f, 2f});
+                .setFont(sectionFont).setFontSize(11).setFontColor(COLOR_HEADER).setMarginTop(14).setMarginBottom(0));
+            Table t2 = createPdfTable(new String[]{"Bien", "Código", "Área", "Pendiente"},
+                new float[]{3f, 1.2f, 2.6f, 2.7f});
+            int i2 = 0;
             for (Producto p : pendientes) {
-                t2.addCell(cell(p.getNombre())); t2.addCell(cell(p.getCodigo()));
-                t2.addCell(cell(p.getArea() != null ? p.getArea() : ""));
-                t2.addCell(cell(pendientePatrimonial(p)));
+                boolean alt = (i2++ % 2) == 1;
+                t2.addCell(fila(p.getNombre(), alt)); t2.addCell(fila(p.getCodigo(), alt));
+                t2.addCell(fila(p.getArea(), alt));
+                t2.addCell(fila(pendientePatrimonial(p), alt));
             }
+            if (pendientes.isEmpty()) sinRegistros(t2, 4, "Todos los bienes tienen resguardante y etiqueta");
             doc.add(t2);
             addPdfFooter(doc, garantias.size() + pendientes.size(), folio);
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     /** "Sin resguardante" / "Sin etiquetar": what an audit asks about a bien. */
@@ -280,25 +343,35 @@ public class ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("DIS");
             addPdfHeader(doc, "Distribución por Área", null, null, folio);
-            String[] headers = {"Área", "Total Bienes", "Valor Total", "Sin resguardante", "Sin etiquetar"};
-            float[] widths = {3f, 1.5f, 2f, 1.2f, 1.5f};
+            String[] headers = {"Área", "Bienes", "Valor total", "Sin resguardante", "Sin etiquetar"};
+            float[] widths = {4f, 1f, 1.6f, 1.4f, 1.3f};
             Table table = createPdfTable(headers, widths);
-            porArea.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            alinearDerecha(table, 1, 2, 3, 4);
+            long sinResguardoTotal = 0, sinEtiquetaTotal = 0;
+            BigDecimal valorGlobal = BigDecimal.ZERO;
+            int idx = 0;
+            for (Map.Entry<String, List<Producto>> entry : new java.util.TreeMap<>(porArea).entrySet()) {
+                boolean alt = (idx++ % 2) == 1;
                 List<Producto> ps = entry.getValue();
-                long agotados  = ps.stream().filter(p -> p.getResguardante() == null || p.getResguardante().isBlank()).count();
-                long bajo      = ps.stream().filter(p -> !p.isEtiquetado()).count();
-                BigDecimal valor = ps.stream().map(Producto::getValorTotal)
+                long sinResguardo = ps.stream().filter(p -> p.getResguardante() == null || p.getResguardante().isBlank()).count();
+                long sinEtiqueta  = ps.stream().filter(p -> !p.isEtiquetado()).count();
+                BigDecimal valor = ps.stream().map(Producto::getValorTotal).filter(java.util.Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-                table.addCell(cell(entry.getKey()));
-                table.addCell(cell(String.valueOf(ps.size())));
-                table.addCell(cell(FormatUtils.formatCurrency(valor)));
-                table.addCell(cell(String.valueOf(agotados)));
-                table.addCell(cell(String.valueOf(bajo)));
-            });
+                sinResguardoTotal += sinResguardo;
+                sinEtiquetaTotal += sinEtiqueta;
+                valorGlobal = valorGlobal.add(valor);
+                table.addCell(fila(entry.getKey(), alt));
+                table.addCell(num(fila(String.valueOf(ps.size()), alt)));
+                table.addCell(num(fila(com.sibim.session.Permisos.pesos(valor), alt)));
+                table.addCell(num(fila(String.valueOf(sinResguardo), alt)));
+                table.addCell(num(fila(String.valueOf(sinEtiqueta), alt)));
+            }
+            addFilaTotal(table, 1, "TOTAL", String.valueOf(productos.size()), com.sibim.session.Permisos.pesos(valorGlobal),
+                String.valueOf(sinResguardoTotal), String.valueOf(sinEtiquetaTotal));
             doc.add(table);
             addPdfFooter(doc, porArea.size(), folio);
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     public File exportAlertasExcel() throws Exception {
@@ -332,30 +405,37 @@ public class ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("INV");
             addPdfHeader(doc, "Inventario General", desde, hasta, folio);
-            String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Cantidad", "Valor", "Estado"};
-            float[] widths = {3f, 1.5f, 1.5f, 2f, 1f, 1.5f, 1.2f};
+            String[] headers = {"Bien", "Código", "Categoría", "Área", "Cantidad", "Valor", "Estado"};
+            float[] widths = {3.2f, 1.2f, 1.7f, 2.6f, 0.9f, 1.4f, 1f};
             Table table = createPdfTable(headers, widths);
+            alinearDerecha(table, 4, 5);
             int idx = 0;
+            BigDecimal valorTotal = BigDecimal.ZERO;
             for (Producto p : productos) {
                 boolean alt = (idx++ % 2) == 1;
-                table.addCell(alt ? cellAlt(p.getNombre()) : cell(p.getNombre()));
-                table.addCell(alt ? cellAlt(p.getCodigo()) : cell(p.getCodigo()));
-                table.addCell(alt ? cellAlt(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "") : cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
-                table.addCell(alt ? cellAlt(p.getArea()) : cell(p.getArea()));
-                table.addCell(alt ? cellAlt(String.valueOf(p.getStockActual())) : cell(String.valueOf(p.getStockActual())));
-                table.addCell(alt ? cellAlt(FormatUtils.formatCurrency(p.getValorTotal())) : cell(FormatUtils.formatCurrency(p.getValorTotal())));
-                table.addCell(alt ? cellAlt(p.getEstado().getEtiqueta()) : cell(p.getEstado().getEtiqueta()));
+                BigDecimal valor = p.getValorTotal() != null ? p.getValorTotal() : BigDecimal.ZERO;
+                valorTotal = valorTotal.add(valor);
+                table.addCell(fila(p.getNombre(), alt));
+                table.addCell(fila(p.getCodigo(), alt));
+                table.addCell(fila(p.getCategoriaNombre(), alt));
+                table.addCell(fila(p.getArea(), alt));
+                table.addCell(num(fila(String.valueOf(p.getStockActual()), alt)));
+                table.addCell(num(fila(com.sibim.session.Permisos.pesos(valor), alt)));
+                table.addCell(fila(p.getEstado().getEtiqueta(), alt));
             }
+            addFilaTotal(table, 5, "VALOR TOTAL DEL INVENTARIO  (" + productos.size() + " bienes)",
+                com.sibim.session.Permisos.pesos(valorTotal), "");
             doc.add(table);
             addFirmasBlock(doc,
                 new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+                new String[]{"VO.BO.", null, "Secretario General Municipal"});
             addPdfFooter(doc, productos.size(), folio);
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     public File exportMovimientosPdf(LocalDate desde, LocalDate hasta) throws Exception {
+        soloPatrimonio();
         List<Movimiento> movimientos = guardExportSize(movimientoRepo.findByDateRange(desde, hasta), "movimientos");
         if (movimientos.isEmpty()) return null;
         File file = tempFile("movimientos", ".pdf");
@@ -364,27 +444,28 @@ public class ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("MOV");
             addPdfHeader(doc, "Registro de Movimientos", desde, hasta, folio);
-            String[] headers = {"Bien", "Tipo", "Cantidad", "Ant.", "Nuevo", "Usuario", "Fecha"};
-            float[] widths = {3f, 1.5f, 1f, 1f, 1f, 2f, 2f};
+            String[] headers = {"Bien", "Tipo", "Cantidad", "Antes", "Después", "Registró", "Fecha"};
+            float[] widths = {3.2f, 1.3f, 0.9f, 0.8f, 0.9f, 2.3f, 1.6f};
             Table table = createPdfTable(headers, widths);
+            alinearDerecha(table, 2, 3, 4);
             int idx = 0;
             for (Movimiento m : movimientos) {
                 boolean alt = (idx++ % 2) == 1;
-                table.addCell(alt ? cellAlt(m.getProductoNombre()) : cell(m.getProductoNombre()));
-                table.addCell(alt ? cellAlt(m.getTipo().getEtiqueta()) : cell(m.getTipo().getEtiqueta()));
-                table.addCell(alt ? cellAlt(String.valueOf(m.getCantidad())) : cell(String.valueOf(m.getCantidad())));
-                table.addCell(alt ? cellAlt(String.valueOf(m.getStockAnterior())) : cell(String.valueOf(m.getStockAnterior())));
-                table.addCell(alt ? cellAlt(String.valueOf(m.getStockNuevo())) : cell(String.valueOf(m.getStockNuevo())));
-                table.addCell(alt ? cellAlt(m.getUsuarioNombre()) : cell(m.getUsuarioNombre()));
-                table.addCell(alt ? cellAlt(FormatUtils.formatDateTime(m.getCreadoEn())) : cell(FormatUtils.formatDateTime(m.getCreadoEn())));
+                table.addCell(fila(m.getProductoNombre(), alt));
+                table.addCell(fila(m.getTipo().getEtiqueta(), alt));
+                table.addCell(num(fila(String.valueOf(m.getCantidad()), alt)));
+                table.addCell(num(fila(String.valueOf(m.getStockAnterior()), alt)));
+                table.addCell(num(fila(String.valueOf(m.getStockNuevo()), alt)));
+                table.addCell(fila(m.getUsuarioNombre(), alt));
+                table.addCell(fila(FormatUtils.formatDateTime(m.getCreadoEn()), alt));
             }
             doc.add(table);
             addFirmasBlock(doc,
                 new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+                new String[]{"VO.BO.", null, "Secretario General Municipal"});
             addPdfFooter(doc, movimientos.size(), folio);
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     public File exportAuditoriaPdf(List<AuditLog> logs,
@@ -417,6 +498,7 @@ public class ReporteService {
     }
 
     public File exportMovimientosCsv(LocalDate desde, LocalDate hasta) throws Exception {
+        soloPatrimonio();
         return new ReporteCsvService(productoRepo, movimientoRepo).exportMovimientosCsv(desde, hasta);
     }
 
@@ -453,6 +535,10 @@ public class ReporteService {
     // ───────────────────────────── Helpers ─────────────────────────────
 
     protected File tempFile(String prefix, String suffix) throws IOException {
+        // Every Excel and CSV export passes through here: an editable copy of the
+        // inventory leaves the system only from Patrimonio's hands.
+        if ((".xlsx".equals(suffix) || ".csv".equals(suffix)) && !com.sibim.session.Permisos.exportaHojasDeCalculo())
+            throw new SecurityException(com.sibim.session.Permisos.SOLO_PDF);
         File file = File.createTempFile("sibim_" + prefix + "_", suffix);
         // These files get handed to an external viewer via Desktop.open()
         // right after creation, so they can't be deleted immediately —
@@ -485,6 +571,11 @@ public class ReporteService {
             r.createCell(0).setCellValue(rows[i][0]);
             r.createCell(1).setCellValue(rows[i][1]);
         }
+        CellStyle etiqueta = wb.createCellStyle();
+        Font negrita = wb.createFont();
+        negrita.setBold(true);
+        etiqueta.setFont(negrita);
+        for (int i = 0; i < rows.length; i++) info.getRow(i).getCell(0).setCellStyle(etiqueta);
         info.autoSizeColumn(0);
         info.autoSizeColumn(1);
     }
@@ -519,10 +610,66 @@ public class ReporteService {
         sheet.createFreezePane(0, 1);
     }
 
+    /** Last step of every Excel sheet: column widths, then the look of the data
+     *  rows and how the sheet prints. */
     protected void autosizeColumns(Sheet sheet, int count) {
         for (int i = 0; i < count; i++) {
             sheet.autoSizeColumn(i);
+            // Room for the filter arrow, and no single long text taking the whole screen.
+            sheet.setColumnWidth(i, Math.min(Math.max(sheet.getColumnWidth(i) + 900, 2800), 60 * 256));
         }
+        darFormatoDeDatos(sheet, count);
+    }
+
+    private static final java.util.regex.Pattern COLUMNA_DE_DINERO = java.util.regex.Pattern.compile(
+        "valor|importe|precio|costo|monto", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /** Zebra rows with a hairline under each, amounts as currency, and a sheet that
+     *  prints landscape, one page wide, with the title row on every page. */
+    private void darFormatoDeDatos(Sheet sheet, int count) {
+        Workbook wb = sheet.getWorkbook();
+        Row encabezado = sheet.getRow(0);
+        if (encabezado == null) return;
+        boolean[] dinero = new boolean[count];
+        for (int c = 0; c < count; c++) {
+            org.apache.poi.ss.usermodel.Cell h = encabezado.getCell(c);
+            dinero[c] = h != null && h.getCellType() == CellType.STRING
+                && COLUMNA_DE_DINERO.matcher(h.getStringCellValue()).find();
+        }
+        // [zebra][kind]: 0 text, 1 number, 2 currency — a workbook holds few styles, so they are shared.
+        CellStyle[][] estilos = new CellStyle[2][3];
+        short moneda = wb.createDataFormat().getFormat("$#,##0.00");
+        for (int z = 0; z < 2; z++) for (int k = 0; k < 3; k++) {
+            CellStyle st = wb.createCellStyle();
+            st.setVerticalAlignment(org.apache.poi.ss.usermodel.VerticalAlignment.CENTER);
+            st.setBorderBottom(BorderStyle.HAIR);
+            st.setBottomBorderColor(IndexedColors.GREY_40_PERCENT.getIndex());
+            if (k > 0) st.setAlignment(HorizontalAlignment.RIGHT);
+            if (k == 2) st.setDataFormat(moneda);
+            if (z == 1 && st instanceof org.apache.poi.xssf.usermodel.XSSFCellStyle x) {
+                x.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[]{(byte) 252, (byte) 240, (byte) 241}, null));
+                x.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            }
+            estilos[z][k] = st;
+        }
+        for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+            Row row = sheet.getRow(r);
+            if (row == null) continue;
+            int z = r % 2 == 0 ? 1 : 0;
+            for (int c = 0; c < count; c++) {
+                org.apache.poi.ss.usermodel.Cell cell = row.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                boolean numero = cell.getCellType() == CellType.NUMERIC;
+                cell.setCellStyle(estilos[z][numero ? (dinero[c] ? 2 : 1) : 0]);
+            }
+        }
+        sheet.getPrintSetup().setLandscape(true);
+        sheet.setFitToPage(true);
+        sheet.getPrintSetup().setFitWidth((short) 1);
+        sheet.getPrintSetup().setFitHeight((short) 0);
+        sheet.setRepeatingRows(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, count - 1));
+        sheet.getFooter().setLeft("SIBIM · " + orgName());
+        sheet.getFooter().setRight("Página &P de &N");
     }
 
     protected void addPdfHeader(Document doc, String titulo, LocalDate desde, LocalDate hasta) throws IOException {
@@ -554,7 +701,7 @@ public class ReporteService {
         else if (logoImg != null)                   hw = new float[]{1f, 4f};
         else if (folio != null)                     hw = new float[]{4f, 1.3f};
         else                                        hw = new float[]{1f};
-        Table header = new Table(hw).useAllAvailableWidth();
+        Table header = tabla(hw);
 
         if (logoImg != null) {
             com.itextpdf.layout.element.Cell logoCell = new com.itextpdf.layout.element.Cell()
@@ -569,7 +716,8 @@ public class ReporteService {
             .add(new Paragraph(titulo).setFont(titleFont).setFontSize(14).setFontColor(ColorConstants.WHITE))
             .add(new Paragraph(orgName()).setFont(regularFont).setFontSize(9)
                 .setFontColor(new DeviceRgb(240, 195, 195)))
-            .setBackgroundColor(COLOR_HEADER).setPadding(12).setBorder(null);
+            .setBackgroundColor(COLOR_HEADER).setPadding(12).setBorder(null)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
         header.addCell(leftCell);
 
         if (folio != null) {
@@ -612,21 +760,49 @@ public class ReporteService {
         }
     }
 
+    /** A listing table. The header row repeats on every page. */
     protected Table createPdfTable(String[] headers, float[] widths) throws IOException {
-        Table table = new Table(widths).useAllAvailableWidth().setMarginTop(8);
+        Table table = tabla(widths).setMarginTop(8);
         PdfFont hFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         for (String h : headers) {
             com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph(h).setFont(hFont).setFontSize(8).setFontColor(ColorConstants.WHITE))
                 .setBackgroundColor(COLOR_HEADER)
                 .setPadding(6)
+                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
                 .setBorderTop(Border.NO_BORDER)
                 .setBorderLeft(Border.NO_BORDER)
                 .setBorderRight(Border.NO_BORDER)
                 .setBorderBottom(new SolidBorder(new DeviceRgb(120, 25, 33), 1.5f));
-            table.addCell(headerCell);
+            table.addHeaderCell(headerCell);
         }
         return table;
+    }
+
+    /** Right-aligns the header cells of the numeric columns, to match {@link #num}. */
+    protected static void alinearDerecha(Table table, int... columnas) {
+        for (int c : columnas)
+            table.getHeader().getCell(0, c).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT);
+    }
+
+    /** Amounts and quantities line up on the right. */
+    protected static com.itextpdf.layout.element.Cell num(com.itextpdf.layout.element.Cell c) {
+        return c.setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT);
+    }
+
+    /** A closing row: label over the first {@code span} columns, then one bold cell per value. */
+    protected void addFilaTotal(Table table, int span, String etiqueta, String... valores) throws IOException {
+        PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        SolidBorder arriba = new SolidBorder(COLOR_HEADER, 1f);
+        table.addCell(new com.itextpdf.layout.element.Cell(1, span)
+            .add(new Paragraph(etiqueta).setFont(bold).setFontSize(8.5f).setFontColor(COLOR_HEADER))
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+            .setBackgroundColor(ROW_ALT_BG).setPadding(5).setBorder(Border.NO_BORDER).setBorderTop(arriba));
+        for (String v : valores)
+            table.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph(v == null ? "" : v).setFont(bold).setFontSize(8.5f).setFontColor(COLOR_HEADER))
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+                .setBackgroundColor(ROW_ALT_BG).setPadding(5).setBorder(Border.NO_BORDER).setBorderTop(arriba));
     }
 
     protected void addPdfFooter(Document doc, int count) throws IOException {
@@ -666,6 +842,7 @@ public class ReporteService {
         return new com.itextpdf.layout.element.Cell()
             .add(new Paragraph(text == null ? "" : text).setFontSize(8.5f))
             .setPadding(5)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
             .setBorderTop(Border.NO_BORDER)
             .setBorderLeft(Border.NO_BORDER)
             .setBorderRight(Border.NO_BORDER)
@@ -674,6 +851,20 @@ public class ReporteService {
 
     protected static com.itextpdf.layout.element.Cell cellAlt(String text) {
         return cell(text).setBackgroundColor(ROW_ALT_BG);
+    }
+
+    /** A data cell of a zebra-striped listing. */
+    protected static com.itextpdf.layout.element.Cell fila(String text, boolean alt) {
+        return alt ? cellAlt(text) : cell(text);
+    }
+
+    /** One full-width row saying the listing is empty, instead of a header with nothing under it. */
+    protected static void sinRegistros(Table table, int columnas, String mensaje) {
+        table.addCell(new com.itextpdf.layout.element.Cell(1, columnas)
+            .add(new Paragraph(mensaje).setFontSize(8.5f).setFontColor(new DeviceRgb(107, 114, 128)))
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            .setPadding(10).setBorder(Border.NO_BORDER)
+            .setBorderBottom(new SolidBorder(BORDER_LIGHT, 0.4f)));
     }
 
     // ───────────────────────────── FICHA TÉCNICA ─────────────────────
@@ -746,9 +937,9 @@ public class ReporteService {
         return guardExportSize(bajas, "bienes dados de baja");
     }
 
-    public File exportBajasPdf() throws Exception  { return exportBajasPdf(fetchBajas()); }
-    public File exportBajasExcel() throws Exception { return exportBajasExcel(fetchBajas()); }
-    public File exportBajasCsv() throws Exception   { return exportBajasCsv(fetchBajas()); }
+    public File exportBajasPdf() throws Exception { soloPatrimonio(); return exportBajasPdf(fetchBajas()); }
+    public File exportBajasExcel() throws Exception { soloPatrimonio(); return exportBajasExcel(fetchBajas()); }
+    public File exportBajasCsv() throws Exception { soloPatrimonio(); return exportBajasCsv(fetchBajas()); }
 
     public File exportBajasPdf(List<Producto> bajas) throws Exception {
         return new ReporteBajasService().exportBajasPdf(bajas);
@@ -797,12 +988,14 @@ public class ReporteService {
     // ── Parque Vehicular V.6 ─────────────────────────────
 
     public File exportParqueVehicularPdf(List<Producto> vehiculos) throws Exception {
+        soloPatrimonio();
         return new ReporteParqueVehicularService().exportParqueVehicularPdf(vehiculos);
     }
 
     // ── Entrega-Recepción ANEXO V.4 ──────────────────────
 
     public File exportEntregaRecepcionPdf(List<Producto> bienes) throws Exception {
+        soloPatrimonio();
         return new ReporteEntregaRecepcionService().exportEntregaRecepcionPdf(bienes);
     }
 
@@ -815,6 +1008,7 @@ public class ReporteService {
     // ─────────────────── AUDITORÍA CONSOLIDADA ───────────────────
 
     public File exportAuditoriaPdf() throws Exception {
+        soloPatrimonio();
         return new ReporteAuditoriaService().exportAuditoriaPdf();
     }
 }

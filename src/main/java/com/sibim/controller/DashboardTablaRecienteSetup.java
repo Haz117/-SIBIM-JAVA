@@ -183,6 +183,7 @@ class DashboardTablaRecienteSetup {
         bienLbl.setWrapText(true);
         Hyperlink linkVerBien = new Hyperlink("Ver ficha →");
         linkVerBien.getStyleClass().add("muted-sm");
+        linkVerBien.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         if (m.getProductoId() != null) {
             linkVerBien.setOnAction(ev -> {
                 dlg.close();
@@ -199,9 +200,11 @@ class DashboardTablaRecienteSetup {
         HBox bienRow = new HBox(10, bienLbl, linkVerBien);
         bienRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
+        Label motivoLbl = new Label(m.getMotivo() != null ? m.getMotivo() : "—");
+        motivoLbl.setWrapText(true);
         grid.add(DialogUtil.fieldLabel("Bien"),    0, r); grid.add(bienRow,  1, r++);
         grid.add(DialogUtil.fieldLabel("Cantidad"),   0, r); grid.add(stockRow, 1, r++);
-        grid.add(DialogUtil.fieldLabel("Motivo"),  0, r); grid.add(new Label(m.getMotivo() != null ? m.getMotivo() : "—"), 1, r++);
+        grid.add(DialogUtil.fieldLabel("Motivo"),  0, r); grid.add(motivoLbl, 1, r++);
         grid.add(DialogUtil.fieldLabel("Usuario"), 0, r); grid.add(new Label(m.getUsuarioNombre()), 1, r++);
         grid.add(DialogUtil.fieldLabel("Fecha"),   0, r); grid.add(new Label(FormatUtils.formatDateTime(m.getCreadoEn())), 1, r);
 

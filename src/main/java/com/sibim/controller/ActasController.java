@@ -252,7 +252,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
 
         Label secSal = new Label("FUNCIONARIO SALIENTE");
         secSal.getStyleClass().add("dialog-field-label");
-        form.add(secSal, 0, row++);
+        form.add(secSal, 0, row++, 2, 1);
         form.add(new Separator(), 0, row++, 2, 1);
 
         TextField fNombreSal = new TextField(); fNombreSal.setPromptText("Nombre completo");
@@ -265,7 +265,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         Label secEnt = new Label("FUNCIONARIO ENTRANTE");
         secEnt.getStyleClass().add("dialog-field-label");
         form.add(new Region(), 0, row++);
-        form.add(secEnt, 0, row++);
+        form.add(secEnt, 0, row++, 2, 1);
         form.add(new Separator(), 0, row++, 2, 1);
 
         TextField fNombreEnt = new TextField(); fNombreEnt.setPromptText("Nombre completo");

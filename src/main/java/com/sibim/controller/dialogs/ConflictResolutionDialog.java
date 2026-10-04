@@ -112,8 +112,7 @@ public final class ConflictResolutionDialog {
         grid.add(bold("Servidor"),        2, row);
         row++;
 
-        row = addRow(grid, row, "Stock actual",  str(off.getStockActual()),     srv == null ? "—" : str(srv.getStockActual()));
-        row = addRow(grid, row, "Stock mínimo",  str(off.getStockMinimo()),     srv == null ? "—" : str(srv.getStockMinimo()));
+        row = addRow(grid, row, "Cantidad",      str(off.getStockActual()),     srv == null ? "—" : str(srv.getStockActual()));
         row = addRow(grid, row, "Área",          nvl(off.getArea()),            srv == null ? "—" : nvl(srv.getArea()));
         row = addRow(grid, row, "Resguardante",  nvl(off.getResguardante()),    srv == null ? "—" : nvl(srv.getResguardante()));
         row = addRow(grid, row, "Precio compra", moneda(off.getPrecioCompra()), srv == null ? "—" : moneda(srv.getPrecioCompra()));

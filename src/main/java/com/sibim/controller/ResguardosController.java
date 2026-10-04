@@ -90,7 +90,8 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
     @Override
     protected void onInitialize() {
-        boolean canCreate = com.sibim.session.Permisos.gestionaDocumentos();
+        // Patrimonio and every área (secretaría or dirección), for its own bienes.
+        boolean canCreate = com.sibim.session.Permisos.creaResguardos();
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         actualizarSolicitudes();
         setupDateFilterBar(
@@ -143,13 +144,14 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
     private void actualizarSolicitudes() {
         if (btnSolicitudes == null) return;
-        boolean hay = com.sibim.service.SolicitudService.disponible();
-        btnSolicitudes.setVisible(hay); btnSolicitudes.setManaged(hay);
-        if (!hay) return;
-        if (!SessionManager.isAdmin()) { btnSolicitudes.setText("Mis solicitudes"); return; }
+        // The áreas no longer send requests; the button only shows while Patrimonio
+        // still has some to answer from before.
+        btnSolicitudes.setVisible(false); btnSolicitudes.setManaged(false);
+        if (!com.sibim.service.SolicitudService.disponible() || !com.sibim.session.Permisos.atiendeSolicitudes()) return;
         DialogUtil.runAsync(
             () -> new com.sibim.service.SolicitudService().countPendientes(),
             n -> {
+                btnSolicitudes.setVisible(n > 0); btnSolicitudes.setManaged(n > 0);
                 btnSolicitudes.setText(n > 0 ? "Solicitudes (" + n + ")" : "Solicitudes");
                 btnSolicitudes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
                 btnSolicitudes.getStyleClass().add(n > 0 ? "btn-warning-outline" : "btn-secondary");
@@ -184,9 +186,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     protected String getLoadErrorMessage() { return "No se pudieron cargar los resguardos"; }
     @Override protected String emptyStateIcon()     { return "mdi2b-badge-account-outline"; }
     @Override protected String emptyStateTitle()    { return "Sin resguardos registrados"; }
-    @Override protected String emptyStateSubtitle() { return com.sibim.session.Permisos.gestionaDocumentos()
+    @Override protected String emptyStateSubtitle() { return SessionManager.isAdmin()
         ? "Asigna bienes a servidores públicos con \"Nuevo Resguardo\""
-        : "Para pedir uno: Bienes > clic derecho sobre el bien > Solicitar resguardo"; }
+        : "Asigna los bienes de tu área a quien los tiene a su cargo con \"Nuevo Resguardo\""; }
 
     @Override
     protected boolean isFilterActive() {
@@ -316,9 +318,14 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         fNombre.getStyleClass().add("form-input");
         TextField fCargo  = new TextField(); fCargo.setPromptText("Cargo o puesto");
         fCargo.getStyleClass().add("form-input");
-        ComboBox<String> areaCombo = new ComboBox<>(
-            FXCollections.observableArrayList(new java.util.ArrayList<>(Areas.getAllAreaNames())));
-        areaCombo.setEditable(true); areaCombo.setMaxWidth(Double.MAX_VALUE);
+        // An área assigns resguardos to its own people: the list offers only its áreas.
+        java.util.List<String> areasCatalogo = Areas.getAllAreaNames().stream()
+            .filter(com.sibim.session.Permisos::esAreaPropia)
+            .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+        ComboBox<String> areaCombo = new ComboBox<>();
+        areaCombo.setPromptText("Buscar área…");
+        DialogUtil.makeFilterable(areaCombo, areasCatalogo);
+        areaCombo.setMaxWidth(Double.MAX_VALUE);
         areaCombo.getStyleClass().add("form-input");
 
         Label lblNombreHint = new Label("Campo requerido");
@@ -354,22 +361,14 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             @Override public Producto fromString(String s) { return null; }
         });
         productoCombo.setPromptText("Seleccionar bien…");
-        productoCombo.setEditable(true);
-        javafx.scene.control.TextField editorField = productoCombo.getEditor();
-        if (editorField != null) {
-            editorField.textProperty().addListener((obs, o, n) -> {
-                if (n == null || n.isBlank()) { productoCombo.setItems(productosObs); }
-                else {
-                    String lq = n.toLowerCase();
-                    productoCombo.setItems(productosObs.filtered(p ->
-                        p.getNombre().toLowerCase().contains(lq)
-                        || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(lq))));
-                }
-            });
-        }
+        // Type-to-filter picker shared with Movimientos: the hand-rolled filter that was
+        // here swapped the item list while typing, which never opened the list and
+        // lost what was typed, so the bien could not be searched.
+        DialogUtil.makeFilterable(productoCombo, productos, p -> productoCombo.getConverter().toString(p));
 
         Button btnAgregar = new Button("+ Agregar");
         btnAgregar.getStyleClass().add("btn-primary");
+        btnAgregar.setMinWidth(Region.USE_PREF_SIZE);   // was squeezed to "…" by the picker
 
         ObservableList<ResguardoItem> itemsAgregados = FXCollections.observableArrayList();
         TableView<ResguardoItem> itemsTable = new TableView<>(itemsAgregados);
@@ -385,16 +384,23 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         TableColumn<ResguardoItem, String> colItemCodigo = new TableColumn<>("Código");
         colItemCodigo.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getProductoCodigo() != null ? c.getValue().getProductoCodigo() : "—"));
-        colItemCodigo.setMaxWidth(100);
+        colItemCodigo.setMinWidth(90); colItemCodigo.setMaxWidth(120);
         TableColumn<ResguardoItem, String> colItemArea = new TableColumn<>("Área");
         colItemArea.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
         TableColumn<ResguardoItem, Void> colItemDel = new TableColumn<>("");
-        colItemDel.setMaxWidth(40);
+        // Fixed width that fits the button: at 40px the "quitar" button was cut off by the dialog edge.
+        colItemDel.setMinWidth(60); colItemDel.setMaxWidth(60);
+        colItemDel.setResizable(false); colItemDel.setSortable(false);
         colItemDel.setCellFactory(col -> new TableCell<>() {
             private final Button btnDel = new Button();
-            { btnDel.setGraphic(new FontIcon("mdi2d-delete-outline"));
-              btnDel.getStyleClass().add("btn-secondary");
+            { FontIcon ico = new FontIcon("mdi2d-delete-outline");
+              ico.getStyleClass().add("btn-icon");
+              btnDel.setGraphic(ico);
+              btnDel.getStyleClass().add("btn-icon-only");
+              btnDel.setTooltip(new Tooltip("Quitar de la lista"));
+              btnDel.setAccessibleText("Quitar de la lista");
+              setAlignment(Pos.CENTER);
               btnDel.setOnAction(e -> itemsAgregados.remove(getTableRow().getItem())); }
             @Override protected void updateItem(Void v, boolean empty) {
                 super.updateItem(v, empty);
@@ -414,8 +420,10 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             item.setProductoCodigo(sel.getCodigo()); item.setArea(sel.getArea());
             item.setValorUnitario(sel.getValorUnitario()); item.setNumeroSerie(sel.getNumeroSerie());
             itemsAgregados.add(item);
-            productoCombo.setValue(null);
+            // Editor first: the filterable picker restores a selection whose text is still shown.
             if (productoCombo.getEditor() != null) productoCombo.getEditor().clear();
+            productoCombo.setValue(null);
+            productoCombo.hide();
         });
 
         Button btnCargarArea = new Button("Cargar todos del área");

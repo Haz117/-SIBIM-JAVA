@@ -84,4 +84,77 @@ class AreaServiceTest {
         assertFalse(service.refrescarSiCambio());
         assertSame(AreaCatalog.PREDETERMINADO, Areas.catalogo());
     }
+
+    private static com.sibim.model.Usuario admin() {
+        com.sibim.model.Usuario u = new com.sibim.model.Usuario();
+        u.setId("area-admin");
+        u.setUsername("admin");
+        u.setRol(com.sibim.model.enums.Rol.ADMIN);
+        return u;
+    }
+
+    @Test
+    void moverDireccion_enDemo_cambiaElPadreSoloEnMemoria() throws SQLException {
+        DatabaseConfig.setDemoMode(true);
+        com.sibim.session.SessionManager.setCurrentUser(admin());
+        try {
+            String direccion = Areas.direccionesPresidencia().get(0);
+            String destino = Areas.secretarias().get(0).nombre();
+            service.moverDireccion(direccion, destino);
+            assertEquals(destino, Areas.catalogo().buscar(direccion).orElseThrow().padre());
+            assertFalse(Areas.direccionesPresidencia().contains(direccion));
+            assertEquals(0, repo.cargas, "demo: no toca la base");
+        } finally {
+            com.sibim.session.SessionManager.logout();
+            DatabaseConfig.setDemoMode(false);
+        }
+    }
+
+    @Test
+    void moverDireccion_rechazaLoQueNoEsDireccionYPadresInvalidos() {
+        DatabaseConfig.setDemoMode(true);
+        com.sibim.session.SessionManager.setCurrentUser(admin());
+        try {
+            String secretaria = Areas.secretarias().get(0).nombre();
+            String direccion = Areas.direccionesPresidencia().get(0);
+            assertThrows(IllegalArgumentException.class,
+                () -> service.moverDireccion(secretaria, Areas.PRESIDENCIA));
+            assertThrows(IllegalArgumentException.class,
+                () -> service.moverDireccion(direccion, Areas.autonomos().get(0)),
+                "una dirección no puede depender de un organismo autónomo");
+            assertSame(AreaCatalog.PREDETERMINADO, Areas.catalogo());
+        } finally {
+            com.sibim.session.SessionManager.logout();
+            DatabaseConfig.setDemoMode(false);
+        }
+    }
+
+    @Test
+    void moverDireccion_cambiaQueSecretarioLaVe() throws SQLException {
+        DatabaseConfig.setDemoMode(true);
+        String direccion = Areas.secretarias().get(0).direcciones().get(0);
+        String origen = Areas.secretarias().get(0).nombre();
+        String destino = Areas.secretarias().get(1).nombre();
+        try {
+            com.sibim.session.SessionManager.setCurrentUser(admin());
+            service.moverDireccion(direccion, destino);
+
+            com.sibim.session.SessionManager.setCurrentUser(secretario(destino));
+            assertTrue(com.sibim.session.SessionManager.isAreaAccessible(direccion),
+                "el secretario de destino ya la ve");
+            com.sibim.session.SessionManager.setCurrentUser(secretario(origen));
+            assertFalse(com.sibim.session.SessionManager.isAreaAccessible(direccion),
+                "el secretario de origen deja de verla");
+        } finally {
+            com.sibim.session.SessionManager.logout();
+            DatabaseConfig.setDemoMode(false);
+        }
+    }
+
+    private static com.sibim.model.Usuario secretario(String area) {
+        com.sibim.model.Usuario u = admin();
+        u.setRol(com.sibim.model.enums.Rol.SECRETARIO);
+        u.setArea(area);
+        return u;
+    }
 }

@@ -99,7 +99,7 @@ public class ReporteResguardoService extends ReporteService {
              PdfDocument pdf   = new PdfDocument(writer);
              Document    doc   = new Document(pdf, PageSize.LETTER)) {
 
-            doc.setMargins(36, 40, 52, 40);
+            doc.setMargins(34, 40, 36, 40);
             PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
             PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
@@ -115,10 +115,9 @@ public class ReporteResguardoService extends ReporteService {
             seccionBienes(doc, bold, reg, r, productosExtra, fechaStr);
             seccionNota(doc, reg, r.getItems().size());
             seccionFundamento(doc, reg);
-            seccionFirmas(doc, bold, reg, r);
-            seccionFooter(doc, reg, numero, fechaStr, horaStr);
+            seccionFirmas(doc, bold, reg, r, numero, fechaStr, horaStr);
         }
-        return out;
+        return numerarPaginas(out);
     }
 
     // ── Sección 1: Encabezado ────────────────────────────────────────────────
@@ -203,9 +202,9 @@ public class ReporteResguardoService extends ReporteService {
         };
         for (String[] fila : filas) {
             fields.addCell(cell().add(para(fila[0], bold, 8).setFontColor(PURPLE))
-                .setBackgroundColor(GUINDA_LIGHT).setBorder(brd(GRAY_300)).setPadding(5));
+                .setBackgroundColor(GUINDA_LIGHT).setBorder(brd(GRAY_300)).setPadding(4));
             fields.addCell(cell().add(para(fila[1], reg, 8))
-                .setBorder(brd(GRAY_300)).setPadding(5));
+                .setBorder(brd(GRAY_300)).setPadding(4));
         }
         leftCol.add(fields);
         t.addCell(leftCol);
@@ -238,7 +237,8 @@ public class ReporteResguardoService extends ReporteService {
                 .setBorder(new SolidBorder(GRAY_300, 0.5f))
                 .setPadding(6)));
 
-        float[] cw = {0.4f, 1.5f, 3.2f, 1.1f, 1f, 1f};
+        // TIPO BIEN wide enough for "EQUIPO AUDIOVISUAL" on one line: half the rows used to take two.
+        float[] cw = {0.45f, 1.3f, 3.2f, 1.75f, 1.05f, 1.25f};
         Table t = new Table(UnitValue.createPercentArray(cw)).useAllAvailableWidth();
 
         String[] hdrs = {"NO.", "INVENTARIO", "CONCEPTO", "TIPO BIEN", "ASIGNACION", "COLOR"};
@@ -278,9 +278,11 @@ public class ReporteResguardoService extends ReporteService {
                 asignacion,
                 colorVal
             };
-            for (String v : vals) {
-                t.addCell(cell().add(para(v, reg, 7.5f))
-                    .setBackgroundColor(rowBg).setBorder(brd(GRAY_300)).setPadding(4));
+            for (int c = 0; c < vals.length; c++) {
+                t.addCell(cell().add(para(vals[c], reg, 7.5f)
+                        .setTextAlignment(c == 2 ? TextAlignment.LEFT : TextAlignment.CENTER))
+                    .setBackgroundColor(rowBg).setBorder(brd(GRAY_300)).setPadding(3.5f)
+                    .setVerticalAlignment(VerticalAlignment.MIDDLE));
             }
         }
         doc.add(t);
@@ -290,7 +292,7 @@ public class ReporteResguardoService extends ReporteService {
 
     private void seccionNota(Document doc, PdfFont reg, int total) {
         doc.add(para("NOTA: " + total + " Número(s) de inventarios impresos Respecto al Total de " + total,
-            reg, 8).setFontColor(GRAY_700).setMarginTop(6));
+            reg, 8).setFontColor(GRAY_700).setMarginTop(6).setKeepWithNext(true));
     }
 
     // ── Sección 5: Fundamento legal ──────────────────────────────────────────
@@ -300,57 +302,59 @@ public class ReporteResguardoService extends ReporteService {
             "En cumplimiento a lo dispuesto por el Artículo 98 fracción VII, de la Ley Orgánica Municipal " +
             "para el Estado de Hidalgo, con el propósito de controlar y salvaguardar los bienes muebles que " +
             "conforman el patrimonio del municipio, se integra la presente responsiva de resguardo de bienes muebles.",
-            reg, 7).setFontColor(GRAY_500).setMarginTop(8));
+            reg, 7).setFontColor(GRAY_500).setMarginTop(8).setKeepWithNext(true));
     }
 
     // ── Sección 6: Firmas ────────────────────────────────────────────────────
 
-    private void seccionFirmas(Document doc, PdfFont bold, PdfFont reg, Resguardo r) {
-        doc.add(new Paragraph("").setMarginTop(24));
-
+    private void seccionFirmas(Document doc, PdfFont bold, PdfFont reg, Resguardo r,
+                               String numero, String fechaStr, String horaStr) {
         Table t = new Table(UnitValue.createPercentArray(new float[]{1f, 1f, 1f, 1f}))
-            .useAllAvailableWidth().setMarginTop(8);
+            .useAllAvailableWidth().setFixedLayout().setMarginTop(16).setKeepTogether(true);
 
         String elaboro = r.getCreadoPorNombre() != null && !r.getCreadoPorNombre().isBlank()
-            ? r.getCreadoPorNombre() : "_______________";
-        String resguardante = r.getResguardanteNombre() != null ? r.getResguardanteNombre() : "_______________";
+            ? r.getCreadoPorNombre() : null;
+        String resguardante = r.getResguardanteNombre() != null && !r.getResguardanteNombre().isBlank()
+            && !"—".equals(r.getResguardanteNombre()) ? r.getResguardanteNombre() : null;
         String cargo        = r.getResguardanteCargo()  != null && !r.getResguardanteCargo().isBlank()
             ? r.getResguardanteCargo() : "Resguardante";
 
-        Object[][] firmas = {
+        String[][] firmas = {
             {"RECIBÍ DE CONFORMIDAD", resguardante, cargo},
-            {"ELABORÓ",               elaboro,       "Director de Recursos Materiales"},
-            {"VO.BO.",                "_______________", "Secretario General Municipal"},
-            {"SUPERVISO",             "_______________", "Síndico Hacendario"},
+            {"ELABORÓ",               elaboro,      "Director de Recursos Materiales"},
+            {"VO.BO.",                null,         "Secretario General Municipal"},
+            {"SUPERVISÓ",             null,         "Síndico Hacendario"},
         };
 
-        for (Object[] f : firmas) {
-            Cell c = cell().setBorder(Border.NO_BORDER).setPadding(6).setTextAlignment(TextAlignment.CENTER);
-            c.add(para((String) f[0], bold, 8).setFontColor(GRAY_700));
-            c.add(para("\n\n________________________", reg, 9));
-            c.add(para((String) f[1], bold, 7.5f).setMarginTop(2));
-            c.add(para((String) f[2], reg, 7).setFontColor(GRAY_500));
+        for (String[] f : firmas) {
+            Cell c = cell().setBorder(Border.NO_BORDER).setPaddingLeft(10).setPaddingRight(10)
+                .setTextAlignment(TextAlignment.CENTER);
+            c.add(para(f[0], bold, 8).setFontColor(GRAY_700).setMargin(0).setMarginBottom(30));
+            // A ruled line to sign on, the width of the column.
+            c.add(new Table(1).useAllAvailableWidth().addCell(new Cell().setHeight(1).setPadding(0)
+                .setBorder(Border.NO_BORDER).setBorderTop(new SolidBorder(GRAY_700, 0.7f))));
+            c.add(para(f[1] != null ? f[1] : "Nombre y firma", f[1] != null ? bold : reg, 7.5f)
+                .setFontColor(f[1] != null ? GRAY_700 : GRAY_500).setMargin(0).setMarginTop(3));
+            c.add(para(f[2], reg, 7).setFontColor(GRAY_500).setMargin(0));
             t.addCell(c);
         }
+        t.addCell(new Cell(1, 4).setBorder(Border.NO_BORDER).setPadding(0).add(pie(reg, numero, fechaStr, horaStr)));
         doc.add(t);
     }
 
     // ── Sección 7: Pie de página ─────────────────────────────────────────────
 
-    private void seccionFooter(Document doc, PdfFont reg,
-                               String numero, String fechaStr, String horaStr) {
+    /** Closing line of the document, under the signatures; the page count is
+     *  stamped on every page afterwards. */
+    private static Paragraph pie(PdfFont reg, String numero, String fechaStr, String horaStr) {
         String digits = numero.replaceAll("[^0-9]", "");
         String reporteId = "RESG" + (digits.isEmpty() ? numero : digits);
-
-        doc.add(para(
-            "REPORTE: " + reporteId + "     FECHA: " + fechaStr +
-            "     SIBIM     HORA: " + horaStr + "     NÚMERO: 1 DE 1",
-            reg, 7)
+        return para("REPORTE: " + reporteId + "     FECHA: " + fechaStr + "     HORA: " + horaStr, reg, 7)
             .setTextAlignment(TextAlignment.CENTER)
             .setFontColor(GRAY_500)
-            .setMarginTop(14)
+            .setMarginTop(12)
             .setBorderTop(new SolidBorder(GRAY_300, 0.5f))
-            .setPaddingTop(4));
+            .setPaddingTop(4);
     }
 
     // ── Utilidades ───────────────────────────────────────────────────────────

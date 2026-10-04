@@ -46,14 +46,13 @@ public class ReporteCsvService extends ReporteService {
     public File exportInventarioCsv(List<Producto> productos) throws Exception {
         File file = tempFile("inventario", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Nombre,Codigo,Categoria,Area,Resguardante,Stock,Stock Min,Stock Max,Precio Compra,Precio Venta,Valor Total,Estado,Proveedor,Marca,Modelo,N° de Serie,Ubicacion,Fecha Registro");
+            pw.println("Nombre,Codigo,Categoria,Area,Resguardante,Cantidad,Precio Compra,Valor Total,Estado,Proveedor,Marca,Modelo,N° de Serie,Ubicacion,Fecha Registro");
             for (Producto p : productos) {
-                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%d,%d,%d,%.2f,%.2f,%.2f,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%d,%.2f,%.2f,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
                     esc(p.getNombre()), esc(p.getCodigo()),
                     esc(p.getCategoriaNombre()), esc(p.getArea()), esc(p.getResguardante()),
-                    p.getStockActual(), p.getStockMinimo(), p.getStockMaximo(),
+                    p.getStockActual(),
                     p.getPrecioCompra() != null ? p.getPrecioCompra() : BigDecimal.ZERO,
-                    p.getPrecioVenta() != null ? p.getPrecioVenta() : BigDecimal.ZERO,
                     p.getValorTotal(),
                     p.getEstado().getEtiqueta(),
                     esc(p.getProveedor()),

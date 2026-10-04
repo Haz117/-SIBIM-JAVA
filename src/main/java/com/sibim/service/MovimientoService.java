@@ -114,15 +114,15 @@ public class MovimientoService {
 
     static final String SOLO_ADMIN_MOVIMIENTOS =
         "Solo el administrador (Patrimonio) registra movimientos. Tu área puede actualizar los datos "
-        + "de los bienes que tiene asignados y solicitar transferencias.";
+        + "de los bienes que tiene asignados.";
 
     private Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad, String motivo,
                                  String referencia, String areaDestino, Integer expectedStockAnterior)
             throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
-        // Areas may only REQUEST a transfer of their bienes (it waits for
-        // Patrimonio's approval, below); every other movement is Patrimonio's.
-        if (!SessionManager.isAdmin() && tipo != TipoMovimiento.TRANSFERENCIA)
+        // Every movement is Patrimonio's, transfers included: the áreas no longer
+        // request them through SIBIM (they ask Finanzas).
+        if (!SessionManager.isAdmin())
             throw new ValidationException(SOLO_ADMIN_MOVIMIENTOS);
         Optional<Producto> opt = productoRepo.findById(productoId);
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
@@ -183,16 +183,6 @@ public class MovimientoService {
         m.setUsuarioId(session.getId());
         m.setUsuarioNombre(session.getNombre());
 
-        // Non-admin transfers go through an approval workflow: saved as PENDIENTE,
-        // stock and area unchanged until an admin approves.
-        if (tipo == TipoMovimiento.TRANSFERENCIA && !SessionManager.isAdmin()) {
-            Movimiento saved = movimientoRepo.addMovimientoPendiente(m);
-            auditRepo.log("movimiento", saved.getId(), saved.getProductoNombre(), "transferencia_pendiente",
-                "Transferencia pendiente hacia " + saved.getAreaDestino());
-            log.info("Transferencia PENDIENTE [{}] '{}' {} uds → área '{}'",
-                saved.getId(), m.getProductoNombre(), m.getCantidad(), m.getAreaDestino());
-            return saved;
-        }
         try {
             Movimiento saved = movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
             auditRepo.log("movimiento", saved.getId(), m.getProductoNombre(), "crear",

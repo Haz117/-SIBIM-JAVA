@@ -153,6 +153,14 @@ public class ProductosController {
     private int currentPage = 0;
     private int pageSize = 25;
     private boolean refreshing = false;
+    /** A load was asked for while another was in flight (a restored filter racing
+     *  the first load, a filter changed mid-load): it runs when that one ends,
+     *  instead of being dropped and leaving the summary cards blank. */
+    private boolean recargaPendiente = false;
+    /** False while initialize() is still wiring the screen: a filter restored
+     *  then (pending área, remembered search) must not start a load of its own —
+     *  half the screen doesn't exist yet and the first load picks it up anyway. */
+    private boolean listo = false;
     private boolean filterSinEtiquetar = false;
     private final AtomicBoolean loading = new AtomicBoolean(false);
     /** Every role may update the data of the bienes it can see. */
@@ -196,15 +204,13 @@ public class ProductosController {
         presetPanel = new FilterPresetPanel(presetsBar, presetsHeader, categoriaFilter,
             searchField, areaFilter, resguardanteFilter, estadoChipGroup, this::applyFilters);
         presetPanel.load();
-        // Everyone sees it: Patrimonio registers any movement, an área requests a transfer.
-        if (btnMovimiento != null && !canManage) {
-            btnMovimiento.setText("Solicitar transferencia");
-            btnMovimiento.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2s-swap-horizontal"));
-            btnMovimiento.getGraphic().getStyleClass().add("btn-icon");
-            if (btnMovimiento.getTooltip() != null)
-                btnMovimiento.getTooltip().setText("Pide mover el bien seleccionado a otra área; Patrimonio aprueba "
-                    + "la solicitud y el área que recibe confirma la recepción");
+        // What the bienes are worth is not shown to a dirección.
+        if (!com.sibim.session.Permisos.veValores()) {
+            if (statCardValor != null) { statCardValor.setVisible(false); statCardValor.setManaged(false); }
+            if (colValor != null) table.getColumns().remove(colValor);
         }
+        // Movements are Patrimonio's alone; the áreas no longer request transfers here.
+        if (btnMovimiento != null) { btnMovimiento.setVisible(canManage); btnMovimiento.setManaged(canManage); }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
         if (btnEliminar != null) {
             btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit);
@@ -257,9 +263,13 @@ public class ProductosController {
         String savedSearch = STICKY.get("search", "");
         if (!savedSearch.isBlank()) searchField.setText(savedSearch);
         String savedArea = STICKY.get("area", "");
+        // The filter is remembered per PC, not per account: an área the person now
+        // signed in cannot see would leave the table empty with no way to tell why.
         if (!savedArea.isBlank() && areaFilter.getValue() == null
+                && SessionManager.isAreaAccessible(savedArea)
                 && areaFilter.getItems().contains(savedArea))
             areaFilter.setValue(savedArea);
+        listo = true;
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardTotal, statCardValor, cardAlertas, cardSinEtiquetar), 300, 55);
@@ -390,7 +400,7 @@ public class ProductosController {
     // ── Data loading ─────────────────────────────────────────────────────────
 
     private void loadData() {
-        if (!loading.compareAndSet(false, true)) { refreshing = true; return; }
+        if (!loading.compareAndSet(false, true)) { recargaPendiente = true; return; }
         if (dataLoader == null) dataLoader = new ProductosDataLoader(productoService);
         tableManager.showSkeletonPlaceholder();
         spinner.setVisible(true); spinner.setManaged(true);
@@ -413,6 +423,7 @@ public class ProductosController {
                     snap.estado(), snap.desdeReg(), snap.hastaReg());
                 updateStats(result.stats());
                 spinner.setVisible(false); spinner.setManaged(false);
+                if (recargaPendiente) { recargaPendiente = false; loadData(); return; }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
                 String pendingId = NavigationContext.consumePendingProductId();
                 if (pendingId != null) {
@@ -431,6 +442,7 @@ public class ProductosController {
             },
             ex -> {
                 loading.set(false);
+                recargaPendiente = false;
                 if (tableManager.skeletonPulse != null) { tableManager.skeletonPulse.stop(); tableManager.skeletonPulse = null; }
                 table.setPlaceholder(emptyStatePlaceholder);
                 spinner.setVisible(false); spinner.setManaged(false);
@@ -441,7 +453,8 @@ public class ProductosController {
 
     /** Loads a single page in the background using current filter state. */
     private void loadPage() {
-        if (!loading.compareAndSet(false, true)) { refreshing = true; return; }
+        if (!listo) return;
+        if (!loading.compareAndSet(false, true)) { recargaPendiente = true; return; }
         if (dataLoader == null) dataLoader = new ProductosDataLoader(productoService);
         spinner.setVisible(true); spinner.setManaged(true);
 
@@ -462,10 +475,12 @@ public class ProductosController {
                 chipsManager.refresh(snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
                     snap.estado(), snap.desdeReg(), snap.hastaReg());
                 spinner.setVisible(false); spinner.setManaged(false);
+                if (recargaPendiente) { recargaPendiente = false; loadData(); return; }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
             },
             ex -> {
                 loading.set(false);
+                recargaPendiente = false;
                 spinner.setVisible(false); spinner.setManaged(false);
                 NotificacionUtil.errorConAccion(table.getScene(),
                     "No se pudo cargar los bienes. Verifica la conexión.", "Reintentar", () -> loadPage());
@@ -643,6 +658,7 @@ public class ProductosController {
      *  register an entrada for a stock-out item). */
     @FXML
     private void onNuevoMovimiento() {
+        if (!canManage) return;   // movements are Patrimonio's alone
         Producto sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) {
             NotificacionUtil.advertencia(table.getScene(), canManage
@@ -944,7 +960,7 @@ public class ProductosController {
         TextField tf = new TextField();
         tf.setPromptText("Nombre del acceso rápido…");
         Label lbl = new Label("Nombre:");
-        lbl.getStyleClass().add("field-label");
+        lbl.getStyleClass().add("dialog-field-label");
         VBox form = new VBox(6, lbl, tf);
         form.setPadding(new Insets(16));
 

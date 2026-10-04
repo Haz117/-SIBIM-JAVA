@@ -59,9 +59,13 @@ class CuentasCompartidasTest {
         try (PdfDocument doc = new PdfDocument(new PdfReader(pdf))) {
             StringBuilder t = new StringBuilder();
             for (int i = 1; i <= doc.getNumberOfPages(); i++) t.append(PdfTextExtractor.getTextFromPage(doc.getPage(i)));
-            for (String s : new String[]{"ENTRAR AL SISTEMA", "SIN INTERNET", "TRANSFERENCIAS", "ACTUALIZACIONES",
-                    "Ejecutar de todas formas"}) {
+            for (String s : new String[]{"ENTRAR AL SISTEMA", "SIN INTERNET", "BIENES QUE RECIBE TU", "ACTUALIZACIONES",
+                    "Ejecutar de todas formas", "se pide a Finanzas"}) {
                 assertTrue(t.toString().contains(s), "falta «" + s + "»");
+            }
+            // The áreas no longer request anything through SIBIM: the guide must not tell them to.
+            for (String s : new String[]{"Solicitar transferencia", "Solicitar préstamo", "Mis solicitudes"}) {
+                assertFalse(t.toString().contains(s), "sobra «" + s + "»");
             }
         } finally {
             pdf.delete();

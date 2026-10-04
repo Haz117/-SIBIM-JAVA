@@ -1,5 +1,6 @@
 package com.sibim.controller;
 
+import com.sibim.session.SessionManager;
 import com.sibim.service.PrestamoService;
 import com.sibim.service.ProductoService;
 import com.sibim.util.AnimationUtils;
@@ -161,6 +162,14 @@ class NotificationCenter {
                 menu.hide();
                 // "vista:panel" opens a panel of that view once it loads.
                 String[] destino = item.targetView().split(":", 2);
+                // The áreas have no Movimientos screen: what they receive is confirmed right here.
+                if ("movimientos:por-recibir".equals(item.targetView()) && !SessionManager.isAdmin()) {
+                    com.sibim.service.MovimientoService servicio = new com.sibim.service.MovimientoService();
+                    com.sibim.util.DialogUtil.runAsync(servicio::getPorRecibir,
+                        lista -> new PorRecibirDialog(servicio, () -> { }).show(lista),
+                        ex -> { });
+                    return;
+                }
                 if (destino.length == 2) com.sibim.session.NavigationContext.setPendingAccionMovimientos(destino[1]);
                 navigate.accept(destino[0]);
             });

@@ -112,7 +112,7 @@ class ReporteCsvServiceTest {
         List<String> l = lineas(service.exportInventarioCsv(List.of(activo, agotado)));
 
         assertEquals(3, l.size(), "encabezado + 2 bienes");
-        assertTrue(l.get(0).startsWith("Nombre,Codigo,Categoria,Area,Resguardante,Stock"));
+        assertTrue(l.get(0).startsWith("Nombre,Codigo,Categoria,Area,Resguardante,Cantidad,Precio Compra,Valor Total"), "sin columnas de stock mínimo/máximo ni precio de venta");
         assertTrue(l.get(1).startsWith("\"Laptop HP\",\"INF-001\""));
         assertTrue(l.get(2).startsWith("\"Cartuchos\",\"INF-002\""));
     }

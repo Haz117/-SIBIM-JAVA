@@ -102,4 +102,22 @@ class QrFichaTest {
         return new KeyEvent(tipo, tipo == KeyEvent.KEY_TYPED ? texto : "", texto,
             code == null ? KeyCode.UNDEFINED : code, false, false, false, false);
     }
+
+    @Test
+    void etiqueta_llevaCodigoBienYResguardante_yCabeEnElQrChico() {
+        com.sibim.model.Producto p = new com.sibim.model.Producto();
+        p.setCodigo("SGM-MM-3261-BIS-2024");
+        p.setNombre("Computadora de escritorio con monitor de 24 pulgadas, teclado y ratón");
+        p.setArea("Dirección de Tecnologías de la Información");
+        p.setResguardante("María Guadalupe Hernández Martínez de la Cruz");
+        String qr = QrUtils.contenidoEtiqueta(p);
+        assertEquals("SGM-MM-3261-BIS-2024", QrUtils.codigoLeido(qr), "el escáner de SIBIM sigue leyendo solo el código");
+        assertTrue(qr.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= QrUtils.MAX_BYTES_ETIQUETA, qr);
+        assertTrue(qr.lines().count() >= 2, "más que el puro código: " + qr);
+
+        com.sibim.model.Producto corto = new com.sibim.model.Producto();
+        corto.setCodigo("MB-003"); corto.setNombre("Archivero metálico 4 gavetas");
+        corto.setArea("Secretaría General Municipal");
+        assertEquals("MB-003\nArchivero metálico 4 gavetas\nSecretaría General Municipal", QrUtils.contenidoEtiqueta(corto));
+    }
 }

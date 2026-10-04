@@ -65,7 +65,8 @@ public class ResguardoService {
     public Resguardo crear(String resguardanteNombre, String resguardanteCargo,
                            String resguardanteArea, List<ResguardoItem> items,
                            String observaciones) throws SQLException {
-        soloAdministrador();
+        if (!com.sibim.session.Permisos.creaResguardos()) throw new SecurityException(SIN_PERMISO);
+        exigirBienesPropios(resguardanteArea, items);
         if (resguardanteNombre == null || resguardanteNombre.isBlank())
             throw new IllegalArgumentException("El nombre del resguardante es obligatorio");
         if (items == null || items.isEmpty())
@@ -97,9 +98,25 @@ public class ResguardoService {
         return saved;
     }
 
-    /** Like comodatos: only the administrator (Patrimonio) creates or
-     *  cancels a resguardo; áreas only see and print them. */
-    static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) gestiona los resguardos.";
+    static final String SIN_PERMISO = "Inicia sesión para asignar un resguardo.";
+    static final String FUERA_DE_AREA = "Solo puedes asignar resguardos de los bienes de tus áreas, a personas de tus áreas.";
+
+    /** Patrimonio assigns any bien; a secretaría or dirección only its own, to its own people. */
+    private void exigirBienesPropios(String resguardanteArea, List<ResguardoItem> items) throws SQLException {
+        if (com.sibim.session.SessionManager.isAdmin() || items == null) return;
+        if (resguardanteArea != null && !resguardanteArea.isBlank()
+                && !com.sibim.session.Permisos.esAreaPropia(resguardanteArea))
+            throw new SecurityException(FUERA_DE_AREA);
+        com.sibim.repository.ProductoRepository productos = new com.sibim.repository.ProductoRepository();
+        for (ResguardoItem it : items) {
+            if (it.getProductoId() == null) continue;
+            String area = productos.findById(it.getProductoId()).map(com.sibim.model.Producto::getArea).orElse(null);
+            if (!com.sibim.session.Permisos.esAreaPropia(area)) throw new SecurityException(FUERA_DE_AREA);
+        }
+    }
+
+    /** Cancelling frees the bien for someone else: only Patrimonio does it. */
+    static final String SOLO_ADMIN = "Solo el administrador (Patrimonio) cancela los resguardos.";
 
     private static void soloAdministrador() {
         com.sibim.session.Permisos.exigirGestionDeDocumentos(SOLO_ADMIN);

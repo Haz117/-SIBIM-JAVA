@@ -321,16 +321,25 @@ public final class ProductoDialogFactory {
         // from any step, skipping the rest of the wizard. It stays in the pane
         // (btnGuardar fires it to run the result converter) but out of sight.
         if (okBtn != null) { okBtn.setVisible(false); okBtn.setManaged(false); }
-        // Áreas update the descriptive data; the código and the accounting
-        // values are Patrimonio's (ProductoService keeps them for non-admins).
-        if (!isNewProduct && !com.sibim.session.SessionManager.isAdmin()) {
+        // The áreas keep ubicación, descripción, estado físico and the photos current;
+        // the rest of the record is Patrimonio's (ProductoService keeps it for them).
+        boolean soloDatosDeArea = !isNewProduct && !com.sibim.session.Permisos.editaFichaCompleta();
+        if (soloDatosDeArea) {
             for (javafx.scene.control.Control c : java.util.List.<javafx.scene.control.Control>of(
-                    infoTab.fCodigo, stockTab.fPrecioC, patrimonioTab.fVidaUtil, patrimonioTab.fValorResidual)) {
+                    infoTab.fNombre, infoTab.fCodigo, infoTab.fCat, infoTab.fArea,
+                    stockTab.fUnidad, stockTab.fPrecioC, stockTab.fVenc,
+                    patrimonioTab.fProveedor, patrimonioTab.fMarca, patrimonioTab.fModelo, patrimonioTab.fNumeroSerie,
+                    patrimonioTab.fResguardante, patrimonioTab.fNumeroFactura, patrimonioTab.fEtiquetado,
+                    patrimonioTab.fFechaAdq, patrimonioTab.fProximaRevision, patrimonioTab.fVidaUtil,
+                    patrimonioTab.fValorResidual, patrimonioTab.fNotasMant, patrimonioTab.fClaveArm,
+                    patrimonioTab.fColor, patrimonioTab.fTipoBien, patrimonioTab.fNoMotor, patrimonioTab.fNoTarjeta,
+                    patrimonioTab.fNoPoliza)) {
+                if (c == null) continue;
                 c.setDisable(true);
                 c.setTooltip(new javafx.scene.control.Tooltip("Solo Patrimonio (administrador) puede cambiar este dato"));
             }
         }
-        Platform.runLater(() -> infoTab.fNombre.requestFocus());
+        Platform.runLater(() -> (soloDatosDeArea ? infoTab.fDesc : infoTab.fNombre).requestFocus());
 
         // ── Result converter ─────────────────────────────────────────────────
         dialog.setResultConverter(btn -> {

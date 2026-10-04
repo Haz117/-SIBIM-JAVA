@@ -25,7 +25,7 @@
                     </tooltip>
                 </Label>
             </HBox>
-            <Label text="Valor en libros de los bienes patrimoniales (línea recta, SAT México)" styleClass="page-subtitle"/>
+            <Label text="Valor en libros de los bienes (línea recta, SAT)" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
                            visible="false" managed="false"/>
@@ -202,17 +202,17 @@
     <!-- ══ DATA TABLE ═══════════════════════════════════════════════ -->
     <TableView fx:id="table" prefHeight="360" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
-            <TableColumn fx:id="colNombre"      text="Nombre"             prefWidth="200" sortable="true"/>
-            <TableColumn fx:id="colCategoria"   text="Categoría"          prefWidth="140" sortable="true"/>
-            <TableColumn fx:id="colArea"        text="Área"               prefWidth="170" sortable="true"/>
-            <TableColumn fx:id="colFechaAdq"    text="Fecha adquisición"  prefWidth="130" sortable="true"/>
-            <TableColumn fx:id="colVidaUtil"    text="Vida útil"          prefWidth="90"  sortable="true"/>
-            <TableColumn fx:id="colRestante"    text="Vida útil restante" prefWidth="130" sortable="true"/>
-            <TableColumn fx:id="colValorCompra" text="Valor compra"       prefWidth="140" sortable="true"/>
-            <TableColumn fx:id="colValorActual" text="Valor actual"       prefWidth="140" sortable="true"/>
-            <TableColumn fx:id="colDepBar"      text="Dep. visual"        prefWidth="130" sortable="false"/>
-            <TableColumn fx:id="colPct"         text="Depreciado (%)"     prefWidth="120" sortable="true"/>
-            <TableColumn fx:id="colFechaTotal"  text="Depreciado el"      prefWidth="120" sortable="true"/>
+            <TableColumn fx:id="colNombre"      text="Nombre"             prefWidth="200" minWidth="160" sortable="true"/>
+            <TableColumn fx:id="colCategoria"   text="Categoría"          prefWidth="140" minWidth="110" sortable="true"/>
+            <TableColumn fx:id="colArea"        text="Área"               prefWidth="170" minWidth="130" sortable="true"/>
+            <TableColumn fx:id="colFechaAdq"    text="Fecha adquisición"  prefWidth="130" minWidth="145" sortable="true"/>
+            <TableColumn fx:id="colVidaUtil"    text="Vida útil"          prefWidth="90" minWidth="95"  sortable="true"/>
+            <TableColumn fx:id="colRestante"    text="Vida útil restante" prefWidth="130" minWidth="150" sortable="true"/>
+            <TableColumn fx:id="colValorCompra" text="Valor compra"       prefWidth="140" minWidth="125" sortable="true"/>
+            <TableColumn fx:id="colValorActual" text="Valor actual"       prefWidth="140" minWidth="120" sortable="true"/>
+            <TableColumn fx:id="colDepBar"      text="Dep. visual"        prefWidth="130" minWidth="160" sortable="false"/>
+            <TableColumn fx:id="colPct"         text="Depreciado (%)"     prefWidth="120" minWidth="135" sortable="true"/>
+            <TableColumn fx:id="colFechaTotal"  text="Depreciado el"      prefWidth="120" minWidth="130" sortable="true"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">

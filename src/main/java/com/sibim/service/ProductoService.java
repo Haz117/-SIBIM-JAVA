@@ -119,7 +119,10 @@ public class ProductoService {
         return countFiltrado(new ProductoFiltro(busqueda, categoriaId, area, resguardante, estado, false, soloSinEtiquetar, desdeReg, hastaReg));
     }
 
+    /** The physical label is put on, and checked, by Patrimonio. */
     public void marcarEtiquetado(List<String> ids, boolean valor) throws SQLException {
+        if (!com.sibim.session.Permisos.editaFichaCompleta())
+            throw new SecurityException("Solo Patrimonio (administrador) marca los bienes como etiquetados.");
         ProductosEnMemoria.invalidar();
         productoRepo.marcarEtiquetado(ids, valor);
     }
@@ -176,7 +179,8 @@ public class ProductoService {
         return productoRepo.findProximasRevisiones(dias);
     }
 
-    public Producto save(Producto p) throws SQLException, ValidationException {
+    public Producto save(Producto recibido) throws SQLException, ValidationException {
+        Producto p = recibido;
         ProductosEnMemoria.invalidar();
         boolean isNew = p.getId() == null;
         // Secretarías and direcciones keep the data of their bienes current;
@@ -214,12 +218,18 @@ public class ProductoService {
             // Secretarías and direcciones update the descriptive data of their
             // bienes; the código patrimonial and the accounting values are
             // Patrimonio's (admin), so theirs stay as the database has them.
-            if (!SessionManager.isAdmin()) {
-                p.setCodigo(actual.getCodigo());
-                p.setPrecioCompra(actual.getPrecioCompra());
-                p.setPrecioVenta(actual.getPrecioCompra());
-                p.setVidaUtilAnios(actual.getVidaUtilAnios());
-                p.setValorResidual(actual.getValorResidual());
+            if (!com.sibim.session.Permisos.editaFichaCompleta()) {
+                // An área keeps four things current: where the bien is, its description,
+                // its physical condition and its photos. Everything else stays as the
+                // database has it, whatever the form sent.
+                Producto soloLoPermitido = actual.copia();
+                soloLoPermitido.setUbicacion(p.getUbicacion());
+                soloLoPermitido.setDescripcion(p.getDescripcion());
+                soloLoPermitido.setEstadoFisico(p.getEstadoFisico());
+                soloLoPermitido.setFotoUrl(p.getFotoUrl());
+                soloLoPermitido.setFotosUrls(p.getFotosUrls());
+                soloLoPermitido.setActualizadoEn(p.getActualizadoEn());
+                p = soloLoPermitido;
             }
             // A signed resguardo says who holds the bien (ResguardoRepository
             // keeps products.resguardante in step with it); an edit — single

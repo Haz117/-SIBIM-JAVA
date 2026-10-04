@@ -119,7 +119,7 @@ class ImportacionBienesDialogTest {
         );
         var rows = ImportacionBienesDialog.parseCsvFile(f.toFile(), CATEGORIAS);
         assertEquals("error", rows.get(0).status());
-        assertTrue(rows.get(0).error().contains("Stock mínimo"));
+        assertTrue(rows.get(0).error().contains("cantidad mínima"));
     }
 
     @Test void columnaNombreFaltante_lanzaExcepcion() throws Exception {

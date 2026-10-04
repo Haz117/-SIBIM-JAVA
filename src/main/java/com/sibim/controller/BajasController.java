@@ -120,6 +120,17 @@ public class BajasController {
             Objects.requireNonNullElse(c.getValue().getNumeroActaBaja(), "")));
         colValor.setCellValueFactory(c -> new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorTotal())));
 
+        // Ten columns on a laptop screen: the long texts get cut, so the whole text is one hover away.
+        for (TableColumn<Producto, String> col : List.of(colNombre, colArea, colMotivo, colDictamen))
+            col.setCellFactory(c -> new TableCell<>() {
+                @Override protected void updateItem(String texto, boolean empty) {
+                    super.updateItem(texto, empty);
+                    boolean hay = !empty && texto != null && !texto.isBlank();
+                    setText(hay ? texto : null);
+                    setTooltip(hay ? new Tooltip(texto) : null);
+                }
+            });
+
         var sorted = new javafx.collections.transformation.SortedList<>(filtradas);
         sorted.comparatorProperty().bind(table.comparatorProperty());
         table.setItems(sorted);

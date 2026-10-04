@@ -308,7 +308,7 @@
                         <tooltip><Tooltip text="Cada creación, edición, eliminación, baja o reactivación de un bien, categoría o usuario queda registrada con quién la hizo y cuándo — incluyendo los cambios que llegan de una PC que estuvo offline." wrapText="true" maxWidth="270"/></tooltip>
                     </Label>
                 </HBox>
-                <Label text="Historial de cambios en bienes, categorías y usuarios; y de tomas de inventario físico"
+                <Label text="Cambios en bienes, categorías y usuarios, y tomas de inventario físico"
                        styleClass="page-subtitle"/>
             </VBox>
             <Button text="Ver historial de cambios" minWidth="-Infinity" onAction="#onVerAuditoria" styleClass="btn-secondary"

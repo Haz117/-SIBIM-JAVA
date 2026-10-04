@@ -140,7 +140,7 @@ public final class ProductoDetailDialog {
         });
 
         VBox root = new VBox(14);
-        root.setPadding(new Insets(4, 0, 0, 0));
+        root.setPadding(new Insets(4, 20, 14, 20));
 
         // ── Header card ────────────────────────────────────────────────
         HBox headerCard = new HBox(14);
@@ -242,12 +242,9 @@ public final class ProductoDetailDialog {
         String numeroFactura = p.getNumeroFactura();
         if (numeroFactura != null && !numeroFactura.isBlank()) rowList.add(new Row("N° factura", numeroFactura, null));
         rowList.add(new Row("Cantidad",        String.valueOf(p.getStockActual()), stockClass));
-        // Min/max only mean something for bienes managed by quantity.
-        if (p.getStockMaximo() > 1)
-            rowList.add(new Row("Existencia mín / máx", p.getStockMinimo() + " / " + p.getStockMaximo(), null));
         rowList.add(new Row("Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null));
-        rowList.add(new Row("Costo de adquisición", FormatUtils.formatCurrency(p.getPrecioCompra()), null));
-        rowList.add(new Row("Valor patrimonial", FormatUtils.formatCurrency(p.getValorTotal()), "dlg-detail-total"));
+        rowList.add(new Row("Costo de adquisición", com.sibim.session.Permisos.pesos(p.getPrecioCompra()), null));
+        rowList.add(new Row("Valor patrimonial", com.sibim.session.Permisos.pesos(p.getValorTotal()), "dlg-detail-total"));
         rowList.add(new Row("Proveedor",       p.getProveedor() != null ? p.getProveedor() : "—", null));
         rowList.add(new Row("Ubicación",       p.getUbicacion() != null ? p.getUbicacion() : "—", null));
         rowList.add(new Row("Vencimiento",     p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : "—", null));
@@ -330,7 +327,7 @@ public final class ProductoDetailDialog {
             Integer pct = p.getPorcentajeDepreciado();
             String adqStr = p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : "—";
             String vidaStr = p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() + " años" : "—";
-            String residualStr = p.getValorResidual() != null ? FormatUtils.formatCurrency(p.getValorResidual()) : "$0.00";
+            String residualStr = p.getValorResidual() != null ? com.sibim.session.Permisos.pesos(p.getValorResidual()) : "$0.00";
 
             int dr = 0;
             Label depTitle = new Label("Depreciación (línea recta)");
@@ -347,7 +344,7 @@ public final class ProductoDetailDialog {
             gDep.add(new Label(residualStr), 1, dr++);
 
             gDep.add(DialogUtil.fieldLabel("Valor actual"), 0, dr);
-            Label lblValorDep = new Label(FormatUtils.formatCurrency(valorDep));
+            Label lblValorDep = new Label(com.sibim.session.Permisos.pesos(valorDep));
             lblValorDep.getStyleClass().add("dlg-detail-total");
             gDep.add(lblValorDep, 1, dr++);
 
@@ -457,7 +454,7 @@ public final class ProductoDetailDialog {
             colAnt.setCellValueFactory(c -> new SimpleObjectProperty<>(c.getValue().valorAnterior()));
             colAnt.setCellFactory(col -> new TableCell<>() {
                 @Override protected void updateItem(BigDecimal v, boolean empty) {
-                    super.updateItem(v, empty); setText(empty || v == null ? "—" : FormatUtils.formatCurrency(v));
+                    super.updateItem(v, empty); setText(empty || v == null ? "—" : com.sibim.session.Permisos.pesos(v));
                 }
             });
             colAnt.setPrefWidth(90);
@@ -466,7 +463,7 @@ public final class ProductoDetailDialog {
             colNuevo.setCellValueFactory(c -> new SimpleObjectProperty<>(c.getValue().valorNuevo()));
             colNuevo.setCellFactory(col -> new TableCell<>() {
                 @Override protected void updateItem(BigDecimal v, boolean empty) {
-                    super.updateItem(v, empty); setText(empty || v == null ? "—" : FormatUtils.formatCurrency(v));
+                    super.updateItem(v, empty); setText(empty || v == null ? "—" : com.sibim.session.Permisos.pesos(v));
                 }
             });
             colNuevo.setPrefWidth(90);
@@ -568,7 +565,8 @@ public final class ProductoDetailDialog {
             javafx.scene.layout.Region mantSpacer = new javafx.scene.layout.Region();
             HBox.setHgrow(mantSpacer, Priority.ALWAYS);
             Button btnAgregarMant = new Button("+ Agregar alerta");
-            btnAgregarMant.getStyleClass().add("btn-link");
+            btnAgregarMant.getStyleClass().addAll("btn-secondary", "btn-sm");
+            btnAgregarMant.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
             mantHeader.getChildren().addAll(mantTitle, mantSpacer, btnAgregarMant);
 
             VBox mantList = new VBox(4);
@@ -594,7 +592,8 @@ public final class ProductoDetailDialog {
                     Label lblFecha = new Label(a.fecha() != null ? a.fecha().format(fmtMant) : "—");
                     lblFecha.getStyleClass().add(vencida ? "cell-badge-warning" : "muted-sm");
                     Button btnOk = new Button("✓");
-                    btnOk.getStyleClass().add("btn-link");
+                    btnOk.getStyleClass().addAll("btn-secondary", "btn-sm");
+                    btnOk.setTooltip(new Tooltip("Marcar como hecha"));
                     btnOk.setOnAction(ev -> DialogUtil.runAsync(
                         () -> { mantSvc.marcarCompletada(a.id()); return null; },
                         v -> rebuildHolder[0].run(),
@@ -629,7 +628,11 @@ public final class ProductoDetailDialog {
         // in a ScrollPane keeps the dialog (and its Close button) on-screen.
         ScrollPane rootScroll = new ScrollPane(root);
         rootScroll.setFitToWidth(true);
-        rootScroll.setMaxHeight(520);
+        // DialogPane sizes itself to the content's PREFERRED height, so a max alone did not
+        // cap it: the dialog came out 900 px tall and "Cerrar" fell below a 768 px screen.
+        double alto = Math.min(520, javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() * 0.6);
+        rootScroll.setPrefHeight(alto);
+        rootScroll.setMaxHeight(alto);
         rootScroll.getStyleClass().add("dlg-tabs-scroll");
         dialog.getDialogPane().setContent(rootScroll);
         dialog.showAndWait();
@@ -652,12 +655,12 @@ public final class ProductoDetailDialog {
         lblDesc.getStyleClass().add("dialog-field-label");
         TextField tfDesc = new TextField();
         tfDesc.setPromptText("ej. Calibración anual, Limpieza de filtros…");
-        tfDesc.getStyleClass().add("form-field");
+        tfDesc.getStyleClass().add("form-input");
 
         Label lblFecha = new Label("Fecha de revisión:");
         lblFecha.getStyleClass().add("dialog-field-label");
         DatePicker dpFecha = new DatePicker(LocalDate.now().plusMonths(6));
-        dpFecha.getStyleClass().add("form-field");
+        dpFecha.getStyleClass().add("form-input");
         dpFecha.setPrefWidth(Double.MAX_VALUE);
 
         VBox form = new VBox(10, lblDesc, tfDesc, lblFecha, dpFecha);

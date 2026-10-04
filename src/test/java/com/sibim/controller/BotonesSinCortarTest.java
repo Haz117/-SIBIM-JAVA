@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.prefs.Preferences;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -67,6 +68,106 @@ class BotonesSinCortarTest extends ControllerSmokeTestBase {
             });
         }
         assertTrue(cortados.isEmpty(), "Botones con el texto cortado a 1366×768:\n  " + String.join("\n  ", cortados));
+    }
+
+    /** The forms too: "+ Agregar" in Nuevo resguardo was squeezed to "…" by the picker next to it. */
+    @Test
+    void formulariosPrincipales_sinBotonesCortados() {
+        MainController mc = MainController.getInstance();
+        List<String> cortados = new ArrayList<>();
+        String[][] formularios = {
+            {"productos", "#btnNuevoBien"}, {"movimientos", "#btnNuevo"}, {"resguardos", "#btnNuevo"}};
+        for (String[] f : formularios) {
+            interact(() -> mc.navigateToView(f[0]));
+            sleep(1200);
+            javafx.scene.control.Button abrir = (javafx.scene.control.Button) scene.lookup(f[1]);
+            if (abrir == null || !visible(abrir)) continue;
+            javafx.application.Platform.runLater(abrir::fire);   // showAndWait blocks inside the FX thread
+            sleep(3000);
+            for (javafx.stage.Window w : new ArrayList<>(javafx.stage.Window.getWindows())) {
+                if (w.getScene() == scene || !w.isShowing() || w instanceof javafx.stage.PopupWindow) continue;
+                javafx.application.Platform.runLater(() -> {
+                    for (Node n : w.getScene().getRoot().lookupAll(".button")) revisar("formulario de " + f[0], n, cortados);
+                    w.hide();
+                });
+                sleep(700);
+            }
+        }
+        assertTrue(cortados.isEmpty(), "Botones con el texto cortado en formularios:\n  " + String.join("\n  ", cortados));
+    }
+
+    /**
+     * Typing in the bien picker, key by key as a person does: the list must open and narrow down,
+     * a second word must be accepted (the space bar used to pick the first result and wipe the
+     * text), accents must not matter, and Enter must choose the match.
+     */
+    @Test
+    void buscadorDeBienes_filtraAlEscribir() {
+        assertEquals("ok", escribirEnElBuscador("resguardos"), "Nuevo resguardo");
+        assertEquals("ok", escribirEnElBuscador("movimientos"), "Registrar movimiento");
+    }
+
+    @SuppressWarnings("unchecked")
+    private String escribirEnElBuscador(String vista) {
+        MainController mc = MainController.getInstance();
+        interact(() -> mc.navigateToView(vista));
+        sleep(1200);
+        javafx.scene.control.Button abrir = (javafx.scene.control.Button) scene.lookup("#btnNuevo");
+        javafx.application.Platform.runLater(abrir::fire);
+        sleep(3000);
+        String resultado = "no se abrió el formulario";
+        for (javafx.stage.Window w : new ArrayList<>(javafx.stage.Window.getWindows())) {
+            if (w.getScene() == scene || !w.isShowing() || w instanceof javafx.stage.PopupWindow) continue;
+            javafx.scene.control.ComboBox<Object>[] ref = new javafx.scene.control.ComboBox[1];
+            javafx.application.Platform.runLater(() -> {
+                for (Node n : w.getScene().getRoot().lookupAll(".combo-box"))
+                    if (n instanceof javafx.scene.control.ComboBox<?> c && c.getPromptText() != null
+                            && c.getPromptText().startsWith("Seleccionar bien"))
+                        ref[0] = (javafx.scene.control.ComboBox<Object>) c;
+                if (ref[0] != null) ref[0].getEditor().requestFocus();
+            });
+            sleep(600);
+            javafx.scene.control.ComboBox<Object> combo = ref[0];
+            if (combo == null) { resultado = "no se encontró el buscador de bienes"; continue; }
+            int todos = combo.getItems().size();
+            for (char ch : "camara da".toCharArray()) {
+                javafx.application.Platform.runLater(() -> teclear(combo.getEditor(), ch));
+                sleep(200);
+            }
+            String texto = combo.getEditor().getText();
+            int filtrados = combo.getItems().size();
+            boolean abierta = combo.isShowing();
+            javafx.application.Platform.runLater(() -> pulsar(combo.getEditor(), javafx.scene.input.KeyCode.ENTER));
+            sleep(400);
+            Object elegido = combo.getValue();
+            String elegidoTxt = elegido == null ? "" : combo.getConverter().toString(elegido);
+            resultado = !"camara da".equals(texto) ? "el texto tecleado se alteró: '" + texto + "'"
+                : !abierta ? "la lista no se abre al escribir"
+                : filtrados == 0 || filtrados >= todos ? "la lista no se filtra (" + filtrados + " de " + todos + ")"
+                : !elegidoTxt.contains("Dahua") ? "Enter no eligió la coincidencia: '" + elegidoTxt + "'"
+                : "ok";
+            javafx.application.Platform.runLater(w::hide);
+            sleep(600);
+        }
+        return resultado;
+    }
+
+    private static void teclear(Node destino, char ch) {
+        javafx.scene.input.KeyCode codigo = ch == ' ' ? javafx.scene.input.KeyCode.SPACE
+            : javafx.scene.input.KeyCode.getKeyCode(String.valueOf(ch).toUpperCase());
+        javafx.event.Event.fireEvent(destino, new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_PRESSED,
+            "", "", codigo, false, false, false, false));
+        javafx.event.Event.fireEvent(destino, new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_TYPED,
+            String.valueOf(ch), "", javafx.scene.input.KeyCode.UNDEFINED, false, false, false, false));
+        javafx.event.Event.fireEvent(destino, new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_RELEASED,
+            "", "", codigo, false, false, false, false));
+    }
+
+    private static void pulsar(Node destino, javafx.scene.input.KeyCode codigo) {
+        javafx.event.Event.fireEvent(destino, new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_PRESSED,
+            "", "", codigo, false, false, false, false));
+        javafx.event.Event.fireEvent(destino, new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_RELEASED,
+            "", "", codigo, false, false, false, false));
     }
 
     private static void revisar(String vista, Node n, List<String> cortados) {

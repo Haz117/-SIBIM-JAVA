@@ -153,7 +153,7 @@
                       onAction="#onToggleSoloAlertas">
             <tooltip><Tooltip text="Mostrar solo las áreas que tienen bienes con garantía vencida" wrapText="true" maxWidth="220"/></tooltip>
         </ToggleButton>
-        <Label text="Expande cada sección para ver los bienes asignados"
+        <Label fx:id="lblVistaHint" text="Expande cada sección para ver los bienes asignados"
                styleClass="muted-sm"/>
         <Separator orientation="VERTICAL"/>
         <HBox spacing="0" styleClass="toggle-view-group">
@@ -176,6 +176,11 @@
                 <tooltip><Tooltip text="Vista tabla — comparativa de todas las áreas"/></tooltip>
             </ToggleButton>
         </HBox>
+        <ToggleButton fx:id="btnAcomodar" text="Acomodar" onAction="#onAcomodar" minWidth="-Infinity"
+                      styleClass="btn-secondary, btn-sm, org-acomodar-btn" contentDisplay="LEFT" graphicTextGap="5">
+            <graphic><FontIcon iconLiteral="mdi2c-cursor-move" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Acomodar el organigrama: arrastra una dirección a la secretaría de la que depende" wrapText="true" maxWidth="260"/></tooltip>
+        </ToggleButton>
         <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary, btn-sm">
             <tooltip><Tooltip text="Expande todas las secciones visibles"/></tooltip>
         </Button>

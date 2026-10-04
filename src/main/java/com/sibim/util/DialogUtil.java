@@ -397,7 +397,9 @@ public final class DialogUtil {
             }
         });
         g.setPadding(new Insets(18, 22, 20, 22));
-        ColumnConstraints c0 = new ColumnConstraints(labelColWidth);
+        // labelColWidth is the least the label column takes; a longer label widens it
+        // instead of being cut to "Costo de adquisi…".
+        ColumnConstraints c0 = new ColumnConstraints(labelColWidth, Region.USE_COMPUTED_SIZE, Double.MAX_VALUE);
         ColumnConstraints c1 = new ColumnConstraints();
         c1.setHgrow(Priority.ALWAYS);
         g.getColumnConstraints().addAll(c0, c1);
@@ -416,6 +418,9 @@ public final class DialogUtil {
         pane.setGraphic(null);
         pane.setHeader(gradientHeader(icon, titulo, detalle, AppColors.PRIMARY_D, AppColors.INDIGO));
         if (pane.getPrefWidth() < 460) pane.setPrefWidth(460);
+        // The stock grid is the pane's ".content", which the stylesheet sets to padding 0
+        // (our own dialogs bring their margins): this class gives it its margins back.
+        if (pane.getContent() != null) pane.getContent().getStyleClass().add("dialog-input-content");
         Node ok = pane.lookupButton(ButtonType.OK);
         if (ok != null && !ok.getStyleClass().contains("dialog-ok-btn")) ok.getStyleClass().add("dialog-ok-btn");
     }
@@ -424,6 +429,7 @@ public final class DialogUtil {
     public static Label fieldLabel(String text) {
         Label l = new Label(text);
         l.getStyleClass().add("dialog-field-label");
+        l.setMinWidth(Region.USE_PREF_SIZE);
         return l;
     }
 
@@ -438,6 +444,8 @@ public final class DialogUtil {
         enableClickToShowTooltip(badge, tip);
         HBox row = new HBox(5, fieldLabel(text), badge);
         row.setAlignment(Pos.CENTER_LEFT);
+        row.setMinWidth(Region.USE_PREF_SIZE);
+        badge.setMinWidth(Region.USE_PREF_SIZE);
         return row;
     }
 
@@ -614,6 +622,22 @@ public final class DialogUtil {
     public static <T> void makeFilterable(ComboBox<T> combo, java.util.List<T> allItems, Function<T, String> toText) {
         combo.setEditable(true);
         combo.setItems(FXCollections.observableArrayList(allItems));
+        combo.setVisibleRowCount(9);
+        // The list is as wide as the field, never wider: one very long name used to
+        // stretch it across the whole screen. Long names end in "…".
+        if (combo.getCellFactory() == null) {
+            combo.setCellFactory(lv -> {
+                ListCell<T> celda = new ListCell<>() {
+                    @Override protected void updateItem(T item, boolean empty) {
+                        super.updateItem(item, empty);
+                        setText(empty || item == null ? null : toText.apply(item));
+                    }
+                };
+                celda.prefWidthProperty().bind(combo.widthProperty().subtract(24));
+                celda.setTextOverrun(OverrunStyle.ELLIPSIS);
+                return celda;
+            });
+        }
         Label vacio = new Label(allItems.isEmpty()
             ? "No hay registros cargados (¿sin conexión?)" : "Ningún resultado coincide con lo escrito");
         vacio.getStyleClass().add("muted-sm");
@@ -643,11 +667,43 @@ public final class DialogUtil {
             T selected = combo.getValue();
             if (selected != null && toText.apply(selected).equals(text)) return;
             if (selected != null) lastSelection.set(null);
-            String q = text == null ? "" : text.toLowerCase();
-            java.util.List<T> filtered = q.isBlank() ? allItems
-                : allItems.stream().filter(i -> toText.apply(i).toLowerCase().contains(q)).toList();
-            combo.setItems(FXCollections.observableArrayList(filtered));
-            if (!filtered.isEmpty()) combo.show(); else combo.hide();
+            combo.setItems(FXCollections.observableArrayList(coincidencias(allItems, toText, text)));
+            // Stays open even with no match: the "ningún resultado" note is the answer,
+            // a list that just vanishes looks like a broken search.
+            combo.show();
+        });
+        // With the list open, the window redirects every key press to the popup's
+        // list, and a list treats the space bar as "pick the highlighted row": typing
+        // a second word replaced the whole text with the first result. The list is
+        // told to ignore the space bar; the field still receives the character.
+        Runnable sinEspacioEnLaLista = () -> {
+            if (combo.getSkin() instanceof javafx.scene.control.skin.ComboBoxListViewSkin<?> skin
+                    && skin.getPopupContent() instanceof ListView<?> lista
+                    && lista.getProperties().putIfAbsent("sibim.sinEspacio", Boolean.TRUE) == null) {
+                lista.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+                    if (e.getCode() == javafx.scene.input.KeyCode.SPACE) e.consume();
+                });
+            }
+        };
+        sinEspacioEnLaLista.run();
+        combo.skinProperty().addListener((obs, antes, ahora) -> sinEspacioEnLaLista.run());
+        combo.showingProperty().addListener((obs, antes, ahora) -> sinEspacioEnLaLista.run());
+        // Enter picks the first match, so "type a few letters, Enter" is enough.
+        combo.getEditor().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.ENTER) return;
+            String text = combo.getEditor().getText();
+            T selected = combo.getValue();
+            boolean pendiente = text != null && !text.isBlank()
+                && (selected == null || !toText.apply(selected).equals(text));
+            if (!pendiente) return;
+            if (!combo.getItems().isEmpty()) {
+                T primero = combo.getSelectionModel().getSelectedItem() != null
+                    && combo.getItems().contains(combo.getSelectionModel().getSelectedItem())
+                    ? combo.getSelectionModel().getSelectedItem() : combo.getItems().get(0);
+                combo.setValue(primero);
+                combo.hide();
+            }
+            e.consume();   // never let a half-typed search trigger the dialog's default button
         });
         combo.valueProperty().addListener((obs, old, val) -> {
             if (val != null) {
@@ -690,6 +746,45 @@ public final class DialogUtil {
                 }
             });
         });
+    }
+
+    /** What the user typed against every item: each word must appear (in any
+     *  order), ignoring case and accents — "camara dahua" finds "Cámara
+     *  videovigilancia PTZ Dahua". Items that start with the text come first. */
+    static <T> java.util.List<T> coincidencias(java.util.List<T> items, Function<T, String> toText, String texto) {
+        String q = sinAcentos(texto);
+        if (q.isBlank()) return items;
+        String[] palabras = q.trim().split("\\s+");
+        java.util.List<T> empiezan = new java.util.ArrayList<>(), contienen = new java.util.ArrayList<>();
+        for (T item : items) {
+            String t = sinAcentos(toText.apply(item));
+            boolean todas = true;
+            for (String palabra : palabras) if (!t.contains(palabra)) { todas = false; break; }
+            if (!todas) continue;
+            (t.startsWith(palabras[0]) ? empiezan : contienen).add(item);
+        }
+        empiezan.addAll(contienen);
+        return empiezan;
+    }
+
+    private static String sinAcentos(String s) {
+        if (s == null) return "";
+        return java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}+", "").toLowerCase();
+    }
+
+    /** A type-to-filter picker over a fixed list of names (e.g. the áreas):
+     *  only a name from the list can end up selected, never free text. */
+    public static void makeFilterable(ComboBox<String> combo, java.util.List<String> nombres) {
+        combo.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(String s) { return s == null ? "" : s; }
+            @Override public String fromString(String s) {
+                if (s == null) return null;
+                String buscado = s.trim();
+                return nombres.stream().filter(n -> n.equalsIgnoreCase(buscado)).findFirst().orElse(null);
+            }
+        });
+        makeFilterable(combo, nombres, s -> s == null ? "" : s);
     }
 
     // ── Spinner ──────────────────────────────────────────────────────────
@@ -1110,5 +1205,32 @@ public final class DialogUtil {
             final String k = keyPrefix + ".colW." + i;
             table.getColumns().get(i).widthProperty().addListener((obs, o, n) -> prefs.putDouble(k, n.doubleValue()));
         }
+    }
+
+    /** Takes the Excel and CSV choices out of every export menu under {@code root};
+     *  a menu left empty is hidden. The áreas export PDFs only (the services refuse
+     *  the rest too — see ReporteService.tempFile). */
+    public static void quitarHojasDeCalculo(Node root) {
+        if (!(root instanceof javafx.scene.Parent parent)) return;
+        for (Node n : parent.lookupAll(".menu-button")) {
+            if (!(n instanceof MenuButton menu)) continue;
+            boolean tenia = !menu.getItems().isEmpty();
+            quitarHojasDeCalculo(menu.getItems());
+            if (tenia && menu.getItems().isEmpty()) { menu.setVisible(false); menu.setManaged(false); }
+        }
+    }
+
+    private static void quitarHojasDeCalculo(java.util.List<MenuItem> items) {
+        items.removeIf(it -> {
+            if (it instanceof Menu sub) {
+                quitarHojasDeCalculo(sub.getItems());
+                return sub.getItems().isEmpty();
+            }
+            String t = it.getText() == null ? "" : it.getText().toLowerCase();
+            return t.contains("excel") || t.contains("csv");
+        });
+        // No separator left dangling at either end.
+        while (!items.isEmpty() && items.get(0) instanceof SeparatorMenuItem) items.remove(0);
+        while (!items.isEmpty() && items.get(items.size() - 1) instanceof SeparatorMenuItem) items.remove(items.size() - 1);
     }
 }

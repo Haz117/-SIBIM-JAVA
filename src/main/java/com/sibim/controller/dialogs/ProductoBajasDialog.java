@@ -290,6 +290,7 @@ public final class ProductoBajasDialog {
         btnReactivar.setGraphic(new FontIcon("mdi2r-restore"));
         btnReactivar.setContentDisplay(ContentDisplay.LEFT);
         btnReactivar.getStyleClass().add("btn-secondary");
+        btnReactivar.setMinWidth(Region.USE_PREF_SIZE);
         btnReactivar.setOnAction(e -> doReactivar(p, row, list, dialog, productoService, onReactivar));
         boolean admin = com.sibim.session.SessionManager.isAdmin();   // reactivating is Patrimonio's
         btnReactivar.setVisible(admin);

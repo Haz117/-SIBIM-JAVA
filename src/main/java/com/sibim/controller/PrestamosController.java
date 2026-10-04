@@ -116,7 +116,8 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         }
         // Offline they work from this PC's copy (OfflineDocs); only demo mode has none.
         boolean offline = DatabaseConfig.isDemoMode();
-        boolean canCreate = com.sibim.session.Permisos.gestionaDocumentos() && !offline;
+        // Patrimonio, and a secretario inside his own secretaría.
+        boolean canCreate = com.sibim.session.Permisos.prestaBienes() && !offline;
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         if (btnDevolver != null) { btnDevolver.setVisible(canCreate); btnDevolver.setManaged(canCreate); }
         actualizarSolicitudes();
@@ -192,13 +193,14 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
 
     private void actualizarSolicitudes() {
         if (btnSolicitudes == null) return;
-        boolean hay = com.sibim.service.SolicitudService.disponible();
-        btnSolicitudes.setVisible(hay); btnSolicitudes.setManaged(hay);
-        if (!hay) return;
-        if (!SessionManager.isAdmin()) { btnSolicitudes.setText("Mis solicitudes"); return; }
+        // The áreas no longer send requests; the button only shows while Patrimonio
+        // still has some to answer from before.
+        btnSolicitudes.setVisible(false); btnSolicitudes.setManaged(false);
+        if (!com.sibim.service.SolicitudService.disponible() || !com.sibim.session.Permisos.atiendeSolicitudes()) return;
         DialogUtil.runAsync(
             () -> new com.sibim.service.SolicitudService().countPendientes(),
             n -> {
+                btnSolicitudes.setVisible(n > 0); btnSolicitudes.setManaged(n > 0);
                 btnSolicitudes.setText(n > 0 ? "Solicitudes (" + n + ")" : "Solicitudes");
                 btnSolicitudes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
                 btnSolicitudes.getStyleClass().add(n > 0 ? "btn-warning-outline" : "btn-secondary");
@@ -244,9 +246,11 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     protected String getLoadErrorMessage() { return "No se pudieron cargar los préstamos"; }
     @Override protected String emptyStateIcon()     { return "mdi2c-cube-send"; }
     @Override protected String emptyStateTitle()    { return "Sin préstamos activos"; }
-    @Override protected String emptyStateSubtitle() { return com.sibim.session.Permisos.gestionaDocumentos()
+    @Override protected String emptyStateSubtitle() { return SessionManager.isAdmin()
         ? "Registra préstamos temporales de bienes entre áreas"
-        : "Para pedir uno: Bienes > clic derecho sobre el bien > Solicitar préstamo"; }
+        : com.sibim.session.Permisos.prestaBienes()
+            ? "Registra préstamos temporales entre las áreas de tu secretaría"
+            : "Los préstamos los registran Patrimonio y los secretarios; aquí ves los de tu área"; }
 
     @Override
     protected void onTableDoubleClick(Prestamo item) { mostrarDetalle(item); }
@@ -260,7 +264,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         MenuItem miPdf = new MenuItem("Exportar comprobante PDF");
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
-        if (com.sibim.session.Permisos.gestionaDocumentos()) cm.getItems().addAll(miDev, new SeparatorMenuItem());
+        if (com.sibim.session.Permisos.prestaBienes()) cm.getItems().addAll(miDev, new SeparatorMenuItem());
         cm.getItems().add(miPdf);
         addLoteExportItem(cm);
         return cm;
@@ -469,27 +473,24 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         ComboBox<Producto> productoCombo = new ComboBox<>(productosObs);
         productoCombo.setMaxWidth(Double.MAX_VALUE);
         productoCombo.setPromptText("Buscar bien…");
-        productoCombo.setEditable(true);
         productoCombo.getStyleClass().add("form-input");
         productoCombo.setConverter(new javafx.util.StringConverter<>() {
             @Override public String toString(Producto p) { return p == null ? "" : p.getNombre() + (p.getCodigo() != null ? " (" + p.getCodigo() + ")" : ""); }
             @Override public Producto fromString(String s) { return null; }
         });
-        javafx.scene.control.TextField prodEditor = productoCombo.getEditor();
-        if (prodEditor != null) {
-            prodEditor.textProperty().addListener((obs, o, n) -> {
-                if (n == null || n.isBlank()) { productoCombo.setItems(productosObs); return; }
-                String lq = n.toLowerCase();
-                productoCombo.setItems(productosObs.filtered(p ->
-                    p.getNombre().toLowerCase().contains(lq)
-                    || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(lq))));
-            });
-        }
+        // Type-to-filter picker shared with Movimientos: the hand-rolled filter that was
+        // here swapped the item list while typing, which never opened the list and
+        // lost what was typed, so the bien could not be searched.
+        DialogUtil.makeFilterable(productoCombo, productos, p -> productoCombo.getConverter().toString(p));
         form.add(DialogUtil.fieldLabel("Bien *"), 0, row); form.add(productoCombo, 1, row++);
 
-        ComboBox<String> areaDestino = new ComboBox<>(
-            FXCollections.observableArrayList(new java.util.ArrayList<>(Areas.getAllAreaNames())));
-        areaDestino.setEditable(true); areaDestino.setMaxWidth(Double.MAX_VALUE);
+        // A secretario lends only inside his secretaría: the list offers nothing else.
+        java.util.List<String> areasCatalogo = Areas.getAllAreaNames().stream()
+            .filter(com.sibim.session.Permisos::esAreaPropia)
+            .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+        ComboBox<String> areaDestino = new ComboBox<>();
+        DialogUtil.makeFilterable(areaDestino, areasCatalogo);
+        areaDestino.setMaxWidth(Double.MAX_VALUE);
         areaDestino.setPromptText("Área que recibe el bien…");
         areaDestino.getStyleClass().add("form-input");
         form.add(DialogUtil.fieldLabel("Área destino *"), 0, row); form.add(areaDestino, 1, row++);
@@ -565,7 +566,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
 
     @FXML
     private void onDevolver() {
-        if (!com.sibim.session.Permisos.gestionaDocumentos()) return;
+        if (!com.sibim.session.Permisos.prestaBienes()) return;
         Prestamo sel = table.getSelectionModel().getSelectedItem();
         if (sel == null || Prestamo.ESTADO_DEVUELTO.equals(sel.getEstado())) return;
 

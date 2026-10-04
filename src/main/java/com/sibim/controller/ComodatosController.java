@@ -321,7 +321,6 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         ComboBox<Producto> productoCombo = new ComboBox<>(productosObs);
         productoCombo.setMaxWidth(Double.MAX_VALUE);
         productoCombo.setPromptText("Buscar bien…");
-        productoCombo.setEditable(true);
         productoCombo.getStyleClass().add("form-input");
         productoCombo.setConverter(new javafx.util.StringConverter<>() {
             @Override public String toString(Producto p) {
@@ -329,16 +328,10 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
             }
             @Override public Producto fromString(String s) { return null; }
         });
-        javafx.scene.control.TextField prodEditor = productoCombo.getEditor();
-        if (prodEditor != null) {
-            prodEditor.textProperty().addListener((obs, o, n) -> {
-                if (n == null || n.isBlank()) { productoCombo.setItems(productosObs); return; }
-                String lq = n.toLowerCase();
-                productoCombo.setItems(productosObs.filtered(p ->
-                    p.getNombre().toLowerCase().contains(lq)
-                    || (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(lq))));
-            });
-        }
+        // Type-to-filter picker shared with Movimientos: the hand-rolled filter that was
+        // here swapped the item list while typing, which never opened the list and
+        // lost what was typed, so the bien could not be searched.
+        DialogUtil.makeFilterable(productoCombo, productos, p -> productoCombo.getConverter().toString(p));
         form.add(DialogUtil.fieldLabel("Bien *"),             0, row); form.add(productoCombo, 1, row++);
 
         // Entidad receptora

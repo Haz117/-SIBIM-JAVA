@@ -73,7 +73,9 @@ public class ReporteInventarioFotograficoService extends ReporteService {
 
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
-             Document doc = new Document(pdfDoc, PageSize.LETTER)) {
+             // Not flushed page by page: the footer of each sheet is drawn at the end,
+             // once the total is known ("Cannot draw elements on already flushed pages").
+             Document doc = new Document(pdfDoc, PageSize.LETTER, false)) {
 
             doc.setMargins(24, 30, 30, 30);
             Table t = new Table(UnitValue.createPercentArray(new float[]{40, 22, 38})).useAllAvailableWidth();

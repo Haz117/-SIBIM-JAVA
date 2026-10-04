@@ -48,7 +48,7 @@ public class ReporteParqueVehicularService extends ReporteService {
                 addVehicleCard(doc, vehiculos.get(i), pdfDoc);
             }
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     private void addVehicleCard(Document doc, Producto p, PdfDocument pdfDoc) throws Exception {
@@ -60,7 +60,7 @@ public class ReporteParqueVehicularService extends ReporteService {
         // ── Encabezado del formulario ──────────────────────────────────
         Image logoImg = loadHeaderLogo();
         float[] hwCols = logoImg != null ? new float[]{1f, 5f} : new float[]{1f};
-        Table headerRow = new Table(hwCols).useAllAvailableWidth().setMarginBottom(4);
+        Table headerRow = tabla(hwCols).setMarginBottom(4);
         if (logoImg != null) {
             headerRow.addCell(new Cell()
                 .add(logoImg.setAutoScale(true).setMaxHeight(50).setMaxWidth(60)
@@ -90,8 +90,7 @@ public class ReporteParqueVehicularService extends ReporteService {
         doc.add(spacer(6));
 
         // ── Tabla de datos del vehículo (4 columnas: etiqueta | valor | etiqueta | valor) ──
-        Table dataTable = new Table(new float[]{1.3f, 1.7f, 1.5f, 1.5f})
-            .useAllAvailableWidth().setMarginBottom(10);
+        Table dataTable = tabla(1.25f, 1.75f, 1.55f, 1.45f).setMarginBottom(10);
 
         addVRow(dataTable, "Marca:",               v(p.getMarca()),               "Unidad Administrativa:", v(p.getArea()),                  bold, reg, muted, labelBg);
         addVRow(dataTable, "Tipo:",                v(p.getTipoBien()),             "Factura:",               v(p.getNumeroFactura()),          bold, reg, muted, labelBg);
@@ -104,44 +103,35 @@ public class ReporteParqueVehicularService extends ReporteService {
         doc.add(dataTable);
 
         // ── Fotografía + checklist de componentes (tabla de 2 columnas) ──
-        Table bottomSection = new Table(new float[]{1.4f, 1f}).useAllAvailableWidth();
+        Table bottomSection = tabla(1.4f, 1f);
 
         // Foto (o área en blanco)
         Cell fotoCell = buildFotoCell(p, reg);
         bottomSection.addCell(fotoCell);
 
         // Lista de componentes
-        Table checkTable = new Table(new float[]{3f, 1f}).useAllAvailableWidth();
+        Table checkTable = tabla(3f, 1.1f);
         checkTable.addCell(new Cell(1, 2)
             .add(new Paragraph("COMPONENTES DEL VEHÍCULO")
                 .setFont(bold).setFontSize(7.5f).setFontColor(ColorConstants.WHITE)
                 .setTextAlignment(TextAlignment.CENTER))
             .setBackgroundColor(COLOR_HEADER).setPadding(5)
             .setBorder(Border.NO_BORDER));
+        SolidBorder rejilla = new SolidBorder(new DeviceRgb(120, 120, 120), 0.4f);
         checkTable.addCell(new Cell()
-            .add(new Paragraph("Componente").setFont(bold).setFontSize(7f).setFontColor(muted))
-            .setBackgroundColor(labelBg).setPadding(3)
-            .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER)
-            .setBorderRight(Border.NO_BORDER).setBorderBottom(new SolidBorder(BORDER_LIGHT, 0.4f)));
+            .add(new Paragraph("Componente").setFont(bold).setFontSize(7f).setFontColor(muted).setMargin(0))
+            .setBackgroundColor(labelBg).setPadding(3).setBorder(rejilla));
         checkTable.addCell(new Cell()
             .add(new Paragraph("Sí / No").setFont(bold).setFontSize(7f).setFontColor(muted)
-                .setTextAlignment(TextAlignment.CENTER))
-            .setBackgroundColor(labelBg).setPadding(3)
-            .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER)
-            .setBorderRight(Border.NO_BORDER).setBorderBottom(new SolidBorder(BORDER_LIGHT, 0.4f)));
+                .setTextAlignment(TextAlignment.CENTER).setMargin(0))
+            .setBackgroundColor(labelBg).setPadding(3).setBorder(rejilla));
 
         for (String comp : COMPONENTES) {
             checkTable.addCell(new Cell()
-                .add(new Paragraph(comp).setFont(reg).setFontSize(7.5f))
-                .setPadding(4)
-                .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).setBorderRight(Border.NO_BORDER)
-                .setBorderBottom(new SolidBorder(BORDER_LIGHT, 0.4f)));
-            checkTable.addCell(new Cell()
-                .add(new Paragraph("_____").setFont(reg).setFontSize(7.5f)
-                    .setTextAlignment(TextAlignment.CENTER))
-                .setPadding(4)
-                .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).setBorderRight(Border.NO_BORDER)
-                .setBorderBottom(new SolidBorder(BORDER_LIGHT, 0.4f)));
+                .add(new Paragraph(comp).setFont(bold).setFontSize(7.5f).setMargin(0))
+                .setPadding(4).setBorder(rejilla).setVerticalAlignment(VerticalAlignment.MIDDLE));
+            // An empty ruled box to write "sí" or "no" in, as on the printed card.
+            checkTable.addCell(new Cell().setPadding(4).setBorder(rejilla));
         }
 
         bottomSection.addCell(new Cell()
@@ -151,8 +141,8 @@ public class ReporteParqueVehicularService extends ReporteService {
         // ── Firmas ────────────────────────────────────────────────────
         addFirmasBlock(doc,
             new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-            new String[]{"RECIBIÓ", "_______________", "Resguardante / Titular"},
-            new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+            new String[]{"RECIBIÓ", null, "Resguardante / Titular"},
+            new String[]{"VO.BO.", null, "Secretario General Municipal"});
     }
 
     private Cell buildFotoCell(Producto p, PdfFont reg) {
@@ -181,27 +171,20 @@ public class ReporteParqueVehicularService extends ReporteService {
     private void addVRow(Table t,
             String lbl1, String val1, String lbl2, String val2,
             PdfFont bold, PdfFont reg, DeviceRgb muted, DeviceRgb labelBg) {
-        SolidBorder bottom = new SolidBorder(BORDER_LIGHT, 0.4f);
-        t.addCell(new Cell()
-            .add(new Paragraph(lbl1).setFont(bold).setFontSize(7.5f).setFontColor(muted))
-            .setBackgroundColor(labelBg).setPadding(4)
-            .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER)
-            .setBorderRight(Border.NO_BORDER).setBorderBottom(bottom));
-        t.addCell(new Cell()
-            .add(new Paragraph(val1 != null ? val1 : "").setFont(reg).setFontSize(8f))
-            .setPadding(4)
-            .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER)
-            .setBorderRight(Border.NO_BORDER).setBorderBottom(bottom));
-        t.addCell(new Cell()
-            .add(new Paragraph(lbl2).setFont(bold).setFontSize(7.5f).setFontColor(muted))
-            .setBackgroundColor(labelBg).setPadding(4)
-            .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER)
-            .setBorderRight(Border.NO_BORDER).setBorderBottom(bottom));
-        t.addCell(new Cell()
-            .add(new Paragraph(val2 != null ? val2 : "").setFont(reg).setFontSize(8f))
-            .setPadding(4)
-            .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER)
-            .setBorderRight(Border.NO_BORDER).setBorderBottom(bottom));
+        SolidBorder rejilla = new SolidBorder(new DeviceRgb(120, 120, 120), 0.4f);
+        String[][] pares = {{lbl1, val1}, {lbl2, val2}};
+        for (String[] par : pares) {
+            boolean vacio = par[0] == null || par[0].isBlank();
+            t.addCell(new Cell()
+                .add(new Paragraph(vacio ? "" : par[0]).setFont(bold).setFontSize(7.5f).setMargin(0))
+                .setBackgroundColor(vacio ? ColorConstants.WHITE : labelBg).setPadding(4)
+                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+                .setBorder(vacio ? Border.NO_BORDER : rejilla));
+            t.addCell(new Cell()
+                .add(new Paragraph(par[1] != null ? par[1] : "").setFont(reg).setFontSize(8f).setMargin(0))
+                .setPadding(4).setVerticalAlignment(VerticalAlignment.MIDDLE)
+                .setBorder(vacio ? Border.NO_BORDER : rejilla));
+        }
     }
 
     private static String v(String s) {

@@ -1022,7 +1022,10 @@ public final class SyncService {
     private static void queryDiscarded(String table, String tableLabel,
                                        String idCol, String nameCol,
                                        List<OutboxEntry> out) {
-        String sql = "SELECT id, operacion, " + idCol + ", " + nameCol
+        // Conteos and audit entries are only ever added, so their outboxes have no "operacion"
+        // column; selecting it failed and a discarded one was counted but never listed.
+        boolean soloAltas = table.equals("conteo_outbox") || table.equals("audit_log_outbox");
+        String sql = "SELECT id, " + (soloAltas ? "'ADD' AS operacion" : "operacion") + ", " + idCol + ", " + nameCol
             + ", error, created_at FROM " + table + " WHERE status = 'DISCARDED' ORDER BY id DESC";
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {

@@ -50,6 +50,10 @@ public class DashboardController implements Refreshable {
     @FXML private Label lblValorTotal;
     @FXML private Label lblMovimientosHoy;
     @FXML private Label lblCategorias;
+    @FXML private VBox  cardMovimientosHoy;
+    @FXML private VBox  cardCategorias;
+    @FXML private Label hintMovimientosHoy;
+    @FXML private Label hintCategorias;
 
     // ── Banner ───────────────────────────────────────────────────────
     @FXML private Label lblBienvenida;
@@ -167,12 +171,23 @@ public class DashboardController implements Refreshable {
         if (!canEdit) {
             if (cardNuevoBien    != null) { cardNuevoBien.setVisible(false);    cardNuevoBien.setManaged(false); }
             if (cardNuevaEntrada != null) { cardNuevaEntrada.setVisible(false); cardNuevaEntrada.setManaged(false); }
+            // Movimientos and Categorías are not screens of the áreas: the cards stay as plain figures.
+            soloCifra(cardMovimientosHoy, hintMovimientosHoy);
+            soloCifra(cardCategorias, hintCategorias);
         }
         if (btnPanelEjecutivo != null) {
             boolean isAdmin = SessionManager.isAdmin();
             btnPanelEjecutivo.setVisible(isAdmin);
             btnPanelEjecutivo.setManaged(isAdmin);
         }
+    }
+
+    private static void soloCifra(VBox card, Label hint) {
+        if (hint != null) { hint.setVisible(false); hint.setManaged(false); }
+        if (card == null) return;
+        card.setOnMouseClicked(null);
+        card.getStyleClass().remove("rich-stat-card-clickable");
+        card.setAccessibleRole(javafx.scene.AccessibleRole.NODE);
     }
 
     private void setupSceneReadyListener() {
@@ -242,7 +257,7 @@ public class DashboardController implements Refreshable {
         AnimationUtils.animateCount(lblCategorias,     stats.categorias(),         580);
         AnimationUtils.animateCount(lblValorTotal,
             stats.valorTotal().longValue(), 850,
-            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
+            v -> com.sibim.session.Permisos.pesos(BigDecimal.valueOf(v)));
         PauseTransition popDelay =
             new PauseTransition(Duration.millis(820));
         popDelay.setOnFinished(ev -> statsGrid.getChildren().forEach(AnimationUtils::statCardPop));

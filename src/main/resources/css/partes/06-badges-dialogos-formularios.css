@@ -50,11 +50,6 @@
 .data-table .table-row-cell.row-transferencia      { -fx-background-color: #F0F6FF; }
 .data-table .table-row-cell.row-transferencia:hover { -fx-background-color: #DBEAFE; }
 
-.report-card-tag {
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-}
-
 /* ─── Row tints (productos por estado) ─── */
 .data-table .table-row-cell.row-danger              { -fx-background-color: #FFF8F8; }
 .data-table .table-row-cell.row-danger:odd          { -fx-background-color: #FFF8F8; }
@@ -459,3 +454,18 @@
     -fx-text-fill: sibim-gray-700;
     -fx-font-size: 13px;
 }
+
+/* Títulos de sección creados en código (Configuración) y filas de historial del detalle del bien:
+   las clases se usaban sin estar definidas, así que salían con el estilo por defecto. */
+.card-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: sibim-slate-950;
+}
+.mov-history-row {
+    -fx-padding: 5 8;
+    -fx-border-color: transparent transparent sibim-slate-100 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+/* Diálogos de entrada estándar (TextInputDialog, ChoiceDialog) con DialogUtil.conEncabezado */
+.dialog-pane > .dialog-input-content { -fx-padding: 18 22 18 22; -fx-hgap: 12; }

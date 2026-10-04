@@ -275,10 +275,6 @@
 .banner-sep    { -fx-opacity: 0.18; }
 .banner-sep-v  { -fx-opacity: 0.18; }
 
-/* Alert section header icons and subtitles */
-.alert-section-icon       { -fx-icon-size: 18; -fx-icon-color: white; }
-.alert-section-icon-white { -fx-icon-size: 18; -fx-icon-color: white; }
-.alert-section-subtitle   { -fx-text-fill: rgba(255,255,255,0.70); -fx-font-size: 11px; }
 .btn-icon                 { -fx-icon-size: 14; }
 
 /* Recent activity table rounded corners + a bit more breathing room per

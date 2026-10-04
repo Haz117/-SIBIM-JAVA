@@ -93,6 +93,27 @@ public class AreaService {
         guardar(cambio, false);
     }
 
+    /**
+     * Moves a dirección under another parent (Presidencia or a secretaría),
+     * keeping its prefix. In demo mode the change only lives in memory, like
+     * everything else there.
+     */
+    public void moverDireccion(String nombre, String nuevoPadre) throws SQLException {
+        AreaCatalog.Entrada actual = Areas.catalogo().buscar(nombre)
+            .orElseThrow(() -> new IllegalArgumentException("No existe el área \"" + nombre + "\""));
+        if (actual.grupo() != AreaCatalog.Grupo.DIRECCION)
+            throw new IllegalArgumentException("Solo una dirección puede cambiar de dependencia");
+        AreaCatalog.Entrada cambio = new AreaCatalog.Entrada(nombre, AreaCatalog.Grupo.DIRECCION,
+            nuevoPadre, actual.prefijo());
+        if (DatabaseConfig.isDemoMode()) {
+            if (!SessionManager.isAdmin())
+                throw new IllegalStateException("Solo un administrador puede editar las áreas");
+            Areas.usar(Areas.catalogo().con(cambio));
+            return;
+        }
+        guardar(cambio);
+    }
+
     /** Active bienes that would be renumbered if {@code area}'s prefix changed now. */
     public int bienesConPrefijoActual(String area) throws SQLException {
         return Areas.catalogo().buscar(area)

@@ -54,8 +54,10 @@ final class ProductosBulkBar {
         // Changing área moves the bienes (a transfer): Patrimonio only.
         boolean mover = edit && com.sibim.session.SessionManager.isAdmin();
         if (btnBulkArea != null) { btnBulkArea.setVisible(mover); btnBulkArea.setManaged(mover); }
-        if (btnBulkResguardante != null) { btnBulkResguardante.setVisible(edit); btnBulkResguardante.setManaged(edit); }
-        if (btnBulkMarcarEtiquetado != null) { btnBulkMarcarEtiquetado.setVisible(edit); btnBulkMarcarEtiquetado.setManaged(edit); }
+        // Who holds a bien is said by a signed resguardo, and the label is checked by
+        // Patrimonio: neither is something an área changes for many bienes at once.
+        if (btnBulkResguardante != null) { btnBulkResguardante.setVisible(mover); btnBulkResguardante.setManaged(mover); }
+        if (btnBulkMarcarEtiquetado != null) { btnBulkMarcarEtiquetado.setVisible(mover); btnBulkMarcarEtiquetado.setManaged(mover); }
         if (btnComparar != null) { btnComparar.setVisible(n == 2); btnComparar.setManaged(n == 2); }
         if (show == visible) return;
         visible = show;

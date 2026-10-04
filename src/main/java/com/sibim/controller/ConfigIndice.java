@@ -1,11 +1,9 @@
 package com.sibim.controller;
 
-import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 
@@ -35,17 +33,11 @@ final class ConfigIndice {
             if (titulo == null) continue;
             Button chip = new Button(titulo);
             chip.getStyleClass().add("btn-preset");
-            chip.setOnAction(e -> irA(pagina, seccion));
+            chip.setOnAction(e -> com.sibim.util.Desplazamiento.irA(seccion));
             indice.getChildren().add(chip);
         }
         pagina.getChildren().removeIf(n -> ID.equals(n.getId()));
         if (indice.getChildren().size() >= 3) pagina.getChildren().add(Math.min(1, pagina.getChildren().size()), indice);
-    }
-
-    private static ScrollPane scrollDe(Node n) {
-        for (Parent p = n.getParent(); p != null; p = p.getParent())
-            if (p instanceof ScrollPane sp) return sp;
-        return n.getScene() != null && n.getScene().getRoot() instanceof ScrollPane sp ? sp : null;
     }
 
     /** The first title label inside a section, in sentence case. */
@@ -62,19 +54,5 @@ final class ConfigIndice {
                 if (t != null) return t;
             }
         return null;
-    }
-
-    private static void irA(VBox pagina, Node seccion) {
-        // Looked up at click time: before the page is shown its ScrollPane has no skin
-        // yet, and its content is not reachable through getParent().
-        ScrollPane scroll = scrollDe(pagina);
-        if (scroll == null) return;
-        Bounds contenido = pagina.getBoundsInLocal();
-        double visible = scroll.getViewportBounds().getHeight();
-        double desplazable = contenido.getHeight() - visible;
-        if (desplazable <= 0) return;
-        double y = seccion.getBoundsInParent().getMinY() - 12;
-        scroll.setVvalue(Math.max(0, Math.min(1, y / desplazable)));
-        seccion.requestFocus();
     }
 }

@@ -45,11 +45,17 @@ class ResguardoServiceTest {
     void salir() { com.sibim.session.SessionManager.logout(); }
 
     @Test
-    void soloElAdministradorCreaYCancela() {
-        entrarComo(com.sibim.model.enums.Rol.SECRETARIO);
+    void sinSesionNoSeCrea_ySoloElAdministradorCancela() {
+        // The áreas create resguardos of their own bienes (PermisosDocumentosIntegrationTest
+        // covers whose); cancelling one frees the bien and stays with Patrimonio.
+        for (com.sibim.model.enums.Rol rol : new com.sibim.model.enums.Rol[]{
+                com.sibim.model.enums.Rol.SECRETARIO, com.sibim.model.enums.Rol.DIRECCION }) {
+            entrarComo(rol);
+            assertThrows(SecurityException.class, () -> service.cancelar("r-01"), rol.name());
+        }
+        com.sibim.session.SessionManager.logout();
         assertThrows(SecurityException.class,
             () -> service.crear("Ana García", null, null, List.of(item()), null));
-        assertThrows(SecurityException.class, () -> service.cancelar("r-01"));
     }
 
     // ── Validación: nombre del resguardante ───────────────────────────────────

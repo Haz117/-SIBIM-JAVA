@@ -15,6 +15,7 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.DashedBorder;
 import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
@@ -98,7 +99,7 @@ public class ReporteEtiquetasService extends ReporteService {
             doc.add(grid);
             addPdfFooter(doc, items.size());
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     // ── Etiqueta física (formato oficial) ────────────────────────────────────
@@ -109,6 +110,10 @@ public class ReporteEtiquetasService extends ReporteService {
     private static final float ETQ_COL_IZQ = 65f;
     private static final float ETQ_ENCABEZADO = 40f, ETQ_TITULOS = 29f,
                                ETQ_DEPARTAMENTO = 35f, ETQ_RESGUARDO = 32f, ETQ_NUMERO = 50f;
+    /** Padding of every cell of the label; the row heights above include it. */
+    private static final float ETQ_PAD = 3f;
+    /** Side of the QR in the header; its content is kept short (QrUtils.contenidoEtiqueta) so it scans at this size. */
+    private static final float ETQ_QR = 33f;
     private static final DeviceRgb ETQ_ROJO        = new DeviceRgb(192, 80, 77);
     private static final DeviceRgb ETQ_LINEA       = new DeviceRgb(38, 38, 38);
     private static final DeviceRgb ETQ_TEXTO       = new DeviceRgb(30, 30, 30);
@@ -137,13 +142,18 @@ public class ReporteEtiquetasService extends ReporteService {
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document    doc    = new Document(pdfDoc, PageSize.LETTER)) {
 
-            doc.setMargins(12, 12, 12, 12);
-            Table hoja = new Table(UnitValue.createPointArray(new float[]{ETQ_ANCHO + 8, ETQ_ANCHO + 8}))
+            doc.setMargins(8, 12, 8, 12);
+            // Dashed guides between the labels show where to cut.
+            DashedBorder guia = new DashedBorder(new DeviceRgb(190, 190, 190), 0.4f);
+            Table hoja = new Table(UnitValue.createPointArray(new float[]{ETQ_ANCHO + 12, ETQ_ANCHO + 12}))
                 .setHorizontalAlignment(HorizontalAlignment.CENTER);
-            for (Producto p : items) {
-                hoja.addCell(new Cell().add(etiqueta(p, logo, municipio, periodo, bold, reg))
-                    .setBorder(Border.NO_BORDER).setPaddingTop(2).setPaddingBottom(2)
-                    .setPaddingLeft(4).setPaddingRight(4).setKeepTogether(true));
+            for (int i = 0; i < items.size(); i++) {
+                Cell c = new Cell().add(etiqueta(items.get(i), logo, municipio, periodo, bold, reg))
+                    .setBorder(Border.NO_BORDER).setPaddingTop(1.5f).setPaddingBottom(1.5f)
+                    .setPaddingLeft(6).setPaddingRight(6).setKeepTogether(true);
+                if (i % 2 == 0) c.setBorderRight(guia);
+                if (i % 8 < 6 && i + 2 < items.size() + items.size() % 2) c.setBorderBottom(guia);
+                hoja.addCell(c);
             }
             if (items.size() % 2 != 0) hoja.addCell(new Cell().setBorder(Border.NO_BORDER));
             doc.add(hoja);
@@ -157,7 +167,9 @@ public class ReporteEtiquetasService extends ReporteService {
             .setFixedLayout().setWidth(ETQ_ANCHO)
             .setBorder(new SolidBorder(ETQ_ROJO, 1.8f));
 
-        // Encabezado: logo | municipio y periodo | espacio que deja el texto centrado
+        String codigo = p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "—";
+
+        // Encabezado: logo | municipio y periodo | QR del bien
         Table enc = new Table(UnitValue.createPercentArray(new float[]{22, 56, 22})).useAllAvailableWidth();
         Cell cLogo = sinBorde();
         if (logo != null) {
@@ -172,19 +184,26 @@ public class ReporteEtiquetasService extends ReporteService {
         enc.addCell(sinBorde()
             .add(texto(municipio, bold, 8.5f, ETQ_TEXTO))
             .add(texto(periodo, bold, 8.5f, ETQ_TEXTO)));
-        enc.addCell(sinBorde());
-        t.addCell(celda(1, 2, ETQ_ENCABEZADO).setPadding(2).add(enc));
+        Cell cQr = sinBorde();
+        // Código on the first line (all SIBIM's scanner reads), then what it is and who has it:
+        // the most a QR this small can carry and still be read by a phone.
+        byte[] qr = "—".equals(codigo) ? null : qrToPngBytes(com.sibim.util.QrUtils.contenidoEtiqueta(p), 330);
+        if (qr != null)
+            cQr.add(new Image(ImageDataFactory.create(qr)).setAutoScale(false).setWidth(ETQ_QR).setHeight(ETQ_QR)
+                .setHorizontalAlignment(HorizontalAlignment.CENTER));
+        enc.addCell(cQr);
+        t.addCell(celda(1, 2, ETQ_ENCABEZADO).setPadding(1).setHeight(ETQ_ENCABEZADO - 3.6f).add(enc));
 
         String[] depRes = departamentoYResguardo(p.getArea());
 
         // Títulos
         t.addCell(celda(1, 1, ETQ_TITULOS).setBackgroundColor(ETQ_ROJO)
-            .add(texto("DEPARTAMENTO", bold, 6.5f, ETQ_TEXTO)));
+            .add(texto("DEPARTAMENTO", bold, 6.5f, ColorConstants.WHITE)));
         t.addCell(celda(1, 1, ETQ_TITULOS)
             .add(texto("DESCRIPCIÓN DEL BIEN Y No. DE INVENTARIO", bold, 5.8f, ETQ_TEXTO)));
 
         // Departamento | descripción, marca, modelo y serie (ocupa dos filas)
-        t.addCell(celda(1, 1, ETQ_DEPARTAMENTO).add(texto(depRes[0], reg, 5.5f, ETQ_TEXTO)));
+        t.addCell(celda(1, 1, ETQ_DEPARTAMENTO).add(texto(depRes[0], reg, tamArea(depRes[0]), ETQ_TEXTO)));
 
         String descripcion = recortar(mayus(p.getNombre(), "SIN DESCRIPCIÓN"), 230);
         Cell cDesc = celda(2, 1, ETQ_DEPARTAMENTO + ETQ_RESGUARDO)
@@ -200,13 +219,12 @@ public class ReporteEtiquetasService extends ReporteService {
         t.addCell(cDesc.add(modeloSerie));
 
         t.addCell(celda(1, 1, ETQ_RESGUARDO).setBackgroundColor(ETQ_ROJO)
-            .add(texto("RESGUARDO", bold, 6.5f, ETQ_TEXTO)));
+            .add(texto("RESGUARDO", bold, 6.5f, ColorConstants.WHITE)));
 
         // Resguardo | número de inventario
-        t.addCell(celda(1, 1, ETQ_NUMERO).add(texto(depRes[1], reg, 5.5f, ETQ_TEXTO)));
-        String codigo = p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "—";
+        t.addCell(celda(1, 1, ETQ_NUMERO).add(texto(depRes[1], reg, tamArea(depRes[1]), ETQ_TEXTO)));
         t.addCell(celda(1, 1, ETQ_NUMERO)
-            .add(texto(codigo, bold, tamQueCabe(bold, codigo, ETQ_ANCHO - ETQ_COL_IZQ - 10, 17f), ETQ_NUMERO_ROJO)));
+            .add(texto(codigo, bold, tamQueCabe(bold, codigo, ETQ_ANCHO - ETQ_COL_IZQ - 10, 19f), ETQ_NUMERO_ROJO)));
         return t;
     }
 
@@ -238,8 +256,10 @@ public class ReporteEtiquetasService extends ReporteService {
         }
     }
 
+    /** A cell exactly {@code alto} points tall, padding included: the eight labels
+     *  of a sheet are all the same size whatever they say. */
     private static Cell celda(int filas, int columnas, float alto) {
-        return new Cell(filas, columnas).setMinHeight(alto).setPadding(3)
+        return new Cell(filas, columnas).setHeight(alto - 2 * ETQ_PAD - 1.6f).setPadding(ETQ_PAD)
             .setBorder(new SolidBorder(ETQ_LINEA, 0.8f))
             .setVerticalAlignment(VerticalAlignment.MIDDLE);
     }
@@ -249,7 +269,7 @@ public class ReporteEtiquetasService extends ReporteService {
             .setVerticalAlignment(VerticalAlignment.MIDDLE);
     }
 
-    private static Paragraph texto(String s, PdfFont font, float tam, DeviceRgb color) {
+    private static Paragraph texto(String s, PdfFont font, float tam, com.itextpdf.kernel.colors.Color color) {
         return new Paragraph(s).setFont(font).setFontSize(tam).setFontColor(color)
             .setMultipliedLeading(1.1f).setMargin(0).setTextAlignment(TextAlignment.CENTER);
     }
@@ -264,7 +284,12 @@ public class ReporteEtiquetasService extends ReporteService {
 
     /** Descriptions run from "SILLA" to a full paragraph; the cell stays the same size. */
     private static float tamDescripcion(int largo) {
-        return largo <= 90 ? 7f : largo <= 170 ? 6f : 5f;
+        return largo <= 45 ? 7.5f : largo <= 90 ? 6.5f : largo <= 170 ? 5.5f : 4.8f;
+    }
+
+    /** Área names go from "TESORERÍA" to four lines of secretaría y dirección. */
+    private static float tamArea(String area) {
+        return area.length() <= 30 ? 5.5f : area.length() <= 55 ? 5f : 4.4f;
     }
 
     /** The largest size up to {@code max} at which {@code s} fits on one line of {@code ancho}. */

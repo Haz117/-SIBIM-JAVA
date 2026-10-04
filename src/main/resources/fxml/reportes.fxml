@@ -18,7 +18,7 @@
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <Label text="Reportes y Exportaciones" styleClass="page-title"/>
-            <Label text="Exporta inventario, movimientos y alertas en PDF, Excel y CSV" styleClass="page-subtitle"/>
+            <Label fx:id="lblSubtitulo" text="Listados y formatos oficiales en PDF, Excel y CSV" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
     </HBox>
@@ -30,10 +30,10 @@
             <FontIcon iconLiteral="mdi2c-calendar-month" styleClass="card-icon-lg"/>
             <Label text="Período del reporte" styleClass="card-title"/>
             <Label fx:id="helpPeriodo" text="?" styleClass="help-badge">
-                <tooltip><Tooltip text="Filtra por fecha de registro del bien. Aplica tanto a la gráfica de distribución como a los reportes de Inventario y Movimientos de abajo — Alertas, Bajas y Auditoría siempre incluyen todo el historial." wrapText="true" maxWidth="290"/></tooltip>
+                <tooltip><Tooltip text="Filtra por fecha de registro. Aplica a los reportes de Inventario y Movimientos y a las dos gráficas del final — los demás reportes incluyen siempre todo el historial." wrapText="true" maxWidth="290"/></tooltip>
             </Label>
             <Region HBox.hgrow="ALWAYS"/>
-            <Label text="Opcional — deja vacío para incluir todos los registros"
+            <Label fx:id="lblAlcancePeriodo" text="Aplica a Inventario, Movimientos y las gráficas · vacío = todo el historial"
                    styleClass="report-hint"/>
         </HBox>
         <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT">
@@ -68,292 +68,29 @@
         </FlowPane>
     </VBox>
 
-    <!-- ══ CARDS DE REPORTES ═══════════════════════════════════════════
-         Separador visual
+    <!-- ══ REPORTES ═══════════════════════════════════════════════════
+         Las filas de cada lista se describen una sola vez en
+         ReportesController#construirReportes y las dibuja ReporteFila.
          ══════════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar-green"/>
-        <Label text="TIPOS DE REPORTE DISPONIBLES" styleClass="dash-section-label"/>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="LISTADOS" styleClass="dash-section-label"/>
         <Label fx:id="helpTiposReporte" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="PDF: para imprimir o compartir tal cual. Excel: para seguir analizando o editando los datos. CSV: para importar a otro sistema. Los tres respetan el período seleccionado arriba." wrapText="true" maxWidth="280"/></tooltip>
+            <tooltip><Tooltip text="PDF: para imprimir o compartir tal cual. Excel: para seguir analizando o editando los datos. CSV: para importar a otro sistema. Solo los reportes que muestran la etiqueta de período se limitan a las fechas elegidas arriba; los demás incluyen siempre todo." wrapText="true" maxWidth="300"/></tooltip>
         </Label>
     </HBox>
+    <VBox fx:id="listaListados" styleClass="report-list"/>
 
-    <!-- Grid 2×2 -->
-    <GridPane fx:id="reportGrid" hgap="16" vgap="16">
-        <columnConstraints>
-            <ColumnConstraints percentWidth="50"/>
-            <ColumnConstraints percentWidth="50"/>
-        </columnConstraints>
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="FORMATOS OFICIALES" styleClass="dash-section-label"/>
+    </HBox>
+    <VBox fx:id="listaFormatos" styleClass="report-list"/>
 
-        <!-- ── Inventario General — indigo ── -->
-        <VBox styleClass="report-card" spacing="10"
-              GridPane.columnIndex="0" GridPane.rowIndex="0">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-indigo">
-                    <FontIcon iconLiteral="mdi2p-package-variant" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Inventario General" styleClass="report-title"/>
-                    <Label text="Bienes · cantidad · valor · estado"
-                           styleClass="report-card-tag, report-card-tag-indigo"/>
-                </VBox>
-            </HBox>
-            <Label text="Listado completo de todos los bienes patrimoniales con existencias, valor unitario y estado actual."
-                   styleClass="report-desc" wrapText="true"/>
-            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-indigo"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-                <items>
-                    <MenuItem text="PDF" onAction="#onInventarioPdf">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="Excel" onAction="#onInventarioExcel">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="CSV" onAction="#onInventarioCsv">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
-                    </MenuItem>
-                </items>
-            </MenuButton>
-        </VBox>
-
-        <!-- ── Movimientos — teal ── -->
-        <VBox styleClass="report-card, report-card-teal" spacing="10"
-              GridPane.columnIndex="1" GridPane.rowIndex="0">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-teal">
-                    <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Registro de Movimientos" styleClass="report-title"/>
-                    <Label text="Entradas · salidas · ajustes · transferencias"
-                           styleClass="report-card-tag, report-card-tag-teal"/>
-                </VBox>
-            </HBox>
-            <Label text="Historial de entradas, salidas, ajustes y transferencias en el período seleccionado."
-                   styleClass="report-desc" wrapText="true"/>
-            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-teal"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-                <items>
-                    <MenuItem text="PDF" onAction="#onMovimientosPdf">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="Excel" onAction="#onMovimientosExcel">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="CSV" onAction="#onMovimientosCsv">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
-                    </MenuItem>
-                </items>
-            </MenuButton>
-        </VBox>
-
-        <!-- ── Alertas de Stock — amber ── -->
-        <VBox styleClass="report-card, report-card-amber" spacing="10"
-              GridPane.columnIndex="0" GridPane.rowIndex="1">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-amber">
-                    <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Alertas y pendientes" styleClass="report-title"/>
-                    <Label text="Garantías por vencer · garantías vencidas"
-                           styleClass="report-card-tag, report-card-tag-amber"/>
-                </VBox>
-            </HBox>
-            <Label text="Bienes con garantía vencida o próxima a vencer — para gestión inmediata."
-                   styleClass="report-desc" wrapText="true"/>
-            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-amber"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-                <items>
-                    <MenuItem text="PDF" onAction="#onAlertasPdf">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="Excel" onAction="#onAlertasExcel">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="CSV" onAction="#onAlertasCsv">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
-                    </MenuItem>
-                </items>
-            </MenuButton>
-        </VBox>
-
-        <!-- ── Distribución por Área — emerald ── -->
-        <VBox styleClass="report-card, report-card-green" spacing="10"
-              GridPane.columnIndex="1" GridPane.rowIndex="1">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-green">
-                    <FontIcon iconLiteral="mdi2s-sitemap" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Distribución por Área" styleClass="report-title"/>
-                    <Label text="Secretarías · direcciones · dependencias"
-                           styleClass="report-card-tag, report-card-tag-green"/>
-                </VBox>
-            </HBox>
-            <Label text="Bienes patrimoniales agrupados por secretaría y dirección municipal del Ayuntamiento de Ixmiquilpan."
-                   styleClass="report-desc" wrapText="true"/>
-            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-green"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-                <items>
-                    <MenuItem text="PDF" onAction="#onDistribucionPdf">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="Excel" onAction="#onDistribucionExcel">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="CSV" onAction="#onDistribucionCsv">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
-                    </MenuItem>
-                </items>
-            </MenuButton>
-        </VBox>
-
-        <!-- ── Bienes Dados de Baja — slate ── -->
-        <VBox styleClass="report-card, report-card-slate" spacing="10"
-              GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-slate">
-                    <FontIcon iconLiteral="mdi2d-delete-circle-outline" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Bienes Dados de Baja" styleClass="report-title"/>
-                    <Label text="Historial patrimonial · bienes fuera del inventario activo"
-                           styleClass="report-card-tag, report-card-tag-slate"/>
-                </VBox>
-            </HBox>
-            <Label text="Bienes patrimoniales que han sido dados de baja del inventario activo — su historial se conserva para fines de auditoría y control patrimonial."
-                   styleClass="report-desc" wrapText="true"/>
-            <MenuButton text="Exportar" styleClass="report-export-btn, report-export-slate"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-                <items>
-                    <MenuItem text="PDF" onAction="#onBajasPdf">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="Excel" onAction="#onBajasExcel">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-excel-outline" styleClass="report-export-icon-excel"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="CSV" onAction="#onBajasCsv">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-delimited-outline" styleClass="report-export-icon-csv"/></graphic>
-                    </MenuItem>
-                </items>
-            </MenuButton>
-        </VBox>
-
-        <!-- ── Auditoría consolidada — purple ── -->
-        <VBox styleClass="report-card" spacing="10"
-              GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-purple">
-                    <FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Auditoría Consolidada" styleClass="report-title"/>
-                    <Label text="Resguardos · Préstamos · Estado"
-                           styleClass="report-card-tag, report-card-tag-purple"/>
-                </VBox>
-            </HBox>
-            <Label text="Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Ideal para auditorías y cambios de administración."
-                   styleClass="report-desc" wrapText="true"/>
-            <Button text="Exportar PDF" onAction="#onAuditoriaPdf"
-                    styleClass="report-export-btn, report-export-purple"
-                    contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                <tooltip><Tooltip text="Generar reporte PDF de Auditoría Consolidada" wrapText="true" maxWidth="220"/></tooltip>
-            </Button>
-        </VBox>
-
-        <!-- ── Parque Vehicular V.6 — blue ── -->
-        <VBox styleClass="report-card" spacing="10"
-              GridPane.columnIndex="0" GridPane.rowIndex="4">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-indigo">
-                    <FontIcon iconLiteral="mdi2c-car-outline" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Parque Vehicular (V.6)" styleClass="report-title"/>
-                    <Label text="Ficha por vehículo · componentes · condición"
-                           styleClass="report-card-tag, report-card-tag-indigo"/>
-                </VBox>
-            </HBox>
-            <Label text="Formato oficial V.6: una tarjeta por vehículo con datos de identificación, condición y lista de verificación de componentes. Solo incluye bienes con marca registrada."
-                   styleClass="report-desc" wrapText="true"/>
-            <Button text="Exportar PDF" onAction="#onParqueVehicularPdf"
-                    styleClass="report-export-btn, report-export-indigo"
-                    contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                <tooltip><Tooltip text="Generar reporte PDF de Parque Vehicular (formato V.6)" wrapText="true" maxWidth="220"/></tooltip>
-            </Button>
-        </VBox>
-
-        <!-- ── Entrega-Recepción ANEXO V.4 — guinda ── -->
-        <VBox styleClass="report-card" spacing="10"
-              GridPane.columnIndex="1" GridPane.rowIndex="4">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-red">
-                    <FontIcon iconLiteral="mdi2c-clipboard-text-outline" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Entrega-Recepción (ANEXO V.4)" styleClass="report-title"/>
-                    <Label text="Inventario patrimonial · depreciación · valor en libros"
-                           styleClass="report-card-tag, report-card-tag-red"/>
-                </VBox>
-            </HBox>
-            <Label text="Formato oficial ANEXO V.4: tabla horizontal con todos los bienes, resguardante, valor de adquisición, depreciación acumulada, valor en libros y condición. Para actos formales de entrega-recepción."
-                   styleClass="report-desc" wrapText="true"/>
-            <Button text="Exportar PDF" onAction="#onEntregaRecepcionPdf"
-                    styleClass="report-export-btn, report-export-red"
-                    contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                <tooltip><Tooltip text="Generar reporte PDF de Entrega-Recepción (ANEXO V.4)" wrapText="true" maxWidth="220"/></tooltip>
-            </Button>
-        </VBox>
-
-        <!-- ── Dictamen técnico de baja — slate ── -->
-        <VBox styleClass="report-card, report-card-slate" spacing="10"
-              GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2">
-            <padding><Insets top="22" right="22" bottom="20" left="22"/></padding>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="report-icon-badge, report-icon-badge-slate">
-                    <FontIcon iconLiteral="mdi2f-file-certificate-outline" styleClass="report-icon"/>
-                </StackPane>
-                <VBox spacing="3" HBox.hgrow="ALWAYS">
-                    <Label text="Dictamen Técnico de Baja" styleClass="report-title"/>
-                    <Label text="Diagnóstico · procede o no procede · destino final"
-                           styleClass="report-card-tag, report-card-tag-slate"/>
-                </VBox>
-            </HBox>
-            <Label text="Formato que llena el área técnica que revisó el bien para justificar su baja: estado encontrado, diagnóstico, causa, si es reparable, si procede la baja y el destino final recomendado. Se anexa a la solicitud de baja firmada."
-                   styleClass="report-desc" wrapText="true"/>
-            <MenuButton text="Generar dictamen" styleClass="report-export-btn, report-export-slate"
-                        contentDisplay="LEFT" graphicTextGap="6">
-                <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-                <items>
-                    <MenuItem text="De un bien (por código)…" onAction="#onDictamenBajaBien">
-                        <graphic><FontIcon iconLiteral="mdi2m-magnify" styleClass="report-export-icon-pdf"/></graphic>
-                    </MenuItem>
-                    <MenuItem text="Formato en blanco" onAction="#onDictamenBajaEnBlanco">
-                        <graphic><FontIcon iconLiteral="mdi2f-file-outline" styleClass="report-export-icon-pdf"/></graphic>
-                    </MenuItem>
-                </items>
-            </MenuButton>
-        </VBox>
-
-    </GridPane>
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="GRÁFICAS DEL PERÍODO" styleClass="dash-section-label"/>
+    </HBox>
 
     <!-- ══ GRÁFICA BIENES POR ÁREA ══════════════════════════════════════ -->
     <VBox styleClass="card" spacing="8">
@@ -369,8 +106,8 @@
         </HBox>
         <BarChart fx:id="areaChart" prefHeight="300" animated="false"
                   styleClass="area-bar-chart" legendVisible="false">
-            <xAxis><NumberAxis fx:id="chartXAxis" label="Bienes" minorTickVisible="false"/></xAxis>
-            <yAxis><CategoryAxis fx:id="chartYAxis"/></yAxis>
+            <xAxis><NumberAxis label="Bienes" minorTickVisible="false"/></xAxis>
+            <yAxis><CategoryAxis/></yAxis>
         </BarChart>
         <VBox fx:id="chartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
               visible="false" managed="false" styleClass="empty-state-pane">
@@ -399,8 +136,8 @@
         </HBox>
         <BarChart fx:id="categoriaChart" prefHeight="300" animated="false"
                   styleClass="area-bar-chart" legendVisible="false">
-            <xAxis><NumberAxis fx:id="categoriaChartXAxis" label="Valor ($)" minorTickVisible="false"/></xAxis>
-            <yAxis><CategoryAxis fx:id="categoriaChartYAxis"/></yAxis>
+            <xAxis><NumberAxis label="Valor ($)" minorTickVisible="false"/></xAxis>
+            <yAxis><CategoryAxis/></yAxis>
         </BarChart>
         <VBox fx:id="categoriaChartEmptyState" alignment="CENTER" spacing="10" prefHeight="180"
               visible="false" managed="false" styleClass="empty-state-pane">

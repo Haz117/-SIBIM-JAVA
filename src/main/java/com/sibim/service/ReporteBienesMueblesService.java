@@ -64,10 +64,10 @@ public class ReporteBienesMueblesService extends ReporteService {
             addTextoResponsiva(doc, reg, resguardante, area);
             addFirmasBlock(doc,
                 new String[]{"RECIBÍ DE CONFORMIDAD", nvl(resguardante), nvl(cargo)},
-                new String[]{"SUPERVISÓ", "_______________", "Director de Recursos Materiales"},
-                new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+                new String[]{"SUPERVISÓ", null, "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", null, "Secretario General Municipal"});
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     // ── Encabezado ──────────────────────────────────────────────────────────
@@ -146,35 +146,33 @@ public class ReporteBienesMueblesService extends ReporteService {
                 return p.getCategoriaNombre() != null ? p.getCategoriaNombre().toUpperCase() : "SIN CATEGORÍA";
             }, LinkedHashMap::new, Collectors.toList()));
 
-        float[] widths = {0.5f, 1.2f, 0.8f, 0.6f, 2f, 0.8f, 0.7f, 0.8f, 0.7f, 0.7f, 1f, 0.9f, 0.7f};
+        float[] widths = {4.2f, 8f, 8.5f, 5.2f, 20f, 7f, 7f, 7.5f, 6.3f, 6.3f, 7.5f, 5.5f, 9f};
         String[] headers = {
-            "N°\nBIENES", "N° INV.", "UBICACIÓN", "CANTIDAD",
+            "N°\nBIENES", "N° DE INV.", "UBICACIÓN", "CANTIDAD",
             "DESCRIPCIÓN", "MARCA", "MODELO", "N° SERIE", "FECHA",
-            "N° FACTURA", "IMPORTE", "ESTADO\nFÍSICO", "OBSERVACIONES"
+            "NO.\nFACTURA", "IMPORTE", "ESTADO\nFÍSICO", "OBSERVACIONES"
         };
+        SolidBorder linea = new SolidBorder(new DeviceRgb(120, 120, 120), 0.4f);
 
         BigDecimal totalGlobal = BigDecimal.ZERO;
 
         for (Map.Entry<String, List<Producto>> entry : porCategoria.entrySet()) {
-            Table table = new Table(widths).useAllAvailableWidth().setMarginTop(8);
+            // Same relative widths on every group, so the columns line up down the page.
+            Table table = tabla(widths).setMarginTop(8);
 
-            // Fila de categoría — span completo
-            table.addCell(new Cell(1, headers.length)
-                .add(new Paragraph(entry.getKey()).setFont(bold).setFontSize(7.5f).setFontColor(GUINDA))
-                .setBackgroundColor(GUINDA_LIGHT)
-                .setBorderLeft(new SolidBorder(GUINDA, 3f))
-                .setBorderTop(new SolidBorder(GRAY_300, 0.5f))
-                .setBorderRight(new SolidBorder(GRAY_300, 0.5f))
-                .setBorderBottom(new SolidBorder(GRAY_300, 0.5f))
-                .setPadding(5).setPaddingLeft(10));
-
-            // Headers
+            // Column titles, then the group (cuenta armonizada and its name): both repeat
+            // when the group runs onto another page.
             for (String h : headers) {
-                table.addCell(new Cell()
+                table.addHeaderCell(new Cell()
                     .add(new Paragraph(h).setFont(bold).setFontSize(6f).setFontColor(ColorConstants.WHITE)
-                        .setTextAlignment(TextAlignment.CENTER))
-                    .setBackgroundColor(GUINDA).setBorder(new SolidBorder(GUINDA_D, 0.5f)).setPadding(3));
+                        .setTextAlignment(TextAlignment.CENTER).setMultipliedLeading(1.1f).setMargin(0))
+                    .setBackgroundColor(GUINDA).setBorder(new SolidBorder(GUINDA_D, 0.5f)).setPadding(3)
+                    .setVerticalAlignment(VerticalAlignment.MIDDLE));
             }
+            table.addHeaderCell(new Cell(1, headers.length)
+                .add(new Paragraph(entry.getKey()).setFont(bold).setFontSize(7.5f).setFontColor(ColorConstants.WHITE).setMargin(0))
+                .setBackgroundColor(GUINDA_D).setBorder(new SolidBorder(GUINDA_D, 0.5f))
+                .setPadding(4).setPaddingLeft(8));
 
             int n = 1;
             BigDecimal totalCat = BigDecimal.ZERO;
@@ -184,49 +182,53 @@ public class ReporteBienesMueblesService extends ReporteService {
                 boolean alt = (i % 2) == 1;
                 DeviceRgb bg = alt ? ROW_ALT : new DeviceRgb(255, 255, 255);
 
-                BigDecimal importe = p.getPrecioCompra() != null ? p.getPrecioCompra() : BigDecimal.ZERO;
-                totalCat = totalCat.add(importe.multiply(BigDecimal.valueOf(p.getStockActual() > 0 ? p.getStockActual() : 1)));
+                // What the row is worth: unit price by quantity, so the column adds up to the subtotal.
+                BigDecimal precio = p.getPrecioCompra() != null ? p.getPrecioCompra() : BigDecimal.ZERO;
+                BigDecimal importe = precio.multiply(BigDecimal.valueOf(p.getStockActual() > 0 ? p.getStockActual() : 1));
+                totalCat = totalCat.add(importe);
 
-                table.addCell(dataCell(String.valueOf(n++), reg, bg));
-                table.addCell(dataCell(nvl(p.getCodigo()), reg, bg));
-                table.addCell(dataCell(nvl(p.getUbicacion()), reg, bg));
-                table.addCell(dataCell(String.valueOf(p.getStockActual()), reg, bg));
-                table.addCell(dataCell(nvl(p.getNombre() + (p.getDescripcion() != null && !p.getDescripcion().isBlank() ? ". " + p.getDescripcion() : "")), reg, bg));
-                table.addCell(dataCell(nvl(p.getMarca()), reg, bg));
-                table.addCell(dataCell(nvl(p.getModelo()), reg, bg));
-                table.addCell(dataCell(nvl(p.getNumeroSerie()), reg, bg));
-                table.addCell(dataCell(p.getFechaAdquisicion() != null ? p.getFechaAdquisicion().format(FMT) : "", reg, bg));
-                table.addCell(dataCell(nvl(p.getNumeroFactura()), reg, bg));
-                table.addCell(dataCell(FormatUtils.formatCurrency(importe), reg, bg));
-                table.addCell(dataCell(nvl(p.getEstadoFisico()), reg, bg));
-                table.addCell(dataCell("", reg, bg)); // observaciones en blanco
+                table.addCell(dataCell(String.valueOf(n++), reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell(nvl(p.getCodigo()), reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell(nvl(p.getUbicacion()), reg, bg, linea, TextAlignment.LEFT));
+                table.addCell(dataCell(String.valueOf(p.getStockActual()), reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell(nvl(p.getNombre()) + (p.getDescripcion() != null && !p.getDescripcion().isBlank() ? ". " + p.getDescripcion() : ""), reg, bg, linea, TextAlignment.LEFT));
+                table.addCell(dataCell(nvl(p.getMarca()), reg, bg, linea, TextAlignment.LEFT));
+                table.addCell(dataCell(nvl(p.getModelo()), reg, bg, linea, TextAlignment.LEFT));
+                table.addCell(dataCell(nvl(p.getNumeroSerie()), reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell(p.getFechaAdquisicion() != null ? p.getFechaAdquisicion().format(FMT) : "", reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell(nvl(p.getNumeroFactura()), reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell(FormatUtils.formatCurrency(importe), reg, bg, linea, TextAlignment.RIGHT));
+                table.addCell(dataCell(nvl(p.getEstadoFisico()), reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell("", reg, bg, linea, TextAlignment.LEFT)); // observaciones en blanco
             }
 
             // Fila SUBTOTAL por categoría
             table.addCell(new Cell(1, 10)
                 .add(new Paragraph("SUBTOTAL").setFont(bold).setFontSize(6.5f)
-                    .setTextAlignment(TextAlignment.RIGHT).setFontColor(GUINDA))
-                .setBackgroundColor(GUINDA_LIGHT).setBorder(new SolidBorder(GRAY_300, 0.5f)).setPadding(3));
+                    .setTextAlignment(TextAlignment.RIGHT).setFontColor(GUINDA).setMargin(0))
+                .setBackgroundColor(GUINDA_LIGHT).setBorder(linea).setPadding(3));
             table.addCell(new Cell()
-                .add(new Paragraph(FormatUtils.formatCurrency(totalCat)).setFont(bold).setFontSize(7f)
-                    .setTextAlignment(TextAlignment.RIGHT).setFontColor(GUINDA))
-                .setBackgroundColor(GUINDA_LIGHT).setBorder(new SolidBorder(GRAY_300, 0.5f)).setPadding(3));
-            table.addCell(new Cell(1, 2).setBorder(new SolidBorder(GRAY_300, 0.5f))
+                .add(new Paragraph(FormatUtils.formatCurrency(totalCat)).setFont(bold).setFontSize(6.5f)
+                    .setTextAlignment(TextAlignment.RIGHT).setFontColor(GUINDA).setMargin(0))
+                .setBackgroundColor(GUINDA_LIGHT).setBorder(linea).setPadding(3));
+            table.addCell(new Cell(1, 2).setBorder(linea)
                 .setBackgroundColor(GUINDA_LIGHT).setPadding(3));
 
             doc.add(table);
             totalGlobal = totalGlobal.add(totalCat);
         }
 
-        // Fila TOTAL GLOBAL
-        doc.add(new Table(new float[]{1f}).useAllAvailableWidth().setMarginTop(10).setMarginBottom(4)
-            .addCell(new Cell()
-                .add(new Paragraph("TOTAL GENERAL:   " + FormatUtils.formatCurrency(totalGlobal))
-                    .setFont(bold).setFontSize(10)
-                    .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.RIGHT))
-                .setBackgroundColor(GUINDA)
-                .setBorder(Border.NO_BORDER)
-                .setPadding(8).setPaddingRight(14)));
+        // Fila TOTAL — misma rejilla, para que el importe quede bajo su columna
+        Table total = tabla(widths).setMarginTop(8).setMarginBottom(4).setKeepTogether(true);
+        total.addCell(new Cell(1, 10)
+            .add(new Paragraph("TOTAL  (" + bienes.size() + (bienes.size() == 1 ? " bien)" : " bienes)")).setFont(bold).setFontSize(8.5f)
+                .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.RIGHT).setMargin(0))
+            .setBackgroundColor(GUINDA).setBorder(Border.NO_BORDER).setPadding(6));
+        total.addCell(new Cell(1, 3)
+            .add(new Paragraph(FormatUtils.formatCurrency(totalGlobal)).setFont(bold).setFontSize(8.5f)
+                .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.LEFT).setMargin(0))
+            .setBackgroundColor(GUINDA).setBorder(Border.NO_BORDER).setPadding(6));
+        doc.add(total);
     }
 
     // ── Texto responsiva ────────────────────────────────────────────────────
@@ -244,21 +246,26 @@ public class ReporteBienesMueblesService extends ReporteService {
             "son imputables al servidor público resguardante.\n\n" +
             "Firmando el presente resguardo, una vez enterado y aceptado la recepción y custodia de los bienes muebles " +
             "ya descritos, sabedor de las obligaciones y responsabilidades que implica el cumplimiento de las disposiciones " +
-            "legales del estado que las regalan.";
+            "legales del estado que las regulan.";
 
+        doc.add(new Paragraph("RESPONSIVA DE RESGUARDO DE BIENES MUEBLES")
+            .setFont(reg).setFontSize(7f).setFontColor(GUINDA).setCharacterSpacing(0.4f)
+            .setTextAlignment(TextAlignment.CENTER).setMarginTop(10).setMarginBottom(2).setKeepWithNext(true));
         doc.add(new Paragraph(texto)
-            .setFont(reg).setFontSize(6.5f).setFontColor(GRAY_700)
-            .setMarginTop(10).setTextAlignment(TextAlignment.JUSTIFIED));
+            .setFont(reg).setFontSize(6.8f).setFontColor(GRAY_700).setMultipliedLeading(1.25f)
+            .setMarginTop(0).setTextAlignment(TextAlignment.JUSTIFIED).setKeepTogether(true));
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    private static Cell dataCell(String text, PdfFont font, DeviceRgb bg) {
+    /** A cell of the grid: the official format rules every cell, as here. */
+    private static Cell dataCell(String text, PdfFont font, DeviceRgb bg, SolidBorder linea, TextAlignment alineacion) {
         return new Cell()
-            .add(new Paragraph(text != null ? text : "").setFont(font).setFontSize(6.5f))
+            .add(new Paragraph(text != null ? text : "").setFont(font).setFontSize(6.5f)
+                .setTextAlignment(alineacion).setMultipliedLeading(1.1f).setMargin(0))
             .setBackgroundColor(bg).setPadding(3)
-            .setBorderTop(Border.NO_BORDER).setBorderLeft(Border.NO_BORDER).setBorderRight(Border.NO_BORDER)
-            .setBorderBottom(new SolidBorder(new DeviceRgb(209, 213, 219), 0.3f));
+            .setVerticalAlignment(VerticalAlignment.MIDDLE)
+            .setBorder(linea);
     }
 
     private static String nvl(String s) { return s != null && !s.isBlank() ? s : ""; }

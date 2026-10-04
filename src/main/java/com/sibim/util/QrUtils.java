@@ -44,6 +44,29 @@ public final class QrUtils {
         return sb.toString();
     }
 
+    /** Most bytes the QR of the official label may carry: it is printed 1.2 cm wide, and
+     *  past this its modules get too fine for a phone to read off an office printout. */
+    static final int MAX_BYTES_ETIQUETA = 84;
+
+    /**
+     * The short version of {@link #contenidoBien} for the official label, whose QR is tiny:
+     * código on the first line, then what the bien is and who has it (or its área), dropping
+     * lines from the end until it fits. The label itself already prints marca, modelo and serie.
+     */
+    public static String contenidoEtiqueta(com.sibim.model.Producto p) {
+        java.util.List<String> lineas = new java.util.ArrayList<>();
+        lineas.add(p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "SIN CÓDIGO");
+        if (p.getNombre() != null && !p.getNombre().isBlank()) lineas.add(recortar(p.getNombre(), 30));
+        if (p.getResguardante() != null && !p.getResguardante().isBlank())
+            lineas.add("Resg: " + recortar(p.getResguardante(), 28));
+        else if (p.getArea() != null && !p.getArea().isBlank())
+            lineas.add(recortar(p.getArea(), 34));
+        while (lineas.size() > 1
+                && String.join("\n", lineas).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_BYTES_ETIQUETA)
+            lineas.remove(lineas.size() - 1);
+        return String.join("\n", lineas);
+    }
+
     private static void linea(StringBuilder sb, String etiqueta, String valor) {
         if (valor == null || valor.isBlank()) return;
         sb.append('\n');

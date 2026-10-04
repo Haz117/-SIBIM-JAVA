@@ -49,7 +49,7 @@ public class ReporteExcelService extends ReporteService {
     }
 
     private File exportInventarioExcel(List<Producto> productos, LocalDate desde, LocalDate hasta) throws Exception {
-        String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Cantidad", "Min", "Max",
+        String[] headers = {"Nombre", "Codigo", "Categoria", "Area", "Resguardante", "Cantidad",
                             "Valor Unitario", "Valor Total", "Estado", "Proveedor", "Marca", "Modelo",
                             "N° de Serie", "Ubicacion", "Fecha Registro", "Estado Físico", "N° Factura"};
         File file = tempFile("inventario", ".xlsx");
@@ -65,19 +65,17 @@ public class ReporteExcelService extends ReporteService {
                 r.createCell(3).setCellValue(p.getArea());
                 r.createCell(4).setCellValue(p.getResguardante() != null ? p.getResguardante() : "");
                 r.createCell(5).setCellValue(p.getStockActual());
-                r.createCell(6).setCellValue(p.getStockMinimo());
-                r.createCell(7).setCellValue(p.getStockMaximo());
-                r.createCell(8).setCellValue(p.getValorUnitario().doubleValue());
-                r.createCell(9).setCellValue(p.getValorTotal().doubleValue());
-                r.createCell(10).setCellValue(p.getEstado().getEtiqueta());
-                r.createCell(11).setCellValue(p.getProveedor() != null ? p.getProveedor() : "");
-                r.createCell(12).setCellValue(p.getMarca() != null ? p.getMarca() : "");
-                r.createCell(13).setCellValue(p.getModelo() != null ? p.getModelo() : "");
-                r.createCell(14).setCellValue(p.getNumeroSerie() != null ? p.getNumeroSerie() : "");
-                r.createCell(15).setCellValue(p.getUbicacion() != null ? p.getUbicacion() : "");
-                r.createCell(16).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
-                r.createCell(17).setCellValue(p.getEstadoFisico() != null ? p.getEstadoFisico() : "");
-                r.createCell(18).setCellValue(p.getNumeroFactura() != null ? p.getNumeroFactura() : "");
+                r.createCell(6).setCellValue(p.getValorUnitario().doubleValue());
+                r.createCell(7).setCellValue(p.getValorTotal().doubleValue());
+                r.createCell(8).setCellValue(p.getEstado().getEtiqueta());
+                r.createCell(9).setCellValue(p.getProveedor() != null ? p.getProveedor() : "");
+                r.createCell(10).setCellValue(p.getMarca() != null ? p.getMarca() : "");
+                r.createCell(11).setCellValue(p.getModelo() != null ? p.getModelo() : "");
+                r.createCell(12).setCellValue(p.getNumeroSerie() != null ? p.getNumeroSerie() : "");
+                r.createCell(13).setCellValue(p.getUbicacion() != null ? p.getUbicacion() : "");
+                r.createCell(14).setCellValue(p.getCreadoEn() != null ? p.getCreadoEn().toLocalDate().format(FMT) : "");
+                r.createCell(15).setCellValue(p.getEstadoFisico() != null ? p.getEstadoFisico() : "");
+                r.createCell(16).setCellValue(p.getNumeroFactura() != null ? p.getNumeroFactura() : "");
             }
             autosizeColumns(sheet, headers.length);
             addExcelInfoSheet(wb, "Inventario General", desde, hasta);
@@ -156,7 +154,7 @@ public class ReporteExcelService extends ReporteService {
 
             // Sheet 2: all items grouped by area
             Sheet detail = createSheet(wb, "Detalle por Área");
-            String[] detHeaders = {"Área", "Nombre", "Código", "Stock Actual", "Stock Mínimo", "Estado", "Valor Total ($)"};
+            String[] detHeaders = {"Área", "Nombre", "Código", "Cantidad", "Estado", "Valor Total ($)"};
             writeHeader(detail, detHeaders, wb);
             row = 1;
             for (Map.Entry<String, List<Producto>> entry : porArea.entrySet().stream()
@@ -167,9 +165,8 @@ public class ReporteExcelService extends ReporteService {
                     r.createCell(1).setCellValue(p.getNombre());
                     r.createCell(2).setCellValue(p.getCodigo());
                     r.createCell(3).setCellValue(p.getStockActual());
-                    r.createCell(4).setCellValue(p.getStockMinimo());
-                    r.createCell(5).setCellValue(p.getEstado().getEtiqueta());
-                    r.createCell(6).setCellValue(p.getValorTotal().doubleValue());
+                    r.createCell(4).setCellValue(p.getEstado().getEtiqueta());
+                    r.createCell(5).setCellValue(p.getValorTotal().doubleValue());
                 }
             }
             autosizeColumns(detail, detHeaders.length);

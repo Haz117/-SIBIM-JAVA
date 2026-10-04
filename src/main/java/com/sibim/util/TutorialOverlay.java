@@ -44,8 +44,8 @@ public final class TutorialOverlay {
         String rolDesc = SessionManager.isAdmin()
             ? "Tienes acceso completo como Administrador — incluye gestión de usuarios y auditoría"
             : SessionManager.isSecretario()
-                ? "Ves los bienes de tu secretaría y sus direcciones: actualizas sus datos y pides transferencias"
-                : "Ves los bienes de tu área: actualizas sus datos y pides transferencias a Patrimonio";
+                ? "Ves los bienes de tu secretaría y sus direcciones: actualizas sus datos, asignas resguardos y registras préstamos entre tus áreas"
+                : "Ves los bienes de tu área: actualizas sus datos y asignas sus resguardos";
 
         List<Step> list = new ArrayList<>(List.of(
             // ── Bienvenida personalizada ──────────────────────────────────────────
@@ -85,10 +85,10 @@ public final class TutorialOverlay {
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
                 SessionManager.isAdmin()
                     ? "Registra Entrada para equipo nuevo y Salida para bajas oficiales"
-                    : "Pide una transferencia desde Bienes: selecciona el bien > Solicitar transferencia",
+                    : "Aquí consultas el historial de tus bienes; los movimientos los registra Patrimonio",
                 SessionManager.isAdmin()
-                    ? "\"Pendientes\" reúne las transferencias que piden las áreas: apruébalas o recházalas"
-                    : "\"Mis solicitudes\" muestra si Patrimonio ya aprobó lo que pediste",
+                    ? "Transferencia mueve el bien completo a otra área, con su nuevo código"
+                    : "Filtra por tipo y fecha para ver qué entró, salió o cambió de área",
                 "El área que recibe confirma en \"Por recibir\" cuando ya tiene el bien físicamente"
             }),
 
@@ -107,7 +107,7 @@ public final class TutorialOverlay {
                 "Consulta e imprime el PDF del resguardo para firma",
                 SessionManager.isAdmin()
                     ? "Cancela el resguardo cuando el bien cambia de responsable o de área"
-                    : "Solo Patrimonio los crea: pídelo desde Bienes > clic derecho > Solicitar resguardo"
+                    : "Con \"Nuevo Resguardo\" asignas un bien de tu área a quien lo tiene a su cargo"
             }),
 
             // ── Préstamos ────────────────────────────────────────────────────────
@@ -115,7 +115,9 @@ public final class TutorialOverlay {
                 "Préstamos", null, "prestamos", new String[]{
                 SessionManager.isAdmin()
                     ? "Registra el préstamo temporal de un bien con fecha de devolución esperada"
-                    : "Solo Patrimonio los registra: pídelo desde Bienes > clic derecho > Solicitar préstamo",
+                    : SessionManager.isSecretario()
+                        ? "Registra el préstamo temporal de un bien entre las áreas de tu secretaría"
+                        : "Los registran Patrimonio y los secretarios; aquí ves los de tu área",
                 "Vista kanban: columnas Activos / Vencidos / Devueltos para control rápido",
                 "Exporta el comprobante en PDF para firma"
             }),
@@ -198,6 +200,11 @@ public final class TutorialOverlay {
                 "③ F2 en cualquier momento reabre este tutorial · F1 muestra todos los atajos"
             })
         ));
+
+        if (!SessionManager.isAdmin())
+            list.removeIf(paso -> paso.navigateId() != null
+                && java.util.Set.of("movimientos", "comodatos", "actas", "bajas", "categorias", "depreciacion")
+                    .contains(paso.navigateId()));
 
         if (SessionManager.isAdmin()) {
             // Insert Auditoría before the last two steps (Atajos + ¡Listo!)

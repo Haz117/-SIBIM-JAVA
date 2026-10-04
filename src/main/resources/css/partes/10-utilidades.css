@@ -14,17 +14,6 @@
 .page-icon-symbol { -fx-icon-size: 22; -fx-icon-color: white; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   REPORT CARD tag color variants
-   ═══════════════════════════════════════════════════════════════════ */
-.report-card-tag-indigo { -fx-text-fill: sibim-indigo-dark; }
-.report-card-tag-teal   { -fx-text-fill: #0E7490; }
-.report-card-tag-amber  { -fx-text-fill: sibim-amber-dark; }
-.report-card-tag-green  { -fx-text-fill: sibim-green-dark; }
-.report-card-tag-slate  { -fx-text-fill: sibim-slate-600; }
-.report-card-tag-purple { -fx-text-fill: sibim-violet; }
-.report-card-tag-red    { -fx-text-fill: #A2232F; }
-
-/* ═══════════════════════════════════════════════════════════════════
    CONFIGURACIÓN — profile section utilities
    ═══════════════════════════════════════════════════════════════════ */
 /* Decorative badge (org icon in top-right of profile header) */

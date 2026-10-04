@@ -107,26 +107,6 @@ final class ProductosContextMenu {
         cm.getItems().add(new SeparatorMenuItem());
         cm.getItems().addAll(cmFicha, cmSolicitudBaja, cmDictamenBaja, cmHistorial, cmEtiquetaQr, cmEtiquetaFisica);
 
-        // Areas ask Patrimonio for a préstamo or a resguardo of their own bien.
-        if (com.sibim.session.Permisos.pideDocumentos() && com.sibim.service.SolicitudService.disponible()) {
-            MenuItem cmPedirPrestamo = new MenuItem("Solicitar préstamo…");
-            cmPedirPrestamo.setGraphic(new FontIcon("mdi2c-cube-send"));
-            cmPedirPrestamo.setOnAction(e -> {
-                Producto sel = table.getSelectionModel().getSelectedItem();
-                if (sel != null) com.sibim.controller.dialogs.SolicitudesDialog.solicitar(
-                    com.sibim.model.Solicitud.TIPO_PRESTAMO, sel, table.getScene());
-            });
-            MenuItem cmPedirResguardo = new MenuItem("Solicitar resguardo…");
-            cmPedirResguardo.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
-            cmPedirResguardo.setOnAction(e -> {
-                Producto sel = table.getSelectionModel().getSelectedItem();
-                if (sel != null) com.sibim.controller.dialogs.SolicitudesDialog.solicitar(
-                    com.sibim.model.Solicitud.TIPO_RESGUARDO, sel, table.getScene());
-            });
-            cm.getItems().add(new SeparatorMenuItem());
-            cm.getItems().addAll(cmPedirPrestamo, cmPedirResguardo);
-        }
-
         if (canEdit) {
             cm.getItems().add(new SeparatorMenuItem());
             MenuItem cmEditar = new MenuItem("Editar");

@@ -57,7 +57,7 @@
                 <Label text="S" styleClass="sidebar-logo-badge"/>
                 <VBox fx:id="logoTextBox" spacing="0" HBox.hgrow="ALWAYS">
                     <Label text="SIBIM" styleClass="sidebar-logo"/>
-                    <Label text="Bienes Municipales" styleClass="sidebar-app-sub"/>
+                    <Label text="Bienes Municipales" styleClass="sidebar-app-sub" minWidth="-Infinity"/>
                 </VBox>
                 <Button fx:id="btnGlobalSearch" onAction="#onGlobalSearch"
                         styleClass="sidebar-icon-btn" contentDisplay="GRAPHIC_ONLY"
@@ -216,7 +216,7 @@
                     <Label fx:id="userAvatarLabel" text="U" styleClass="user-avatar-text"/>
                 </StackPane>
                 <VBox fx:id="userInfoVBox" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT" spacing="1">
-                    <Label fx:id="userNameLabel" styleClass="sidebar-username" maxWidth="Infinity" textOverrun="ELLIPSIS"/>
+                    <Label fx:id="userNameLabel" styleClass="sidebar-username" maxWidth="Infinity" textOverrun="ELLIPSIS" wrapText="true" maxHeight="36"/>
                     <Label fx:id="userRolLabel" styleClass="sidebar-userrole" maxWidth="Infinity" textOverrun="ELLIPSIS"/>
                 </VBox>
             </HBox>

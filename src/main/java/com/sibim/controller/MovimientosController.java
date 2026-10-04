@@ -173,17 +173,14 @@ public class MovimientosController {
     }
 
     private void setupPermissions() {
-        // Patrimonio registers every movement; an área only requests transfers.
-        if (!SessionManager.isAdmin()) {
-            btnNuevo.setText("Solicitar transferencia");
-            if (btnNuevo.getTooltip() != null)
-                btnNuevo.getTooltip().setText("Pide mover un bien de tu área a otra; Patrimonio la aprueba");
-            if (btnPendientes != null && btnPendientes.getTooltip() != null)
-                btnPendientes.getTooltip().setText("Transferencias de tus áreas que esperan la aprobación de Patrimonio");
-        }
+        // Patrimonio registers every movement; the áreas only read the history and
+        // confirm what they receive. "Pendientes" is Patrimonio's inbox of transfers
+        // requested before the áreas stopped requesting them.
+        boolean admin = SessionManager.isAdmin();
+        btnNuevo.setVisible(admin); btnNuevo.setManaged(admin);
         if (btnPendientes != null) {
-            btnPendientes.setVisible(true); btnPendientes.setManaged(true);
-            installPendientesBadge();
+            btnPendientes.setVisible(admin); btnPendientes.setManaged(admin);
+            if (admin) installPendientesBadge();
         }
         loadPendientesCount();
         if (btnPorRecibir != null) { btnPorRecibir.setVisible(true); btnPorRecibir.setManaged(true); }
@@ -571,7 +568,7 @@ public class MovimientosController {
             () -> movimientoService.getPendientesTransferencias().size(),
             count -> {
                 if (btnPendientes == null) return;
-                String base = SessionManager.isAdmin() ? "Pendientes" : "Mis solicitudes";
+                String base = "Pendientes";
                 btnPendientes.setText(count > 0 ? base + " (" + count + ")" : base);
                 btnPendientes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");
                 btnPendientes.getStyleClass().add(count > 0 ? "btn-warning-outline" : "btn-secondary");
@@ -662,7 +659,10 @@ public class MovimientosController {
         }
     }
 
-    @FXML private void onNuevoMovimiento() { showMovimientoDialog(null, null); }
+    @FXML private void onNuevoMovimiento() {
+        if (!SessionManager.isAdmin()) return;   // movements are Patrimonio's alone
+        showMovimientoDialog(null, null);
+    }
 
     @FXML
     private void onDelete() {

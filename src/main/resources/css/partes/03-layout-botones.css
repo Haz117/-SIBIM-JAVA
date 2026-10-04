@@ -257,37 +257,6 @@
 .btn-excel:hover { -fx-background-color: #15803D; }
 .btn-csv:hover   { -fx-background-color: sibim-slate-700; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   REPORT EXPORT BUTTON — one "Exportar ▾" menu per report card instead
-   of three always-on PDF/Excel/CSV buttons; same 3 actions, a third of
-   the visual weight when four cards are on screen at once. Tinted to
-   match each card's own accent so it still reads as "this card's action"
-   rather than a generic button repeated four times.
-   ═══════════════════════════════════════════════════════════════════ */
-.report-export-btn {
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-font-size: 13px;
-    -fx-background-radius: 8;
-    -fx-padding: 8 14;
-    -fx-cursor: hand;
-}
-.report-export-btn > .label { -fx-text-fill: white; }
-.report-export-btn > .arrow-button > .arrow { -fx-background-color: white; }
-.report-export-indigo { -fx-background-color: sibim-indigo; }
-.report-export-indigo:hover { -fx-background-color: sibim-indigo-dark; }
-.report-export-red    { -fx-background-color: #A2232F; }
-.report-export-red:hover    { -fx-background-color: #7A1D26; }
-.report-export-teal   { -fx-background-color: #0891B2; }
-.report-export-teal:hover   { -fx-background-color: #0E7490; }
-.report-export-amber  { -fx-background-color: sibim-amber; }
-.report-export-amber:hover  { -fx-background-color: sibim-amber-dark; }
-.report-export-green  { -fx-background-color: #059669; }
-.report-export-green:hover  { -fx-background-color: sibim-green-dark; }
-.report-export-slate  { -fx-background-color: sibim-slate-600; }
-.report-export-slate:hover  { -fx-background-color: sibim-slate-700; }
-.report-export-purple { -fx-background-color: sibim-violet; }
-.report-export-purple:hover { -fx-background-color: sibim-violet-dark; }
 /* Format icons inside the dropdown menu keep their usual color coding
    (red/green/dark) so PDF vs. Excel vs. CSV is still a glance, not a read. */
 .report-export-icon-pdf   { -fx-icon-size: 15; -fx-icon-color: #EF4444; }

@@ -41,8 +41,8 @@ public class ImportacionBienesDialog {
 
     private static final String[] TEMPLATE_HEADERS = {
         "Nombre", "Codigo", "Categoria", "Area", "Resguardante",
-        "Cantidad", "Stock Min", "Stock Max",
-        "Precio Compra", "Precio Venta",
+        "Cantidad",
+        "Precio Compra",
         "Proveedor", "Marca", "Modelo", "Numero Serie",
         "Ubicacion", "Descripcion", "Fecha Adquisicion"
     };
@@ -211,6 +211,11 @@ public class ImportacionBienesDialog {
         preview.getColumns().addAll(colNum, colStatus, colNombre, colCat, colArea, colCant, colSerie, colError);
         preview.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
+        // The steps card and the drop zone draw their own border: give them the same side
+        // margin the rows below get from their padding, instead of touching the dialog edge.
+        VBox.setMargin(instructions, new Insets(0, 18, 0, 18));
+        VBox.setMargin(dropZone, new Insets(0, 18, 0, 18));
+        VBox.setMargin(preview, new Insets(0, 18, 0, 18));
         VBox content = new VBox(12, header, instructions, new Separator(), dropZone, fileRow, lblResumen, preview);
         content.setPadding(new Insets(0, 0, 12, 0));
         dialog.getDialogPane().setContent(content);
@@ -549,7 +554,7 @@ public class ImportacionBienesDialog {
                     int stMin = parseIntSafe(stMinStr, 0);
                     int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
                     if (stMin > stMax) {
-                        error = "Stock mínimo (" + stMin + ") no puede superar al máximo (" + stMax + ")";
+                        error = "La cantidad mínima (" + stMin + ") no puede superar a la máxima (" + stMax + ")";
                     }
                     if (error == null && stMax < cant) stMax = cant;
                     p.setStockActual(Math.max(0, cant));
@@ -732,7 +737,7 @@ public class ImportacionBienesDialog {
                     int stMin = parseIntSafe(stMinStr, 0);
                     int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
                     if (stMin > stMax) {
-                        error = "Stock mínimo (" + stMin + ") no puede superar al máximo (" + stMax + ")";
+                        error = "La cantidad mínima (" + stMin + ") no puede superar a la máxima (" + stMax + ")";
                     }
                     if (error == null && stMax < cant) stMax = cant;
                     p.setStockActual(Math.max(0, cant));
@@ -838,8 +843,8 @@ public class ImportacionBienesDialog {
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(
                 new FileOutputStream(dest), java.nio.charset.StandardCharsets.UTF_8))) {
             pw.println(String.join(",", TEMPLATE_HEADERS));
-            pw.println("Laptop Dell XPS,,Equipo de Cómputo,Dirección de Tecnologías de la Información,Juan Pérez García,1,1,3,24999.00,27500.00,Dell,Dell,XPS 15 9530,SN-ABC123456,Sala de Servidores,Laptop i7 16GB RAM,2024-01-15");
-            pw.println("Silla Ejecutiva,,Mobiliario,Despacho de Presidencia,María García López,2,1,5,3200.00,3500.00,OfficeMax,,,, Oficina Presidencia,,2024-02-01");
+            pw.println("Laptop Dell XPS,,Equipo de Cómputo,Dirección de Tecnologías de la Información,Juan Pérez García,1,24999.00,Dell,Dell,XPS 15 9530,SN-ABC123456,Sala de Servidores,Laptop i7 16GB RAM,2024-01-15");
+            pw.println("Silla Ejecutiva,,Mobiliario,Despacho de Presidencia,María García López,2,3200.00,OfficeMax,,,, Oficina Presidencia,,2024-02-01");
         }
     }
 }

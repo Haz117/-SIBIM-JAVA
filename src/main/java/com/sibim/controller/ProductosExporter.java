@@ -133,6 +133,9 @@ final class ProductosExporter {
         dlg.initOwner(scene.getWindow());
         dlg.getDialogPane().getButtonTypes().addAll(savePng, ButtonType.CLOSE);
         dlg.getDialogPane().getStylesheets().addAll(scene.getStylesheets());
+        dlg.getDialogPane().setMinWidth(380);   // at the QR's width "Guardar PNG" was cut to "Guardar…"
+        if (dlg.getDialogPane().lookupButton(savePng) instanceof javafx.scene.layout.Region b)
+            b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
 
         ImageView iv = new ImageView(qrImg);
         iv.setFitWidth(260); iv.setFitHeight(260); iv.setPreserveRatio(true);

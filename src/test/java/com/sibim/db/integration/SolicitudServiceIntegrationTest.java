@@ -18,8 +18,9 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** An área asks for a préstamo or a resguardo; Patrimonio approves (the
- *  document is created) or rejects with a reason. */
+/** The áreas no longer send requests through SIBIM. Patrimonio can still answer
+ *  the ones that were waiting from before: approve (the document is created) or
+ *  reject with a reason. */
 @org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
 class SolicitudServiceIntegrationTest extends IntegrationTestBase {
 
@@ -49,17 +50,25 @@ class SolicitudServiceIntegrationTest extends IntegrationTestBase {
     void salir() { SessionManager.logout(); }
 
     @Test
-    void elAreaPideYPatrimonioApruebaElPrestamo() throws Exception {
-        entrarComo(Rol.DIRECCION, AREA);
+    void lasAreasYaNoEnvianSolicitudes() throws Exception {
         LocalDate devolucion = LocalDate.now().plusDays(10);
-        Solicitud s = servicio.solicitarPrestamo("b-1", OTRA, "Ana Ruiz", "Analista", "Evento", devolucion);
-        assertTrue(s.isPendiente());
-        assertEquals(AREA, s.area());
+        for (Rol rol : new Rol[]{ Rol.DIRECCION, Rol.SECRETARIO, Rol.ADMIN }) {
+            entrarComo(rol, rol == Rol.ADMIN ? null : AREA);
+            assertThrows(SecurityException.class,
+                () -> servicio.solicitarPrestamo("b-1", OTRA, "Ana Ruiz", "Analista", "Evento", devolucion), rol.name());
+            assertThrows(SecurityException.class,
+                () -> servicio.solicitarResguardo("b-1", "Luis Mora", "Jefe", null), rol.name());
+        }
+        assertEquals(0, contar("SELECT COUNT(*) FROM solicitudes"));
+    }
+
+    @Test
+    void patrimonioApruebaElPrestamoQueQuedoPendiente() throws Exception {
+        Solicitud s = pendiente(Solicitud.TIPO_PRESTAMO, "b-1", "Laptop", "CAT/01", AREA, OTRA, "Ana Ruiz");
+
+        entrarComo(Rol.DIRECCION, AREA);
         assertEquals(1, servicio.deMisAreas().size());
         assertTrue(servicio.pendientes().isEmpty(), "la bandeja es solo del administrador");
-        assertThrows(IllegalArgumentException.class,
-            () -> servicio.solicitarPrestamo("b-1", OTRA, "Ana Ruiz", null, null, devolucion),
-            "no se repite una solicitud que sigue en espera");
         assertThrows(SecurityException.class, () -> servicio.aprobar(s.id()));
 
         entrarComo(Rol.ADMIN, null);
@@ -77,19 +86,12 @@ class SolicitudServiceIntegrationTest extends IntegrationTestBase {
 
     @Test
     void resguardoAprobadoYRechazoConMotivo() throws Exception {
-        entrarComo(Rol.DIRECCION, AREA);
-        Solicitud resguardo = servicio.solicitarResguardo("b-1", "Luis Mora", "Jefe", null);
-        assertThrows(IllegalArgumentException.class,
-            () -> servicio.solicitarResguardo("b-2", "Luis Mora", null, null),
-            "un bien de otra área no se puede pedir");
+        Solicitud resguardo = pendiente(Solicitud.TIPO_RESGUARDO, "b-1", "Laptop", "CAT/01", AREA, null, "Luis Mora");
+        Solicitud otra = pendiente(Solicitud.TIPO_RESGUARDO, "b-2", "Proyector", "ECO/01", OTRA, null, "Eva Sol");
 
         entrarComo(Rol.ADMIN, null);
         String folio = servicio.aprobar(resguardo.id());
         assertEquals(1, contar("SELECT COUNT(*) FROM resguardos WHERE numero = '" + folio + "'"));
-
-        entrarComo(Rol.DIRECCION, OTRA);
-        Solicitud otra = servicio.solicitarResguardo("b-2", "Eva Sol", null, null);
-        entrarComo(Rol.ADMIN, null);
         assertThrows(IllegalArgumentException.class, () -> servicio.rechazar(otra.id(), " "));
         servicio.rechazar(otra.id(), "Falta el oficio");
 
@@ -98,6 +100,16 @@ class SolicitudServiceIntegrationTest extends IntegrationTestBase {
         assertEquals(Solicitud.ESTADO_RECHAZADA, vista.estado());
         assertEquals("Falta el oficio", vista.respuesta());
         assertEquals(1, servicio.deMisAreas().size(), "cada área ve solo lo suyo");
+    }
+
+    /** A request as the áreas used to leave it, written straight to the table. */
+    private Solicitud pendiente(String tipo, String productoId, String nombre, String codigo, String area,
+                                String areaDestino, String responsable) throws SQLException {
+        entrarComo(Rol.DIRECCION, area);
+        return new com.sibim.repository.SolicitudRepository().save(new Solicitud(null, tipo, productoId, nombre, codigo,
+            area, "Prueba " + Rol.DIRECCION, areaDestino, responsable, null, "Evento",
+            Solicitud.TIPO_PRESTAMO.equals(tipo) ? LocalDate.now().plusDays(10) : null,
+            Solicitud.ESTADO_PENDIENTE, null, null, null, null, null));
     }
 
     private int contar(String sql) throws SQLException {

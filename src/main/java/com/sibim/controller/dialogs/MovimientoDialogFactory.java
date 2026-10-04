@@ -59,14 +59,8 @@ public final class MovimientoDialogFactory {
         Dialog<ButtonType> dialog = DialogUtil.createButtonDialog(480);
         DialogUtil.styleOkButton(dialog.getDialogPane(), AppColors.PURPLE);
 
-        // Areas only request transfers (Patrimonio approves them); the other
-        // movement types are Patrimonio's — see MovimientoService.registrar.
-        boolean soloTransferencia = !com.sibim.session.SessionManager.isAdmin();
-        HBox header = soloTransferencia
-            ? DialogUtil.gradientHeader("mdi2s-swap-horizontal", "Solicitar transferencia",
-                "Patrimonio revisa la solicitud; al aprobarla, el área que recibe confirma que tiene el bien",
-                AppColors.PURPLE, AppColors.PURPLE_D)
-            : DialogUtil.gradientHeader("mdi2s-swap-vertical", "Registrar Movimiento",
+        // Only Patrimonio gets here — see MovimientoService.registrar.
+        HBox header = DialogUtil.gradientHeader("mdi2s-swap-vertical", "Registrar Movimiento",
                 "Registra una nueva entrada, salida, ajuste o transferencia al inventario",
                 AppColors.PURPLE, AppColors.PURPLE_D);
 
@@ -91,10 +85,8 @@ public final class MovimientoDialogFactory {
             productos.stream().filter(p -> p.getId().equals(initialProductoId)).findFirst().ifPresent(fProducto::setValue);
 
         ComboBox<TipoMovimiento> fTipo = new ComboBox<>(FXCollections.observableArrayList(
-            soloTransferencia ? new TipoMovimiento[]{ TipoMovimiento.TRANSFERENCIA } : TipoMovimiento.values()));
-        fTipo.setValue(soloTransferencia ? TipoMovimiento.TRANSFERENCIA
-            : retryFrom != null ? retryFrom.tipo() : preTipo != null ? preTipo : TipoMovimiento.ENTRADA);
-        fTipo.setDisable(soloTransferencia);
+            TipoMovimiento.values()));
+        fTipo.setValue(retryFrom != null ? retryFrom.tipo() : preTipo != null ? preTipo : TipoMovimiento.ENTRADA);
         fTipo.setMaxWidth(Double.MAX_VALUE);
         fTipo.getStyleClass().add("form-input");
         fTipo.setConverter(new javafx.util.StringConverter<>() {

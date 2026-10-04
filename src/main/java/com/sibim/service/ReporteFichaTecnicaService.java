@@ -223,12 +223,12 @@ public class ReporteFichaTecnicaService extends ReporteService {
         l.add(par("Fecha de adquisición", p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : null));
         l.add(par("No. de factura", p.getNumeroFactura()));
         l.add(par("Proveedor", p.getProveedor()));
-        l.add(par("Costo de adquisición", p.getPrecioCompra() != null ? FormatUtils.formatCurrency(p.getPrecioCompra()) : null));
+        l.add(par("Costo de adquisición", p.getPrecioCompra() != null ? com.sibim.session.Permisos.pesos(p.getPrecioCompra()) : null));
         BigDecimal enLibros = p.getValorDepreciado() != null ? p.getValorDepreciado() : p.getValorTotal();
         l.add(par("Vida útil", p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() + " año(s)" : null));
-        l.add(par("Valor en libros", enLibros != null ? FormatUtils.formatCurrency(enLibros) : null));
+        l.add(par("Valor en libros", enLibros != null ? com.sibim.session.Permisos.pesos(enLibros) : null));
         if (p.getPorcentajeDepreciado() != null && p.getPrecioCompra() != null && p.getValorDepreciado() != null)
-            l.add(par("Depreciación acumulada", FormatUtils.formatCurrency(p.getPrecioCompra().subtract(p.getValorDepreciado()))
+            l.add(par("Depreciación acumulada", com.sibim.session.Permisos.pesos(p.getPrecioCompra().subtract(p.getValorDepreciado()))
                 + "  (" + p.getPorcentajeDepreciado() + "%)"));
         if (p.getCreadoEn() != null)
             l.add(par("Alta en SIBIM", FormatUtils.formatDate(p.getCreadoEn().toLocalDate())));

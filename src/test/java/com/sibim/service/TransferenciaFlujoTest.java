@@ -15,7 +15,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Área solicita → Patrimonio aprueba → el área que recibe confirma (demo mode, in memory). */
+/** A transfer: Patrimonio registers it and the área that receives the bien
+ *  confirms it has it. The áreas register no movement of any kind and no longer
+ *  request transfers (what they need is asked of Finanzas, outside SIBIM). */
 class TransferenciaFlujoTest {
 
     private final MovimientoService service = new MovimientoService();
@@ -41,60 +43,57 @@ class TransferenciaFlujoTest {
     }
 
     @Test
-    void flujoCompleto_solicitaApruebaYRecibe() throws Exception {
-        entrarComo(Rol.DIRECCION, bien.getArea());
-        Movimiento solicitud = service.registrar(bien.getId(), TipoMovimiento.TRANSFERENCIA,
-            bien.getStockActual(), "Reasignación", null, destino);
-        assertTrue(solicitud.isPendiente(), "la solicitud de un área espera a Patrimonio");
-        assertEquals(bien.getArea(), DemoDataStore.findProductoById(bien.getId()).orElseThrow().getArea(),
-            "el bien no se mueve hasta que Patrimonio aprueba");
-        assertEquals(1, service.getPendientesTransferencias().stream()
-            .filter(m -> m.getId().equals(solicitud.getId())).count(), "el área ve su propia solicitud");
-        assertThrows(SecurityException.class, () -> service.aprobarTransferencia(solicitud.getId()));
-
+    void flujoCompleto_patrimonioTransfiereYElAreaRecibe() throws Exception {
+        String origen = bien.getArea();
         entrarComo(Rol.ADMIN, null);
-        service.aprobarTransferencia(solicitud.getId());
+        Movimiento transferencia = service.registrar(bien.getId(), TipoMovimiento.TRANSFERENCIA,
+            bien.getStockActual(), "Reasignación", null, destino);
+        assertFalse(transferencia.isPendiente(), "la de Patrimonio no espera aprobación");
         assertEquals(destino, DemoDataStore.findProductoById(bien.getId()).orElseThrow().getArea());
 
-        entrarComo(Rol.DIRECCION, bien.getArea());   // el área que entregó no puede confirmar
+        entrarComo(Rol.DIRECCION, origen);   // el área que entregó no puede confirmar
         assertTrue(service.getPorRecibir().isEmpty());
-        Movimiento aprobada = DemoDataStore.findPorRecibir(null).stream()
-            .filter(m -> m.getId().equals(solicitud.getId())).findFirst().orElseThrow();
-        assertThrows(MovimientoService.ValidationException.class, () -> service.confirmarRecepcion(aprobada));
+        Movimiento porRecibir = DemoDataStore.findPorRecibir(null).stream()
+            .filter(m -> m.getId().equals(transferencia.getId())).findFirst().orElseThrow();
+        assertThrows(MovimientoService.ValidationException.class, () -> service.confirmarRecepcion(porRecibir));
 
         entrarComo(Rol.DIRECCION, destino);
         assertEquals(1, service.getPorRecibir().size(), "al área que recibe le aparece por recibir");
         service.confirmarRecepcion(service.getPorRecibir().get(0));
         assertTrue(service.getPorRecibir().isEmpty());
-        assertNotNull(aprobada.getRecibidoEn());
-        assertEquals("Usuario " + destino, aprobada.getRecibidoPor());
-        assertThrows(MovimientoService.ValidationException.class, () -> service.confirmarRecepcion(aprobada),
+        assertNotNull(porRecibir.getRecibidoEn());
+        assertEquals("Usuario " + destino, porRecibir.getRecibidoPor());
+        assertThrows(MovimientoService.ValidationException.class, () -> service.confirmarRecepcion(porRecibir),
             "no se confirma dos veces");
     }
 
     @Test
-    void transferenciaDirectaDePatrimonio_tambienQuedaPorRecibir() throws Exception {
+    void transferenciaDePatrimonio_quedaPorRecibirParaElSecretarioDelArea() throws Exception {
         entrarComo(Rol.ADMIN, null);
         service.registrar(bien.getId(), TipoMovimiento.TRANSFERENCIA, bien.getStockActual(), "Directa", null, destino);
         entrarComo(Rol.SECRETARIO, destino);
         assertEquals(1, service.getPorRecibir().size());
     }
 
+    /** Neither a secretario nor a dirección registers a movement, and a transfer
+     *  is no longer something they can request: it used to be saved as pending. */
     @Test
-    void unArea_soloSolicitaTransferencias() {
-        entrarComo(Rol.DIRECCION, bien.getArea());
-        for (TipoMovimiento t : new TipoMovimiento[]{ TipoMovimiento.ENTRADA, TipoMovimiento.SALIDA, TipoMovimiento.AJUSTE }) {
-            assertThrows(MovimientoService.ValidationException.class,
-                () -> service.registrar(bien.getId(), t, 1, "x", null), t + " es solo de Patrimonio");
+    void lasAreas_noRegistranNingunMovimiento_niSolicitanTransferencias() throws Exception {
+        for (Rol rol : new Rol[]{ Rol.SECRETARIO, Rol.DIRECCION }) {
+            entrarComo(rol, bien.getArea());
+            for (TipoMovimiento t : new TipoMovimiento[]{ TipoMovimiento.ENTRADA, TipoMovimiento.SALIDA, TipoMovimiento.AJUSTE }) {
+                assertThrows(MovimientoService.ValidationException.class,
+                    () -> service.registrar(bien.getId(), t, 1, "x", null), rol + ": " + t + " es solo de Patrimonio");
+            }
+            MovimientoService.ValidationException e = assertThrows(MovimientoService.ValidationException.class,
+                () -> service.registrar(bien.getId(), TipoMovimiento.TRANSFERENCIA, bien.getStockActual(), "x", null, destino),
+                rol + ": tampoco una transferencia");
+            assertEquals(MovimientoService.SOLO_ADMIN_MOVIMIENTOS, e.getMessage());
         }
-    }
-
-    @Test
-    void unArea_noTransfiereBienesDeOtraArea() {
-        entrarComo(Rol.DIRECCION, destino);
-        assertThrows(MovimientoService.ValidationException.class, () -> service.registrar(bien.getId(),
-            TipoMovimiento.TRANSFERENCIA, bien.getStockActual(), "x", null, destino.equals("Archivo Municipal")
-                ? "Parque Municipal" : "Archivo Municipal"));
+        assertEquals(bien.getArea(), DemoDataStore.findProductoById(bien.getId()).orElseThrow().getArea(),
+            "el bien sigue donde estaba");
+        entrarComo(Rol.ADMIN, null);
+        assertTrue(service.getPendientesTransferencias().isEmpty(), "ninguna solicitud quedó en espera");
     }
 
     private static void entrarComo(Rol rol, String area) {

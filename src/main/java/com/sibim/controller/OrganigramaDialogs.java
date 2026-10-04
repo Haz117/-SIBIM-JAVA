@@ -109,6 +109,10 @@ class OrganigramaDialogs {
 
         // ── Tab: Bienes ──────────────────────────────────────────────
         TableView<Producto> tbl = new TableView<>(FXCollections.observableArrayList(prods));
+        tbl.getStyleClass().add("data-table");
+        Label sinBienes = new Label("Ningún bien coincide con la búsqueda");
+        sinBienes.getStyleClass().add("muted-sm");
+        tbl.setPlaceholder(sinBienes);
         tbl.setPrefHeight(320);
         tbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
@@ -191,8 +195,7 @@ class OrganigramaDialogs {
 
         TextField dlgSearch = new TextField();
         dlgSearch.setPromptText("Buscar por nombre o código…");
-        dlgSearch.getStyleClass().add("search-field");
-        dlgSearch.setPadding(new Insets(0, 12, 0, 12));
+        dlgSearch.getStyleClass().add("form-input");
         dlgSearch.textProperty().addListener((obs, o, q) -> {
             String lower = q.toLowerCase();
             List<Producto> filtrado = prods.stream()
@@ -203,10 +206,12 @@ class OrganigramaDialogs {
             tbl.getItems().setAll(filtrado);
         });
 
-        VBox bienesTab = new VBox(8, dlgSearch, tbl);
+        VBox bienesTab = new VBox(10, dlgSearch, tbl);
+        bienesTab.setPadding(new Insets(14, 16, 14, 16));
 
         // ── Tab: Movimientos ─────────────────────────────────────────
         TableView<Movimiento> movTbl = new TableView<>();
+        movTbl.getStyleClass().add("data-table");
         movTbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         movTbl.setPrefHeight(320);
         movTbl.setPlaceholder(new Label("Cargando movimientos…"));
@@ -240,10 +245,11 @@ class OrganigramaDialogs {
         movTbl.getColumns().addAll(mBien, mTipo, mCant, mFecha, mUsuario);
 
         VBox movTab = new VBox(8, movTbl);
+        movTab.setPadding(new Insets(14, 16, 14, 16));
 
         // ── Tab: Por categoría ───────────────────────────────────────
         VBox catBox = new VBox(10);
-        catBox.setPadding(new Insets(8, 0, 0, 0));
+        catBox.setPadding(new Insets(14, 16, 14, 16));
         Map<String, Long> catCounts = prods.stream()
             .filter(p -> p.getCategoriaNombre() != null && !p.getCategoriaNombre().isBlank())
             .collect(Collectors.groupingBy(Producto::getCategoriaNombre, Collectors.counting()));

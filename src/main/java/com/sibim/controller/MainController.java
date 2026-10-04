@@ -184,6 +184,7 @@ public class MainController {
         if (SessionManager.getCurrentUser() != null) {
             String nombre = SessionManager.getCurrentUser().getNombre();
             userNameLabel.setText(nombre);
+            userNameLabel.setTooltip(new Tooltip(nombre));   // área accounts carry long names
             userRolLabel.setText(SessionManager.getCurrentUser().getRol().getEtiqueta());
             // the name label ellipsizes long names: keep the full text one hover away
             userNameLabel.setTooltip(new javafx.scene.control.Tooltip(nombre + " — " + userRolLabel.getText()));
@@ -200,7 +201,8 @@ public class MainController {
         setupNavHover(navRegistry.buttons().toArray(new Button[0]));
 
         // The áreas get a short menu: what only Patrimonio works with (catalogue,
-        // depreciation, physical count, actas, bajas, audit) is not shown to them.
+        // movements, depreciation, physical count, comodatos, actas, bajas, audit)
+        // is not shown to them.
         boolean admin = SessionManager.isAdmin();
         for (NavItem it : navRegistry.items()) {
             if (!it.adminOnly() || it.button() == null) continue;
@@ -351,14 +353,14 @@ public class MainController {
             page("organigrama",   NavSection.NAVEGACION,  btnOrganigrama,   KeyCode.DIGIT2),
             page("productos",     NavSection.NAVEGACION,  btnProductos,     KeyCode.DIGIT3).withPaletteLabel("Bienes / Inventario"),
             page("categorias",    NavSection.NAVEGACION,  btnCategorias,    KeyCode.DIGIT4).restrictedToAdmin(),
-            page("movimientos",   NavSection.OPERACIONES, btnMovimientos,   KeyCode.DIGIT5),
+            page("movimientos",   NavSection.OPERACIONES, btnMovimientos,   KeyCode.DIGIT5).restrictedToAdmin(),
             page("alertas",       NavSection.OPERACIONES, btnAlertas,       KeyCode.DIGIT6),
             page("reportes",      NavSection.OPERACIONES, btnReportes,      KeyCode.DIGIT7),
             page("depreciacion",  NavSection.OPERACIONES, btnDepreciacion,  KeyCode.DIGIT8).restrictedToAdmin(),
             action("conteo",      NavSection.OPERACIONES, btnConteoFisico,  this::onConteoFisico, KeyCode.C, ctrlAlt).hiddenFromPalette().restrictedToAdmin(),
             page("resguardos",    NavSection.CONTROL,     btnResguardos,    KeyCode.G, ctrlAlt),
             page("prestamos",     NavSection.CONTROL,     btnPrestamos,     KeyCode.P, ctrlAlt),
-            page("comodatos",     NavSection.CONTROL,     btnComodatos,     KeyCode.O, ctrlAlt),
+            page("comodatos",     NavSection.CONTROL,     btnComodatos,     KeyCode.O, ctrlAlt).restrictedToAdmin(),
             page("actas",         NavSection.CONTROL,     btnActas,         KeyCode.A, ctrlAlt).restrictedToAdmin(),
             page("bajas",         NavSection.CONTROL,     btnBajas,         KeyCode.B, ctrlAlt).withPaletteLabel("Bajas patrimoniales").restrictedToAdmin(),
             page("configuracion", NavSection.SISTEMA,     btnConfiguracion, KeyCode.DIGIT9),
@@ -383,6 +385,9 @@ public class MainController {
 
     /** Navigate programmatically by view name — used by TutorialOverlay and shortcuts. */
     public void navigateToView(String view) {
+        // A page hidden from the áreas stays closed to them however it is asked for
+        // (a dashboard card, the bell, the tutorial), not only from the menu.
+        if (!SessionManager.isAdmin() && navRegistry.byView(view).map(NavItem::adminOnly).orElse(false)) return;
         navRegistry.byView(view).ifPresentOrElse(NavItem::run, () -> navigateTo(view, btnDashboard));
     }
 
@@ -408,6 +413,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(
                 getClass().getResource("/fxml/" + view + ".fxml")));
             Node node = loader.load();
+            if (!com.sibim.session.Permisos.exportaHojasDeCalculo()) DialogUtil.quitarHojasDeCalculo(node);
             AccessibilityUtils.applyAccessibleTextFromTooltips(node);
             com.sibim.util.ResponsiveHeader.installAll(node);
 

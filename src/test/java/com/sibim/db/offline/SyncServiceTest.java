@@ -626,6 +626,10 @@ class SyncServiceTest extends IntegrationTestBase {
         assertEquals(0, synced.get());
         assertEquals(1, failed.get());
         assertEquals("DISCARDED", getOutboxStatus("conteo_outbox", rowId));
+        // …and it must show up in the list of discarded changes (conteo_outbox has no
+        // "operacion" column: the query used to fail and the entry was counted but invisible).
+        assertTrue(SyncService.getDiscarded().stream().anyMatch(e -> e.rowId() == rowId && e.tableLabel().startsWith("Conteo")),
+            "el conteo descartado aparece en la lista de cambios descartados");
     }
 
     // ════════════════════ syncAuditLog ═══════════════════════════════════

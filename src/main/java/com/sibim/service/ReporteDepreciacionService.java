@@ -19,8 +19,8 @@ public class ReporteDepreciacionService extends ReporteService {
     public ReporteDepreciacionService() { super(); }
 
     private static final String[] DEP_HEADERS = {
-        "Nombre", "Categoria", "Fecha Adquisicion", "Vida Util (años)",
-        "Valor Compra", "Valor Actual", "% Depreciado"};
+        "Bien", "Categoría", "Fecha de adquisición", "Vida útil (años)",
+        "Valor de compra", "Valor actual", "% depreciado"};
 
     public File exportDepreciacionExcel(List<Producto> productos) throws Exception {
         File file = tempFile("depreciacion", ".xlsx");
@@ -33,7 +33,9 @@ public class ReporteDepreciacionService extends ReporteService {
                 r.createCell(0).setCellValue(p.getNombre());
                 r.createCell(1).setCellValue(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "");
                 r.createCell(2).setCellValue(FormatUtils.formatDate(p.getFechaAdquisicion()));
-                r.createCell(3).setCellValue(p.getVidaUtilAnios());
+                // A bien with no vida útil set (most of an inventory just captured) leaves the
+                // cell empty; unboxing the null used to abort the whole export.
+                if (p.getVidaUtilAnios() != null) r.createCell(3).setCellValue(p.getVidaUtilAnios());
                 r.createCell(4).setCellValue(p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0);
                 r.createCell(5).setCellValue(p.getValorDepreciado() != null ? p.getValorDepreciado().doubleValue() : 0);
                 r.createCell(6).setCellValue(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0);
@@ -52,25 +54,33 @@ public class ReporteDepreciacionService extends ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("DEP");
             addPdfHeader(doc, "Depreciación de Activos", null, null, folio);
-            float[] widths = {3f, 1.8f, 1.5f, 1.2f, 1.5f, 1.5f, 1.2f};
+            float[] widths = {3.2f, 1.9f, 1.3f, 1f, 1.4f, 1.4f, 1.1f};
             Table table = createPdfTable(DEP_HEADERS, widths);
+            alinearDerecha(table, 3, 4, 5, 6);
+            int idx = 0;
+            java.math.BigDecimal compra = java.math.BigDecimal.ZERO, actual = java.math.BigDecimal.ZERO;
             for (Producto p : productos) {
-                table.addCell(cell(p.getNombre()));
-                table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
-                table.addCell(cell(FormatUtils.formatDate(p.getFechaAdquisicion())));
-                table.addCell(cell(String.valueOf(p.getVidaUtilAnios())));
-                table.addCell(cell(FormatUtils.formatCurrency(p.getPrecioCompra())));
-                table.addCell(cell(FormatUtils.formatCurrency(p.getValorDepreciado())));
-                table.addCell(cell(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() + "%" : "—"));
+                boolean alt = (idx++ % 2) == 1;
+                if (p.getPrecioCompra() != null) compra = compra.add(p.getPrecioCompra());
+                if (p.getValorDepreciado() != null) actual = actual.add(p.getValorDepreciado());
+                table.addCell(fila(p.getNombre(), alt));
+                table.addCell(fila(p.getCategoriaNombre(), alt));
+                table.addCell(fila(p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : "—", alt));
+                table.addCell(num(fila(p.getVidaUtilAnios() != null ? String.valueOf(p.getVidaUtilAnios()) : "—", alt)));
+                table.addCell(num(fila(FormatUtils.formatCurrency(p.getPrecioCompra()), alt)));
+                table.addCell(num(fila(FormatUtils.formatCurrency(p.getValorDepreciado()), alt)));
+                table.addCell(num(fila(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() + "%" : "—", alt)));
             }
+            addFilaTotal(table, 4, "TOTAL  (" + productos.size() + " bienes)",
+                FormatUtils.formatCurrency(compra), FormatUtils.formatCurrency(actual), "");
             doc.add(table);
             addFirmasBlock(doc,
                 new String[]{"ELABORÓ",           getCurrentUserName(),    "Director de Recursos Materiales"},
-                new String[]{"CONTADOR MUNICIPAL", "_______________", "Contador / Contralor Municipal"},
-                new String[]{"VO.BO.",             "_______________", "Tesorero Municipal"});
+                new String[]{"CONTADOR MUNICIPAL", null, "Contador / Contralor Municipal"},
+                new String[]{"VO.BO.",             null, "Tesorero Municipal"});
             addPdfFooter(doc, productos.size(), folio);
         }
-        return file;
+        return numerarPaginas(file);
     }
 
     public File exportDepreciacionCsv(List<Producto> productos) throws Exception {

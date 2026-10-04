@@ -6,8 +6,8 @@
 
 <ScrollPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.sibim.controller.AlertasController"
-            fitToWidth="true" styleClass="page-scroll">
-<VBox fx:id="rootPane" spacing="20">
+            fitToWidth="true" fitToHeight="true" styleClass="page-scroll">
+<VBox fx:id="rootPane" spacing="16">
     <padding><Insets top="20" right="22" bottom="20" left="34"/></padding>
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
@@ -21,7 +21,8 @@
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
                            visible="false" managed="false"/>
-        <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary"
+        <Label fx:id="lblActualizado" text="" styleClass="muted" minWidth="-Infinity"/>
+        <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary" minWidth="-Infinity"
                     contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Exportar el reporte de alertas" wrapText="true" maxWidth="240"/></tooltip>
@@ -37,132 +38,119 @@
                 </MenuItem>
             </items>
         </MenuButton>
-        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost"
+        <Button text="Actualizar" onAction="#onRefresh" styleClass="btn-ghost" minWidth="-Infinity"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Recalcular alertas (auto-refresca cada 5 min)"/></tooltip>
         </Button>
-        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
-                accessibleText="Restaurar columnas">
-            <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Restaurar las columnas de las tablas a su configuración original"
-                              wrapText="true" maxWidth="270"/></tooltip>
-        </Button>
-        <Separator orientation="VERTICAL"/>
-        <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a las secciones de abajo" wrapText="true" maxWidth="240"/></tooltip>
-        </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a las secciones de abajo — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
     </HBox>
 
-    <VBox fx:id="resumenBox" spacing="20">
-    <!-- ══ RESUMEN RÁPIDO ═══════════════════════════════════════════ -->
-    <HBox spacing="12">
-        <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card, status-mini-card-violet"
-              HBox.hgrow="ALWAYS" spacing="5">
+    <!-- ══ PESTAÑAS ═══════════════════════════════════════════════════
+         Cada tarjeta resume una categoría y, al elegirla, muestra su
+         tabla en el panel de abajo.
+         ══════════════════════════════════════════════════════════════ -->
+    <GridPane hgap="12">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="25"/>
+            <ColumnConstraints percentWidth="25"/>
+            <ColumnConstraints percentWidth="25"/>
+            <ColumnConstraints percentWidth="25"/>
+        </columnConstraints>
+        <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card, status-mini-card-violet, alert-tab"
+              GridPane.columnIndex="0" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2c-calendar-alert" styleClass="status-icon-violet"/>
                 <Label text="GARANTÍAS" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumGarantias" text="0" styleClass="status-mini-count"/>
-            <Label fx:id="lblSumGarantiasDetalle" text="— vencidas · — próximas"
-                   styleClass="rich-stat-hint"/>
-            <ProgressBar fx:id="pbGarantias" progress="0" maxWidth="Infinity"
-                         styleClass="status-pb, status-pb-violet"/>
+            <Label fx:id="lblSumGarantiasDetalle" text="— vencidas · — próximas" styleClass="rich-stat-hint"/>
         </VBox>
-    </HBox>
-    </VBox>
+        <VBox fx:id="statCardMantenimientoSum" styleClass="status-mini-card, status-mini-card-amber, alert-tab"
+              GridPane.columnIndex="1" spacing="5">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2w-wrench-outline" styleClass="status-icon-amber"/>
+                <Label text="MANTENIMIENTO" styleClass="status-mini-label"/>
+            </HBox>
+            <Label fx:id="lblSumMantenimiento" text="0" styleClass="status-mini-count"/>
+            <Label text="revisiones en los próximos 30 días" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardComodatosSum" styleClass="status-mini-card, status-mini-card-red, alert-tab"
+              GridPane.columnIndex="2" spacing="5">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2h-handshake-outline" styleClass="status-icon-red"/>
+                <Label text="COMODATOS" styleClass="status-mini-label"/>
+            </HBox>
+            <Label fx:id="lblSumComodatos" text="0" styleClass="status-mini-count"/>
+            <Label text="vencidos sin concluir" styleClass="rich-stat-hint"/>
+        </VBox>
+        <VBox fx:id="statCardPendientesSum" styleClass="status-mini-card, status-mini-card-green, alert-tab"
+              GridPane.columnIndex="3" spacing="5">
+            <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="status-icon-green"/>
+                <Label text="PENDIENTES" styleClass="status-mini-label"/>
+            </HBox>
+            <Label fx:id="lblSumPendientes" text="0" styleClass="status-mini-count"/>
+            <Label fx:id="lblSumPendientesDetalle" text="sin resguardante · sin etiquetar" styleClass="rich-stat-hint"/>
+        </VBox>
+    </GridPane>
 
-    <!-- ══ BARRA DE BÚSQUEDA ════════════════════════════════════════ -->
-    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-danger">
-        <StackPane HBox.hgrow="ALWAYS">
-            <TextField fx:id="searchField" promptText="Buscar bien por nombre o código..."
-                       styleClass="search-field" maxWidth="Infinity">
-                <tooltip><Tooltip text="Filtrar las alertas por nombre o código del bien"/></tooltip>
-            </TextField>
-            <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch"
-                    accessibleText="Limpiar búsqueda">
-                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
-                <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+    <!-- ══ PANEL DE LA CATEGORÍA ELEGIDA ════════════════════════════ -->
+    <VBox styleClass="alert-panel" spacing="12" VBox.vgrow="ALWAYS">
+        <HBox alignment="CENTER_LEFT" spacing="12">
+            <VBox spacing="2" HBox.hgrow="ALWAYS">
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <Label fx:id="lblPanelTitulo" styleClass="card-title"/>
+                    <Label fx:id="lblPanelConteo" styleClass="dash-section-badge" minWidth="-Infinity"/>
+                </HBox>
+                <Label fx:id="lblPanelSubtitulo" styleClass="muted"/>
+            </VBox>
+            <StackPane prefWidth="300" minWidth="200">
+                <TextField fx:id="searchField" promptText="Buscar por nombre, código o área..."
+                           styleClass="search-field" maxWidth="Infinity">
+                    <tooltip><Tooltip text="Filtra todas las categorías por nombre, código o área del bien  (Ctrl+F)"/></tooltip>
+                </TextField>
+                <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
+                        StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch"
+                        accessibleText="Limpiar búsqueda">
+                    <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
+                    <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
+                </Button>
+            </StackPane>
+            <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
+                    accessibleText="Restaurar columnas">
+                <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Restaurar las columnas de las tablas a su configuración original"
+                                  wrapText="true" maxWidth="270"/></tooltip>
             </Button>
-        </StackPane>
-        <Label fx:id="lblActualizado" text="" styleClass="muted"/>
-    </HBox>
-
-    <!-- ══ SIN ALERTAS (condicional) ════════════════════════════════ -->
-    <Label fx:id="lblSinAlertas"
-           text="Todo en orden — No hay alertas activas en este momento."
-           styleClass="no-alerts" visible="false" managed="false" maxWidth="Infinity">
-        <graphic><FontIcon iconLiteral="mdi2c-check-circle-outline"/></graphic>
-    </Label>
-
-    <!-- ══ GARANTÍAS POR VENCER ═══════════════════════════════════════ -->
-    <VBox fx:id="sectionGarantias" styleClass="alert-section, alert-info" spacing="0">
-        <HBox fx:id="headerGarantias" styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
-            <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="alert-section-icon"/>
-            <VBox HBox.hgrow="ALWAYS" spacing="1">
-                <Label text="Garantías por Vencer" styleClass="alert-section-title-inv"/>
-                <Label text="Ya vencidas o que vencen en los próximos 30 días · Revisa y documenta"
-                       styleClass="alert-section-subtitle"/>
-            </VBox>
-            <Label fx:id="helpGarantias" text="?" styleClass="help-badge-inv">
-                <tooltip><Tooltip text="Bienes cuya garantía ya venció, o vence dentro de los próximos 30 días. La columna &quot;Días Restantes&quot; indica cuál es cuál. Doble clic en una fila para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
-            </Label>
-            <Label fx:id="lblGarantiasCount" styleClass="badge-count-inv"/>
-            <FontIcon fx:id="chevronGarantias" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
         </HBox>
 
-        <VBox fx:id="contentGarantias" spacing="10">
-            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
-            <TableView fx:id="tableGarantias" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
+        <!-- Controles propios de una categoría (Pendientes: por área / por bien). -->
+        <HBox fx:id="panelExtras" alignment="CENTER_LEFT" visible="false" managed="false"/>
+
+        <StackPane fx:id="panelTablas" minHeight="280" VBox.vgrow="ALWAYS">
+            <TableView fx:id="tableGarantias" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
-                    <TableColumn fx:id="colGaNombre" text="Nombre"          prefWidth="210" sortable="true"/>
+                    <TableColumn fx:id="colGaNombre" text="Bien"            prefWidth="260" sortable="true"/>
                     <TableColumn fx:id="colGaCodigo" text="Código"          prefWidth="120" sortable="true"/>
-                    <TableColumn fx:id="colGaFecha"  text="Fecha Venc."     prefWidth="135" sortable="true"/>
-                    <TableColumn fx:id="colGaDias"   text="Días Restantes"  prefWidth="135" sortable="true"/>
+                    <TableColumn fx:id="colGaArea"   text="Área"            prefWidth="200" sortable="true"/>
+                    <TableColumn fx:id="colGaFecha"  text="Vence"           prefWidth="120" sortable="true"/>
+                    <TableColumn fx:id="colGaDias"   text="Días restantes"  prefWidth="130" sortable="true"/>
                 </columns>
-                <placeholder>
-                    <VBox alignment="CENTER" spacing="4">
-                        <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="alert-ok-icon"/>
-                        <Label text="Sin garantías próximas a vencer" styleClass="empty-state-msg"/>
-                    </VBox>
-                </placeholder>
             </TableView>
-        </VBox>
-    </VBox>
-
-    <!-- ══════════════ Mantenimiento próximo ══════════════ -->
-    <VBox fx:id="sectionMantenimiento" styleClass="alert-section, alert-info" spacing="0">
-        <HBox fx:id="headerMantenimiento" styleClass="alert-header-info" alignment="CENTER_LEFT" spacing="12">
-            <FontIcon iconLiteral="mdi2w-wrench-outline" styleClass="alert-section-icon"/>
-            <VBox HBox.hgrow="ALWAYS" spacing="1">
-                <Label text="Mantenimiento Próximo" styleClass="alert-section-title-inv"/>
-                <Label text="Revisiones de mantenimiento programadas en los próximos 30 días"
-                       styleClass="alert-section-subtitle"/>
-            </VBox>
-            <Label fx:id="helpMantenimiento" text="?" styleClass="help-badge-inv">
-                <tooltip><Tooltip text="Bienes con una revisión de mantenimiento programada dentro de los próximos 30 días." wrapText="true" maxWidth="250"/></tooltip>
-            </Label>
-            <Label fx:id="lblMantenimientoCount" text="0 bienes" styleClass="badge-count-inv"/>
-            <FontIcon fx:id="chevronMantenimiento" iconLiteral="mdi2c-chevron-up" styleClass="alert-section-chevron"/>
-        </HBox>
-        <VBox fx:id="contentMantenimiento" spacing="10">
-            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
-            <TableView fx:id="tableMantenimiento" prefHeight="185" styleClass="data-table" tableMenuButtonVisible="true">
+            <TableView fx:id="tableMantenimiento" styleClass="data-table" tableMenuButtonVisible="true">
                 <columns>
-                    <TableColumn fx:id="colMantNombre"  text="Nombre"            prefWidth="200" sortable="true"/>
+                    <TableColumn fx:id="colMantNombre"  text="Bien"              prefWidth="220" sortable="true"/>
                     <TableColumn fx:id="colMantCodigo"  text="Código"            prefWidth="110" sortable="true"/>
-                    <TableColumn fx:id="colMantArea"    text="Área"              prefWidth="150" sortable="true"/>
-                    <TableColumn fx:id="colMantFecha"   text="Próxima Revisión"  prefWidth="140" sortable="true"/>
+                    <TableColumn fx:id="colMantArea"    text="Área"              prefWidth="170" sortable="true"/>
+                    <TableColumn fx:id="colMantFecha"   text="Próxima revisión"  prefWidth="140" sortable="true"/>
                     <TableColumn fx:id="colMantNotas"   text="Notas"             prefWidth="200" sortable="true"/>
                 </columns>
             </TableView>
-        </VBox>
+        </StackPane>
     </VBox>
 
 </VBox>

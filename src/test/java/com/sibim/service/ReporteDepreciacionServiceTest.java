@@ -119,6 +119,18 @@ class ReporteDepreciacionServiceTest {
 
     // ── exportDepreciacionPdf ─────────────────────────────────────────────────
 
+    /** Bienes captured without a vida útil are the usual case, not the exception. */
+    @Test
+    void exportDepreciacion_productoSinVidaUtil_noLanzaExcepcionEnNingunFormato() throws Exception {
+        Producto p = new Producto();
+        p.setId("p-sin-vida"); p.setNombre("Archivero"); p.setCodigo("MB-003");
+        assertNull(p.getVidaUtilAnios(), "el caso que se prueba: vida útil sin capturar");
+
+        assertTrue(service.exportDepreciacionExcel(List.of(p)).length() > 0);
+        assertTrue(service.exportDepreciacionPdf(List.of(p)).length() > 0);
+        assertTrue(service.exportDepreciacionCsv(List.of(p)).length() > 0);
+    }
+
     @Test
     void exportDepreciacionPdf_listaConUnProducto_retornaArchivoNoNulo() throws Exception {
         List<Producto> lista = List.of(productoConDepreciacion("Aire acondicionado", 20000, 8));
