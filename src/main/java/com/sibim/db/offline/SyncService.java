@@ -793,11 +793,13 @@ public final class SyncService {
                 switch (clave) {
                     case "resguardo:CREAR" -> {
                         var d = OfflineDocs.leer(r.json(), com.sibim.model.Resguardo.class);
+                        exigirResguardoLibre(d);
                         OfflineDocs.guardar(r.tipo(), d.getId(), resguardos.saveOnline(d));
                     }
                     case "resguardo:CANCELAR" -> resguardos.cancelarOnline(r.docId());
                     case "prestamo:CREAR" -> {
                         var d = OfflineDocs.leer(r.json(), com.sibim.model.Prestamo.class);
+                        exigirBienLibre(d.getProductoId(), d.getProductoNombre(), d.getId());
                         OfflineDocs.guardar(r.tipo(), d.getId(), prestamos.saveOnline(d));
                     }
                     case "prestamo:DEVOLVER" -> {
@@ -806,6 +808,7 @@ public final class SyncService {
                     }
                     case "comodato:CREAR" -> {
                         var d = OfflineDocs.leer(r.json(), com.sibim.model.Comodato.class);
+                        exigirBienLibre(d.getProductoId(), d.getProductoNombre(), d.getId());
                         OfflineDocs.guardar(r.tipo(), d.getId(), comodatos.saveOnline(d));
                     }
                     case "comodato:CONCLUIR" -> {
@@ -831,9 +834,71 @@ public final class SyncService {
                 log.error("SyncService: no se pudo sincronizar {} {} ({})", r.tipo(), r.docId(), r.operacion(), ex);
                 markOutbox("doc_outbox", r.id(),
                     resolveFailureStatus(ex, r.reintentos(), r.tipo(), r.docId(), r.docId()), ex.getMessage());
+                // It will never reach the server: stop showing it on this PC
+                // (the reason stays in the discarded changes, for the admin).
+                if (ex instanceof DocumentoEnConflicto) {
+                    try { OfflineDocs.borrar(r.tipo(), r.docId()); }
+                    catch (SQLException e) { log.warn("SyncService: no se pudo quitar {} {} de la copia local", r.tipo(), r.docId(), e); }
+                }
                 failed.incrementAndGet();
             }
         }
+    }
+
+    /** A document this PC made offline that the server no longer allows. */
+    static final class DocumentoEnConflicto extends Exception {
+        DocumentoEnConflicto(String mensaje) { super(mensaje); }
+    }
+
+    private static final String MIENTRAS = " (se registró en otra PC mientras esta estaba sin conexión)";
+
+    /** Offline, the PC only checked its own copy before making the document;
+     *  meanwhile another PC may have lent the bien, given it in comodato, put
+     *  it in a resguardo or dado de baja. Same rules as ResguardoService,
+     *  PrestamoService and ComodatoService, checked again on the server. */
+    private static void exigirResguardoLibre(com.sibim.model.Resguardo d) throws SQLException, DocumentoEnConflicto {
+        for (com.sibim.model.ResguardoItem it : d.getItems()) {
+            if (it.getProductoId() == null) continue;
+            String otro = primero("SELECT r.numero FROM resguardo_items i JOIN resguardos r ON r.id = i.resguardo_id "
+                + "WHERE i.producto_id = ? AND r.estado = 'ACTIVO' AND r.id <> ? LIMIT 1", it.getProductoId(), d.getId());
+            if (otro != null)
+                throw new DocumentoEnConflicto("El bien " + nombre(it.getProductoNombre(), it.getProductoId())
+                    + " ya está en el resguardo vigente " + otro + MIENTRAS);
+        }
+    }
+
+    /** For a préstamo or comodato: the bien still exists, isn't de baja and
+     *  isn't already lent or in comodato ({@code docId} excluded, so a retry
+     *  after a half-finished sync doesn't find itself). */
+    private static void exigirBienLibre(String productoId, String productoNombre, String docId)
+            throws SQLException, DocumentoEnConflicto {
+        String bien = nombre(productoNombre, productoId);
+        String estado = primero("SELECT CASE WHEN fecha_baja IS NOT NULL THEN 'baja' "
+            + "WHEN stock_actual <= 0 THEN 'sin' ELSE 'ok' END FROM products WHERE id = ?", productoId);
+        if (estado == null) throw new DocumentoEnConflicto("El bien " + bien + " ya no existe en el servidor");
+        if (estado.equals("baja")) throw new DocumentoEnConflicto("El bien " + bien + " fue dado de baja" + MIENTRAS);
+        if (estado.equals("sin")) throw new DocumentoEnConflicto("El bien " + bien + " tiene cantidad 0" + MIENTRAS);
+        String prestamo = primero("SELECT numero FROM prestamos WHERE producto_id = ? "
+            + "AND estado IN ('ACTIVO','VENCIDO') AND id <> ? LIMIT 1", productoId, docId);
+        if (prestamo != null)
+            throw new DocumentoEnConflicto("El bien " + bien + " ya tiene el préstamo activo " + prestamo + MIENTRAS);
+        String comodato = primero("SELECT numero FROM comodatos WHERE producto_id = ? "
+            + "AND estado IN ('VIGENTE','VENCIDO') AND id <> ? LIMIT 1", productoId, docId);
+        if (comodato != null)
+            throw new DocumentoEnConflicto("El bien " + bien + " ya tiene el comodato vigente " + comodato + MIENTRAS);
+    }
+
+    private static String primero(String sql, String... parametros) throws SQLException {
+        try (Connection c = DatabaseConfig.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            for (int i = 0; i < parametros.length; i++) ps.setString(i + 1, parametros[i]);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private static String nombre(String nombre, String id) {
+        return "\"" + (nombre != null && !nombre.isBlank() ? nombre : id) + "\"";
     }
 
     // ─────────────────────────────── Outbox bookkeeping ────────────────────
@@ -842,6 +907,7 @@ public final class SyncService {
      *  "not found" responses).  Such rows are marked DISCARDED immediately so
      *  requeueFailedChanges() doesn't loop on them forever. */
     private static boolean isPermanentFailure(Exception ex) {
+        if (ex instanceof DocumentoEnConflicto) return true;
         if (ex instanceof SQLException sqle) {
             String state = sqle.getSQLState();
             // 23xxx = integrity constraint violation (FK, unique, not-null…)

@@ -222,14 +222,34 @@ if ($ZipOutput -or $Type -eq "app-image") {
         Write-Host "Portable zip: $ZipFile  ($sizeMb MB)"
     }
 } else {
-    # Rename exe to consistent artifact name (no spaces)
-    $exeFile = Get-ChildItem $Out -Filter "SIBIM Desktop-*.exe" | Select-Object -First 1
+    # Rename exe to consistent artifact name (no spaces). Exactly this version's:
+    # an installer of another version left in dist was once renamed and signed as this one.
+    $exeFile = Get-ChildItem $Out -Filter "SIBIM Desktop-$Version.exe" | Select-Object -First 1
+    if (-not $exeFile) { throw "jpackage did not leave 'SIBIM Desktop-$Version.exe' in $Out" }
     if ($exeFile) {
         $cleanName = "$Out\SIBIM-Desktop-$Version-win64-setup.exe"
         if (Test-Path $cleanName) { Remove-Item $cleanName -Force }
         Rename-Item $exeFile.FullName $cleanName
         $sizeMb = [math]::Round((Get-Item $cleanName).Length / 1MB, 1)
         Write-Host "Installer: $cleanName  ($sizeMb MB)"
+    }
+}
+
+# ── Signature for SIBIM's update channel ──────────────────────────────────────
+# Configuración > Publicar actualización only accepts an installer with the
+# <installer>.firma that TI's key produces here, and the PCs only install those
+# (see FirmaActualizaciones). The key lives in %APPDATA%\SIBIM on this PC only.
+if ($Type -ne "app-image") {
+    $Instalador = Get-ChildItem $Out -Filter "SIBIM-Desktop-$Version-win64-setup.exe" | Select-Object -First 1
+    if (-not $Instalador) { $Instalador = Get-ChildItem $Out -Filter "*$Version*.msi" | Select-Object -First 1 }
+    if ($Instalador) {
+        $JavaExe = Join-Path (Split-Path $JpackagePath) "java.exe"
+        & $JavaExe -cp $Jar.FullName com.sibim.service.FirmaActualizaciones firmar $Instalador.FullName $Version
+        if ($LASTEXITCODE -eq 2) {
+            Write-Host "[WARN] Installer NOT signed (no key on this PC): it can be installed by hand, but not published through SIBIM." -ForegroundColor Yellow
+        } elseif ($LASTEXITCODE -ne 0) {
+            throw "Signing failed (exit $LASTEXITCODE): see the message above."
+        }
     }
 }
 

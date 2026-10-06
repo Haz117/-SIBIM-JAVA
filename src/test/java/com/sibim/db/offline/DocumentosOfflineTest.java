@@ -153,6 +153,98 @@ class DocumentosOfflineTest extends IntegrationTestBase {
         assertTrue(new ResguardoRepository().findAll().isEmpty());
     }
 
+    @Test
+    void unResguardoHechoSinConexion_noDuplicaElQueOtraPcHizoMientras() throws Exception {
+        DatabaseConfig.setOfflineMode(true);
+        Resguardo sinRed = resguardo("Ana Pérez");
+        var resguardos = new ResguardoRepository();
+        resguardos.save(sinRed);
+
+        DatabaseConfig.setOfflineMode(false);            // meanwhile, another PC online
+        Resguardo otraPc = resguardo("Luis Gómez");
+        resguardos.save(otraPc);
+
+        AtomicInteger ok = new AtomicInteger(), mal = new AtomicInteger();
+        SyncService.syncDocumentos(ok, mal);
+
+        assertEquals(1, mal.get());
+        assertEquals("0", valor("SELECT COUNT(*)::text FROM resguardos WHERE id = ?", sinRed.getId()),
+            "no quedan dos resguardos vigentes del mismo bien");
+        assertEquals("Luis Gómez", valor("SELECT resguardante FROM products WHERE id = ?", productoId));
+        assertDescartado(otraPc.getNumero());
+        assertTrue(OfflineDocs.uno(OfflineDocs.RESGUARDO, sinRed.getId(), Resguardo.class).isEmpty(),
+            "la PC deja de mostrar el resguardo que nunca llegará");
+    }
+
+    @Test
+    void unPrestamoHechoSinConexion_seDescartaSiElBienQuedoEnComodato() throws Exception {
+        DatabaseConfig.setOfflineMode(true);
+        Prestamo pr = prestamo();
+        new PrestamoRepository().save(pr);
+
+        DatabaseConfig.setOfflineMode(false);
+        Comodato co = new Comodato();
+        co.setProductoId(productoId); co.setProductoNombre("Escritorio"); co.setEntidadReceptora("DIF");
+        co.setContactoNombre("Marta"); co.setFechaInicio(LocalDate.now());
+        new ComodatoRepository().save(co);
+
+        AtomicInteger ok = new AtomicInteger(), mal = new AtomicInteger();
+        SyncService.syncDocumentos(ok, mal);
+
+        assertEquals(1, mal.get());
+        assertEquals("0", valor("SELECT COUNT(*)::text FROM prestamos WHERE id = ?", pr.getId()));
+        assertDescartado(co.getNumero());
+    }
+
+    @Test
+    void unPrestamoHechoSinConexion_seDescartaSiElBienSeDioDeBaja() throws Exception {
+        DatabaseConfig.setOfflineMode(true);
+        Prestamo pr = prestamo();
+        new PrestamoRepository().save(pr);
+
+        DatabaseConfig.setOfflineMode(false);
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("UPDATE products SET fecha_baja = CURRENT_DATE WHERE id = ?")) {
+            ps.setString(1, productoId);
+            ps.executeUpdate();
+        }
+
+        AtomicInteger ok = new AtomicInteger(), mal = new AtomicInteger();
+        SyncService.syncDocumentos(ok, mal);
+
+        assertEquals(1, mal.get());
+        assertEquals("0", valor("SELECT COUNT(*)::text FROM prestamos WHERE id = ?", pr.getId()));
+        assertDescartado("dado de baja");
+    }
+
+    private Resguardo resguardo(String resguardante) {
+        Resguardo r = new Resguardo();
+        r.setResguardanteNombre(resguardante); r.setResguardanteArea(AREA);
+        ResguardoItem it = new ResguardoItem();
+        it.setProductoId(productoId); it.setProductoNombre("Escritorio"); it.setCantidad(1);
+        r.getItems().add(it);
+        return r;
+    }
+
+    private Prestamo prestamo() {
+        Prestamo pr = new Prestamo();
+        pr.setProductoId(productoId); pr.setProductoNombre("Escritorio"); pr.setAreaOrigen(AREA);
+        pr.setAreaDestino("Archivo Municipal"); pr.setResponsableNombre("Luis");
+        pr.setFechaDevolucionPrevista(LocalDate.now().plusDays(5));
+        return pr;
+    }
+
+    /** Discarded at once (not retried), with the reason the admin will read. */
+    private static void assertDescartado(String motivoContiene) throws Exception {
+        try (Statement st = OfflineStore.sharedConnection().createStatement();
+             ResultSet rs = st.executeQuery("SELECT status, error FROM doc_outbox")) {
+            assertTrue(rs.next());
+            assertEquals("DISCARDED", rs.getString(1));
+            assertTrue(rs.getString(2).contains(motivoContiene), rs.getString(2));
+            assertFalse(rs.next());
+        }
+    }
+
     private String valor(String sql, String id) throws Exception {
         try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, id);

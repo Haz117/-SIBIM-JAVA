@@ -84,6 +84,17 @@ class RolAppMinimoIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void lasActualizacionesSoloSeLeen() throws Exception {
+        try (Connection c = comoApp(); Statement st = c.createStatement()) {
+            st.executeQuery("SELECT version FROM actualizaciones").close();
+            assertEquals("42501", sqlState(() -> st.execute("INSERT INTO actualizaciones "
+                + "(version, archivo, tamano, sha256, partes) VALUES ('99.0.0', 'x.exe', 1, 'x', 1)")));
+            assertEquals("42501", sqlState(() -> st.execute("UPDATE actualizaciones SET notas = 'x'")));
+            assertEquals("42501", sqlState(() -> st.execute("DELETE FROM actualizacion_partes")));
+        }
+    }
+
+    @Test
     void borrarUnUsuarioConBitacora_sigueFuncionando() throws Exception {
         try (Connection c = comoApp(); Statement st = c.createStatement()) {
             st.execute("INSERT INTO users (id, username, password, nombre, role) "

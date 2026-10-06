@@ -22,7 +22,8 @@
 --   4. Deja UNA PC de administración con el usuario postgres y sin
 --      DB_MIGRATE=false: al instalar una versión nueva de SIBIM, se abre
 --      primero ahí para que aplique las migraciones; las demás PCs solo
---      verifican que el esquema esté al día.
+--      verifican que el esquema esté al día. Las actualizaciones también se
+--      publican desde esa PC (Configuración › Publicar actualización).
 --   5. Vuelve a ejecutar este script después de cada versión que agregue
 --      tablas (las nuevas ya quedan cubiertas por los permisos por defecto,
 --      pero así se reaplican las restricciones de audit_log y flyway).
@@ -58,6 +59,16 @@ REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM sibim_app;
 
 -- El historial de migraciones solo se lee (validación al arrancar).
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON flyway_schema_history FROM sibim_app;
+
+-- Los instaladores de las actualizaciones solo los publica la PC de
+-- administración (usuario dueño): con el .env de otra PC no se puede subir,
+-- cambiar ni borrar uno. (Además SIBIM solo instala los firmados por TI.)
+DO $$
+BEGIN
+    IF to_regclass('public.actualizaciones') IS NOT NULL THEN
+        REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON actualizaciones, actualizacion_partes FROM sibim_app;
+    END IF;
+END $$;
 
 -- Las tablas que creen migraciones futuras (ejecutadas por este mismo
 -- usuario dueño) quedan accesibles para sibim_app sin volver a correr esto.

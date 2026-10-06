@@ -103,7 +103,8 @@ class MainStartupChecks {
         if (!com.sibim.util.ConfirmacionUtil.confirmar("Actualizar SIBIM",
                 "Se descargará la versión " + v.version() + " (" + (v.tamano() / (1024 * 1024)) + " MB) y se abrirá "
                 + "su instalador. SIBIM se cerrará: guarda lo que estés capturando." + notas)) return;
-        File destino = new File(System.getProperty("java.io.tmpdir"), v.archivo());
+        File destino = new File(System.getProperty("java.io.tmpdir"),
+            com.sibim.service.ActualizacionService.nombreLocal(v));
         DialogUtil.runAsyncWithProgress(scene, "Descargando la versión " + v.version() + "…",
             (DialogUtil.TareaConAvance<File>) avance -> { servicio.descargar(v, destino, avance); return destino; },
             instalador -> {

@@ -205,11 +205,28 @@ El proyecto sigue [Semantic Versioning](https://semver.org/) con el formato `MAY
 
 Las versiones nuevas viajan por la base de datos, no por GitHub Releases: el instalador lleva la configuración de conexión y el repositorio es público.
 
-1. Sube `<version>` en `pom.xml` y genera el instalador en la PC de administración (`packaging\build-installer.ps1`).
-2. Abre esa versión en la PC de administración (aplica las migraciones) y entra a **Configuración › Publicar actualización**: `ActualizacionService` guarda el instalador en la tabla `actualizaciones` (V27), en partes de 5 MB con su SHA-256.
-3. Al abrir SIBIM, cada PC compara la última versión publicada con la suya (comparación semver en `UpdateChecker`). Si es mayor, muestra **"Nueva versión disponible"** con el botón **"Instalar"**: descarga el instalador, verifica el SHA-256, lo ejecuta y cierra SIBIM.
+1. Sube `<version>` en `pom.xml` y genera el instalador en la **PC de TI** (`packaging\build-installer.ps1 -Type exe`). Al final el script lo firma y deja `SIBIM-Desktop-<versión>-win64-setup.exe.firma` junto al `.exe`.
+2. Copia **los dos archivos** a la PC de administración, abre ahí esa versión (aplica las migraciones) y entra a **Configuración › Publicar actualización**: `ActualizacionService` comprueba la firma y guarda el instalador en la tabla `actualizaciones` (V27, firma en V31), en partes de 5 MB con su SHA-256. La versión sale de la firma.
+3. Al abrir SIBIM, cada PC compara la última versión publicada **con firma válida** con la suya (comparación semver en `UpdateChecker`). Si es mayor, muestra **"Nueva versión disponible"** con el botón **"Instalar"**: descarga el instalador, verifica el SHA-256, lo ejecuta y cierra SIBIM.
 
 Sin conexión, en modo demo o al correr desde el IDE (versión `dev`) no se ofrece ninguna actualización.
+
+### Firma de los instaladores
+
+Todas las PCs pueden escribir en la base (cada una tiene su `.env`), así que el SHA-256 solo prueba que el instalador llegó completo, no quién lo publicó. Por eso SIBIM solo ofrece e instala versiones firmadas por TI (`FirmaActualizaciones`, Ed25519 sobre la versión y el SHA-256):
+
+- **Llave privada**: `%APPDATA%\SIBIM\firma-actualizaciones.key` en la PC de TI, sellada con DPAPI (solo esa cuenta de Windows en esa PC puede firmar). No está en el repositorio ni en la base.
+- **Clave pública**: `src/main/resources/actualizaciones-firma.pub`, va dentro de cada compilación. `FirmaActualizacionesTest` falla si se borra.
+- Una fila de `actualizaciones` sin firma válida (subida a mano, o anterior a V31) se ignora. Con `rol_app_minimo.sql`, además, solo el usuario dueño puede escribir esas tablas: publica desde la PC de administración.
+- Los instaladores de GitHub Releases no llevan firma: sirven para instalar a mano, no para publicarlos por SIBIM.
+
+Si se pierde la llave (la PC de TI se formatea o se cambia de cuenta de Windows):
+
+```powershell
+java -cp target\sibim-desktop-<versión>.jar com.sibim.service.FirmaActualizaciones generar --reemplazar
+```
+
+Sube la nueva `actualizaciones-firma.pub` al repositorio y genera la siguiente versión. Las PCs todavía confían en la llave anterior, así que esa versión hay que **instalarla a mano en cada PC una vez**; las siguientes ya llegan solas.
 
 La versión actual se inyecta en tiempo de compilación mediante Maven resource filtering. En `src/main/resources/app.properties`:
 
@@ -261,6 +278,8 @@ El script detecta si existe el directorio `maven-dist/` en el repositorio local 
 | `mvn: command not found` | Maven no esta en PATH y no existe `maven-dist/` | Instalar Maven o asegurarse de tener `maven-dist/` en el repo |
 | Release workflow no dispara | El tag no coincide con el patron `v*.*.*` | Verificar formato: `v1.0.0` es valido, `1.0.0` no lo es |
 | No aparece "Nueva versión disponible" | No se ha publicado una versión mayor, la PC está sin conexión o corre desde el IDE (versión `dev`) | Publicar el instalador en Configuración › Publicar actualización con una versión mayor a la instalada |
+| "Falta …exe.firma junto al instalador" al publicar | El instalador no se generó en la PC de TI o no se copió su `.firma` | Copiar el `.firma` junto al `.exe`, o regenerar con `build-installer.ps1` en la PC de TI |
+| "…sibim_app, que no puede publicar actualizaciones" | La PC entra con el rol de mínimo privilegio | Publicar desde la PC de administración (usuario dueño de la base) |
 
 ---
 
@@ -279,5 +298,6 @@ src/main/java/.../util/
   UpdateChecker.java    <- Version del build en ejecucion y comparacion semver
 src/main/java/.../service/
   ActualizacionService.java <- Publica y descarga el instalador de una version nueva (tabla actualizaciones)
+  FirmaActualizaciones.java <- Firma de TI de los instaladores: solo se instalan los firmados
 pom.xml                 <- versions-maven-plugin para el estampado de version desde el tag
 ```

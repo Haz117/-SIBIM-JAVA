@@ -189,7 +189,7 @@ Si una PC no logra conectar a la base de datos real al arrancar (red caída, ser
 - **Qué necesita conexión**: crear/editar usuarios, conteos físicos, auditoría, préstamos, comodatos, resguardos, actas, resguardos por área, alertas de mantenimiento, guardar la configuración, aprobar o rechazar transferencias pendientes (dependen de dónde está el bien en el servidor), **dar de baja** un bien y **cambiar su resguardante** (sin conexión no se puede comprobar si está prestado o si un resguardo firmado lo define), y el cambio de contraseña obligatorio (se pospone hasta el siguiente login ya conectado). Esas acciones lo avisan al instante en lugar de quedarse esperando al servidor.
 - **Configuración y logo sin conexión**: los formatos PDF/Excel usan la última configuración descargada en esa PC (nombre del ayuntamiento, municipio, logo); la contraseña SMTP nunca se copia a la PC.
 - **Fotos tomadas sin conexión**: se guardan en la PC y se suben solas al almacenamiento compartido en cuanto vuelve la conexión, para que las demás PCs las vean.
-- **Sincronización**: en cuanto la app detecta que la base de datos real volvió a estar disponible (revisa cada minuto), sube automáticamente todo lo capturado offline — bienes, movimientos, categorías, conteos físicos y entradas de auditoría — en el mismo orden en que se hizo. Un aviso confirma cuántos cambios se sincronizaron.
+- **Sincronización**: en cuanto la app detecta que la base de datos real volvió a estar disponible (revisa cada minuto), sube automáticamente todo lo capturado offline — bienes, movimientos, categorías, conteos físicos, documentos (resguardos, préstamos, comodatos, actas) y entradas de auditoría — en el mismo orden en que se hizo. Un aviso confirma cuántos cambios se sincronizaron. Un resguardo, préstamo o comodato hecho sin conexión se vuelve a validar contra el servidor: si mientras tanto otra PC puso el bien en resguardo, lo prestó, lo dio en comodato o lo dio de baja, no se sube (no quedan dos documentos vigentes del mismo bien) y el motivo aparece en **Configuración → Errores offline**.
 - **Resolución de conflictos**: si un bien fue editado en otro equipo mientras esta PC estaba offline, el sistema lo detecta comparando fechas de modificación y muestra un **diálogo de resolución** con ambas versiones lado a lado (campo por campo, con los valores que difieren resaltados en amarillo). El usuario elige para cada bien si conservar la versión del servidor o aplicar la suya, antes de que se escriba cualquier cambio. La detección aplica también a operaciones de **Baja** y **Reactivación**: si un bien fue dado de baja o reactivado offline pero el servidor lo modificó en el ínterin, también se muestra el conflicto. Al resolver a favor de la versión offline, el sistema llama la operación correcta (baja, reactivación o guardado de campos) según el tipo de cambio pendiente.
 - **Fallos permanentes en sincronización**: violaciones de clave foránea, claves únicas y registros no encontrados en el servidor se marcan como descartados en lugar de reintentar indefinidamente — evita que el ciclo de reintento de 60 s se trabe en filas que nunca podrán sincronizarse.
 - La barra de estado muestra "Modo offline · N pendientes" mientras haya cambios sin subir.
@@ -224,7 +224,7 @@ SIBIM-Java/
 │   │   └── resources/
 │   │       ├── fxml/              # 18 vistas de la interfaz
 │   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
-│   │       ├── db/migration/      # Migraciones Flyway V1–V25, se aplican solas al arrancar
+│   │       ├── db/migration/      # Migraciones Flyway V1–V31, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
 │   └── test/java/com/sibim/
@@ -289,7 +289,7 @@ Cada PC se conecta directo a PostgreSQL con las credenciales de su `.env`. Si es
 2. En cada PC de trabajo ejecuta `packaging\configurar-sibim.ps1` (sin parámetros): escribe `%APPDATA%\SIBIM\.env` con `DB_USER=sibim_app.<ref-del-proyecto>`, la contraseña del paso 1 y `DB_MIGRATE=false`. Con `DB_MIGRATE=false` la app no intenta migrar el esquema al arrancar; solo verifica que esté al día.
 
    Si editas el `.env` a mano, **quita `user=` y `password=` del `DB_URL`**: el driver de PostgreSQL los prefería sobre `DB_USER`/`DB_PASSWORD`, así que con ellos ahí la PC seguía entrando como `postgres` aunque `DB_USER` dijera otra cosa. La versión actual los ignora y lo avisa en el log, pero conviene dejar la URL limpia.
-3. Deja **una** PC de administración con el usuario `postgres` (`configurar-sibim.ps1 -Admin`). Al instalar una versión nueva, ábrela primero ahí para que aplique las migraciones. Si una PC con `DB_MIGRATE=false` arranca antes, trabaja en modo offline, avisa que la base necesita actualizarse y no vuelve a modo en línea hasta que el esquema esté al día. Lo mismo aplica a cualquier PC que arranque sin conexión: al reconectarse verifica o aplica las migraciones antes de sincronizar.
+3. Deja **una** PC de administración con el usuario `postgres` (`configurar-sibim.ps1 -Admin`). Al instalar una versión nueva, ábrela primero ahí para que aplique las migraciones; las actualizaciones también se publican desde esa PC (con `sibim_app` no se puede escribir en `actualizaciones`). Si una PC con `DB_MIGRATE=false` arranca antes, trabaja en modo offline, avisa que la base necesita actualizarse y no vuelve a modo en línea hasta que el esquema esté al día. Lo mismo aplica a cualquier PC que arranque sin conexión: al reconectarse verifica o aplica las migraciones antes de sincronizar.
 4. Vuelve a ejecutar el script después de cada versión que agregue tablas.
 
 `src/test/java/com/sibim/db/integration/RolAppMinimoIntegrationTest.java` verifica el script contra un PostgreSQL real.
@@ -298,7 +298,7 @@ Cada PC se conecta directo a PostgreSQL con las credenciales de su `.env`. Si es
 
 ## Respaldo de la base de datos
 
-Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo cifrado, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado.
+Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo cifrado, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado. El respaldo incluye las solicitudes de las áreas; el registro de en qué equipos entró cada cuenta no se respalda, pero se conserva al restaurar.
 
 **Respaldo automático diario** (en una PC de administración, con las *Command Line Tools* de PostgreSQL instaladas — `pg_dump` de la misma versión mayor que el servidor o más nueva):
 
@@ -322,7 +322,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (964 en total)
+# Correr todos los tests (1035 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

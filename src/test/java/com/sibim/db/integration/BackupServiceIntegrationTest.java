@@ -101,6 +101,44 @@ class BackupServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void lasSolicitudesDeLasAreasSeRespaldanYSeRestauran() throws Exception {
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("INSERT INTO solicitudes (id, tipo, producto_id, producto_nombre, area, responsable, estado, "
+                + "respuesta) VALUES ('sol-1', 'prestamo', 'prod-1', 'Escritorio', 'Dirección de Catastro', 'Luis', "
+                + "'RECHAZADA', 'Sin existencia')");
+        }
+        File archivo = tmp.resolve("respaldo-solicitudes.sibim").toFile();
+        service.backup(archivo, PASSWORD);
+
+        service.restore(archivo, PASSWORD);   // deletes products: ON DELETE CASCADE takes solicitudes along
+
+        assertEquals("Sin existencia", scalar("SELECT respuesta FROM solicitudes WHERE id = 'sol-1'"));
+    }
+
+    @Test
+    void restaurar_conservaEnQueEquiposEntroCadaCuenta() throws Exception {
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("INSERT INTO users (id, username, password, nombre, role) "
+                + "VALUES ('u-catastro', 'catastro', 'x', 'Dirección de Catastro', 'direccion')");
+            st.execute("INSERT INTO accesos_equipo (user_id, equipo, version) VALUES ('u-catastro', 'PC-CATASTRO-1', '1.0.0')");
+        }
+        File archivo = tmp.resolve("respaldo-accesos.sibim").toFile();
+        service.backup(archivo, PASSWORD);
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("INSERT INTO users (id, username, password, nombre, role) "
+                + "VALUES ('u-nueva', 'nueva', 'x', 'Cuenta nueva', 'direccion')");
+            st.execute("INSERT INTO accesos_equipo (user_id, equipo) VALUES ('u-nueva', 'PC-NUEVA')");
+        }
+
+        service.restore(archivo, PASSWORD);
+
+        assertEquals("1.0.0", scalar("SELECT version FROM accesos_equipo WHERE user_id = 'u-catastro'"),
+            "borrar los usuarios para reponerlos no se lleva su registro de equipos");
+        assertEquals(0, count("accesos_equipo WHERE user_id = 'u-nueva'"),
+            "la cuenta que el respaldo no tiene ya no existe, ni sus accesos");
+    }
+
+    @Test
     void elPdfDeUnResguardoDeArea_seRestauraByteAByte() throws Exception {
         byte[] pdf = new byte[256];
         for (int i = 0; i < pdf.length; i++) pdf[i] = (byte) i;   // every byte value, incl. 0 and 0x5C

@@ -558,7 +558,8 @@ public class ConfiguracionController {
     private void onNuevoUsuario() { showUserDialog(null, false); }
 
     /** Uploads a newer installer (packaging/dist) so every PC can update itself
-     *  at startup (see ActualizacionService and MainStartupChecks). */
+     *  at startup (see ActualizacionService and MainStartupChecks). Only an
+     *  installer signed by TI is accepted; its version comes from that signature. */
     @FXML
     private void onPublicarActualizacion() {
         var scene = usersTable.getScene();
@@ -570,30 +571,19 @@ public class ConfiguracionController {
         File exe = fc.showOpenDialog(scene.getWindow());
         if (exe == null) return;
 
-        TextInputDialog dlg = new TextInputDialog(
-            com.sibim.service.ActualizacionService.versionDelArchivo(exe.getName()).orElse(""));
-        dlg.setTitle("Publicar actualización");
-        dlg.setHeaderText("Versión de " + exe.getName() + " (" + (exe.length() / (1024 * 1024)) + " MB)\n"
-            + "Debe ser mayor que la instalada en las PCs (esta es v" + com.sibim.util.UpdateChecker.currentVersion() + ").");
-        dlg.setContentText("Versión:");
-        DialogUtil.applyOwner(dlg);
-        DialogUtil.conEncabezado(dlg, "mdi2c-cloud-upload-outline");
-        String version = dlg.showAndWait().map(String::trim).orElse(null);
-        if (version == null || version.isBlank()) return;
-
         TextInputDialog dlgNotas = new TextInputDialog();
         dlgNotas.setTitle("Publicar actualización");
-        dlgNotas.setHeaderText("¿Qué trae la versión " + version + "? (opcional, lo verán al actualizar)");
+        dlgNotas.setHeaderText(exe.getName() + " (" + (exe.length() / (1024 * 1024)) + " MB)\n"
+            + "¿Qué trae esta versión? (opcional, lo verán al actualizar)");
         dlgNotas.setContentText("Novedades:");
         DialogUtil.applyOwner(dlgNotas);
         DialogUtil.conEncabezado(dlgNotas, "mdi2c-cloud-upload-outline");
-        String notas = dlgNotas.showAndWait().map(String::trim).orElse("");
+        String notas = dlgNotas.showAndWait().map(String::trim).orElse(null);
+        if (notas == null) return;
 
-        DialogUtil.runAsyncWithProgress(scene, "Publicando la versión " + version + "…",
-            (DialogUtil.TareaConAvance<String>) avance -> {
-                new com.sibim.service.ActualizacionService().publicar(exe, version, notas, avance);
-                return version;
-            },
+        DialogUtil.runAsyncWithProgress(scene, "Publicando " + exe.getName() + "…",
+            (DialogUtil.TareaConAvance<String>) avance ->
+                new com.sibim.service.ActualizacionService().publicar(exe, notas, avance),
             v -> NotificacionUtil.exito(scene, "Versión " + v + " publicada: las PCs la verán al abrir SIBIM"),
             e -> NotificacionUtil.error(scene, "No se pudo publicar: " + e.getMessage()));
     }

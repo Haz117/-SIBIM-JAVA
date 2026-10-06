@@ -51,15 +51,20 @@ public class BackupService {
         "products", "product_fotos", "price_history", "producto_mantenimiento",
         "movements", "audit_log", "conteos_fisicos", "conteo_items",
         "resguardos", "resguardo_items", "prestamos", "comodatos",
-        "actas_entrega_recepcion", "area_resguardos");
+        "actas_entrega_recepcion", "area_resguardos", "solicitudes");
 
     /** Tables deliberately left out: migration bookkeeping, transient login
-     *  counters, the published installers (~110 MB each, regenerable) and the
-     *  areas' requests (the préstamo or resguardo they led to is what counts)
-     *  and the log of which PC each account signed in on. */
+     *  counters, the published installers (~110 MB each, regenerable), the
+     *  log of which PC each account signed in on (it describes the PCs, not
+     *  the inventory — see {@link #TABLA_ACCESOS}) and the PCs' errors. */
     public static final Set<String> TABLAS_EXCLUIDAS = Set.of(
         "flyway_schema_history", "schema_version", "login_attempts",
-        "actualizaciones", "actualizacion_partes", "solicitudes", "accesos_equipo", "errores_equipo");
+        "actualizaciones", "actualizacion_partes", "accesos_equipo", "errores_equipo");
+
+    /** Not backed up, but it hangs off users with ON DELETE CASCADE (V29):
+     *  a restore would empty it, and Patrimonio would see every account as
+     *  never signed in anywhere. It is kept for the accounts the backup has. */
+    private static final String TABLA_ACCESOS = "accesos_equipo";
 
     /** The audit trail is append-only: a restore never deletes it, it only
      *  adds back the entries the backup has that the database lost — so the
@@ -131,6 +136,8 @@ public class BackupService {
             conn.setAutoCommit(false);
             try {
                 rechazarSiBorraDatosNoRespaldados(conn, tablas);
+                List<Map<String, Object>> accesos = tablas.containsKey("users")
+                    ? leerTabla(conn, TABLA_ACCESOS) : List.of();
                 // Only tables the backup contains are replaced; the audit trail
                 // is only added to.
                 for (int i = TABLAS.size() - 1; i >= 0; i--) {
@@ -141,6 +148,7 @@ public class BackupService {
                     List<Map<String, Object>> filas = tablas.get(tabla);
                     if (filas != null) insertarFilas(conn, tabla, filas, TABLA_AUDITORIA.equals(tabla));
                 }
+                reponerAccesos(conn, accesos);
                 conn.commit();
                 ProductosEnMemoria.invalidar();
             } catch (Exception e) {
@@ -231,6 +239,18 @@ public class BackupService {
             }
         }
         return filas;
+    }
+
+    /** Puts back the sign-in log the deleted users took with them, for the
+     *  accounts that exist after the restore. */
+    private void reponerAccesos(Connection conn, List<Map<String, Object>> filas) throws SQLException {
+        if (filas.isEmpty()) return;
+        Set<String> usuarios = new HashSet<>();
+        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT id FROM users")) {
+            while (rs.next()) usuarios.add(rs.getString(1));
+        }
+        insertarFilas(conn, TABLA_ACCESOS,
+            filas.stream().filter(f -> usuarios.contains(String.valueOf(f.get("user_id")))).toList(), true);
     }
 
     private void borrarTabla(Connection conn, String tabla) throws SQLException {
