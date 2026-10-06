@@ -23,7 +23,7 @@ public final class ReglasLocales {
 
     public static final String SOLO_EL_MAS_RECIENTE =
         "Solo se puede eliminar el movimiento más reciente de este bien: "
-        + "existen movimientos registrados despues de este.";
+        + "existen movimientos registrados después de este.";
 
     /**
      * Checks {@code m} against the bien as it is now and fills in what the
@@ -34,14 +34,14 @@ public final class ReglasLocales {
     public static void aplicar(Movimiento m, Producto p, Integer expectedStockAnterior,
                                List<String> codigosActivos) throws SQLException {
         int stockActual = p.getStockActual();
-        if (p.isDadoDeBaja()) throw new SQLException(MovimientoService.BIEN_DE_BAJA);
+        if (p.isDadoDeBaja()) throw new ReglaIncumplida(MovimientoService.BIEN_DE_BAJA);
         if (expectedStockAnterior != null && stockActual != expectedStockAnterior)
-            throw new SQLException("La cantidad cambió desde que se capturó el conteo (esperado "
+            throw new ReglaIncumplida("La cantidad cambió desde que se capturó el conteo (esperado "
                 + expectedStockAnterior + ", actual " + stockActual + ") — no se aplicó el ajuste.");
         if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual)
-            throw new SQLException("La cantidad supera la existencia disponible (" + stockActual + ")");
+            throw new ReglaIncumplida("La cantidad supera la existencia disponible (" + stockActual + ")");
         if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && stockActual <= 0)
-            throw new SQLException(MovimientoService.SIN_EXISTENCIA);
+            throw new ReglaIncumplida(MovimientoService.SIN_EXISTENCIA);
 
         m.setStockAnterior(stockActual);
         m.setStockNuevo(ProductoUtils.calcularStockNuevo(m.getTipo().getCodigo(), stockActual, m.getCantidad()));
@@ -71,7 +71,7 @@ public final class ReglasLocales {
         int idx = movimientosRecientesPrimero.indexOf(m);
         boolean hayPosterior = movimientosRecientesPrimero.subList(0, Math.max(idx, 0)).stream()
             .anyMatch(o -> o.getProductoId().equals(m.getProductoId()) && aplicado(o));
-        if (hayPosterior) throw new SQLException(SOLO_EL_MAS_RECIENTE);
+        if (hayPosterior) throw new ReglaIncumplida(SOLO_EL_MAS_RECIENTE);
     }
 
     /** What the bien looks like after deleting the applied movement {@code m}. */

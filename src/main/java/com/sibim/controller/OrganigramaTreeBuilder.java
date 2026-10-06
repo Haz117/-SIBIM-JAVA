@@ -168,6 +168,7 @@ class OrganigramaTreeBuilder {
 
         Label valorLabel = new Label(FormatUtils.formatCurrency(valorPatrimonial(allAreaProds)));
         valorLabel.getStyleClass().add("org-area-valor");
+        soloSiVeValores(valorLabel);
 
         header.getChildren().addAll(iconBadge, nameLabel, valorLabel, countLabel);
 
@@ -288,6 +289,7 @@ class OrganigramaTreeBuilder {
 
             Label childValor = new Label(FormatUtils.formatCurrency(valorPatrimonial(childProds)));
             childValor.getStyleClass().add("org-area-valor");
+            soloSiVeValores(childValor);
 
             Label childCount = new Label(String.valueOf(childProds.size()));
             childCount.getStyleClass().add("org-area-count");
@@ -440,6 +442,13 @@ class OrganigramaTreeBuilder {
             });
             container.getChildren().addAll(more, less);
         }
+    }
+
+    /** What an área's bienes are worth is not shown to a dirección. */
+    private static void soloSiVeValores(Label valor) {
+        boolean ve = com.sibim.session.Permisos.veValores();
+        valor.setVisible(ve);
+        valor.setManaged(ve);
     }
 
     static BigDecimal valorPatrimonial(List<Producto> prods) {

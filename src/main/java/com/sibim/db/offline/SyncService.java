@@ -56,6 +56,21 @@ public final class SyncService {
     private static final long MAX_POLL_SECONDS = 300;
     private static volatile long currentPollDelay = MIN_POLL_SECONDS;
 
+    /** While connected, one failed attempt to get a connection is not "no
+     *  server": every connection of the pool being busy for a few seconds (a
+     *  big report, a backup) fails the same way, and going offline for that
+     *  left the whole app offline until a full sync pass brought it back. The
+     *  attempt is repeated after {@link #REINTENTO_SEGUNDOS}; only the second
+     *  failure in a row switches to offline mode. */
+    private static final int  FALLOS_PARA_OFFLINE = 2;
+    private static final long REINTENTO_SEGUNDOS  = 15;
+    private static volatile int fallosSeguidos;
+
+    /** One pass at a time: the scheduled poll and "Sincronizar ahora" would
+     *  otherwise replay the same queued rows twice, side by side. */
+    private static final java.util.concurrent.locks.ReentrantLock PASADA =
+        new java.util.concurrent.locks.ReentrantLock();
+
     static final String STATUS_PENDING   = "PENDING";
     static final String STATUS_SYNCED    = "SYNCED";
     static final String STATUS_FAILED    = "FAILED";
@@ -102,7 +117,7 @@ public final class SyncService {
                 currentPollDelay = Math.min(currentPollDelay * 2, MAX_POLL_SECONDS);
                 log.debug("SyncService: sin conexión — próximo intento en {}s", currentPollDelay);
             } else {
-                currentPollDelay = MIN_POLL_SECONDS;
+                currentPollDelay = fallosSeguidos > 0 ? REINTENTO_SEGUNDOS : MIN_POLL_SECONDS;
             }
         } finally {
             scheduleNextTick();
@@ -132,7 +147,12 @@ public final class SyncService {
      *  later, mid-session, nothing detected it, and every screen just threw
      *  raw SQLExceptions until the app was restarted. */
     private static void tick() {
-        DatabaseConfig.comoSincronizacion(SyncService::tickSinAtajo);
+        PASADA.lock();
+        try {
+            DatabaseConfig.comoSincronizacion(SyncService::tickSinAtajo);
+        } finally {
+            PASADA.unlock();
+        }
     }
 
     private static void tickSinAtajo() {
@@ -142,8 +162,20 @@ public final class SyncService {
             if (!DatabaseConfig.isOfflineMode()) refrescarAreas();
             return;
         }
-        if (!postgresReachable()) enterOfflineMode();
-        else refrescarAreas();
+        if (postgresReachable()) {
+            fallosSeguidos = 0;
+            refrescarAreas();
+        } else if (debePasarAOffline(++fallosSeguidos)) {
+            fallosSeguidos = 0;
+            enterOfflineMode();
+        } else {
+            log.warn("SyncService: no se obtuvo conexión con la base de datos; se reintenta en {} s "
+                + "antes de pasar a modo offline.", REINTENTO_SEGUNDOS);
+        }
+    }
+
+    static boolean debePasarAOffline(int fallosConsecutivos) {
+        return fallosConsecutivos >= FALLOS_PARA_OFFLINE;
     }
 
     /** Areas added or edited on another PC show up here within one poll; photos
@@ -232,7 +264,9 @@ public final class SyncService {
         List<ConflictoInfo> conflicts = new ArrayList<>();
         try {
             syncCategorias(synced, failed);
-            conflicts.addAll(syncProductos(synced, failed));
+            List<ConflictoInfo> nuevos = syncProductos(synced, failed);
+            conflicts.addAll(nuevos);
+            conflicts.addAll(conflictosSinResolver(nuevos));
             syncMovimientos(synced, failed);
             syncConteos(synced, failed);
             syncDocumentos(synced, failed);
@@ -271,6 +305,9 @@ public final class SyncService {
         notifyUi(synced.get(), failed.get(), conflicts, pending);
     }
 
+    private static final java.util.concurrent.atomic.AtomicBoolean MOSTRANDO_CONFLICTOS =
+        new java.util.concurrent.atomic.AtomicBoolean();
+
     private static boolean postgresReachable() {
         try (Connection ignored = DatabaseConfig.getConnection()) {
             return true;
@@ -292,8 +329,11 @@ public final class SyncService {
                 String msg = "Se sincronizaron " + synced + " cambio(s) con el servidor.";
                 if (scene != null) NotificacionUtil.exito(scene, msg);
             }
-            if (!conflicts.isEmpty()) {
-                ConflictResolutionDialog.show(conflicts);
+            // The poll keeps running while the dialog waits for an answer:
+            // never a second dialog for the same conflicts on top of it.
+            if (!conflicts.isEmpty() && MOSTRANDO_CONFLICTOS.compareAndSet(false, true)) {
+                try { ConflictResolutionDialog.show(conflicts); }
+                finally { MOSTRANDO_CONFLICTOS.set(false); }
             }
             if (failed > 0 && scene != null) {
                 NotificacionUtil.advertencia(scene,
@@ -364,10 +404,13 @@ public final class SyncService {
 
     static List<ConflictoInfo> syncProductos(AtomicInteger synced, AtomicInteger failed)
             throws SQLException {
-        List<ConflictoInfo> conflicts = new ArrayList<>();
+        return replicarBienes(filasDeBienes(STATUS_PENDING), synced, failed);
+    }
+
+    private static List<ProductRow> filasDeBienes(String status) throws SQLException {
         List<ProductRow> rows = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
-                "SELECT * FROM product_outbox WHERE status = '" + STATUS_PENDING + "' ORDER BY id");
+                "SELECT * FROM product_outbox WHERE status = '" + status + "' ORDER BY id");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Producto extras = new Producto();
@@ -386,6 +429,28 @@ public final class SyncService {
                     extras, rs.getInt("retry_count")));
             }
         }
+        return rows;
+    }
+
+    /** Conflicts flagged on an earlier pass that nobody decided (the app was
+     *  closed, or crashed, with the dialog open). Only PENDING rows are
+     *  replayed, so these never came up again: the PC stayed offline because
+     *  of them with no way to resolve them. They are shown again on every pass
+     *  until someone decides. */
+    static List<ConflictoInfo> conflictosSinResolver(List<ConflictoInfo> yaIncluidos) throws SQLException {
+        java.util.Set<Integer> incluidos = new java.util.HashSet<>();
+        for (ConflictoInfo c : yaIncluidos) incluidos.add(c.outboxId());
+        List<ConflictoInfo> pendientes = new ArrayList<>();
+        for (ProductRow r : filasDeBienes(STATUS_CONFLICT)) {
+            if (incluidos.contains(r.id())) continue;
+            pendientes.add(new ConflictoInfo(r.id(), productFromRow(r), fetchServerProduct(r.productoId()), r.operacion()));
+        }
+        return pendientes;
+    }
+
+    private static List<ConflictoInfo> replicarBienes(List<ProductRow> rows,
+            AtomicInteger synced, AtomicInteger failed) {
+        List<ConflictoInfo> conflicts = new ArrayList<>();
         ProductoRepository repo = new ProductoRepository();
         // Once one queued change of a bien is applied, the server's updated_at
         // moves to "now" — a later queued change of the same bien must be
@@ -455,7 +520,7 @@ public final class SyncService {
             ps.setString(2, productoId);
             ps.setInt(3, despuesDeId);
             ps.setString(4, STATUS_PENDING);
-            ps.executeUpdate();
+            OfflineStore.escribir(ps);
         } catch (SQLException e) {
             log.warn("SyncService: no se pudo actualizar la referencia de conflicto del bien {}", productoId, e);
         }
@@ -964,7 +1029,7 @@ public final class SyncService {
             ps.setString(1, status);
             ps.setString(2, error);
             ps.setInt(3, rowId);
-            ps.executeUpdate();
+            OfflineStore.escribir(ps);
         } catch (SQLException e) {
             log.error("SyncService: no se pudo actualizar el estado de la cola local ({}#{})", table, rowId, e);
         }
@@ -995,7 +1060,7 @@ public final class SyncService {
                     "UPDATE " + table + " SET status = ? WHERE status = ?")) {
                 ps.setString(1, STATUS_PENDING);
                 ps.setString(2, STATUS_FAILED);
-                ps.executeUpdate();
+                OfflineStore.escribir(ps);
             } catch (SQLException e) {
                 log.error("SyncService: no se pudieron reencolar fallos en {}", table, e);
             }
@@ -1013,7 +1078,7 @@ public final class SyncService {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                     "DELETE FROM " + table + " WHERE status = ?")) {
                 ps.setString(1, STATUS_SYNCED);
-                ps.executeUpdate();
+                OfflineStore.escribir(ps);
             } catch (SQLException e) {
                 log.error("SyncService: no se pudo purgar filas SYNCED en {}", table, e);
             }
@@ -1023,7 +1088,7 @@ public final class SyncService {
         // matching items are orphaned dead weight.
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                 "DELETE FROM conteo_items_outbox WHERE conteo_id NOT IN (SELECT conteo_id FROM conteo_outbox)")) {
-            ps.executeUpdate();
+            OfflineStore.escribir(ps);
         } catch (SQLException e) {
             log.error("SyncService: no se pudo purgar conteo_items_outbox huérfanos", e);
         }
@@ -1142,7 +1207,7 @@ public final class SyncService {
                 "conteo_outbox", "audit_log_outbox", "doc_outbox"}) {
             try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                     "DELETE FROM " + table + " WHERE status = 'DISCARDED'")) {
-                ps.executeUpdate();
+                OfflineStore.escribir(ps);
             } catch (SQLException e) {
                 log.error("SyncService: no se pudieron limpiar descartados de {}", table, e);
             }

@@ -80,7 +80,7 @@ public class ReporteOrganigramaService extends ReporteService {
             for (String[] stat : new String[][]{
                     {"Áreas con bienes",   String.valueOf(totalAreas)},
                     {"Total de bienes",    String.valueOf(totalBienes)},
-                    {"Valor patrimonial",  FormatUtils.formatCurrency(totalValor)}}) {
+                    {"Valor patrimonial",  com.sibim.session.Permisos.pesos(totalValor)}}) {
                 statsTable.addCell(new com.itextpdf.layout.element.Cell()
                     .add(new Paragraph(stat[0]).setFont(regular).setFontSize(8f).setFontColor(muted).setMarginBottom(2))
                     .add(new Paragraph(stat[1]).setFont(bold).setFontSize(13f).setFontColor(dark))
@@ -107,7 +107,8 @@ public class ReporteOrganigramaService extends ReporteService {
                     .add(new Paragraph(area.toUpperCase())
                         .setFont(bold).setFontSize(9.5f).setFontColor(indigo).setMargin(0))
                     .add(new Paragraph(cnt + " bien" + (cnt != 1 ? "es" : "") +
-                            (valorArea.signum() > 0 ? "  ·  Valor: " + FormatUtils.formatCurrency(valorArea) : ""))
+                            (valorArea.signum() > 0 && com.sibim.session.Permisos.veValores()
+                                ? "  ·  Valor: " + FormatUtils.formatCurrency(valorArea) : ""))
                         .setFont(regular).setFontSize(8f).setFontColor(muted).setMarginTop(1).setMarginBottom(0))
                     .setBackgroundColor(bgLight).setPadding(8)
                     .setBorderLeft(new com.itextpdf.layout.borders.SolidBorder(indigo, 3))
@@ -129,7 +130,7 @@ public class ReporteOrganigramaService extends ReporteService {
                         p.getCategoriaNombre() != null ? p.getCategoriaNombre() : "—",
                         p.getEstado() != null ? p.getEstado().getEtiqueta() : "—",
                         String.valueOf(p.getStockActual()),
-                        p.getPrecioCompra() != null ? FormatUtils.formatCurrency(p.getPrecioCompra()) : "—"
+                        p.getPrecioCompra() != null ? com.sibim.session.Permisos.pesos(p.getPrecioCompra()) : "—"
                     };
                     for (String v : vals) {
                         t.addCell(new com.itextpdf.layout.element.Cell()
@@ -157,7 +158,7 @@ public class ReporteOrganigramaService extends ReporteService {
     public File exportOrganigramaCsv(Map<String, List<Producto>> porArea) throws Exception {
         File file = tempFile("organigrama_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")), ".csv");
         try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(file, java.nio.charset.StandardCharsets.UTF_8))) {
-            pw.println("﻿" + "Área,Nombre,Código,Categoría,Stock actual,Estado,Valor compra");
+            pw.println("﻿" + "Área,Nombre,Código,Categoría,Cantidad,Estado,Valor compra");
             for (Map.Entry<String, List<Producto>> e : porArea.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey()).toList()) {
                 for (Producto p : e.getValue()) {

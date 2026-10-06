@@ -189,7 +189,6 @@ class DashboardServiceTest {
         when(mockProductoRepo.countByArea(anyInt())).thenReturn(new LinkedHashMap<>());
         when(mockMovimientoRepo.findToday()).thenReturn(List.of());
         when(mockMovimientoRepo.findLastNDays(anyInt())).thenReturn(List.of());
-        when(mockMovimientoRepo.findMonthlyStats(anyInt())).thenReturn(List.of());
         when(mockMovimientoRepo.countByAnio(anyInt())).thenReturn(0L);
     }
 }

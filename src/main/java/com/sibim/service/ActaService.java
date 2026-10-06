@@ -53,11 +53,16 @@ public class ActaService {
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);
     private static final DateTimeFormatter FMT   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    static final String SOLO_ADMIN = "Solo Patrimonio (administrador) genera actas de entrega-recepción.";
+
     public List<ActaEntregaRecepcion> getAll() throws SQLException { return actaRepo.findAll(); }
 
     public ActaEntregaRecepcion generar(String adminSaliente, String cargoSaliente,
                                        String adminEntrante, String cargoEntrante,
                                        LocalDate fechaEntrega, String observaciones) throws Exception {
+        // The Actas screen is Patrimonio's; the rule is enforced here, not only
+        // by hiding the screen from the áreas.
+        com.sibim.session.Permisos.exigirGestionDeDocumentos(SOLO_ADMIN);
         if (adminSaliente == null || adminSaliente.isBlank())
             throw new IllegalArgumentException("El nombre del funcionario saliente es obligatorio");
         if (adminEntrante == null || adminEntrante.isBlank())

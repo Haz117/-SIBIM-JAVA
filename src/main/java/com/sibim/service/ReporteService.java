@@ -239,7 +239,7 @@ public class ReporteService {
     }
 
     /** For the reports that audit the inventory as a whole. */
-    private static void soloPatrimonio() {
+    protected static void soloPatrimonio() {
         if (!com.sibim.session.Permisos.veReportesDeControl())
             throw new SecurityException(com.sibim.session.Permisos.SOLO_PATRIMONIO_REPORTE);
     }

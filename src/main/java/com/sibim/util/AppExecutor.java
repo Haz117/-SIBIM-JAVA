@@ -5,18 +5,31 @@ import javafx.concurrent.Task;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Application-wide background executor backed by Java 21 virtual threads.
- * Virtual threads are daemon threads by default, block cheaply on I/O (DB
- * queries, file reads), and carry no cap on concurrency — ideal for this
- * app's mix of short-lived DB tasks.
+ * Application-wide background executor: daemon platform threads, created as
+ * needed and reused (idle ones end after a minute).
+ *
+ * <p>Not virtual threads. Much of what runs here blocks inside
+ * {@code synchronized} — the shared list of bienes, the offline SQLite store
+ * and its driver — and on Java 21 a virtual thread that blocks there (or waits
+ * for that monitor) keeps its carrier thread. There are only as many carriers
+ * as CPU cores, so three or four such tasks on an office PC can hold them all
+ * and leave every other background task waiting. A desktop app runs a handful
+ * of tasks at a time, so plain threads cost nothing here.
  */
 public final class AppExecutor {
 
     private AppExecutor() {}
 
-    private static final ExecutorService POOL = Executors.newVirtualThreadPerTaskExecutor();
+    private static final AtomicInteger NUMERO = new AtomicInteger();
+
+    private static final ExecutorService POOL = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "sibim-fondo-" + NUMERO.incrementAndGet());
+        t.setDaemon(true);
+        return t;
+    });
 
     /** Submit a JavaFX Task (its succeeded/failed callbacks still fire on the FX thread). */
     public static void submit(Task<?> task) {

@@ -18,7 +18,6 @@ import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
 import com.sibim.model.Producto;
-import com.sibim.util.FormatUtils;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -197,7 +196,7 @@ public class ReporteBienesMueblesService extends ReporteService {
                 table.addCell(dataCell(nvl(p.getNumeroSerie()), reg, bg, linea, TextAlignment.CENTER));
                 table.addCell(dataCell(p.getFechaAdquisicion() != null ? p.getFechaAdquisicion().format(FMT) : "", reg, bg, linea, TextAlignment.CENTER));
                 table.addCell(dataCell(nvl(p.getNumeroFactura()), reg, bg, linea, TextAlignment.CENTER));
-                table.addCell(dataCell(FormatUtils.formatCurrency(importe), reg, bg, linea, TextAlignment.RIGHT));
+                table.addCell(dataCell(com.sibim.session.Permisos.pesos(importe), reg, bg, linea, TextAlignment.RIGHT));
                 table.addCell(dataCell(nvl(p.getEstadoFisico()), reg, bg, linea, TextAlignment.CENTER));
                 table.addCell(dataCell("", reg, bg, linea, TextAlignment.LEFT)); // observaciones en blanco
             }
@@ -208,7 +207,7 @@ public class ReporteBienesMueblesService extends ReporteService {
                     .setTextAlignment(TextAlignment.RIGHT).setFontColor(GUINDA).setMargin(0))
                 .setBackgroundColor(GUINDA_LIGHT).setBorder(linea).setPadding(3));
             table.addCell(new Cell()
-                .add(new Paragraph(FormatUtils.formatCurrency(totalCat)).setFont(bold).setFontSize(6.5f)
+                .add(new Paragraph(com.sibim.session.Permisos.pesos(totalCat)).setFont(bold).setFontSize(6.5f)
                     .setTextAlignment(TextAlignment.RIGHT).setFontColor(GUINDA).setMargin(0))
                 .setBackgroundColor(GUINDA_LIGHT).setBorder(linea).setPadding(3));
             table.addCell(new Cell(1, 2).setBorder(linea)
@@ -225,7 +224,7 @@ public class ReporteBienesMueblesService extends ReporteService {
                 .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.RIGHT).setMargin(0))
             .setBackgroundColor(GUINDA).setBorder(Border.NO_BORDER).setPadding(6));
         total.addCell(new Cell(1, 3)
-            .add(new Paragraph(FormatUtils.formatCurrency(totalGlobal)).setFont(bold).setFontSize(8.5f)
+            .add(new Paragraph(com.sibim.session.Permisos.pesos(totalGlobal)).setFont(bold).setFontSize(8.5f)
                 .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.LEFT).setMargin(0))
             .setBackgroundColor(GUINDA).setBorder(Border.NO_BORDER).setPadding(6));
         doc.add(total);

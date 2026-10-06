@@ -11,6 +11,8 @@ import java.util.function.Consumer;
 
 class AlertasDataLoader {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AlertasDataLoader.class);
+
     record AlertasResult(
         List<Producto> garantias,
         List<Producto> mantenimiento,
@@ -29,7 +31,10 @@ class AlertasDataLoader {
     void load(Consumer<AlertasResult> onSuccess, Consumer<Exception> onError) {
         DialogUtil.runAsync(
             () -> {
-                comodatoService.actualizarVencidos();
+                // Marking comodatos as vencidos is a write; the alerts are reads.
+                // If only that write fails, the screen still has what to show.
+                try { comodatoService.actualizarVencidos(); }
+                catch (Exception e) { log.warn("No se pudo actualizar el estado de los comodatos vencidos: {}", e.getMessage()); }
                 return new AlertasResult(
                     productoService.getVencidosProximos(30),
                     productoService.getProximasRevisiones(30),

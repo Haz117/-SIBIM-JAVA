@@ -33,7 +33,10 @@ import java.util.Set;
  *  maps, so this works for any column added to the schema later without
  *  per-table Java mapping code. Only usable against the real Postgres
  *  connection (see {@link #requireOnlineMode()}) — offline/demo mode has no
- *  single source of truth to dump. */
+ *  single source of truth to dump.
+ *
+ *  <p>It covers the database only. The photos and facturas of the bienes are
+ *  files in Supabase Storage: the backup keeps their addresses, not the files. */
 public class BackupService {
 
     /** Every data table, parents before children (per the FKs in the
@@ -80,7 +83,8 @@ public class BackupService {
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        // One row at a time goes to the file (see backup): no flush per row.
+        mapper.disable(SerializationFeature.FLUSH_AFTER_WRITE_VALUE);
         // Amounts are NUMERIC(12,2): read them back as BigDecimal, not double.
         mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
@@ -92,19 +96,55 @@ public class BackupService {
      *  hash bundle to whoever finds it. */
     public void backup(File destino, char[] password) throws SQLException, IOException {
         requireOnlineMode();
-        Map<String, Object> raiz = new LinkedHashMap<>();
-        raiz.put("version", BACKUP_VERSION);
-        raiz.put("exportadoEn", LocalDateTime.now());
-        Map<String, List<Map<String, Object>>> tablas = new LinkedHashMap<>();
-        try (Connection conn = DatabaseConfig.getConnection()) {
-            for (String tabla : TABLAS) {
-                tablas.put(tabla, leerTabla(conn, tabla));
+        // Written next to the destination and renamed at the end: a backup that
+        // fails halfway never leaves a truncated file with the real name.
+        java.nio.file.Path parcial = destino.toPath().resolveSibling(destino.getName() + ".parcial");
+        try {
+            try (Connection conn = DatabaseConfig.getConnection()) {
+                conn.setAutoCommit(false);
+                try {
+                    // Every table as it was at the same instant. Read one by one
+                    // in autocommit, a movement another PC registered meanwhile
+                    // could be in the file without its bien, and that backup
+                    // could not be restored (foreign key). Set inside the
+                    // transaction, not on the session: the pooler shares sessions.
+                    try (Statement st = conn.createStatement()) {
+                        st.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+                    }
+                    // Row by row straight into the encrypted file: the whole
+                    // database never sits in memory.
+                    try (java.io.OutputStream salida = BackupEncryption.encryptingStream(
+                             new java.io.BufferedOutputStream(java.nio.file.Files.newOutputStream(parcial)), password);
+                         com.fasterxml.jackson.core.JsonGenerator json = mapper.getFactory().createGenerator(salida)) {
+                        json.writeStartObject();
+                        json.writeNumberField("version", BACKUP_VERSION);
+                        json.writeObjectField("exportadoEn", LocalDateTime.now());
+                        json.writeObjectFieldStart("tablas");
+                        for (String tabla : TABLAS) {
+                            json.writeArrayFieldStart(tabla);
+                            recorrerTabla(conn, tabla, json::writeObject);
+                            json.writeEndArray();
+                        }
+                        json.writeEndObject();
+                        json.writeEndObject();
+                    }
+                    conn.commit();
+                } catch (SQLException | IOException | RuntimeException e) {
+                    conn.rollback();
+                    throw e;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
             }
+            try {
+                java.nio.file.Files.move(parcial, destino.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                java.nio.file.Files.move(parcial, destino.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(parcial);
         }
-        raiz.put("tablas", tablas);
-        byte[] json = mapper.writeValueAsBytes(raiz);
-        byte[] encrypted = BackupEncryption.encrypt(json, password);
-        java.nio.file.Files.write(destino.toPath(), encrypted);
         new AuditLogRepository().log("backup", destino.getName(), destino.getName(), "crear",
             "Respaldo completo generado");
     }
@@ -216,29 +256,45 @@ public class BackupService {
 
     private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {
         List<Map<String, Object>> filas = new ArrayList<>();
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT * FROM " + tabla + ORDEN.getOrDefault(tabla, ""))) {
-            ResultSetMetaData meta = rs.getMetaData();
-            int cols = meta.getColumnCount();
-            while (rs.next()) {
-                Map<String, Object> fila = new LinkedHashMap<>();
-                for (int i = 1; i <= cols; i++) {
-                    Object valor = rs.getObject(i);
-                    // Timestamps come back as java.sql.Timestamp/Date, which
-                    // Jackson+JavaTimeModule doesn't handle directly — convert
-                    // to the java.time equivalent so round-tripping is exact.
-                    if (valor instanceof Timestamp ts) valor = ts.toLocalDateTime();
-                    else if (valor instanceof Date d) valor = d.toLocalDate();
-                    // bytea (e.g. area_resguardos.pdf): PostgreSQL's hex text
-                    // form, which the untyped insert on restore turns back
-                    // into the exact bytes.
-                    else if (valor instanceof byte[] b) valor = "\\x" + java.util.HexFormat.of().formatHex(b);
-                    fila.put(meta.getColumnLabel(i), valor);
-                }
-                filas.add(fila);
-            }
+        try {
+            recorrerTabla(conn, tabla, filas::add);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);   // filas::add never throws it
         }
         return filas;
+    }
+
+    @FunctionalInterface
+    private interface ConFila { void aceptar(Map<String, Object> fila) throws IOException; }
+
+    private void recorrerTabla(Connection conn, String tabla, ConFila conFila) throws SQLException, IOException {
+        try (Statement st = conn.createStatement()) {
+            // Inside a transaction this makes the driver bring the rows in
+            // batches instead of the whole table at once (the PDF of the
+            // resguardos por área are several MB each).
+            st.setFetchSize(200);
+            try (ResultSet rs = st.executeQuery("SELECT * FROM " + tabla + ORDEN.getOrDefault(tabla, ""))) {
+                ResultSetMetaData meta = rs.getMetaData();
+                int cols = meta.getColumnCount();
+                while (rs.next()) {
+                    Map<String, Object> fila = new LinkedHashMap<>();
+                    for (int i = 1; i <= cols; i++) {
+                        Object valor = rs.getObject(i);
+                        // Timestamps come back as java.sql.Timestamp/Date, which
+                        // Jackson+JavaTimeModule doesn't handle directly — convert
+                        // to the java.time equivalent so round-tripping is exact.
+                        if (valor instanceof Timestamp ts) valor = ts.toLocalDateTime();
+                        else if (valor instanceof Date d) valor = d.toLocalDate();
+                        // bytea (e.g. area_resguardos.pdf): PostgreSQL's hex text
+                        // form, which the untyped insert on restore turns back
+                        // into the exact bytes.
+                        else if (valor instanceof byte[] b) valor = "\\x" + java.util.HexFormat.of().formatHex(b);
+                        fila.put(meta.getColumnLabel(i), valor);
+                    }
+                    conFila.aceptar(fila);
+                }
+            }
+        }
     }
 
     /** Puts back the sign-in log the deleted users took with them, for the

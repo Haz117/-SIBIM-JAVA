@@ -7,6 +7,8 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 
@@ -66,6 +68,31 @@ public final class BackupEncryption {
             System.arraycopy(iv,         0, out, MAGIC.length + SALT_LEN,        IV_LEN);
             System.arraycopy(ciphertext, 0, out, MAGIC.length + SALT_LEN + IV_LEN, ciphertext.length);
             return out;
+        } catch (Exception e) {
+            throw new IllegalStateException("No se pudo cifrar el respaldo", e);
+        }
+    }
+
+    /** Same file as {@link #encrypt}, written as it is produced: what the
+     *  caller writes to the returned stream goes out encrypted to
+     *  {@code destino}, so a backup never has to exist whole in memory (first
+     *  as JSON and then again encrypted). Closing it writes the GCM tag and
+     *  closes {@code destino}. */
+    public static OutputStream encryptingStream(OutputStream destino, char[] password) throws IOException {
+        try {
+            byte[] salt = new byte[SALT_LEN];
+            byte[] iv   = new byte[IV_LEN];
+            SecureRandom random = new SecureRandom();
+            random.nextBytes(salt);
+            random.nextBytes(iv);
+            Cipher cipher = Cipher.getInstance(ALGO);
+            cipher.init(Cipher.ENCRYPT_MODE, deriveKey(password, salt), new GCMParameterSpec(TAG_BITS, iv));
+            destino.write(MAGIC);
+            destino.write(salt);
+            destino.write(iv);
+            return new javax.crypto.CipherOutputStream(destino, cipher);
+        } catch (IOException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo cifrar el respaldo", e);
         }

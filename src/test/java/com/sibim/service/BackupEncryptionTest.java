@@ -17,6 +17,22 @@ class BackupEncryptionTest {
     }
 
     @Test
+    void encryptingStream_loQueSeEscribePorPartes_seDescifraIgualQueElDeUnaSolaPieza() throws Exception {
+        byte[] original = "{\"tablas\":{\"products\":[{\"id\":\"a\"},{\"id\":\"b\"}]}}".getBytes(StandardCharsets.UTF_8);
+        java.io.ByteArrayOutputStream archivo = new java.io.ByteArrayOutputStream();
+        try (java.io.OutputStream cifrado = BackupEncryption.encryptingStream(archivo, "correcta-123".toCharArray())) {
+            cifrado.write(original, 0, 10);
+            cifrado.write(original, 10, original.length - 10);
+        }
+        byte[] escrito = archivo.toByteArray();
+
+        assertTrue(BackupEncryption.isEncrypted(escrito));
+        assertArrayEquals(original, BackupEncryption.decrypt(escrito, "correcta-123".toCharArray()));
+        assertThrows(BackupEncryption.WrongPasswordException.class,
+            () -> BackupEncryption.decrypt(escrito, "incorrecta-456".toCharArray()));
+    }
+
+    @Test
     void decrypt_wrongPassword_throwsWrongPasswordException() {
         byte[] original = "datos secretos".getBytes(StandardCharsets.UTF_8);
         byte[] encrypted = BackupEncryption.encrypt(original, "correcta-123".toCharArray());

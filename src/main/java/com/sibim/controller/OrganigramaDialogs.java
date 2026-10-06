@@ -52,7 +52,7 @@ class OrganigramaDialogs {
         this.log               = log;
     }
 
-    /** Hides a "Ver en … →" button from the áreas: those screens are Patrimonio's. */
+    /** Hides a button from the áreas: those screens and documents are Patrimonio's. */
     private static void soloPatrimonio(javafx.scene.Node boton) {
         if (boton == null || com.sibim.session.SessionManager.isAdmin()) return;
         boton.setVisible(false);
@@ -96,6 +96,7 @@ class OrganigramaDialogs {
         }
 
         javafx.scene.Node actaBtn = dialog.getDialogPane().lookupButton(btnActaEntrega);
+        soloPatrimonio(actaBtn);
         if (actaBtn != null) {
             actaBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
                 e.consume();

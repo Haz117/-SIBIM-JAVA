@@ -42,7 +42,7 @@ public class ReporteDashboardService extends ReporteService {
                 {"Total de bienes",      String.valueOf(stats.total())},
                 {"Bienes activos",       String.valueOf(stats.activos())},
                 {"Categorías",           String.valueOf(stats.categorias())},
-                {"Valor total (compra)", com.sibim.util.FormatUtils.formatCurrency(stats.valorTotal())},
+                {"Valor total (compra)", com.sibim.session.Permisos.pesos(stats.valorTotal())},
             };
             Table tStats = createPdfTable(new String[]{"Indicador", "Valor"}, new float[]{3f, 2f});
             for (String[] row : statsRows) {

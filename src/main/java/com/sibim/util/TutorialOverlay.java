@@ -44,8 +44,8 @@ public final class TutorialOverlay {
         String rolDesc = SessionManager.isAdmin()
             ? "Tienes acceso completo como Administrador — incluye gestión de usuarios y auditoría"
             : SessionManager.isSecretario()
-                ? "Ves los bienes de tu secretaría y sus direcciones: actualizas sus datos, asignas resguardos y registras préstamos entre tus áreas"
-                : "Ves los bienes de tu área: actualizas sus datos y asignas sus resguardos";
+                ? "Ves los bienes de tu secretaría y sus direcciones, y mantienes al día su ubicación, descripción, estado físico y fotos"
+                : "Ves los bienes de tu área y mantienes al día su ubicación, descripción, estado físico y fotos";
 
         List<Step> list = new ArrayList<>(List.of(
             // ── Bienvenida personalizada ──────────────────────────────────────────
@@ -105,19 +105,13 @@ public final class TutorialOverlay {
                 "Resguardos", null, "resguardos", new String[]{
                 "Cada resguardo dice quién tiene un bien a su cargo — es el documento oficial de asignación",
                 "Consulta e imprime el PDF del resguardo para firma",
-                SessionManager.isAdmin()
-                    ? "Cancela el resguardo cuando el bien cambia de responsable o de área"
-                    : "Con \"Nuevo Resguardo\" asignas un bien de tu área a quien lo tiene a su cargo"
+                "Cancela el resguardo cuando el bien cambia de responsable o de área"
             }),
 
             // ── Préstamos ────────────────────────────────────────────────────────
             new Step("mdi2s-swap-horizontal", "#D97706", "#92400E",
                 "Préstamos", null, "prestamos", new String[]{
-                SessionManager.isAdmin()
-                    ? "Registra el préstamo temporal de un bien con fecha de devolución esperada"
-                    : SessionManager.isSecretario()
-                        ? "Registra el préstamo temporal de un bien entre las áreas de tu secretaría"
-                        : "Los registran Patrimonio y los secretarios; aquí ves los de tu área",
+                "Registra el préstamo temporal de un bien con fecha de devolución esperada",
                 "Vista kanban: columnas Activos / Vencidos / Devueltos para control rápido",
                 "Exporta el comprobante en PDF para firma"
             }),

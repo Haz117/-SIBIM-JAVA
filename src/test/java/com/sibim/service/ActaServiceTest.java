@@ -31,7 +31,31 @@ class ActaServiceTest {
 
     @BeforeEach
     void setUp() {
+        entrarComo(com.sibim.model.enums.Rol.ADMIN);
         service = new ActaService(mockActaRepo, mockProductoRepo, mockCfg);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void salir() { com.sibim.session.SessionManager.logout(); }
+
+    private static void entrarComo(com.sibim.model.enums.Rol rol) {
+        com.sibim.model.Usuario u = new com.sibim.model.Usuario();
+        u.setId("u-" + rol);
+        u.setNombre("Prueba " + rol);
+        u.setRol(rol);
+        u.setArea("Tesorería Municipal");
+        com.sibim.session.SessionManager.setCurrentUser(u);
+    }
+
+    @Test
+    void generar_soloPatrimonio() {
+        for (com.sibim.model.enums.Rol rol : new com.sibim.model.enums.Rol[]{
+                com.sibim.model.enums.Rol.SECRETARIO, com.sibim.model.enums.Rol.DIRECCION }) {
+            entrarComo(rol);
+            assertThrows(SecurityException.class,
+                () -> service.generar("Saliente", null, "Entrante", null, hoy, null), rol.name());
+        }
+        verifyNoInteractions(mockActaRepo);
     }
 
     // ── Validaciones de funcionario saliente ─────────────────────────────────

@@ -129,7 +129,7 @@ public class MovimientoService {
         Producto producto = opt.get();
 
         if (!SessionManager.isAreaAccessible(producto.getArea()))
-            throw new ValidationException("No tienes acceso a esa area");
+            throw new ValidationException("No tienes acceso a esa área");
         if (producto.isDadoDeBaja())
             throw new ValidationException(BIEN_DE_BAJA);
 
@@ -193,7 +193,7 @@ public class MovimientoService {
                 m.getStockAnterior(), m.getStockNuevo());
             return saved;
         } catch (SQLException e) {
-            if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
+            if (e instanceof com.sibim.db.ReglaIncumplida) throw new ValidationException(e.getMessage());
             throw e;
         }
     }
@@ -242,7 +242,7 @@ public class MovimientoService {
         try {
             movimientoRepo.aprobarTransferencia(movimientoId);
         } catch (SQLException e) {
-            if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
+            if (e instanceof com.sibim.db.ReglaIncumplida) throw new ValidationException(e.getMessage());
             throw e;
         }
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_aprobada",
@@ -327,27 +327,17 @@ public class MovimientoService {
                 "Movimiento eliminado (bien " + productoId + ", estado " + estado.orElse("?") + ")");
             log.info("Movimiento eliminado [{}]", movimientoId);
         } catch (SQLException e) {
-            if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
+            if (e instanceof com.sibim.db.ReglaIncumplida) throw new ValidationException(e.getMessage());
             throw e;
         }
     }
 
-    /** Distinguishes the repository's business-rule rejections (raised as
-     *  SQLException from inside a transaction so they trigger the rollback)
-     *  from genuine database errors, so the former can surface as a
-     *  user-facing ValidationException instead of a generic DB error. */
-    /** Also raised by MovimientoRepository inside the locked transaction. */
+    /** Also raised by MovimientoRepository inside the locked transaction, as a
+     *  {@link com.sibim.db.ReglaIncumplida}: the repository's business-rule
+     *  rejections reach the user as a ValidationException with their own
+     *  message, any other SQLException as a database error. */
     public static final String BIEN_DE_BAJA = "Este bien está dado de baja: ya no admite movimientos";
     public static final String SIN_EXISTENCIA = "No hay existencia que transferir: la cantidad del bien es 0";
-
-    private static boolean isBusinessRuleMessage(SQLException e) {
-        String msg = e.getMessage();
-        return msg != null && (msg.startsWith("La cantidad supera la existencia disponible")
-                || msg.equals(BIEN_DE_BAJA) || msg.equals(SIN_EXISTENCIA)
-                || msg.startsWith("Solo se puede eliminar el movimiento más reciente")
-                || msg.startsWith("El bien ya no está en ")
-                || msg.startsWith("La cantidad cambió desde que se capturó el conteo"));
-    }
 
     public static class ValidationException extends Exception {
         public ValidationException(String msg) { super(msg); }

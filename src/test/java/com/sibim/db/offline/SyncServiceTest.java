@@ -424,6 +424,39 @@ class SyncServiceTest extends IntegrationTestBase {
     }
 
     @Test
+    void conflictoQueNadieResolvio_vuelveAPresentarseEnLaSiguientePasada() throws Exception {
+        String catId = insertPgCategory("Cómputo 3b");
+        String prodId = insertPgProduct("Switch HP", "SWI-001", catId);
+        String snapshotAyer = LocalDateTime.now().minusDays(1).toString();
+        int rowId = insertProductOutbox("SAVE", prodId, "Switch HP offline", "SWI-001", catId, snapshotAyer, null);
+
+        // First pass flags it; the app is closed with the dialog still open.
+        List<ConflictoInfo> primera = SyncService.syncProductos(new AtomicInteger(), new AtomicInteger());
+        assertEquals(1, primera.size());
+        assertTrue(SyncService.conflictosSinResolver(primera).isEmpty(),
+            "los de esta pasada no se repiten en el mismo diálogo");
+
+        // Next pass: nothing PENDING, but the conflict is still there to decide.
+        List<ConflictoInfo> segunda = SyncService.syncProductos(new AtomicInteger(), new AtomicInteger());
+        assertTrue(segunda.isEmpty());
+        List<ConflictoInfo> sinResolver = SyncService.conflictosSinResolver(segunda);
+        assertEquals(1, sinResolver.size());
+        assertEquals(rowId, sinResolver.get(0).outboxId());
+        assertEquals("Switch HP offline", sinResolver.get(0).versionOffline().getNombre());
+        assertEquals("Switch HP", sinResolver.get(0).versionServidor().getNombre());
+
+        // Once decided it is gone for good.
+        SyncService.resolveConflicto(rowId, null, "SAVE");
+        assertTrue(SyncService.conflictosSinResolver(List.of()).isEmpty());
+    }
+
+    @Test
+    void unSoloFalloDeConexion_noPasaAModoOffline() {
+        assertFalse(SyncService.debePasarAOffline(1), "un pool ocupado unos segundos falla igual que un servidor caído");
+        assertTrue(SyncService.debePasarAOffline(2));
+    }
+
+    @Test
     void syncProductos_SAVE_snapshotMasRecienteQueServidor_sincronizaSinConflicto() throws Exception {
         String catId = insertPgCategory("Cómputo 4");
         String prodId = insertPgProduct("Impresora HP", "IMP-001", catId);

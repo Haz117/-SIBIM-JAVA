@@ -297,7 +297,7 @@ public class ProductoService {
         if (opt.isEmpty()) return;
         Producto p = opt.get();
         if (!SessionManager.isAreaAccessible(p.getArea()))
-            throw new ValidationException("No tienes acceso a esa area");
+            throw new ValidationException("No tienes acceso a esa área");
         try {
             productoRepo.delete(id);
             auditRepo.log("producto", id, p.getNombre(), "eliminar", "Bien eliminado permanentemente");
@@ -336,7 +336,7 @@ public class ProductoService {
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();
         if (!SessionManager.isAreaAccessible(p.getArea()))
-            throw new ValidationException("No tienes acceso a esa area");
+            throw new ValidationException("No tienes acceso a esa área");
         if (motivo == null || motivo.isBlank())
             throw new ValidationException("El motivo de la baja es obligatorio");
         if (p.isDadoDeBaja())
@@ -371,7 +371,7 @@ public class ProductoService {
         if (opt.isEmpty()) throw new ValidationException("Bien no encontrado");
         Producto p = opt.get();
         if (!SessionManager.isAreaAccessible(p.getArea()))
-            throw new ValidationException("No tienes acceso a esa area");
+            throw new ValidationException("No tienes acceso a esa área");
         if (AreaCodigos.tienePrefijo(p.getArea())) {
             productoRepo.reactivarConCodigo(id, asignarCodigo(p.getArea()));
         } else {
@@ -406,25 +406,25 @@ public class ProductoService {
         if (p.getNombre().length() > 200)
             throw new ValidationException("El nombre no puede exceder 200 caracteres");
         if (p.getCodigo() == null || p.getCodigo().isBlank())
-            throw new ValidationException("El codigo es obligatorio");
+            throw new ValidationException("El código es obligatorio");
         if (p.getCodigo().length() > 50)
-            throw new ValidationException("El codigo no puede exceder 50 caracteres");
+            throw new ValidationException("El código no puede exceder 50 caracteres");
         if (p.getDescripcion() != null && p.getDescripcion().length() > 1000)
-            throw new ValidationException("La descripcion no puede exceder 1000 caracteres");
+            throw new ValidationException("La descripción no puede exceder 1000 caracteres");
         if (p.getProveedor() != null && p.getProveedor().length() > 200)
             throw new ValidationException("El proveedor no puede exceder 200 caracteres");
         if (p.getUbicacion() != null && p.getUbicacion().length() > 200)
-            throw new ValidationException("La ubicacion no puede exceder 200 caracteres");
+            throw new ValidationException("La ubicación no puede exceder 200 caracteres");
         if (p.getResguardante() != null && p.getResguardante().length() > 200)
             throw new ValidationException("El resguardante no puede exceder 200 caracteres");
         if (productoRepo.existsByCodigo(p.getCodigo(), p.getId()))
-            throw new ValidationException("Ya existe un bien con ese codigo");
+            throw new ValidationException("Ya existe un bien con ese código");
         if (p.getCategoriaId() == null || p.getCategoriaId().isBlank())
-            throw new ValidationException("La categoria es obligatoria");
+            throw new ValidationException("La categoría es obligatoria");
         if (p.getArea() == null || p.getArea().isBlank())
-            throw new ValidationException("El area es obligatoria");
+            throw new ValidationException("El área es obligatoria");
         if (!SessionManager.isAreaAccessible(p.getArea()))
-            throw new ValidationException("No tienes acceso a esa area");
+            throw new ValidationException("No tienes acceso a esa área");
         if (p.getPrecioCompra() == null || p.getPrecioCompra().signum() < 0)
             throw new ValidationException("El precio de compra no puede ser negativo");
         if (p.getPrecioVenta() == null || p.getPrecioVenta().signum() < 0)
@@ -432,19 +432,19 @@ public class ProductoService {
         if (p.getStockActual() < 0)
             throw new ValidationException("La cantidad no puede ser negativa");
         if (p.getStockMinimo() < 0)
-            throw new ValidationException("El stock minimo no puede ser negativo");
+            throw new ValidationException("El mínimo de existencias no puede ser negativo");
         if (p.getStockMaximo() < 0)
-            throw new ValidationException("El stock maximo no puede ser negativo");
+            throw new ValidationException("El máximo de existencias no puede ser negativo");
         if (p.getStockMinimo() > p.getStockMaximo())
-            throw new ValidationException("El stock minimo no puede ser mayor al stock maximo");
+            throw new ValidationException("El mínimo de existencias no puede ser mayor al máximo");
         // Validaciones patrimoniales de depreciación
         if (p.getVidaUtilAnios() != null && p.getVidaUtilAnios() <= 0)
-            throw new ValidationException("La vida util debe ser mayor a cero");
+            throw new ValidationException("La vida útil debe ser mayor a cero");
         if (p.getValorResidual() != null && p.getPrecioCompra() != null
                 && p.getValorResidual().compareTo(p.getPrecioCompra()) > 0)
             throw new ValidationException("El valor residual no puede ser mayor al precio de compra");
         if (p.getFechaAdquisicion() != null && p.getFechaAdquisicion().isAfter(LocalDate.now()))
-            throw new ValidationException("La fecha de adquisicion no puede ser en el futuro");
+            throw new ValidationException("La fecha de adquisición no puede ser en el futuro");
     }
 
     public static class ValidationException extends Exception {

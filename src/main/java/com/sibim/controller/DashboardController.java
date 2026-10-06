@@ -78,6 +78,7 @@ public class DashboardController implements Refreshable {
     // ── Charts ───────────────────────────────────────────────────────
     @FXML private LineChart<String, Number>           chartMovimientos;
     @FXML private VBox                                categoriaValorBox;
+    @FXML private VBox                                cardValorCategoria;
     @FXML private VBox                                pieEmptyState;
     @FXML private Button         btnToggleAnalisis;
     @FXML private FontIcon       iconToggleAnalisis;
@@ -238,7 +239,13 @@ public class DashboardController implements Refreshable {
         updateStatCards(data);
         updateAlertBanner(data);
         chartBuilder.buildMovimientosChart(data.movSemana());
-        chartBuilder.buildCategoriaChart(data.catValores());
+        // What the bienes are worth, category by category, is not shown to a dirección.
+        boolean veValores = com.sibim.session.Permisos.veValores();
+        if (cardValorCategoria != null) {
+            cardValorCategoria.setVisible(veValores);
+            cardValorCategoria.setManaged(veValores);
+        }
+        if (veValores) chartBuilder.buildCategoriaChart(data.catValores());
         updateTrendIndicator(data);
         updateNewBienesHint();
         updateTableReciente(data);

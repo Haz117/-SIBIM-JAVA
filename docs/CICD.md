@@ -8,7 +8,7 @@ Stack: JavaFX 21 · Maven · GitHub Actions · jpackage
 ## 1. Resumen del flujo CI/CD
 
 ```
-Push a main / PR
+Push a cualquier rama / PR
         |
         v
   [ ci.yml ]
@@ -48,14 +48,13 @@ Push de tag  v*.*.*
 
 **Archivo:** `.github/workflows/ci.yml`
 
-**Disparadores:** push a `main`, pull requests contra `main`.
+**Disparadores:** push a cualquier rama, pull requests contra `main`. El trabajo se hace en una rama y se fusiona a `main` cuando está en verde; antes el CI solo corría en `main`, es decir, avisaba de una falla después de fusionarla.
 
 ```yaml
 name: CI
 
 on:
   push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
 

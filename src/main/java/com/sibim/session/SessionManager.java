@@ -68,10 +68,10 @@ public final class SessionManager {
     }
 
     /** Permissions are captured at login, so a session opened before an
-     *  admin deactivated the account, deleted it, or changed its rol/área
-     *  would otherwise keep the old access until the user logs out. Given
-     *  the account as the database has it now (empty = deleted), returns
-     *  why the session must end, or null if it's still valid. */
+     *  admin deactivated the account, deleted it, changed its rol/área or
+     *  reset its password would otherwise keep the old access until the user
+     *  logs out. Given the account as the database has it now (empty =
+     *  deleted), returns why the session must end, or null if it's still valid. */
     public static String motivoCierre(Usuario enSesion, java.util.Optional<Usuario> enBaseDeDatos) {
         if (enSesion == null) return null;
         if (enBaseDeDatos.isEmpty()) return "Tu cuenta fue eliminada por un administrador.";
@@ -80,6 +80,12 @@ public final class SessionManager {
         if (actual.getRol() != enSesion.getRol()
                 || !java.util.Objects.equals(actual.getArea(), enSesion.getArea()))
             return "Un administrador cambió tu rol o tu área. Inicia sesión de nuevo para aplicar los permisos nuevos.";
+        // A password is reset because someone who shouldn't have it does: the
+        // sessions opened with the old one end too. (Changing your own password
+        // updates the session's copy, so it doesn't close yours.)
+        if (enSesion.getPasswordHash() != null && actual.getPasswordHash() != null
+                && !enSesion.getPasswordHash().equals(actual.getPasswordHash()))
+            return "La contraseña de esta cuenta cambió. Inicia sesión de nuevo con la contraseña nueva.";
         return null;
     }
 

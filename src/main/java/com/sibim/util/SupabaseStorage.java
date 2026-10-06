@@ -54,6 +54,8 @@ public final class SupabaseStorage {
             .header("Authorization", "Bearer " + anonKey)
             .header("Content-Type", "image/jpeg")
             .header("x-upsert", "true")
+            // Without it a stalled upload (connected, nothing moving) never ends.
+            .timeout(Duration.ofSeconds(90))
             .PUT(HttpRequest.BodyPublishers.ofByteArray(bytes))
             .build();
 

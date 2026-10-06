@@ -352,7 +352,7 @@ public class CategoriasController {
         DialogUtil.runAsync(
             () -> {
                 if (categoriaService.tieneProductos(sel.getId())) {
-                    throw new IllegalStateException("No se puede eliminar: hay bienes asignados a esta categoria");
+                    throw new IllegalStateException("No se puede eliminar: hay bienes asignados a esta categoría");
                 }
                 categoriaService.delete(sel.getId());
             },

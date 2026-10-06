@@ -39,44 +39,79 @@ public class AuditLogRepository {
      *  actual operation being audited (e.g. saving a producto). */
     public void log(String entidad, String entidadId, String entidadNombre, String accion, String detalle) {
         try {
-            AuditLog a = new AuditLog();
-            a.setId(UUID.randomUUID().toString());
-            a.setEntidad(entidad);
-            a.setEntidadId(entidadId);
-            a.setEntidadNombre(entidadNombre);
-            a.setAccion(accion);
-            a.setDetalle(detalle);
-            if (SessionManager.getCurrentUser() != null) {
-                a.setUsuarioId(SessionManager.getCurrentUser().getId());
-                String nombre = SessionManager.getCurrentUser().getNombre();
-                a.setUsuarioNombre(nombre == null || nombre.isBlank() ? "Sistema" : nombre);
-            } else {
-                a.setUsuarioNombre("Sistema");
-            }
-            // System events such as failed logins and backups do not always
-            // belong to a persisted entity. The schema migration permits null
-            // entity IDs for those events instead of rejecting the audit row.
-            a.setCreadoEn(LocalDateTime.now());
-
-            if (DatabaseConfig.isOfflineMode()) {
-                OfflineStore.logAudit(a);
-                return;
-            }
-            if (DatabaseConfig.isDemoMode()) {
-                DemoDataStore.addAuditLog(a);
-                return;
-            }
-            logOnline(a);
+            escribir(entrada(entidad, entidadId, entidadNombre, accion, detalle));
         } catch (Exception e) {
             log.warn("No se pudo registrar auditoría: {}", e.getMessage());
         }
     }
 
+    /** Same as {@link #log}, without making the caller wait for the database:
+     *  who and when are taken now, the write happens in the background. For
+     *  entries written from the JavaFX thread right before the session ends
+     *  (automatic logout) — with the connection just lost, waiting for it there
+     *  froze the window until the pool's timeout. */
+    public void logEnFondo(String entidad, String entidadId, String entidadNombre, String accion, String detalle) {
+        AuditLog a = entrada(entidad, entidadId, entidadNombre, accion, detalle);
+        com.sibim.util.AppExecutor.submit(() -> {
+            try {
+                escribir(a);
+            } catch (Exception e) {
+                log.warn("No se pudo registrar auditoría: {}", e.getMessage());
+            }
+        });
+    }
+
+    private static AuditLog entrada(String entidad, String entidadId, String entidadNombre, String accion, String detalle) {
+        AuditLog a = new AuditLog();
+        a.setId(UUID.randomUUID().toString());
+        a.setEntidad(entidad);
+        a.setEntidadId(entidadId);
+        a.setEntidadNombre(entidadNombre);
+        a.setAccion(accion);
+        a.setDetalle(detalle);
+        com.sibim.model.Usuario yo = SessionManager.getCurrentUser();
+        if (yo != null) {
+            a.setUsuarioId(yo.getId());
+            String nombre = yo.getNombre();
+            a.setUsuarioNombre(nombre == null || nombre.isBlank() ? "Sistema" : nombre);
+        } else {
+            a.setUsuarioNombre("Sistema");
+        }
+        // System events such as failed logins and backups do not always
+        // belong to a persisted entity. The schema migration permits null
+        // entity IDs for those events instead of rejecting the audit row.
+        a.setCreadoEn(LocalDateTime.now());
+        return a;
+    }
+
+    private void escribir(AuditLog a) throws SQLException {
+        if (DatabaseConfig.isOfflineMode()) {
+            OfflineStore.logAudit(a);
+            return;
+        }
+        if (DatabaseConfig.isDemoMode()) {
+            DemoDataStore.addAuditLog(a);
+            return;
+        }
+        // Connected, the entry is dated by the server: the bitácora of every
+        // PC shares one clock, whatever time each PC thinks it is.
+        insertar(a, null);
+    }
+
+    /** An entry with the date it already has — one made offline keeps the
+     *  moment it happened, not the moment it reached the server. */
     public void logOnline(AuditLog a) throws java.sql.SQLException {
+        insertar(a, a.getCreadoEn());
+    }
+
+    /** @param fecha the entry's date, or null for the server's current time */
+    private void insertar(AuditLog a, LocalDateTime fecha) throws SQLException {
+        // usuario_id only if that user still exists (the column references
+        // users): looked up in the same statement instead of a query before it.
         String sql = """
             INSERT INTO audit_log (id, entidad, entidad_id, entidad_nombre, accion, detalle,
                 usuario_id, usuario_nombre, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?, (SELECT id FROM users WHERE id = ?), ?, COALESCE(?, clock_timestamp()))
             """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -87,21 +122,11 @@ public class AuditLogRepository {
             ps.setString(4, a.getEntidadNombre());
             ps.setString(5, a.getAccion());
             ps.setString(6, a.getDetalle());
-            String usuarioId = a.getUsuarioId();
-            if (usuarioId != null && !usuarioExiste(conn, usuarioId)) usuarioId = null;
-            ps.setString(7, usuarioId);
+            ps.setString(7, a.getUsuarioId());
             ps.setString(8, a.getUsuarioNombre());
-            ps.setTimestamp(9, Timestamp.valueOf(a.getCreadoEn()));
+            if (fecha != null) ps.setTimestamp(9, Timestamp.valueOf(fecha));
+            else ps.setNull(9, Types.TIMESTAMP);
             ps.executeUpdate();
-        }
-    }
-
-    private static boolean usuarioExiste(Connection conn, String usuarioId) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM users WHERE id = ?")) {
-            ps.setString(1, usuarioId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
         }
     }
 

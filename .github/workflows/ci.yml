@@ -1,8 +1,9 @@
 name: CI
 
+# Every branch: the work is done on a branch and merged into main only once
+# it is green, so running only on main reported a failure after the fact.
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
 

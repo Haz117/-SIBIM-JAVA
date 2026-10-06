@@ -31,6 +31,9 @@ public class ReporteEntregaRecepcionService extends ReporteService {
     public ReporteEntregaRecepcionService() { super(); }
 
     public File exportEntregaRecepcionPdf(List<Producto> bienes) throws Exception {
+        // Checked here too: the Organigrama calls this class directly, not
+        // through ReporteService, and the acta lists what every bien is worth.
+        soloPatrimonio();
         if (bienes.isEmpty()) return null;
         File file = tempFile("entrega_recepcion", ".pdf");
 

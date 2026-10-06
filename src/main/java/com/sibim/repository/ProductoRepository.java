@@ -304,7 +304,7 @@ public class ProductoRepository {
         List<String> conditions = new ArrayList<>();
         conditions.add("p.fecha_baja IS NULL");
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
+        if (accessible != null) {
             conditions.add("p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
@@ -400,7 +400,7 @@ public class ProductoRepository {
                 proxima_revision, notas_mantenimiento, estado_fisico, numero_factura,
                 clave_armonizada, color, no_motor, tipo_bien, no_tarjeta_circulacion, no_poliza_seguro,
                 created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,COALESCE(?, NOW()),NOW())
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -435,11 +435,10 @@ public class ProductoRepository {
                 no_tarjeta_circulacion = EXCLUDED.no_tarjeta_circulacion,
                 no_poliza_seguro = EXCLUDED.no_poliza_seguro,
                 updated_at = NOW()
-            RETURNING stock_actual, area, updated_at
+            RETURNING stock_actual, area, created_at, updated_at
             """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            LocalDateTime now = LocalDateTime.now();
             ps.setString(1, p.getId());
             ps.setString(2, p.getNombre());
             ps.setString(3, p.getCodigo());
@@ -475,8 +474,12 @@ public class ProductoRepository {
             ps.setString(33, p.getTipoBien());
             ps.setString(34, p.getNoTarjetaCirculacion());
             ps.setString(35, p.getNoPolizaSeguro());
-            ps.setTimestamp(36, p.getCreadoEn() != null ? Timestamp.valueOf(p.getCreadoEn()) : Timestamp.valueOf(now));
-            ps.setTimestamp(37, Timestamp.valueOf(now));
+            // Dates come from the server's clock, not this PC's: the "someone else
+            // changed it" check compares updated_at values, and a PC with the
+            // wrong time would make an edit look older or newer than it is. A
+            // bien that already has its created_at (made offline, restored) keeps it.
+            if (p.getCreadoEn() != null) ps.setTimestamp(36, Timestamp.valueOf(p.getCreadoEn()));
+            else ps.setNull(36, Types.TIMESTAMP);
             // Reflect what the row actually holds now (stock/área may differ
             // from the object's on an update), and the new updated_at so a
             // second edit of this same object isn't rejected as stale.
@@ -484,6 +487,8 @@ public class ProductoRepository {
                 if (rs.next()) {
                     p.setStockActual(rs.getInt("stock_actual"));
                     p.setArea(rs.getString("area"));
+                    Timestamp creado = rs.getTimestamp("created_at");
+                    if (creado != null) p.setCreadoEn(creado.toLocalDateTime());
                     Timestamp ua = rs.getTimestamp("updated_at");
                     if (ua != null) p.setActualizadoEn(ua.toLocalDateTime());
                 }
@@ -672,18 +677,17 @@ public class ProductoRepository {
         if (DatabaseConfig.getLocalDataStore() != null) {
             List<Producto> all = findAll();
             LocalDate hoy = LocalDate.now();
-            long venc = 0, agot = 0, bajo = 0;
+            // Same numbers as the SQL below: a patrimonial inventory has no
+            // "agotado" or "bajo stock", only garantías vencidas.
+            long venc = 0;
             BigDecimal valor = BigDecimal.ZERO;
             Set<String> catSet = new HashSet<>();
             for (Producto p : all) {
-                boolean esVenc = p.getFechaVencimiento() != null && p.getFechaVencimiento().isBefore(hoy);
-                if (esVenc)                                             venc++;
-                else if (p.getStockActual() == 0)                      agot++;
-                else if (p.getStockActual() <= p.getStockMinimo())     bajo++;
+                if (p.getFechaVencimiento() != null && p.getFechaVencimiento().isBefore(hoy)) venc++;
                 valor = valor.add(p.getValorTotal());
                 if (p.getCategoriaId() != null) catSet.add(p.getCategoriaId());
             }
-            return new ProductoStats(all.size(), all.size() - venc - agot - bajo, bajo, agot, venc, valor, catSet.size());
+            return new ProductoStats(all.size(), all.size() - venc, 0, 0, venc, valor, catSet.size());
         }
         StringBuilder sb = new StringBuilder("""
             SELECT
@@ -699,7 +703,7 @@ public class ProductoRepository {
             """);
         List<Object> params = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
+        if (accessible != null) {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
@@ -740,7 +744,7 @@ public class ProductoRepository {
             """);
         List<Object> params = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
+        if (accessible != null) {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
@@ -787,7 +791,7 @@ public class ProductoRepository {
             """);
         List<Object> params = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
+        if (accessible != null) {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
@@ -812,7 +816,7 @@ public class ProductoRepository {
             "SELECT COUNT(*) FROM products p WHERE p.fecha_baja IS NULL");
         List<Object> params = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
+        if (accessible != null) {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
@@ -858,7 +862,7 @@ public class ProductoRepository {
             "FROM products p WHERE p.fecha_baja IS NULL");
         List<Object> params = new ArrayList<>();
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
+        if (accessible != null) {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
@@ -919,7 +923,7 @@ public class ProductoRepository {
         List<Object> params = new ArrayList<>();
         params.add(java.sql.Date.valueOf(LocalDate.now().plusDays(dias)));
         Set<String> accessible = SessionManager.getAccessibleAreas();
-        if (accessible != null && !accessible.isEmpty()) {
+        if (accessible != null) {
             sb.append(" AND p.area = ANY(?)");
             params.add(accessible.toArray(new String[0]));
         }
@@ -1093,23 +1097,31 @@ public class ProductoRepository {
         }
     }
 
-    /** Returns products whose proxima_revision falls within the next {@code diasAnticipacion} days. */
+    /** Bienes of the caller's áreas whose proxima_revision falls within the
+     *  next {@code diasAnticipacion} days. */
     public List<Producto> findProximasRevisiones(int diasAnticipacion) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null)
-            return new ArrayList<>();
-        String sql = BASE_SELECT
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            LocalDate hoy = LocalDate.now();
+            LocalDate limite = hoy.plusDays(diasAnticipacion);
+            return local.findAllProductos(accessible).stream()
+                .filter(p -> !p.isDadoDeBaja() && p.getProximaRevision() != null
+                    && !p.getProximaRevision().isBefore(hoy) && !p.getProximaRevision().isAfter(limite))
+                .sorted(Comparator.comparing(Producto::getProximaRevision))
+                .toList();
+        }
+        StringBuilder sb = new StringBuilder(BASE_SELECT
             + " WHERE p.fecha_baja IS NULL"
             + "   AND p.proxima_revision IS NOT NULL"
-            + "   AND p.proxima_revision BETWEEN CURRENT_DATE AND CURRENT_DATE + ?::interval"
-            + " ORDER BY p.proxima_revision";
-        List<Producto> result = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, diasAnticipacion + " days");
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapRow(rs));
-            }
+            + "   AND p.proxima_revision BETWEEN CURRENT_DATE AND CURRENT_DATE + ?::interval");
+        List<Object> params = new ArrayList<>();
+        params.add(diasAnticipacion + " days");
+        if (accessible != null) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
         }
-        return result;
+        sb.append(" ORDER BY p.proxima_revision");
+        return queryDynamic(sb.toString(), params);
     }
 }

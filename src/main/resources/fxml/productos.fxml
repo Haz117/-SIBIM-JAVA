@@ -216,7 +216,7 @@
         <Region styleClass="dash-section-bar"/>
         <Label text="TABLA DE BIENES" styleClass="dash-section-label"/>
         <Label fx:id="helpColumnas" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="▸ Columnas: usa el botón ⋮ (arriba a la derecha de la tabla) o clic derecho en el encabezado para mostrar u ocultar columnas. Elige 'Restaurar columnas predeterminadas' para verlas todas de nuevo.&#10;&#10;▸ Stock Mín./Máx.: doble clic en la celda para editar el umbral directamente — se guarda solo al salir o presionar Enter." wrapText="true" maxWidth="310"/></tooltip>
+            <tooltip><Tooltip text="▸ Columnas: usa el botón ⋮ (arriba a la derecha de la tabla) o clic derecho en el encabezado para mostrar u ocultar columnas. Elige 'Restaurar columnas predeterminadas' para verlas todas de nuevo.&#10;&#10;▸ Mín./Máx.: doble clic en la celda para cambiar el mínimo o el máximo de existencias — se guarda al salir o presionar Enter." wrapText="true" maxWidth="310"/></tooltip>
         </Label>
         <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnResetColumns" text="Restaurar columnas" styleClass="btn-secondary"

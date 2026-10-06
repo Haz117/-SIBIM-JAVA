@@ -10,7 +10,6 @@ import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.session.SessionManager;
 import com.sibim.util.ProductoUtils;
 
-import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,128 +30,6 @@ public class MovimientoRepository {
 
     /** Aggregate stats for the movement list view — mirrors ProductoRepository.InventarioStats. */
     public record MovimientoStats(long total, long entradas, long salidas, long ajustes) {}
-
-    /** Monthly aggregated movements for the trend chart in the Dashboard. */
-    public record MonthlyStats(String label, int entradas, int salidas) {}
-
-    /** Monthly patrimonial value for the valor chart — MXN entradas/salidas from movements × precio_compra. */
-    public record MonthlyValorStats(String label, BigDecimal valorEntradas, BigDecimal valorSalidas) {}
-
-    private static final String[] MES_ABREV =
-        {"Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"};
-
-    public List<MonthlyStats> findMonthlyStats(int months) throws SQLException {
-        LocalDate fromMonth = LocalDate.now().withDayOfMonth(1).minusMonths(months - 1);
-        LinkedHashMap<String, int[]> byMonth = new LinkedHashMap<>();
-        for (int i = months - 1; i >= 0; i--) {
-            LocalDate m = LocalDate.now().withDayOfMonth(1).minusMonths(i);
-            byMonth.put(m.getYear() + "-" + String.format("%02d", m.getMonthValue()), new int[]{0, 0});
-        }
-
-        LocalDataStore local = DatabaseConfig.getLocalDataStore();
-        if (local != null) {
-            List<Movimiento> movs = local.findMovimientosByDateRange(
-                fromMonth, LocalDate.now(), SessionManager.getAccessibleAreas());
-            for (Movimiento m : movs) {
-                LocalDate d = m.getCreadoEn().toLocalDate();
-                int[] arr = byMonth.get(d.getYear() + "-" + String.format("%02d", d.getMonthValue()));
-                if (arr == null) continue;
-                switch (m.getTipo()) {
-                    case ENTRADA -> arr[0] += m.getCantidad();
-                    case SALIDA  -> arr[1] += m.getCantidad();
-                    default -> {}
-                }
-            }
-        } else {
-            Set<String> accessible = SessionManager.getAccessibleAreas();
-            StringBuilder sql = new StringBuilder("""
-                SELECT TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS ym,
-                    SUM(CASE WHEN m.tipo = 'ENTRADA' THEN m.cantidad ELSE 0 END)::int AS entradas,
-                    SUM(CASE WHEN m.tipo = 'SALIDA'  THEN m.cantidad ELSE 0 END)::int AS salidas
-                FROM movements m
-                JOIN products p ON p.id = m.producto_id
-                WHERE m.created_at >= ?
-                """);
-            if (accessible != null) sql.append("AND p.area = ANY(?) ");
-            sql.append("GROUP BY DATE_TRUNC('month', m.created_at) ORDER BY ym ASC");
-            try (Connection conn = DatabaseConfig.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-                ps.setTimestamp(1, Timestamp.valueOf(fromMonth.atStartOfDay()));
-                if (accessible != null)
-                    ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        int[] arr = byMonth.get(rs.getString("ym"));
-                        if (arr != null) { arr[0] = rs.getInt("entradas"); arr[1] = rs.getInt("salidas"); }
-                    }
-                }
-            }
-        }
-
-        return byMonth.entrySet().stream().map(e -> {
-            String[] parts = e.getKey().split("-");
-            int monthIdx = Integer.parseInt(parts[1]) - 1;
-            return new MonthlyStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
-                e.getValue()[0], e.getValue()[1]);
-        }).toList();
-    }
-
-    public List<MonthlyValorStats> findMonthlyValorStats(int months) throws SQLException {
-        LocalDate fromMonth = LocalDate.now().withDayOfMonth(1).minusMonths(months - 1);
-        LinkedHashMap<String, BigDecimal[]> byMonth = new LinkedHashMap<>();
-        for (int i = months - 1; i >= 0; i--) {
-            LocalDate m = LocalDate.now().withDayOfMonth(1).minusMonths(i);
-            byMonth.put(m.getYear() + "-" + String.format("%02d", m.getMonthValue()),
-                new BigDecimal[]{ BigDecimal.ZERO, BigDecimal.ZERO });
-        }
-
-        if (DatabaseConfig.getLocalDataStore() != null) {
-            // Demo/offline mode: no price data available — return zero-filled skeleton
-            return byMonth.entrySet().stream().map(e -> {
-                String[] parts = e.getKey().split("-");
-                int monthIdx = Integer.parseInt(parts[1]) - 1;
-                return new MonthlyValorStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
-                    BigDecimal.ZERO, BigDecimal.ZERO);
-            }).toList();
-        }
-
-        Set<String> accessible = SessionManager.getAccessibleAreas();
-        StringBuilder sql = new StringBuilder("""
-            SELECT TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS ym,
-                SUM(CASE WHEN m.tipo = 'ENTRADA' THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_entradas,
-                SUM(CASE WHEN m.tipo = 'SALIDA'  THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_salidas
-            FROM movements m
-            JOIN products p ON p.id = m.producto_id
-            WHERE m.created_at >= ?
-            """);
-        if (accessible != null) sql.append("AND p.area = ANY(?) ");
-        sql.append("GROUP BY DATE_TRUNC('month', m.created_at) ORDER BY ym ASC");
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            ps.setTimestamp(1, Timestamp.valueOf(fromMonth.atStartOfDay()));
-            if (accessible != null)
-                ps.setArray(2, conn.createArrayOf("text", accessible.toArray(new String[0])));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    BigDecimal[] arr = byMonth.get(rs.getString("ym"));
-                    if (arr != null) {
-                        arr[0] = rs.getBigDecimal("valor_entradas");
-                        if (arr[0] == null) arr[0] = BigDecimal.ZERO;
-                        arr[1] = rs.getBigDecimal("valor_salidas");
-                        if (arr[1] == null) arr[1] = BigDecimal.ZERO;
-                    }
-                }
-            }
-        }
-
-        return byMonth.entrySet().stream().map(e -> {
-            String[] parts = e.getKey().split("-");
-            int monthIdx = Integer.parseInt(parts[1]) - 1;
-            return new MonthlyValorStats(MES_ABREV[monthIdx] + " '" + parts[0].substring(2),
-                e.getValue()[0], e.getValue()[1]);
-        }).toList();
-    }
 
     private static final String BASE_SELECT = """
         SELECT m.*, p.nombre AS producto_nombre, c.color AS categoria_color
@@ -543,7 +420,7 @@ public class MovimientoRepository {
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
                 area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado,
                 codigo_anterior, codigo_nuevo)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,clock_timestamp(),?,?,?)
             """;
         String updateProducto = "UPDATE products SET stock_actual = ?, area = ?, codigo = ?, updated_at = NOW() WHERE id = ?";
 
@@ -563,19 +440,19 @@ public class MovimientoRepository {
                         // Re-checked here, with the row locked: another PC may have given
                         // it de baja or emptied it since the service read it.
                         if (rs.getObject("fecha_baja") != null)
-                            throw new SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
+                            throw new com.sibim.db.ReglaIncumplida(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
                     }
                 }
                 if (m.getTipo() == TipoMovimiento.TRANSFERENCIA && stockActual <= 0)
-                    throw new SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
+                    throw new com.sibim.db.ReglaIncumplida(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
 
                 if (expectedStockAnterior != null && stockActual != expectedStockAnterior) {
-                    throw new SQLException("La cantidad cambió desde que se capturó el conteo (esperado "
+                    throw new com.sibim.db.ReglaIncumplida("La cantidad cambió desde que se capturó el conteo (esperado "
                         + expectedStockAnterior + ", actual " + stockActual + ") — no se aplicó el ajuste.");
                 }
 
                 if (m.getTipo() == TipoMovimiento.SALIDA && m.getCantidad() > stockActual) {
-                    throw new SQLException("La cantidad supera la existencia disponible (" + stockActual + ")");
+                    throw new com.sibim.db.ReglaIncumplida("La cantidad supera la existencia disponible (" + stockActual + ")");
                 }
 
                 int stockNuevo = ProductoUtils.calcularStockNuevo(m.getTipo().getCodigo(), stockActual, m.getCantidad());
@@ -610,10 +487,12 @@ public class MovimientoRepository {
                     ps.setString(10, m.getReferencia());
                     ps.setString(11, m.getUsuarioId());
                     ps.setString(12, m.getUsuarioNombre());
-                    ps.setTimestamp(13, Timestamp.valueOf(LocalDateTime.now()));
-                    ps.setString(14, Movimiento.ESTADO_APROBADO);
-                    ps.setString(15, m.getCodigoAnterior());
-                    ps.setString(16, m.getCodigoNuevo());
+                    // created_at is the server's clock, read with the bien locked:
+                    // "only the most recent movement can be deleted" compares these
+                    // dates, and each PC's own clock would order them wrong.
+                    ps.setString(13, Movimiento.ESTADO_APROBADO);
+                    ps.setString(14, m.getCodigoAnterior());
+                    ps.setString(15, m.getCodigoNuevo());
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(updateProducto)) {
@@ -713,9 +592,9 @@ public class MovimientoRepository {
                         ps.setString(2, movimientoId);
                         ps.setTimestamp(3, creado);
                         try (ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()) throw new SQLException(
+                            if (rs.next()) throw new com.sibim.db.ReglaIncumplida(
                                 "Solo se puede eliminar el movimiento más reciente de este bien: "
-                                + "existen movimientos registrados despues de este.");
+                                + "existen movimientos registrados después de este.");
                         }
                     }
                 }
@@ -791,7 +670,7 @@ public class MovimientoRepository {
         String insertMov = """
             INSERT INTO movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo,
                 area_origen, area_destino, motivo, referencia, usuario_id, usuario_nombre, created_at, estado)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,clock_timestamp(),?)
             """;
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
@@ -821,8 +700,7 @@ public class MovimientoRepository {
                     ps.setString(10, m.getReferencia());
                     ps.setString(11, m.getUsuarioId());
                     ps.setString(12, m.getUsuarioNombre());
-                    ps.setTimestamp(13, Timestamp.valueOf(LocalDateTime.now()));
-                    ps.setString(14, Movimiento.ESTADO_PENDIENTE);
+                    ps.setString(13, Movimiento.ESTADO_PENDIENTE);
                     ps.executeUpdate();
                 }
                 conn.commit();
@@ -906,12 +784,12 @@ public class MovimientoRepository {
                         codigoActual = rs.getString("codigo");
                         stock        = rs.getInt("stock_actual");
                         if (rs.getObject("fecha_baja") != null)
-                            throw new SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
+                            throw new com.sibim.db.ReglaIncumplida(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
                     }
                 }
-                if (stock <= 0) throw new SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
+                if (stock <= 0) throw new com.sibim.db.ReglaIncumplida(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
                 if (areaOrigen != null && !areaOrigen.equals(areaActual)) {
-                    throw new SQLException("El bien ya no está en " + areaOrigen + " (ahora está en "
+                    throw new com.sibim.db.ReglaIncumplida("El bien ya no está en " + areaOrigen + " (ahora está en "
                         + areaActual + "): rechaza esta solicitud y registra una nueva si sigue siendo necesaria.");
                 }
                 String codigoNuevo = AreaCodigos.tienePrefijo(areaDestino)

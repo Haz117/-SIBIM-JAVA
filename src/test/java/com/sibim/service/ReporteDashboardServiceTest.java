@@ -4,7 +4,6 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Movimiento;
 import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
-import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -62,20 +61,18 @@ class ReporteDashboardServiceTest {
         List<Producto> garantias = List.of(buildProducto("p-ga", "Extintor"));
         List<Movimiento> movHoy     = List.of(buildMovimiento());
         List<Movimiento> movSemana  = List.of(buildMovimiento());
-        List<MovimientoRepository.MonthlyStats> movMensual =
-            List.of(new MovimientoRepository.MonthlyStats("Sep", 10, 5));
         LinkedHashMap<String, Long> byArea = new LinkedHashMap<>();
         byArea.put("Sala de cómputo", 12L);
         byArea.put("Secretaria General Municipal", 8L);
 
         return new DashboardService.Resumen(stats, catValores, garantias, List.of(),
-            movHoy, movSemana, movMensual, List.of(), byArea, 30L, 25L);
+            movHoy, movSemana, byArea, 30L, 25L);
     }
 
     private static DashboardService.Resumen buildResumenVacio() {
         var stats = new ProductoRepository.ProductoStats(0, 0, 0, 0, 0, BigDecimal.ZERO, 0);
         return new DashboardService.Resumen(stats, List.of(), List.of(), List.of(),
-            List.of(), List.of(), List.of(), List.of(), new LinkedHashMap<>(), 0L, 0L);
+            List.of(), List.of(), new LinkedHashMap<>(), 0L, 0L);
     }
 
     private static Producto buildProducto(String id, String nombre) {

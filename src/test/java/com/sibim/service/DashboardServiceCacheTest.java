@@ -1,7 +1,10 @@
 package com.sibim.service;
 
+import com.sibim.model.Usuario;
+import com.sibim.model.enums.Rol;
 import com.sibim.repository.MovimientoRepository;
 import com.sibim.repository.ProductoRepository;
+import com.sibim.session.SessionManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,6 +86,31 @@ class DashboardServiceCacheTest {
         });
     }
 
+    // ── La caché es de quien inició sesión ────────────────────────────────────
+
+    @Test
+    void getCachedOrFetch_otraCuentaIniciaSesion_noRecibeElResumenDeLaAnterior() throws Exception {
+        try {
+            SessionManager.setCurrentUser(usuario("u-admin", Rol.ADMIN, null));
+            DashboardService.Resumen dePatrimonio = service.getCachedOrFetch();
+            SessionManager.setCurrentUser(usuario("u-area", Rol.DIRECCION, "Dirección de Catastro"));
+            DashboardService.Resumen delArea = service.getCachedOrFetch();
+
+            assertNotSame(dePatrimonio, delArea);
+            verify(mockProductoRepo, times(2)).getStats();
+        } finally {
+            SessionManager.logout();
+        }
+    }
+
+    private static Usuario usuario(String id, Rol rol, String area) {
+        Usuario u = new Usuario();
+        u.setId(id);
+        u.setRol(rol);
+        u.setArea(area);
+        return u;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void stubRepos() throws SQLException {
@@ -92,7 +120,6 @@ class DashboardServiceCacheTest {
         when(mockProductoRepo.countByArea(anyInt())).thenReturn(new LinkedHashMap<>());
         when(mockMovimientoRepo.findToday()).thenReturn(List.of());
         when(mockMovimientoRepo.findLastNDays(anyInt())).thenReturn(List.of());
-        when(mockMovimientoRepo.findMonthlyStats(anyInt())).thenReturn(List.of());
         when(mockMovimientoRepo.countByAnio(anyInt())).thenReturn(0L);
     }
 }

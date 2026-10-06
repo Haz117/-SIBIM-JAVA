@@ -176,6 +176,18 @@ class SessionManagerTest {
             java.util.Optional.of(usuario(Rol.SECRETARIO, "Secretaría General Municipal"))));
     }
 
+    @Test
+    void motivoCierre_contrasenaCambiada_cierra() {
+        Usuario enSesion = usuario(Rol.DIRECCION, "SIPINNA");
+        enSesion.setPasswordHash("$2a$12$anterior");
+        Usuario actual = usuario(Rol.DIRECCION, "SIPINNA");
+        actual.setPasswordHash("$2a$12$nueva");
+        assertNotNull(SessionManager.motivoCierre(enSesion, java.util.Optional.of(actual)));
+
+        actual.setPasswordHash("$2a$12$anterior");
+        assertNull(SessionManager.motivoCierre(enSesion, java.util.Optional.of(actual)));
+    }
+
     private Usuario usuario(Rol rol, String area) {
         Usuario u = new Usuario();
         u.setId("u-test");

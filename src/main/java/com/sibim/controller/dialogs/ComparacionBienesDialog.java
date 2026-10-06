@@ -149,7 +149,7 @@ public final class ComparacionBienesDialog {
         return p.getEstado() != null ? p.getEstado().getEtiqueta() : "—";
     }
     private static String currency(BigDecimal v) {
-        return v != null ? FormatUtils.formatCurrency(v) : "—";
+        return v != null ? com.sibim.session.Permisos.pesos(v) : "—";
     }
     private static String date(LocalDate d) {
         return d != null ? FormatUtils.formatDate(d) : "—";

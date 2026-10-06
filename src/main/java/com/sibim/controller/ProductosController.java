@@ -983,9 +983,9 @@ public class ProductosController {
 
     private void saveStockThresholds(Producto p) {
         DialogUtil.runAsync((DialogUtil.CheckedRunnable) () -> productoService.save(p),
-            () -> NotificacionUtil.info(table.getScene(), "Umbrales de stock actualizados"),
+            () -> NotificacionUtil.info(table.getScene(), "Mínimo y máximo de existencias actualizados"),
             ex -> {
-                NotificacionUtil.error(table.getScene(), "No se pudieron guardar los umbrales de stock — " + ex.getMessage());
+                NotificacionUtil.error(table.getScene(), "No se pudieron guardar el mínimo y el máximo de existencias — " + ex.getMessage());
                 loadPage();
             });
     }

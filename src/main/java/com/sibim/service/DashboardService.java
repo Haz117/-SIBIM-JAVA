@@ -21,8 +21,8 @@ import java.util.concurrent.ExecutorService;
 
 /**
  * Aggregates all data needed by the dashboard in a single service call.
- * All 6 repository queries run in parallel on virtual threads so the total
- * load time equals the slowest query, not the sum of all six.
+ * The repository queries run in parallel so the total load time equals the
+ * slowest query, not the sum of them all.
  */
 public class DashboardService {
 
@@ -47,8 +47,6 @@ public class DashboardService {
         var fProximasRev  = async(() -> productoRepo.findProximasRevisiones(30),  exec);
         var fMovHoy       = async(() -> movimientoRepo.findToday(),               exec);
         var fMovSemana    = async(() -> movimientoRepo.findLastNDays(7),          exec);
-        var fMovMensual      = async(() -> movimientoRepo.findMonthlyStats(6),       exec);
-        var fMovMensualValor = async(() -> movimientoRepo.findMonthlyValorStats(6),  exec);
         var fByArea          = async(() -> productoRepo.countByArea(5),              exec);
         var fMovsActual      = async(() -> movimientoRepo.countByAnio(anioActual),   exec);
         var fMovsAnterior    = async(() -> movimientoRepo.countByAnio(anioAnterior), exec);
@@ -56,7 +54,7 @@ public class DashboardService {
         try {
             CompletableFuture.allOf(
                 fStats, fCatValores, fGarantias, fProximasRev,
-                fMovHoy, fMovSemana, fMovMensual, fMovMensualValor, fByArea,
+                fMovHoy, fMovSemana, fByArea,
                 fMovsActual, fMovsAnterior).join();
         } catch (CompletionException ce) {
             Throwable cause = ce.getCause();
@@ -70,7 +68,6 @@ public class DashboardService {
             stats.total(), stats.categorias(), movHoy.size());
         return new Resumen(stats, fCatValores.join(),
                            fGarantias.join(), fProximasRev.join(), movHoy, fMovSemana.join(),
-                           fMovMensual.join(), fMovMensualValor.join(),
                            fByArea.join(), fMovsActual.join(), fMovsAnterior.join());
     }
 
@@ -88,21 +85,31 @@ public class DashboardService {
     // ── Cache ────────────────────────────────────────────────────────────────
 
     private static final long CACHE_TTL_MS = 30_000;
-    private static volatile Resumen cachedResumen = null;
-    private static volatile long    cacheTimestamp = 0;
 
-    /** Returns cached data if fresh, otherwise fetches and caches. */
+    /** The summary depends on who is signed in (área scope), so it is kept
+     *  with its owner: Patrimonio's must never be handed to the área account
+     *  that signs in on the same PC a few seconds later. */
+    private record EnCache(Resumen resumen, Object dueno, long cargadoEn) {}
+    private static volatile EnCache enCache;
+
+    /** Returns cached data if fresh and of the same session, otherwise fetches and caches. */
     public Resumen getCachedOrFetch() throws SQLException {
-        long now = System.currentTimeMillis();
-        if (cachedResumen != null && (now - cacheTimestamp) < CACHE_TTL_MS)
-            return cachedResumen;
+        Object quien = claveSesion();
+        EnCache c = enCache;
+        if (c != null && java.util.Objects.equals(c.dueno(), quien)
+                && System.currentTimeMillis() - c.cargadoEn() < CACHE_TTL_MS)
+            return c.resumen();
         Resumen r = cargarResumen();
-        cachedResumen  = r;
-        cacheTimestamp = System.currentTimeMillis();
+        enCache = new EnCache(r, quien, System.currentTimeMillis());
         return r;
     }
 
-    public void invalidateCache() { cacheTimestamp = 0; }
+    public void invalidateCache() { enCache = null; }
+
+    private static Object claveSesion() {
+        var u = com.sibim.session.SessionManager.getCurrentUser();
+        return u == null ? null : u.getId() + "|" + u.getRol() + "|" + u.getArea();
+    }
 
     /** Panel ejecutivo (tesorería/presidencia): % del patrimonio ya
      *  depreciado y qué bienes cumplen su vida útil este año — a diferencia
@@ -159,8 +166,6 @@ public class DashboardService {
             List<Producto> proximasRevisiones,
             List<Movimiento> movHoy,
             List<Movimiento> movSemana,
-            List<MovimientoRepository.MonthlyStats> movMensual,
-            List<MovimientoRepository.MonthlyValorStats> movMensualValor,
             LinkedHashMap<String, Long> byArea,
             long movsAnioActual,
             long movsAnioAnterior) {}

@@ -216,8 +216,9 @@ public class MainController {
         contentArea.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
                 setupKeyboardShortcuts(scene);
-                scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
-                scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> { lastActivityMs = System.currentTimeMillis(); inactivityWarned = false; });
+                scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> anotarActividad());
+                scene.addEventFilter(KeyEvent.KEY_PRESSED,     e -> anotarActividad());
+                vigilarActividadEnOtrasVentanas();
                 BarcodeScanner.attach(scene, this::handleBarcodeScan);
                 javafx.application.Platform.runLater(sidebarManager::setup);
                 if (!startupTasksScheduled) {
@@ -329,14 +330,54 @@ public class MainController {
         if (!ConfirmacionUtil.confirmar("Cerrar sesión", "¿Deseas cerrar tu sesión?")) return;
         stopTimers();
         instance = null;
-        auditRepo.log("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
+        auditRepo.logEnFondo("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
             SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
             "logout", "Cierre de sesión manual");
         SessionManager.logout();
         try { MainApp.showLogin(); } catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
     }
 
+    private void anotarActividad() {
+        lastActivityMs = System.currentTimeMillis();
+        inactivityWarned = false;
+    }
+
+    /** Dialogs are windows of their own: clicks and keys inside one never
+     *  reach the main scene's filters, so someone working in a long dialog
+     *  (conteo físico, importación) counted as idle and was logged out in the
+     *  middle of it. Every window opened during the session reports activity. */
+    private final javafx.collections.ListChangeListener<javafx.stage.Window> ventanasNuevas = cambio -> {
+        while (cambio.next())
+            for (javafx.stage.Window w : cambio.getAddedSubList()) contarActividadEn(w);
+    };
+    private boolean vigilandoVentanas;
+
+    private void vigilarActividadEnOtrasVentanas() {
+        if (vigilandoVentanas) return;
+        vigilandoVentanas = true;
+        for (javafx.stage.Window w : List.copyOf(javafx.stage.Window.getWindows())) contarActividadEn(w);
+        javafx.stage.Window.getWindows().addListener(ventanasNuevas);
+    }
+
+    private void contarActividadEn(javafx.stage.Window w) {
+        // The main window outlives the session and already counts through its scene.
+        if (w == MainApp.getPrimaryStage()) return;
+        w.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> anotarActividad());
+        w.addEventFilter(KeyEvent.KEY_PRESSED,     e -> anotarActividad());
+    }
+
+    /** When the session ends by itself, whatever dialog was open goes with it:
+     *  left over the login screen it could still be used with nobody signed in. */
+    private static void cerrarVentanasAbiertas() {
+        for (javafx.stage.Window w : List.copyOf(javafx.stage.Window.getWindows()))
+            if (w != MainApp.getPrimaryStage() && w.isShowing()) w.hide();
+    }
+
     void stopTimers() {
+        if (vigilandoVentanas) {
+            javafx.stage.Window.getWindows().removeListener(ventanasNuevas);
+            vigilandoVentanas = false;
+        }
         if (badgeRefresh != null) badgeRefresh.stop();
         if (clock != null) clock.stop();
         if (sessionGuard != null) sessionGuard.stop();
@@ -571,8 +612,9 @@ public class MainController {
         if (activeInactivityDialog != null) { activeInactivityDialog.close(); activeInactivityDialog = null; }
         stopTimers();
         instance = null;
-        auditRepo.log("sesion", me.getId(), me.getNombre(), "logout", "Cierre automático: " + motivo);
+        auditRepo.logEnFondo("sesion", me.getId(), me.getNombre(), "logout", "Cierre automático: " + motivo);
         SessionManager.logout();
+        cerrarVentanasAbiertas();
         try { MainApp.showLogin(); }
         catch (Exception e) { log.error("No se pudo volver a la pantalla de login", e); }
         javafx.scene.control.Alert aviso = new javafx.scene.control.Alert(
@@ -603,9 +645,10 @@ public class MainController {
             stopTimers();
             Usuario me = SessionManager.getCurrentUser();
             if (me != null)
-                auditRepo.log("sesion", me.getId(), me.getNombre(),
+                auditRepo.logEnFondo("sesion", me.getId(), me.getNombre(),
                     "logout", "Cierre automático por inactividad");
             SessionManager.logout();
+            cerrarVentanasAbiertas();
             try { MainApp.showLogin(); }
             catch (Exception e) { log.error("Error al cerrar sesión por inactividad", e); }
         } else if (!inactivityWarned && idle > timeoutMs - INACTIVITY_WARN_WINDOW_MS) {
@@ -673,7 +716,7 @@ public class MainController {
             NotificacionUtil.info(contentArea.getScene(), "Sesión extendida — bienvenido de vuelta");
         } else {
             log.info("Usuario cerró sesión desde el aviso de inactividad");
-            auditRepo.log("sesion",
+            auditRepo.logEnFondo("sesion",
                 SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,
                 SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null,
                 "logout", "Cierre de sesión desde aviso de inactividad");
@@ -682,6 +725,7 @@ public class MainController {
             stopTimers();
             instance = null;
             SessionManager.logout();
+            cerrarVentanasAbiertas();
             try { MainApp.showLogin(); } catch (Exception ex) { log.error("Error al cerrar sesión", ex); }
         }
     }

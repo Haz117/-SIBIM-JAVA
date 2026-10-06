@@ -769,11 +769,11 @@ public final class DemoDataStore {
                 .orElseThrow(() -> new java.sql.SQLException("Transferencia pendiente no encontrada: " + id));
             Producto p = findProductoById(m.getProductoId()).orElseThrow(() ->
                 new java.sql.SQLException("Bien no encontrado: " + m.getProductoId()));
-            if (p.isDadoDeBaja()) throw new java.sql.SQLException(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
+            if (p.isDadoDeBaja()) throw new ReglaIncumplida(com.sibim.service.MovimientoService.BIEN_DE_BAJA);
             if (p.getStockActual() <= 0)
-                throw new java.sql.SQLException(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
+                throw new ReglaIncumplida(com.sibim.service.MovimientoService.SIN_EXISTENCIA);
             if (m.getAreaOrigen() != null && !m.getAreaOrigen().equals(p.getArea()))
-                throw new java.sql.SQLException("El bien ya no está en " + m.getAreaOrigen() + " (ahora está en "
+                throw new ReglaIncumplida("El bien ya no está en " + m.getAreaOrigen() + " (ahora está en "
                     + p.getArea() + "): rechaza esta solicitud y registra una nueva si sigue siendo necesaria.");
             String codigo = com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())
                 ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosActivos())

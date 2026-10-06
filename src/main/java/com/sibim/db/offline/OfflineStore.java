@@ -79,10 +79,18 @@ public final class OfflineStore {
     private static final List<Movimiento> MOVIMIENTOS = new ArrayList<>();
     private static final Map<String, Producto> PRODUCTOS_MAP = new HashMap<>();
 
-    /** Guards the read-recompute-write sequence in addMovimiento — mirrors
-     *  DemoDataStore's STOCK_LOCK for the same reason (this store, too, can
-     *  be hit from more than one background Thread at once). */
-    private static final Object LOCK = new Object();
+    /** The store has ONE SQLite connection, shared by every thread, and a
+     *  transaction on it is the connection's, not the thread's: a statement
+     *  another thread runs meanwhile joins that transaction and is committed
+     *  or rolled back with it. So everything that writes — here, in
+     *  OfflineDocs and in SyncService's bookkeeping — holds this same lock
+     *  (the class monitor, which the synchronized methods below already use). */
+    private static final Object LOCK = OfflineStore.class;
+
+    /** A single write to the store from outside this class, under its lock. */
+    static synchronized int escribir(PreparedStatement ps) throws SQLException {
+        return ps.executeUpdate();
+    }
 
     // ───────────────────────── Connection / schema ─────────────────────────
 
@@ -373,11 +381,18 @@ public final class OfflineStore {
      *  was. Doesn't touch the in-memory PRODUCTOS list or the outbox —
      *  purely a passive local mirror of what the server has. */
     private static void cacheProductoSnapshot(Producto p) throws SQLException {
-        try (PreparedStatement cleanup = conn().prepareStatement(
-                "DELETE FROM products WHERE codigo = ? AND id <> ?")) {
-            cleanup.setString(1, p.getCodigo());
-            cleanup.setString(2, p.getId());
-            cleanup.executeUpdate();
+        // A código is unique among ACTIVE bienes only (a number freed by a baja
+        // is given to the next bien of the área), so only a stale active row
+        // can be in the way of an active bien. Deleting every other row with
+        // the código made the bien de baja and the active one that reuses its
+        // number erase each other from this copy.
+        if (!p.isDadoDeBaja()) {
+            try (PreparedStatement cleanup = conn().prepareStatement(
+                    "DELETE FROM products WHERE codigo = ? AND id <> ? AND fecha_baja IS NULL")) {
+                cleanup.setString(1, p.getCodigo());
+                cleanup.setString(2, p.getId());
+                cleanup.executeUpdate();
+            }
         }
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
@@ -513,7 +528,7 @@ public final class OfflineStore {
         return CATEGORIAS.stream().filter(c -> c.getId().equals(id)).findFirst();
     }
 
-    public static void saveCategoria(Categoria c) throws SQLException {
+    public static synchronized void saveCategoria(Categoria c) throws SQLException {
         ensureLoaded();
         Categoria anterior = CATEGORIAS.stream().filter(x -> x.getId().equals(c.getId())).findFirst().orElse(null);
         Connection db = conn();
@@ -548,7 +563,7 @@ public final class OfflineStore {
         }
     }
 
-    public static void deleteCategoria(String id) throws SQLException {
+    public static synchronized void deleteCategoria(String id) throws SQLException {
         ensureLoaded();
         Categoria c = CATEGORIAS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         Connection db = conn();
@@ -685,11 +700,31 @@ public final class OfflineStore {
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
         String serverSnapshotAt = serverSnapshot(id); // capture before mutation
-        p.setFechaBaja(LocalDate.now());
+        cambiarBaja(p, LocalDate.now(), motivo, "BAJA", serverSnapshotAt);
+    }
+
+    /** The local row and its queued change are written together: with only
+     *  the first one saved, this PC would show the bien de baja (or active
+     *  again) and never tell the server. */
+    private static void cambiarBaja(Producto p, LocalDate fechaBaja, String motivo, String operacion,
+                                    String serverSnapshotAt) throws SQLException {
+        LocalDate fechaAntes = p.getFechaBaja();
+        String motivoAntes = p.getMotivoBaja();
+        LocalDateTime actualizadoAntes = p.getActualizadoEn();
+        p.setFechaBaja(fechaBaja);
         p.setMotivoBaja(motivo);
         p.setActualizadoEn(LocalDateTime.now());
-        persistProducto(p);
-        enqueueProduct("BAJA", p, serverSnapshotAt);
+        try {
+            inTransaction(() -> {
+                persistProducto(p);
+                enqueueProduct(operacion, p, serverSnapshotAt);
+            });
+        } catch (SQLException e) {
+            p.setFechaBaja(fechaAntes);
+            p.setMotivoBaja(motivoAntes);
+            p.setActualizadoEn(actualizadoAntes);
+            throw e;
+        }
     }
 
     public static synchronized void reactivarProducto(String id) throws SQLException {
@@ -697,11 +732,7 @@ public final class OfflineStore {
         Producto p = PRODUCTOS.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
         if (p == null) return;
         String serverSnapshotAt = serverSnapshot(id); // capture before mutation
-        p.setFechaBaja(null);
-        p.setMotivoBaja(null);
-        p.setActualizadoEn(LocalDateTime.now());
-        persistProducto(p);
-        enqueueProduct("REACTIVAR", p, serverSnapshotAt);
+        cambiarBaja(p, null, null, "REACTIVAR", serverSnapshotAt);
     }
 
     public static synchronized void updateProductoStock(String id, int newStock) throws SQLException {
@@ -1001,7 +1032,7 @@ public final class OfflineStore {
      *  exist so existing callers (AuthService) need no import change. */
     static final int OFFLINE_CACHE_TTL_DAYS = OfflineUserCache.OFFLINE_CACHE_TTL_DAYS;
 
-    public static void cacheUser(Usuario u) throws SQLException {
+    public static synchronized void cacheUser(Usuario u) throws SQLException {
         OfflineUserCache.cacheUser(conn(), u);
     }
 
@@ -1014,7 +1045,7 @@ public final class OfflineStore {
      *
      * @see OfflineUserCache#findCachedUserByUsername
      */
-    public static Optional<Usuario> findCachedUserByUsername(String username) throws SQLException {
+    public static synchronized Optional<Usuario> findCachedUserByUsername(String username) throws SQLException {
         return OfflineUserCache.findCachedUserByUsername(conn(), username);
     }
 
@@ -1113,7 +1144,11 @@ public final class OfflineStore {
      *  Postgres when the connection comes back. The conteo is NOT cached in
      *  memory — it's append-only and only shown in the admin history view,
      *  which is unavailable offline anyway. */
-    public static void saveConteo(ConteoFisico c) throws SQLException {
+    public static synchronized void saveConteo(ConteoFisico c) throws SQLException {
+        inTransaction(() -> guardarConteo(c));
+    }
+
+    private static void guardarConteo(ConteoFisico c) throws SQLException {
         String sqlHeader = """
             INSERT INTO conteo_outbox (conteo_id, usuario_id, usuario_nombre,
                 total_contados, total_discrepancias, created_at)
@@ -1158,7 +1193,7 @@ public final class OfflineStore {
 
     /** Reads the queued audit trail from the offline SQLite outbox so the admin
      *  audit dialog still works while Postgres is unreachable. */
-    public static List<AuditLog> findAuditLog(int limit) throws SQLException {
+    public static synchronized List<AuditLog> findAuditLog(int limit) throws SQLException {
         List<AuditLog> list = new ArrayList<>();
         String sql = "SELECT * FROM audit_log_outbox ORDER BY id DESC LIMIT ?";
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
@@ -1191,7 +1226,7 @@ public final class OfflineStore {
 
     /** Queues an audit entry for replay when Postgres comes back. Never throws —
      *  mirrors AuditLogRepository.log()'s non-blocking contract. */
-    public static void logAudit(AuditLog a) {
+    public static synchronized void logAudit(AuditLog a) {
         String sql = """
             INSERT INTO audit_log_outbox (audit_id, entidad, entidad_id, entidad_nombre, accion,
                 detalle, usuario_id, usuario_nombre, created_at)

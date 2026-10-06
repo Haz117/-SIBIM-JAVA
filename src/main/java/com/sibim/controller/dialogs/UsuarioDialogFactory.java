@@ -174,6 +174,9 @@ public final class UsuarioDialogFactory {
                     () -> {
                         String hash = BCrypt.withDefaults().hashToString(12, fPassword.getText().toCharArray());
                         repo.updatePassword(existing.getId(), hash);
+                        // Resetting your own password from here must not end your own session.
+                        Usuario yo = com.sibim.session.SessionManager.getCurrentUser();
+                        if (yo != null && existing.getId().equals(yo.getId())) yo.setPasswordHash(hash);
                     },
                     () -> {
                         NotificacionUtil.exito(ownerScene, "Contraseña actualizada correctamente");

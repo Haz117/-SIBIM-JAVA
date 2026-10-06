@@ -69,8 +69,9 @@ public class ReporteSolicitudBajaService extends ReporteFormatoBajaBase {
             fila(datos, "Resguardante", p.getResguardante(), bold, regular, i++);
             fila(datos, "Fecha de adquisición",
                 p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : null, bold, regular, i++);
-            fila(datos, "Valor de adquisición", FormatUtils.formatCurrency(p.getPrecioCompra()), bold, regular, i++);
-            if (p.getValorDepreciado() != null)
+            // A dirección asks for the baja without seeing amounts: Patrimonio has them.
+            fila(datos, "Valor de adquisición", com.sibim.session.Permisos.pesos(p.getPrecioCompra()), bold, regular, i++);
+            if (p.getValorDepreciado() != null && com.sibim.session.Permisos.veValores())
                 fila(datos, "Valor actual (depreciado)", FormatUtils.formatCurrency(p.getValorDepreciado())
                     + (p.getPorcentajeDepreciado() != null ? "  (" + p.getPorcentajeDepreciado() + "%)" : ""),
                     bold, regular, i++);
