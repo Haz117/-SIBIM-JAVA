@@ -29,6 +29,7 @@ public final class ResponsiveHeader {
     private static final String MARK = "sibim.responsiveHeader";
     private static final String ORIGINAL_DISPLAY = "sibim.responsiveHeader.display";
     private static final String FLEX_MIN = "sibim.responsiveHeader.flexMin";
+    private static final String CONTADORES = "sibim.responsiveHeader.contadores";
     /** Room the header title/subtitle keeps before buttons start collapsing. */
     private static final double TITLE_MIN = 240;
     /** Same for a filter bar's growing search field. */
@@ -50,9 +51,17 @@ public final class ResponsiveHeader {
     public static void install(HBox header, double flexMin) {
         if (header.getProperties().putIfAbsent(MARK, Boolean.TRUE) != null) return;
         header.getProperties().put(FLEX_MIN, flexMin);
+        // The bar may be handed less room than its content needs. Left at its
+        // computed minimum it refused, and its page grew with it: with the side
+        // menu open on a narrow window the whole Bienes screen (cards, table,
+        // buttons) ran off the right edge. At 0 it takes the room there is, and
+        // update() below decides what gives way inside it.
+        header.setMinWidth(0);
 
         List<ButtonBase> secondary = new ArrayList<>();
         List<ButtonBase> primary = new ArrayList<>();
+        List<javafx.scene.control.Label> contadores = new ArrayList<>();
+        header.getProperties().put(CONTADORES, contadores);
         for (Node c : header.getChildren()) {
             if (c instanceof ButtonBase b && b.getGraphic() != null
                     && b.getContentDisplay() != ContentDisplay.GRAPHIC_ONLY) {
@@ -71,6 +80,7 @@ public final class ResponsiveHeader {
                 r.setPrefWidth(isSpacer(r) ? 0 : flexMin);
             } else if (c instanceof javafx.scene.control.Label l) {
                 l.setMinWidth(Region.USE_PREF_SIZE);   // counters like "36 resultados"
+                contadores.add(l);
                 // The counter grows ("1,234 resultados") and "3 seleccionados"
                 // appears on selection without the bar changing width: without
                 // this the buttons are left squeezed to "…" until a resize.
@@ -97,6 +107,15 @@ public final class ResponsiveHeader {
 
         secondary.forEach(b -> setCollapsed(b, compactSecondary));
         primary.forEach(b -> setCollapsed(b, compactPrimary));
+
+        // Still short with every button down to its icon: the counters give
+        // way last, cut to "77 resul…" rather than pushing the bar's end (the
+        // pagination) out of sight.
+        boolean apretado = available < requiredWidth(header, secondary, primary, true, true);
+        @SuppressWarnings("unchecked")
+        List<javafx.scene.control.Label> contadores =
+            (List<javafx.scene.control.Label>) header.getProperties().getOrDefault(CONTADORES, List.of());
+        for (javafx.scene.control.Label l : contadores) l.setMinWidth(apretado ? 0 : Region.USE_PREF_SIZE);
     }
 
     private static double requiredWidth(HBox header, List<ButtonBase> secondary, List<ButtonBase> primary,
