@@ -155,6 +155,24 @@ public class ActaService {
             // ── Resumen ──
             BigDecimal valorTotal = inventario.stream()
                 .map(Producto::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // The acta keeps the totals of the day it was made, but not the list
+            // of bienes: a reprint lists the inventory as it is today. When the
+            // two no longer agree, say so on the document instead of printing
+            // today's bienes under the acta's date as if they were the same.
+            boolean cambio = acta.getTotalBienes() != inventario.size()
+                || (acta.getValorTotal() != null && acta.getValorTotal().compareTo(valorTotal) != 0);
+            if (cambio) {
+                String levantada = acta.getCreadoEn() != null ? acta.getCreadoEn().toLocalDate().format(FMT)
+                    : acta.getFechaEntrega().format(FMT);
+                doc.add(new Paragraph("Reimpresión del " + LocalDate.now().format(FMT) + ". El detalle de bienes que sigue "
+                        + "es el inventario a esta fecha. Al levantarse el acta (" + levantada + ") se registraron "
+                        + acta.getTotalBienes() + " bienes con valor de "
+                        + com.sibim.session.Permisos.pesos(acta.getValorTotal()) + "; hoy son " + inventario.size()
+                        + " con valor de " + com.sibim.session.Permisos.pesos(valorTotal) + ".")
+                    .setFont(bold).setFontSize(8).setFontColor(new DeviceRgb(146, 64, 14))
+                    .setBackgroundColor(new DeviceRgb(254, 243, 199)).setPadding(6).setMarginTop(8));
+            }
             Map<String, List<Producto>> porArea = inventario.stream()
                 .collect(Collectors.groupingBy(p -> p.getArea() != null ? p.getArea() : "Sin área"));
 

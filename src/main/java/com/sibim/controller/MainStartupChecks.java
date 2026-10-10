@@ -50,8 +50,10 @@ class MainStartupChecks {
             () -> productoService.getVencidosProximos(7),
             vencidos -> {
                 if (!vencidos.isEmpty())
+                    // The list includes garantías that already expired, not only the
+                    // ones about to: say what it counts.
                     NotificacionUtil.advertencia(scene,
-                        vencidos.size() + " bien(es) vence(n) en los próximos 7 días — revisa la sección Alertas");
+                        vencidos.size() + " bien(es) con garantía vencida o por vencer en 7 días — revisa Alertas");
             },
             e -> log.debug("Startup vencidos check failed", e)
         );
@@ -103,7 +105,13 @@ class MainStartupChecks {
         if (!com.sibim.util.ConfirmacionUtil.confirmar("Actualizar SIBIM",
                 "Se descargará la versión " + v.version() + " (" + (v.tamano() / (1024 * 1024)) + " MB) y se abrirá "
                 + "su instalador. SIBIM se cerrará: guarda lo que estés capturando." + notas)) return;
-        File destino = new File(System.getProperty("java.io.tmpdir"), v.archivo());
+        // Only the name, never a path: the file name comes from the database, and
+        // "..\..\x.exe" would have written the download outside the temp folder.
+        String nombre = v.archivo() == null ? "" : new File(v.archivo().replace('\\', '/')).getName()
+            .replaceAll("[^A-Za-z0-9._ -]", "_");
+        if (!nombre.toLowerCase().endsWith(".exe") && !nombre.toLowerCase().endsWith(".msi"))
+            nombre = "SIBIM-Desktop-" + v.version().replaceAll("[^0-9.]", "") + "-setup.exe";
+        File destino = new File(System.getProperty("java.io.tmpdir"), nombre);
         DialogUtil.runAsyncWithProgress(scene, "Descargando la versión " + v.version() + "…",
             (DialogUtil.TareaConAvance<File>) avance -> { servicio.descargar(v, destino, avance); return destino; },
             instalador -> {

@@ -828,8 +828,18 @@ public final class DialogUtil {
                 if (onSuccess != null) Platform.runLater(onSuccess);
             } catch (Exception ex) {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
+            } catch (Error err) {
+                reportarError(err, onError);
             }
         });
+    }
+
+    /** An Error (out of memory on a large export, a class missing from the
+     *  build) is not an Exception: without this the task just died, and the
+     *  screen that started it stayed on "Guardando…" with nothing in the log. */
+    private static void reportarError(Error err, Consumer<Exception> onError) {
+        org.slf4j.LoggerFactory.getLogger(DialogUtil.class).error("Una tarea en segundo plano falló", err);
+        if (onError != null) Platform.runLater(() -> onError.accept(new RuntimeException(err)));
     }
 
     /** Async with a typed result returned from the background thread. */
@@ -841,6 +851,8 @@ public final class DialogUtil {
                 if (onSuccess != null) Platform.runLater(() -> onSuccess.accept(result));
             } catch (Exception ex) {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
+            } catch (Error err) {
+                reportarError(err, onError);
             }
         });
     }
