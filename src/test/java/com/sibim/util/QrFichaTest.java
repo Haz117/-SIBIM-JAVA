@@ -49,16 +49,48 @@ class QrFichaTest {
     }
 
     @Test
-    void contenido_codigoPrimeroYDatosDeLaFicha() {
-        String qr = QrUtils.contenidoBien(bien());
+    void contenido_codigoPrimero_yLoQueLaEtiquetaNoMuestra() {
+        Producto p = bien();
+        p.setUbicacion("Planta alta, cubículo 3");
+        p.setFechaAdquisicion(java.time.LocalDate.of(2023, 3, 15));
+        p.setNumeroFactura("A-1182");
+        p.setFechaVencimiento(java.time.LocalDate.now().plusYears(1));
+        String qr = QrUtils.contenidoBien(p);
         String[] lineas = qr.split("\n");
         assertEquals("DCAT-0042", lineas[0]);
-        assertTrue(qr.contains("Área: Dirección de Catastro"));
         assertTrue(qr.contains("Resguardante: Ana Pérez Núñez"));
-        assertTrue(qr.contains("Marca: Dell · Modelo: OptiPlex 3080 · Serie: 7XK2M93"));
-        assertTrue(qr.contains("Estado: BUENO"));
+        assertTrue(qr.contains("Ubicación: Planta alta, cubículo 3"));
+        assertTrue(qr.contains("Estado físico: BUENO"));
+        assertTrue(qr.contains("Adquirido: 15/03/2023"));
+        assertTrue(qr.contains("Factura: A-1182"));
+        assertTrue(qr.contains("Garantía hasta: "));
+        // Already printed on the label: repeating it told the reader nothing.
+        assertFalse(qr.contains("Computadora de escritorio"), qr);
+        assertFalse(qr.contains("Dell") || qr.contains("7XK2M93") || qr.contains("Catastro"), qr);
         assertEquals("DCAT-0042", QrUtils.codigoLeido(qr));
         assertEquals("DCAT-0042", QrUtils.codigoLeido("  DCAT-0042 "), "un QR viejo (solo el código) sigue sirviendo");
+    }
+
+    @Test
+    void bienSinMasDatos_alMenosDiceQueEs() {
+        Producto p = new Producto();
+        p.setCodigo("MB-003"); p.setNombre("Archivero metálico 4 gavetas");
+        assertEquals("MB-003\nArchivero metálico 4 gavetas", QrUtils.contenidoBien(p));
+    }
+
+    /** The QR that downloads the ficha is only a link (so a phone offers to
+     *  open it) and SIBIM's scanner still finds the código in it. */
+    @Test
+    void enlaceALaFicha_esSoloUnEnlace_yElEscanerSacaElCodigo() {
+        Producto p = bien();
+        p.setCodigo("SGM/07");
+        String qr = QrUtils.enlaceFicha("https://x.supabase.co/storage/v1/object/public/sibim-fotos/fichas/abc.pdf", p);
+        assertEquals("https://x.supabase.co/storage/v1/object/public/sibim-fotos/fichas/abc.pdf#SGM/07", qr);
+        assertEquals("SGM/07", QrUtils.codigoLeido(qr));
+        p.setCodigo("MB 12-Ñ");
+        assertEquals("MB 12-Ñ", QrUtils.codigoLeido(QrUtils.enlaceFicha("https://x/f.pdf", p)));
+        assertTrue(QrUtils.queHace(qr).contains("descarga la ficha"));
+        assertTrue(QrUtils.queHace(QrUtils.contenidoBien(p)).contains("resguardante"));
     }
 
     @Test
@@ -114,10 +146,17 @@ class QrFichaTest {
         assertEquals("SGM-MM-3261-BIS-2024", QrUtils.codigoLeido(qr), "el escáner de SIBIM sigue leyendo solo el código");
         assertTrue(qr.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= QrUtils.MAX_BYTES_ETIQUETA, qr);
         assertTrue(qr.lines().count() >= 2, "más que el puro código: " + qr);
+        assertTrue(qr.contains("Resg: "), "quién lo tiene no viene impreso en la etiqueta: " + qr);
+        assertFalse(qr.contains("Computadora"), "la descripción ya está impresa en la etiqueta: " + qr);
 
-        com.sibim.model.Producto corto = new com.sibim.model.Producto();
-        corto.setCodigo("MB-003"); corto.setNombre("Archivero metálico 4 gavetas");
-        corto.setArea("Secretaría General Municipal");
-        assertEquals("MB-003\nArchivero metálico 4 gavetas\nSecretaría General Municipal", QrUtils.contenidoEtiqueta(corto));
+        com.sibim.model.Producto completo = new com.sibim.model.Producto();
+        completo.setCodigo("MB-003"); completo.setNombre("Archivero metálico 4 gavetas");
+        completo.setResguardante("Luis Mora"); completo.setEstadoFisico("REGULAR");
+        completo.setFechaAdquisicion(java.time.LocalDate.of(2021, 11, 2));
+        assertEquals("MB-003\nResg: Luis Mora\nEstado: REGULAR\nAdq: 02/11/2021", QrUtils.contenidoEtiqueta(completo));
+
+        com.sibim.model.Producto sinDatos = new com.sibim.model.Producto();
+        sinDatos.setCodigo("MB-004"); sinDatos.setNombre("Archivero metálico 4 gavetas");
+        assertEquals("MB-004\nArchivero metálico 4 gavetas", QrUtils.contenidoEtiqueta(sinDatos));
     }
 }

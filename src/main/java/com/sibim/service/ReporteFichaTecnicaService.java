@@ -60,6 +60,25 @@ public class ReporteFichaTecnicaService extends ReporteService {
 
     public ReporteFichaTecnicaService() { super(); }
 
+    /** Set while writing the copy a QR downloads (see FichaPublica): anyone
+     *  who scans the label gets it, so it carries no amounts, no movement
+     *  history and no signature block — and its own QR is its link. */
+    private String enlacePublico;
+
+    /** The ficha that the bien's QR downloads. {@code enlace} is where it will live. */
+    File exportFichaPublica(Producto p, String enlace) throws Exception {
+        enlacePublico = enlace;
+        try {
+            return exportFichaTecnica(p, List.of());
+        } finally {
+            enlacePublico = null;
+        }
+    }
+
+    private String pesos(BigDecimal valor) {
+        return enlacePublico != null ? null : com.sibim.session.Permisos.pesos(valor);
+    }
+
     public File exportFichaTecnica(Producto p, List<Movimiento> movimientos) throws Exception {
         String safeName = p.getCodigo() != null ? p.getCodigo().replaceAll("[^a-zA-Z0-9_\\-]", "_") : "bien";
         File file = tempFile("ficha_" + safeName, ".pdf");
@@ -89,7 +108,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
             }
             doc.add(cuadricula(datos, bold, reg));
 
-            doc.add(titulo("ADQUISICIÓN Y VALOR", bold));
+            doc.add(titulo(enlacePublico != null ? "ADQUISICIÓN" : "ADQUISICIÓN Y VALOR", bold));
             doc.add(cuadricula(adquisicion(p), bold, reg));
 
             String obs = observaciones(p);
@@ -102,7 +121,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
             if (movimientos != null && !movimientos.isEmpty())
                 doc.add(historial(movimientos, bold, reg));
 
-            doc.add(firmas(p, bold, reg));
+            if (enlacePublico == null) doc.add(firmas(p, bold, reg));
 
             // Pie fijo en el margen inferior de cada hoja
             String pie = "SIBIM · " + orgName() + " · Emitido el " + FormatUtils.formatDateTime(LocalDateTime.now());
@@ -201,7 +220,8 @@ public class ReporteFichaTecnicaService extends ReporteService {
         filaDato(datos, "Categoría", mayus(p.getCategoriaNombre()), bold, reg);
         der.add(datos);
 
-        byte[] qr = ReporteEtiquetasService.qrToPngBytes(com.sibim.util.QrUtils.contenidoBien(p), 180);
+        byte[] qr = ReporteEtiquetasService.qrToPngBytes(enlacePublico != null
+            ? com.sibim.util.QrUtils.enlaceFicha(enlacePublico, p) : com.sibim.util.QrUtils.contenidoBien(p), 180);
         if (qr != null) {
             Table qrT = new Table(UnitValue.createPercentArray(new float[]{30, 70})).useAllAvailableWidth()
                 .setMarginTop(8);
@@ -223,13 +243,20 @@ public class ReporteFichaTecnicaService extends ReporteService {
         l.add(par("Fecha de adquisición", p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : null));
         l.add(par("No. de factura", p.getNumeroFactura()));
         l.add(par("Proveedor", p.getProveedor()));
-        l.add(par("Costo de adquisición", p.getPrecioCompra() != null ? com.sibim.session.Permisos.pesos(p.getPrecioCompra()) : null));
+        boolean conMontos = enlacePublico == null;
+        if (conMontos)
+            l.add(par("Costo de adquisición", p.getPrecioCompra() != null ? pesos(p.getPrecioCompra()) : null));
         BigDecimal enLibros = p.getValorDepreciado() != null ? p.getValorDepreciado() : p.getValorTotal();
         l.add(par("Vida útil", p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() + " año(s)" : null));
-        l.add(par("Valor en libros", enLibros != null ? com.sibim.session.Permisos.pesos(enLibros) : null));
-        if (p.getPorcentajeDepreciado() != null && p.getPrecioCompra() != null && p.getValorDepreciado() != null)
-            l.add(par("Depreciación acumulada", com.sibim.session.Permisos.pesos(p.getPrecioCompra().subtract(p.getValorDepreciado()))
-                + "  (" + p.getPorcentajeDepreciado() + "%)"));
+        if (conMontos) {
+            l.add(par("Valor en libros", enLibros != null ? pesos(enLibros) : null));
+            if (p.getPorcentajeDepreciado() != null && p.getPrecioCompra() != null && p.getValorDepreciado() != null)
+                l.add(par("Depreciación acumulada", pesos(p.getPrecioCompra().subtract(p.getValorDepreciado()))
+                    + "  (" + p.getPorcentajeDepreciado() + "%)"));
+        } else {
+            l.add(par("Garantía hasta", p.getFechaVencimiento() != null ? FormatUtils.formatDate(p.getFechaVencimiento()) : null));
+            l.add(par("Próxima revisión", p.getProximaRevision() != null ? FormatUtils.formatDate(p.getProximaRevision()) : null));
+        }
         if (p.getCreadoEn() != null)
             l.add(par("Alta en SIBIM", FormatUtils.formatDate(p.getCreadoEn().toLocalDate())));
         if (p.isDadoDeBaja()) {

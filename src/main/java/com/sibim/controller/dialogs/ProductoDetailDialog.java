@@ -53,7 +53,8 @@ public final class ProductoDetailDialog {
         List<String> fotos,
         List<Resguardo> resguardos,
         List<Prestamo> prestamos,
-        List<MantenimientoService.Alerta> alertas
+        List<MantenimientoService.Alerta> alertas,
+        String qr
     ) {}
 
     /** Opens the read-only bien detail dialog. Loads movimientos, fotos, resguardos,
@@ -86,7 +87,12 @@ public final class ProductoDetailDialog {
                 try { alertas = new MantenimientoService().getAlertas(p.getId()); }
                 catch (Exception ex) { log.warn("No se pudo cargar alertas de mantenimiento para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-                return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas);
+                // The link to the published ficha if there is one, else the data as text.
+                String qr;
+                try { qr = com.sibim.service.FichaPublica.contenidoQr(p); }
+                catch (RuntimeException ex) { qr = QrUtils.contenidoBien(p); }
+
+                return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas, qr);
             },
             data -> buildAndShow(p, scene, log, data),
             ex -> {
@@ -196,7 +202,7 @@ public final class ProductoDetailDialog {
         nameSection.getChildren().addAll(nameLbl, meta);
 
         // QR thumbnail — small preview, click to expand
-        javafx.scene.image.Image qrSmall = QrUtils.generateQr(QrUtils.contenidoBien(p), 104);
+        javafx.scene.image.Image qrSmall = QrUtils.generateQr(loaded.qr(), 104);
         StackPane qrPane = new StackPane();
         qrPane.setMinSize(52, 52); qrPane.setMaxSize(52, 52);
         qrPane.getStyleClass().add("dlg-qr-thumb");
@@ -206,7 +212,7 @@ public final class ProductoDetailDialog {
             qrPane.getChildren().add(qrIv);
             Tooltip qrTip = new Tooltip("Código QR — clic para ampliar");
             Tooltip.install(qrPane, qrTip);
-            qrPane.setOnMouseClicked(e -> showQrPopup(p, qrSmall, scene));
+            qrPane.setOnMouseClicked(e -> showQrPopup(p, loaded.qr(), scene));
             AccessibilityUtils.asButton(qrPane, "Ampliar código QR");
             qrPane.getStyleClass().add("dlg-qr-thumb-clickable");
         }
@@ -445,7 +451,7 @@ public final class ProductoDetailDialog {
 
             TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colCampo = new TableColumn<>("Campo");
             colCampo.setCellValueFactory(c -> new SimpleStringProperty(
-                "precio_compra".equals(c.getValue().campo()) ? "Precio compra" : "Precio venta"));
+                "precio_compra".equals(c.getValue().campo()) ? "Costo de adquisición" : "Otro valor"));
             colCampo.setPrefWidth(100);
 
             TableColumn<PriceHistoryRepository.PriceHistoryEntry, BigDecimal> colAnt = new TableColumn<>("Anterior");
@@ -687,8 +693,8 @@ public final class ProductoDetailDialog {
         });
     }
 
-    private static void showQrPopup(Producto p, javafx.scene.image.Image qrSmall, Scene scene) {
-        javafx.scene.image.Image qrFull = QrUtils.generateQr(QrUtils.contenidoBien(p), 300);
+    private static void showQrPopup(Producto p, String contenido, Scene scene) {
+        javafx.scene.image.Image qrFull = QrUtils.generateQr(contenido, 300);
         if (qrFull == null) return;
 
         ButtonType savePng = new ButtonType("Guardar PNG", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
@@ -705,7 +711,12 @@ public final class ProductoDetailDialog {
         Label lblNombre = new Label(p.getNombre());
         lblNombre.getStyleClass().add("muted-sm");
 
-        VBox content = new VBox(8, iv, lblCodigo, lblNombre);
+        Label lblQueHace = new Label(QrUtils.queHace(contenido));
+        lblQueHace.getStyleClass().add("muted-sm");
+        lblQueHace.setWrapText(true);
+        lblQueHace.setMaxWidth(320);
+        lblQueHace.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        VBox content = new VBox(8, iv, lblCodigo, lblNombre, lblQueHace);
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(16));
         dlg.getDialogPane().setContent(content);

@@ -38,8 +38,6 @@ class ProductosTableManager {
     private final TableColumn<Producto, String> colCategoria;
     private final TableColumn<Producto, String> colArea;
     private final TableColumn<Producto, Integer> colStock;
-    private final TableColumn<Producto, Integer> colStockMin;
-    private final TableColumn<Producto, Integer> colStockMax;
     private final TableColumn<Producto, String> colValor;
     private final TableColumn<Producto, String> colEstado;
     private final ComboBox<Integer> pageSizeBox;
@@ -66,7 +64,6 @@ class ProductosTableManager {
     private final java.util.function.Consumer<Producto> showMovimientoTimeline;
     private final java.util.function.Consumer<List<Producto>> exportarEtiquetasQr;
     private final java.util.function.Consumer<List<Producto>> exportarEtiquetaFisica;
-    private final java.util.function.Consumer<Producto> saveStockThresholds;
     private final Supplier<String> pendingHighlightIdSupplier;
     private final ProductosBulkBar bulkBarManager;
     private final Runnable pageSizeChanged; // called when page size box changes
@@ -88,8 +85,6 @@ class ProductosTableManager {
             TableColumn<Producto, String> colCategoria,
             TableColumn<Producto, String> colArea,
             TableColumn<Producto, Integer> colStock,
-            TableColumn<Producto, Integer> colStockMin,
-            TableColumn<Producto, Integer> colStockMax,
             TableColumn<Producto, String> colValor,
             TableColumn<Producto, String> colEstado,
             ComboBox<Integer> pageSizeBox,
@@ -109,7 +104,6 @@ class ProductosTableManager {
             java.util.function.Consumer<Producto> showMovimientoTimeline,
             java.util.function.Consumer<List<Producto>> exportarEtiquetasQr,
             java.util.function.Consumer<List<Producto>> exportarEtiquetaFisica,
-            java.util.function.Consumer<Producto> saveStockThresholds,
             Supplier<String> pendingHighlightIdSupplier,
             ProductosBulkBar bulkBarManager,
             Runnable pageSizeChanged,
@@ -122,8 +116,6 @@ class ProductosTableManager {
         this.colCategoria = colCategoria;
         this.colArea = colArea;
         this.colStock = colStock;
-        this.colStockMin = colStockMin;
-        this.colStockMax = colStockMax;
         this.colValor = colValor;
         this.colEstado = colEstado;
         this.pageSizeBox = pageSizeBox;
@@ -147,7 +139,6 @@ class ProductosTableManager {
         this.showMovimientoTimeline = showMovimientoTimeline;
         this.exportarEtiquetasQr = exportarEtiquetasQr;
         this.exportarEtiquetaFisica = exportarEtiquetaFisica;
-        this.saveStockThresholds = saveStockThresholds;
         this.pendingHighlightIdSupplier = pendingHighlightIdSupplier;
         this.bulkBarManager = bulkBarManager;
         this.pageSizeChanged = pageSizeChanged;
@@ -164,7 +155,6 @@ class ProductosTableManager {
         ProductosColumnSetup.configureCategoria(colCategoria);
         ProductosColumnSetup.configureArea(colArea);
         ProductosColumnSetup.configureStockYValor(colStock, colValor);
-        ProductosColumnSetup.configureStockMinMax(colStockMin, colStockMax, saveStockThresholds);
         ProductosColumnSetup.configureEstado(colEstado);
         ProductosColumnSetup.configureRowFactory(table, pendingHighlightIdSupplier);
         setupTableListeners();

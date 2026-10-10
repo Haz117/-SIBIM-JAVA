@@ -17,6 +17,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Baja patrimonial con solicitud** — solo el administrador (Patrimonio) da de baja un bien, y solo con la **solicitud de baja firmada** por el área: la ventana de baja exige su oficio/folio (queda junto al motivo, en la auditoría y en el acta) y permite generar el formato. Secretarías y direcciones ven "Solicitar baja", que genera el formato para firmarlo y entregarlo. La baja saca el bien del inventario activo sin borrar su historial (soft-delete) y genera el acta de baja
 - **Pantalla de Bajas** (Ctrl+Alt+B) — todas las bajas de tus áreas con motivo, folio de la solicitud, destino, dictamen, número de acta y valor; tarjetas (total, este año, valor dado de baja, sin solicitud registrada), filtros por texto/área/año, exportación PDF/Excel/CSV, volver a generar el acta, ficha técnica y reactivar (solo administrador)
 - **Ficha y etiquetas del bien** — en la barra inferior de Bienes: **Ficha** (ficha técnica en PDF; con varios seleccionados, todas en un PDF) y **Etiqueta ▾** (etiqueta de inventario con datos y QR, o solo QR), además de **QR**
+- **El QR descarga la ficha del bien** — con el almacenamiento de fotos configurado (`SUPABASE_ANON_KEY`), el QR de un bien es un enlace a su ficha en PDF: se publica al generar el QR o las etiquetas QR y se actualiza al guardar el bien. Esa copia no lleva montos, historial ni firmas, porque cualquiera frente a la etiqueta puede abrirla. Sin almacenamiento, y en la etiqueta oficial (su QR es muy chico para un enlace), el QR lleva lo que la etiqueta no imprime: resguardante, ubicación, estado físico, adquisición, factura, garantía y próxima revisión. El lector de SIBIM sigue obteniendo el código en ambos casos
 - **Abrir, imprimir y guardar documentos** — cada PDF/Excel generado muestra Guardar como / Imprimir / Abrir / Carpeta / Copiar ruta; si Java no logra abrir el archivo en la PC se usa el mismo mecanismo que el Explorador de Windows. "Imprimir" abre el visor para elegir impresora (Ctrl+P)
 - **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
@@ -59,7 +60,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1059 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1063 tests en la última ejecución) |
 
 ---
 
@@ -324,7 +325,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (1059 en total)
+# Correr todos los tests (1063 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

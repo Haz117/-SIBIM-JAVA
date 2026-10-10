@@ -73,7 +73,7 @@ public class ProductosController {
     @FXML private TextField searchField;
     @FXML private ComboBox<Categoria> categoriaFilter;
     @FXML private ComboBox<String> areaFilter;
-    @FXML private Button btnImportar;
+    @FXML private MenuItem btnImportar;
     @FXML private ComboBox<String> resguardanteFilter;
     @FXML private HBox statusChipsBar;
     @FXML private Button btnClearFilters;
@@ -86,8 +86,6 @@ public class ProductosController {
     @FXML private TableColumn<Producto, String> colResguardante;
     @FXML private Button btnResetColumns;
     @FXML private TableColumn<Producto, Integer> colStock;
-    @FXML private TableColumn<Producto, Integer> colStockMin;
-    @FXML private TableColumn<Producto, Integer> colStockMax;
     @FXML private TableColumn<Producto, String> colValor;
     @FXML private TableColumn<Producto, String> colEstado;
     @FXML private Label lblTotal;
@@ -120,7 +118,7 @@ public class ProductosController {
     /** "Solo los seleccionados" submenu of the Exportar menu. */
     @FXML private MenuItem btnExportarSeleccion;
     @FXML private Button btnNuevoBien;
-    @FXML private Button btnConteoFisico;
+    @FXML private MenuItem btnConteoFisico;
     @FXML private Button btnClearSearch;
     @FXML private ProgressIndicator spinner;
     @FXML private Label lblStatTotal;
@@ -231,8 +229,8 @@ public class ProductosController {
         // "Editar"/"Eliminar") could create products or run a physical
         // count that silently adjusts stock.
         if (btnNuevoBien    != null) { btnNuevoBien.setVisible(canManage);    btnNuevoBien.setManaged(canManage); }
-        if (btnConteoFisico != null) { btnConteoFisico.setVisible(canManage); btnConteoFisico.setManaged(canManage); }
-        if (btnImportar     != null) { btnImportar.setVisible(canManage);     btnImportar.setManaged(canManage); }
+        if (btnConteoFisico != null) btnConteoFisico.setVisible(canManage);
+        if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
                 if (ev.getCode() == javafx.scene.input.KeyCode.N && ev.isControlDown() && canManage) {
@@ -296,14 +294,13 @@ public class ProductosController {
     private void setupTable() {
         tableManager = new ProductosTableManager(
             table, colFoto, colNombre, colCodigo, colCategoria, colArea,
-            colStock, colStockMin, colStockMax, colValor, colEstado,
+            colStock, colValor, colEstado,
             pageSizeBox, lblTotal, lblPage, btnPrev, btnNext, lblSeleccionados,
             btnMovimiento, btnQr, btnEditar, btnEliminar, btnExportarSeleccion,
             THUMBNAIL_CACHE, log, canEdit, () -> canEdit,
             this::onEdit, this::onDelete,
             this::showProductDetail, this::showMovimientoTimeline,
             this::exportarEtiquetasQr, this::exportarEtiquetaFisica,
-            this::saveStockThresholds,
             () -> pendingHighlightId, bulkBarManager,
             () -> { pageSize = pageSizeBox.getValue(); currentPage = 0; loadPage(); },
             reporteService, movimientoService);
@@ -981,15 +978,6 @@ public class ProductosController {
            .ifPresent(name -> presetPanel.saveCurrentAs(name, table.getScene()));
     }
 
-    private void saveStockThresholds(Producto p) {
-        DialogUtil.runAsync((DialogUtil.CheckedRunnable) () -> productoService.save(p),
-            () -> NotificacionUtil.info(table.getScene(), "Umbrales de stock actualizados"),
-            ex -> {
-                NotificacionUtil.error(table.getScene(), "No se pudieron guardar los umbrales de stock — " + ex.getMessage());
-                loadPage();
-            });
-    }
-
     // ── Internal helpers ─────────────────────────────────────────────────────
 
     private void showProductDetail(Producto p) {
@@ -1033,6 +1021,9 @@ public class ProductosController {
                     ProductoDialogFactory.procesarArchivos(p, facturaAnterior, THUMBNAIL_CACHE, log);
                     Producto saved = productoService.save(p);
                     productoService.saveFotos(saved.getId(), p.getFotosUrls());
+                    // The ficha its QR downloads must say what the bien says now.
+                    com.sibim.util.AppExecutor.submit(
+                        () -> com.sibim.service.FichaPublica.actualizarSiPublicada(saved));
                     return saved;
                 },
                 saved -> {

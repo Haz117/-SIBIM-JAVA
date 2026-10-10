@@ -311,7 +311,7 @@ public final class MovimientoDialogFactory {
                 fTipo.getValue().getCodigo(), current, fCantidad.getValue());
             lblStockActual.setText(String.valueOf(current));
             lblStockNuevo.setText(String.valueOf(nuevo));
-            boolean warn = nuevo < p.getStockMinimo();
+            boolean warn = false;   // no minimum to fall under: a patrimonial bien is not restocked
             lblStockNuevo.getStyleClass().removeAll("dlg-stock-val","dlg-stock-new-ok","dlg-stock-new-warn","dlg-stock-new-empty");
             lblStockNuevo.getStyleClass().add(nuevo <= 0 ? "dlg-stock-new-empty" : warn ? "dlg-stock-new-warn" : "dlg-stock-new-ok");
             arrow.getStyleClass().removeAll("dlg-stock-arrow","dlg-stock-arrow-up","dlg-stock-arrow-down");
@@ -329,7 +329,7 @@ public final class MovimientoDialogFactory {
         Runnable refreshMotivoOptions = () -> {
             String current = fMotivo.getEditor().getText();
             List<String> opts = switch (fTipo.getValue()) {
-                case ENTRADA       -> List.of("Compra", "Donación", "Devolución", "Reposición", "Conteo físico");
+                case ENTRADA       -> List.of("Compra", "Donación", "Devolución", "Conteo físico");
                 case SALIDA        -> List.of("Uso institucional", "Préstamo temporal", "Deterioro", "Baja parcial");
                 case AJUSTE        -> List.of("Conteo físico", "Corrección de error", "Daño o deterioro", "Robo o extravío");
                 case TRANSFERENCIA -> List.of("Reubicación", "Préstamo entre áreas", "Reorganización");
