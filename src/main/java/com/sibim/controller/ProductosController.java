@@ -1041,6 +1041,16 @@ public class ProductosController {
                     } else {
                         NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
                     }
+                    // Connected, yet the photo stayed as a file on this PC: Storage isn't
+                    // configured here (or the upload failed), so no other PC will see it.
+                    if (!com.sibim.db.DatabaseConfig.isOfflineMode() && !com.sibim.db.DatabaseConfig.isDemoMode()
+                            && p.getFotosUrls().stream().anyMatch(com.sibim.util.ImageUtils::soloEnEstaPc)) {
+                        NotificacionUtil.advertencia(table.getScene(),
+                            "La foto se guardó solo en esta computadora: las demás PCs no la verán. "
+                            + (com.sibim.util.SupabaseStorage.isAvailable()
+                                ? "No se pudo subir al almacenamiento; se reintentará sola."
+                                : "Falta SUPABASE_ANON_KEY (la clave pública) en el .env de esta PC."));
+                    }
                     pendingHighlightId = saved.getId();
                     loadData();
                     Platform.runLater(() -> {

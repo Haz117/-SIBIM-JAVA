@@ -252,4 +252,31 @@ class ImportacionBienesDialogTest {
             assertEquals("Silla", ImportacionBienesDialog.cellVal(row, 4));
         }
     }
+
+    // ── second-round fixes ────────────────────────────────────────────────
+
+    @Test void parseCsvLine_conPuntoYComa() {
+        assertEquals(';', ImportacionBienesDialog.separador("Nombre;Categoria;Area"));
+        assertEquals(',', ImportacionBienesDialog.separador("Nombre,Categoria,Area"));
+        assertArrayEquals(new String[]{"Silla", "1,5", "x;y"},
+            ImportacionBienesDialog.parseCsvLine("Silla;1,5;\"x;y\"", ';'));
+    }
+
+    @Test void leerTexto_archivoAnsiDeExcel_conservaLosAcentos(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path ansi = dir.resolve("ansi.csv");
+        java.nio.file.Files.write(ansi, "Tesorería".getBytes(java.nio.charset.Charset.forName("windows-1252")));
+        assertEquals("Tesorería", ImportacionBienesDialog.leerTexto(ansi.toFile()));
+        java.nio.file.Path utf8 = dir.resolve("utf8.csv");
+        java.nio.file.Files.writeString(utf8, "Tesorería");
+        assertEquals("Tesorería", ImportacionBienesDialog.leerTexto(utf8.toFile()));
+    }
+
+    @Test void coincidenciaUnica_soloCuandoNoHayDuda() {
+        java.util.Map<String, String> areas = new java.util.LinkedHashMap<>();
+        areas.put("direccion de catastro", "Dirección de Catastro");
+        areas.put("direccion de obras publicas", "Dirección de Obras Públicas");
+        assertEquals("Dirección de Catastro", ImportacionBienesDialog.coincidenciaUnica(areas, "catastro"));
+        assertNull(ImportacionBienesDialog.coincidenciaUnica(areas, "direccion"), "ambigua: no se adivina");
+        assertNull(ImportacionBienesDialog.coincidenciaUnica(areas, ""), "vacía: no coincide con todo");
+    }
 }

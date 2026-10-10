@@ -173,6 +173,60 @@ class IntegridadInventarioIntegrationTest extends IntegrationTestBase {
         assertEquals(4, productoRepo.findById(p.getId()).orElseThrow().getStockActual());
     }
 
+    // ── Un documento vigente manda ───────────────────────────────────────────
+
+    private static com.sibim.model.ResguardoItem item(Producto p) {
+        com.sibim.model.ResguardoItem it = new com.sibim.model.ResguardoItem();
+        it.setProductoId(p.getId());
+        it.setProductoNombre(p.getNombre());
+        it.setProductoCodigo(p.getCodigo());
+        it.setArea(p.getArea());
+        return it;
+    }
+
+    @Test
+    void bienConResguardoVigente_noSeTransfiereNiSeDaDeBaja_hastaCancelarlo() throws Exception {
+        Producto p = nuevoBien("Laptop", AREA_SGM, 1);
+        var resguardos = new com.sibim.service.ResguardoService();
+        var resguardo = resguardos.crear("Ana López", "Analista", AREA_SGM, java.util.List.of(item(p)), null);
+
+        var transferir = assertThrows(MovimientoService.ValidationException.class, () ->
+            movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "x", null, AREA_TICS));
+        assertTrue(transferir.getMessage().contains(resguardo.getNumero()), transferir.getMessage());
+        var baja = assertThrows(ProductoService.ValidationException.class, () ->
+            productoService.darDeBaja(p.getId(), "obsoleto"));
+        assertTrue(baja.getMessage().contains(resguardo.getNumero()), baja.getMessage());
+        assertEquals(AREA_SGM, productoRepo.findById(p.getId()).orElseThrow().getArea());
+
+        resguardos.cancelar(resguardo.getId());
+        movimientoService.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "x", null, AREA_TICS);
+        assertEquals(AREA_TICS, productoRepo.findById(p.getId()).orElseThrow().getArea());
+    }
+
+    @Test
+    void unResguardoQueNoSeGuarda_noGastaSuFolio() throws Exception {
+        var repo = new com.sibim.repository.ResguardoRepository();
+        Producto a = nuevoBien("Mesa", AREA_SGM, 1);
+        com.sibim.model.Resguardo primero = new com.sibim.model.Resguardo();
+        primero.setResguardanteNombre("Uno");
+        primero.setItems(new java.util.ArrayList<>(java.util.List.of(item(a))));
+        repo.saveOnline(primero);
+
+        com.sibim.model.Resguardo repetido = new com.sibim.model.Resguardo();
+        repetido.setId(primero.getId());   // same id: the insert fails
+        repetido.setResguardanteNombre("Dos");
+        repetido.setItems(new java.util.ArrayList<>());
+        assertThrows(SQLException.class, () -> repo.saveOnline(repetido));
+
+        com.sibim.model.Resguardo siguiente = new com.sibim.model.Resguardo();
+        siguiente.setResguardanteNombre("Tres");
+        siguiente.setItems(new java.util.ArrayList<>());
+        repo.saveOnline(siguiente);
+        int n1 = Integer.parseInt(primero.getNumero().substring(primero.getNumero().lastIndexOf('-') + 1));
+        int n2 = Integer.parseInt(siguiente.getNumero().substring(siguiente.getNumero().lastIndexOf('-') + 1));
+        assertEquals(n1 + 1, n2, "el folio del resguardo que falló no debe quedar como hueco");
+    }
+
     // ── Transferencias ───────────────────────────────────────────────────────
 
     @Test

@@ -75,7 +75,8 @@ public class BackupService {
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        // Compact: the whole dump is held in memory to be encrypted, and
+        // indenting it only made it larger (nobody reads an encrypted file).
         // Amounts are NUMERIC(12,2): read them back as BigDecimal, not double.
         mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
@@ -131,6 +132,7 @@ public class BackupService {
             conn.setAutoCommit(false);
             try {
                 rechazarSiBorraDatosNoRespaldados(conn, tablas);
+                apartarLoQueNoVaEnElRespaldo(conn);
                 // Only tables the backup contains are replaced; the audit trail
                 // is only added to.
                 for (int i = TABLAS.size() - 1; i >= 0; i--) {
@@ -141,6 +143,7 @@ public class BackupService {
                     List<Map<String, Object>> filas = tablas.get(tabla);
                     if (filas != null) insertarFilas(conn, tabla, filas, TABLA_AUDITORIA.equals(tabla));
                 }
+                reponerLoApartado(conn);
                 conn.commit();
                 ProductosEnMemoria.invalidar();
             } catch (Exception e) {
@@ -151,6 +154,47 @@ public class BackupService {
             }
             new AuditLogRepository().log("backup", origen.getName(), origen.getName(), "restaurar",
                 "Restauración completa aplicada");
+        }
+    }
+
+    /** Tables left out of the backup that hang off one the restore empties
+     *  (ON DELETE CASCADE): table → {its FK column, the table it points at}.
+     *  Their rows are set aside and put back for the bienes/cuentas that
+     *  still exist afterwards; without this a restore silently wiped the
+     *  áreas' requests and the list of PCs each account has signed in on. */
+    private static final Map<String, String[]> DEPENDIENTES_EXCLUIDAS = Map.of(
+        "solicitudes",    new String[]{"producto_id", "products"},
+        "accesos_equipo", new String[]{"user_id", "users"});
+
+    private void apartarLoQueNoVaEnElRespaldo(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            for (String tabla : DEPENDIENTES_EXCLUIDAS.keySet())
+                st.execute("CREATE TEMP TABLE _resp_" + tabla + " ON COMMIT DROP AS SELECT * FROM " + tabla);
+            // Deleting users sets audit_log.usuario_id to NULL (V20) on every
+            // entry the bitácora keeps: remember who each one belonged to.
+            st.execute("CREATE TEMP TABLE _resp_audit_usuario ON COMMIT DROP AS "
+                + "SELECT id, usuario_id FROM audit_log WHERE usuario_id IS NOT NULL");
+        }
+    }
+
+    private void reponerLoApartado(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            for (Map.Entry<String, String[]> e : DEPENDIENTES_EXCLUIDAS.entrySet()) {
+                String tabla = e.getKey(), columna = e.getValue()[0], padre = e.getValue()[1];
+                st.executeUpdate("INSERT INTO " + tabla + " SELECT t.* FROM _resp_" + tabla + " t "
+                    + "WHERE EXISTS (SELECT 1 FROM " + padre + " p WHERE p.id = t." + columna + ") "
+                    + "ON CONFLICT DO NOTHING");
+            }
+        }
+        // The app's own database role may not UPDATE the bitácora
+        // (rol_app_minimo.sql): then the names stay, only the link is lost.
+        java.sql.Savepoint antes = conn.setSavepoint();
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate("UPDATE audit_log a SET usuario_id = t.usuario_id FROM _resp_audit_usuario t "
+                + "WHERE a.id = t.id AND a.usuario_id IS NULL "
+                + "AND EXISTS (SELECT 1 FROM users u WHERE u.id = t.usuario_id)");
+        } catch (SQLException e) {
+            conn.rollback(antes);
         }
     }
 

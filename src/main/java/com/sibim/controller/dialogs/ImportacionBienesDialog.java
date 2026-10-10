@@ -347,7 +347,7 @@ public class ImportacionBienesDialog {
                     int ok = 0; int fail = 0;
                     for (Producto p : validas) {
                         try { productoService.save(p); ok++; }
-                        catch (Exception ex) { fail++; }
+                        catch (Exception ex) { fail++; log.warn("No se importó '{}': {}", p.getNombre(), ex.getMessage()); }
                     }
                     return new int[]{ok, fail};
                 },
@@ -506,11 +506,7 @@ public class ImportacionBienesDialog {
                     String catNorm = normalize(catNombre);
                     String matchedName = catByNorm.get(catNorm);
                     if (matchedName == null) {
-                        for (Map.Entry<String, String> e : catByNorm.entrySet()) {
-                            if (e.getKey().contains(catNorm) || catNorm.contains(e.getKey())) {
-                                matchedName = e.getValue(); break;
-                            }
-                        }
+                        matchedName = coincidenciaUnica(catByNorm, catNorm);
                     }
                     if (matchedName == null) {
                         error = "Categoría no encontrada: \"" + catNombre + "\"";
@@ -527,11 +523,7 @@ public class ImportacionBienesDialog {
                         String areaNorm = normalize(area);
                         String matchedArea = areaByNorm.get(areaNorm);
                         if (matchedArea == null) {
-                            for (Map.Entry<String, String> e : areaByNorm.entrySet()) {
-                                if (e.getKey().contains(areaNorm) || areaNorm.contains(e.getKey())) {
-                                    matchedArea = e.getValue(); break;
-                                }
-                            }
+                            matchedArea = coincidenciaUnica(areaByNorm, areaNorm);
                         }
                         if (matchedArea == null) {
                             error = "Área no reconocida: \"" + area + "\". Usa un área válida del organigrama.";
@@ -550,7 +542,7 @@ public class ImportacionBienesDialog {
                     if (!ubicac.isBlank())   p.setUbicacion(ubicac.length() > 200 ? ubicac.substring(0, 200) : ubicac);
                     if (!desc.isBlank())     p.setDescripcion(desc.length() > 1000 ? desc.substring(0, 1000) : desc);
 
-                    int cant  = parseIntSafe(cantStr, 0);
+                    int cant  = parseIntSafe(cantStr, 1)   /* a bien with no cantidad is one bien, not zero */;
                     int stMin = parseIntSafe(stMinStr, 0);
                     int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
                     if (stMin > stMax) {
@@ -600,15 +592,15 @@ public class ImportacionBienesDialog {
             throw new IOException("El archivo supera el límite de 50 MB ("
                 + (file.length() / (1024 * 1024)) + " MB). Divídalo en partes más pequeñas.");
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream(file), java.nio.charset.StandardCharsets.UTF_8))) {
+        try (BufferedReader br = new BufferedReader(new java.io.StringReader(leerTexto(file)))) {
 
             String headerLine = br.readLine();
             if (headerLine == null) throw new IOException("El archivo está vacío");
             // Strip UTF-8 BOM if present
             if (headerLine.startsWith("﻿")) headerLine = headerLine.substring(1);
 
-            String[] headers = parseCsvLine(headerLine);
+            char sep = separador(headerLine);
+            String[] headers = parseCsvLine(headerLine, sep);
             Map<String, Integer> colIdx = new LinkedHashMap<>();
             for (int i = 0; i < headers.length; i++) {
                 colIdx.put(normalize(headers[i]), i);
@@ -632,7 +624,7 @@ public class ImportacionBienesDialog {
                     break;
                 }
 
-                String[] cols = parseCsvLine(line);
+                String[] cols = parseCsvLine(line, sep);
                 String error = null;
                 Producto p = new Producto();
 
@@ -685,12 +677,7 @@ public class ImportacionBienesDialog {
                     String catNorm = normalize(catNombre);
                     String matchedName = catByNorm.get(catNorm);
                     if (matchedName == null) {
-                        // fuzzy: partial contains
-                        for (Map.Entry<String, String> e : catByNorm.entrySet()) {
-                            if (e.getKey().contains(catNorm) || catNorm.contains(e.getKey())) {
-                                matchedName = e.getValue(); break;
-                            }
-                        }
+                        matchedName = coincidenciaUnica(catByNorm, catNorm);
                     }
                     if (matchedName == null) {
                         error = "Categoría no encontrada: \"" + catNombre + "\"";
@@ -708,12 +695,7 @@ public class ImportacionBienesDialog {
                         String areaNorm = normalize(area);
                         String matchedArea = areaByNorm.get(areaNorm);
                         if (matchedArea == null) {
-                            // partial match
-                            for (Map.Entry<String, String> e : areaByNorm.entrySet()) {
-                                if (e.getKey().contains(areaNorm) || areaNorm.contains(e.getKey())) {
-                                    matchedArea = e.getValue(); break;
-                                }
-                            }
+                            matchedArea = coincidenciaUnica(areaByNorm, areaNorm);
                         }
                         if (matchedArea == null) {
                             error = "Área no reconocida: \"" + area + "\". Usa un área válida del organigrama.";
@@ -733,7 +715,7 @@ public class ImportacionBienesDialog {
                     if (!ubicac.isBlank())   p.setUbicacion(ubicac.length() > 200 ? ubicac.substring(0, 200) : ubicac);
                     if (!desc.isBlank())     p.setDescripcion(desc.length() > 1000 ? desc.substring(0, 1000) : desc);
 
-                    int cant  = parseIntSafe(cantStr, 0);
+                    int cant  = parseIntSafe(cantStr, 1)   /* a bien with no cantidad is one bien, not zero */;
                     int stMin = parseIntSafe(stMinStr, 0);
                     int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
                     if (stMin > stMax) {
@@ -766,6 +748,48 @@ public class ImportacionBienesDialog {
     // ── CSV line parser (handles quoted fields) ───────────────────────────
 
     static String[] parseCsvLine(String line) {
+        return parseCsvLine(line, ',');
+    }
+
+    /** Excel saves "CSV (delimitado por comas)" in the PC's ANSI code page,
+     *  not UTF-8: read as UTF-8, every área or categoría with an accent came
+     *  out garbled and was rejected as "no reconocida". */
+    static String leerTexto(File file) throws IOException {
+        byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+        try {
+            return java.nio.charset.StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                .decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+        } catch (java.nio.charset.CharacterCodingException e) {
+            return new String(bytes, java.nio.charset.Charset.forName("windows-1252"));
+        }
+    }
+
+    /** ';' when the header uses it more than ',' (Excel with a regional list separator). */
+    static char separador(String headerLine) {
+        long comas = headerLine.chars().filter(c -> c == ',').count();
+        long puntoYComa = headerLine.chars().filter(c -> c == ';').count();
+        return puntoYComa > comas ? ';' : ',';
+    }
+
+    /** The entry whose name contains (or is contained in) {@code norm}, only
+     *  when exactly one does. Taking the first of several put bienes in the
+     *  wrong área without a word ("direccion" matches every dirección), and an
+     *  empty value matched everything. */
+    static String coincidenciaUnica(Map<String, String> porNombre, String norm) {
+        if (norm == null || norm.isBlank()) return null;
+        String unica = null;
+        for (Map.Entry<String, String> e : porNombre.entrySet()) {
+            if (e.getKey().contains(norm) || norm.contains(e.getKey())) {
+                if (unica != null && !unica.equals(e.getValue())) return null;
+                unica = e.getValue();
+            }
+        }
+        return unica;
+    }
+
+    static String[] parseCsvLine(String line, char sep) {
         List<String> fields = new ArrayList<>();
         boolean inQuotes = false;
         StringBuilder current = new StringBuilder();
@@ -779,7 +803,7 @@ public class ImportacionBienesDialog {
                 } else { current.append(c); }
             } else {
                 if (c == '"') { inQuotes = true; }
-                else if (c == ',') { fields.add(current.toString().trim()); current = new StringBuilder(); }
+                else if (c == sep) { fields.add(current.toString().trim()); current = new StringBuilder(); }
                 else { current.append(c); }
             }
         }

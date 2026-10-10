@@ -61,6 +61,19 @@ public final class ImageUtils {
 
     public static long maxSourceBytes() { return MAX_SOURCE_BYTES; }
 
+    /** What a JavaFX {@code Image} needs to load a stored photo or factura:
+     *  the URL itself when it is in Storage, a file: URI when it is a path on
+     *  this PC. (Path.of on an https URL throws on Windows, so every screen
+     *  that built the URI by hand showed no photo once it was in Storage.) */
+    public static String uri(String rutaOUrl) {
+        return SupabaseStorage.isRemoteUrl(rutaOUrl) ? rutaOUrl : Path.of(rutaOUrl).toUri().toString();
+    }
+
+    /** True for a photo kept as a file path: only the PC that has the file sees it. */
+    public static boolean soloEnEstaPc(String rutaOUrl) {
+        return rutaOUrl != null && !rutaOUrl.isBlank() && !SupabaseStorage.isRemoteUrl(rutaOUrl);
+    }
+
     /**
      * Resizes (only if larger than {@link #MAX_DIMENSION} on its longest side) and
      * re-encodes the source image as JPEG at dest. Keeps stored product photos small

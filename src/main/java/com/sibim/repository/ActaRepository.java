@@ -58,7 +58,7 @@ public class ActaRepository {
      *  actas here); a provisional folio is replaced by the next real one. */
     public ActaEntregaRecepcion saveOnline(ActaEntregaRecepcion acta) throws SQLException {
         if (acta.getId() == null) acta.setId(UUID.randomUUID().toString());
-        if (acta.getNumero() == null || acta.getNumero().contains("-PROV-")) acta.setNumero(nextNumero());
+
 
         String sql = """
             INSERT INTO actas_entrega_recepcion
@@ -67,10 +67,10 @@ public class ActaRepository {
                creado_por_id, creado_por_nombre, created_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NOW())
             """;
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        acta.setNumero(folioRepo.guardarConFolio("AER", acta.getNumero(), (conn, numero) -> {
+          try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, acta.getId());
-            ps.setString(2, acta.getNumero());
+            ps.setString(2, numero);
             ps.setString(3, acta.getAdminSaliente());
             ps.setString(4, acta.getCargoSaliente());
             ps.setString(5, acta.getAdminEntrante());
@@ -82,7 +82,8 @@ public class ActaRepository {
             ps.setString(11, acta.getCreadoPorId());
             ps.setString(12, acta.getCreadoPorNombre());
             ps.executeUpdate();
-        }
+          }
+        }));
         acta.setCreadoEn(LocalDateTime.now());
         new AuditLogRepository().log("acta", acta.getId(), acta.getNumero(), "crear",
             "Acta de entrega-recepción " + acta.getNumero() + " · " + acta.getAdminSaliente()

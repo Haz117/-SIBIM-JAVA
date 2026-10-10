@@ -259,7 +259,11 @@ public class ProductoRepository {
                 || p.getCodigo().toLowerCase().contains(f.busqueda().toLowerCase())
                 || (p.getProveedor() != null && p.getProveedor().toLowerCase().contains(f.busqueda().toLowerCase()))
                 || (p.getUbicacion() != null && p.getUbicacion().toLowerCase().contains(f.busqueda().toLowerCase()))
-                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(f.busqueda().toLowerCase())))
+                || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(f.busqueda().toLowerCase()))
+                // Same fields the SQL search covers: offline, a serie or a marca found nothing.
+                || (p.getMarca() != null && p.getMarca().toLowerCase().contains(f.busqueda().toLowerCase()))
+                || (p.getModelo() != null && p.getModelo().toLowerCase().contains(f.busqueda().toLowerCase()))
+                || (p.getNumeroSerie() != null && p.getNumeroSerie().toLowerCase().contains(f.busqueda().toLowerCase())))
             .filter(p -> f.categoriaId() == null || f.categoriaId().equals(p.getCategoriaId()))
             .filter(p -> f.area() == null || f.area().equals(p.getArea()))
             .filter(p -> f.resguardante() == null || f.resguardante().equals(p.getResguardante()))
@@ -562,12 +566,39 @@ public class ProductoRepository {
 
     /** Replay target for SyncService — see {@link #saveOnline}. */
     public void reactivarOnline(String id) throws SQLException {
-        String sql = "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, updated_at = NOW() WHERE id = ? AND fecha_baja IS NOT NULL";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, id);
-            if (ps.executeUpdate() == 0)
-                throw new SQLException("El bien no existe o no estaba dado de baja (id=" + id + ")");
+        // While it was de baja its número was free for another bien, so it
+        // comes back with the next free one of its área — picked here, in the
+        // same transaction that reactivates it. (A reactivation replayed from
+        // an offline PC used to keep the old número and was thrown away when
+        // another bien already had it.)
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                String area;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT area FROM products WHERE id = ? AND fecha_baja IS NOT NULL FOR UPDATE")) {
+                    ps.setString(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next())
+                            throw new SQLException("El bien no existe o no estaba dado de baja (id=" + id + ")");
+                        area = rs.getString("area");
+                    }
+                }
+                String codigo = AreaCodigos.tienePrefijo(area) ? siguienteCodigo(conn, area) : null;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, codigo = COALESCE(?, codigo), "
+                        + "updated_at = NOW() WHERE id = ?")) {
+                    ps.setString(1, codigo);
+                    ps.setString(2, id);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         }
     }
 
@@ -578,16 +609,16 @@ public class ProductoRepository {
      *  with a código another active row already holds. Online-only, like the
      *  rest of the área-nomenclature feature (see ProductoService#asignarCodigo). */
     public void reactivarConCodigo(String id, String nuevoCodigo) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) { reactivar(id); return; }
-        String sql = "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, codigo = ?, updated_at = NOW() "
-            + "WHERE id = ? AND fecha_baja IS NOT NULL";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, nuevoCodigo);
-            ps.setString(2, id);
-            if (ps.executeUpdate() == 0)
-                throw new SQLException("El bien no existe o no estaba dado de baja (id=" + id + ")");
+        if (DatabaseConfig.getLocalDataStore() != null) {
+            // Demo and offline follow the same rule: without this the bien
+            // came back with its old número even when another one had it.
+            reactivar(id);
+            if (DatabaseConfig.isOfflineMode()) OfflineStore.updateProductoCodigo(id, nuevoCodigo);
+            else DemoDataStore.cambiarCodigo(id, nuevoCodigo);
+            return;
         }
+        // Online the número is picked inside the reactivation's own transaction.
+        reactivarOnline(id);
     }
 
     /** Next free código for {@code area} among active bienes (the rule itself
@@ -604,12 +635,29 @@ public class ProductoRepository {
         }
     }
 
+    /** The next free código as the server has it, whatever the offline flag
+     *  says — SyncService needs it while replaying. */
+    public String siguienteCodigoOnline(String area) throws SQLException {
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            return siguienteCodigo(conn, area);
+        }
+    }
+
     /** Same as {@link #siguienteCodigo(String)}, on the caller's connection —
      *  so a transfer can pick the código inside its own transaction. */
     public static String siguienteCodigo(Connection conn, String area) throws SQLException {
+        // Inside a transaction (a transfer), one área is numbered by one PC at
+        // a time: two transfers into the same área used to pick the same
+        // número, and the second failed on the unique index.
+        if (!conn.getAutoCommit()) {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT pg_advisory_xact_lock(hashtext(?))")) {
+                ps.setString(1, "sibim-codigo:" + AreaCodigos.prefijo(area));
+                ps.execute();
+            }
+        }
         List<String> codigos = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT codigo FROM products WHERE codigo LIKE ? AND fecha_baja IS NULL")) {
+                "SELECT codigo FROM products WHERE UPPER(codigo) LIKE ? AND fecha_baja IS NULL")) {
             ps.setString(1, AreaCodigos.prefijo(area) + "/%");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) codigos.add(rs.getString(1));
@@ -1093,23 +1141,24 @@ public class ProductoRepository {
         }
     }
 
-    /** Returns products whose proxima_revision falls within the next {@code diasAnticipacion} days. */
+    /** Bienes of the caller's áreas whose proxima_revision is already past or
+     *  falls within the next {@code diasAnticipacion} days — an overdue
+     *  revision stays listed until it is done, like an expired garantía. */
     public List<Producto> findProximasRevisiones(int diasAnticipacion) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null)
             return new ArrayList<>();
-        String sql = BASE_SELECT
+        StringBuilder sb = new StringBuilder(BASE_SELECT
             + " WHERE p.fecha_baja IS NULL"
             + "   AND p.proxima_revision IS NOT NULL"
-            + "   AND p.proxima_revision BETWEEN CURRENT_DATE AND CURRENT_DATE + ?::interval"
-            + " ORDER BY p.proxima_revision";
-        List<Producto> result = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, diasAnticipacion + " days");
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapRow(rs));
-            }
+            + "   AND p.proxima_revision <= ?");
+        List<Object> params = new ArrayList<>();
+        params.add(java.sql.Date.valueOf(LocalDate.now().plusDays(diasAnticipacion)));
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
         }
-        return result;
+        sb.append(" ORDER BY p.proxima_revision");
+        return queryDynamic(sb.toString(), params);
     }
 }

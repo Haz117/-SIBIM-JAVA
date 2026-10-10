@@ -31,7 +31,6 @@ import javafx.util.Callback;
 import javafx.util.Duration;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -335,7 +334,7 @@ public final class DialogUtil {
         if (fotoUrl == null || fotoUrl.isBlank()) return;
         Image img;
         try {
-            img = new Image(Path.of(fotoUrl).toUri().toString());
+            img = new Image(ImageUtils.uri(fotoUrl));
             if (img.isError()) return;
         } catch (Exception e) {
             return;

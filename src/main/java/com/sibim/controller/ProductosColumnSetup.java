@@ -15,7 +15,6 @@ import javafx.scene.layout.StackPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
-import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -62,7 +61,7 @@ class ProductosColumnSetup {
                         Image cached = thumbnailCache.get(url);
                         if (cached == null || cached.isError()) {
                             boolean remote = url.startsWith("http://") || url.startsWith("https://");
-                            String imageUri = remote ? url : Path.of(url).toUri().toString();
+                            String imageUri = com.sibim.util.ImageUtils.uri(url);
                             // backgroundLoading only for remote — local files are instant
                             cached = new Image(imageUri, 38, 38, true, true, remote);
                             if (!cached.isError()) thumbnailCache.put(url, cached);

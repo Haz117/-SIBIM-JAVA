@@ -33,9 +33,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -155,7 +153,7 @@ public final class ProductoDetailDialog {
         if (p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) {
             try {
                 ImageView iv = new ImageView(
-                    new Image(Path.of(p.getFotoUrl()).toUri().toString(), 52, 52, true, true, true));
+                    new Image(com.sibim.util.ImageUtils.uri(p.getFotoUrl()), 52, 52, true, true, true));
                 iv.setFitWidth(52); iv.setFitHeight(52); iv.setPreserveRatio(true);
                 thumbPane.getChildren().add(iv);
                 thumbPane.getStyleClass().addAll("dlg-thumb-photo", "foto-cell-box-clickable");
@@ -265,7 +263,7 @@ public final class ProductoDetailDialog {
         String facturaUrl = p.getFacturaUrl();
         if (facturaUrl != null && !facturaUrl.isBlank()) {
             try {
-                Image factImg = new Image(Path.of(facturaUrl).toUri().toString(), 100, 75, true, true, true);
+                Image factImg = new Image(com.sibim.util.ImageUtils.uri(facturaUrl), 100, 75, true, true, true);
                 ImageView factIv = new ImageView(factImg);
                 factIv.setFitWidth(100); factIv.setFitHeight(75); factIv.setPreserveRatio(true);
                 final String fUrl = facturaUrl;
@@ -291,7 +289,7 @@ public final class ProductoDetailDialog {
                 String fotoPath = _fotosGaleria.get(fi);
                 try {
                     ImageView iv = new ImageView(
-                        new Image(Path.of(fotoPath).toUri().toString(), 90, 70, true, true, true));
+                        new Image(com.sibim.util.ImageUtils.uri(fotoPath), 90, 70, true, true, true));
                     iv.setFitWidth(90); iv.setFitHeight(70); iv.setPreserveRatio(true);
                     iv.getStyleClass().add("foto-thumbnail-clickable");
                     iv.setOnMouseClicked(e -> openLightbox(galFotos, idx));
@@ -760,7 +758,7 @@ public final class ProductoDetailDialog {
         Runnable refresh = () -> {
             String path = fotos.get(idx[0]);
             try {
-                bigImg.setImage(new Image(new FileInputStream(path), 620, 440, true, true));
+                bigImg.setImage(new Image(com.sibim.util.ImageUtils.uri(path), 620, 440, true, true, true));
             } catch (Exception ex) {
                 bigImg.setImage(null);
             }

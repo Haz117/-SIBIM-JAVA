@@ -67,8 +67,8 @@ public class MovimientoRepository {
             Set<String> accessible = SessionManager.getAccessibleAreas();
             StringBuilder sql = new StringBuilder("""
                 SELECT TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS ym,
-                    SUM(CASE WHEN m.tipo = 'ENTRADA' THEN m.cantidad ELSE 0 END)::int AS entradas,
-                    SUM(CASE WHEN m.tipo = 'SALIDA'  THEN m.cantidad ELSE 0 END)::int AS salidas
+                    SUM(CASE WHEN m.tipo = 'entrada' THEN m.cantidad ELSE 0 END)::int AS entradas,
+                    SUM(CASE WHEN m.tipo = 'salida'  THEN m.cantidad ELSE 0 END)::int AS salidas
                 FROM movements m
                 JOIN products p ON p.id = m.producto_id
                 WHERE m.created_at >= ?
@@ -119,8 +119,8 @@ public class MovimientoRepository {
         Set<String> accessible = SessionManager.getAccessibleAreas();
         StringBuilder sql = new StringBuilder("""
             SELECT TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS ym,
-                SUM(CASE WHEN m.tipo = 'ENTRADA' THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_entradas,
-                SUM(CASE WHEN m.tipo = 'SALIDA'  THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_salidas
+                SUM(CASE WHEN m.tipo = 'entrada' THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_entradas,
+                SUM(CASE WHEN m.tipo = 'salida'  THEN m.cantidad * COALESCE(p.precio_compra, 0) ELSE 0 END) AS valor_salidas
             FROM movements m
             JOIN products p ON p.id = m.producto_id
             WHERE m.created_at >= ?
@@ -980,7 +980,10 @@ public class MovimientoRepository {
             } else {
                 ps.setString(1, movimientoId);
             }
-            ps.executeUpdate();
+            // Another PC approved or rejected it first: say so instead of
+            // recording a rejection that never happened.
+            if (ps.executeUpdate() == 0)
+                throw new SQLException(com.sibim.service.MovimientoService.YA_ATENDIDA);
         }
     }
 

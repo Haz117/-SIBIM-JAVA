@@ -12,27 +12,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConteoRepository {
 
-    private static final AtomicBoolean COLS_MIGRATED = new AtomicBoolean(false);
-
-    private static void migrateItemColumns(Connection conn) {
-        if (COLS_MIGRATED.getAndSet(true)) return;
-        try (Statement st = conn.createStatement()) {
-            st.execute("ALTER TABLE conteo_items ADD COLUMN IF NOT EXISTS estado_conteo TEXT DEFAULT 'ENCONTRADO'");
-            st.execute("ALTER TABLE conteo_items ADD COLUMN IF NOT EXISTS nota TEXT");
-            st.execute("ALTER TABLE conteo_items ADD COLUMN IF NOT EXISTS producto_codigo TEXT");
-        } catch (SQLException e) {
-            // columns may already exist — not fatal
-        }
-    }
-
-    // Only the history views (findAll/findItems, reachable from
-    // Configuración → solo Admin) need this — guardar() below stays open to
-    // Admin/Secretario, whoever is allowed to run a conteo físico at all
-    // (gated in ProductosController), since it's their own session.
+    // The conteo físico and its history are Patrimonio's (admin), like the
+    // ajustes it produces.
     private void requireAdmin() {
         if (!SessionManager.isAdmin()) {
             throw new SecurityException("Solo el administrador puede consultar el historial de conteos");
@@ -45,6 +29,8 @@ public class ConteoRepository {
      *  separately through MovimientoService, same atomic/locked path as any
      *  other stock change. */
     public ConteoFisico guardar(ConteoFisico c) throws SQLException {
+        if (!SessionManager.isAdmin())
+            throw new SecurityException("Solo el administrador (Patrimonio) registra conteos físicos");
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
         if (c.getCreadoEn() == null) c.setCreadoEn(LocalDateTime.now());
         if (c.getItems() == null) c.setItems(List.of());
@@ -62,52 +48,7 @@ public class ConteoRepository {
             auditConteo(c);
             return c;
         }
-        String insertConteo = """
-            INSERT INTO conteos_fisicos (id, usuario_id, usuario_nombre, total_contados, total_discrepancias, created_at)
-            VALUES (?,?,?,?,?,?)
-            """;
-        String insertItem = """
-            INSERT INTO conteo_items (id, conteo_id, producto_id, producto_nombre, producto_codigo, area, stock_sistema, stock_contado, ajustado, estado_conteo, nota)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
-            """;
-        try (Connection conn = DatabaseConfig.getConnection()) {
-            migrateItemColumns(conn);
-            conn.setAutoCommit(false);
-            try {
-                try (PreparedStatement ps = conn.prepareStatement(insertConteo)) {
-                    ps.setString(1, c.getId());
-                    ps.setString(2, c.getUsuarioId());
-                    ps.setString(3, c.getUsuarioNombre());
-                    ps.setInt(4, c.getTotalContados());
-                    ps.setInt(5, c.getTotalDiscrepancias());
-                    ps.setTimestamp(6, Timestamp.valueOf(c.getCreadoEn()));
-                    ps.executeUpdate();
-                }
-                try (PreparedStatement ps = conn.prepareStatement(insertItem)) {
-                    for (ConteoItem it : c.getItems()) {
-                        ps.setString(1, it.getId());
-                        ps.setString(2, it.getConteoId());
-                        ps.setString(3, it.getProductoId());
-                        ps.setString(4, it.getProductoNombre());
-                        ps.setString(5, it.getProductoCodigo());
-                        ps.setString(6, it.getArea());
-                        ps.setInt(7, it.getStockSistema());
-                        ps.setInt(8, it.getStockContado());
-                        ps.setBoolean(9, it.isAjustado());
-                        ps.setString(10, it.getEstadoConteo() != null ? it.getEstadoConteo() : "ENCONTRADO");
-                        ps.setString(11, it.getNota());
-                        ps.addBatch();
-                    }
-                    ps.executeBatch();
-                }
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
-            }
-        }
+        guardarOnline(c);
         auditConteo(c);
         return c;
     }
@@ -141,7 +82,6 @@ public class ConteoRepository {
             VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """;
         try (Connection conn = DatabaseConfig.getConnection()) {
-            migrateItemColumns(conn);
             conn.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = conn.prepareStatement(insertConteo)) {
@@ -202,7 +142,6 @@ public class ConteoRepository {
         String sql = "SELECT * FROM conteo_items WHERE conteo_id = ? ORDER BY producto_nombre";
         List<ConteoItem> list = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection()) {
-            migrateItemColumns(conn);
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, conteoId);
                 try (ResultSet rs = ps.executeQuery()) {

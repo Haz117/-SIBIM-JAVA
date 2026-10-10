@@ -76,6 +76,11 @@ class DesignConsistencyTest {
         Pattern fxmlIcon = Pattern.compile("iconLiteral=\"([^\"]+)\"");
         Pattern javaIcon = Pattern.compile("(?:new FontIcon|setIconLiteral)\\(\"([a-z0-9]+-[a-z0-9-]+)\"\\)");
         List<String> malos = new ArrayList<>();
+        // By reflection: resolve() returns ikonli-core's IkonHandler, which the
+        // IDE's compiler does not see from this module ("The type IkonHandler is
+        // not visible") — its broken class in target/ then failed the Maven run.
+        java.lang.reflect.Method resolver = org.kordamp.ikonli.javafx.IkonResolver.class.getMethod("resolve", String.class);
+        java.lang.reflect.Method resolverIcono = resolver.getReturnType().getMethod("resolve", String.class);
         Path fxmlDir = Path.of(getClass().getResource("/fxml").toURI());
         Path javaDir = Path.of("src/main/java");
         if (!Files.isDirectory(javaDir)) javaDir = Path.of("../src/main/java");   // surefire runs from target/
@@ -86,7 +91,8 @@ class DesignConsistencyTest {
                     while (m.find()) {
                         String icon = m.group(1);
                         try {
-                            org.kordamp.ikonli.javafx.IkonResolver.getInstance().resolve(icon).resolve(icon);
+                            resolverIcono.invoke(
+                                resolver.invoke(org.kordamp.ikonli.javafx.IkonResolver.getInstance(), icon), icon);
                         } catch (Exception e) {
                             malos.add(f.getFileName() + ": " + icon);
                         }

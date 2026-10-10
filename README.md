@@ -10,7 +10,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Depreciación en línea recta (SAT)** — cada bien puede tener fecha de adquisición, vida útil en años y valor residual; el sistema calcula automáticamente el valor depreciado actual y el porcentaje depreciado, visible en el detalle del bien con una barra de progreso codificada por color (verde / ámbar / rojo)
 - **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino. El **stock y el área de un bien solo cambian con movimientos**: el formulario de edición los muestra en solo lectura, la acción masiva "Transferir" registra transferencias (con aprobación para no-Admin) y guardar una edición nunca pisa un movimiento registrado mientras el formulario estaba abierto (si otro usuario modificó el bien, pide volver a abrirlo). Cada transferencia guarda el código patrimonial anterior y el nuevo. Solo el Admin puede eliminar un movimiento, y solo el más reciente de cada bien; los demás usan **Revertir**, que deja ambos registros
 - **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
-- **Solicitudes de préstamo y resguardo** — solo Patrimonio (Admin) registra préstamos, resguardos y comodatos. Un área los pide desde Bienes (clic derecho sobre el bien → "Solicitar préstamo" o "Solicitar resguardo"); la solicitud aparece en la campana del Admin y en Préstamos/Resguardos → "Solicitudes", donde se aprueba (se crea el documento con su folio) o se rechaza con un motivo que el área ve en "Mis solicitudes". Requiere conexión
+- **Préstamos, resguardos y comodatos solo de Patrimonio** — solo Patrimonio (Admin) los registra; las áreas ya no envían solicitudes por SIBIM (las piden directamente a Patrimonio). Las solicitudes enviadas antes de ese cambio siguen en la campana del Admin y en Préstamos/Resguardos → "Solicitudes", donde se aprueban o rechazan
 - **Equipos por cuenta** — una cuenta solo puede entrar sin internet en una PC donde ya entró con conexión en los últimos 30 días. Cada ingreso con conexión se anota por computadora, y Configuración → Usuarios → "Equipos por cuenta" (solo Admin) muestra qué cuentas ya están listas para trabajar sin internet, cuáles tienen el acceso vencido y cuáles no han entrado en ninguna PC. La lista incluye la versión de SIBIM instalada en cada equipo
 - **Errores de equipos** — los errores que SIBIM tiene en cualquier computadora se envían a la base (máximo 25 por sesión, sin repetir) y el Admin los ve en Configuración → "Errores de equipos" con el equipo, la cuenta y la versión; se conservan 90 días
 - **Respaldo automático** — en Configuración → "Respaldo automático" el Admin define una contraseña y esa computadora guarda cada día un respaldo cifrado en `%APPDATA%\SIBIMespaldos` (se conservan 30). La contraseña queda sellada con Windows DPAPI en esa PC; para restaurar se escribe la misma contraseña en cualquier equipo
@@ -52,14 +52,14 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | UI | JavaFX 21 + FXML + CSS + AtlantaFX (PrimerLight) |
 | Base de datos principal | PostgreSQL (gestionado por Flyway) |
 | Base de datos offline | SQLite 3.46 (`~/.sibim/offline.db`) |
-| Conexión BD | HikariCP (pool 10 conexiones, 8 s timeout) |
+| Conexión BD | HikariCP (pool de hasta 6 conexiones, 8 s timeout) |
 | Reportes PDF | iText 7 |
 | Reportes Excel | Apache POI |
 | Cifrado de contraseñas | BCrypt (at.favre.lib, factor 12) |
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (864 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1059 tests en la última ejecución) |
 
 ---
 
@@ -95,7 +95,7 @@ El sistema implementa múltiples capas de defensa:
 
 ## Configuración de base de datos
 
-El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V25` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse), eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada, los códigos anterior/nuevo de cada transferencia (V22) el contador de intentos de inicio de sesión compartido entre PCs (V23) y la tabla de áreas del municipio con su prefijo de código (V24, sembrada con las 44 áreas de Ixmiquilpan) y los PDF firmados de los resguardos por área guardados en la propia base para que cualquier PC los abra (V25). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
+El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente la primera vez que la app logra conectarse** a la base de datos (ver `src/main/resources/db/migration/`). Las migraciones actuales van de `V1` a `V30` y cubren el esquema inicial, índices de rendimiento, campos de activos, configuración institucional, resguardos, conteos físicos, email, historial de precios, mantenimiento, préstamos, actas, comodatos, dictámenes de baja, nomenclatura de código por área, campos de formatos oficiales (V19, re-aplicados de forma idempotente en V21 para bases donde su SQL no llegó a ejecutarse), eventos de auditoría del sistema (login fallido, respaldos) que no siempre tienen una entidad de negocio asociada, los códigos anterior/nuevo de cada transferencia (V22) el contador de intentos de inicio de sesión compartido entre PCs (V23) y la tabla de áreas del municipio con su prefijo de código (V24, sembrada con las 44 áreas de Ixmiquilpan) y los PDF firmados de los resguardos por área guardados en la propia base para que cualquier PC los abra (V25). Solo hace falta preparar la base vacía y las credenciales antes de arrancar:
 
 1. Crear la base de datos en PostgreSQL (vacía — no hace falta correr ningún script de esquema):
    ```sql
@@ -115,6 +115,8 @@ El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente l
    ```env
    IMG_DIR=\\servidor\sibim\imagenes
    ```
+
+   **Fotos de los bienes (Supabase Storage)** — con `SUPABASE_URL` y `SUPABASE_ANON_KEY` (la clave **pública** del proyecto) en el `.env`, las fotos y facturas se suben al bucket público `sibim-fotos` y todas las PCs las ven en la tabla, el detalle y los formatos PDF. Si falta `SUPABASE_ANON_KEY`, la foto queda como archivo de esa PC (SIBIM lo avisa al guardar) y ninguna otra computadora la ve; al agregar la clave, las fotos pendientes de esa PC se suben solas. La carpeta compartida `IMG_DIR` de abajo es la alternativa para instalaciones sin Supabase.
 
    **Configuración de la carpeta compartida de imágenes (despliegue multiPC)**
 
@@ -224,7 +226,7 @@ SIBIM-Java/
 │   │   └── resources/
 │   │       ├── fxml/              # 18 vistas de la interfaz
 │   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
-│   │       ├── db/migration/      # Migraciones Flyway V1–V25, se aplican solas al arrancar
+│   │       ├── db/migration/      # Migraciones Flyway V1–V30, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
 │   └── test/java/com/sibim/
@@ -233,7 +235,7 @@ SIBIM-Java/
 │       ├── db/offline/            # Tests del almacén offline (caducidad, outbox)
 │       ├── model/                 # Tests de entidades
 │       ├── repository/            # Tests de autorización de repositorios
-│       ├── service/               # Tests unitarios + autorización + exports (701 tests total)
+│       ├── service/               # Tests unitarios + autorización + exports 
 │       ├── session/               # Tests de SessionManager
 │       └── util/                  # Tests de utilidades
 ├── packaging/
@@ -315,14 +317,14 @@ pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d 
 
 El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta periódicamente fuera de esa PC.
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V26__descripcion.sql` (numeración consecutiva a partir de V25) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V31__descripcion.sql` (numeración consecutiva a partir de V30) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (964 en total)
+# Correr todos los tests (1059 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

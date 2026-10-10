@@ -26,16 +26,24 @@ public class MovimientoService {
     private final MovimientoRepository movimientoRepo;
     private final ProductoRepository productoRepo;
     private final AuditLogRepository auditRepo;
+    private final ProductoService.Compromiso documentos;
 
     public MovimientoService() {
-        this(new MovimientoRepository(), new ProductoRepository(), new AuditLogRepository());
+        this(new MovimientoRepository(), new ProductoRepository(), new AuditLogRepository(),
+            ProductoService::documentoVigente);
     }
 
     MovimientoService(MovimientoRepository movimientoRepo, ProductoRepository productoRepo,
                       AuditLogRepository auditRepo) {
+        this(movimientoRepo, productoRepo, auditRepo, id -> Optional.empty());
+    }
+
+    MovimientoService(MovimientoRepository movimientoRepo, ProductoRepository productoRepo,
+                      AuditLogRepository auditRepo, ProductoService.Compromiso documentos) {
         this.movimientoRepo = movimientoRepo;
         this.productoRepo   = productoRepo;
         this.auditRepo      = auditRepo;
+        this.documentos     = documentos;
     }
 
     public List<Movimiento> getAll() throws SQLException {
@@ -163,6 +171,11 @@ public class MovimientoService {
                 .anyMatch(p -> productoId.equals(p.getProductoId()));
             if (yaPendiente)
                 throw new ValidationException("Este bien ya tiene una transferencia pendiente de aprobación");
+            // A préstamo, comodato or resguardo in force names the área or the
+            // person that has the bien; moving it would contradict the document.
+            Optional<String> documento = documentos.de(productoId);
+            if (documento.isPresent())
+                throw new ValidationException("No se puede transferir: el bien " + documento.get());
         }
 
         int stockNuevo = ProductoUtils.calcularStockNuevo(tipo.getCodigo(), producto.getStockActual(), cantidad);
@@ -257,7 +270,12 @@ public class MovimientoService {
         ProductosEnMemoria.invalidar();
         requireAdminForTransferWorkflow();
         requireConexionParaResolver();
-        movimientoRepo.rechazarTransferencia(movimientoId, motivo);
+        try {
+            movimientoRepo.rechazarTransferencia(movimientoId, motivo);
+        } catch (SQLException e) {
+            if (isBusinessRuleMessage(e)) throw new ValidationException(e.getMessage());
+            throw e;
+        }
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_rechazada",
             "Transferencia rechazada por administrador"
                 + (motivo != null && !motivo.isBlank() ? ": " + motivo : ""));
@@ -339,11 +357,12 @@ public class MovimientoService {
     /** Also raised by MovimientoRepository inside the locked transaction. */
     public static final String BIEN_DE_BAJA = "Este bien está dado de baja: ya no admite movimientos";
     public static final String SIN_EXISTENCIA = "No hay existencia que transferir: la cantidad del bien es 0";
+    public static final String YA_ATENDIDA = "Esta transferencia ya fue aprobada o rechazada desde otro equipo";
 
     private static boolean isBusinessRuleMessage(SQLException e) {
         String msg = e.getMessage();
         return msg != null && (msg.startsWith("La cantidad supera la existencia disponible")
-                || msg.equals(BIEN_DE_BAJA) || msg.equals(SIN_EXISTENCIA)
+                || msg.equals(BIEN_DE_BAJA) || msg.equals(SIN_EXISTENCIA) || msg.equals(YA_ATENDIDA)
                 || msg.startsWith("Solo se puede eliminar el movimiento más reciente")
                 || msg.startsWith("El bien ya no está en ")
                 || msg.startsWith("La cantidad cambió desde que se capturó el conteo"));

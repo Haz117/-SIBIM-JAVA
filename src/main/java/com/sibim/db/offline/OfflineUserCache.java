@@ -50,10 +50,10 @@ public final class OfflineUserCache {
      */
     public static void cacheUser(Connection conn, Usuario u) throws SQLException {
         String sql = """
-            INSERT INTO users_cache (id, username, password_hash, nombre, rol, area, debe_cambiar_password, activo, cached_at)
-            VALUES (?,?,?,?,?,?,?,?,?)
+            INSERT INTO users_cache (id, username, password_hash, nombre, rol, area, debe_cambiar_password, activo, cached_at, cargo)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET username=excluded.username, password_hash=excluded.password_hash,
-                nombre=excluded.nombre, rol=excluded.rol, area=excluded.area,
+                nombre=excluded.nombre, rol=excluded.rol, area=excluded.area, cargo=excluded.cargo,
                 debe_cambiar_password=excluded.debe_cambiar_password,
                 activo=excluded.activo, cached_at=excluded.cached_at
             """;
@@ -67,6 +67,7 @@ public final class OfflineUserCache {
             ps.setInt(7, u.isDebeCambiarPassword() ? 1 : 0);
             ps.setInt(8, u.isActivo() ? 1 : 0);
             ps.setString(9, LocalDateTime.now().toString());
+            ps.setString(10, u.getCargo());
             ps.executeUpdate();
         }
     }
@@ -83,12 +84,15 @@ public final class OfflineUserCache {
      * rather than silently accepting stale credentials.
      *
      * @param conn     the shared offline SQLite connection
-     * @param username the login username to look up (case-sensitive)
+     * @param username the login username to look up (case-insensitive)
      */
     public static Optional<Usuario> findCachedUserByUsername(Connection conn, String username)
             throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT * FROM users_cache WHERE username = ?")) {
+                // Like the online login (LOWER on both sides): AuthService passes the
+                // name in lower case, and an account stored as "Patrimonio" could
+                // sign in connected but never offline.
+                "SELECT * FROM users_cache WHERE LOWER(username) = LOWER(?)")) {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
@@ -110,6 +114,7 @@ public final class OfflineUserCache {
                 u.setNombre(rs.getString("nombre"));
                 u.setRol(Rol.fromCodigo(rs.getString("rol")));
                 u.setArea(rs.getString("area"));
+                u.setCargo(rs.getString("cargo"));
                 u.setDebeCambiarPassword(rs.getInt("debe_cambiar_password") != 0);
                 try { u.setActivo(rs.getInt("activo") != 0); } catch (Exception ignored) {
                     log.debug("activo column missing in users_cache for user '{}', defaulting to true", username, ignored);

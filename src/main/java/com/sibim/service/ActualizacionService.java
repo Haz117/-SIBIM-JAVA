@@ -119,6 +119,11 @@ public class ActualizacionService {
                 c.commit();
             } catch (SQLException | IOException | RuntimeException e) {
                 c.rollback();
+                // 42501: this PC connects with the data-only role, which may
+                // only read the updates (scripts/sql/rol_app_minimo.sql).
+                if (e instanceof SQLException se && "42501".equals(se.getSQLState()))
+                    throw new IllegalStateException("Las actualizaciones se publican desde la computadora de "
+                        + "administración (la que se conecta con el usuario dueño de la base).");
                 throw e;
             } finally {
                 c.setAutoCommit(true);

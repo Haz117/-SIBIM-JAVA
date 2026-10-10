@@ -46,11 +46,26 @@ public class ProductoService {
             ProductoService::compromisoEnBase);
     }
 
-    private static Optional<String> compromisoEnBase(String id) throws SQLException {
+    /** The signed document that says where a bien is or who holds it — a
+     *  préstamo, a comodato or a resguardo still in force. While one stands the
+     *  bien can't be transferred or written off: the document would go on
+     *  saying something the inventory no longer does. */
+    static Optional<String> documentoVigente(String id) throws SQLException {
         if (new com.sibim.repository.PrestamoRepository().existsActivoForProducto(id))
             return Optional.of("tiene un préstamo activo; registra primero su devolución");
         if (new com.sibim.repository.ComodatoRepository().existsVigenteForProducto(id))
             return Optional.of("tiene un comodato vigente; concluye o rescinde primero el comodato");
+        Optional<com.sibim.model.Resguardo> resguardo =
+            new com.sibim.repository.ResguardoRepository().findActivoByProductoId(id);
+        if (resguardo.isPresent())
+            return Optional.of("está en el resguardo vigente " + resguardo.get().getNumero()
+                + "; cancélalo primero en Resguardos");
+        return Optional.empty();
+    }
+
+    private static Optional<String> compromisoEnBase(String id) throws SQLException {
+        Optional<String> documento = documentoVigente(id);
+        if (documento.isPresent()) return documento;
         boolean pendiente = new com.sibim.repository.MovimientoRepository().findPendientesTransferencias()
             .stream().anyMatch(m -> id.equals(m.getProductoId()));
         if (pendiente)
@@ -181,7 +196,6 @@ public class ProductoService {
 
     public Producto save(Producto recibido) throws SQLException, ValidationException {
         Producto p = recibido;
-        ProductosEnMemoria.invalidar();
         boolean isNew = p.getId() == null;
         // Secretarías and direcciones keep the data of their bienes current;
         // registering a new bien is Patrimonio's (admin).
@@ -246,7 +260,28 @@ public class ProductoService {
         }
         validate(p);
 
-        Producto saved = productoRepo.save(p);
+        boolean codigoPorArea = isNew && AreaCodigos.tienePrefijo(p.getArea());
+        Producto saved;
+        for (int intento = 1; ; intento++) {
+            try {
+                saved = productoRepo.save(p);
+                break;
+            } catch (SQLException e) {
+                // Another PC registered a bien with this código between the
+                // moment it was picked and the insert (unique index on active
+                // códigos): take the next free one and try again.
+                if (!"23505".equals(e.getSQLState()) || !isNew) throw e;
+                if (!codigoPorArea || intento == 3) {
+                    p.setId(null);
+                    throw new ValidationException("Otro equipo acaba de usar el código " + p.getCodigo()
+                        + "; vuelve a guardar para que se asigne el siguiente");
+                }
+                p.setCodigo(asignarCodigo(p.getArea()));
+            }
+        }
+        // After the write: dropped before it, a screen reading in between put
+        // the old row (and its old photo) back in the shared list for 30 s.
+        ProductosEnMemoria.invalidar();
         log.info("Bien {} [{}] '{}'", isNew ? "registrado" : "actualizado", saved.getId(), saved.getNombre());
         auditRepo.log("producto", saved.getId(), saved.getNombre(),
             isNew ? "crear" : "actualizar",
@@ -396,8 +431,12 @@ public class ProductoService {
     }
 
     public void saveFotos(String productoId, List<String> fotos) throws SQLException {
-        ProductosEnMemoria.invalidar();
+        // findById is scoped to the caller's áreas: the photos of a bien of
+        // another área can't be replaced by knowing its id.
+        if (productoRepo.findById(productoId).isEmpty())
+            throw new SecurityException("El bien no existe o no tienes acceso a él");
         productoRepo.saveFotos(productoId, fotos);
+        ProductosEnMemoria.invalidar();
     }
 
     private void validate(Producto p) throws ValidationException, SQLException {

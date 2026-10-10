@@ -35,8 +35,10 @@ public final class AreaCodigos {
         String inicio = prefijo + "/";
         java.util.Set<Integer> usados = new java.util.HashSet<>();
         for (String codigo : codigosActivos) {
-            if (codigo == null || !codigo.startsWith(inicio)) continue;
-            try { usados.add(Integer.parseInt(codigo.substring(inicio.length()))); }
+            // Sin distinguir mayúsculas, como la validación de código repetido:
+            // un "sgm/01" capturado a mano también ocupa el 01.
+            if (codigo == null || !codigo.regionMatches(true, 0, inicio, 0, inicio.length())) continue;
+            try { usados.add(Integer.parseInt(codigo.substring(inicio.length()).trim())); }
             catch (NumberFormatException ignored) { /* código heredado sin número */ }
         }
         int numero = 1;

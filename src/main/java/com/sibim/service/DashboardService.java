@@ -90,16 +90,27 @@ public class DashboardService {
     private static final long CACHE_TTL_MS = 30_000;
     private static volatile Resumen cachedResumen = null;
     private static volatile long    cacheTimestamp = 0;
+    private static volatile String  cacheDueno = null;
 
-    /** Returns cached data if fresh, otherwise fetches and caches. */
+    /** Returns cached data if fresh, otherwise fetches and caches. The figures
+     *  depend on who is signed in (área scope) and on the mode: a dirección
+     *  that signed in right after Patrimonio used to get Patrimonio's. */
     public Resumen getCachedOrFetch() throws SQLException {
         long now = System.currentTimeMillis();
-        if (cachedResumen != null && (now - cacheTimestamp) < CACHE_TTL_MS)
+        String quien = claveSesion();
+        if (cachedResumen != null && (now - cacheTimestamp) < CACHE_TTL_MS && quien.equals(cacheDueno))
             return cachedResumen;
         Resumen r = cargarResumen();
         cachedResumen  = r;
+        cacheDueno     = quien;
         cacheTimestamp = System.currentTimeMillis();
         return r;
+    }
+
+    private static String claveSesion() {
+        var u = com.sibim.session.SessionManager.getCurrentUser();
+        return (u == null ? "-" : u.getId() + "|" + u.getRol() + "|" + u.getArea())
+            + "|" + com.sibim.db.DatabaseConfig.isOfflineMode();
     }
 
     public void invalidateCache() { cacheTimestamp = 0; }

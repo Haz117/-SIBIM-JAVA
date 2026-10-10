@@ -27,7 +27,7 @@ public class ReporteCuentasService extends ReporteService {
                 + "solo su renglón y guarda esta hoja en un lugar seguro.")
                 .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA)).setFontSize(9f).setMarginBottom(8));
             Table t = createPdfTable(new String[]{"Área", "Usuario", "Contraseña", "Permisos"},
-                new float[]{3.2f, 1.8f, 1.6f, 2.2f});
+                new float[]{2.7f, 1.7f, 2.6f, 1.8f});   // the password must fit on one line
             for (CuentasAreaService.Cuenta c : cuentas) {
                 t.addCell(cell(c.area()));
                 t.addCell(cell(c.usuario()));

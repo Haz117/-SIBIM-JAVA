@@ -59,6 +59,18 @@ REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM sibim_app;
 -- El historial de migraciones solo se lee (validación al arrancar).
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON flyway_schema_history FROM sibim_app;
 
+-- Las actualizaciones solo se leen. Cada PC descarga de aquí el instalador de
+-- la versión nueva y lo ejecuta: si sibim_app (cuya contraseña va dentro de
+-- cada instalador) pudiera escribir en estas tablas, cualquiera con una PC
+-- instalada podría publicar un programa y hacer que todas lo ejecuten. Se
+-- publica desde la PC de administración, que entra con el usuario dueño.
+DO $$
+BEGIN
+    IF to_regclass('public.actualizaciones') IS NOT NULL THEN
+        REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON actualizaciones, actualizacion_partes FROM sibim_app;
+    END IF;
+END $$;
+
 -- Las tablas que creen migraciones futuras (ejecutadas por este mismo
 -- usuario dueño) quedan accesibles para sibim_app sin volver a correr esto.
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sibim_app;

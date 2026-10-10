@@ -54,7 +54,9 @@ final class FotosPdf {
     /** Up to {@code max} photos of {@code p}, each at most {@code maxLado} px on its longest side. */
     static List<ImageData> de(Producto p, int max, int maxLado) {
         List<ImageData> out = new ArrayList<>();
-        for (String ruta : rutas(p)) {
+        List<String> rutas = rutas(p);
+        if (max > 1) rutas = conGaleria(p, rutas);
+        for (String ruta : rutas) {
             if (out.size() >= max) break;
             ImageData img = cargar(ruta, maxLado, p.getCodigo());
             if (img != null) out.add(img);
@@ -87,6 +89,23 @@ final class FotosPdf {
         if (p.getFotosUrls() != null)
             for (String u : p.getFotosUrls()) if (u != null && !u.isBlank()) rutas.add(u.trim());
         return new ArrayList<>(rutas);
+    }
+
+    /** A bien read from a list (the table, a report) only carries its main
+     *  photo: the gallery lives in product_fotos. Formats that show several
+     *  photos fetch it here, or they would print the main one alone no matter
+     *  how many were added. Best-effort: without it the format keeps what it has. */
+    private static List<String> conGaleria(Producto p, List<String> rutas) {
+        if (p.getId() == null || (p.getFotosUrls() != null && !p.getFotosUrls().isEmpty())) return rutas;
+        try {
+            LinkedHashSet<String> todas = new LinkedHashSet<>(rutas);
+            for (String u : new com.sibim.repository.ProductoRepository().findFotos(p.getId()))
+                if (u != null && !u.isBlank()) todas.add(u.trim());
+            return new ArrayList<>(todas);
+        } catch (Exception e) {
+            log.debug("No se pudo leer la galería del bien {}: {}", p.getCodigo(), e.getMessage());
+            return rutas;
+        }
     }
 
     private static ImageData cargar(String ruta, int maxLado, String codigo) {

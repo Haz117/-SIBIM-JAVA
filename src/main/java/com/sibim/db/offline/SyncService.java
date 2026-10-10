@@ -424,7 +424,7 @@ public final class SyncService {
                 switch (r.operacion()) {
                     case "BAJA" -> repo.darDeBajaOnline(r.productoId(), r.motivoBaja());
                     case "REACTIVAR" -> repo.reactivarOnline(r.productoId());
-                    default -> repo.saveOnline(conDatosDelServidor(repo, productFromRow(r)));
+                    default -> guardarReplicado(repo, productFromRow(r));
                 }
                 LocalDateTime nuevoBaseline = fetchServerUpdatedAt(r.productoId());
                 if (nuevoBaseline != null) {
@@ -507,6 +507,32 @@ public final class SyncService {
         return null;
     }
 
+    /** Saves a bien captured offline. Its código was picked from this PC's
+     *  copy of the inventory, so another PC may have used that número in the
+     *  meantime: instead of throwing the bien away (what a duplicate código
+     *  used to do), a new one takes the next free número on the server, and
+     *  an edited one keeps the código the server already has for it. */
+    static void guardarReplicado(ProductoRepository repo, Producto offline) throws SQLException {
+        java.util.Optional<Producto> enServidor = repo.findByIdOnline(offline.getId());
+        Producto p = conDatosDelServidor(repo, offline);
+        try {
+            repo.saveOnline(p);
+        } catch (SQLException e) {
+            if (!"23505".equals(e.getSQLState())) throw e;
+            String anterior = p.getCodigo();
+            if (enServidor.isPresent()) p.setCodigo(enServidor.get().getCodigo());
+            else if (com.sibim.config.AreaCodigos.tienePrefijo(p.getArea()))
+                p.setCodigo(repo.siguienteCodigoOnline(p.getArea()));
+            else throw e;
+            if (java.util.Objects.equals(anterior, p.getCodigo())) throw e;
+            repo.saveOnline(p);
+            try { OfflineStore.updateProductoCodigo(p.getId(), p.getCodigo()); }
+            catch (SQLException local) { log.debug("No se actualizó el código en la copia local: {}", local.getMessage()); }
+            writeAuditEntry("producto", p.getId(), p.getNombre(), "codigo_reasignado",
+                "Capturado sin conexión como " + anterior + "; ese código ya estaba en uso y quedó como " + p.getCodigo());
+        }
+    }
+
     /** saveOnline writes the whole row: fields this offline change doesn't
      *  carry (queued by an older SIBIM, or from a mirror not refreshed since)
      *  keep the server's value instead of being wiped. */
@@ -558,6 +584,14 @@ public final class SyncService {
      *                       which repository method to call when applying the offline version
      */
     public static void resolveConflicto(int outboxId, Producto versionOffline, String operacion) {
+        // The app is still in offline mode while a conflict waits, and the
+        // dialog calls this from its own thread: without the sync pass
+        // getConnection() refused, "usar mi versión" always failed and the
+        // same conflict came back on the next poll.
+        DatabaseConfig.comoSincronizacion(() -> resolverConflicto(outboxId, versionOffline, operacion));
+    }
+
+    private static void resolverConflicto(int outboxId, Producto versionOffline, String operacion) {
         if (versionOffline != null) {
             try {
                 ProductoRepository repo = new ProductoRepository();

@@ -64,12 +64,12 @@ public class SolicitudService {
         return repo.findDeMisAreas();
     }
 
-    /** The áreas no longer ask Patrimonio for documents through SIBIM: a
-     *  secretario registers his own préstamos and every área its resguardos.
-     *  What is left of this service is the inbox of requests sent before that. */
+    /** The áreas no longer send requests through SIBIM (see Permisos): what
+     *  they need they ask of Patrimonio outside the system. What is left of
+     *  this service is the inbox of requests sent before that. */
     static final String SIN_SOLICITUDES =
-        "Las áreas ya no envían solicitudes por SIBIM: los préstamos los registra el secretario o Patrimonio, "
-        + "y los resguardos cada área.";
+        "Las áreas ya no envían solicitudes por SIBIM: los préstamos y resguardos los registra "
+        + "Patrimonio (administrador). Pídelos directamente a Patrimonio.";
 
     public Solicitud solicitarPrestamo(String productoId, String areaDestino, String responsable, String cargo,
                                        String motivo, LocalDate fechaDevolucion) throws SQLException {
@@ -130,6 +130,4 @@ public class SolicitudService {
         Usuario u = SessionManager.getCurrentUser();
         return u != null ? u.getNombre() : null;
     }
-
-    private static String limpio(String v) { return v == null || v.isBlank() ? null : v.trim(); }
 }
