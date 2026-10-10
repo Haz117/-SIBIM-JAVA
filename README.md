@@ -19,7 +19,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Ficha y etiquetas del bien** — en la barra inferior de Bienes: **Ficha** (ficha técnica en PDF; con varios seleccionados, todas en un PDF) y **Etiqueta ▾** (etiqueta de inventario con datos y QR, o solo QR), además de **QR**
 - **El QR descarga la ficha del bien** — con el almacenamiento de fotos configurado (`SUPABASE_ANON_KEY`), el QR de un bien es un enlace a su ficha en PDF: se publica al generar el QR o las etiquetas QR y se actualiza al guardar el bien. Esa copia no lleva montos, historial ni firmas, porque cualquiera frente a la etiqueta puede abrirla. Sin almacenamiento, y en la etiqueta oficial (su QR es muy chico para un enlace), el QR lleva lo que la etiqueta no imprime: resguardante, ubicación, estado físico, adquisición, factura, garantía y próxima revisión. El lector de SIBIM sigue obteniendo el código en ambos casos
 - **Abrir, imprimir y guardar documentos** — cada PDF/Excel generado muestra Guardar como / Imprimir / Abrir / Carpeta / Copiar ruta; si Java no logra abrir el archivo en la PC se usa el mismo mecanismo que el Explorador de Windows. "Imprimir" abre el visor para elegir impresora (Ctrl+P)
-- **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
+- **Conteo físico de inventario** — verificación bien por bien: se marca "Visto" cada bien que se tiene a la vista (o se escanea su etiqueta con la pistola lectora, sin abrir nada) y se anota lo que no coincide (mal estado, en otra área, faltante, o una cantidad distinta). El avance muestra cuántos faltan y "Solo pendientes" deja ver únicamente lo que queda. Al finalizar se reconcilian las diferencias con movimientos de Ajuste auditados y se guarda la sesión completa; un bien que nadie marcó queda como "sin revisar", no como encontrado, y el reporte lo dice. El borrador se guarda en un archivo de la PC y recuerda lo ya visto
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
 - **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con las garantías por vencer, los préstamos vencidos o por vencer, los bienes por recibir y las solicitudes por atender; cada elemento navega directo a la pantalla correspondiente. Su número es la suma de los contadores de Alertas y Préstamos del menú lateral, y el aviso del Dashboard usa las mismas listas que la pantalla de Alertas, así que las tres cifras cuadran
 - **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). La bitácora de auditoría nunca se borra al restaurar (solo se le agregan las entradas del respaldo que falten). Un respaldo de una versión anterior deja intactas las tablas que no incluye; si alguna de ellas depende de los bienes y tiene datos (fotos, comodatos, historial de precios, mantenimiento), se rechaza en vez de borrarlas. Solo disponible conectado a la base de datos real, no en modo offline/demo
@@ -60,7 +60,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1065 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1068 tests en la última ejecución) |
 
 ---
 
@@ -325,7 +325,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (1065 en total)
+# Correr todos los tests (1068 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase
