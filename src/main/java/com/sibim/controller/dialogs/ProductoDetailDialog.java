@@ -54,7 +54,8 @@ public final class ProductoDetailDialog {
         List<Resguardo> resguardos,
         List<Prestamo> prestamos,
         List<MantenimientoService.Alerta> alertas,
-        String qr
+        String qr,
+        List<PriceHistoryRepository.PriceHistoryEntry> precios
     ) {}
 
     /** Opens the read-only bien detail dialog. Loads movimientos, fotos, resguardos,
@@ -92,7 +93,15 @@ public final class ProductoDetailDialog {
                 try { qr = com.sibim.service.FichaPublica.contenidoQr(p); }
                 catch (RuntimeException ex) { qr = QrUtils.contenidoBien(p); }
 
-                return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas, qr);
+                // Amounts: not for a dirección (Permisos.veValores), and read here,
+                // off the FX thread, like everything else this dialog shows.
+                List<PriceHistoryRepository.PriceHistoryEntry> precios = List.of();
+                if (p.getId() != null && com.sibim.session.Permisos.veValores()) {
+                    try { precios = new PriceHistoryRepository().findByProducto(p.getId()); }
+                    catch (Exception ex) { log.warn("No se pudo cargar historial de precios: {}", ex.getMessage()); }
+                }
+
+                return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas, qr, precios);
             },
             data -> buildAndShow(p, scene, log, data),
             ex -> {
@@ -431,11 +440,7 @@ public final class ProductoDetailDialog {
         }
 
         // ── Historial de precios ──────────────────────────────────────
-        List<PriceHistoryRepository.PriceHistoryEntry> priceHistory = List.of();
-        if (p.getId() != null) {
-            try { priceHistory = new PriceHistoryRepository().findByProducto(p.getId()); }
-            catch (Exception ex) { log.warn("No se pudo cargar historial de precios: {}", ex.getMessage()); }
-        }
+        List<PriceHistoryRepository.PriceHistoryEntry> priceHistory = loaded.precios();
         if (!priceHistory.isEmpty()) {
             Separator sepPrices = new Separator();
             sepPrices.getStyleClass().add("form-separator");

@@ -60,7 +60,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1063 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1065 tests en la última ejecución) |
 
 ---
 
@@ -325,7 +325,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (1063 en total)
+# Correr todos los tests (1065 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

@@ -208,7 +208,10 @@ public final class UsuarioDialogFactory {
                         }
                         if (!fPassword.getText().isBlank()) {
                             u.setPasswordHash(BCrypt.withDefaults().hashToString(12, fPassword.getText().toCharArray()));
-                            u.setDebeCambiarPassword(true);
+                            // A shared área account can't change its own password (only
+                            // Patrimonio does): forcing a change left it unable to sign in.
+                            u.setDebeCambiarPassword(
+                                !com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(u.getCargo()));
                         }
                         repo.save(u);
                         return u;

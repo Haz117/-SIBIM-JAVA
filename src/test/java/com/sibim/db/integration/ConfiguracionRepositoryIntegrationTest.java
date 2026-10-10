@@ -21,6 +21,22 @@ class ConfiguracionRepositoryIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void set_soloElAdministrador() throws SQLException {
+        var antes = com.sibim.session.SessionManager.getCurrentUser();
+        com.sibim.model.Usuario direccion = new com.sibim.model.Usuario();
+        direccion.setId("u-dir");
+        direccion.setRol(com.sibim.model.enums.Rol.DIRECCION);
+        direccion.setArea("Dirección de Catastro");
+        com.sibim.session.SessionManager.setCurrentUser(direccion);
+        try {
+            assertThrows(SecurityException.class, () -> repo.set("nombre_ayuntamiento", "Otro"));
+            assertEquals("x", repo.get("clave_que_no_existe", "x"), "leer la configuración sigue abierto");
+        } finally {
+            com.sibim.session.SessionManager.setCurrentUser(antes);
+        }
+    }
+
+    @Test
     void set_actualizaValorExistente_noDuplica() throws SQLException {
         repo.set("color_tema", "azul");
         repo.set("color_tema", "verde");

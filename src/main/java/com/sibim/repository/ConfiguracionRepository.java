@@ -75,6 +75,10 @@ public class ConfiguracionRepository {
     }
 
     public void set(String clave, String valor) throws SQLException {
+        // The name on every formato, the SMTP account, the session timeout:
+        // the screen that edits them is the administrator's, and so is this.
+        if (!com.sibim.session.SessionManager.isAdmin())
+            throw new SecurityException("Solo el administrador cambia la configuración");
         if (DatabaseConfig.isDemoMode()) { DEMO_VALUES.put(clave, valor); return; }
         DatabaseConfig.exigirServidor("Guardar la configuración");
         String sql = "INSERT INTO configuracion (clave, valor) VALUES (?, ?) ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor";
