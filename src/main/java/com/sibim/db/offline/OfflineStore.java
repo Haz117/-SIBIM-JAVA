@@ -338,6 +338,50 @@ public final class OfflineStore {
     private static volatile long lastCacheCategoriasAt  = 0;
     private static volatile long lastCacheMovimientosAt = 0;
 
+    /** Forgets the bienes this copy still has and the server no longer does
+     *  (a baja is not that: its row stays on the server). The write-through
+     *  below only adds and updates, so after the inventory was reloaded on the
+     *  server the old bienes kept showing up, mixed with the new ones, every
+     *  time this PC worked offline — until someone deleted the file by hand.
+     *  A bien with a change still waiting to be sent is left alone.
+     *  @return how many were forgotten */
+    public static synchronized int olvidarBienesAusentes(java.util.Set<String> idsEnServidor) {
+        // An empty answer proves nothing (and would erase the whole copy).
+        if (idsEnServidor == null || idsEnServidor.isEmpty()) return 0;
+        try {
+            List<String> sobran = new ArrayList<>();
+            try (PreparedStatement ps = conn().prepareStatement(
+                    "SELECT id FROM products WHERE id NOT IN "
+                    + "(SELECT producto_id FROM product_outbox WHERE status IN ('PENDING', 'CONFLICT')) "
+                    + "AND id NOT IN (SELECT producto_id FROM movement_outbox "
+                    + "WHERE status = 'PENDING' AND producto_id IS NOT NULL)");
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    if (!idsEnServidor.contains(rs.getString(1))) sobran.add(rs.getString(1));
+                }
+            }
+            if (sobran.isEmpty()) return 0;
+            inTransaction(() -> {
+                try (PreparedStatement bien = conn().prepareStatement("DELETE FROM products WHERE id = ?");
+                     PreparedStatement movs = conn().prepareStatement("DELETE FROM movements WHERE producto_id = ?")) {
+                    for (String id : sobran) {
+                        bien.setString(1, id);
+                        bien.addBatch();
+                        movs.setString(1, id);
+                        movs.addBatch();
+                    }
+                    movs.executeBatch();
+                    bien.executeBatch();
+                }
+            });
+            loaded = false;   // the lists in memory still have them: read SQLite again
+            return sobran.size();
+        } catch (SQLException e) {
+            log.warn("OfflineStore: no se pudieron quitar de la copia local los bienes que el servidor ya no tiene", e);
+            return 0;
+        }
+    }
+
     public static synchronized void cacheProductos(List<Producto> serverProductos) {
         if (serverProductos == null || serverProductos.isEmpty()) return;
         long now = System.currentTimeMillis();

@@ -185,6 +185,26 @@ public final class SyncService {
         catch (RuntimeException e) { log.debug("Revisión de áreas omitida: {}", e.getMessage()); }
         try { new com.sibim.service.FotosPendientesService().subirPendientes(); }
         catch (RuntimeException e) { log.debug("Revisión de fotos pendientes omitida: {}", e.getMessage()); }
+        olvidarBienesQueElServidorYaNoTiene();
+    }
+
+    private static final long LIMPIEZA_DE_LA_COPIA_CADA_MS = 10 * 60_000L;
+    private static volatile long ultimaLimpiezaDeLaCopia;
+
+    /** While connected, at start and every ten minutes: the copy this PC keeps
+     *  for working offline drops the bienes that no longer exist on the server
+     *  (see {@link OfflineStore#olvidarBienesAusentes}). */
+    private static void olvidarBienesQueElServidorYaNoTiene() {
+        long ahora = System.currentTimeMillis();
+        if (ahora - ultimaLimpiezaDeLaCopia < LIMPIEZA_DE_LA_COPIA_CADA_MS) return;
+        try {
+            int olvidados = OfflineStore.olvidarBienesAusentes(new ProductoRepository().idsEnServidor());
+            ultimaLimpiezaDeLaCopia = ahora;
+            if (olvidados > 0)
+                log.info("SyncService: {} bien(es) que el servidor ya no tiene se quitaron de la copia local", olvidados);
+        } catch (SQLException | RuntimeException e) {
+            log.debug("Limpieza de la copia local omitida: {}", e.getMessage());
+        }
     }
 
     /** Mid-session connectivity loss while online — the counterpart to the

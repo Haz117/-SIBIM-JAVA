@@ -42,6 +42,20 @@ public final class FichaPublica {
 
     private FichaPublica() {}
 
+    /** Secretarías whose bienes never get a ficha anyone with the link can
+     *  open: armamento, the C-2's cameras and antennas, patrol cars, who holds
+     *  each radio. Their QR carries the data as text, on the label only. */
+    static final java.util.Set<String> RESERVADAS = java.util.Set.of("Secretaría de Seguridad Pública y Tránsito");
+
+    /** True for a bien of a reserved secretaría or of any of its direcciones. */
+    static boolean reservado(Producto p) {
+        String area = p.getArea();
+        if (area == null) return false;
+        if (RESERVADAS.contains(area)) return true;
+        return com.sibim.config.Areas.catalogo().buscar(area)
+            .map(e -> e.padre() != null && RESERVADAS.contains(e.padre())).orElse(false);
+    }
+
     /** Where the ficha of {@code p} lives once published. */
     static String url(Producto p) {
         return SupabaseStorage.publicUrl("fichas/" + p.getId() + ".pdf");
@@ -53,7 +67,7 @@ public final class FichaPublica {
      *         could not be published
      */
     public static String publicar(Producto p) {
-        if (p.getId() == null || !SupabaseStorage.isAvailable()) return QrUtils.contenidoBien(p);
+        if (p.getId() == null || reservado(p) || !SupabaseStorage.isAvailable()) return QrUtils.contenidoBien(p);
         File pdf = null;
         try {
             String url = url(p);
@@ -122,7 +136,7 @@ public final class FichaPublica {
     }
 
     private static boolean publicada(Producto p) {
-        if (p.getId() == null || !SupabaseStorage.isAvailable()) return false;
+        if (p.getId() == null || reservado(p) || !SupabaseStorage.isAvailable()) return false;
         try {
             HttpResponse<Void> r = HTTP.send(
                 HttpRequest.newBuilder(URI.create(url(p))).timeout(Duration.ofSeconds(5))

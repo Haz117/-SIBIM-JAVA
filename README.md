@@ -325,7 +325,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (1108 en total)
+# Correr todos los tests (1111 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

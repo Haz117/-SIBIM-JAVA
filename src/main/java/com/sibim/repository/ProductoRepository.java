@@ -395,6 +395,18 @@ public class ProductoRepository {
         return r.isEmpty() ? Optional.empty() : Optional.of(r.get(0));
     }
 
+    /** The id of every bien the server has, de baja included and whatever the
+     *  caller's áreas: what exists, not what this account may see. */
+    public java.util.Set<String> idsEnServidor() throws SQLException {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT id FROM products");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) ids.add(rs.getString(1));
+        }
+        return ids;
+    }
+
     public Producto saveOnline(Producto p) throws SQLException {
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
