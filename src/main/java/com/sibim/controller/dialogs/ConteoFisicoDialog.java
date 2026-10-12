@@ -70,6 +70,18 @@ public final class ConteoFisicoDialog {
         return visto ? estado : SIN_REVISAR;
     }
 
+    /** A row that carries a difference or an estado was looked at, whether or
+     *  not "Visto" is ticked: its ajuste is applied on finalizing, so it can't
+     *  go into the record as "sin revisar". (Also what makes a draft saved by
+     *  the previous version, which had no "Visto", resume as it was left.) */
+    static boolean vista(boolean marcada, int contado, int sistema, EstadoConteo estado) {
+        return marcada || contado != sistema || (estado != null && estado != EstadoConteo.ENCONTRADO);
+    }
+
+    private static boolean vista(Row r) {
+        return vista(r.touched().get(), r.contado().getValue(), r.producto().getStockActual(), r.estado().getValue());
+    }
+
     @FunctionalInterface
     private interface Exportacion { File generar() throws Exception; }
 
@@ -132,24 +144,51 @@ public final class ConteoFisicoDialog {
         return id + '=' + contado + '|' + estado + '|' + notaEnc + '|' + (verificado ? '1' : '0');
     }
 
-    private static void saveDraft(List<Row> rows) throws java.io.IOException {
-        StringBuilder sb = new StringBuilder(LocalDate.now().toString()).append('\n');
-        boolean primero = true;
-        for (Row r : rows) {
-            if (!primero) sb.append(';');
-            primero = false;
-            sb.append(serializar(r.producto().getId(), r.contado().getValue(),
-                r.estado().getValue() != null ? r.estado().getValue().name() : "ENCONTRADO",
-                r.notaField().getText(), r.touched().get()));
+    /** id of the bien → its serialized row, in the order they were saved. */
+    static Map<String, String> filasCrudas(String raw) {
+        Map<String, String> filas = new java.util.LinkedHashMap<>();
+        if (raw == null || raw.isBlank()) return filas;
+        for (String item : raw.split(";")) {
+            int eq = item.indexOf('=');
+            if (eq > 0) filas.put(item.substring(0, eq), item);
         }
-        java.nio.file.Path f = archivoBorrador();
-        java.nio.file.Files.createDirectories(f.getParent());
-        java.nio.file.Files.writeString(f, sb.toString(), StandardCharsets.UTF_8);
+        return filas;
     }
 
-    private static void clearDraft() {
-        try { java.nio.file.Files.deleteIfExists(archivoBorrador()); }
-        catch (java.io.IOException e) { log.warn("No se pudo borrar el borrador del conteo: {}", e.getMessage()); }
+    /** The draft keeps what was captured for each bien, whatever conteo it
+     *  came from: saving the conteo of one área leaves the rows of another
+     *  área's draft where they were. (It used to be one conteo per account —
+     *  opening a second one deleted or overwrote the first.) */
+    private static void saveDraft(List<Row> rows) throws java.io.IOException {
+        String[] previo = leerBorrador();
+        Map<String, String> filas = filasCrudas(previo != null ? previo[1] : "");
+        for (Row r : rows) {
+            String id = r.producto().getId();
+            filas.put(id, serializar(id, r.contado().getValue(),
+                r.estado().getValue() != null ? r.estado().getValue().name() : "ENCONTRADO",
+                r.notaField().getText(), vista(r)));
+        }
+        escribirBorrador(LocalDate.now().toString(), filas);
+    }
+
+    private static void escribirBorrador(String fecha, Map<String, String> filas) throws java.io.IOException {
+        java.nio.file.Path f = archivoBorrador();
+        java.nio.file.Files.createDirectories(f.getParent());
+        java.nio.file.Files.writeString(f, fecha + '\n' + String.join(";", filas.values()), StandardCharsets.UTF_8);
+    }
+
+    /** Takes these bienes out of the draft — their conteo was finalized or
+     *  started over. What was captured for any other bien stays. */
+    private static void clearDraft(java.util.Collection<String> ids) {
+        try {
+            String[] previo = leerBorrador();
+            Map<String, String> filas = filasCrudas(previo != null ? previo[1] : "");
+            filas.keySet().removeAll(ids);
+            if (filas.isEmpty()) java.nio.file.Files.deleteIfExists(archivoBorrador());
+            else escribirBorrador(previo[0], filas);
+        } catch (java.io.IOException e) {
+            log.warn("No se pudo actualizar el borrador del conteo: {}", e.getMessage());
+        }
         DRAFT_PREFS.remove(draftKey());
         DRAFT_PREFS.remove(draftKey() + ".fecha");
     }
@@ -287,7 +326,7 @@ public final class ConteoFisicoDialog {
             .filter(r -> r.estado().getValue() == EstadoConteo.EN_OTRA_AREA).count();
         long faltante   = rows.stream()
             .filter(r -> r.estado().getValue() == EstadoConteo.FALTANTE).count();
-        long sinRevisar = rows.stream().filter(r -> !r.touched().get()).count();
+        long sinRevisar = rows.stream().filter(r -> !vista(r)).count();
 
         ButtonType btnConfirmar = new ButtonType("Confirmar y finalizar", ButtonBar.ButtonData.OK_DONE);
         ButtonType btnVolver    = new ButtonType("Volver",                ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -357,18 +396,21 @@ public final class ConteoFisicoDialog {
             scope = scopeOpt.get();
         }
 
-        // Draft check
+        // Draft check — only what the draft has for the bienes of this conteo:
+        // the rows of another conteo are neither offered nor thrown away.
         Map<String, DraftValues> draftMap;
         String[] borrador = leerBorrador();
         String draftFecha = borrador != null ? borrador[0] : "";
-        Map<String, DraftValues> rawDraft = parsearBorrador(borrador != null ? borrador[1] : "");
+        Set<String> enAlcance = scope.stream().map(Producto::getId).collect(Collectors.toSet());
+        Map<String, DraftValues> rawDraft = new HashMap<>(parsearBorrador(borrador != null ? borrador[1] : ""));
+        rawDraft.keySet().retainAll(enAlcance);
         boolean hasDraft = !rawDraft.isEmpty();
         if (hasDraft) {
             boolean resume = ConfirmacionUtil.confirmar("Reanudar borrador",
-                "Hay un borrador guardado el " + draftFecha + " con " + rawDraft.size() + " bien(es).\n"
+                "Hay un borrador guardado el " + draftFecha + " con " + rawDraft.size() + " bien(es) de este conteo.\n"
                 + "¿Deseas retomarlo? (Cancelar = empezar desde cero)");
             draftMap = resume ? rawDraft : Collections.emptyMap();
-            if (!resume) clearDraft();
+            if (!resume) clearDraft(enAlcance);
         } else {
             draftMap = Collections.emptyMap();
         }
@@ -489,11 +531,18 @@ public final class ConteoFisicoDialog {
             // is one piece that is simply there, and before this there was no way
             // to say so — only changing the count or the estado counted as
             // reviewed, so a conteo with everything in order ended "0 revisados".
-            BooleanProperty touched = new SimpleBooleanProperty(dv != null && dv.verificado());
+            BooleanProperty touched = new SimpleBooleanProperty(
+                vista(dv != null && dv.verificado(), initialCount, p.getStockActual(), initEst));
             CheckBox visto = new CheckBox();
             visto.setMinWidth(ANCHO_VISTO);
             visto.setTooltip(new Tooltip("Márcalo cuando tengas el bien a la vista"));
             visto.selectedProperty().bindBidirectional(touched);
+            // A row with a difference or an estado stays marked: its ajuste is
+            // applied on finalizing, so it can't be unticked into "sin revisar".
+            // Put the count and the estado back first to unmark it.
+            visto.disableProperty().bind(javafx.beans.binding.Bindings.createBooleanBinding(
+                () -> vista(false, contado.getValue(), p.getStockActual(), estadoCb.getValue()),
+                contado.valueProperty(), estadoCb.valueProperty()));
 
             // Delta label
             Label delta = new Label();
@@ -635,7 +684,7 @@ public final class ConteoFisicoDialog {
             ci.setArea(r.producto().getArea());
             ci.setStockSistema(r.producto().getStockActual());
             ci.setStockContado(r.contado().getValue());
-            ci.setEstadoConteo(estadoGuardado(r.touched().get(),
+            ci.setEstadoConteo(estadoGuardado(vista(r),
                 r.estado().getValue() != null ? r.estado().getValue().name() : "ENCONTRADO"));
             ci.setNota(r.notaField().getText() != null ? r.notaField().getText() : "");
             return ci;
@@ -688,7 +737,7 @@ public final class ConteoFisicoDialog {
                 snapshot.add(new Captured(
                     r.producto(),
                     r.contado().getValue(),
-                    estadoGuardado(r.touched().get(),
+                    estadoGuardado(vista(r),
                         r.estado().getValue() != null ? r.estado().getValue().name() : "ENCONTRADO"),
                     r.notaField().getText()
                 ));
@@ -732,6 +781,7 @@ public final class ConteoFisicoDialog {
 
                 long totalDiscrepancias = items.stream()
                     .filter(i -> i.getStockContado() != i.getStockSistema()).count();
+                long sinRevisar = items.stream().filter(i -> SIN_REVISAR.equals(i.getEstadoConteo())).count();
 
                 ConteoFisico conteo = new ConteoFisico();
                 if (currentUser != null) {
@@ -758,7 +808,8 @@ public final class ConteoFisicoDialog {
                 javafx.application.Platform.runLater(() -> {
                     String base;
                     if (totalDiscrepancias == 0) {
-                        base = "Conteo guardado — sin diferencias en " + items.size() + " bien(es)";
+                        base = "Conteo guardado — sin diferencias en " + (items.size() - sinRevisar)
+                            + " bien(es) revisado(s)";
                     } else if (fallidosFinal.isEmpty()) {
                         base = okFinal + " ajuste(s) aplicado(s) correctamente";
                     } else {
@@ -768,14 +819,16 @@ public final class ConteoFisicoDialog {
                         base = okFinal + " ajuste(s) aplicado(s), " + fallidosFinal.size()
                             + " fallaron: " + nombres;
                     }
+                    // A conteo closed halfway is not a clean inventory: say how many are left.
+                    if (sinRevisar > 0) base += " — " + sinRevisar + " quedaron sin revisar";
                     if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
                     javafx.scene.Scene scene = dialog.getDialogPane().getScene();
                     if (scene != null) {
-                        if (!fallidosFinal.isEmpty() || !savedFinal) NotificacionUtil.advertencia(scene, base);
+                        if (!fallidosFinal.isEmpty() || !savedFinal || sinRevisar > 0) NotificacionUtil.advertencia(scene, base);
                         else if (totalDiscrepancias == 0) NotificacionUtil.exitoConteo(scene, items.size());
                         else NotificacionUtil.exito(scene, base);
                     }
-                    clearDraft();
+                    clearDraft(items.stream().map(ConteoItem::getProductoId).toList());
                     if (onReconciled != null) onReconciled.run();
                     dialog.close();
                 });

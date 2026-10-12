@@ -169,7 +169,7 @@ public class ReporteConteoService extends ReporteService {
                 if (hasDiff) diffCell.setFontColor(redCell);
                 table.addCell(diffCell);
 
-                table.addCell(cell(item.getEstadoConteo() != null ? item.getEstadoConteo() : (hasDiff ? "DIFERENCIA" : "OK")));
+                table.addCell(cell(estadoDeCaptura(item)));
                 table.addCell(cell(item.getNota() != null ? item.getNota() : ""));
             }
             doc.add(table);
@@ -204,7 +204,7 @@ public class ReporteConteoService extends ReporteService {
                 r.createCell(3).setCellValue(it.getStockSistema());
                 r.createCell(4).setCellValue(it.getStockContado());
                 r.createCell(5).setCellValue(delta);
-                r.createCell(6).setCellValue(hasDiff ? (it.isAjustado() ? "Ajustado" : "Con diferencia") : "Correcto");
+                r.createCell(6).setCellValue(estadoDeCaptura(it));
                 r.createCell(7).setCellValue(it.getNota() != null ? it.getNota() : "");
                 if (hasDiff)
                     for (int i = 0; i < headers.length; i++) r.getCell(i).setCellStyle(yellowStyle);
@@ -223,6 +223,18 @@ public class ReporteConteoService extends ReporteService {
             try (FileOutputStream fos = new FileOutputStream(file)) { wb.write(fos); }
         }
         return file;
+    }
+
+    /** What the "Estado" column of an exported capture says about one row.
+     *  "Correcto" only for a bien that was seen and matches: one nobody looked
+     *  at is "Sin revisar", not correct. */
+    static String estadoDeCaptura(com.sibim.model.ConteoItem it) {
+        if ("SIN_REVISAR".equals(it.getEstadoConteo())) return "Sin revisar";
+        String incidencia = itemEstadoLabel(it.getEstadoConteo());
+        boolean encontrado = "Encontrado".equals(incidencia);
+        if (it.getStockContado() != it.getStockSistema())
+            return (it.isAjustado() ? "Ajustado" : "Con diferencia") + (encontrado ? "" : " · " + incidencia);
+        return encontrado ? "Correcto" : incidencia;
     }
 
     private static String itemEstadoLabel(String code) {

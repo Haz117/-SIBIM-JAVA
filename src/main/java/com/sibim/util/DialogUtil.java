@@ -334,8 +334,10 @@ public final class DialogUtil {
         if (fotoUrl == null || fotoUrl.isBlank()) return;
         Image img;
         try {
-            img = new Image(ImageUtils.uri(fotoUrl));
-            if (img.isError()) return;
+            // In the background: a photo kept in Storage is a download, and
+            // loading it here froze the whole window until it arrived — or,
+            // with the connection stalled, until the system gave up on it.
+            img = new Image(ImageUtils.uri(fotoUrl), true);
         } catch (Exception e) {
             return;
         }
@@ -348,13 +350,34 @@ public final class DialogUtil {
 
         ImageView iv = new ImageView(img);
         iv.setPreserveRatio(true);
-        iv.setFitWidth(Math.min(560, Math.max(img.getWidth(), 240)));
-        iv.setFitHeight(Math.min(560, Math.max(img.getHeight(), 240)));
         iv.getStyleClass().add("photo-viewer-image");
 
-        StackPane frame = new StackPane(iv);
+        ProgressIndicator cargando = new ProgressIndicator();
+        cargando.setMaxSize(44, 44);
+        StackPane frame = new StackPane(cargando, iv);
+        frame.setMinSize(264, 264);
         frame.setPadding(new Insets(12));
         frame.getStyleClass().add("photo-viewer-frame");
+
+        Runnable mostrar = () -> {
+            if (img.isError()) {
+                Label aviso = new Label("No se pudo cargar la foto");
+                aviso.getStyleClass().add("muted-sm");
+                frame.getChildren().setAll(aviso);
+                return;
+            }
+            iv.setFitWidth(Math.min(560, Math.max(img.getWidth(), 240)));
+            iv.setFitHeight(Math.min(560, Math.max(img.getHeight(), 240)));
+            frame.getChildren().remove(cargando);
+            javafx.stage.Window ventana = dialog.getDialogPane().getScene() != null
+                ? dialog.getDialogPane().getScene().getWindow() : null;
+            if (ventana != null) ventana.sizeToScene();
+        };
+        if (img.getProgress() >= 1 || img.isError()) mostrar.run();
+        else {
+            img.progressProperty().addListener((o, a, b) -> { if (b.doubleValue() >= 1) mostrar.run(); });
+            img.errorProperty().addListener((o, a, b) -> { if (b) mostrar.run(); });
+        }
 
         dialog.getDialogPane().setContent(frame);
         dialog.showAndWait();

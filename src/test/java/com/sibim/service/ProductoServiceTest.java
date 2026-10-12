@@ -145,6 +145,24 @@ class ProductoServiceTest {
         assertEquals("p-nuevo", service.save(productoValido).getId());
     }
 
+    /** The insert of a new bien fails (connection lost). The form reopens with
+     *  the same object, which now carries the id the repository gave it: the
+     *  next "Guardar" is that alta again, not the edit of a bien that was never
+     *  stored ("no existe o no tienes acceso a él" on every retry). */
+    @Test void save_reintentoDeUnAltaQueFallo_noSeTomaPorEdicion() throws Exception {
+        when(mockProductoRepo.save(any())).thenAnswer(inv -> {
+            inv.<Producto>getArgument(0).setId("p-alta-fallida");
+            throw new SQLException("conexión perdida", "08006");
+        });
+        assertThrows(SQLException.class, () -> service.save(productoValido));
+        assertEquals("p-alta-fallida", productoValido.getId());
+
+        Producto guardado = new Producto(); guardado.setId("p-alta-fallida"); guardado.setNombre("Silla ejecutiva");
+        doReturn(guardado).when(mockProductoRepo).save(any());
+        assertEquals("p-alta-fallida", service.save(productoValido).getId());
+        verify(mockAuditRepo).log(eq("producto"), eq("p-alta-fallida"), any(), eq("crear"), any());
+    }
+
     // ── delete() ─────────────────────────────────────────────────────────────
 
     @Test void delete_productoConMovimientos_muestraMensajeAmigable() throws Exception {

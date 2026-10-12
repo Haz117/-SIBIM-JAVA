@@ -69,9 +69,13 @@ public final class ImageUtils {
         return SupabaseStorage.isRemoteUrl(rutaOUrl) ? rutaOUrl : Path.of(rutaOUrl).toUri().toString();
     }
 
-    /** True for a photo kept as a file path: only the PC that has the file sees it. */
+    /** True for a photo kept as a file in this PC's own folder: only the PC
+     *  that has the file sees it. With IMG_DIR set the files go to the folder
+     *  every PC shares (README), so a path there is not "only on this PC". */
     public static boolean soloEnEstaPc(String rutaOUrl) {
-        return rutaOUrl != null && !rutaOUrl.isBlank() && !SupabaseStorage.isRemoteUrl(rutaOUrl);
+        if (rutaOUrl == null || rutaOUrl.isBlank() || SupabaseStorage.isRemoteUrl(rutaOUrl)) return false;
+        String compartida = resolveImgDir();
+        return compartida == null || compartida.isBlank();
     }
 
     /**

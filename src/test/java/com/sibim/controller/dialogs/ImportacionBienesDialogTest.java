@@ -202,6 +202,27 @@ class ImportacionBienesDialogTest {
             ImportacionBienesDialog.parseBigDecimalSafe("$12,345.67", BigDecimal.ZERO)));
     }
 
+    /** A ';' CSV comes from a PC whose regional format writes the decimals
+     *  with a comma: "3200,50" was imported as 320050.00. */
+    @Test void parseBigDecimalSafe_comaDecimal_noMultiplicaElImporte() {
+        assertImporte("3200.50", "3200,50");
+        assertImporte("0.75", "0,75");
+        assertImporte("12345.67", "12.345,67");
+        assertImporte("1234567.89", "$ 1.234.567,89");
+    }
+
+    @Test void parseBigDecimalSafe_comaDeMiles_sigueSiendoMiles() {
+        assertImporte("12345", "12,345");
+        assertImporte("1234567", "1,234,567");
+        assertImporte("1234567.89", "$1,234,567.89");
+        assertImporte("3200.5", "3200.5");
+    }
+
+    private static void assertImporte(String esperado, String texto) {
+        BigDecimal leido = ImportacionBienesDialog.parseBigDecimalSafe(texto, BigDecimal.valueOf(-1));
+        assertEquals(0, new BigDecimal(esperado).compareTo(leido), texto + " se leyó como " + leido);
+    }
+
     @Test void parseBigDecimalSafe_valorInvalido_retornaDefault() {
         assertEquals(0, BigDecimal.TEN.compareTo(
             ImportacionBienesDialog.parseBigDecimalSafe("no-es-precio", BigDecimal.TEN)));

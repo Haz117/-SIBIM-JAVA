@@ -47,4 +47,35 @@ class ConteoFisicoDialogTest {
         assertTrue(ConteoFisicoDialog.parsearBorrador("").isEmpty());
         assertTrue(ConteoFisicoDialog.parsearBorrador(null).isEmpty());
     }
+
+    /** A row with a difference or an estado gets its ajuste on finalizing, so
+     *  it counts as seen whether or not "Visto" is ticked: it used to be
+     *  adjusted and recorded as "sin revisar" at the same time. */
+    @Test
+    void filaConDiferenciaOConEstado_cuentaComoVista() {
+        var encontrado = ConteoFisicoDialog.EstadoConteo.ENCONTRADO;
+        assertFalse(ConteoFisicoDialog.vista(false, 1, 1, encontrado));
+        assertTrue(ConteoFisicoDialog.vista(true, 1, 1, encontrado));
+        assertTrue(ConteoFisicoDialog.vista(false, 2, 1, encontrado));
+        assertTrue(ConteoFisicoDialog.vista(false, 0, 1, ConteoFisicoDialog.EstadoConteo.FALTANTE));
+        assertTrue(ConteoFisicoDialog.vista(false, 1, 1, ConteoFisicoDialog.EstadoConteo.MAL_ESTADO));
+    }
+
+    /** The draft is kept by bien: taking out the bienes of one conteo leaves
+     *  what was captured for another (one conteo per account used to
+     *  overwrite the other). */
+    @Test
+    void borrador_quitarLosBienesDeUnConteo_conservaLosDeOtro() {
+        String raw = ConteoFisicoDialog.serializar("catastro-1", 1, "ENCONTRADO", "Nota = con ; y |", true)
+            + ";" + ConteoFisicoDialog.serializar("tesoreria-1", 0, "FALTANTE", "", true);
+
+        Map<String, String> filas = ConteoFisicoDialog.filasCrudas(raw);
+        assertEquals(java.util.List.of("catastro-1", "tesoreria-1"), java.util.List.copyOf(filas.keySet()));
+
+        filas.keySet().removeAll(java.util.List.of("catastro-1"));
+        var quedan = ConteoFisicoDialog.parsearBorrador(String.join(";", filas.values()));
+        assertEquals(1, quedan.size());
+        assertEquals(ConteoFisicoDialog.EstadoConteo.FALTANTE, quedan.get("tesoreria-1").estado());
+        assertTrue(ConteoFisicoDialog.filasCrudas(null).isEmpty());
+    }
 }

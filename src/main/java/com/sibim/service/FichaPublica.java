@@ -105,6 +105,22 @@ public final class FichaPublica {
         if (publicada(p)) publicar(p);
     }
 
+    /** The same after a change made anywhere but the form — a transfer, a
+     *  baja, a resguardo: the label still downloads the ficha, and it went on
+     *  showing the old área, código or resguardante. Off the caller's thread
+     *  and never its problem; nothing happens on a PC without Storage. */
+    public static void actualizarLuego(String productoId) {
+        if (productoId == null || !SupabaseStorage.isAvailable()) return;
+        com.sibim.util.AppExecutor.submit(() -> {
+            try {
+                new com.sibim.repository.ProductoRepository().findByIdOnline(productoId)
+                    .ifPresent(FichaPublica::actualizarSiPublicada);
+            } catch (Exception e) {
+                log.warn("No se pudo actualizar la ficha publicada del bien {}: {}", productoId, e.getMessage());
+            }
+        });
+    }
+
     private static boolean publicada(Producto p) {
         if (p.getId() == null || !SupabaseStorage.isAvailable()) return false;
         try {

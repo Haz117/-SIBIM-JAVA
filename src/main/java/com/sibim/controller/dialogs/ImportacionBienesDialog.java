@@ -737,9 +737,24 @@ public class ImportacionBienesDialog {
         catch (Exception e) { return def; }
     }
 
+    /** An amount as either convention writes it: "12,345.67" (México) or
+     *  "12.345,67" / "3200,50" (the regional format whose CSV uses ';').
+     *  Dropping every comma, as before, read "3200,50" as 320050. */
     static BigDecimal parseBigDecimalSafe(String s, BigDecimal def) {
         try {
-            String clean = s.replace("$", "").replace(",", "").trim();
+            String clean = s.replace("$", "").replace(" ", "").replace(String.valueOf((char) 0xA0), "").trim();
+            int coma = clean.lastIndexOf(','), punto = clean.lastIndexOf('.');
+            if (coma >= 0 && punto >= 0) {
+                // Both: the one written last is the decimal mark.
+                clean = coma > punto ? clean.replace(".", "").replace(',', '.') : clean.replace(",", "");
+            } else if (coma >= 0) {
+                // Only commas: thousands when they group digits in threes
+                // ("12,345", "1,234,567"), the decimal mark otherwise ("3200,50").
+                boolean miles = clean.indexOf(',') != coma || clean.length() - coma - 1 == 3;
+                clean = miles ? clean.replace(",", "") : clean.replace(',', '.');
+            } else if (punto >= 0 && clean.indexOf('.') != punto) {
+                clean = clean.replace(".", "");   // "1.234.567"
+            }
             return new BigDecimal(clean);
         } catch (Exception e) { return def; }
     }

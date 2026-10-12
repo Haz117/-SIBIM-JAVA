@@ -198,6 +198,7 @@ public class MovimientoService {
 
         try {
             Movimiento saved = movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
+            despuesDeCambiar(productoId);
             auditRepo.log("movimiento", saved.getId(), m.getProductoNombre(), "crear",
                 "Movimiento " + tipo.getCodigo() + ": " + cantidad
                     + " uds (cantidad " + m.getStockAnterior() + " → " + m.getStockNuevo() + ")");
@@ -258,6 +259,7 @@ public class MovimientoService {
             if (e instanceof com.sibim.db.ReglaIncumplida) throw new ValidationException(e.getMessage());
             throw e;
         }
+        despuesDeCambiar(movimientoRepo.findProductoIdById(movimientoId).orElse(null));
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_aprobada",
             "Transferencia aprobada por administrador");
     }
@@ -276,6 +278,7 @@ public class MovimientoService {
             if (e instanceof com.sibim.db.ReglaIncumplida) throw new ValidationException(e.getMessage());
             throw e;
         }
+        ProductosEnMemoria.invalidar();
         auditRepo.log("movimiento", movimientoId, movimientoId, "transferencia_rechazada",
             "Transferencia rechazada por administrador"
                 + (motivo != null && !motivo.isBlank() ? ": " + motivo : ""));
@@ -305,6 +308,15 @@ public class MovimientoService {
                     original.getStockAnterior(), motivoRev, refRev, original.getStockNuevo());
             default -> throw new ValidationException("Tipo de movimiento no reversible");
         };
+    }
+
+    /** Once the write is done (not before: a screen that reloaded in between
+     *  cached the old cantidad or área for 30 s): the shared list is dropped
+     *  and the ficha the bien's QR downloads, if it has one, is brought up to
+     *  date with its new área and código. */
+    private static void despuesDeCambiar(String productoId) {
+        ProductosEnMemoria.invalidar();
+        FichaPublica.actualizarLuego(productoId);
     }
 
     private void requireAdminForTransferWorkflow() {
@@ -341,6 +353,7 @@ public class MovimientoService {
         String productoId = movimientoRepo.findProductoIdById(movimientoId).orElse("?");
         try {
             movimientoRepo.deleteMovimientoAtomic(movimientoId);
+            despuesDeCambiar("?".equals(productoId) ? null : productoId);
             auditRepo.log("movimiento", movimientoId, movimientoId, "eliminar",
                 "Movimiento eliminado (bien " + productoId + ", estado " + estado.orElse("?") + ")");
             log.info("Movimiento eliminado [{}]", movimientoId);

@@ -91,6 +91,7 @@ public class ResguardoService {
         r.setItems(items);
         Resguardo saved = repo.save(r);
         ProductosEnMemoria.invalidar();   // products.resguardante follows the resguardo
+        actualizarFichas(items);
         auditRepo.log("resguardo", saved.getId(), saved.getResguardanteNombre(), "crear",
             "Resguardo " + saved.getNumero() + " · " + items.size()
                 + (items.size() == 1 ? " bien" : " bienes")
@@ -127,9 +128,17 @@ public class ResguardoService {
         Resguardo r = repo.findById(id);
         repo.cancelar(id);
         ProductosEnMemoria.invalidar();
-        if (r != null)
+        if (r != null) {
+            actualizarFichas(r.getItems());
             auditRepo.log("resguardo", id, r.getResguardanteNombre(), "cancelar",
                 "Resguardo " + r.getNumero() + " cancelado");
+        }
+    }
+
+    /** The ficha a bien's QR downloads names its resguardante. */
+    private static void actualizarFichas(List<ResguardoItem> items) {
+        if (items == null) return;
+        for (ResguardoItem it : items) FichaPublica.actualizarLuego(it.getProductoId());
     }
 
     public java.util.List<Resguardo> getByProductoId(String productoId) throws java.sql.SQLException {

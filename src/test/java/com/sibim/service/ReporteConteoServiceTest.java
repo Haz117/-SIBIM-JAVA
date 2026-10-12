@@ -71,6 +71,23 @@ class ReporteConteoServiceTest {
         assertFileProduced(service.exportarConteoPdf(conteo, List.of()), ".pdf");
     }
 
+    /** The exported capture said "Correcto" for every bien without a
+     *  difference, the ones nobody had looked at included. */
+    @Test void estadoDeCaptura_noLlamaCorrectoALoQueNadieReviso() {
+        ConteoItem it = new ConteoItem();
+        it.setStockSistema(1); it.setStockContado(1);
+        it.setEstadoConteo("SIN_REVISAR");
+        assertEquals("Sin revisar", ReporteConteoService.estadoDeCaptura(it));
+        it.setEstadoConteo("ENCONTRADO");
+        assertEquals("Correcto", ReporteConteoService.estadoDeCaptura(it));
+        it.setEstadoConteo("MAL_ESTADO");
+        assertEquals("Mal estado", ReporteConteoService.estadoDeCaptura(it));
+        it.setEstadoConteo("FALTANTE"); it.setStockContado(0);
+        assertEquals("Con diferencia · Faltante", ReporteConteoService.estadoDeCaptura(it));
+        it.setEstadoConteo("ENCONTRADO"); it.setAjustado(true);
+        assertEquals("Ajustado", ReporteConteoService.estadoDeCaptura(it));
+    }
+
     // ── exportConteoPdf(String, String, List<ConteoItem>) ─────────────────────
 
     @Test void exportConteoPdf_withItems_createsNonEmptyFile() throws Exception {

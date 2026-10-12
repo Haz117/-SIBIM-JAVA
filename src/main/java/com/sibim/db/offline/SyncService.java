@@ -665,7 +665,9 @@ public final class SyncService {
                 } else if ("REACTIVAR".equals(operacion)) {
                     repo.reactivarOnline(versionOffline.getId());
                 } else {
-                    repo.saveOnline(conDatosDelServidor(repo, versionOffline));
+                    // Like the batch replay: a código another PC took meanwhile
+                    // is replaced, not a reason to throw the offline edit away.
+                    guardarReplicado(repo, versionOffline);
                 }
                 markOutbox("product_outbox", outboxId, STATUS_SYNCED, null);
                 log.info("SyncService: conflicto {} ({}) resuelto — versión offline aplicada", outboxId, operacion);

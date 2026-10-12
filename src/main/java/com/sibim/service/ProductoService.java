@@ -194,9 +194,19 @@ public class ProductoService {
         return productoRepo.findProximasRevisiones(dias);
     }
 
+    /** Ids given to a new bien whose insert then failed. The form reopens with
+     *  the same object, id included, and the next "Guardar" took it for the
+     *  edit of a bien that was never stored: "no existe o no tienes acceso a
+     *  él" on every retry, until the capture was cancelled and typed again.
+     *  The id is kept rather than cleared: had the insert reached the server
+     *  after all, the retry updates that row instead of registering it twice. */
+    private static final java.util.Set<String> ALTAS_SIN_CONFIRMAR =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     public Producto save(Producto recibido) throws SQLException, ValidationException {
         Producto p = recibido;
-        boolean isNew = p.getId() == null;
+        boolean isNew = p.getId() == null
+            || (ALTAS_SIN_CONFIRMAR.contains(p.getId()) && productoRepo.findById(p.getId()).isEmpty());
         // Secretarías and direcciones keep the data of their bienes current;
         // registering a new bien is Patrimonio's (admin).
         if (isNew && !SessionManager.isAdmin())
@@ -270,7 +280,10 @@ public class ProductoService {
                 // Another PC registered a bien with this código between the
                 // moment it was picked and the insert (unique index on active
                 // códigos): take the next free one and try again.
-                if (!"23505".equals(e.getSQLState()) || !isNew) throw e;
+                if (!"23505".equals(e.getSQLState()) || !isNew) {
+                    if (isNew && p.getId() != null) ALTAS_SIN_CONFIRMAR.add(p.getId());
+                    throw e;
+                }
                 if (!codigoPorArea || intento == 3) {
                     p.setId(null);
                     throw new ValidationException("Otro equipo acaba de usar el código " + p.getCodigo()
@@ -282,6 +295,7 @@ public class ProductoService {
         // After the write: dropped before it, a screen reading in between put
         // the old row (and its old photo) back in the shared list for 30 s.
         ProductosEnMemoria.invalidar();
+        if (saved.getId() != null) ALTAS_SIN_CONFIRMAR.remove(saved.getId());
         log.info("Bien {} [{}] '{}'", isNew ? "registrado" : "actualizado", saved.getId(), saved.getNombre());
         auditRepo.log("producto", saved.getId(), saved.getNombre(),
             isNew ? "crear" : "actualizar",
@@ -335,6 +349,7 @@ public class ProductoService {
             throw new ValidationException("No tienes acceso a esa área");
         try {
             productoRepo.delete(id);
+            ProductosEnMemoria.invalidar();
             auditRepo.log("producto", id, p.getNombre(), "eliminar", "Bien eliminado permanentemente");
         } catch (SQLException e) {
             if ("23503".equals(e.getSQLState()))
@@ -386,6 +401,8 @@ public class ProductoService {
         if (ocupado.isPresent())
             throw new ValidationException("No se puede dar de baja: el bien " + ocupado.get());
         productoRepo.darDeBaja(id, motivo.trim(), tipoDestino, dictamen, numeroActa, fechaDictamen);
+        ProductosEnMemoria.invalidar();
+        FichaPublica.actualizarLuego(id);   // the label must stop saying the bien is active
         log.info("Baja patrimonial bien [{}] '{}' — motivo: {} destino: {}",
             id, p.getNombre(), motivo.trim(), tipoDestino);
         String auditDetail = "Motivo: " + motivo.trim()
@@ -412,6 +429,8 @@ public class ProductoService {
         } else {
             productoRepo.reactivar(id);
         }
+        ProductosEnMemoria.invalidar();
+        FichaPublica.actualizarLuego(id);
         log.info("Bien reactivado [{}] '{}'", id, p.getNombre());
         auditRepo.log("producto", id, p.getNombre(), "reactivar", "Bien reactivado tras baja");
     }
