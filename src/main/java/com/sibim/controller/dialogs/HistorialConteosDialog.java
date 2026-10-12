@@ -32,6 +32,7 @@ public final class HistorialConteosDialog {
             case "MAL_ESTADO"   -> "Mal estado";
             case "EN_OTRA_AREA" -> "En otra área";
             case "FALTANTE"     -> "Faltante";
+            case "SIN_REVISAR"  -> "Sin revisar";
             default             -> "Encontrado";
         };
     }
@@ -190,7 +191,8 @@ public final class HistorialConteosDialog {
                 for (ConteoItem it : items) {
                     int diff = it.getStockContado() - it.getStockSistema();
                     String estadoItemCode = it.getEstadoConteo();
-                    boolean tieneIncidencia = estadoItemCode != null && !estadoItemCode.equals("ENCONTRADO");
+                    boolean tieneIncidencia = estadoItemCode != null && !estadoItemCode.equals("ENCONTRADO")
+                        && !estadoItemCode.equals("SIN_REVISAR");   // not looked at is not an incident
 
                     HBox mainRow = new HBox(10);
                     mainRow.getStyleClass().add("dlg-detail-header");

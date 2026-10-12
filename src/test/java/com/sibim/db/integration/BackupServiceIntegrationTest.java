@@ -116,6 +116,30 @@ class BackupServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void unRespaldoAnteriorALasSolicitudes_seAplicaYLasConserva() throws Exception {
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("INSERT INTO solicitudes (id, tipo, producto_id, producto_nombre, area, responsable, estado, "
+                + "respuesta) VALUES ('sol-1', 'prestamo', 'prod-1', 'Escritorio', 'Dirección de Catastro', 'Luis', "
+                + "'RECHAZADA', 'Sin existencia')");
+        }
+        // Shape of a backup made before solicitudes joined BackupService.TABLAS.
+        File completo = tmp.resolve("completo.sibim").toFile();
+        service.backup(completo, PASSWORD);
+        Map<String, Object> raiz = new ObjectMapper().readValue(
+            BackupEncryption.decrypt(Files.readAllBytes(completo.toPath()), PASSWORD), Map.class);
+        ((Map<String, Object>) raiz.get("tablas")).remove("solicitudes");
+        File archivo = tmp.resolve("sin-solicitudes.sibim").toFile();
+        Files.write(archivo.toPath(),
+            BackupEncryption.encrypt(new ObjectMapper().writeValueAsBytes(raiz), PASSWORD));
+
+        service.restore(archivo, PASSWORD);   // deletes products: ON DELETE CASCADE takes solicitudes along
+
+        assertEquals("Sin existencia", scalar("SELECT respuesta FROM solicitudes WHERE id = 'sol-1'"),
+            "las solicitudes que el respaldo no trae se apartan y se reponen");
+    }
+
+    @Test
     void restaurar_conservaEnQueEquiposEntroCadaCuenta() throws Exception {
         try (Connection c = getConnection(); Statement st = c.createStatement()) {
             st.execute("INSERT INTO users (id, username, password, nombre, role) "

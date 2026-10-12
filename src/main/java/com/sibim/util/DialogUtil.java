@@ -31,7 +31,6 @@ import javafx.util.Callback;
 import javafx.util.Duration;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -335,7 +334,7 @@ public final class DialogUtil {
         if (fotoUrl == null || fotoUrl.isBlank()) return;
         Image img;
         try {
-            img = new Image(Path.of(fotoUrl).toUri().toString());
+            img = new Image(ImageUtils.uri(fotoUrl));
             if (img.isError()) return;
         } catch (Exception e) {
             return;
@@ -829,8 +828,18 @@ public final class DialogUtil {
                 if (onSuccess != null) Platform.runLater(onSuccess);
             } catch (Exception ex) {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
+            } catch (Error err) {
+                reportarError(err, onError);
             }
         });
+    }
+
+    /** An Error (out of memory on a large export, a class missing from the
+     *  build) is not an Exception: without this the task just died, and the
+     *  screen that started it stayed on "Guardando…" with nothing in the log. */
+    private static void reportarError(Error err, Consumer<Exception> onError) {
+        org.slf4j.LoggerFactory.getLogger(DialogUtil.class).error("Una tarea en segundo plano falló", err);
+        if (onError != null) Platform.runLater(() -> onError.accept(new RuntimeException(err)));
     }
 
     /** Async with a typed result returned from the background thread. */
@@ -842,6 +851,8 @@ public final class DialogUtil {
                 if (onSuccess != null) Platform.runLater(() -> onSuccess.accept(result));
             } catch (Exception ex) {
                 if (onError != null) Platform.runLater(() -> onError.accept(ex));
+            } catch (Error err) {
+                reportarError(err, onError);
             }
         });
     }

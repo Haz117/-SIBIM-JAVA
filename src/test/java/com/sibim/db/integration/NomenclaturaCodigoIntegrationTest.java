@@ -130,6 +130,44 @@ class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void huecoEnMedio_elNuevoBienLoOcupa_yLuegoSigueLaNumeracion() throws Exception {
+        productoService.save(nuevoBien("Bien 1", AREA_SGM));
+        Producto b2 = productoService.save(nuevoBien("Bien 2", AREA_SGM));
+        productoService.save(nuevoBien("Bien 3", AREA_SGM));
+
+        // El 02 se desocupa por transferencia; el 01 y el 03 siguen ocupados.
+        movimientoService.registrar(b2.getId(), TipoMovimiento.TRANSFERENCIA, b2.getStockActual(), "traspaso", null, AREA_RH);
+
+        assertEquals("SGM/02", productoService.save(nuevoBien("Nuevo A", AREA_SGM)).getCodigo(),
+            "el bien nuevo ocupa el número que quedó libre");
+        assertEquals("SGM/04", productoService.save(nuevoBien("Nuevo B", AREA_SGM)).getCodigo(),
+            "sin huecos, continúa después del último");
+    }
+
+    @Test
+    void codigoCapturadoEnMinusculas_tambienOcupaSuNumero() throws Exception {
+        Producto p = productoService.save(nuevoBien("Bien 1", AREA_SGM));
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("UPDATE products SET codigo = 'sgm/01' WHERE id = ?")) {
+            ps.setString(1, p.getId());
+            ps.executeUpdate();
+        }
+        assertEquals("SGM/02", productoService.save(nuevoBien("Bien 2", AREA_SGM)).getCodigo());
+    }
+
+    /** What SyncService replays for a reactivation made offline. */
+    @Test
+    void reactivarReplicado_tomaElSiguienteLibreSiSuNumeroYaSeOcupo() throws Exception {
+        Producto original = productoService.save(nuevoBien("Original", AREA_SGM));
+        productoService.darDeBaja(original.getId(), "temporal");
+        productoService.save(nuevoBien("Reemplazo", AREA_SGM));   // toma SGM/01
+
+        productoRepo.reactivarOnline(original.getId());
+
+        assertEquals("SGM/02", productoRepo.findById(original.getId()).orElseThrow().getCodigo());
+    }
+
+    @Test
     void reactivar_reasignaCodigoSiFueOcupadoPorOtroBien() throws Exception {
         Producto original = productoService.save(nuevoBien("Original", AREA_SGM));
         productoService.darDeBaja(original.getId(), "temporal");

@@ -10,15 +10,16 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Depreciación en línea recta (SAT)** — cada bien puede tener fecha de adquisición, vida útil en años y valor residual; el sistema calcula automáticamente el valor depreciado actual y el porcentaje depreciado, visible en el detalle del bien con una barra de progreso codificada por color (verde / ámbar / rojo)
 - **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino. El **stock y el área de un bien solo cambian con movimientos**: el formulario de edición los muestra en solo lectura, la acción masiva "Transferir" registra transferencias (con aprobación para no-Admin) y guardar una edición nunca pisa un movimiento registrado mientras el formulario estaba abierto (si otro usuario modificó el bien, pide volver a abrirlo). Cada transferencia guarda el código patrimonial anterior y el nuevo. Solo el Admin puede eliminar un movimiento, y solo el más reciente de cada bien; los demás usan **Revertir**, que deja ambos registros
 - **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
-- **Solicitudes de préstamo y resguardo** — solo Patrimonio (Admin) registra préstamos, resguardos y comodatos. Un área los pide desde Bienes (clic derecho sobre el bien → "Solicitar préstamo" o "Solicitar resguardo"); la solicitud aparece en la campana del Admin y en Préstamos/Resguardos → "Solicitudes", donde se aprueba (se crea el documento con su folio) o se rechaza con un motivo que el área ve en "Mis solicitudes". Requiere conexión
+- **Préstamos, resguardos y comodatos solo de Patrimonio** — solo Patrimonio (Admin) los registra; las áreas ya no envían solicitudes por SIBIM (las piden directamente a Patrimonio). Las solicitudes enviadas antes de ese cambio siguen en la campana del Admin y en Préstamos/Resguardos → "Solicitudes", donde se aprueban o rechazan
 - **Equipos por cuenta** — una cuenta solo puede entrar sin internet en una PC donde ya entró con conexión en los últimos 30 días. Cada ingreso con conexión se anota por computadora, y Configuración → Usuarios → "Equipos por cuenta" (solo Admin) muestra qué cuentas ya están listas para trabajar sin internet, cuáles tienen el acceso vencido y cuáles no han entrado en ninguna PC. La lista incluye la versión de SIBIM instalada en cada equipo
 - **Errores de equipos** — los errores que SIBIM tiene en cualquier computadora se envían a la base (máximo 25 por sesión, sin repetir) y el Admin los ve en Configuración → "Errores de equipos" con el equipo, la cuenta y la versión; se conservan 90 días
 - **Respaldo automático** — en Configuración → "Respaldo automático" el Admin define una contraseña y esa computadora guarda cada día un respaldo cifrado en `%APPDATA%\SIBIM\respaldos` (se conservan 30). La contraseña queda sellada con Windows DPAPI en esa PC; para restaurar se escribe la misma contraseña en cualquier equipo
 - **Baja patrimonial con solicitud** — solo el administrador (Patrimonio) da de baja un bien, y solo con la **solicitud de baja firmada** por el área: la ventana de baja exige su oficio/folio (queda junto al motivo, en la auditoría y en el acta) y permite generar el formato. Secretarías y direcciones ven "Solicitar baja", que genera el formato para firmarlo y entregarlo. La baja saca el bien del inventario activo sin borrar su historial (soft-delete) y genera el acta de baja
 - **Pantalla de Bajas** (Ctrl+Alt+B) — todas las bajas de tus áreas con motivo, folio de la solicitud, destino, dictamen, número de acta y valor; tarjetas (total, este año, valor dado de baja, sin solicitud registrada), filtros por texto/área/año, exportación PDF/Excel/CSV, volver a generar el acta, ficha técnica y reactivar (solo administrador)
 - **Ficha y etiquetas del bien** — en la barra inferior de Bienes: **Ficha** (ficha técnica en PDF; con varios seleccionados, todas en un PDF) y **Etiqueta ▾** (etiqueta de inventario con datos y QR, o solo QR), además de **QR**
+- **El QR descarga la ficha del bien** — con el almacenamiento de fotos configurado (`SUPABASE_ANON_KEY`), el QR de un bien es un enlace a su ficha en PDF: se publica al generar el QR o las etiquetas QR y se actualiza al guardar el bien. Esa copia no lleva montos, historial ni firmas, porque cualquiera frente a la etiqueta puede abrirla. Sin almacenamiento, y en la etiqueta oficial (su QR es muy chico para un enlace), el QR lleva lo que la etiqueta no imprime: resguardante, ubicación, estado físico, adquisición, factura, garantía y próxima revisión. El lector de SIBIM sigue obteniendo el código en ambos casos
 - **Abrir, imprimir y guardar documentos** — cada PDF/Excel generado muestra Guardar como / Imprimir / Abrir / Carpeta / Copiar ruta; si Java no logra abrir el archivo en la PC se usa el mismo mecanismo que el Explorador de Windows. "Imprimir" abre el visor para elegir impresora (Ctrl+P)
-- **Conteo físico de inventario** — captura lo contado contra el sistema, reconcilia las diferencias con movimientos de Ajuste auditados, y guarda cada sesión de conteo completa (incluyendo lo que sí coincidió) para revisión posterior; pide confirmación si se intenta cerrar con diferencias sin guardar; el usuario activo se captura en el hilo de UI antes del guardado en segundo plano para evitar lecturas fuera del hilo de JavaFX
+- **Conteo físico de inventario** — verificación bien por bien: se marca "Visto" cada bien que se tiene a la vista (o se escanea su etiqueta con la pistola lectora, sin abrir nada) y se anota lo que no coincide (mal estado, en otra área, faltante, o una cantidad distinta). El avance muestra cuántos faltan y "Solo pendientes" deja ver únicamente lo que queda. Al finalizar se reconcilian las diferencias con movimientos de Ajuste auditados y se guarda la sesión completa; un bien que nadie marcó queda como "sin revisar", no como encontrado, y el reporte lo dice. El borrador se guarda en un archivo de la PC y recuerda lo ya visto
 - **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
 - **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con las garantías por vencer, los préstamos vencidos o por vencer, los bienes por recibir y las solicitudes por atender; cada elemento navega directo a la pantalla correspondiente. Su número es la suma de los contadores de Alertas y Préstamos del menú lateral, y el aviso del Dashboard usa las mismas listas que la pantalla de Alertas, así que las tres cifras cuadran
 - **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). La bitácora de auditoría nunca se borra al restaurar (solo se le agregan las entradas del respaldo que falten). Un respaldo de una versión anterior deja intactas las tablas que no incluye; si alguna de ellas depende de los bienes y tiene datos (fotos, comodatos, historial de precios, mantenimiento), se rechaza en vez de borrarlas. Solo disponible conectado a la base de datos real, no en modo offline/demo
@@ -52,14 +53,14 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | UI | JavaFX 21 + FXML + CSS + AtlantaFX (PrimerLight) |
 | Base de datos principal | PostgreSQL (gestionado por Flyway) |
 | Base de datos offline | SQLite 3.46 (`~/.sibim/offline.db`) |
-| Conexión BD | HikariCP (pool 10 conexiones, 8 s timeout) |
+| Conexión BD | HikariCP (pool de hasta 6 conexiones, 8 s timeout) |
 | Reportes PDF | iText 7 |
 | Reportes Excel | Apache POI |
 | Cifrado de contraseñas | BCrypt (at.favre.lib, factor 12) |
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (864 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1070 tests en la última ejecución) |
 
 ---
 
@@ -115,6 +116,8 @@ El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente l
    ```env
    IMG_DIR=\\servidor\sibim\imagenes
    ```
+
+   **Fotos de los bienes (Supabase Storage)** — con `SUPABASE_URL` y `SUPABASE_ANON_KEY` (la clave **pública** del proyecto) en el `.env`, las fotos y facturas se suben al bucket público `sibim-fotos` y todas las PCs las ven en la tabla, el detalle y los formatos PDF. Si falta `SUPABASE_ANON_KEY`, la foto queda como archivo de esa PC (SIBIM lo avisa al guardar) y ninguna otra computadora la ve; al agregar la clave, las fotos pendientes de esa PC se suben solas. La carpeta compartida `IMG_DIR` de abajo es la alternativa para instalaciones sin Supabase.
 
    **Configuración de la carpeta compartida de imágenes (despliegue multiPC)**
 
@@ -233,7 +236,7 @@ SIBIM-Java/
 │       ├── db/offline/            # Tests del almacén offline (caducidad, outbox)
 │       ├── model/                 # Tests de entidades
 │       ├── repository/            # Tests de autorización de repositorios
-│       ├── service/               # Tests unitarios + autorización + exports (701 tests total)
+│       ├── service/               # Tests unitarios + autorización + exports 
 │       ├── session/               # Tests de SessionManager
 │       └── util/                  # Tests de utilidades
 ├── packaging/
@@ -315,14 +318,14 @@ pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d 
 
 El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta periódicamente fuera de esa PC.
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V26__descripcion.sql` (numeración consecutiva a partir de V25) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V31__descripcion.sql` (numeración consecutiva a partir de V30) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (1035 en total)
+# Correr todos los tests (1099 en total)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

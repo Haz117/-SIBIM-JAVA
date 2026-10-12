@@ -59,15 +59,10 @@ public class BackupService {
     /** Tables deliberately left out: migration bookkeeping, transient login
      *  counters, the published installers (~110 MB each, regenerable), the
      *  log of which PC each account signed in on (it describes the PCs, not
-     *  the inventory — see {@link #TABLA_ACCESOS}) and the PCs' errors. */
+     *  the inventory — see {@link #DEPENDIENTES_EXCLUIDAS}) and the PCs' errors. */
     public static final Set<String> TABLAS_EXCLUIDAS = Set.of(
         "flyway_schema_history", "schema_version", "login_attempts",
         "actualizaciones", "actualizacion_partes", "accesos_equipo", "errores_equipo");
-
-    /** Not backed up, but it hangs off users with ON DELETE CASCADE (V29):
-     *  a restore would empty it, and Patrimonio would see every account as
-     *  never signed in anywhere. It is kept for the accounts the backup has. */
-    private static final String TABLA_ACCESOS = "accesos_equipo";
 
     /** The audit trail is append-only: a restore never deletes it, it only
      *  adds back the entries the backup has that the database lost — so the
@@ -176,8 +171,7 @@ public class BackupService {
             conn.setAutoCommit(false);
             try {
                 rechazarSiBorraDatosNoRespaldados(conn, tablas);
-                List<Map<String, Object>> accesos = tablas.containsKey("users")
-                    ? leerTabla(conn, TABLA_ACCESOS) : List.of();
+                apartarLoQueNoVaEnElRespaldo(conn, tablas.keySet());
                 // Only tables the backup contains are replaced; the audit trail
                 // is only added to.
                 for (int i = TABLAS.size() - 1; i >= 0; i--) {
@@ -188,7 +182,7 @@ public class BackupService {
                     List<Map<String, Object>> filas = tablas.get(tabla);
                     if (filas != null) insertarFilas(conn, tabla, filas, TABLA_AUDITORIA.equals(tabla));
                 }
-                reponerAccesos(conn, accesos);
+                reponerLoApartado(conn, tablas.keySet());
                 conn.commit();
                 ProductosEnMemoria.invalidar();
             } catch (Exception e) {
@@ -199,6 +193,52 @@ public class BackupService {
             }
             new AuditLogRepository().log("backup", origen.getName(), origen.getName(), "restaurar",
                 "Restauración completa aplicada");
+        }
+    }
+
+    /** Tables a backup may not have that hang off one the restore empties
+     *  (ON DELETE CASCADE): table → {its FK column, the table it points at}.
+     *  accesos_equipo is never backed up, and the backups made before the
+     *  áreas' requests joined {@link #TABLAS} have no solicitudes. When the
+     *  backup lacks one, its rows are set aside and put back for the
+     *  bienes/cuentas that still exist afterwards; without this a restore
+     *  silently wiped the áreas' requests and the list of PCs each account
+     *  has signed in on. */
+    private static final Map<String, String[]> DEPENDIENTES_EXCLUIDAS = Map.of(
+        "solicitudes",    new String[]{"producto_id", "products"},
+        "accesos_equipo", new String[]{"user_id", "users"});
+
+    private void apartarLoQueNoVaEnElRespaldo(Connection conn, Set<String> enElRespaldo) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            for (String tabla : DEPENDIENTES_EXCLUIDAS.keySet())
+                if (!enElRespaldo.contains(tabla))
+                    st.execute("CREATE TEMP TABLE _resp_" + tabla + " ON COMMIT DROP AS SELECT * FROM " + tabla);
+            // Deleting users sets audit_log.usuario_id to NULL (V20) on every
+            // entry the bitácora keeps: remember who each one belonged to.
+            st.execute("CREATE TEMP TABLE _resp_audit_usuario ON COMMIT DROP AS "
+                + "SELECT id, usuario_id FROM audit_log WHERE usuario_id IS NOT NULL");
+        }
+    }
+
+    private void reponerLoApartado(Connection conn, Set<String> enElRespaldo) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            for (Map.Entry<String, String[]> e : DEPENDIENTES_EXCLUIDAS.entrySet()) {
+                if (enElRespaldo.contains(e.getKey())) continue;
+                String tabla = e.getKey(), columna = e.getValue()[0], padre = e.getValue()[1];
+                st.executeUpdate("INSERT INTO " + tabla + " SELECT t.* FROM _resp_" + tabla + " t "
+                    + "WHERE EXISTS (SELECT 1 FROM " + padre + " p WHERE p.id = t." + columna + ") "
+                    + "ON CONFLICT DO NOTHING");
+            }
+        }
+        // The app's own database role may not UPDATE the bitácora
+        // (rol_app_minimo.sql): then the names stay, only the link is lost.
+        java.sql.Savepoint antes = conn.setSavepoint();
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate("UPDATE audit_log a SET usuario_id = t.usuario_id FROM _resp_audit_usuario t "
+                + "WHERE a.id = t.id AND a.usuario_id IS NULL "
+                + "AND EXISTS (SELECT 1 FROM users u WHERE u.id = t.usuario_id)");
+        } catch (SQLException e) {
+            conn.rollback(antes);
         }
     }
 
@@ -216,12 +256,14 @@ public class BackupService {
      *  restore replaces: deleting products fails while a comodato points at
      *  it (RESTRICT) and silently takes fotos, historial de precios and
      *  mantenimiento with it (CASCADE). If such a table has data, the restore
-     *  is refused instead of losing it. */
+     *  is refused instead of losing it — except the ones that are set aside
+     *  and put back (see {@link #DEPENDIENTES_EXCLUIDAS}). */
     private void rechazarSiBorraDatosNoRespaldados(Connection conn,
             Map<String, List<Map<String, Object>>> tablas) throws SQLException, IOException {
         List<String> seBorrarian = new ArrayList<>();
         for (String tabla : TABLAS) {
-            if (tablas.containsKey(tabla) || TABLA_AUDITORIA.equals(tabla)) continue;
+            if (tablas.containsKey(tabla) || TABLA_AUDITORIA.equals(tabla)
+                    || DEPENDIENTES_EXCLUIDAS.containsKey(tabla)) continue;
             if (tablasReferenciadas(conn, tabla).stream().noneMatch(tablas::containsKey)) continue;
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery("SELECT EXISTS (SELECT 1 FROM " + tabla + ")")) {
@@ -254,16 +296,6 @@ public class BackupService {
     private static final Map<String, String> ORDEN = Map.of(
         "areas", " ORDER BY (grupo = 'DIRECCION'), orden");
 
-    private List<Map<String, Object>> leerTabla(Connection conn, String tabla) throws SQLException {
-        List<Map<String, Object>> filas = new ArrayList<>();
-        try {
-            recorrerTabla(conn, tabla, filas::add);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);   // filas::add never throws it
-        }
-        return filas;
-    }
-
     @FunctionalInterface
     private interface ConFila { void aceptar(Map<String, Object> fila) throws IOException; }
 
@@ -295,18 +327,6 @@ public class BackupService {
                 }
             }
         }
-    }
-
-    /** Puts back the sign-in log the deleted users took with them, for the
-     *  accounts that exist after the restore. */
-    private void reponerAccesos(Connection conn, List<Map<String, Object>> filas) throws SQLException {
-        if (filas.isEmpty()) return;
-        Set<String> usuarios = new HashSet<>();
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT id FROM users")) {
-            while (rs.next()) usuarios.add(rs.getString(1));
-        }
-        insertarFilas(conn, TABLA_ACCESOS,
-            filas.stream().filter(f -> usuarios.contains(String.valueOf(f.get("user_id")))).toList(), true);
     }
 
     private void borrarTabla(Connection conn, String tabla) throws SQLException {

@@ -181,6 +181,14 @@ final class OfflineSchema {
         } catch (SQLException ignored) {
             log.debug("Offline migration step already applied (idempotent)", ignored);
         }
+        // cargo en users_cache: marca las cuentas compartidas de área. Sin él,
+        // al entrar sin conexión no se preguntaba quién usa la cuenta y los
+        // registros salían solo con el nombre del área.
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE users_cache ADD COLUMN cargo TEXT");
+        } catch (SQLException ignored) {
+            log.debug("Offline migration step already applied (idempotent)", ignored);
+        }
         // M11 (2026): retry_count en las tablas outbox — sin esto, una fila que
         // sigue fallando (p.ej. un movimiento que ya no cabe en el stock del
         // servidor) se reencola como PENDING en cada tick para siempre y la app

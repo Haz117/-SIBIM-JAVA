@@ -945,6 +945,7 @@ public final class OfflineStore {
                 MOVIMIENTOS.add(0, m);
             } catch (SQLException e) {
                 c.rollback();
+                loaded = false;   // the lists in memory already carry the change: read SQLite again
                 throw e;
             } finally {
                 c.setAutoCommit(true);
@@ -985,6 +986,7 @@ public final class OfflineStore {
                 MOVIMIENTOS.remove(m);
             } catch (SQLException e) {
                 c.rollback();
+                loaded = false;   // stock, área and código were already changed in memory
                 throw e;
             } finally {
                 c.setAutoCommit(true);

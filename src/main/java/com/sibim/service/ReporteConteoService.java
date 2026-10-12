@@ -63,10 +63,16 @@ public class ReporteConteoService extends ReporteService {
                 .setMarginBottom(16));
 
             // Summary badge
-            boolean sinDiff = c.getTotalDiscrepancias() == 0;
+            // "Conforme" only when every bien was actually looked at: a conteo
+            // closed halfway used to print as a clean inventory.
+            long sinRevisar = items.stream().filter(it -> "SIN_REVISAR".equals(it.getEstadoConteo())).count();
+            boolean sinDiff = c.getTotalDiscrepancias() == 0 && sinRevisar == 0;
             String statusText = sinDiff
                 ? "INVENTARIO CONFORME — Sin diferencias detectadas"
-                : c.getTotalDiscrepancias() + " diferencia(s) detectada(s) y registrada(s) como ajustes";
+                : (c.getTotalDiscrepancias() > 0
+                    ? c.getTotalDiscrepancias() + " diferencia(s) detectada(s) y registrada(s) como ajustes" : "")
+                  + (c.getTotalDiscrepancias() > 0 && sinRevisar > 0 ? "  ·  " : "")
+                  + (sinRevisar > 0 ? "CONTEO INCOMPLETO — " + sinRevisar + " bien(es) sin revisar" : "");
             doc.add(new Paragraph(statusText)
                 .setFont(bold).setFontSize(10)
                 .setFontColor(sinDiff ? new DeviceRgb(5, 150, 105) : new DeviceRgb(217, 119, 6))
@@ -86,7 +92,8 @@ public class ReporteConteoService extends ReporteService {
                 DeviceRgb rowBg = alt ? new DeviceRgb(243, 244, 246) : new DeviceRgb(255, 255, 255);
                 int diff = it.getStockContado() - it.getStockSistema();
                 String diffStr    = diff == 0 ? "—" : (diff > 0 ? "+" + diff : String.valueOf(diff));
-                String status     = diff == 0 ? "OK" : (it.isAjustado() ? "Ajustado" : "Pendiente");
+                String status     = "SIN_REVISAR".equals(it.getEstadoConteo()) ? "—"
+                    : diff == 0 ? "OK" : (it.isAjustado() ? "Ajustado" : "Pendiente");
                 String incidencia = itemEstadoLabel(it.getEstadoConteo());
                 String nota       = it.getNota() != null ? it.getNota() : "";
                 String[] cells = {
@@ -223,6 +230,7 @@ public class ReporteConteoService extends ReporteService {
             case "MAL_ESTADO"   -> "Mal estado";
             case "EN_OTRA_AREA" -> "En otra área";
             case "FALTANTE"     -> "Faltante";
+            case "SIN_REVISAR"  -> "Sin revisar";
             default             -> "Encontrado";
         };
     }

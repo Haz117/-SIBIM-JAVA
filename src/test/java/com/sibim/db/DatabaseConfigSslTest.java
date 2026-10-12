@@ -50,6 +50,13 @@ class DatabaseConfigSslTest {
         assertTrue(DatabaseConfig.isRemoteUrl("jdbc:postgresql://203.0.113.5:5432/sibim"));
     }
 
+    @Test
+    void isRemoteUrl_localhostFueraDelHost_sigueSiendoRemota() {
+        assertTrue(DatabaseConfig.isRemoteUrl("jdbc:postgresql://db.example.com:5432/localhost"));
+        assertTrue(DatabaseConfig.isRemoteUrl("jdbc:postgresql://db.example.com:5432/sibim?application_name=localhost"));
+        assertFalse(DatabaseConfig.isRemoteUrl("jdbc:postgresql://localhost/sibim?sslmode=prefer"));
+    }
+
     // ── resolveSslMode ────────────────────────────────────────────────────────
 
     @Test void noConfig_local_defaultsToPrefer() {

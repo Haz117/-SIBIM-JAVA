@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS users_cache (
     area                   TEXT,
     debe_cambiar_password  INTEGER NOT NULL DEFAULT 0,
     activo                 INTEGER NOT NULL DEFAULT 1,
-    cached_at              TEXT
+    cached_at              TEXT,
+    cargo                  TEXT
 );
 
 CREATE TABLE IF NOT EXISTS configuracion (

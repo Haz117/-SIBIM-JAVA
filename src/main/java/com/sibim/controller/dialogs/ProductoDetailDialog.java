@@ -33,9 +33,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -55,7 +53,9 @@ public final class ProductoDetailDialog {
         List<String> fotos,
         List<Resguardo> resguardos,
         List<Prestamo> prestamos,
-        List<MantenimientoService.Alerta> alertas
+        List<MantenimientoService.Alerta> alertas,
+        String qr,
+        List<PriceHistoryRepository.PriceHistoryEntry> precios
     ) {}
 
     /** Opens the read-only bien detail dialog. Loads movimientos, fotos, resguardos,
@@ -88,7 +88,20 @@ public final class ProductoDetailDialog {
                 try { alertas = new MantenimientoService().getAlertas(p.getId()); }
                 catch (Exception ex) { log.warn("No se pudo cargar alertas de mantenimiento para '{}': {}", p.getCodigo(), ex.getMessage()); }
 
-                return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas);
+                // The link to the published ficha if there is one, else the data as text.
+                String qr;
+                try { qr = com.sibim.service.FichaPublica.contenidoQr(p); }
+                catch (RuntimeException ex) { qr = QrUtils.contenidoBien(p); }
+
+                // Amounts: not for a dirección (Permisos.veValores), and read here,
+                // off the FX thread, like everything else this dialog shows.
+                List<PriceHistoryRepository.PriceHistoryEntry> precios = List.of();
+                if (p.getId() != null && com.sibim.session.Permisos.veValores()) {
+                    try { precios = new PriceHistoryRepository().findByProducto(p.getId()); }
+                    catch (Exception ex) { log.warn("No se pudo cargar historial de precios: {}", ex.getMessage()); }
+                }
+
+                return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas, qr, precios);
             },
             data -> buildAndShow(p, scene, log, data),
             ex -> {
@@ -155,7 +168,7 @@ public final class ProductoDetailDialog {
         if (p.getFotoUrl() != null && !p.getFotoUrl().isBlank()) {
             try {
                 ImageView iv = new ImageView(
-                    new Image(Path.of(p.getFotoUrl()).toUri().toString(), 52, 52, true, true, true));
+                    new Image(com.sibim.util.ImageUtils.uri(p.getFotoUrl()), 52, 52, true, true, true));
                 iv.setFitWidth(52); iv.setFitHeight(52); iv.setPreserveRatio(true);
                 thumbPane.getChildren().add(iv);
                 thumbPane.getStyleClass().addAll("dlg-thumb-photo", "foto-cell-box-clickable");
@@ -198,7 +211,7 @@ public final class ProductoDetailDialog {
         nameSection.getChildren().addAll(nameLbl, meta);
 
         // QR thumbnail — small preview, click to expand
-        javafx.scene.image.Image qrSmall = QrUtils.generateQr(QrUtils.contenidoBien(p), 104);
+        javafx.scene.image.Image qrSmall = QrUtils.generateQr(loaded.qr(), 104);
         StackPane qrPane = new StackPane();
         qrPane.setMinSize(52, 52); qrPane.setMaxSize(52, 52);
         qrPane.getStyleClass().add("dlg-qr-thumb");
@@ -208,7 +221,7 @@ public final class ProductoDetailDialog {
             qrPane.getChildren().add(qrIv);
             Tooltip qrTip = new Tooltip("Código QR — clic para ampliar");
             Tooltip.install(qrPane, qrTip);
-            qrPane.setOnMouseClicked(e -> showQrPopup(p, qrSmall, scene));
+            qrPane.setOnMouseClicked(e -> showQrPopup(p, loaded.qr(), scene));
             AccessibilityUtils.asButton(qrPane, "Ampliar código QR");
             qrPane.getStyleClass().add("dlg-qr-thumb-clickable");
         }
@@ -265,7 +278,7 @@ public final class ProductoDetailDialog {
         String facturaUrl = p.getFacturaUrl();
         if (facturaUrl != null && !facturaUrl.isBlank()) {
             try {
-                Image factImg = new Image(Path.of(facturaUrl).toUri().toString(), 100, 75, true, true, true);
+                Image factImg = new Image(com.sibim.util.ImageUtils.uri(facturaUrl), 100, 75, true, true, true);
                 ImageView factIv = new ImageView(factImg);
                 factIv.setFitWidth(100); factIv.setFitHeight(75); factIv.setPreserveRatio(true);
                 final String fUrl = facturaUrl;
@@ -291,7 +304,7 @@ public final class ProductoDetailDialog {
                 String fotoPath = _fotosGaleria.get(fi);
                 try {
                     ImageView iv = new ImageView(
-                        new Image(Path.of(fotoPath).toUri().toString(), 90, 70, true, true, true));
+                        new Image(com.sibim.util.ImageUtils.uri(fotoPath), 90, 70, true, true, true));
                     iv.setFitWidth(90); iv.setFitHeight(70); iv.setPreserveRatio(true);
                     iv.getStyleClass().add("foto-thumbnail-clickable");
                     iv.setOnMouseClicked(e -> openLightbox(galFotos, idx));
@@ -427,11 +440,7 @@ public final class ProductoDetailDialog {
         }
 
         // ── Historial de precios ──────────────────────────────────────
-        List<PriceHistoryRepository.PriceHistoryEntry> priceHistory = List.of();
-        if (p.getId() != null) {
-            try { priceHistory = new PriceHistoryRepository().findByProducto(p.getId()); }
-            catch (Exception ex) { log.warn("No se pudo cargar historial de precios: {}", ex.getMessage()); }
-        }
+        List<PriceHistoryRepository.PriceHistoryEntry> priceHistory = loaded.precios();
         if (!priceHistory.isEmpty()) {
             Separator sepPrices = new Separator();
             sepPrices.getStyleClass().add("form-separator");
@@ -447,7 +456,7 @@ public final class ProductoDetailDialog {
 
             TableColumn<PriceHistoryRepository.PriceHistoryEntry, String> colCampo = new TableColumn<>("Campo");
             colCampo.setCellValueFactory(c -> new SimpleStringProperty(
-                "precio_compra".equals(c.getValue().campo()) ? "Precio compra" : "Precio venta"));
+                "precio_compra".equals(c.getValue().campo()) ? "Costo de adquisición" : "Otro valor"));
             colCampo.setPrefWidth(100);
 
             TableColumn<PriceHistoryRepository.PriceHistoryEntry, BigDecimal> colAnt = new TableColumn<>("Anterior");
@@ -689,8 +698,8 @@ public final class ProductoDetailDialog {
         });
     }
 
-    private static void showQrPopup(Producto p, javafx.scene.image.Image qrSmall, Scene scene) {
-        javafx.scene.image.Image qrFull = QrUtils.generateQr(QrUtils.contenidoBien(p), 300);
+    private static void showQrPopup(Producto p, String contenido, Scene scene) {
+        javafx.scene.image.Image qrFull = QrUtils.generateQr(contenido, 300);
         if (qrFull == null) return;
 
         ButtonType savePng = new ButtonType("Guardar PNG", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
@@ -707,7 +716,12 @@ public final class ProductoDetailDialog {
         Label lblNombre = new Label(p.getNombre());
         lblNombre.getStyleClass().add("muted-sm");
 
-        VBox content = new VBox(8, iv, lblCodigo, lblNombre);
+        Label lblQueHace = new Label(QrUtils.queHace(contenido));
+        lblQueHace.getStyleClass().add("muted-sm");
+        lblQueHace.setWrapText(true);
+        lblQueHace.setMaxWidth(320);
+        lblQueHace.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        VBox content = new VBox(8, iv, lblCodigo, lblNombre, lblQueHace);
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(16));
         dlg.getDialogPane().setContent(content);
@@ -760,7 +774,7 @@ public final class ProductoDetailDialog {
         Runnable refresh = () -> {
             String path = fotos.get(idx[0]);
             try {
-                bigImg.setImage(new Image(new FileInputStream(path), 620, 440, true, true));
+                bigImg.setImage(new Image(com.sibim.util.ImageUtils.uri(path), 620, 440, true, true, true));
             } catch (Exception ex) {
                 bigImg.setImage(null);
             }

@@ -5,7 +5,6 @@ import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
-import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -58,8 +57,8 @@ final class ProductosBulkDialog {
         var areaNames = new java.util.ArrayList<>(Areas.getAllAreaNames());
         ChoiceDialog<String> dlg = new ChoiceDialog<>(areaNames.get(0), areaNames);
         dlg.setTitle("Transferir bienes");
-        dlg.setHeaderText("Transferir " + sel.size() + " bienes seleccionados a otra área"
-            + (SessionManager.isAdmin() ? "" : "\n(quedarán pendientes hasta que un administrador las apruebe)"));
+        dlg.setHeaderText("Transferir " + sel.size() + " bienes seleccionados a otra área\n"
+            + "(los que tengan un resguardo, préstamo o comodato vigente no se moverán)");
         dlg.setContentText("Área destino:");
         DialogUtil.applyOwner(dlg);
         DialogUtil.conEncabezado(dlg, "mdi2s-swap-horizontal");
@@ -76,9 +75,7 @@ final class ProductosBulkDialog {
                     Math.max(1, p.getStockActual()), "Transferencia en lote", null, area)),
                 r -> {
                     onSuccess.run();
-                    if (r.ok() > 0) NotificacionUtil.exito(scene, SessionManager.isAdmin()
-                        ? r.ok() + " bien(es) transferidos a \"" + area + "\""
-                        : r.ok() + " solicitud(es) de transferencia a \"" + area + "\" pendientes de aprobación");
+                    if (r.ok() > 0) NotificacionUtil.exito(scene, r.ok() + " bien(es) transferidos a \"" + area + "\"");
                     avisarFallidos(scene, r, "transferir");
                 },
                 e -> NotificacionUtil.errorConAccion(scene,

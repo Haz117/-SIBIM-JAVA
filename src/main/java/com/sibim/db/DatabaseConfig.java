@@ -20,9 +20,10 @@ import java.util.Set;
 public final class DatabaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseConfig.class);
-    private static HikariDataSource dataSource;
-    private static boolean demoMode = false;
-    private static boolean offlineMode = false;
+    // Read from the UI thread, the sync watcher and the background pool.
+    private static volatile HikariDataSource dataSource;
+    private static volatile boolean demoMode = false;
+    private static volatile boolean offlineMode = false;
 
     private static final Set<String> STRONG_SSL = Set.of("require", "verify-ca", "verify-full");
 
@@ -57,7 +58,7 @@ public final class DatabaseConfig {
         return null;
     }
 
-    public static void init() {
+    public static synchronized void init() {
         if (dataSource != null) return;
 
         // Search for .env in the standard production location first
@@ -132,6 +133,9 @@ public final class DatabaseConfig {
      *  changes: the only code that may try PostgreSQL while in offline mode. */
     private static final ThreadLocal<Boolean> SINCRONIZANDO = ThreadLocal.withInitial(() -> false);
 
+    /** True on a thread that is replaying queued changes against the server. */
+    public static boolean sincronizando() { return SINCRONIZANDO.get(); }
+
     public static final String SIN_CONEXION =
         "Sin conexión con el servidor: esta información no está disponible en modo offline.";
 
@@ -155,13 +159,16 @@ public final class DatabaseConfig {
      *  for the pool's connection timeout (~8 s) on a server known to be down. */
     public static Connection getConnection() throws SQLException {
         if (offlineMode && !SINCRONIZANDO.get()) throw new SQLException(SIN_CONEXION, "08001");
-        if (dataSource == null) init();
-        return dataSource.getConnection();
+        return getDataSource().getConnection();
     }
 
     public static DataSource getDataSource() {
-        if (dataSource == null) init();
-        return dataSource;
+        HikariDataSource ds = dataSource;
+        if (ds == null) {
+            init();
+            ds = dataSource;
+        }
+        return ds;
     }
 
     /**
@@ -216,8 +223,16 @@ public final class DatabaseConfig {
         return new CredencialesUrl(resto.isEmpty() ? base : base + "?" + String.join("&", resto), user, password);
     }
 
+    /** Decided by the host alone: "localhost" as a database name or in a
+     *  parameter must not switch off the SSL and password rules. */
     static boolean isRemoteUrl(String url) {
-        return !url.contains("localhost") && !url.contains("127.0.0.1") && !url.contains("::1");
+        String resto = url.substring(url.indexOf("//") >= 0 ? url.indexOf("//") + 2 : 0);
+        String autoridad = resto.split("[/?]", 2)[0];
+        if (autoridad.contains("@")) autoridad = autoridad.substring(autoridad.lastIndexOf('@') + 1);
+        String host = autoridad.startsWith("[")
+            ? autoridad.substring(1, Math.max(1, autoridad.indexOf(']')))
+            : autoridad.split(":", 2)[0];
+        return !host.equalsIgnoreCase("localhost") && !host.equals("127.0.0.1") && !host.equals("::1");
     }
 
     /** Returns the explicit sslMode if set, or a safe default based on whether the host is remote. */

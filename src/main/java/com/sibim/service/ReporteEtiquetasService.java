@@ -55,8 +55,12 @@ public class ReporteEtiquetasService extends ReporteService {
             Table grid = new Table(3).useAllAvailableWidth();
             grid.setMarginBottom(0);
 
+            // Each QR downloads the bien's ficha (published now, so it is current);
+            // without Storage it carries the data the label does not show.
+            java.util.Map<String, String> contenidos = FichaPublica.publicar(items);
             for (Producto p : items) {
-                byte[] qrBytes = qrToPngBytes(com.sibim.util.QrUtils.contenidoBien(p), 160);
+                String contenido = contenidos.get(p.getId());
+                byte[] qrBytes = qrToPngBytes(contenido != null ? contenido : com.sibim.util.QrUtils.contenidoBien(p), 160);
 
                 com.itextpdf.layout.element.Cell card = new com.itextpdf.layout.element.Cell();
                 card.setBorder(new com.itextpdf.layout.borders.SolidBorder(new DeviceRgb(203, 213, 225), 0.5f));

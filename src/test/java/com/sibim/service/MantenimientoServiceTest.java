@@ -37,6 +37,22 @@ class MantenimientoServiceTest {
         service = new MantenimientoService(mockRepo, mockAudit);
     }
 
+    /** Knowing the id of a bien or of an alert of another área is not enough. */
+    @Test
+    void bienDeOtraArea_niSeVeNiSeModificaSuMantenimiento() throws Exception {
+        MantenimientoService ajeno = new MantenimientoService(mockRepo, mockAudit, id -> false);
+        when(mockRepo.productoDe("a-1")).thenReturn("p-ajeno");
+
+        assertTrue(ajeno.getAlertas("p-ajeno").isEmpty());
+        assertThrows(SecurityException.class, () -> ajeno.agregarAlerta("p-ajeno", "Afinación", LocalDate.now()));
+        assertThrows(SecurityException.class, () -> ajeno.marcarCompletada("a-1"));
+        assertThrows(SecurityException.class, () -> ajeno.eliminarAlerta("a-1"));
+        verify(mockRepo, never()).findByProducto(any());
+        verify(mockRepo, never()).agregar(any(), any(), any());
+        verify(mockRepo, never()).marcarCompletada(any());
+        verify(mockRepo, never()).eliminar(any());
+    }
+
     // ── getAlertas() ─────────────────────────────────────────────────────────
 
     @Test

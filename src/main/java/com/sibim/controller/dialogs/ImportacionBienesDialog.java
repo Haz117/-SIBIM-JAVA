@@ -347,7 +347,7 @@ public class ImportacionBienesDialog {
                     int ok = 0; int fail = 0;
                     for (Producto p : validas) {
                         try { productoService.save(p); ok++; }
-                        catch (Exception ex) { fail++; }
+                        catch (Exception ex) { fail++; log.warn("No se importó '{}': {}", p.getNombre(), ex.getMessage()); }
                     }
                     return new int[]{ok, fail};
                 },
@@ -457,124 +457,8 @@ public class ImportacionBienesDialog {
                     break;
                 }
 
-                String nombre    = cellVal(row, colIdx.getOrDefault("nombre", -1));
-                String codigo    = cellVal(row, colIdx.getOrDefault("codigo", -1));
-                String catNombre = cellVal(row, colIdx.getOrDefault("categoria", -1));
-                String area      = cellVal(row, colIdx.getOrDefault("area", -1));
-                String resguard  = cellVal(row, colIdx.getOrDefault("resguardante", -1));
-                String cantStr   = cellVal(row, colIdx.getOrDefault("cantidad", -1));
-                String stMinStr  = cellVal(row, colIdx.getOrDefault("stock min", -1));
-                String stMaxStr  = cellVal(row, colIdx.getOrDefault("stock max", -1));
-                String pcStr     = cellVal(row, colIdx.getOrDefault("precio compra", -1));
-                String pvStr     = cellVal(row, colIdx.getOrDefault("precio venta", -1));
-                String proveed   = cellVal(row, colIdx.getOrDefault("proveedor", -1));
-                String marca     = cellVal(row, colIdx.getOrDefault("marca", -1));
-                String modelo    = cellVal(row, colIdx.getOrDefault("modelo", -1));
-                String numSerie  = cellVal(row, colIdx.getOrDefault("numero serie", -1));
-                String ubicac    = cellVal(row, colIdx.getOrDefault("ubicacion", -1));
-                String desc      = cellVal(row, colIdx.getOrDefault("descripcion", -1));
-                String fechaStr  = cellVal(row, colIdx.getOrDefault("fecha adquisicion", -1));
-
-                String error = null;
-                Producto p = new Producto();
-
-                if (nombre.isBlank()) {
-                    error = "Nombre requerido";
-                } else {
-                    p.setNombre(nombre.length() > 200 ? nombre.substring(0, 200) : nombre);
-                }
-
-                if (error == null) {
-                    if (codigo.isBlank()) {
-                        String base = "IMP-" + String.format("%04d", rowNum);
-                        String generated = base;
-                        int suffix = 2;
-                        while (usedCodes.contains(generated)) generated = base + "-" + suffix++;
-                        codigo = generated;
-                    } else if (codigo.length() > 50) {
-                        codigo = codigo.substring(0, 50);
-                    }
-                    if (usedCodes.contains(codigo)) {
-                        error = "Código duplicado en el archivo: " + codigo;
-                    } else {
-                        usedCodes.add(codigo);
-                        p.setCodigo(codigo);
-                    }
-                }
-
-                if (error == null) {
-                    String catNorm = normalize(catNombre);
-                    String matchedName = catByNorm.get(catNorm);
-                    if (matchedName == null) {
-                        for (Map.Entry<String, String> e : catByNorm.entrySet()) {
-                            if (e.getKey().contains(catNorm) || catNorm.contains(e.getKey())) {
-                                matchedName = e.getValue(); break;
-                            }
-                        }
-                    }
-                    if (matchedName == null) {
-                        error = "Categoría no encontrada: \"" + catNombre + "\"";
-                    } else {
-                        p.setCategoriaNombre(matchedName);
-                        p.setCategoriaId(catIdByNorm.get(normalize(matchedName)));
-                    }
-                }
-
-                if (error == null) {
-                    if (area.isBlank()) {
-                        error = "Área requerida";
-                    } else {
-                        String areaNorm = normalize(area);
-                        String matchedArea = areaByNorm.get(areaNorm);
-                        if (matchedArea == null) {
-                            for (Map.Entry<String, String> e : areaByNorm.entrySet()) {
-                                if (e.getKey().contains(areaNorm) || areaNorm.contains(e.getKey())) {
-                                    matchedArea = e.getValue(); break;
-                                }
-                            }
-                        }
-                        if (matchedArea == null) {
-                            error = "Área no reconocida: \"" + area + "\". Usa un área válida del organigrama.";
-                        } else {
-                            p.setArea(matchedArea);
-                        }
-                    }
-                }
-
-                if (error == null) {
-                    if (!resguard.isBlank()) p.setResguardante(resguard);
-                    if (!proveed.isBlank())  p.setProveedor(proveed.length() > 200 ? proveed.substring(0, 200) : proveed);
-                    if (!marca.isBlank())    p.setMarca(marca.length() > 100 ? marca.substring(0, 100) : marca);
-                    if (!modelo.isBlank())   p.setModelo(modelo.length() > 100 ? modelo.substring(0, 100) : modelo);
-                    if (!numSerie.isBlank()) p.setNumeroSerie(numSerie.length() > 100 ? numSerie.substring(0, 100) : numSerie);
-                    if (!ubicac.isBlank())   p.setUbicacion(ubicac.length() > 200 ? ubicac.substring(0, 200) : ubicac);
-                    if (!desc.isBlank())     p.setDescripcion(desc.length() > 1000 ? desc.substring(0, 1000) : desc);
-
-                    int cant  = parseIntSafe(cantStr, 0);
-                    int stMin = parseIntSafe(stMinStr, 0);
-                    int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
-                    if (stMin > stMax) {
-                        error = "La cantidad mínima (" + stMin + ") no puede superar a la máxima (" + stMax + ")";
-                    }
-                    if (error == null && stMax < cant) stMax = cant;
-                    p.setStockActual(Math.max(0, cant));
-                    p.setStockMinimo(Math.max(0, stMin));
-                    p.setStockMaximo(Math.max(0, stMax));
-
-                    BigDecimal pc = parseBigDecimalSafe(pcStr, BigDecimal.ZERO);
-                    BigDecimal pv = parseBigDecimalSafe(pvStr, pc);
-                    p.setPrecioCompra(pc.signum() < 0 ? BigDecimal.ZERO : pc);
-                    p.setPrecioVenta(pv.signum() < 0  ? BigDecimal.ZERO : pv);
-
-                    if (!fechaStr.isBlank()) {
-                        LocalDate fecha = parseDateSafe(fechaStr);
-                        if (fecha != null && !fecha.isAfter(LocalDate.now()))
-                            p.setFechaAdquisicion(fecha);
-                    }
-                }
-
-                result.add(new ParsedRow(rowNum, error == null ? "ok" : "error", error,
-                    error == null ? p : null));
+                final org.apache.poi.ss.usermodel.Row fila = row;
+                result.add(interpretar(k -> cellVal(fila, colIdx.getOrDefault(k, -1)), rowNum, usedCodes, catByNorm, catIdByNorm, areaByNorm));
             }
         }
         return result;
@@ -600,15 +484,15 @@ public class ImportacionBienesDialog {
             throw new IOException("El archivo supera el límite de 50 MB ("
                 + (file.length() / (1024 * 1024)) + " MB). Divídalo en partes más pequeñas.");
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream(file), java.nio.charset.StandardCharsets.UTF_8))) {
+        try (BufferedReader br = new BufferedReader(new java.io.StringReader(leerTexto(file)))) {
 
             String headerLine = br.readLine();
             if (headerLine == null) throw new IOException("El archivo está vacío");
             // Strip UTF-8 BOM if present
             if (headerLine.startsWith("﻿")) headerLine = headerLine.substring(1);
 
-            String[] headers = parseCsvLine(headerLine);
+            char sep = separador(headerLine);
+            String[] headers = parseCsvLine(headerLine, sep);
             Map<String, Integer> colIdx = new LinkedHashMap<>();
             for (int i = 0; i < headers.length; i++) {
                 colIdx.put(normalize(headers[i]), i);
@@ -632,140 +516,183 @@ public class ImportacionBienesDialog {
                     break;
                 }
 
-                String[] cols = parseCsvLine(line);
-                String error = null;
-                Producto p = new Producto();
-
-                String nombre    = col(cols, colIdx, "nombre");
-                String codigo    = col(cols, colIdx, "codigo");
-                String catNombre = col(cols, colIdx, "categoria");
-                String area      = col(cols, colIdx, "area");
-                String resguard  = col(cols, colIdx, "resguardante");
-                String cantStr   = col(cols, colIdx, "cantidad");
-                String stMinStr  = col(cols, colIdx, "stock min");
-                String stMaxStr  = col(cols, colIdx, "stock max");
-                String pcStr     = col(cols, colIdx, "precio compra");
-                String pvStr     = col(cols, colIdx, "precio venta");
-                String proveed   = col(cols, colIdx, "proveedor");
-                String marca     = col(cols, colIdx, "marca");
-                String modelo    = col(cols, colIdx, "modelo");
-                String numSerie  = col(cols, colIdx, "numero serie");
-                String ubicac    = col(cols, colIdx, "ubicacion");
-                String desc      = col(cols, colIdx, "descripcion");
-                String fechaStr  = col(cols, colIdx, "fecha adquisicion");
-
-                // Nombre
-                if (nombre.isBlank()) {
-                    error = "Nombre requerido";
-                } else {
-                    p.setNombre(nombre.length() > 200 ? nombre.substring(0, 200) : nombre);
-                }
-
-                // Codigo — auto-generate if blank
-                if (error == null) {
-                    if (codigo.isBlank()) {
-                        String base = "IMP-" + String.format("%04d", rowNum);
-                        String generated = base;
-                        int suffix = 2;
-                        while (usedCodes.contains(generated)) generated = base + "-" + suffix++;
-                        codigo = generated;
-                    } else if (codigo.length() > 50) {
-                        codigo = codigo.substring(0, 50);
-                    }
-                    if (usedCodes.contains(codigo)) {
-                        error = "Código duplicado en el archivo: " + codigo;
-                    } else {
-                        usedCodes.add(codigo);
-                        p.setCodigo(codigo);
-                    }
-                }
-
-                // Categoria
-                if (error == null) {
-                    String catNorm = normalize(catNombre);
-                    String matchedName = catByNorm.get(catNorm);
-                    if (matchedName == null) {
-                        // fuzzy: partial contains
-                        for (Map.Entry<String, String> e : catByNorm.entrySet()) {
-                            if (e.getKey().contains(catNorm) || catNorm.contains(e.getKey())) {
-                                matchedName = e.getValue(); break;
-                            }
-                        }
-                    }
-                    if (matchedName == null) {
-                        error = "Categoría no encontrada: \"" + catNombre + "\"";
-                    } else {
-                        p.setCategoriaNombre(matchedName);
-                        p.setCategoriaId(catIdByNorm.get(normalize(matchedName)));
-                    }
-                }
-
-                // Area
-                if (error == null) {
-                    if (area.isBlank()) {
-                        error = "Área requerida";
-                    } else {
-                        String areaNorm = normalize(area);
-                        String matchedArea = areaByNorm.get(areaNorm);
-                        if (matchedArea == null) {
-                            // partial match
-                            for (Map.Entry<String, String> e : areaByNorm.entrySet()) {
-                                if (e.getKey().contains(areaNorm) || areaNorm.contains(e.getKey())) {
-                                    matchedArea = e.getValue(); break;
-                                }
-                            }
-                        }
-                        if (matchedArea == null) {
-                            error = "Área no reconocida: \"" + area + "\". Usa un área válida del organigrama.";
-                        } else {
-                            p.setArea(matchedArea);
-                        }
-                    }
-                }
-
-                if (error == null) {
-                    // Optional fields — parse silently, use defaults on failure
-                    if (!resguard.isBlank()) p.setResguardante(resguard);
-                    if (!proveed.isBlank())  p.setProveedor(proveed.length() > 200 ? proveed.substring(0, 200) : proveed);
-                    if (!marca.isBlank())    p.setMarca(marca.length() > 100 ? marca.substring(0, 100) : marca);
-                    if (!modelo.isBlank())   p.setModelo(modelo.length() > 100 ? modelo.substring(0, 100) : modelo);
-                    if (!numSerie.isBlank()) p.setNumeroSerie(numSerie.length() > 100 ? numSerie.substring(0, 100) : numSerie);
-                    if (!ubicac.isBlank())   p.setUbicacion(ubicac.length() > 200 ? ubicac.substring(0, 200) : ubicac);
-                    if (!desc.isBlank())     p.setDescripcion(desc.length() > 1000 ? desc.substring(0, 1000) : desc);
-
-                    int cant  = parseIntSafe(cantStr, 0);
-                    int stMin = parseIntSafe(stMinStr, 0);
-                    int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
-                    if (stMin > stMax) {
-                        error = "La cantidad mínima (" + stMin + ") no puede superar a la máxima (" + stMax + ")";
-                    }
-                    if (error == null && stMax < cant) stMax = cant;
-                    p.setStockActual(Math.max(0, cant));
-                    p.setStockMinimo(Math.max(0, stMin));
-                    p.setStockMaximo(Math.max(0, stMax));
-
-                    BigDecimal pc = parseBigDecimalSafe(pcStr, BigDecimal.ZERO);
-                    BigDecimal pv = parseBigDecimalSafe(pvStr, pc);
-                    p.setPrecioCompra(pc.signum() < 0 ? BigDecimal.ZERO : pc);
-                    p.setPrecioVenta(pv.signum() < 0  ? BigDecimal.ZERO : pv);
-
-                    if (!fechaStr.isBlank()) {
-                        LocalDate fecha = parseDateSafe(fechaStr);
-                        if (fecha != null && !fecha.isAfter(LocalDate.now()))
-                            p.setFechaAdquisicion(fecha);
-                    }
-                }
-
-                result.add(new ParsedRow(rowNum, error == null ? "ok" : "error", error,
-                    error == null ? p : null));
+                String[] cols = parseCsvLine(line, sep);
+                result.add(interpretar(k -> col(cols, colIdx, k), rowNum, usedCodes, catByNorm, catIdByNorm, areaByNorm));
             }
         }
         return result;
     }
 
+    // ── One row, whatever file it came from ────────────────────────────────
+
+    /** Checks one row and builds its bien. CSV and Excel differ only in how a
+     *  cell is read ({@code celda}: column name → text); there used to be two
+     *  copies of everything below, and a fix made in one missed the other. */
+    private static ParsedRow interpretar(java.util.function.Function<String, String> celda, int rowNum,
+            Set<String> usedCodes, Map<String, String> catByNorm, Map<String, String> catIdByNorm,
+            Map<String, String> areaByNorm) {
+        String error = null;
+        Producto p = new Producto();
+
+        String nombre    = celda.apply("nombre");
+        String codigo    = celda.apply("codigo");
+        String catNombre = celda.apply("categoria");
+        String area      = celda.apply("area");
+        String resguard  = celda.apply("resguardante");
+        String cantStr   = celda.apply("cantidad");
+        String stMinStr  = celda.apply("stock min");
+        String stMaxStr  = celda.apply("stock max");
+        String pcStr     = celda.apply("precio compra");
+        String pvStr     = celda.apply("precio venta");
+        String proveed   = celda.apply("proveedor");
+        String marca     = celda.apply("marca");
+        String modelo    = celda.apply("modelo");
+        String numSerie  = celda.apply("numero serie");
+        String ubicac    = celda.apply("ubicacion");
+        String desc      = celda.apply("descripcion");
+        String fechaStr  = celda.apply("fecha adquisicion");
+
+        // Nombre
+        if (nombre.isBlank()) {
+            error = "Nombre requerido";
+        } else {
+            p.setNombre(nombre.length() > 200 ? nombre.substring(0, 200) : nombre);
+        }
+
+        // Codigo — auto-generate if blank
+        if (error == null) {
+            if (codigo.isBlank()) {
+                String base = "IMP-" + String.format("%04d", rowNum);
+                String generated = base;
+                int suffix = 2;
+                while (usedCodes.contains(generated)) generated = base + "-" + suffix++;
+                codigo = generated;
+            } else if (codigo.length() > 50) {
+                codigo = codigo.substring(0, 50);
+            }
+            if (usedCodes.contains(codigo)) {
+                error = "Código duplicado en el archivo: " + codigo;
+            } else {
+                usedCodes.add(codigo);
+                p.setCodigo(codigo);
+            }
+        }
+
+        // Categoria
+        if (error == null) {
+            String catNorm = normalize(catNombre);
+            String matchedName = catByNorm.get(catNorm);
+            if (matchedName == null) {
+                matchedName = coincidenciaUnica(catByNorm, catNorm);
+            }
+            if (matchedName == null) {
+                error = "Categoría no encontrada: \"" + catNombre + "\"";
+            } else {
+                p.setCategoriaNombre(matchedName);
+                p.setCategoriaId(catIdByNorm.get(normalize(matchedName)));
+            }
+        }
+
+        // Area
+        if (error == null) {
+            if (area.isBlank()) {
+                error = "Área requerida";
+            } else {
+                String areaNorm = normalize(area);
+                String matchedArea = areaByNorm.get(areaNorm);
+                if (matchedArea == null) {
+                    matchedArea = coincidenciaUnica(areaByNorm, areaNorm);
+                }
+                if (matchedArea == null) {
+                    error = "Área no reconocida: \"" + area + "\". Usa un área válida del organigrama.";
+                } else {
+                    p.setArea(matchedArea);
+                }
+            }
+        }
+
+        if (error == null) {
+            // Optional fields — parse silently, use defaults on failure
+            if (!resguard.isBlank()) p.setResguardante(resguard);
+            if (!proveed.isBlank())  p.setProveedor(proveed.length() > 200 ? proveed.substring(0, 200) : proveed);
+            if (!marca.isBlank())    p.setMarca(marca.length() > 100 ? marca.substring(0, 100) : marca);
+            if (!modelo.isBlank())   p.setModelo(modelo.length() > 100 ? modelo.substring(0, 100) : modelo);
+            if (!numSerie.isBlank()) p.setNumeroSerie(numSerie.length() > 100 ? numSerie.substring(0, 100) : numSerie);
+            if (!ubicac.isBlank())   p.setUbicacion(ubicac.length() > 200 ? ubicac.substring(0, 200) : ubicac);
+            if (!desc.isBlank())     p.setDescripcion(desc.length() > 1000 ? desc.substring(0, 1000) : desc);
+
+            int cant  = parseIntSafe(cantStr, 1)   /* a bien with no cantidad is one bien, not zero */;
+            int stMin = parseIntSafe(stMinStr, 0);
+            int stMax = parseIntSafe(stMaxStr, Math.max(cant, 1));
+            if (stMin > stMax) {
+                error = "La cantidad mínima (" + stMin + ") no puede superar a la máxima (" + stMax + ")";
+            }
+            if (error == null && stMax < cant) stMax = cant;
+            p.setStockActual(Math.max(0, cant));
+            p.setStockMinimo(Math.max(0, stMin));
+            p.setStockMaximo(Math.max(0, stMax));
+
+            BigDecimal pc = parseBigDecimalSafe(pcStr, BigDecimal.ZERO);
+            BigDecimal pv = parseBigDecimalSafe(pvStr, pc);
+            p.setPrecioCompra(pc.signum() < 0 ? BigDecimal.ZERO : pc);
+            p.setPrecioVenta(pv.signum() < 0  ? BigDecimal.ZERO : pv);
+
+            if (!fechaStr.isBlank()) {
+                LocalDate fecha = parseDateSafe(fechaStr);
+                if (fecha != null && !fecha.isAfter(LocalDate.now()))
+                    p.setFechaAdquisicion(fecha);
+            }
+        }
+
+        return new ParsedRow(rowNum, error == null ? "ok" : "error", error,
+            error == null ? p : null);
+    }
+
     // ── CSV line parser (handles quoted fields) ───────────────────────────
 
     static String[] parseCsvLine(String line) {
+        return parseCsvLine(line, ',');
+    }
+
+    /** Excel saves "CSV (delimitado por comas)" in the PC's ANSI code page,
+     *  not UTF-8: read as UTF-8, every área or categoría with an accent came
+     *  out garbled and was rejected as "no reconocida". */
+    static String leerTexto(File file) throws IOException {
+        byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+        try {
+            return java.nio.charset.StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                .decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+        } catch (java.nio.charset.CharacterCodingException e) {
+            return new String(bytes, java.nio.charset.Charset.forName("windows-1252"));
+        }
+    }
+
+    /** ';' when the header uses it more than ',' (Excel with a regional list separator). */
+    static char separador(String headerLine) {
+        long comas = headerLine.chars().filter(c -> c == ',').count();
+        long puntoYComa = headerLine.chars().filter(c -> c == ';').count();
+        return puntoYComa > comas ? ';' : ',';
+    }
+
+    /** The entry whose name contains (or is contained in) {@code norm}, only
+     *  when exactly one does. Taking the first of several put bienes in the
+     *  wrong área without a word ("direccion" matches every dirección), and an
+     *  empty value matched everything. */
+    static String coincidenciaUnica(Map<String, String> porNombre, String norm) {
+        if (norm == null || norm.isBlank()) return null;
+        String unica = null;
+        for (Map.Entry<String, String> e : porNombre.entrySet()) {
+            if (e.getKey().contains(norm) || norm.contains(e.getKey())) {
+                if (unica != null && !unica.equals(e.getValue())) return null;
+                unica = e.getValue();
+            }
+        }
+        return unica;
+    }
+
+    static String[] parseCsvLine(String line, char sep) {
         List<String> fields = new ArrayList<>();
         boolean inQuotes = false;
         StringBuilder current = new StringBuilder();
@@ -779,7 +706,7 @@ public class ImportacionBienesDialog {
                 } else { current.append(c); }
             } else {
                 if (c == '"') { inQuotes = true; }
-                else if (c == ',') { fields.add(current.toString().trim()); current = new StringBuilder(); }
+                else if (c == sep) { fields.add(current.toString().trim()); current = new StringBuilder(); }
                 else { current.append(c); }
             }
         }

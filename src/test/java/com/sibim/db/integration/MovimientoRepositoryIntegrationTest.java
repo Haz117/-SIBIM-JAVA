@@ -164,4 +164,65 @@ class MovimientoRepositoryIntegrationTest extends IntegrationTestBase {
         assertEquals(2, pid1Movs.size(), "Solo deben aparecer los 2 movimientos del producto 1");
         assertTrue(pid1Movs.stream().allMatch(m -> pid1.equals(m.getProductoId())));
     }
+
+    /** tipo is stored in lower case ('entrada'); the monthly chart compared it
+     *  with 'ENTRADA' and always drew zero. */
+    @Test
+    void findMonthlyStats_cuentaEntradasYSalidasDelMes() throws SQLException {
+        String pid = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(pid, 10));
+        repo.addMovimientoAtomicOnline(buildMovimiento(pid, TipoMovimiento.ENTRADA, 5), null);
+        repo.addMovimientoAtomicOnline(buildMovimiento(pid, TipoMovimiento.SALIDA, 2), null);
+
+        var meses = repo.findMonthlyStats(6);
+        var actual = meses.get(meses.size() - 1);
+        assertEquals(5, actual.entradas());
+        assertEquals(2, actual.salidas());
+        var valor = repo.findMonthlyValorStats(6);
+        assertEquals(0, BigDecimal.valueOf(2500).compareTo(valor.get(valor.size() - 1).valorEntradas()));
+    }
+
+    @Test
+    void rechazarTransferencia_yaAtendida_noSeRechazaDosVeces() throws SQLException {
+        String pid = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(pid, 1));
+        Movimiento m = buildMovimiento(pid, TipoMovimiento.TRANSFERENCIA, 1);
+        m.setAreaDestino("Archivo Municipal");
+        repo.addMovimientoPendiente(m);
+        repo.rechazarTransferencia(m.getId(), "no procede");
+        SQLException e = assertThrows(SQLException.class, () -> repo.rechazarTransferencia(m.getId(), "otra vez"));
+        assertEquals(com.sibim.service.MovimientoService.YA_ATENDIDA, e.getMessage());
+    }
+
+    /** An overdue revision stays listed, and only for the caller's áreas. */
+    @Test
+    void findProximasRevisiones_incluyeVencidas_ySoloDeMisAreas() throws SQLException {
+        Producto vencida = buildProducto(UUID.randomUUID().toString(), 1);
+        vencida.setProximaRevision(java.time.LocalDate.now().minusDays(10));
+        productoRepo.saveOnline(vencida);
+        Producto ajena = buildProducto(UUID.randomUUID().toString(), 1);
+        ajena.setArea("Archivo Municipal");
+        ajena.setProximaRevision(java.time.LocalDate.now().plusDays(5));
+        productoRepo.saveOnline(ajena);
+        Producto lejana = buildProducto(UUID.randomUUID().toString(), 1);
+        lejana.setProximaRevision(java.time.LocalDate.now().plusDays(90));
+        productoRepo.saveOnline(lejana);
+
+        var comoAdmin = productoRepo.findProximasRevisiones(30).stream().map(Producto::getId).toList();
+        assertTrue(comoAdmin.contains(vencida.getId()) && comoAdmin.contains(ajena.getId()));
+        assertFalse(comoAdmin.contains(lejana.getId()));
+
+        var antes = com.sibim.session.SessionManager.getCurrentUser();
+        com.sibim.model.Usuario direccion = new com.sibim.model.Usuario();
+        direccion.setId("u-dir");
+        direccion.setRol(com.sibim.model.enums.Rol.DIRECCION);
+        direccion.setArea(AREA);
+        com.sibim.session.SessionManager.setCurrentUser(direccion);
+        try {
+            var suyas = productoRepo.findProximasRevisiones(30).stream().map(Producto::getId).toList();
+            assertEquals(List.of(vencida.getId()), suyas);
+        } finally {
+            com.sibim.session.SessionManager.setCurrentUser(antes);
+        }
+    }
 }

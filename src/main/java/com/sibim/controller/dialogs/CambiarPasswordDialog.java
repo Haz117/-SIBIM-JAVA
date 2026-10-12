@@ -140,11 +140,19 @@ public final class CambiarPasswordDialog {
                 AnimationUtils.shake(fConfirmar);
                 return;
             }
+            if (esLaMisma(nueva, user)) {
+                event.consume();
+                errorLbl.setText("Elige una contraseña distinta a la temporal: esa ya la conoce alguien más");
+                showError.run();
+                AnimationUtils.shake(fNueva);
+                return;
+            }
             try {
                 String hash = new AuthService().hashPassword(nueva);
                 new UsuarioRepository().completarCambioPassword(user.getId(), hash);
                 user.setPasswordHash(hash);
                 user.setDebeCambiarPassword(false);
+                recordarEnEstaPc(user);
                 // Not consumed: the click proceeds through DialogPane's own
                 // normal handling, which closes the window and resolves
                 // showAndWait()'s result to btnGuardar correctly.
@@ -164,6 +172,27 @@ public final class CambiarPasswordDialog {
             if (onCerrarSesion != null) onCerrarSesion.run();
         } else if (onCompletado != null) {
             onCompletado.run();
+        }
+    }
+
+    private static boolean esLaMisma(String nueva, Usuario user) {
+        try {
+            return user.getPasswordHash() != null && at.favre.lib.crypto.bcrypt.BCrypt.verifyer()
+                .verify(nueva.toCharArray(), user.getPasswordHash()).verified;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /** The copy this PC checks when there is no connection must carry the new
+     *  password too: until the next sign-in with a connection, signing in
+     *  offline still asked for the old one. Best-effort. */
+    private static void recordarEnEstaPc(Usuario user) {
+        if (com.sibim.db.DatabaseConfig.isDemoMode()) return;
+        try {
+            com.sibim.db.offline.OfflineStore.cacheUser(user);
+        } catch (Exception e) {
+            log.warn("No se pudo actualizar el acceso sin conexión de '{}': {}", user.getUsername(), e.getMessage());
         }
     }
 
@@ -268,10 +297,21 @@ public final class CambiarPasswordDialog {
                     errorLbl.setText("La contraseña actual no es correcta");
                     showError.run(); AnimationUtils.shake(fActual); return;
                 }
+                if (nueva.equals(actual)) {
+                    event.consume();
+                    errorLbl.setText("La nueva contraseña debe ser distinta de la actual");
+                    showError.run(); AnimationUtils.shake(fNueva); return;
+                }
                 String hash = new AuthService().hashPassword(nueva);
                 new UsuarioRepository().completarCambioPassword(user.getId(), hash);
                 user.setPasswordHash(hash);
+                recordarEnEstaPc(user);
                 if (scene != null) NotificacionUtil.exito(scene, "Contraseña actualizada correctamente");
+            } catch (SecurityException ex) {
+                // E.g. a shared área account: say why — "intenta de nuevo" would never work.
+                event.consume();
+                errorLbl.setText(ex.getMessage());
+                showError.run();
             } catch (Exception ex) {
                 event.consume();
                 log.error("No se pudo cambiar la contraseña para '{}'", user.getUsername(), ex);

@@ -58,6 +58,19 @@ public class ProductoMantenimientoRepository {
         }
     }
 
+    /** The bien an alert belongs to, or null if there is no such alert. */
+    public String productoDe(String alertaId) throws SQLException {
+        DatabaseConfig.exigirServidor("Consultar una alerta de mantenimiento");
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "SELECT producto_id FROM producto_mantenimiento WHERE id = ?")) {
+            ps.setString(1, alertaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
     public void marcarCompletada(String id) throws SQLException {
         DatabaseConfig.exigirServidor("Completar una alerta de mantenimiento");
         try (Connection conn = DatabaseConfig.getConnection();

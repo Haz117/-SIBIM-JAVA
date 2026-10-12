@@ -144,7 +144,9 @@ public class CategoriaRepository {
             conn.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE products SET categoria_id = ? WHERE categoria_id = ?")) {
+                        // updated_at too: a form left open on one of these bienes would
+                        // otherwise save the category that is about to be deleted.
+                        "UPDATE products SET categoria_id = ?, updated_at = NOW() WHERE categoria_id = ?")) {
                     ps.setString(1, targetId);
                     ps.setString(2, sourceId);
                     ps.executeUpdate();

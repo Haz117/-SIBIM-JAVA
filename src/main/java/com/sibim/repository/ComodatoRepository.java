@@ -192,7 +192,7 @@ public class ComodatoRepository {
      *  comodatos here); a provisional folio is replaced by the next real one. */
     public Comodato saveOnline(Comodato c) throws SQLException {
         if (c.getId() == null) c.setId(UUID.randomUUID().toString());
-        if (c.getNumero() == null || c.getNumero().contains("-PROV-")) c.setNumero(nextNumero());
+
 
         com.sibim.model.Usuario u = SessionManager.getCurrentUser();
         if (u != null) {
@@ -208,10 +208,10 @@ public class ComodatoRepository {
                creado_por_id, creado_por_nombre, created_at, updated_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'VIGENTE',?,?,NOW(),NOW())
             """;
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        c.setNumero(folioRepo.guardarConFolio("CDT", c.getNumero(), (conn, numero) -> {
+          try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, c.getId());
-            ps.setString(2, c.getNumero());
+            ps.setString(2, numero);
             ps.setString(3, c.getProductoId());
             ps.setString(4, c.getProductoNombre());
             ps.setString(5, c.getProductoCodigo());
@@ -227,7 +227,8 @@ public class ComodatoRepository {
             ps.setString(14, c.getCreadoPorId());
             ps.setString(15, c.getCreadoPorNombre());
             ps.executeUpdate();
-        }
+          }
+        }));
         c.setEstado(Comodato.ESTADO_VIGENTE);
         c.setCreatedAt(LocalDateTime.now());
         return c;

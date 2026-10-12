@@ -333,6 +333,19 @@ class ProductoTabInfoFields {
                     badge.getStyleClass().addAll("muted-sm");
                     StackPane.setAlignment(badge, Pos.BOTTOM_LEFT);
                     cell.getChildren().add(badge);
+                } else {
+                    // A photo added later goes last, and the table and the formats
+                    // show the first one: without this the new photo never appeared.
+                    Button btnPrincipal = new Button("Principal");
+                    btnPrincipal.getStyleClass().add("btn-secondary");
+                    btnPrincipal.setTooltip(new Tooltip("Usar esta foto como la principal (la que sale en la tabla y en los formatos)"));
+                    btnPrincipal.setOnAction(ev -> {
+                        fotosHolder.add(0, fotosHolder.remove(i));
+                        rebuildGallery[0].run();
+                        if (markDirtyRef[0] != null) markDirtyRef[0].run();
+                    });
+                    StackPane.setAlignment(btnPrincipal, Pos.BOTTOM_LEFT);
+                    cell.getChildren().add(btnPrincipal);
                 }
                 galleryPane.getChildren().add(cell);
             }
@@ -372,7 +385,9 @@ class ProductoTabInfoFields {
             }
         });
 
-        Label lblGalleryHint = new Label("La primera foto es la imagen principal del bien en la tabla.");
+        Label lblGalleryHint = new Label("La primera foto es la principal: la que sale en la tabla y en los formatos. "
+            + "Usa \"Principal\" en otra foto para cambiarla.");
+        lblGalleryHint.setWrapText(true);
         lblGalleryHint.getStyleClass().add("muted-sm");
 
         VBox imgSection = new VBox(6, galleryPane, btnAgregarFoto, lblGalleryHint);

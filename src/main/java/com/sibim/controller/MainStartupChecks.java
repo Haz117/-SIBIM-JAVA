@@ -50,8 +50,10 @@ class MainStartupChecks {
             () -> productoService.getVencidosProximos(7),
             vencidos -> {
                 if (!vencidos.isEmpty())
+                    // The list includes garantías that already expired, not only the
+                    // ones about to: say what it counts.
                     NotificacionUtil.advertencia(scene,
-                        vencidos.size() + " bien(es) vence(n) en los próximos 7 días — revisa la sección Alertas");
+                        vencidos.size() + " bien(es) con garantía vencida o por vencer en 7 días — revisa Alertas");
             },
             e -> log.debug("Startup vencidos check failed", e)
         );

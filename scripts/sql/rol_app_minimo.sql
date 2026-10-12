@@ -60,9 +60,12 @@ REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM sibim_app;
 -- El historial de migraciones solo se lee (validación al arrancar).
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON flyway_schema_history FROM sibim_app;
 
--- Los instaladores de las actualizaciones solo los publica la PC de
--- administración (usuario dueño): con el .env de otra PC no se puede subir,
--- cambiar ni borrar uno. (Además SIBIM solo instala los firmados por TI.)
+-- Las actualizaciones solo se leen. Cada PC descarga de aquí el instalador de
+-- la versión nueva y lo ejecuta: si sibim_app (cuya contraseña va dentro de
+-- cada instalador) pudiera escribir en estas tablas, cualquiera con una PC
+-- instalada podría publicar un programa y hacer que todas lo ejecuten. Se
+-- publica desde la PC de administración, que entra con el usuario dueño.
+-- (Además SIBIM solo instala los instaladores firmados por TI.)
 DO $$
 BEGIN
     IF to_regclass('public.actualizaciones') IS NOT NULL THEN

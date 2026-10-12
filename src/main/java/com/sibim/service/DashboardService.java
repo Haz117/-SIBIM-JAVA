@@ -86,9 +86,9 @@ public class DashboardService {
 
     private static final long CACHE_TTL_MS = 30_000;
 
-    /** The summary depends on who is signed in (área scope), so it is kept
-     *  with its owner: Patrimonio's must never be handed to the área account
-     *  that signs in on the same PC a few seconds later. */
+    /** The summary depends on who is signed in (área scope) and on the mode,
+     *  so it is kept with its owner: Patrimonio's must never be handed to the
+     *  área account that signs in on the same PC a few seconds later. */
     private record EnCache(Resumen resumen, Object dueno, long cargadoEn) {}
     private static volatile EnCache enCache;
 
@@ -108,7 +108,8 @@ public class DashboardService {
 
     private static Object claveSesion() {
         var u = com.sibim.session.SessionManager.getCurrentUser();
-        return u == null ? null : u.getId() + "|" + u.getRol() + "|" + u.getArea();
+        return (u == null ? "-" : u.getId() + "|" + u.getRol() + "|" + u.getArea())
+            + "|" + com.sibim.db.DatabaseConfig.isOfflineMode();
     }
 
     /** Panel ejecutivo (tesorería/presidencia): % del patrimonio ya

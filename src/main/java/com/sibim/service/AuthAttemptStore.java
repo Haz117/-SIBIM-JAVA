@@ -22,21 +22,21 @@ final class AuthAttemptStore {
 
     static int getCount(String key) {
         synchronized (LOCK) {
-            return Integer.parseInt(load().getProperty(key + ".count", "0"));
+            return (int) numero(load(), key + ".count");
         }
     }
 
     static long getWindowStart(String key) {
         synchronized (LOCK) {
-            return Long.parseLong(load().getProperty(key + ".ts", "0"));
+            return numero(load(), key + ".ts");
         }
     }
 
     static void increment(String key) {
         synchronized (LOCK) {
             Properties p = load();
-            long ts = Long.parseLong(p.getProperty(key + ".ts", "0"));
-            int count = Integer.parseInt(p.getProperty(key + ".count", "0"));
+            long ts = numero(p, key + ".ts");
+            int count = (int) numero(p, key + ".count");
             long now = System.currentTimeMillis();
             // Reset window if the stored timestamp is 0 (first failure)
             if (ts == 0) ts = now;
@@ -59,6 +59,13 @@ final class AuthAttemptStore {
         synchronized (LOCK) {
             try { Files.deleteIfExists(FILE); } catch (IOException ignored) {}
         }
+    }
+
+    /** A damaged or hand-edited file counts as "no attempts": a parse error
+     *  here used to make every login on this PC fail until the file was deleted. */
+    private static long numero(Properties p, String clave) {
+        try { return Long.parseLong(p.getProperty(clave, "0").trim()); }
+        catch (NumberFormatException e) { return 0; }
     }
 
     private static Properties load() {

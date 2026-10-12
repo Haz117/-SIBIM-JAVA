@@ -634,6 +634,10 @@ public final class DemoDataStore {
         });
     }
 
+    public static void cambiarCodigo(String id, String codigo) {
+        PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> p.setCodigo(codigo));
+    }
+
     public static void deleteProducto(String id) {
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
             String catId = p.getCategoriaId();

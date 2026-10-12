@@ -124,7 +124,15 @@ final class ProductosExporter {
 
     /** Shows a preview dialog for one bien's QR with an optional "Guardar PNG". */
     static void showQrDialog(Scene scene, Producto producto, Logger log) {
-        Image qrImg = QrUtils.generateQr(QrUtils.contenidoBien(producto), 300);
+        // Publishing the ficha the QR downloads is network work: off the FX thread.
+        DialogUtil.runAsyncWithProgress(scene, "Preparando el código QR…",
+            () -> com.sibim.service.FichaPublica.publicar(producto),
+            contenido -> showQrDialog(scene, producto, contenido, log),
+            e -> showQrDialog(scene, producto, QrUtils.contenidoBien(producto), log));
+    }
+
+    private static void showQrDialog(Scene scene, Producto producto, String contenido, Logger log) {
+        Image qrImg = QrUtils.generateQr(contenido, 300);
         if (qrImg == null) { NotificacionUtil.error(scene, "No se pudo generar el QR"); return; }
 
         ButtonType savePng = new ButtonType("Guardar PNG", ButtonBar.ButtonData.OK_DONE);
@@ -144,7 +152,7 @@ final class ProductosExporter {
         Label lblNombre = new Label(producto.getNombre());
         lblNombre.getStyleClass().add("muted-sm");
 
-        VBox content = new VBox(8, iv, lblCodigo, lblNombre);
+        VBox content = new VBox(8, iv, lblCodigo, lblNombre, queHaceElQr(contenido));
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(16));
         dlg.getDialogPane().setContent(content);
@@ -166,6 +174,17 @@ final class ProductosExporter {
                 }
             }
         }
+    }
+
+    /** One line under a QR saying what scanning it does, so nobody prints a
+     *  sheet of labels expecting the ficha and gets plain text (or the reverse). */
+    private static Label queHaceElQr(String contenido) {
+        Label l = new Label(QrUtils.queHace(contenido));
+        l.getStyleClass().add("muted-sm");
+        l.setWrapText(true);
+        l.setMaxWidth(320);
+        l.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        return l;
     }
 
     // ── Resguardo PDF (bulk selection) ──────────────────────────────────────

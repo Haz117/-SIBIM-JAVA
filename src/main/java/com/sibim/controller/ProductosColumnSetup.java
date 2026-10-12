@@ -15,7 +15,6 @@ import javafx.scene.layout.StackPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 
-import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -62,7 +61,7 @@ class ProductosColumnSetup {
                         Image cached = thumbnailCache.get(url);
                         if (cached == null || cached.isError()) {
                             boolean remote = url.startsWith("http://") || url.startsWith("https://");
-                            String imageUri = remote ? url : Path.of(url).toUri().toString();
+                            String imageUri = com.sibim.util.ImageUtils.uri(url);
                             // backgroundLoading only for remote — local files are instant
                             cached = new Image(imageUri, 38, 38, true, true, remote);
                             if (!cached.isError()) thumbnailCache.put(url, cached);
@@ -255,90 +254,6 @@ class ProductosColumnSetup {
                 default           -> "mdi2c-check-circle-outline";
             }
         ));
-    }
-
-    static void configureStockMinMax(TableColumn<Producto, Integer> colMin,
-                                     TableColumn<Producto, Integer> colMax,
-                                     Consumer<Producto> onSave) {
-        colMin.setCellValueFactory(c ->
-            new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getStockMinimo()));
-        colMax.setCellValueFactory(c ->
-            new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getStockMaximo()));
-
-        colMin.setCellFactory(col -> inlineIntCell(p -> p.getStockMinimo(), (p, v) -> p.setStockMinimo(v), onSave));
-        colMax.setCellFactory(col -> inlineIntCell(p -> p.getStockMaximo(), (p, v) -> p.setStockMaximo(v), onSave));
-    }
-
-    private static TableCell<Producto, Integer> inlineIntCell(
-            java.util.function.ToIntFunction<Producto> getter,
-            java.util.function.ObjIntConsumer<Producto> setter,
-            Consumer<Producto> onSave) {
-        return new TableCell<>() {
-            private final Label lbl = new Label();
-            private final TextField tf = new TextField();
-            private final javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(lbl, tf);
-            {
-                box.setAlignment(Pos.CENTER_LEFT);
-                tf.getStyleClass().add("inline-edit-field");
-                tf.setVisible(false); tf.setManaged(false);
-                tf.setOnAction(e -> commit());
-                tf.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
-                    if (!isFocused) commit();
-                });
-                tf.setOnKeyPressed(ev -> {
-                    if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) cancel();
-                });
-                setOnMouseClicked(e -> {
-                    if (e.getClickCount() == 2 && getItem() != null) startEdit();
-                });
-            }
-
-            private void commit() {
-                if (!tf.isVisible()) return;
-                try {
-                    int val = Integer.parseInt(tf.getText().strip());
-                    if (val < 0) { cancel(); return; }
-                    Producto p = getTableRow() != null ? getTableRow().getItem() : null;
-                    if (p == null) { cancel(); return; }
-                    setter.accept(p, val);
-                    lbl.setText(String.valueOf(val));
-                    tf.setVisible(false); tf.setManaged(false);
-                    lbl.setVisible(true); lbl.setManaged(true);
-                    onSave.accept(p);
-                } catch (NumberFormatException ex) {
-                    cancel();
-                }
-            }
-
-            private void cancel() {
-                tf.setVisible(false); tf.setManaged(false);
-                lbl.setVisible(true); lbl.setManaged(true);
-                updateItem(getItem(), isEmpty());
-            }
-
-            @Override
-            protected void updateItem(Integer value, boolean empty) {
-                super.updateItem(value, empty);
-                setText(null);
-                if (empty || value == null) { setGraphic(null); return; }
-                lbl.setText(String.valueOf(value));
-                lbl.setVisible(true); lbl.setManaged(true);
-                tf.setVisible(false); tf.setManaged(false);
-                setGraphic(box);
-            }
-
-            @Override
-            public void startEdit() {
-                super.startEdit();
-                Producto p = getTableRow() != null ? getTableRow().getItem() : null;
-                if (p == null) return;
-                tf.setText(String.valueOf(getter.applyAsInt(p)));
-                lbl.setVisible(false); lbl.setManaged(false);
-                tf.setVisible(true); tf.setManaged(true);
-                tf.selectAll();
-                tf.requestFocus();
-            }
-        };
     }
 
     static void configureRowFactory(TableView<Producto> table,

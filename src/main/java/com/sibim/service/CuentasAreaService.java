@@ -115,10 +115,17 @@ public class CuentasAreaService {
         return String.join(".", base.subList(0, Math.min(2, base.size())));
     }
 
-    /** "catastro" → "Catastro-4821": easy to dictate, 8+ characters. */
+    /** Letters that can't be confused when read aloud or handwritten (no vowels, l or q). */
+    private static final String LETRAS = "bcdfghjkmnprstvwxyz";
+
+    /** "catastro" → "Catastro-kdmt-4821": still easy to dictate. The word is
+     *  the user name, so only the rest counts: four digits alone were 10 000
+     *  combinations, minutes of work for whoever can read the stored hash. */
     static String contrasena(String usuario) {
         String palabra = usuario.split("\\.")[0];
         palabra = Character.toUpperCase(palabra.charAt(0)) + palabra.substring(1);
-        return palabra + "-" + String.format("%04d", RANDOM.nextInt(10_000));
+        StringBuilder letras = new StringBuilder();
+        for (int i = 0; i < 4; i++) letras.append(LETRAS.charAt(RANDOM.nextInt(LETRAS.length())));
+        return palabra + "-" + letras + "-" + String.format("%04d", RANDOM.nextInt(10_000));
     }
 }

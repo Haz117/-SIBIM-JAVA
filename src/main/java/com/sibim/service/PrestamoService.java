@@ -48,8 +48,8 @@ public class PrestamoService {
         this.auditRepo    = auditRepo;
     }
 
-    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(22, 101, 52);   // green-800
-    private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(240, 253, 244);  // green-50
+    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(162, 35, 45);   // guinda Pantone 1805 C, like every other formato
+    private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(241, 245, 249);
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);
     private static final DeviceRgb COLOR_WARN    = new DeviceRgb(146, 64, 14);    // amber-800
     private static final DateTimeFormatter FMT   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -246,7 +246,7 @@ public class PrestamoService {
                     .setTextAlignment(TextAlignment.CENTER))
                 .add(new Paragraph(orgName())
                     .setFont(regular).setFontSize(9)
-                    .setFontColor(new DeviceRgb(200, 210, 240))
+                    .setFontColor(new DeviceRgb(240, 195, 195))
                     .setTextAlignment(TextAlignment.CENTER))
                 .setBackgroundColor(hColor).setPadding(14).setBorder(null);
             headerTable.addCell(hCell);
@@ -333,7 +333,7 @@ public class PrestamoService {
         t.addCell(new com.itextpdf.layout.element.Cell()
             .add(new Paragraph(label).setFont(bold).setFontSize(9))
             .setBackgroundColor(COLOR_SUBHEAD).setPadding(5)
-            .setBorderBottom(new SolidBorder(new DeviceRgb(220, 252, 231), 0.5f))
+            .setBorderBottom(new SolidBorder(new DeviceRgb(226, 232, 240), 0.5f))
             .setBorderTop(null).setBorderLeft(null).setBorderRight(null));
         t.addCell(new com.itextpdf.layout.element.Cell()
             .add(new Paragraph(value != null ? value : "—").setFont(regular).setFontSize(9))

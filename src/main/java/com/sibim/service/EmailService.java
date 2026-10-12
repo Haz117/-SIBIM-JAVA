@@ -24,6 +24,34 @@ public class EmailService {
             && !config.get("alertas_correo_destino", "").isBlank();
     }
 
+    /** Never in the clear: port 465 speaks TLS from the first byte, any other
+     *  port must accept STARTTLS before the password is sent (it used to be
+     *  optional, so a server or a network that hid it got the password as
+     *  plain text). Timeouts, because a silent server would otherwise hold
+     *  the scheduler's thread for good. */
+    static Properties propiedades(String host, String port) {
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", port);
+        if ("465".equals(port == null ? "" : port.trim())) {
+            props.put("mail.smtp.ssl.enable", "true");
+        } else {
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.starttls.required", "true");
+        }
+        props.put("mail.smtp.ssl.checkserveridentity", "true");
+        props.put("mail.smtp.connectiontimeout", "15000");
+        props.put("mail.smtp.timeout", "30000");
+        props.put("mail.smtp.writetimeout", "30000");
+        return props;
+    }
+
+    /** Names and folios come from the inventory: as text, never as HTML. */
+    static String esc(String s) {
+        return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
     public void enviarAlertas(List<Producto> vencidos) {
         if (!isHabilitado() || vencidos.isEmpty()) return;
         try {
@@ -33,11 +61,7 @@ public class EmailService {
             String password = config.get("smtp_password", "");
             String destino  = config.get("alertas_correo_destino", "");
 
-            Properties props = new Properties();
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.host", host);
-            props.put("mail.smtp.port", port);
+            Properties props = propiedades(host, port);
 
             Session session = Session.getInstance(props, new Authenticator() {
                 protected PasswordAuthentication getPasswordAuthentication() {
@@ -68,8 +92,8 @@ public class EmailService {
         html.append("<h3 style='color:").append(color).append("'>").append(title)
             .append(" (").append(items.size()).append(")</h3><ul>");
         for (Producto p : items)
-            html.append("<li><b>").append(p.getNombre()).append("</b> [").append(p.getCodigo())
-                .append("] — ").append(p.getArea()).append("</li>");
+            html.append("<li><b>").append(esc(p.getNombre())).append("</b> [").append(esc(p.getCodigo()))
+                .append("] — ").append(esc(p.getArea())).append("</li>");
         html.append("</ul>");
     }
 
@@ -82,11 +106,7 @@ public class EmailService {
             String password = config.get("smtp_password", "");
             String destino  = config.get("alertas_correo_destino", "");
 
-            Properties props = new Properties();
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.host", host);
-            props.put("mail.smtp.port", port);
+            Properties props = propiedades(host, port);
 
             Session session = Session.getInstance(props, new Authenticator() {
                 protected PasswordAuthentication getPasswordAuthentication() {
@@ -100,9 +120,9 @@ public class EmailService {
             if (!vencidos.isEmpty()) {
                 html.append("<h3 style='color:#DC2626'>Préstamos Vencidos (").append(vencidos.size()).append(")</h3><ul>");
                 for (Prestamo p : vencidos)
-                    html.append("<li><b>").append(p.getNumero()).append("</b> — ")
-                        .append(p.getProductoNombre())
-                        .append(" · Responsable: ").append(p.getResponsableNombre())
+                    html.append("<li><b>").append(esc(p.getNumero())).append("</b> — ")
+                        .append(esc(p.getProductoNombre()))
+                        .append(" · Responsable: ").append(esc(p.getResponsableNombre()))
                         .append(" · Venció: ").append(p.getFechaDevolucionPrevista() != null ? p.getFechaDevolucionPrevista().format(fmt) : "—")
                         .append("</li>");
                 html.append("</ul>");
@@ -110,9 +130,9 @@ public class EmailService {
             if (!proximos.isEmpty()) {
                 html.append("<h3 style='color:#D97706'>Próximos a Vencer (").append(proximos.size()).append(")</h3><ul>");
                 for (Prestamo p : proximos)
-                    html.append("<li><b>").append(p.getNumero()).append("</b> — ")
-                        .append(p.getProductoNombre())
-                        .append(" · Responsable: ").append(p.getResponsableNombre())
+                    html.append("<li><b>").append(esc(p.getNumero())).append("</b> — ")
+                        .append(esc(p.getProductoNombre()))
+                        .append(" · Responsable: ").append(esc(p.getResponsableNombre()))
                         .append(" · Vence: ").append(p.getFechaDevolucionPrevista() != null ? p.getFechaDevolucionPrevista().format(fmt) : "—")
                         .append("</li>");
                 html.append("</ul>");
@@ -144,11 +164,7 @@ public class EmailService {
             String password = config.get("smtp_password", "");
             String destino  = config.get("alertas_correo_destino", "");
 
-            Properties props = new Properties();
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.host", host);
-            props.put("mail.smtp.port", port);
+            Properties props = propiedades(host, port);
             Session session = Session.getInstance(props, new Authenticator() {
                 protected PasswordAuthentication getPasswordAuthentication() {
                     return new PasswordAuthentication(usuario, password);
@@ -178,15 +194,15 @@ public class EmailService {
                 html.append("<h3 style='color:#DC2626;font-size:13px;margin:12px 0 6px'>PRÉSTAMOS VENCIDOS (")
                     .append(prestamosVencidos.size()).append(")</h3><ul style='margin:0;padding-left:18px'>");
                 for (Prestamo p : prestamosVencidos)
-                    html.append("<li style='font-size:12px;margin-bottom:3px'><b>").append(p.getNumero()).append("</b> — ")
-                        .append(p.getProductoNombre()).append(" · ").append(p.getResponsableNombre()).append("</li>");
+                    html.append("<li style='font-size:12px;margin-bottom:3px'><b>").append(esc(p.getNumero())).append("</b> — ")
+                        .append(esc(p.getProductoNombre())).append(" · ").append(esc(p.getResponsableNombre())).append("</li>");
                 html.append("</ul>");
             }
             if (!proximasRevisiones.isEmpty()) {
                 html.append("<h3 style='color:#0891B2;font-size:13px;margin:12px 0 6px'>REVISIONES PRÓXIMAS (")
                     .append(proximasRevisiones.size()).append(")</h3><ul style='margin:0;padding-left:18px'>");
                 for (Producto p : proximasRevisiones)
-                    html.append("<li style='font-size:12px;margin-bottom:3px'><b>").append(p.getNombre())
+                    html.append("<li style='font-size:12px;margin-bottom:3px'><b>").append(esc(p.getNombre()))
                         .append("</b> — ").append(p.getProximaRevision() != null
                             ? p.getProximaRevision().format(fmt) : "—").append("</li>");
                 html.append("</ul>");
@@ -225,11 +241,7 @@ public class EmailService {
             String dest    = config.get("alertas_correo_destino", "");
             if (host.isBlank() || usuario.isBlank() || dest.isBlank())
                 return "Configura el servidor SMTP, usuario y correo destino primero.";
-            Properties props = new Properties();
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.host", host);
-            props.put("mail.smtp.port", port);
+            Properties props = propiedades(host, port);
             Session session = Session.getInstance(props, new Authenticator() {
                 protected PasswordAuthentication getPasswordAuthentication() {
                     return new PasswordAuthentication(usuario, pass);

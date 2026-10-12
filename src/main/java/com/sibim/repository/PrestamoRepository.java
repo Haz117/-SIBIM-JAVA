@@ -171,8 +171,7 @@ public class PrestamoRepository {
      *  préstamos here); a provisional folio is replaced by the next real one. */
     public Prestamo saveOnline(Prestamo prestamo) throws SQLException {
         if (prestamo.getId() == null) prestamo.setId(UUID.randomUUID().toString());
-        if (prestamo.getNumero() == null || prestamo.getNumero().contains("-PROV-"))
-            prestamo.setNumero(nextNumero());
+
 
         String sql = """
             INSERT INTO prestamos
@@ -182,10 +181,10 @@ public class PrestamoRepository {
                creado_por_id, creado_por_nombre, created_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'ACTIVO',?,?,NOW())
             """;
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        prestamo.setNumero(folioRepo.guardarConFolio("PRS", prestamo.getNumero(), (conn, numero) -> {
+          try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, prestamo.getId());
-            ps.setString(2, prestamo.getNumero());
+            ps.setString(2, numero);
             ps.setString(3, prestamo.getProductoId());
             ps.setString(4, prestamo.getProductoNombre());
             ps.setString(5, prestamo.getProductoCodigo());
@@ -200,7 +199,8 @@ public class PrestamoRepository {
             ps.setString(13, prestamo.getCreadoPorId());
             ps.setString(14, prestamo.getCreadoPorNombre());
             ps.executeUpdate();
-        }
+          }
+        }));
         prestamo.setCreadoEn(LocalDateTime.now());
         return prestamo;
     }

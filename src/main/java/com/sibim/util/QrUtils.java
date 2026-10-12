@@ -20,28 +20,63 @@ public final class QrUtils {
     private static final Map<EncodeHintType, Object> OPCIONES =
         Map.of(EncodeHintType.MARGIN, 1, EncodeHintType.CHARACTER_SET, "UTF-8");
 
+    private static final java.time.format.DateTimeFormatter FECHA =
+        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     /**
-     * What a bien's QR carries: its ficha técnica in short, readable by any
-     * phone camera with no app and no internet. The código goes alone on the
-     * first line — a handheld scanner "types" the QR and ends at the first
-     * line break, so SIBIM's own scanner still gets just the código (see
-     * BarcodeScanner, which ignores the rest of the burst).
+     * What a bien's QR carries when its ficha can't be downloaded (no Storage,
+     * see FichaPublica): what the label does NOT already show. The label
+     * prints the descripción, marca, modelo, serie and área, so repeating them
+     * told whoever scanned it nothing new; this is who answers for the bien,
+     * where it is, its condition and its dates. Readable by any phone camera
+     * with no app and no internet. The código goes alone on the first line — a
+     * handheld scanner "types" the QR and ends at the first line break, so
+     * SIBIM's own scanner still gets just the código (see BarcodeScanner,
+     * which ignores the rest of the burst).
      */
     public static String contenidoBien(com.sibim.model.Producto p) {
         StringBuilder sb = new StringBuilder();
-        sb.append(p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "SIN CÓDIGO");
-        linea(sb, null, recortar(p.getNombre(), 70));
-        linea(sb, "Área", p.getArea());
-        linea(sb, "Resguardante", p.getResguardante());
-        StringBuilder equipo = new StringBuilder();
-        for (String[] kv : new String[][]{{"Marca", p.getMarca()}, {"Modelo", p.getModelo()}, {"Serie", p.getNumeroSerie()}}) {
-            if (kv[1] != null && !kv[1].isBlank())
-                equipo.append(equipo.length() > 0 ? " · " : "").append(kv[0]).append(": ").append(kv[1].trim());
+        sb.append(codigoDe(p));
+        if (p.isDadoDeBaja()) {
+            linea(sb, null, "DADO DE BAJA" + (p.getFechaBaja() != null ? " el " + p.getFechaBaja().format(FECHA) : ""));
+            linea(sb, "Motivo", recortar(p.getMotivoBaja(), 80));
         }
-        linea(sb, null, equipo.toString());
-        linea(sb, "Estado", p.isDadoDeBaja() ? "DADO DE BAJA" : p.getEstadoFisico());
-        sb.append("\nInventario patrimonial · SIBIM");
+        linea(sb, "Resguardante", p.getResguardante());
+        linea(sb, "Ubicación", recortar(p.getUbicacion(), 60));
+        linea(sb, "Estado físico", p.getEstadoFisico());
+        linea(sb, "Adquirido", p.getFechaAdquisicion() != null ? p.getFechaAdquisicion().format(FECHA) : null);
+        linea(sb, "Factura", p.getNumeroFactura());
+        if (p.getFechaVencimiento() != null)
+            linea(sb, p.getFechaVencimiento().isBefore(java.time.LocalDate.now()) ? "Garantía VENCIDA" : "Garantía hasta",
+                p.getFechaVencimiento().format(FECHA));
+        linea(sb, "Próxima revisión", p.getProximaRevision() != null ? p.getProximaRevision().format(FECHA) : null);
+        // Nothing beyond the código is on record: say what it is, at least.
+        if (sb.indexOf("\n") < 0) linea(sb, null, recortar(p.getNombre(), 70));
         return sb.toString();
+    }
+
+    /** One line to show under a QR saying what scanning it does, so nobody
+     *  prints a sheet of labels expecting the ficha and gets text (or the reverse). */
+    public static String queHace(String contenido) {
+        return contenido != null && contenido.startsWith("http")
+            ? "Al escanearlo con un teléfono se descarga la ficha del bien (PDF)."
+            : "Al escanearlo muestra resguardante, ubicación, estado y fechas. Para que descargue la ficha "
+                + "hace falta conexión y el almacenamiento de fotos configurado en esta PC.";
+    }
+
+    private static String codigoDe(com.sibim.model.Producto p) {
+        return p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "SIN CÓDIGO";
+    }
+
+    /**
+     * The QR that downloads the bien's ficha: {@code urlFicha} with the código
+     * after '#'. It has to be the link and nothing else — a phone camera only
+     * offers to open a QR that is entirely a link — and the código rides in the
+     * fragment (never sent to the server) so SIBIM's scanner still finds it.
+     */
+    public static String enlaceFicha(String urlFicha, com.sibim.model.Producto p) {
+        return urlFicha + "#" + java.net.URLEncoder.encode(codigoDe(p), java.nio.charset.StandardCharsets.UTF_8)
+            .replace("+", "%20").replace("%2F", "/");
     }
 
     /** Most bytes the QR of the official label may carry: it is printed 1.2 cm wide, and
@@ -49,18 +84,23 @@ public final class QrUtils {
     static final int MAX_BYTES_ETIQUETA = 84;
 
     /**
-     * The short version of {@link #contenidoBien} for the official label, whose QR is tiny:
-     * código on the first line, then what the bien is and who has it (or its área), dropping
-     * lines from the end until it fits. The label itself already prints marca, modelo and serie.
+     * The short version of {@link #contenidoBien} for the official label, whose QR is tiny
+     * (too small for the link to the ficha): código on the first line, then what the label
+     * does not print — who holds the bien, its condition and when it was acquired — dropping
+     * lines from the end until it fits. The label itself already prints the descripción,
+     * marca, modelo, serie and área.
      */
     public static String contenidoEtiqueta(com.sibim.model.Producto p) {
         java.util.List<String> lineas = new java.util.ArrayList<>();
-        lineas.add(p.getCodigo() != null && !p.getCodigo().isBlank() ? p.getCodigo().trim() : "SIN CÓDIGO");
-        if (p.getNombre() != null && !p.getNombre().isBlank()) lineas.add(recortar(p.getNombre(), 30));
+        lineas.add(codigoDe(p));
         if (p.getResguardante() != null && !p.getResguardante().isBlank())
             lineas.add("Resg: " + recortar(p.getResguardante(), 28));
-        else if (p.getArea() != null && !p.getArea().isBlank())
-            lineas.add(recortar(p.getArea(), 34));
+        if (p.getEstadoFisico() != null && !p.getEstadoFisico().isBlank())
+            lineas.add("Estado: " + recortar(p.getEstadoFisico(), 12));
+        if (p.getFechaAdquisicion() != null) lineas.add("Adq: " + p.getFechaAdquisicion().format(FECHA));
+        // Nothing of that on record: at least what it is.
+        if (lineas.size() == 1 && p.getNombre() != null && !p.getNombre().isBlank())
+            lineas.add(recortar(p.getNombre(), 34));
         while (lineas.size() > 1
                 && String.join("\n", lineas).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_BYTES_ETIQUETA)
             lineas.remove(lineas.size() - 1);
@@ -85,6 +125,15 @@ public final class QrUtils {
     public static String codigoLeido(String leido) {
         if (leido == null) return "";
         String t = leido.strip();
+        // The QR that downloads the ficha is a link with the código after '#'.
+        if ((t.startsWith("http://") || t.startsWith("https://")) && t.indexOf('#') > 0 && t.indexOf('\n') < 0) {
+            try {
+                return java.net.URLDecoder.decode(t.substring(t.indexOf('#') + 1).replace("+", "%2B"),
+                    java.nio.charset.StandardCharsets.UTF_8).strip();
+            } catch (IllegalArgumentException e) {
+                return t.substring(t.indexOf('#') + 1).strip();
+            }
+        }
         int salto = t.indexOf('\n');
         return (salto >= 0 ? t.substring(0, salto) : t).strip();
     }

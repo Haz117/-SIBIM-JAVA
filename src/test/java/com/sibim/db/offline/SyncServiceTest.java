@@ -787,6 +787,39 @@ class SyncServiceTest extends IntegrationTestBase {
         assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId));
     }
 
+    /** A bien captured offline took its número from this PC's copy; if another
+     *  PC used it meanwhile it gets the next free one instead of being discarded. */
+    @Test
+    void altaOffline_conCodigoYaOcupadoEnElServidor_tomaElSiguienteLibre() throws Exception {
+        String area = "Secretaría General Municipal";   // prefijo SGM
+        String catId = insertPgCategory("Mobiliario sync");
+        var repo = new com.sibim.repository.ProductoRepository();
+        Producto enServidor = bienSgm(catId, "Silla de otra PC", "SGM/01", area);
+        repo.saveOnline(enServidor);
+
+        Producto offline = bienSgm(catId, "Silla capturada sin conexión", "SGM/01", area);
+        SyncService.guardarReplicado(repo, offline);
+
+        assertEquals("SGM/02", repo.findByIdOnline(offline.getId()).orElseThrow().getCodigo());
+        assertEquals("SGM/01", repo.findByIdOnline(enServidor.getId()).orElseThrow().getCodigo());
+    }
+
+    private static Producto bienSgm(String catId, String nombre, String codigo, String area) {
+        Producto p = new Producto();
+        p.setId(UUID.randomUUID().toString());
+        p.setNombre(nombre);
+        p.setCodigo(codigo);
+        p.setCategoriaId(catId);
+        p.setPrecioCompra(BigDecimal.ZERO);
+        p.setPrecioVenta(BigDecimal.ZERO);
+        p.setStockActual(1);
+        p.setStockMinimo(0);
+        p.setStockMaximo(1);
+        p.setUnidad(UnidadMedida.PIEZA);
+        p.setArea(area);
+        return p;
+    }
+
     @Test
     void resolveConflicto_sinVersionOffline_descartaYMarcaDiscarded() throws Exception {
         String prodId = UUID.randomUUID().toString();

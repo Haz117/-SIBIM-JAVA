@@ -147,8 +147,7 @@ public class ResguardoRepository {
      *  replaced by the next real one. */
     public Resguardo saveOnline(Resguardo resguardo) throws SQLException {
         if (resguardo.getId() == null) resguardo.setId(UUID.randomUUID().toString());
-        if (resguardo.getNumero() == null || resguardo.getNumero().contains("-PROV-"))
-            resguardo.setNumero(nextNumero());
+
 
         String sql = """
             INSERT INTO resguardos
@@ -156,11 +155,10 @@ public class ResguardoRepository {
                creado_por_id, creado_por_nombre, observaciones, estado, created_at)
             VALUES (?,?,?,?,?,?,?,?,?,NOW())
             """;
-        try (Connection conn = DatabaseConfig.getConnection()) {
-            conn.setAutoCommit(false);
+        resguardo.setNumero(folioRepo.guardarConFolio("RSG", resguardo.getNumero(), (conn, numero) -> {
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, resguardo.getId());
-                ps.setString(2, resguardo.getNumero());
+                ps.setString(2, numero);
                 ps.setString(3, resguardo.getResguardanteNombre());
                 ps.setString(4, resguardo.getResguardanteCargo());
                 ps.setString(5, resguardo.getResguardanteArea());
@@ -172,8 +170,7 @@ public class ResguardoRepository {
             }
             saveItems(resguardo.getId(), resguardo.getItems(), conn);
             asignarResguardante(conn, resguardo);
-            conn.commit();
-        }
+        }));
         resguardo.setCreadoEn(LocalDateTime.now());
         return resguardo;
     }

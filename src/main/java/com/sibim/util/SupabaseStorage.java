@@ -38,6 +38,11 @@ public final class SupabaseStorage {
      * Returns the public URL of the uploaded object.
      */
     public static String upload(File localFile, String remoteName) throws IOException {
+        return upload(localFile, remoteName, "image/jpeg");
+    }
+
+    /** Same, for a file that is not a photo (the ficha of a bien is a PDF). */
+    public static String upload(File localFile, String remoteName, String contentType) throws IOException {
         ensureInit();
         if (supabaseUrl == null || anonKey == null)
             throw new IOException("SUPABASE_URL o SUPABASE_ANON_KEY no están en .env");
@@ -52,7 +57,7 @@ public final class SupabaseStorage {
             .uri(URI.create(supabaseUrl + "/storage/v1/object/" + BUCKET + "/" + remoteName))
             .header("apikey", anonKey)
             .header("Authorization", "Bearer " + anonKey)
-            .header("Content-Type", "image/jpeg")
+            .header("Content-Type", contentType)
             .header("x-upsert", "true")
             // Without it a stalled upload (connected, nothing moving) never ends.
             .timeout(Duration.ofSeconds(90))

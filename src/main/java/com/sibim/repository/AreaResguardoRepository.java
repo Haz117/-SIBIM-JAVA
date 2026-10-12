@@ -152,14 +152,29 @@ public class AreaResguardoRepository {
 
     public void delete(String id) throws SQLException {
         if (DatabaseConfig.isDemoMode()) DatabaseConfig.exigirServidor("Eliminar un resguardo de área");
+        // Same scope as uploading and opening one: knowing the id of another
+        // área's signed resguardo must not be enough to delete it.
+        Set<String> accessible = SessionManager.getAccessibleAreas();
         if (OfflineDocs.activo()) {
             Local l = OfflineDocs.uno(OfflineDocs.AREA_RESGUARDO, id, Local.class)
                 .orElseThrow(() -> new SQLException("Resguardo de área no encontrado en esta PC: " + id));
+            if (accessible != null && !accessible.contains(l.area))
+                throw new SecurityException("No tienes acceso a ese resguardo");
             OfflineDocs.registrar(OfflineDocs.AREA_RESGUARDO, "ELIMINAR", id, l);
             OfflineDocs.borrar(OfflineDocs.AREA_RESGUARDO, id);
             OfflineDocs.borrar(OfflineDocs.AREA_RESGUARDO_PDF, id);
             new AuditLogRepository().log("area_resguardo", id, id, "eliminar", "Resguardo de área eliminado");
             return;
+        }
+        if (accessible != null) {
+            try (Connection conn = DatabaseConfig.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("SELECT area FROM area_resguardos WHERE id = ?")) {
+                ps.setString(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && !accessible.contains(rs.getString("area")))
+                        throw new SecurityException("No tienes acceso a ese resguardo");
+                }
+            }
         }
         deleteOnline(id);
         new AuditLogRepository().log("area_resguardo", id, id, "eliminar", "Resguardo de área eliminado");
