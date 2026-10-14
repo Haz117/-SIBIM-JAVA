@@ -24,12 +24,23 @@ import java.sql.Statement;
  *                 session so methods guarded by requireAdmin() pass.
  *   @BeforeEach — truncates all application tables so every test starts clean.
  *   @AfterAll   — logs out, closes HikariCP pool, stops EmbeddedPostgres.
+ *
+ * With -Dsibim.it.comoApp=true the app code runs the way the installed PCs
+ * connect: scripts/sql/rol_app_minimo.sql is applied and DatabaseConfig gets a
+ * pool of sibim_app (no DDL, RLS on every table). {@link #dataSource} stays the
+ * database owner, for the cleanup and the tests' own assertions.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class IntegrationTestBase {
 
+    private static final boolean COMO_APP = Boolean.getBoolean("sibim.it.comoApp");
+    /** Same as RolAppMinimoIntegrationTest, which applies the script again. */
+    static final String CLAVE_APP = "clave-de-prueba";
+
     private EmbeddedPostgres postgres;
     protected HikariDataSource dataSource;
+    /** What the app code uses: {@link #dataSource}, or sibim_app's pool. */
+    private HikariDataSource appDataSource;
 
     @BeforeAll
     void startDatabase() throws Exception {
@@ -49,10 +60,26 @@ public abstract class IntegrationTestBase {
         cfg.setDataSource(postgres.getPostgresDatabase());
         cfg.setMaximumPoolSize(5);
         dataSource = new HikariDataSource(cfg);
+        appDataSource = dataSource;
+        if (COMO_APP) {
+            String script = java.nio.file.Files.readString(
+                    java.nio.file.Path.of(System.getProperty("basedir", "..")).resolve("scripts/sql/rol_app_minimo.sql"),
+                    java.nio.charset.StandardCharsets.UTF_8)
+                .replace("clave TEXT := 'CAMBIA-ESTA-CONTRASENA';", "clave TEXT := '" + CLAVE_APP + "';");
+            try (Connection c = dataSource.getConnection(); Statement st = c.createStatement()) {
+                st.execute(script);
+            }
+            HikariConfig app = new HikariConfig();
+            app.setJdbcUrl(postgres.getJdbcUrl("sibim_app", "postgres"));
+            app.setUsername("sibim_app");
+            app.setPassword(CLAVE_APP);
+            app.setMaximumPoolSize(5);
+            appDataSource = new HikariDataSource(app);
+        }
 
         // Point all repository code at the embedded DB for the duration of the
         // test suite. setDataSourceForTest also forces demo=false, offline=false.
-        DatabaseConfig.setDataSourceForTest(dataSource);
+        DatabaseConfig.setDataSourceForTest(appDataSource);
 
         // Seed an ADMIN session. ConteoRepository.findAll() and any other method
         // guarded by requireAdmin() will use SessionManager.isAdmin() at call time,
@@ -69,7 +96,8 @@ public abstract class IntegrationTestBase {
         SessionManager.logout();
         // Only clear the pool if this test class still owns the active global
         // reference; another integration class may have installed its own.
-        DatabaseConfig.clearDataSourceForTest(dataSource);
+        DatabaseConfig.clearDataSourceForTest(appDataSource);
+        if (appDataSource != null && appDataSource != dataSource && !appDataSource.isClosed()) appDataSource.close();
         if (dataSource != null && !dataSource.isClosed()) dataSource.close();
         if (postgres != null) {
             postgres.close();
@@ -91,7 +119,7 @@ public abstract class IntegrationTestBase {
         SyncService.stopWatching();
         DatabaseConfig.setDemoMode(false);
         DatabaseConfig.setOfflineMode(false);
-        DatabaseConfig.setDataSourceForTest(dataSource);
+        DatabaseConfig.setDataSourceForTest(appDataSource);
         try (Connection c = dataSource.getConnection();
              Statement st = c.createStatement()) {
             st.execute(
@@ -113,6 +141,9 @@ public abstract class IntegrationTestBase {
             ps.executeUpdate();
         }
     }
+
+    /** Whether the app code runs as sibim_app (-Dsibim.it.comoApp=true). */
+    protected static boolean comoApp() { return COMO_APP; }
 
     /** Returns a raw connection to the embedded Postgres for direct JDBC assertions. */
     protected Connection getConnection() throws SQLException {

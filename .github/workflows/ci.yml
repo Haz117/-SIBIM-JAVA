@@ -29,6 +29,11 @@ jobs:
       - name: Run tests, enforce coverage gate, and build fat JAR
         run: mvn --batch-mode --no-transfer-progress verify
 
+      # The installed PCs connect as sibim_app (scripts/sql/rol_app_minimo.sql:
+      # no DDL, RLS on every table): the database tests once more, as that role.
+      - name: Integration tests as sibim_app
+        run: mvn --batch-mode --no-transfer-progress test "-Dtest=com.sibim.db.integration.*Test" "-Dsurefire.failIfNoSpecifiedTests=false" "-Djacoco.skip=true" "-Dsibim.it.comoApp=true"
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
