@@ -117,7 +117,7 @@ El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente l
    IMG_DIR=\\servidor\sibim\imagenes
    ```
 
-   **Fotos de los bienes (Supabase Storage)** — con `SUPABASE_URL` y `SUPABASE_ANON_KEY` (la clave **pública** del proyecto) en el `.env`, las fotos y facturas se suben al bucket público `sibim-fotos` y todas las PCs las ven en la tabla, el detalle y los formatos PDF. Si falta `SUPABASE_ANON_KEY`, la foto queda como archivo de esa PC (SIBIM lo avisa al guardar) y ninguna otra computadora la ve; al agregar la clave, las fotos pendientes de esa PC se suben solas. La carpeta compartida `IMG_DIR` de abajo es la alternativa para instalaciones sin Supabase.
+   **Fotos de los bienes (Supabase Storage)** — con `SUPABASE_URL` y `SUPABASE_ANON_KEY` (la clave **pública** del proyecto) en el `.env`, las fotos y facturas se suben al bucket público `sibim-fotos` y todas las PCs las ven en la tabla, el detalle y los formatos PDF. Si falta `SUPABASE_ANON_KEY`, la foto queda como archivo de esa PC (SIBIM lo avisa al guardar) y ninguna otra computadora la ve; al agregar la clave, las fotos pendientes de esa PC se suben solas. El bucket necesita las políticas de `scripts/sql/storage_fotos.sql` (ejecútalo una vez en el SQL Editor de Supabase): sin ellas, la clave pública no puede subir nada. La carpeta compartida `IMG_DIR` de abajo es la alternativa para instalaciones sin Supabase.
 
    **Configuración de la carpeta compartida de imágenes (despliegue multiPC)**
 
