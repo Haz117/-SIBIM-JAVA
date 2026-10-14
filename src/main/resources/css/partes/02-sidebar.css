@@ -276,25 +276,26 @@
     -fx-background-radius: 12, 10;
 }
 
-/* CONTROL PATRIMONIAL — violet */
+/* CONTROL PATRIMONIAL — dorado, the institutional companion of the guinda
+   (violet sat badly next to it). Dark gold text keeps AA contrast on the tint. */
 .nav-btn.nav-ctrl:hover {
-    -fx-background-color: #FDF4F5;
-    -fx-text-fill: sibim-violet-dark;
-    -fx-border-color: transparent transparent transparent rgba(124,58,237,0.55);
+    -fx-background-color: #FBF6EC;
+    -fx-text-fill: #6E5118;
+    -fx-border-color: transparent transparent transparent rgba(179,142,93,0.65);
 }
-.nav-btn.nav-ctrl:hover .nav-icon { -fx-icon-color: sibim-violet; }
-.nav-btn.nav-ctrl:pressed { -fx-background-color: #F9DEE0; }
+.nav-btn.nav-ctrl:hover .nav-icon { -fx-icon-color: #9C7A3C; }
+.nav-btn.nav-ctrl:pressed { -fx-background-color: #F3E7CF; }
 .nav-btn.nav-ctrl.nav-active,
 .nav-btn.nav-ctrl.nav-active:hover,
 .nav-btn.nav-ctrl.nav-active:armed {
-    -fx-background-color: #FDF4F5;
-    -fx-text-fill: sibim-violet-dark;
-    -fx-border-color: transparent transparent transparent sibim-violet;
+    -fx-background-color: #FBF6EC;
+    -fx-text-fill: #6E5118;
+    -fx-border-color: transparent transparent transparent #B38E5D;
 }
-.nav-btn.nav-ctrl.nav-active .nav-icon { -fx-icon-color: sibim-violet; }
+.nav-btn.nav-ctrl.nav-active .nav-icon { -fx-icon-color: #9C7A3C; }
 .nav-btn.nav-ctrl:focus-visible,
 .nav-btn.nav-ctrl.nav-active:focus-visible {
-    -fx-background-color: sibim-violet, #FDF4F5;
+    -fx-background-color: #B38E5D, #FBF6EC;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }

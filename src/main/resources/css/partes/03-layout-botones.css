@@ -196,7 +196,7 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
 }
 .btn-secondary:hover {
-    -fx-background-color: #F5F7FF;
+    -fx-background-color: #FBF6F6;
     -fx-border-color: sibim-indigo-300;
     -fx-text-fill: sibim-indigo-darker;
 }

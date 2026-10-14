@@ -186,7 +186,7 @@ public class EmailService {
                 .append(statCell("Movimientos", String.valueOf(totalMovimientos), "#0EA5E9"))
                 .append(statCell("Préstamos activos", String.valueOf(prestamosActivos.size()), "#059669"))
                 .append(statCell("Préstamos vencidos", String.valueOf(prestamosVencidos.size()), "#DC2626"))
-                .append(statCell("Resguardos activos", String.valueOf(resguardosActivos.size()), "#7C3AED"))
+                .append(statCell("Resguardos activos", String.valueOf(resguardosActivos.size()), "#A2232D"))
                 .append("</div>");
 
             html.append("<div style='padding:16px 24px'>");

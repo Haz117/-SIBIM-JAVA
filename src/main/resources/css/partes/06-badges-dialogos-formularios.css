@@ -218,7 +218,7 @@
     -fx-background-radius: 8;
 }
 .dialog-pane .button-bar .button:cancel:hover {
-    -fx-background-color: #F5F7FF;
+    -fx-background-color: #FBF6F6;
     -fx-border-color: sibim-indigo-300;
     -fx-text-fill: sibim-indigo-darker;
 }

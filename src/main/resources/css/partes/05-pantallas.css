@@ -133,7 +133,7 @@
     -fx-text-fill: sibim-gray-700;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
 }
-.pagination-btn:hover, .btn-page:hover { -fx-background-color: #F5F7FF; -fx-border-color: sibim-indigo-300; -fx-text-fill: sibim-indigo-darker; }
+.pagination-btn:hover, .btn-page:hover { -fx-background-color: #FBF6F6; -fx-border-color: sibim-indigo-300; -fx-text-fill: sibim-indigo-darker; }
 .pagination-btn:disabled, .btn-page:disabled { -fx-background-color: sibim-surface; -fx-text-fill: sibim-slate-300; -fx-cursor: default; -fx-effect: none; }
 
 /* ═══════════════════════════════════════════════════════════════════

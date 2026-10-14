@@ -87,7 +87,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Movimientos ──────────────────────────────────────────────────────
-            new Step("mdi2s-swap-vertical", "#7C3AED", "#5B21B6",
+            new Step("mdi2s-swap-vertical", "#9C7A3C", "#6E5118",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
                 SessionManager.isAdmin()
                     ? "Registra Entrada para equipo nuevo y Salida para bajas oficiales"

@@ -266,7 +266,7 @@ class OrganigramaDialogs {
             .limit(6)
             .toList();
         long maxCat = sortedCats.isEmpty() ? 1 : sortedCats.get(0).getValue();
-        String[] catColors = { "#4338CA", "#0891B2", "#059669", "#D97706", "#DC2626", "#6D28D9" };
+        String[] catColors = { "#A2232D", "#0891B2", "#059669", "#D97706", "#B38E5D", "#475569" };
         for (int i = 0; i < sortedCats.size(); i++) {
             var entry = sortedCats.get(i);
             Label catName = new Label(entry.getKey());

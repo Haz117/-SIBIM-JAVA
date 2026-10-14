@@ -147,21 +147,21 @@
 
 /* Prominent in-form submit button — always visible, fires the hidden OK */
 .form-submit-btn {
-    -fx-background-color: #6D28D9;
+    -fx-background-color: sibim-indigo;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 13px;
     -fx-background-radius: 10;
     -fx-cursor: hand;
     -fx-padding: 8 20;   /* same height as the Cancelar button next to it */
-    -fx-effect: dropshadow(gaussian, rgba(109,40,217,0.25), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.25), 6, 0, 0, 2);
 }
 .form-submit-btn:hover {
-    -fx-background-color: #5B21B6;
-    -fx-effect: dropshadow(gaussian, rgba(109,40,217,0.55), 14, 0, 0, 5);
+    -fx-background-color: sibim-indigo-dark;
+    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.55), 14, 0, 0, 5);
 }
 .form-submit-btn:pressed {
-    -fx-background-color: #4C1D95;
+    -fx-background-color: sibim-indigo-darker;
     -fx-effect: none;
     -fx-translate-y: 1;
 }

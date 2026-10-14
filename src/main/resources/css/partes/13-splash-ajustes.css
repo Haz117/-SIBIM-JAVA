@@ -11,7 +11,7 @@
 .splash-logo-badge {
     -fx-background-color: sibim-indigo-dark;
     -fx-background-radius: 18;
-    -fx-border-color: rgba(165,180,252,0.32);
+    -fx-border-color: rgba(229,143,150,0.32);
     -fx-border-radius: 18;
     -fx-border-width: 1;
     -fx-min-width: 68; -fx-min-height: 68;
@@ -25,7 +25,7 @@
 /* Two stacked rings that breathe out from the mark (sonar effect, offset by 900 ms in SplashController) */
 .splash-pulse {
     -fx-background-color: transparent;
-    -fx-border-color: rgba(129,140,248,0.55);
+    -fx-border-color: rgba(208,96,106,0.55);
     -fx-border-width: 1;
     -fx-border-radius: 18;
     -fx-min-width: 68; -fx-min-height: 68;
@@ -69,7 +69,7 @@
     -fx-background-radius: 999;
     -fx-background-insets: 0;
     -fx-pref-height: 3;
-    -fx-effect: dropshadow(gaussian, rgba(129,140,248,0.90), 6, 0.6, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(208,96,106,0.90), 6, 0.6, 0, 0);
 }
 .splash-status {
     -fx-font-size: 11px;

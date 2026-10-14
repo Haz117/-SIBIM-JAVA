@@ -23,9 +23,11 @@ public final class AppColors {
     public static final String PRIMARY_D    = "#891D26";
     public static final String INDIGO       = "#6F1820";
     public static final String INDIGO_D     = "#5A141A";
-    public static final String PURPLE       = "#6D28D9";
-    public static final String PURPLE_D     = "#A21CAF";
-    public static final String DEEP_PURPLE  = "#4C1D95";
+    // Dialog accents that used to be violet: guinda shades now, so no dialog
+    // header or button stays purple next to the guinda interface.
+    public static final String PURPLE       = "#891D26";
+    public static final String PURPLE_D     = "#6F1820";
+    public static final String DEEP_PURPLE  = "#4A1016";
     public static final String CYAN         = "#0891B2";
     public static final String CYAN_D       = "#0E7490";
     public static final String SLATE        = "#475569";

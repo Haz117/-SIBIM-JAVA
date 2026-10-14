@@ -135,7 +135,7 @@
 .area-bar-chart .chart-plot-background { -fx-background-color: sibim-surface; }
 .area-bar-chart .chart-horizontal-grid-lines { -fx-stroke: transparent; }
 .area-bar-chart .chart-vertical-grid-lines { -fx-stroke: sibim-slate-200; -fx-stroke-dash-array: 4 4; }
-.area-bar-chart .default-color0.chart-bar { -fx-bar-fill: #6D28D9; -fx-background-radius: 0 4 4 0; }
+.area-bar-chart .default-color0.chart-bar { -fx-bar-fill: #A2232D; -fx-background-radius: 0 4 4 0; }
 .area-bar-chart .axis-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 .area-bar-chart .tick-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 
@@ -182,7 +182,7 @@
 /* Inline table cell editor — stockMín / stockMáx double-click edit */
 .inline-edit-field {
     -fx-background-color: white;
-    -fx-border-color: sibim-violet-dark;
+    -fx-border-color: sibim-indigo;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-border-width: 1.5;

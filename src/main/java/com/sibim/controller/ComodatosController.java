@@ -543,7 +543,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         }
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
-            "Comodato " + c.getNumero(), c.getProductoNombre(), "#4C1D95", "#6D28D9");
+            "Comodato " + c.getNumero(), c.getProductoNombre(), "#4A1016", "#891D26");
         DialogUtil.addCopyButton(header, c.getNumero());
 
         GridPane g = DialogUtil.formGrid(170);

@@ -6,7 +6,7 @@
     -fx-background-color: #4A1016;
     -fx-padding: 9 18 9 18;
     -fx-background-radius: 10;
-    -fx-effect: dropshadow(gaussian, rgba(49,46,129,0.35), 10, 0, 0, -2);
+    -fx-effect: dropshadow(gaussian, rgba(74,16,22,0.35), 10, 0, 0, -2);
 }
 .bulk-bar-icon {
     -fx-icon-color: #E58F96;
