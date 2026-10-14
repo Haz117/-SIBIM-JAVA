@@ -42,12 +42,6 @@ function Leer-Env([string]$ruta) {
     return $valores
 }
 
-function Texto-Plano([Security.SecureString]$s) {
-    $p = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)
-    try { return [Runtime.InteropServices.Marshal]::PtrToStringAuto($p) }
-    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($p) }
-}
-
 Write-Host ""
 Write-Host "  SIBIM - conexion para el instalador" -ForegroundColor Cyan
 Write-Host "  ===================================" -ForegroundColor Cyan
@@ -70,17 +64,31 @@ if (-not $Clave) {
 }
 
 # -- Clave publica (anon) de Supabase, para fotos y la ficha del QR -------------
+function Parece-Clave([string]$k) {
+    return $k -match '^[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}$'
+}
+
 $Anon = $anterior["SUPABASE_ANON_KEY"]
-if ($Anon) {
+if ($Anon -and -not (Parece-Clave $Anon)) {
+    Write-Host "  La clave publica (anon) guardada no es valida; hay que pegarla de nuevo." -ForegroundColor Yellow
+    $Anon = $null
+} elseif ($Anon) {
     $otra = Read-Host "  Ya hay clave publica (anon) de Supabase. Cambiarla? [s/N]"
     if ($otra -in @("s", "S")) { $Anon = $null }
 }
-if (-not $Anon) {
+while (-not $Anon) {
     Write-Host ""
     Write-Host "  Pega la clave publica 'anon' de Supabase (para las fotos de los bienes)."
-    Write-Host "  Supabase -> Project Settings -> API Keys -> anon public" -ForegroundColor DarkGray
-    Write-Host "  (Enter vacio = sin fotos en linea: se quedan en cada PC)" -ForegroundColor DarkGray
-    $Anon = (Texto-Plano (Read-Host "  Clave anon" -AsSecureString)).Trim()
+    Write-Host "  Supabase -> Project Settings -> API Keys -> Legacy -> anon public (empieza con eyJ)" -ForegroundColor DarkGray
+    Write-Host "  Pegala con CLIC DERECHO. Enter vacio = sin fotos en linea (se quedan en cada PC)." -ForegroundColor DarkGray
+    # The anon key is public (it ships in every installer): shown while pasted,
+    # so a paste that didn't take is seen at once.
+    $Anon = (Read-Host "  Clave anon") -replace '[\x00-\x20\x7F]', ''
+    if (-not $Anon) { break }
+    if (-not (Parece-Clave $Anon)) {
+        Write-Host "  Eso no parece la clave anon (debe ser larga, con dos puntos, y empezar con eyJ). Otra vez." -ForegroundColor Red
+        $Anon = $null
+    }
 }
 if ($Anon) {
     # Una clave secreta (sb_secret_... o un JWT con role service_role) da
