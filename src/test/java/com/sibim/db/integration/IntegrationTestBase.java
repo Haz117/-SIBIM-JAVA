@@ -143,7 +143,7 @@ public abstract class IntegrationTestBase {
     }
 
     /** Whether the app code runs as sibim_app (-Dsibim.it.comoApp=true). */
-    protected static boolean comoApp() { return COMO_APP; }
+    protected static boolean corriendoComoSibimApp() { return COMO_APP; }
 
     /** Returns a raw connection to the embedded Postgres for direct JDBC assertions. */
     protected Connection getConnection() throws SQLException {

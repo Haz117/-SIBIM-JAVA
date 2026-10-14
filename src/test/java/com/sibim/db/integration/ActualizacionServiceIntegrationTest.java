@@ -49,7 +49,7 @@ class ActualizacionServiceIntegrationTest extends IntegrationTestBase {
         assertThrows(SecurityException.class, () -> servicio.publicar(exe, null, null));
 
         entrarComo(Rol.ADMIN);
-        if (comoApp()) { rechazadaComoApp(exe); return; }
+        if (corriendoComoSibimApp()) { rechazadaComoApp(exe); return; }
         assertEquals("99.0.0", servicio.publicar(exe, "Pruebas", null), "la versión sale de la firma");
         firmar(exe, "98.0.0", llaveTi);
         assertThrows(IllegalArgumentException.class, () -> servicio.publicar(exe, null, null),
@@ -118,7 +118,7 @@ class ActualizacionServiceIntegrationTest extends IntegrationTestBase {
         File exe = dir.resolve("SIBIM-Desktop-99.0.0-win64-setup.exe").toFile();
         Files.write(exe.toPath(), new byte[1024]);
         entrarComo(Rol.ADMIN);
-        if (comoApp()) { firmar(exe, "99.0.0", llaveTi); rechazadaComoApp(exe); return; }
+        if (corriendoComoSibimApp()) { firmar(exe, "99.0.0", llaveTi); rechazadaComoApp(exe); return; }
         for (String v : new String[]{"99.0.0", "99.0.1", "99.0.2"}) {
             firmar(exe, v, llaveTi);
             servicio.publicar(exe, null, null);
