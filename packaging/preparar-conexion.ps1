@@ -130,13 +130,18 @@ Write-Host "  Escrito packaging\sibim.env" -ForegroundColor Green
 $sql = [IO.File]::ReadAllText($SqlFile, $Utf8)
 $marca = "clave TEXT := 'CAMBIA-ESTA-CONTRASENA';"
 if (-not $sql.Contains($marca)) { throw "No encontre la linea de la contrasena en scripts\sql\rol_app_minimo.sql" }
-Set-Clipboard -Value $sql.Replace($marca, "clave TEXT := '$Clave';")
+$sqlListo = $sql.Replace($marca, "clave TEXT := '$Clave';")
+Set-Clipboard -Value $sqlListo
 Write-Host ""
 Write-Host "  El SQL del rol sibim_app ya esta en el portapapeles." -ForegroundColor Yellow
 Write-Host "  Se abre el SQL Editor de Supabase: pega (Ctrl+V) y da clic en Run."
 Write-Host "  Debe terminar con 'Success. No rows returned'."
+Write-Host "  No copies nada ni tomes capturas de pantalla antes de pegar: reemplazan el portapapeles." -ForegroundColor DarkGray
 Start-Process $SqlEditor
-Read-Host "  Cuando lo hayas ejecutado, presiona Enter"
+while ((Read-Host "  Cuando lo hayas ejecutado, presiona Enter (C + Enter = copiarlo otra vez)") -in @("c", "C")) {
+    Set-Clipboard -Value $sqlListo
+    Write-Host "  Copiado otra vez: pegalo ya en el SQL Editor." -ForegroundColor Yellow
+}
 Set-Clipboard -Value " "   # que la contrasena no se quede en el portapapeles
 
 # -- 3. Comprobar la conexion como sibim_app -----------------------------------
