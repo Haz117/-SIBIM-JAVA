@@ -95,16 +95,19 @@ public class AreaService {
 
     /**
      * Moves a dirección under another parent (Presidencia or a secretaría),
-     * keeping its prefix. In demo mode the change only lives in memory, like
+     * keeping its prefix. With no parent ({@code nuevoPadre} null) it becomes
+     * an organismo autónomo, and an autónomo given a parent becomes one of its
+     * direcciones. In demo mode the change only lives in memory, like
      * everything else there.
      */
     public void moverDireccion(String nombre, String nuevoPadre) throws SQLException {
         AreaCatalog.Entrada actual = Areas.catalogo().buscar(nombre)
             .orElseThrow(() -> new IllegalArgumentException("No existe el área \"" + nombre + "\""));
-        if (actual.grupo() != AreaCatalog.Grupo.DIRECCION)
-            throw new IllegalArgumentException("Solo una dirección puede cambiar de dependencia");
-        AreaCatalog.Entrada cambio = new AreaCatalog.Entrada(nombre, AreaCatalog.Grupo.DIRECCION,
-            nuevoPadre, actual.prefijo());
+        if (actual.grupo() != AreaCatalog.Grupo.DIRECCION && actual.grupo() != AreaCatalog.Grupo.AUTONOMO)
+            throw new IllegalArgumentException("Solo una dirección o un organismo autónomo puede cambiar de dependencia");
+        AreaCatalog.Entrada cambio = nuevoPadre == null
+            ? new AreaCatalog.Entrada(nombre, AreaCatalog.Grupo.AUTONOMO, null, actual.prefijo())
+            : new AreaCatalog.Entrada(nombre, AreaCatalog.Grupo.DIRECCION, nuevoPadre, actual.prefijo());
         if (DatabaseConfig.isDemoMode()) {
             if (!SessionManager.isAdmin())
                 throw new IllegalStateException("Solo un administrador puede editar las áreas");

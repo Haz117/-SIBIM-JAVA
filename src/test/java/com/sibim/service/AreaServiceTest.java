@@ -110,6 +110,38 @@ class AreaServiceTest {
         }
     }
 
+    /** The "Acomodar" board had no column for the organismos autónomos: a
+     *  dirección could not be made autónoma (nor the other way round) by
+     *  dragging it. */
+    @Test
+    void moverDireccion_sinPadreLaVuelveAutonoma_yConPadreDeNuevoDireccion() throws SQLException {
+        DatabaseConfig.setDemoMode(true);
+        com.sibim.session.SessionManager.setCurrentUser(admin());
+        try {
+            String direccion = Areas.direccionesPresidencia().get(0);
+            String prefijo = Areas.catalogo().buscar(direccion).orElseThrow().prefijo();
+
+            service.moverDireccion(direccion, null);
+            AreaCatalog.Entrada autonoma = Areas.catalogo().buscar(direccion).orElseThrow();
+            assertEquals(AreaCatalog.Grupo.AUTONOMO, autonoma.grupo());
+            assertNull(autonoma.padre());
+            assertEquals(prefijo, autonoma.prefijo(), "los códigos de sus bienes no cambian");
+            assertTrue(Areas.autonomos().contains(direccion));
+            assertFalse(Areas.direccionesPresidencia().contains(direccion));
+
+            String secretaria = Areas.secretarias().get(0).nombre();
+            service.moverDireccion(direccion, secretaria);
+            AreaCatalog.Entrada deNuevo = Areas.catalogo().buscar(direccion).orElseThrow();
+            assertEquals(AreaCatalog.Grupo.DIRECCION, deNuevo.grupo());
+            assertEquals(secretaria, deNuevo.padre());
+            assertFalse(Areas.autonomos().contains(direccion));
+        } finally {
+            com.sibim.session.SessionManager.logout();
+            DatabaseConfig.setDemoMode(false);
+            Areas.usar(AreaCatalog.PREDETERMINADO);
+        }
+    }
+
     @Test
     void moverDireccion_rechazaLoQueNoEsDireccionYPadresInvalidos() {
         DatabaseConfig.setDemoMode(true);

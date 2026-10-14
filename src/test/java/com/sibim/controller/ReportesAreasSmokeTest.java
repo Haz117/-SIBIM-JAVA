@@ -54,4 +54,13 @@ class ReportesAreasSmokeTest extends ControllerSmokeTestBase {
         assertEquals(List.of("Inventario General", "Distribución por Área", "Alertas y pendientes",
             "Solicitud de Baja", "Dictamen Técnico de Baja"), titulos);
     }
+
+    /** A dirección does not see amounts: the chart of value per category
+     *  was still on this screen after the Dashboard hid it. */
+    @Test
+    void unaDireccion_noVeLaGraficaDeValorPorCategoria() {
+        Node card = lookup("#categoriaCard").query();
+        assertFalse(card.isVisible(), "la gráfica de valor por categoría muestra importes");
+        assertFalse(card.isManaged());
+    }
 }

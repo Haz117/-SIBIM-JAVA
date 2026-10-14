@@ -29,9 +29,14 @@ import java.util.function.BiConsumer;
  * secretaría are columns, their direcciones are chips. Dragging a chip onto
  * another column asks to move the dirección there. Unlike the other views it
  * shows every area, also the ones without bienes: an empty secretaría still
- * has to be a place to drop on.
+ * has to be a place to drop on. The last column holds the organismos
+ * autónomos: an área dropped there depends on nobody, and one dragged out of
+ * it becomes a dirección of the column it lands on.
  */
 class OrganigramaAcomodoBuilder {
+
+    /** The column of the áreas that depend on no secretaría. */
+    static final String AUTONOMOS = "Organismos Autónomos";
 
     private static final DataFormat AREA = new DataFormat("application/x-sibim-area");
 
@@ -54,6 +59,7 @@ class OrganigramaAcomodoBuilder {
         board.getChildren().add(columna(Areas.PRESIDENCIA, Areas.direccionesPresidencia(), q));
         for (Areas.SecretariaInfo sec : Areas.secretarias())
             board.getChildren().add(columna(sec.nombre(), sec.direcciones(), q));
+        board.getChildren().add(columna(AUTONOMOS, Areas.autonomos(), q));
 
         orgTree.getChildren().add(board);
     }
@@ -62,9 +68,13 @@ class OrganigramaAcomodoBuilder {
         Label nombre = new Label(padre);
         nombre.getStyleClass().add("org-area-name");
         nombre.setWrapText(true);
-        Label cuenta = new Label(FormatUtils.plural(direcciones.size(), "dependencia", "dependencias"));
+        boolean autonomos = AUTONOMOS.equals(padre);
+        Label cuenta = new Label(autonomos
+            ? FormatUtils.plural(direcciones.size(), "organismo", "organismos") + " · no dependen de ninguna secretaría"
+            : FormatUtils.plural(direcciones.size(), "dependencia", "dependencias"));
         cuenta.getStyleClass().add("org-table-sub");
-        FontIcon icono = new FontIcon("mdi2o-office-building-outline");
+        cuenta.setWrapText(true);
+        FontIcon icono = new FontIcon(autonomos ? "mdi2f-folder-outline" : "mdi2o-office-building-outline");
         icono.setIconSize(16);
         icono.getStyleClass().add("org-section-icon");
         VBox titulos = new VBox(1, nombre, cuenta);
@@ -78,8 +88,9 @@ class OrganigramaAcomodoBuilder {
             if (q.isEmpty() || d.toLowerCase().contains(q) || padre.toLowerCase().contains(q)) visibles.add(d);
         for (String d : visibles) fichas.getChildren().add(ficha(d, padre));
         if (visibles.isEmpty()) {
-            Label vacio = new Label(direcciones.isEmpty() ? "Sin dependencias — suelta aquí una dirección"
-                                                          : "Ninguna coincide con la búsqueda");
+            Label vacio = new Label(!direcciones.isEmpty() ? "Ninguna coincide con la búsqueda"
+                : autonomos ? "Sin organismos — suelta aquí un área para que no dependa de ninguna secretaría"
+                            : "Sin dependencias — suelta aquí una dirección");
             vacio.getStyleClass().add("org-acomodo-vacio");
             vacio.setWrapText(true);
             fichas.getChildren().add(vacio);
@@ -131,7 +142,8 @@ class OrganigramaAcomodoBuilder {
         HBox ficha = new HBox(8, asa, nombre, cuenta);
         ficha.setAlignment(Pos.CENTER_LEFT);
         ficha.getStyleClass().add("org-acomodo-ficha");
-        Tooltip.install(ficha, new Tooltip("Arrastra a otra secretaría para cambiar de quién depende"));
+        Tooltip.install(ficha, new Tooltip(
+            "Arrástrala a otra secretaría para cambiar de quién depende, o a \"" + AUTONOMOS + "\" para que no dependa de ninguna"));
 
         ficha.setOnDragDetected(e -> {
             Dragboard db = ficha.startDragAndDrop(TransferMode.MOVE);

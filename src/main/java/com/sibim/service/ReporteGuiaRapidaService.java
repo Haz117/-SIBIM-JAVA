@@ -43,7 +43,7 @@ public class ReporteGuiaRapidaService extends ReporteService {
             "La etiqueta de cada bien tiene un código QR: al escanearlo con la cámara de cualquier celular se ve su ficha."},
         {"4. Bienes que recibe tu área",
             "Los movimientos (entradas, salidas, ajustes y transferencias) los registra solo Patrimonio.",
-            "Cuando Patrimonio transfiere un bien a tu área, aparece el aviso \"Bienes por recibir\" (campana y Movimientos > \"Por recibir\"): confirma cuando tengas el bien físicamente.",
+            "Cuando Patrimonio transfiere un bien a tu área, aparece el aviso \"Bienes por recibir\" en la campana: ábrelo y confirma cuando tengas el bien físicamente.",
             "Lo que tu área necesite se pide a Finanzas, fuera de SIBIM."},
         {"5. Resguardos, préstamos y comodatos",
             "Resguardos y préstamos: solo Patrimonio los registra, los cancela y anota las devoluciones.",

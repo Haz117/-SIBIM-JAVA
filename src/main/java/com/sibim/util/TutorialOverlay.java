@@ -89,7 +89,7 @@ public final class TutorialOverlay {
                 SessionManager.isAdmin()
                     ? "Transferencia mueve el bien completo a otra área, con su nuevo código"
                     : "Filtra por tipo y fecha para ver qué entró, salió o cambió de área",
-                "El área que recibe confirma en \"Por recibir\" cuando ya tiene el bien físicamente"
+                "El área que recibe confirma desde la campana cuando ya tiene el bien físicamente"
             }),
 
             // ── Sin conexión ─────────────────────────────────────────────────────
@@ -128,8 +128,8 @@ public final class TutorialOverlay {
             new Step("mdi2c-clipboard-check-outline", "#0F766E", "#134E4A",
                 "Conteo Físico", null, null, new String[]{
                 "Ábrelo desde el sidebar o desde Bienes ya filtrado por área o categoría",
-                "Marca cada bien: Encontrado ✓, Faltante ✗ o Discrepancia — sin salir de la pantalla",
-                "Al terminar genera un reporte de diferencias para ajustes de inventario auditados"
+                "Marca \"Visto\" en cada bien que tengas enfrente, o escanea su etiqueta; \"Faltante\" si no está",
+                "Al terminar genera el reporte: lo que nadie marcó queda como \"sin revisar\""
             }),
 
             // ── Alertas ──────────────────────────────────────────────────────────
@@ -143,9 +143,13 @@ public final class TutorialOverlay {
             // ── Reportes ─────────────────────────────────────────────────────────
             new Step("mdi2f-file-chart-outline", "#059669", "#065F46",
                 "Reportes", "Ctrl + 7", "reportes", new String[]{
-                "Tres reportes listos: Inventario general, Movimientos del período y por área",
-                "Aplica filtros antes de exportar — el reporte incluye solo lo que ves en pantalla",
-                "Excel genera datos para análisis; PDF produce un documento listo para entrega"
+                SessionManager.isAdmin()
+                    ? "Listados del inventario y formatos oficiales (resguardo, baja, dictamen) en un solo lugar"
+                    : "Listados de los bienes de tu área y los formatos para pedir una baja",
+                "Elige el período arriba: los listados que muestran las fechas solo incluyen ese período",
+                SessionManager.isAdmin()
+                    ? "Excel y CSV para análisis; PDF para un documento listo para entrega"
+                    : "Se exportan en PDF, listos para imprimir y firmar"
             }),
 
             // ── Depreciación ─────────────────────────────────────────────────────
@@ -196,7 +200,7 @@ public final class TutorialOverlay {
         ));
 
         if (!SessionManager.isAdmin())
-            list.removeIf(paso -> paso.navigateId() != null
+            list.removeIf(paso -> "Conteo Físico".equals(paso.title()) || paso.navigateId() != null
                 && java.util.Set.of("movimientos", "comodatos", "actas", "bajas", "categorias", "depreciacion", "resguardos", "prestamos")
                     .contains(paso.navigateId()));
 

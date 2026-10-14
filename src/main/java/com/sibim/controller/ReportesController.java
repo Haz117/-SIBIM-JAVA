@@ -58,6 +58,7 @@ public class ReportesController {
     @FXML private BarChart<Number, String> areaChart;
     @FXML private ProgressIndicator chartSpinner;
     @FXML private VBox chartEmptyState;
+    @FXML private VBox categoriaCard;
     @FXML private BarChart<Number, String> categoriaChart;
     @FXML private ProgressIndicator categoriaChartSpinner;
     @FXML private VBox categoriaChartEmptyState;
@@ -76,6 +77,10 @@ public class ReportesController {
         spinner.setManaged(false);
         graficaAreas      = new GraficaBarras(areaChart, chartSpinner, chartEmptyState);
         graficaCategorias = new GraficaBarras(categoriaChart, categoriaChartSpinner, categoriaChartEmptyState);
+        // What the bienes are worth, category by category, is not shown to a dirección.
+        boolean veValores = com.sibim.session.Permisos.veValores();
+        categoriaCard.setVisible(veValores);
+        categoriaCard.setManaged(veValores);
         construirReportes();
 
         desdeField.setConverter(FormatUtils.datePickerConverter());
@@ -353,6 +358,7 @@ public class ReportesController {
                 .forEach((area, cnt) -> barras.add(new XYChart.Data<>(cnt, area)));
             return barras;
         }, this::installBarClickHandlers);
+        if (!categoriaCard.isVisible()) return;
         graficaCategorias.cargar(() -> {
             List<XYChart.Data<Number, String>> barras = new ArrayList<>();
             productoService.getValorPorCategoria(20, desde, hasta)

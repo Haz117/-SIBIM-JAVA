@@ -33,6 +33,8 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
         assertNotNull(lookup("#btnPresetHoy").query(),    "btnPresetHoy debe existir");
         assertNotNull(lookup("#desdeField").query(),      "desdeField debe existir");
         assertNotNull(lookup("#spinner").query(),         "spinner debe existir");
+        org.junit.jupiter.api.Assertions.assertTrue(lookup("#categoriaCard").query().isVisible(),
+            "Patrimonio ve la gráfica de valor por categoría");
     }
 
     @Test

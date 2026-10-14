@@ -369,25 +369,36 @@ public class OrganigramaController {
         }
     }
 
-    /** A dirección was dropped on another column of the "Acomodar" board. */
-    private void moverDireccion(String direccion, String nuevoPadre) {
+    /** An área was dropped on another column of the "Acomodar" board: a
+     *  secretaría (or Presidencia) to depend on, or the organismos autónomos. */
+    private void moverDireccion(String direccion, String destino) {
         javafx.scene.Scene scene = searchField.getScene();
-        String padreActual = Areas.catalogo().buscar(direccion)
-            .map(com.sibim.config.AreaCatalog.Entrada::padre).orElse(null);
-        if (padreActual == null || padreActual.equals(nuevoPadre)) return;
+        var actual = Areas.catalogo().buscar(direccion).orElse(null);
+        if (actual == null) return;
+        String autonomos = OrganigramaAcomodoBuilder.AUTONOMOS;
+        boolean aAutonomos = autonomos.equals(destino);
+        boolean eraAutonomo = actual.padre() == null;
+        if (eraAutonomo ? aAutonomos : actual.padre().equals(destino)) return;
         int bienes = productosPorArea.getOrDefault(direccion, List.of()).size();
-        boolean ok = com.sibim.util.ConfirmacionUtil.confirmar("¿Mover esta área?",
-            "\"" + direccion + "\" dejará de depender de \"" + padreActual + "\" y pasará a \""
-            + nuevoPadre + "\".\n\n"
-            + (bienes == 0 ? "No tiene bienes registrados." : "Sus " + FormatUtils.plural(bienes, "bien", "bienes")
-                + " se contarán en \"" + nuevoPadre + "\" y los verá la cuenta de esa área.")
-            + " Los códigos y resguardos no cambian.");
-        if (!ok) return;
-        DialogUtil.runAsync(() -> areaService.moverDireccion(direccion, nuevoPadre),
+        String susBienes = "Sus " + FormatUtils.plural(bienes, "bien", "bienes");
+        String cambio = aAutonomos
+            ? "\"" + direccion + "\" dejará de depender de \"" + actual.padre() + "\" y quedará como organismo autónomo.\n\n"
+                + (bienes == 0 ? "No tiene bienes registrados." : susBienes + " dejarán de contarse en \"" + actual.padre()
+                    + "\" y la cuenta de esa área ya no los verá.")
+            : (eraAutonomo
+                    ? "\"" + direccion + "\" dejará de ser organismo autónomo y dependerá de \"" + destino + "\".\n\n"
+                    : "\"" + direccion + "\" dejará de depender de \"" + actual.padre() + "\" y pasará a \"" + destino + "\".\n\n")
+                + (bienes == 0 ? "No tiene bienes registrados." : susBienes + " se contarán en \"" + destino
+                    + "\" y los verá la cuenta de esa área.");
+        if (!com.sibim.util.ConfirmacionUtil.confirmar("¿Mover esta área?", cambio + " Los códigos y resguardos no cambian."))
+            return;
+        DialogUtil.runAsync(() -> areaService.moverDireccion(direccion, aAutonomos ? null : destino),
             () -> {
                 rebuildCurrentView();
                 updateStats();
-                NotificacionUtil.exito(scene, "\"" + direccion + "\" ahora depende de \"" + nuevoPadre + "\"");
+                NotificacionUtil.exito(scene, aAutonomos
+                    ? "\"" + direccion + "\" ahora es un organismo autónomo"
+                    : "\"" + direccion + "\" ahora depende de \"" + destino + "\"");
             },
             ex -> NotificacionUtil.error(scene, "No se pudo mover el área: " + ex.getMessage()));
     }
