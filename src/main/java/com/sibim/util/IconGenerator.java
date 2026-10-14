@@ -73,9 +73,9 @@ public class IconGenerator {
         float arc = sz * 0.22f;
         RoundRectangle2D bg = new RoundRectangle2D.Float(0, 0, sz, sz, arc * 2, arc * 2);
 
-        // ── 3-stop diagonal gradient: near-black indigo → dark indigo → vivid violet ──
+        // ── 3-stop diagonal gradient in the institutional guinda (Pantone 1805 C) ──
         float[] bgFrac = {0f, 0.42f, 1f};
-        Color[] bgCol  = {new Color(0x0F0E1A), new Color(0x1E1B4B), new Color(0x5B21B6)};
+        Color[] bgCol  = {new Color(0x2E0A0E), new Color(0x5A141A), new Color(0xA2232D)};
         g.setPaint(new LinearGradientPaint(0, 0, sz, sz, bgFrac, bgCol));
         g.fill(bg);
 
