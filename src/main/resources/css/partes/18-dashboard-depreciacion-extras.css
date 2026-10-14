@@ -96,7 +96,7 @@
 .rich-stat-icon-badge-rose  { -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #fb7185, #f43f5e); }
 .rich-stat-icon-badge-slate { -fx-background-color: sibim-slate-500; }
 .filter-chip-rose { -fx-background-color: #fff1f2; -fx-border-color: #fda4af; -fx-text-fill: #BE123C; }
-.filter-chip-rose:selected { -fx-background-color: #f43f5e; -fx-text-fill: white; -fx-border-color: #e11d48; }
+.filter-chip-rose:selected { -fx-background-color: #BE123C; -fx-text-fill: white; -fx-border-color: #9F1239; }
 
 /* ─── Table density toggle ─── */
 .density-btn {

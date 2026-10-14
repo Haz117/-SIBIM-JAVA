@@ -154,9 +154,13 @@
     -fx-border-color: sibim-indigo-200;
     -fx-border-width: 1;
     -fx-border-radius: 99;
-    -fx-padding: 1 5 1 5;
-    -fx-min-width: 18;
-    -fx-min-height: 18;
+    /* Looks 18 px, but the click area is 24 x 24 (WCAG 2.5.8): the 3 px ring
+       around the circle is transparent and still part of the badge. */
+    -fx-background-insets: 3;
+    -fx-border-insets: 3;
+    -fx-padding: 4 8 4 8;
+    -fx-min-width: 24;
+    -fx-min-height: 24;
     -fx-alignment: CENTER;
     -fx-cursor: hand;
 }
@@ -262,7 +266,7 @@
 .filter-chip-green:selected:hover  { -fx-background-color: sibim-green-dark; -fx-text-fill: white; -fx-border-color: sibim-green-dark; }
 .filter-chip-amber:selected:hover  { -fx-background-color: sibim-amber-dark; -fx-text-fill: white; -fx-border-color: sibim-amber-dark; }
 .filter-chip-danger:selected:hover { -fx-background-color: sibim-red-dark; -fx-text-fill: white; -fx-border-color: sibim-red-dark; }
-.filter-chip-purple:selected:hover { -fx-background-color: sibim-violet-dark; -fx-text-fill: white; -fx-border-color: sibim-violet-dark; }
+.filter-chip-purple:selected:hover { -fx-background-color: #6E5118; -fx-text-fill: white; -fx-border-color: #6E5118; }
 .filter-chip-teal:selected:hover   { -fx-background-color: #1B4A3F; -fx-text-fill: white; -fx-border-color: #1B4A3F; }
 .filter-chip:selected:hover        { -fx-background-color: sibim-indigo-dark; -fx-text-fill: white; -fx-border-color: sibim-indigo-dark; }
 

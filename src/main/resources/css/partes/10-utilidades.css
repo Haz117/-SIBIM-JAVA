@@ -118,7 +118,7 @@
 .dlg-status-ok     { -fx-background-color: #F0FDF4; -fx-text-fill: #15803D; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .dlg-status-warn   { -fx-background-color: #FFFBEB; -fx-text-fill: sibim-amber-dark; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .dlg-status-danger { -fx-background-color: #FEF2F2; -fx-text-fill: sibim-red-dark; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
-.dlg-status-purple { -fx-background-color: #FDF4F5; -fx-text-fill: sibim-violet; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.dlg-status-purple { -fx-background-color: #FBF6EC; -fx-text-fill: #6E5118; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 
 /* Detail grid value styles */
 .dlg-detail-stock-ok   { -fx-text-fill: #15803D; -fx-font-weight: 600; }

@@ -243,18 +243,18 @@
 .btn-danger:disabled { -fx-background-color: #FECACA; -fx-text-fill: rgba(255,255,255,0.75); -fx-cursor: default; -fx-effect: none; }
 
 .btn-warning {
-    -fx-background-color: #F59E0B;
+    -fx-background-color: #B45309;
     -fx-text-fill: white;
     -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 8 16;
     -fx-effect: dropshadow(gaussian, rgba(245,158,11,0.30), 6, 0, 0, 2);
 }
-.btn-warning:hover { -fx-background-color: sibim-amber; }
+.btn-warning:hover { -fx-background-color: #92400E; }
 
-.btn-excel { -fx-background-color: sibim-green; -fx-text-fill: white; -fx-background-radius: 7; -fx-cursor: hand; -fx-padding: 7 13; -fx-font-size: 12px; -fx-effect: dropshadow(gaussian, rgba(22,163,74,0.25), 4, 0, 0, 1); }
+.btn-excel { -fx-background-color: #15803D; -fx-text-fill: white; -fx-background-radius: 7; -fx-cursor: hand; -fx-padding: 7 13; -fx-font-size: 12px; -fx-effect: dropshadow(gaussian, rgba(22,163,74,0.25), 4, 0, 0, 1); }
 .btn-csv   { -fx-background-color: sibim-slate-600; -fx-text-fill: white; -fx-background-radius: 7; -fx-cursor: hand; -fx-padding: 7 13; -fx-font-size: 12px; }
-.btn-excel:hover { -fx-background-color: #15803D; }
+.btn-excel:hover { -fx-background-color: #166534; }
 .btn-csv:hover   { -fx-background-color: sibim-slate-700; }
 
 /* Format icons inside the dropdown menu keep their usual color coding
