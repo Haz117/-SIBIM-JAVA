@@ -494,6 +494,8 @@ public final class DialogUtil {
             // the tooltip instead of also firing the container's own handler.
             e.consume();
         });
+        // Reachable with Tab and opened with Enter/Space too, not only with the mouse.
+        AccessibilityUtils.asButton(node, "Ayuda: " + (tip.getText() != null ? tip.getText() : ""));
     }
 
     /** Same as {@link #enableClickToShowTooltip(Node, Tooltip)} but for a

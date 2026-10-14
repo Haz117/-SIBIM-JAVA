@@ -55,6 +55,13 @@ public final class FormatUtils {
     }
 
     /** "1 bien", "5 bienes" — instead of hard-coding the plural ("1 bienes"). */
+    /** A status as stored ("ACTIVO", "en_revision") the way every pill shows it ("Activo", "En revision"). */
+    public static String estado(String valor) {
+        if (valor == null || valor.isBlank()) return "—";
+        String t = valor.trim().replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(t.charAt(0)) + t.substring(1);
+    }
+
     public static String plural(long n, String singular, String plural) {
         return n + " " + (n == 1 ? singular : plural);
     }

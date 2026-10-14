@@ -20,7 +20,7 @@
     -fx-border-color: transparent;
 }
 .toast-countdown .track {
-    -fx-background-color: rgba(99,102,241,0.18);
+    -fx-background-color: rgba(162,35,45,0.18);
     -fx-background-radius: 0 0 10 10;
     -fx-background-insets: 0;
 }

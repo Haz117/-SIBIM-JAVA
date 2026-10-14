@@ -181,16 +181,7 @@ public class MainController {
         badgeManager   = new MainBadgeManager(alertBadge, loanBadge, alertProductoService, prestamoService);
         startupChecks  = new MainStartupChecks(alertProductoService, prestamoService);
         startupChecks.cleanupStaleTempFiles();
-        if (SessionManager.getCurrentUser() != null) {
-            String nombre = SessionManager.getCurrentUser().getNombre();
-            userNameLabel.setText(nombre);
-            userNameLabel.setTooltip(new Tooltip(nombre));   // área accounts carry long names
-            userRolLabel.setText(SessionManager.getCurrentUser().getRol().getEtiqueta());
-            // the name label ellipsizes long names: keep the full text one hover away
-            userNameLabel.setTooltip(new javafx.scene.control.Tooltip(nombre + " — " + userRolLabel.getText()));
-            if (userAvatarLabel != null && nombre != null && !nombre.isBlank())
-                userAvatarLabel.setText(String.valueOf(nombre.charAt(0)).toUpperCase());
-        }
+        mostrarUsuario();
         setupUserCardMenu();
         NotificationCenter.setup(btnNotificaciones, notifBadge, alertProductoService, prestamoService, this::navigateTo);
         navigateTo("dashboard", btnDashboard);
@@ -322,7 +313,21 @@ public class MainController {
     }
 
     private void setupUserCardMenu() {
-        MainUserMenu.setup(userInfoVBox, contentArea, this::onLogout, this::onShowTutorial, this::onAcercaDe);
+        MainUserMenu.setup(userInfoVBox, contentArea, this::onLogout, this::onShowTutorial, this::onAcercaDe,
+            this::mostrarUsuario);
+    }
+
+    /** The name, role and initial of whoever is signed in, in the side menu
+     *  (again after a shared account says who is using it now). */
+    private void mostrarUsuario() {
+        if (SessionManager.getCurrentUser() == null) return;
+        String nombre = SessionManager.getCurrentUser().getNombre();
+        userNameLabel.setText(nombre);
+        userRolLabel.setText(SessionManager.getCurrentUser().getRol().getEtiqueta());
+        // the name label ellipsizes long names (área accounts): keep the full text one hover away
+        userNameLabel.setTooltip(new javafx.scene.control.Tooltip(nombre + " — " + userRolLabel.getText()));
+        if (userAvatarLabel != null && nombre != null && !nombre.isBlank())
+            userAvatarLabel.setText(String.valueOf(nombre.charAt(0)).toUpperCase());
     }
 
     @FXML

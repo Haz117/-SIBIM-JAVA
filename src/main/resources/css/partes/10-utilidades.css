@@ -7,8 +7,8 @@
     -fx-max-width: 44; -fx-max-height: 44;
 }
 .page-header-icon-indigo {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.40), 8, 0, 0, 2);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.40), 8, 0, 0, 2);
 }
 /* Icon label inside the badge */
 .page-icon-symbol { -fx-icon-size: 22; -fx-icon-color: white; }
@@ -100,7 +100,7 @@
 /* Área A → Área B preview (Movimientos, transferencia) */
 .dlg-transfer-preview { -fx-background-color: #FAF5FF; -fx-background-radius: 10; -fx-border-color: #E9D5FF; -fx-border-width: 1; -fx-border-radius: 10; }
 .dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #DDD6FE; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 4 10; }
-.dlg-transfer-chip-to  { -fx-border-color: sibim-violet; -fx-background-color: #F5F3FF; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.22), 8, 0, 0, 2); }
+.dlg-transfer-chip-to  { -fx-border-color: sibim-violet; -fx-background-color: #FDF4F5; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.22), 8, 0, 0, 2); }
 .dlg-transfer-chip-lbl { -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #4C1D95; }
 .dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #6B7280; }
 .dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: sibim-violet; }
@@ -110,7 +110,7 @@
 .dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-radius: 12; -fx-border-width: 1; }
 .dlg-qr-thumb          { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: sibim-slate-200; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 4; }
 .dlg-qr-thumb-clickable { -fx-cursor: hand; }
-.dlg-qr-thumb-clickable:hover { -fx-border-color: sibim-indigo; -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.25), 8, 0, 0, 0); }
+.dlg-qr-thumb-clickable:hover { -fx-border-color: sibim-indigo; -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.25), 8, 0, 0, 0); }
 .dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
 .dlg-detail-code   { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 
@@ -118,7 +118,7 @@
 .dlg-status-ok     { -fx-background-color: #F0FDF4; -fx-text-fill: #15803D; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .dlg-status-warn   { -fx-background-color: #FFFBEB; -fx-text-fill: sibim-amber-dark; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .dlg-status-danger { -fx-background-color: #FEF2F2; -fx-text-fill: sibim-red-dark; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
-.dlg-status-purple { -fx-background-color: #F5F3FF; -fx-text-fill: sibim-violet; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
+.dlg-status-purple { -fx-background-color: #FDF4F5; -fx-text-fill: sibim-violet; -fx-background-radius: 99; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 
 /* Detail grid value styles */
 .dlg-detail-stock-ok   { -fx-text-fill: #15803D; -fx-font-weight: 600; }
@@ -129,7 +129,7 @@
 /* Depreciation progress bar in product detail dialog */
 .dep-progress-bar { -fx-pref-height: 8px; -fx-background-radius: 4px; }
 .dep-progress-bar .track { -fx-background-color: sibim-slate-200; -fx-background-radius: 4px; }
-.dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #6366F1, #A78BFA); -fx-background-radius: 4px; -fx-background-insets: 0; }
+.dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #A2232D, #D0606A); -fx-background-radius: 4px; -fx-background-insets: 0; }
 .dep-progress-bar.dep-progress-ok .bar      { -fx-background-color: linear-gradient(to right, #16A34A, #4ADE80); }
 .dep-progress-bar.dep-progress-warn .bar    { -fx-background-color: linear-gradient(to right, #D97706, #FCD34D); }
 .dep-progress-bar.dep-progress-danger .bar  { -fx-background-color: linear-gradient(to right, #DC2626, #FCA5A5); }
@@ -250,14 +250,14 @@
     -fx-border-color: transparent;
 }
 .btn-preset:hover {
-    -fx-background-color: #E0E7FF;
+    -fx-background-color: #F9DEE0;
     -fx-text-fill: sibim-indigo-900;
 }
 .btn-preset:pressed { -fx-background-color: sibim-indigo-200; }
 .btn-preset-active {
     -fx-background-color: sibim-indigo;
     -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.28), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.28), 6, 0, 0, 2);
 }
 .btn-preset-clear {
     -fx-background-color: transparent;

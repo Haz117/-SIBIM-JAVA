@@ -111,7 +111,7 @@
 .org-card-view-card:hover {
     -fx-border-color: sibim-indigo;
     -fx-translate-y: -3;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 18, 0, 0, 6);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 18, 0, 0, 6);
 }
 .org-product-code {
     -fx-text-fill: sibim-violet;
@@ -138,7 +138,7 @@
     -fx-border-width: 0 0 1 0;
 }
 .org-product-row:hover {
-    -fx-background-color: #F5F3FF;
+    -fx-background-color: #FDF4F5;
     -fx-background-radius: 6;
 }
 .org-product-name {
@@ -157,7 +157,7 @@
     -fx-background-color: transparent;
 }
 .org-child-header:hover {
-    -fx-background-color: #F5F3FF;
+    -fx-background-color: #FDF4F5;
     -fx-background-radius: 6 6 0 0;
 }
 
@@ -174,7 +174,7 @@
 
 /* Child area card with left accent border */
 .org-child-card {
-    -fx-background-color: #FAFBFF;
+    -fx-background-color: #FAFAFB;
     -fx-background-radius: 8;
     -fx-border-color: #E8ECFF #E8ECFF #E8ECFF sibim-indigo-300;
     -fx-border-width: 0 1 1 3;
@@ -183,7 +183,7 @@
 .org-child-card-myarea { -fx-border-color: #E8ECFF #E8ECFF #E8ECFF sibim-violet; }
 
 /* Child count badge "my area" override */
-.org-area-count-myarea { -fx-background-color: #EDE9FE; -fx-text-fill: #5B21B6; }
+.org-area-count-myarea { -fx-background-color: #F9DEE0; -fx-text-fill: #6F1820; }
 
 /* ─── Organigrama styled TitledPane sections ─────────────────────── */
 .org-titled-section {
@@ -198,7 +198,7 @@
     -fx-padding: 12 16;
 }
 .org-titled-section:expanded > .title {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #EEF2FF, #F5F3FF);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #FCF0F1, #FDF4F5);
     -fx-border-color: sibim-indigo-200;
     -fx-border-radius: 12 12 0 0;
     -fx-background-radius: 12 12 0 0;
@@ -265,24 +265,24 @@
 .org-table-sub  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 .org-table-num  { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-gray-700; }
 .org-table-track {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: #FCF0F1;
     -fx-background-radius: 99;
     -fx-min-height: 6; -fx-pref-height: 6; -fx-max-height: 6;
     -fx-max-width: 90;
 }
 .org-table-fill {
-    -fx-background-color: linear-gradient(to right, #6366F1, #7C3AED);
+    -fx-background-color: linear-gradient(to right, #A2232D, #6F1820);
     -fx-background-radius: 99;
     -fx-min-height: 6; -fx-pref-height: 6; -fx-max-height: 6;
 }
 .org-table-totals {
     -fx-padding: 12 16;
-    -fx-background-color: #F5F3FF;
+    -fx-background-color: #FDF4F5;
     -fx-background-radius: 0 0 12 12;
     -fx-border-color: sibim-slate-200 transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
 }
-.org-table-totals-title   { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #4338CA; }
+.org-table-totals-title   { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #6F1820; }
 .org-table-totals-value   { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-900; }
 .org-table-totals-caption { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 
@@ -299,12 +299,12 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
 }
 .org-acomodo-col-drop {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: #FCF0F1;
     -fx-border-color: sibim-indigo;
     -fx-border-style: dashed;
 }
 .org-acomodo-ficha {
-    -fx-background-color: #FAFBFF;
+    -fx-background-color: #FAFAFB;
     -fx-background-radius: 8;
     -fx-border-color: sibim-slate-200;
     -fx-border-radius: 8;
@@ -312,7 +312,7 @@
     -fx-cursor: open-hand;
 }
 .org-acomodo-ficha:hover {
-    -fx-background-color: #F0EEFF;
+    -fx-background-color: #FBEFF0;
     -fx-border-color: sibim-indigo;
 }
 .org-acomodo-ficha-arrastrando { -fx-opacity: 0.4; }

@@ -32,19 +32,28 @@
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.07), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.07), 8, 0, 0, 2);
 }
 .quick-action-card:hover {
-    -fx-background-color: #F5F3FF;
+    -fx-background-color: #FDF4F5;
     -fx-border-color: sibim-indigo-200;
-    -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.18), 14, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.18), 14, 0, 0, 4);
     -fx-translate-y: -2;
 }
 .quick-action-card:pressed {
     -fx-translate-y: 0;
     -fx-background-color: sibim-indigo-50;
 }
-.qa-card-title { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1E1B4B; }
+/* "Todo al día" in Pendientes de tu área: a message, not a button. */
+.quick-action-card-static,
+.quick-action-card-static:hover,
+.quick-action-card-static:pressed {
+    -fx-cursor: default;
+    -fx-translate-y: 0;
+    -fx-background-color: white;
+    -fx-border-color: sibim-slate-200;
+}
+.qa-card-title { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #3A0C10; }
 .qa-card-hint  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
 /* Wrap instead of ellipsizing — five cards share ~990px at the default window size. */
 .qa-card-title, .qa-card-hint { -fx-wrap-text: true; }
@@ -166,7 +175,7 @@
 }
 .sidebar-toggle-btn:hover,
 .sidebar-icon-btn:hover {
-    -fx-background-color: rgba(99,102,241,0.08);
+    -fx-background-color: rgba(162,35,45,0.08);
 }
 .sidebar-toggle-btn .ikonli-font-icon,
 .sidebar-icon-btn .ikonli-font-icon {
@@ -208,7 +217,7 @@
 }
 .status-db-help-badge:hover {
     -fx-background-color: sibim-indigo-300;
-    -fx-text-fill: #312E81;
+    -fx-text-fill: #4A1016;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

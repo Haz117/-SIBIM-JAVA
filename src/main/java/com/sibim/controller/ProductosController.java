@@ -61,7 +61,7 @@ public class ProductosController {
      *  different photos don't grow this cache unbounded — evicts the least
      *  recently used entry once the cap is hit. */
     private static final int THUMBNAIL_CACHE_MAX = 200;
-    private static final Map<String, Image> THUMBNAIL_CACHE = Collections.synchronizedMap(
+    static final Map<String, Image> THUMBNAIL_CACHE = Collections.synchronizedMap(
         new LinkedHashMap<>(16, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, Image> eldest) {
@@ -210,6 +210,10 @@ public class ProductosController {
         // Movements are Patrimonio's alone; the áreas no longer request transfers here.
         if (btnMovimiento != null) { btnMovimiento.setVisible(canManage); btnMovimiento.setManaged(canManage); }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
+        if (btnEditar != null && canEdit && !com.sibim.session.Permisos.editaFichaCompleta()) {
+            btnEditar.setText("Actualizar datos");
+            btnEditar.setTooltip(new Tooltip("Ubicación, estado físico, descripción y fotos del bien seleccionado  (Ctrl+E)"));
+        }
         if (btnEliminar != null) {
             btnEliminar.setVisible(canEdit); btnEliminar.setManaged(canEdit);
             // Only Patrimonio (admin) registers a baja; everyone else prints the
@@ -254,6 +258,19 @@ public class ProductosController {
                 }
             });
         }
+        // The código cell copies on click; Ctrl+C on the selected rows is the keyboard way.
+        table.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+            if (ev.getCode() != javafx.scene.input.KeyCode.C || !ev.isShortcutDown()) return;
+            java.util.List<String> codigos = table.getSelectionModel().getSelectedItems().stream()
+                .map(Producto::getCodigo).filter(c -> c != null && !c.isBlank()).toList();
+            if (codigos.isEmpty()) return;
+            javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
+            cc.putString(String.join(System.lineSeparator(), codigos));
+            javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
+            NotificacionUtil.info(table.getScene(), codigos.size() == 1 ? "Código copiado: " + codigos.get(0)
+                : codigos.size() + " códigos copiados");
+            ev.consume();
+        });
         searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
         btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         SearchUtils.setupSearchHistory("sibim/search-history/productos", searchField, this::applyFilters);
@@ -681,6 +698,15 @@ public class ProductosController {
             NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para editar");
             return;
         }
+        // The áreas keep four things current: a short form instead of the full
+        // one with everything else disabled.
+        if (!com.sibim.session.Permisos.editaFichaCompleta()) {
+            GuardarBien.actualizarDatos(table.getScene(), productoService, sel, log, saved -> {
+                pendingHighlightId = saved.getId();
+                loadData();
+            });
+            return;
+        }
         showProductDialog(sel);
     }
 
@@ -1017,31 +1043,14 @@ public class ProductosController {
             boolean isNew = existing == null;
             String facturaAnterior = existing != null ? existing.getFacturaUrl() : null;
             result.ifPresent(p -> DialogUtil.runAsync(
-                () -> {
-                    ProductoDialogFactory.procesarArchivos(p, facturaAnterior, THUMBNAIL_CACHE, log);
-                    Producto saved = productoService.save(p);
-                    productoService.saveFotos(saved.getId(), p.getFotosUrls());
-                    // The ficha its QR downloads must say what the bien says now.
-                    com.sibim.util.AppExecutor.submit(
-                        () -> com.sibim.service.FichaPublica.actualizarSiPublicada(saved));
-                    return saved;
-                },
+                () -> GuardarBien.enFondo(productoService, p, facturaAnterior, log),
                 saved -> {
                     if (isNew) {
                         NotificacionUtil.exito(table.getScene(), "Bien registrado exitosamente");
                     } else {
                         NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
                     }
-                    // Connected, yet the photo stayed as a file on this PC: Storage isn't
-                    // configured here (or the upload failed), so no other PC will see it.
-                    if (!com.sibim.db.DatabaseConfig.isOfflineMode() && !com.sibim.db.DatabaseConfig.isDemoMode()
-                            && p.getFotosUrls().stream().anyMatch(com.sibim.util.ImageUtils::soloEnEstaPc)) {
-                        NotificacionUtil.advertencia(table.getScene(),
-                            "La foto se guardó solo en esta computadora: las demás PCs no la verán. "
-                            + (com.sibim.util.SupabaseStorage.isAvailable()
-                                ? "No se pudo subir al almacenamiento; se reintentará sola."
-                                : "Falta SUPABASE_ANON_KEY (la clave pública) en el .env de esta PC."));
-                    }
+                    GuardarBien.avisarSiFotoQuedoLocal(table.getScene(), p);
                     pendingHighlightId = saved.getId();
                     loadData();
                     Platform.runLater(() -> {

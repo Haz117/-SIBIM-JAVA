@@ -94,8 +94,11 @@ public class DashboardController implements Refreshable {
     @FXML private HBox  quickActionsRow;
     @FXML private VBox  cardNuevoBien;
     @FXML private VBox  cardNuevaEntrada;
+    @FXML private VBox  miAreaSection;
 
     private boolean chartsVisible = true;
+    /** "Pendientes de tu área": only for an área account (null for Patrimonio). */
+    private MiAreaPanel miArea;
 
     private final DashboardService dashboardService = new DashboardService();
     private final ConfiguracionRepository configRepo = new ConfiguracionRepository();
@@ -121,6 +124,8 @@ public class DashboardController implements Refreshable {
 
         setupHelpBadges();
         setupPermissions();
+        if (!SessionManager.isAdmin() && miAreaSection != null)
+            miArea = new MiAreaPanel(miAreaSection, productoService, movimientoService, log);
         setupSceneReadyListener();
         if (btnToggleAnalisis != null) btnToggleAnalisis.setText("Ocultar");
     }
@@ -215,6 +220,7 @@ public class DashboardController implements Refreshable {
     }
 
     private void loadDataAsync() {
+        if (miArea != null) miArea.cargar();
         Task<DashboardService.Resumen> task = new Task<>() {
             @Override protected DashboardService.Resumen call() throws Exception {
                 return dashboardService.getCachedOrFetch();

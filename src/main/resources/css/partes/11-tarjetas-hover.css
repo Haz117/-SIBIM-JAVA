@@ -15,7 +15,7 @@
     -fx-background-radius: 999;
 }
 .rich-stat-icon-badge .rich-stat-icon { -fx-icon-size: 17; -fx-icon-color: white; -fx-opacity: 1; -fx-padding: 0; }
-.rich-stat-icon-badge-indigo      { -fx-background-color: #5253E5; }
+.rich-stat-icon-badge-indigo      { -fx-background-color: sibim-indigo; }
 .rich-stat-icon-badge-teal        { -fx-background-color: #0891B2; }
 .rich-stat-icon-badge-amber       { -fx-background-color: sibim-amber; }
 .rich-stat-icon-badge-purple      { -fx-background-color: sibim-violet; }
@@ -61,7 +61,7 @@
     -fx-border-color: transparent transparent sibim-indigo-dark transparent;
     -fx-border-width: 0 0 3 0;
     -fx-border-radius: 18;
-    -fx-effect: dropshadow(gaussian, rgba(79,70,229,0.30), 22, 0.05, 0, 7);
+    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.30), 22, 0.05, 0, 7);
 }
 
 /* Urgency tint for the "Préstamos Vencidos" card when count > 0 */
@@ -100,7 +100,7 @@
    TEXT AREA — global hover state (non-dialog)
    ═══════════════════════════════════════════════════════════════════ */
 .text-area:hover .content {
-    -fx-background-color: #FAFBFF;
+    -fx-background-color: #FAFAFB;
 }
 .text-area:focused .content {
     -fx-background-color: white;
@@ -126,7 +126,7 @@
     -fx-background-color: sibim-slate-100;
     -fx-text-fill: sibim-slate-900;
     -fx-background-radius: 12;
-    -fx-border-color: transparent transparent transparent rgba(99,102,241,0.55);
+    -fx-border-color: transparent transparent transparent rgba(162,35,45,0.55);
     -fx-border-width: 0 0 0 3;
 }
 .nav-btn:pressed {

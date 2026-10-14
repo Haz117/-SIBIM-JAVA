@@ -17,10 +17,12 @@ public final class AppColors {
     public static final String WARNING_DD   = "#92400E";
     public static final String DANGER       = "#DC2626";
     public static final String DANGER_D     = "#B91C1C";
-    public static final String PRIMARY      = "#6366F1";
-    public static final String PRIMARY_D    = "#4F46E5";
-    public static final String INDIGO       = "#4338CA";
-    public static final String INDIGO_D     = "#3730A3";
+    // The brand color (names kept from when it was indigo): the institutional
+    // guinda, Pantone 1805 C, as in the PDFs and the CSS tokens sibim-indigo*.
+    public static final String PRIMARY      = "#A2232D";
+    public static final String PRIMARY_D    = "#891D26";
+    public static final String INDIGO       = "#6F1820";
+    public static final String INDIGO_D     = "#5A141A";
     public static final String PURPLE       = "#6D28D9";
     public static final String PURPLE_D     = "#A21CAF";
     public static final String DEEP_PURPLE  = "#4C1D95";

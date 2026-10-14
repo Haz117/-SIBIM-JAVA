@@ -35,7 +35,31 @@ public final class AnimationUtils {
     // node visible afterward either way, animated or not.
     private static final Preferences ANIM_PREFS =
         Preferences.userRoot().node("sibim/ui/animations");
-    private static volatile boolean enabled = ANIM_PREFS.getBoolean("enabled", true);
+    private static volatile boolean enabled = inicial();
+
+    /** Until someone ticks the box in Configuración, the PC's own choice: with
+     *  "Mostrar animaciones en Windows" off (slow PCs, people bothered by
+     *  motion) SIBIM starts without them too. */
+    private static boolean inicial() {
+        try {
+            if (ANIM_PREFS.get("enabled", null) != null) return ANIM_PREFS.getBoolean("enabled", true);
+        } catch (Exception ignored) {
+            // unreadable preference: fall back to the system's
+        }
+        return windowsAnima();
+    }
+
+    /** Windows keeps "Mostrar animaciones" as MinAnimate = "0"/"1". */
+    static boolean windowsAnima() {
+        if (!System.getProperty("os.name", "").toLowerCase().startsWith("windows")) return true;
+        try {
+            String v = com.sun.jna.platform.win32.Advapi32Util.registryGetStringValue(
+                com.sun.jna.platform.win32.WinReg.HKEY_CURRENT_USER, "Control Panel\\Desktop\\WindowMetrics", "MinAnimate");
+            return v == null || !"0".equals(v.trim());
+        } catch (Throwable e) {
+            return true;
+        }
+    }
 
     public static boolean isEnabled() { return enabled; }
 

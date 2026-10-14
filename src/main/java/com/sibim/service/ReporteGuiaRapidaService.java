@@ -28,7 +28,7 @@ public class ReporteGuiaRapidaService extends ReporteService {
     private static final String[][] SECCIONES = {
         {"1. Entrar al sistema",
             "Cada área tiene una sola cuenta (usuario y contraseña) que usa todo su personal, en cualquier computadora.",
-            "Al entrar, escribe tu nombre: así queda registrado quién hizo cada cambio.",
+            "La primera vez en cada computadora escribe tu nombre: así queda registrado quién hizo cada cambio. Si otra persona usa esa computadora, cámbialo en el menú de tu cuenta (\"Cambiar quién usa la cuenta\").",
             "La primera vez en cada computadora hay que entrar CON internet; después ya funciona sin conexión hasta por 30 días.",
             "La contraseña del área solo la cambia Recursos Materiales y Patrimonio. Si se te olvida, pídesela a Patrimonio."},
         {"2. Sin internet",
@@ -37,7 +37,8 @@ public class ReporteGuiaRapidaService extends ReporteService {
             "Los documentos que Patrimonio haga sin conexión llevan un folio provisional (por ejemplo RSG-PROV-3F2A1C); el definitivo se asigna al sincronizar.",
             "Sin conexión solo ves lo que esa computadora ya había consultado con internet."},
         {"3. Mis bienes",
-            "En Bienes ves los bienes de tu área y puedes actualizar sus datos (ubicación, descripción, fotos, estado físico).",
+            "En el Inicio, \"Pendientes de tu área\" dice qué bienes no tienen foto, ubicación o estado físico: da clic, elige el bien y \"Actualizar datos\".",
+            "En Bienes ves los bienes de tu área; con \"Actualizar datos\" cambias su ubicación, estado físico, descripción y fotos.",
             "Dar de alta, dar de baja y los movimientos los hace Patrimonio.",
             "Para pedir una baja: selecciona el bien > Exportar > \"Solicitud de baja (PDF)\" y, si el área técnica lo revisó, \"Dictamen técnico de baja (PDF)\". Firma y entrega ambos a Patrimonio.",
             "La etiqueta de cada bien tiene un código QR: al escanearlo con la cámara de cualquier celular se ve su ficha."},

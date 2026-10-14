@@ -11,11 +11,14 @@ import java.util.Set;
 public final class SessionManager {
 
     private static volatile Usuario currentUser;
+    /** A shared account's own name, before {@link #setOperador} put a person in front of it. */
+    private static volatile String nombreCuenta;
 
     private SessionManager() {}
 
     public static void setCurrentUser(Usuario user) {
         currentUser = user;
+        nombreCuenta = null;
     }
 
     public static Usuario getCurrentUser() {
@@ -28,6 +31,7 @@ public final class SessionManager {
 
     public static void logout() {
         currentUser = null;
+        nombreCuenta = null;
     }
 
     public static boolean isAdmin() {
@@ -92,10 +96,27 @@ public final class SessionManager {
     /** For a shared área account: who is using it right now. Only in this
      *  session — every record that stores the user's name (bitácora,
      *  movimientos, documentos) then says "Juan Pérez · Dirección de Catastro"
-     *  instead of just the área. The account itself is not modified. */
+     *  instead of just the área. The account itself is not modified. Calling
+     *  it again replaces the person, it doesn't pile up names. */
     public static void setOperador(String persona) {
         if (currentUser == null || persona == null || persona.isBlank()) return;
-        currentUser.setNombre(persona.trim() + " · " + currentUser.getNombre());
+        if (nombreCuenta == null) nombreCuenta = currentUser.getNombre();
+        currentUser.setNombre(persona.trim() + " · " + nombreCuenta);
+    }
+
+    /** The account's own name, without the person {@link #setOperador} put in front. */
+    public static String getNombreCuenta() {
+        Usuario u = currentUser;
+        return nombreCuenta != null ? nombreCuenta : (u != null ? u.getNombre() : null);
+    }
+
+    /** Who is using the shared account right now, or null if nobody said. */
+    public static String getOperador() {
+        Usuario u = currentUser;
+        String cuenta = nombreCuenta;
+        if (u == null || cuenta == null || u.getNombre() == null) return null;
+        String sufijo = " · " + cuenta;
+        return u.getNombre().endsWith(sufijo) ? u.getNombre().substring(0, u.getNombre().length() - sufijo.length()) : null;
     }
 
     public static boolean isAreaAccessible(String area) {

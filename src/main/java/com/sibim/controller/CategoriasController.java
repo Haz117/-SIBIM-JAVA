@@ -210,7 +210,9 @@ public class CategoriasController {
                 if (empty || color == null) { setGraphic(null); setText(null); return; }
                 try { dot.setFill(javafx.scene.paint.Color.web(color)); } catch (Exception e) { dot.setFill(javafx.scene.paint.Color.GRAY); }
                 dot.setEffect(new javafx.scene.effect.DropShadow(4, 0, 1, javafx.scene.paint.Color.color(0,0,0,0.18)));
-                hex.setText(color);
+                // A name people say ("Azul oscuro"), not "#1D4ED8"; the code stays in the tooltip.
+                hex.setText(nombreColor(color));
+                setTooltip(new Tooltip(color));
                 setGraphic(box); setText(null);
             }
         });
@@ -612,5 +614,20 @@ public class CategoriasController {
                     + (e.getMessage() != null ? e.getMessage() : "Error"))
             );
         });
+    }
+
+    /** "#1D4ED8" → "Azul oscuro": the hue's name, and light/dark when it is clearly one or the other. */
+    static String nombreColor(String hex) {
+        javafx.scene.paint.Color c;
+        try { c = javafx.scene.paint.Color.web(hex); } catch (Exception e) { return hex; }
+        double h = c.getHue(), s = c.getSaturation(), b = c.getBrightness();
+        if (b < 0.18) return "Negro";
+        // Slate (#64748B) reads as grey, not blue: muted colors count as greys.
+        if (s < 0.3) return b > 0.92 ? "Blanco" : b > 0.6 ? "Gris claro" : b > 0.35 ? "Gris" : "Gris oscuro";
+        String base = h < 15 || h >= 345 ? "Rojo" : h < 40 ? "Naranja" : h < 65 ? "Amarillo"
+            : h < 160 ? "Verde" : h < 195 ? "Turquesa" : h < 250 ? "Azul" : h < 290 ? "Morado" : "Rosa";
+        if (b < 0.55) return base + " oscuro";
+        if (s < 0.5 && b > 0.8) return base + " claro";
+        return base;
     }
 }

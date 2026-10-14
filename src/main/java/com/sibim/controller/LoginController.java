@@ -242,21 +242,22 @@ public class LoginController {
         com.sibim.util.AppExecutor.submit(task);
     }
 
-    /** A shared área account is used by several people: ask who it is, so the
-     *  records say who did what. False if they cancel (back to the login). */
+    /** A shared área account is used by several people: who it is goes into
+     *  the records. Asked at its first sign-in on this PC and remembered, so
+     *  every other day it is just user and password (the user menu changes
+     *  it). False if they cancel the question (back to the login). */
     private boolean pedirOperador(Usuario user) {
         if (user == null || !com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(user.getCargo())) return true;
-        javafx.scene.control.TextInputDialog dlg = new javafx.scene.control.TextInputDialog();
-        dlg.setTitle("¿Quién usa la cuenta?");
-        dlg.setHeaderText("Esta cuenta la comparte todo el personal de " + user.getNombre()
-            + ".\nEscribe tu nombre para que quede registrado quién hace cada cambio.");
-        dlg.setContentText("Tu nombre:");
-        com.sibim.util.DialogUtil.applyOwner(dlg);
-        com.sibim.util.DialogUtil.applyStylesheet(dlg.getDialogPane());
-        javafx.scene.Node ok = dlg.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK);
-        ok.disableProperty().bind(dlg.getEditor().textProperty().map(t -> t == null || t.trim().length() < 3));
-        var nombre = dlg.showAndWait().map(String::trim).filter(t -> t.length() >= 3);
-        nombre.ifPresent(SessionManager::setOperador);
+        String recordado = com.sibim.session.OperadorRecordado.de(user.getId());
+        if (recordado != null) {
+            SessionManager.setOperador(recordado);
+            return true;
+        }
+        var nombre = OperadorDialog.preguntar(user.getNombre(), null);
+        nombre.ifPresent(n -> {
+            SessionManager.setOperador(n);
+            com.sibim.session.OperadorRecordado.recordar(user.getId(), n);
+        });
         return nombre.isPresent();
     }
 

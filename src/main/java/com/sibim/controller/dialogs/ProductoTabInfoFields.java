@@ -286,111 +286,18 @@ class ProductoTabInfoFields {
             }
         });
 
-        // ── Multi-foto gallery ───────────────────────────────────────────────
-        fotosHolder = new ArrayList<>(existingFotos != null ? existingFotos : new ArrayList<>());
-        if (fotosHolder.isEmpty()
+        // ── Fotos (see GaleriaFotos) ─────────────────────────────────────────
+        List<String> fotosIniciales = new ArrayList<>(existingFotos != null ? existingFotos : new ArrayList<>());
+        if (fotosIniciales.isEmpty()
                 && existing != null
                 && existing.getFotoUrl() != null
                 && !existing.getFotoUrl().isBlank()) {
-            fotosHolder.add(existing.getFotoUrl());
+            fotosIniciales.add(existing.getFotoUrl());
         }
-
-        FlowPane galleryPane = new FlowPane(8, 8);
-        galleryPane.setAlignment(Pos.CENTER_LEFT);
-
-        Runnable[] rebuildGallery = {null};
-        rebuildGallery[0] = () -> {
-            galleryPane.getChildren().clear();
-            for (int idx = 0; idx < fotosHolder.size(); idx++) {
-                final int i = idx;
-                final String url = fotosHolder.get(i);
-                ImageView iv = new ImageView();
-                iv.setFitWidth(110); iv.setFitHeight(80);
-                iv.setPreserveRatio(true);
-                try {
-                    String imgUrl = com.sibim.util.SupabaseStorage.isRemoteUrl(url)
-                        ? url
-                        : java.nio.file.Path.of(url).toUri().toString();
-                    Image img = new Image(imgUrl, 110, 80, true, true, true);
-                    iv.setImage(img);
-                } catch (Exception ex) {
-                    iv.setImage(null);
-                }
-                Button btnDel = new Button("×");
-                btnDel.getStyleClass().add("btn-secondary");
-                btnDel.setMinSize(20, 20); btnDel.setMaxSize(20, 20);
-                btnDel.setOnAction(ev -> {
-                    fotosHolder.remove(i);
-                    rebuildGallery[0].run();
-                    if (markDirtyRef[0] != null) markDirtyRef[0].run();
-                });
-                StackPane cell = new StackPane(iv, btnDel);
-                StackPane.setAlignment(btnDel, Pos.TOP_RIGHT);
-                cell.getStyleClass().add("dlg-img-box");
-                cell.setPrefSize(110, 80);
-                if (i == 0) {
-                    Label badge = new Label("Principal");
-                    badge.getStyleClass().addAll("muted-sm");
-                    StackPane.setAlignment(badge, Pos.BOTTOM_LEFT);
-                    cell.getChildren().add(badge);
-                } else {
-                    // A photo added later goes last, and the table and the formats
-                    // show the first one: without this the new photo never appeared.
-                    Button btnPrincipal = new Button("Principal");
-                    btnPrincipal.getStyleClass().add("btn-secondary");
-                    btnPrincipal.setTooltip(new Tooltip("Usar esta foto como la principal (la que sale en la tabla y en los formatos)"));
-                    btnPrincipal.setOnAction(ev -> {
-                        fotosHolder.add(0, fotosHolder.remove(i));
-                        rebuildGallery[0].run();
-                        if (markDirtyRef[0] != null) markDirtyRef[0].run();
-                    });
-                    StackPane.setAlignment(btnPrincipal, Pos.BOTTOM_LEFT);
-                    cell.getChildren().add(btnPrincipal);
-                }
-                galleryPane.getChildren().add(cell);
-            }
-        };
-        rebuildGallery[0].run();
-
-        Button btnAgregarFoto = new Button("Agregar foto");
-        btnAgregarFoto.setGraphic(new FontIcon("mdi2c-camera-plus-outline"));
-        btnAgregarFoto.getStyleClass().add("btn-secondary");
-        btnAgregarFoto.setOnAction(ev -> {
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle("Seleccionar imagen del bien");
-            chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Imágenes",
-                    "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.webp"));
-            java.util.List<File> files = chooser.showOpenMultipleDialog(dialog.getOwner());
-            if (files != null) {
-                for (File file : files) {
-                    if (ImageUtils.exceedsMaxSize(file)) {
-                        Dialog<ButtonType> tooBig = DialogUtil.styledMessage(
-                            "mdi2a-alert-circle-outline", "Imagen demasiado pesada",
-                            "Elige un archivo más pequeño",
-                            AppColors.WARNING, AppColors.WARNING_D,
-                            "La imagen '" + file.getName() + "' pesa "
-                            + (file.length() / (1024 * 1024)) + " MB — máximo "
-                            + (ImageUtils.maxSourceBytes() / (1024 * 1024)) + " MB.",
-                            dialog.getOwner());
-                        tooBig.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
-                        DialogUtil.styleButton(tooBig.getDialogPane(), ButtonType.OK, AppColors.WARNING);
-                        tooBig.showAndWait();
-                        continue;
-                    }
-                    fotosHolder.add(file.getAbsolutePath());
-                }
-                rebuildGallery[0].run();
-                if (markDirtyRef[0] != null) markDirtyRef[0].run();
-            }
-        });
-
-        Label lblGalleryHint = new Label("La primera foto es la principal: la que sale en la tabla y en los formatos. "
-            + "Usa \"Principal\" en otra foto para cambiarla.");
-        lblGalleryHint.setWrapText(true);
-        lblGalleryHint.getStyleClass().add("muted-sm");
-
-        VBox imgSection = new VBox(6, galleryPane, btnAgregarFoto, lblGalleryHint);
+        GaleriaFotos galeria = new GaleriaFotos(fotosIniciales, dialog,
+            () -> { if (markDirtyRef[0] != null) markDirtyRef[0].run(); });
+        fotosHolder = galeria.fotos;
+        VBox imgSection = galeria.nodo;
 
         // ── Factura picker ────────────────────────────────────────────────────
         facturaHolder = new String[]{ existing != null ? existing.getFacturaUrl() : null };

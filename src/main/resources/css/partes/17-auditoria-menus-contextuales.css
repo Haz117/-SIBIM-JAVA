@@ -28,10 +28,10 @@
 }
 .btn-icon-only .btn-icon { -fx-icon-size: 17; -fx-icon-color: sibim-slate-500; }
 .btn-icon-only:hover {
-    -fx-background-color: rgba(99,102,241,0.08);
+    -fx-background-color: rgba(162,35,45,0.08);
 }
 .btn-icon-only:hover .btn-icon { -fx-icon-color: sibim-indigo-darker; }
-.btn-icon-only:pressed { -fx-background-color: rgba(99,102,241,0.15); }
+.btn-icon-only:pressed { -fx-background-color: rgba(162,35,45,0.15); }
 
 /* Ghost (tertiary) button — transparent default, subtle border on hover.
    Used for utility actions (refresh, less-important options) in page headers

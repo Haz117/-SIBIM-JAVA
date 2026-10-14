@@ -22,7 +22,7 @@
     -fx-font-size: 12px;
 }
 .data-table .column-header-background {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4338CA, #5B21B6);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6F1820, #4A1016);
     -fx-background-radius: 12 12 0 0;
 }
 .data-table .column-header:hover {
@@ -47,8 +47,8 @@
     -fx-border-width: 0 0 1 0;
 }
 .data-table .table-row-cell:odd  { -fx-background-color: white; }
-.data-table .table-row-cell:even { -fx-background-color: #FAFBFF; }
-.data-table .table-row-cell:hover { -fx-background-color: #F0EEFF; }
+.data-table .table-row-cell:even { -fx-background-color: #FAFAFB; }
+.data-table .table-row-cell:hover { -fx-background-color: #FBEFF0; }
 /* When a table (VBox.vgrow=ALWAYS, no row limit) has fewer rows than fit
    its viewport, JavaFX pads the remainder with empty row cells — without
    this they still paint the zebra stripe + bottom border, reading as a grid
@@ -58,7 +58,7 @@
     -fx-border-width: 0;
 }
 .data-table .table-row-cell:selected {
-    -fx-background-color: #E8E7FF;
+    -fx-background-color: #F6DADD;
     -fx-border-color: sibim-indigo transparent transparent transparent;
     -fx-border-width: 0 0 0 3;
 }
@@ -107,7 +107,7 @@
 }
 .text-field:focused {
     -fx-border-color: sibim-indigo;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
 }
 .combo-box {
     -fx-background-color: white;

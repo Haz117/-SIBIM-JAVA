@@ -2,9 +2,9 @@
    SPLASH SCREEN
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Minimal dark-indigo splash. Every text color clears WCAG AA (white 16:1, #A5B4FC 8:1, #94A3B8 6:1). */
+/* Minimal dark-indigo splash. Every text color clears WCAG AA (white 16:1, #E58F96 8:1, #94A3B8 6:1). */
 .splash-root {
-    -fx-background-color: radial-gradient(center 50% 42%, radius 72%, #211e5c 0%, #15133d 52%, #0c0a1c 100%);
+    -fx-background-color: radial-gradient(center 50% 42%, radius 72%, #4A1016 0%, #2E0A0E 52%, #170507 100%);
 }
 
 /* Brand mark — 68 px flat indigo rounded square with a soft glow */
@@ -16,7 +16,7 @@
     -fx-border-width: 1;
     -fx-min-width: 68; -fx-min-height: 68;
     -fx-max-width: 68; -fx-max-height: 68;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.55), 28, 0.25, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 28, 0.25, 0, 0);
 }
 .splash-logo-icon {
     -fx-icon-color: white;
@@ -49,7 +49,7 @@
 
 /* Thin separator between wordmark and progress */
 .splash-sep {
-    -fx-background-color: rgba(99,102,241,0.22);
+    -fx-background-color: rgba(162,35,45,0.22);
     -fx-min-height: 1; -fx-max-height: 1;
     -fx-pref-width: 80; -fx-max-width: 80;
     -fx-padding: 0;
@@ -65,7 +65,7 @@
     -fx-pref-height: 3;
 }
 .splash-progress .bar {
-    -fx-background-color: linear-gradient(to right, #6366F1, #818CF8);
+    -fx-background-color: linear-gradient(to right, #A2232D, #D0606A);
     -fx-background-radius: 999;
     -fx-background-insets: 0;
     -fx-pref-height: 3;
@@ -110,7 +110,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    TABLE ROW FLASH — temporary highlight after save / update
    ═══════════════════════════════════════════════════════════════════ */
-.table-row-flash { -fx-background-color: rgba(99,102,241,0.14); }
+.table-row-flash { -fx-background-color: rgba(162,35,45,0.14); }
 .table-row-flash > .table-cell { -fx-background-color: transparent; }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -161,7 +161,7 @@
     -fx-cursor: hand;
 }
 .help-badge:hover {
-    -fx-background-color: #E0E7FF;
+    -fx-background-color: #F9DEE0;
     -fx-border-color: sibim-indigo;
 }
 
@@ -173,14 +173,14 @@
     -fx-background-color: white;
     -fx-background-radius: 20;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.28), 40, 0.05, 0, 12);
-    -fx-border-color: #E0E7FF;
+    -fx-border-color: #F9DEE0;
     -fx-border-width: 1.5;
     -fx-border-radius: 20;
 }
 .transfer-cel-title {
     -fx-font-size: 15.5px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1E1B4B;
+    -fx-text-fill: #3A0C10;
 }
 .transfer-cel-product {
     -fx-font-size: 13px;
@@ -226,7 +226,7 @@
 
 /* ── Organigrama product rows hover ──────────────────────────────────── */
 .org-product-row:hover {
-    -fx-background-color: #F5F3FF;
+    -fx-background-color: #FDF4F5;
     -fx-background-radius: 6;
     -fx-cursor: default;
 }
@@ -234,7 +234,7 @@
 /* ── Dialog image box hover ──────────────────────────────────────────── */
 .dlg-img-box:hover {
     -fx-border-color: sibim-indigo;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.22), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.22), 8, 0, 0, 0);
     -fx-cursor: hand;
 }
 

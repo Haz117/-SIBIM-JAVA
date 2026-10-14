@@ -161,7 +161,7 @@ public final class MovimientoTimelineDialog {
         for (Resguardo r : data.resguardos()) {
             String detalle = "Resguardante: " + (r.getResguardanteNombre() != null ? r.getResguardanteNombre() : "—")
                 + (r.getResguardanteArea() != null ? "  ·  " + r.getResguardanteArea() : "")
-                + "  ·  " + r.getEstado();
+                + "  ·  " + com.sibim.util.FormatUtils.estado(r.getEstado());
             entradas.add(new Entrada(r.getCreadoEn(), Fuente.RESGUARDO, "mdi2c-clipboard-account-outline",
                 "audit-pill-purple", "Resguardo " + (r.getNumero() != null ? r.getNumero() : ""), detalle));
         }
@@ -169,7 +169,7 @@ public final class MovimientoTimelineDialog {
         for (Prestamo pr : data.prestamos()) {
             String detalle = "Responsable: " + (pr.getResponsableNombre() != null ? pr.getResponsableNombre() : "—")
                 + (pr.getAreaDestino() != null ? "  ·  " + pr.getAreaDestino() : "")
-                + "  ·  " + pr.getEstado();
+                + "  ·  " + com.sibim.util.FormatUtils.estado(pr.getEstado());
             LocalDateTime fecha = pr.getFechaPrestamo() != null ? pr.getFechaPrestamo().atStartOfDay() : pr.getCreadoEn();
             entradas.add(new Entrada(fecha, Fuente.PRESTAMO, "mdi2h-hand-extended-outline",
                 "audit-pill-blue", "Préstamo " + (pr.getNumero() != null ? pr.getNumero() : ""), detalle));

@@ -50,6 +50,9 @@
         <Label text="Ver alertas →" styleClass="alert-banner-cta"/>
     </HBox>
 
+    <!-- PENDIENTES DE TU ÁREA (solo cuentas de área; lo llena MiAreaPanel) -->
+    <VBox fx:id="miAreaSection" visible="false" managed="false"/>
+
     <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: ACCIONES RÁPIDAS
          ══════════════════════════════════════════════════════════ -->

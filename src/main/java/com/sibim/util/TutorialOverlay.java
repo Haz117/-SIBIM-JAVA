@@ -49,7 +49,7 @@ public final class TutorialOverlay {
 
         List<Step> list = new ArrayList<>(List.of(
             // ── Bienvenida personalizada ──────────────────────────────────────────
-            new Step("mdi2b-book-open-outline", "#6366F1", "#3730A3",
+            new Step("mdi2b-book-open-outline", "#A2232D", "#5A141A",
                 welcomeTitle, null, null, new String[]{
                 rolDesc,
                 "Cada paso navega al módulo que describe — explóralo en vivo mientras lees",
@@ -58,10 +58,14 @@ public final class TutorialOverlay {
 
             // ── Dashboard ────────────────────────────────────────────────────────
             new Step("mdi2v-view-dashboard-outline", "#2563EB", "#1D4ED8",
-                "Dashboard", "Ctrl + 1", "dashboard", new String[]{
+                "Dashboard", "Ctrl + 1", "dashboard", SessionManager.isAdmin() ? new String[]{
                 "Los recuadros de estadísticas son clicables — llevan directo al módulo",
                 "Haz clic en un segmento de la gráfica para filtrar Bienes por esa categoría",
                 "El botón ↺ actualiza métricas en tiempo real tras registrar cambios"
+            } : new String[]{
+                "\"Pendientes de tu área\": los bienes sin foto, sin ubicación o sin estado físico",
+                "Da clic en un pendiente, elige el bien y \"Actualizar datos\"",
+                "Si Patrimonio te transfirió bienes, ahí mismo confirmas que los recibiste"
             }),
 
             // ── Categorías ANTES que Bienes: flujo correcto de onboarding ────────
@@ -73,9 +77,11 @@ public final class TutorialOverlay {
             }),
 
             // ── Bienes ───────────────────────────────────────────────────────────
-            new Step("mdi2p-package-variant", "#6366F1", "#3730A3",
+            new Step("mdi2p-package-variant", "#A2232D", "#5A141A",
                 "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
-                "Ctrl+N abre el formulario: llena nombre, código, área, categoría y valor",
+                SessionManager.isAdmin()
+                    ? "Ctrl+N abre el formulario: llena nombre, código, área, categoría y valor"
+                    : "Selecciona un bien y \"Actualizar datos\" (Ctrl+E): ubicación, estado físico, descripción y fotos",
                 "Doble clic en cualquier fila: foto, código QR e historial de movimientos",
                 "Busca en tiempo real y combina filtros de categoría, área y estado"
             }),

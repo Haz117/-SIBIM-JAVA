@@ -117,7 +117,7 @@ class ProductosColumnSetup {
         col.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("codigo"));
         col.setCellFactory(column -> new TableCell<>() {
             {
-                setTooltip(new Tooltip("Clic para copiar el código"));
+                setTooltip(new Tooltip("Clic para copiar el código (o Ctrl+C con la fila seleccionada)"));
             }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);

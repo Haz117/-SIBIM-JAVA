@@ -38,7 +38,7 @@
 
 /* Logo area */
 .sidebar-logo-badge {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
     -fx-background-radius: 9;
     -fx-text-fill: white;
     -fx-font-size: 15px;
@@ -49,7 +49,7 @@
     -fx-max-width: 36;
     -fx-max-height: 36;
     -fx-alignment: CENTER;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
 }
 .sidebar-logo {
     -fx-font-size: 17px;
@@ -79,13 +79,13 @@
 }
 .sidebar-user-box:hover { -fx-background-color: sibim-slate-100; }
 .user-avatar {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #6366F1, #8B5CF6);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
     -fx-background-radius: 999;
     -fx-min-width: 36;
     -fx-min-height: 36;
     -fx-max-width: 36;
     -fx-max-height: 36;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 6, 0, 0, 1);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 6, 0, 0, 1);
 }
 .user-avatar-text {
     -fx-text-fill: white;
@@ -278,23 +278,23 @@
 
 /* CONTROL PATRIMONIAL — violet */
 .nav-btn.nav-ctrl:hover {
-    -fx-background-color: #F5F3FF;
+    -fx-background-color: #FDF4F5;
     -fx-text-fill: sibim-violet-dark;
     -fx-border-color: transparent transparent transparent rgba(124,58,237,0.55);
 }
 .nav-btn.nav-ctrl:hover .nav-icon { -fx-icon-color: sibim-violet; }
-.nav-btn.nav-ctrl:pressed { -fx-background-color: #EDE9FE; }
+.nav-btn.nav-ctrl:pressed { -fx-background-color: #F9DEE0; }
 .nav-btn.nav-ctrl.nav-active,
 .nav-btn.nav-ctrl.nav-active:hover,
 .nav-btn.nav-ctrl.nav-active:armed {
-    -fx-background-color: #F5F3FF;
+    -fx-background-color: #FDF4F5;
     -fx-text-fill: sibim-violet-dark;
     -fx-border-color: transparent transparent transparent sibim-violet;
 }
 .nav-btn.nav-ctrl.nav-active .nav-icon { -fx-icon-color: sibim-violet; }
 .nav-btn.nav-ctrl:focus-visible,
 .nav-btn.nav-ctrl.nav-active:focus-visible {
-    -fx-background-color: sibim-violet, #F5F3FF;
+    -fx-background-color: sibim-violet, #FDF4F5;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }

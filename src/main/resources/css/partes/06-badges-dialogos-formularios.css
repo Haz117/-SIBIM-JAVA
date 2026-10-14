@@ -91,7 +91,7 @@
 /* Photo thumbnail cell */
 .foto-cell-box    { -fx-background-color: sibim-slate-100; -fx-background-radius: 7; }
 .foto-cell-box-clickable { -fx-cursor: hand; }
-.foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 6, 0.3, 0, 0); }
+.foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.45), 6, 0.3, 0, 0); }
 .foto-placeholder { -fx-font-size: 16px; -fx-icon-color: #64748B; }
 
 /* Stock movement arrow cell (Mov. → Nuevo) */
@@ -201,13 +201,13 @@
     -fx-font-weight: bold;
 }
 .dialog-pane .button-bar .button:default {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6366F1, #7C3AED);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #A2232D, #6F1820);
     -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
 }
 .dialog-pane .button-bar .button:default:hover {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4F46E5, #6D28D9);
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.55), 12, 0, 0, 4);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #5A141A);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 12, 0, 0, 4);
 }
 .dialog-pane .button-bar .button:cancel {
     -fx-background-color: white;
@@ -252,7 +252,7 @@
 .dialog-pane .spinner:focused {
     -fx-border-color: sibim-indigo;
     -fx-background-color: white;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
 }
 .dialog-pane .text-area { -fx-min-height: 58px; }
 /* The editor inside an editable combo / spinner / date picker is a TextField too,
@@ -283,7 +283,7 @@
    CONFIGURACIÓN — PERFIL
    ═══════════════════════════════════════════════════════════════════ */
 .profile-card-header {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #3730A3, #6D28D9);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #5A141A, #5A141A);
     -fx-background-radius: 12 12 0 0;
     -fx-background-insets: 0;
 }
@@ -339,10 +339,10 @@
    DASHBOARD WELCOME BANNER
    ═══════════════════════════════════════════════════════════════════ */
 .dashboard-banner {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #312E81, #4338CA);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4A1016, #6F1820);
     -fx-background-radius: 14;
     -fx-background-insets: 0;
-    -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.45), 16, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.45), 16, 0, 0, 4);
 }
 .banner-greeting {
     -fx-text-fill: sibim-indigo-200;
@@ -418,7 +418,7 @@
 }
 .search-field:focused {
     -fx-border-color: sibim-indigo;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.18), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
 }
 
 /* ═══════════════════════════════════════════════════════════════════

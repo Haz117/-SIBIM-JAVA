@@ -82,4 +82,14 @@ class FormatUtilsTest {
         long dias = FormatUtils.diasHastaVencimiento(LocalDate.now().plusDays(10));
         assertTrue(dias > 0, "Future date should return positive days");
     }
+
+    /** Stored statuses ("ACTIVO") show the way every pill does ("Activo"). */
+    @Test
+    void estado_comoLoMuestranLasPastillas() {
+        assertEquals("Activo", FormatUtils.estado("ACTIVO"));
+        assertEquals("Devuelto", FormatUtils.estado("devuelto"));
+        assertEquals("En revision", FormatUtils.estado("EN_REVISION"));
+        assertEquals("—", FormatUtils.estado(null));
+        assertEquals("—", FormatUtils.estado("  "));
+    }
 }

@@ -39,10 +39,10 @@
     -fx-border-width: 0 1 1 4;
     -fx-border-radius: 12;
     -fx-padding: 16 20;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.10), 10, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 10, 0, 0, 2);
 }
 .page-header:hover {
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.16), 14, 0, 0, 3);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.16), 14, 0, 0, 3);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -55,7 +55,7 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 20, 0, 0, 6);
 }
 .card:hover {
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.22), 22, 0, 0, 5);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.22), 22, 0, 0, 5);
     -fx-translate-y: -2;
 }
 
@@ -81,7 +81,7 @@
 .filter-bar-danger { -fx-border-color: sibim-red-500 sibim-slate-200 sibim-slate-200 sibim-red-500; }
 .filter-bar-danger:hover { -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.10), 8, 0, 0, 2); }
 .filter-bar-indigo { -fx-border-color: sibim-indigo-darker sibim-slate-200 sibim-slate-200 sibim-indigo-darker; }
-.filter-bar-indigo:hover { -fx-effect: dropshadow(gaussian, rgba(67,56,202,0.10), 8, 0, 0, 2); }
+.filter-bar-indigo:hover { -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.10), 8, 0, 0, 2); }
 .filter-bar-blue   { -fx-border-color: #1D4ED8 sibim-slate-200 sibim-slate-200 #1D4ED8; }
 .filter-bar-blue:hover   { -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.10), 8, 0, 0, 2); }
 .filter-bar-emerald { -fx-border-color: #059669 sibim-slate-200 sibim-slate-200 #059669; }
@@ -126,12 +126,12 @@
 /* Clickable stat card — more pronounced lift */
 .stat-card-clickable { -fx-cursor: hand; }
 .stat-card-clickable:hover {
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.26), 28, 0.05, 0, 9);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.26), 28, 0.05, 0, 9);
     -fx-translate-y: -5;
 }
 .stat-card-clickable:pressed {
     -fx-translate-y: -1;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.14), 14, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.14), 14, 0, 0, 4);
 }
 
 /* Circular icon badge — the color lives here now, not on the whole card */
@@ -162,18 +162,18 @@
    BOTONES
    ═══════════════════════════════════════════════════════════════════ */
 .btn-primary {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4F46E5, #7C3AED);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #6F1820);
     -fx-text-fill: white;
     -fx-background-radius: 12;
     -fx-cursor: hand;
     -fx-padding: 8 18;
     -fx-font-weight: bold;
     -fx-font-size: 13px;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
 }
 .btn-primary:hover {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4F46E5, #6D28D9);
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.55), 12, 0, 0, 4);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #5A141A);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 12, 0, 0, 4);
 }
 .btn-primary:pressed  { -fx-background-color: sibim-indigo-darker; -fx-effect: none; }
 .btn-primary:disabled { -fx-background-color: sibim-indigo-200; -fx-text-fill: rgba(255,255,255,0.75); -fx-cursor: default; -fx-effect: none; }
@@ -221,10 +221,10 @@
 .toggle-view-btn:focused {
     -fx-border-color: sibim-indigo;
     -fx-border-width: 2;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.45), 0, 0, 0, 0),
-                innershadow(gaussian, rgba(99,102,241,0.20), 3, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.45), 0, 0, 0, 0),
+                innershadow(gaussian, rgba(162,35,45,0.20), 3, 0, 0, 0);
 }
-.toggle-view-btn:selected:focused { -fx-border-color: #312E81; }
+.toggle-view-btn:selected:focused { -fx-border-color: #4A1016; }
 
 /* Muted zero value in table cells */
 .muted-text { -fx-text-fill: sibim-slate-500; }
