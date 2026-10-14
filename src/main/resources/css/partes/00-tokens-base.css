@@ -8,10 +8,19 @@
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
     -fx-font-size: 13px;
     -fx-background-color: #EEF2F7;
+    /* JavaFX's own accent (progress bars, selections, focus rings without a
+       style of their own) was its default sky blue: the brand guinda instead. */
+    -fx-accent: #A2232D;
+    -fx-focus-color: #A2232D;
+    -fx-faint-focus-color: rgba(162,35,45,0.13);
     /* ── Design tokens (JavaFX looked-up colors) ─────────────────── */
     /* sibim-indigo* is the brand color, kept under its old name: since 1.0.5 it
        is the institutional guinda (Pantone 1805 C, #A2232D), the same one the
-       PDFs, resguardos and labels use. AppColors.PRIMARY/INDIGO mirror it. */
+       PDFs, resguardos and labels use. AppColors.PRIMARY/INDIGO mirror it.
+       The rest of the palette is the institutional one too (since 1.0.8):
+       sibim-violet* is the dorado (#B38E5D family), the old cyan/teal accents
+       are the verde institucional (#235B4E family), the old blue accents are
+       guinda. Green / amber / red keep their meaning (done, careful, error). */
     sibim-indigo:        #A2232D;
     sibim-indigo-dark:   #891D26;
     sibim-indigo-darker: #6F1820;
@@ -25,7 +34,7 @@
     sibim-green:         #16A34A;
     sibim-red:           #DC2626;
     sibim-amber:         #D97706;
-    sibim-violet:        #7C3AED;
+    sibim-violet:        #9C7A3C;
     sibim-indigo-50:     #FCF0F1;
     sibim-indigo-200:    #F2BCC0;
     sibim-indigo-300:    #E58F96;
@@ -38,7 +47,7 @@
     sibim-amber-dark:    #B45309;
     sibim-red-dark:      #B91C1C;
     sibim-red-500:       #EF4444;
-    sibim-violet-dark:   #6D28D9;
+    sibim-violet-dark:   #7D6230;
 }
 
 /* Scrollbars — slim modern style */

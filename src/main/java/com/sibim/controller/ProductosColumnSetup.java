@@ -148,7 +148,7 @@ class ProductosColumnSetup {
                 if (empty || value == null || value.isBlank()) return;
                 Producto p = getTableRow() != null ? (Producto) getTableRow().getItem() : null;
                 String catColor = (p != null && p.getCategoriaColor() != null)
-                    ? p.getCategoriaColor() : "#4338CA";
+                    ? p.getCategoriaColor() : "#A2232D";
                 String bgColor  = catColor + "22";
                 Label lbl = new Label(value);
                 FontIcon ico = com.sibim.util.CategoriaIcons.iconFor(value);

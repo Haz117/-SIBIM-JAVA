@@ -10,8 +10,11 @@ public final class AppColors {
     public static final String SUCCESS_DD   = "#065F46";
     public static final String GREEN        = "#166534";
     public static final String GREEN_D      = "#15803D";
-    public static final String INFO         = "#2563EB";
-    public static final String INFO_D       = "#1D4ED8";
+    // INFO and CYAN were the neutral dialog accents (blue, teal): guinda shades
+    // now, like the rest of the interface. Green, amber and red keep their
+    // meaning (done, careful, danger).
+    public static final String INFO         = "#A2232D";
+    public static final String INFO_D       = "#891D26";
     public static final String WARNING      = "#D97706";
     public static final String WARNING_D    = "#B45309";
     public static final String WARNING_DD   = "#92400E";
@@ -28,8 +31,8 @@ public final class AppColors {
     public static final String PURPLE       = "#891D26";
     public static final String PURPLE_D     = "#6F1820";
     public static final String DEEP_PURPLE  = "#4A1016";
-    public static final String CYAN         = "#0891B2";
-    public static final String CYAN_D       = "#0E7490";
+    public static final String CYAN         = "#891D26";
+    public static final String CYAN_D       = "#6F1820";
     public static final String SLATE        = "#475569";
     public static final String SLATE_D      = "#334155";
     public static final String SCENE_BG     = "#0F172A";

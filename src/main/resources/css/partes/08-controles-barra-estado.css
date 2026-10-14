@@ -142,7 +142,7 @@
 .notif-item-text { -fx-font-size: 13px; -fx-text-fill: sibim-slate-900; }
 .notif-item-icon-danger  { -fx-icon-color: sibim-red; -fx-icon-size: 16; }
 .notif-item-icon-warning { -fx-icon-color: sibim-amber; -fx-icon-size: 16; }
-.notif-item-icon-info    { -fx-icon-color: #2563EB; -fx-icon-size: 16; }
+.notif-item-icon-info    { -fx-icon-color: #A2232D; -fx-icon-size: 16; }
 
 /* ═══════════════════════════════════════════════════════════════════
    OFFLINE / DEMO BANNER  — barra superior cuando no hay BD real
@@ -371,10 +371,10 @@
 .filter-chip-amber:selected { -fx-background-color: sibim-amber; -fx-border-color: sibim-amber; -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.32), 6, 0, 0, 2); }
 .filter-chip-danger:hover  { -fx-background-color: #FFF8F8; -fx-border-color: #FCA5A5; -fx-text-fill: #991B1B; }
 .filter-chip-danger:selected { -fx-background-color: sibim-red; -fx-border-color: sibim-red; -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.32), 6, 0, 0, 2); }
-.filter-chip-purple:hover  { -fx-background-color: #FAF5FF; -fx-border-color: #C4B5FD; -fx-text-fill: #5B21B6; }
-.filter-chip-purple:selected { -fx-background-color: sibim-violet; -fx-border-color: sibim-violet; -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.32), 6, 0, 0, 2); }
-.filter-chip-teal:hover    { -fx-background-color: #F0FDFA; -fx-border-color: #5EEAD4; -fx-text-fill: #0E7490; }
-.filter-chip-teal:selected  { -fx-background-color: #0891B2; -fx-border-color: #0891B2; -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.32), 6, 0, 0, 2); }
+.filter-chip-purple:hover  { -fx-background-color: #FBF6EC; -fx-border-color: #DCC8A6; -fx-text-fill: #6E5118; }
+.filter-chip-purple:selected { -fx-background-color: sibim-violet; -fx-border-color: sibim-violet; -fx-effect: dropshadow(gaussian, rgba(156,122,60,0.32), 6, 0, 0, 2); }
+.filter-chip-teal:hover    { -fx-background-color: #EEF5F2; -fx-border-color: #7FB3A5; -fx-text-fill: #1B4A3F; }
+.filter-chip-teal:selected  { -fx-background-color: #235B4E; -fx-border-color: #235B4E; -fx-effect: dropshadow(gaussian, rgba(35,91,78,0.32), 6, 0, 0, 2); }
 
 /* PAGE HEADER per-section color overrides */
 .page-header-indigo  { -fx-border-color: sibim-indigo-darker sibim-slate-200 sibim-slate-200 sibim-indigo-darker; -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.10), 10, 0, 0, 2); }

@@ -338,7 +338,7 @@ public final class ConteoFisicoDialog {
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         HBox hdr = DialogUtil.gradientHeader("mdi2c-clipboard-check-outline", "Resumen del conteo",
-            "Revisa los resultados antes de finalizar", "#0891B2", "#0E7490");
+            "Revisa los resultados antes de finalizar", AppColors.CYAN, AppColors.CYAN_D);
 
         VBox stats = new VBox(8);
         stats.setPadding(new Insets(16, 22, 20, 22));

@@ -1,8 +1,8 @@
 package com.sibim.model.enums;
 
 public enum EstadoProducto {
-    ACTIVO("activo", "Activo", "#14B8A6"),
-    VENCIDO("vencido", "Vencido", "#A78BFA");
+    ACTIVO("activo", "Activo", "#2F7A68"),
+    VENCIDO("vencido", "Vencido", "#C9A97A");
 
     private final String codigo;
     private final String etiqueta;

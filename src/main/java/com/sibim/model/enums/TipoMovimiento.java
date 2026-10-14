@@ -1,10 +1,10 @@
 package com.sibim.model.enums;
 
 public enum TipoMovimiento {
-    ENTRADA("entrada", "Entrada", "#14B8A6"),
+    ENTRADA("entrada", "Entrada", "#2F7A68"),
     SALIDA("salida", "Salida", "#F43F5E"),
     AJUSTE("ajuste", "Ajuste", "#F59E0B"),
-    TRANSFERENCIA("transferencia", "Transferencia", "#818CF8");
+    TRANSFERENCIA("transferencia", "Transferencia", "#B38E5D");
 
     private final String codigo;
     private final String etiqueta;

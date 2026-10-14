@@ -265,7 +265,7 @@ public class LoginController {
     private void onForgotPassword() {
         var dialog = com.sibim.util.DialogUtil.styledMessage(
             "mdi2l-lock-reset", "Restablecer contraseña", "Contacta al administrador del sistema",
-            "#1E40AF", "#1D4ED8",
+            com.sibim.util.AppColors.PRIMARY_D, com.sibim.util.AppColors.INDIGO,
             "Para restablecer tu contraseña, contacta al administrador del sistema.\n\n"
             + "El administrador puede cambiarte la contraseña desde\n"
             + "Configuración → Usuarios → Cambiar contraseña.",

@@ -434,7 +434,7 @@ public class SplashController {
               + "en cuanto vuelva la conexión — no necesitas hacer nada.";
         Dialog<ButtonType> dialog = DialogUtil.styledMessage(
             "mdi2c-cloud-off-outline", "Trabajando sin conexión", "Sin conexión a la base de datos",
-            "#2563EB", "#1D4ED8", detalle);
+            com.sibim.util.AppColors.PRIMARY_D, com.sibim.util.AppColors.INDIGO, detalle);
         dialog.setTitle("Sin conexión a la base de datos");
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK);
         DialogUtil.styleButton(dialog.getDialogPane(), ButtonType.OK, AppColors.INFO);

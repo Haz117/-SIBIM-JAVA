@@ -7,7 +7,7 @@
     -fx-border-radius: 10;
     -fx-min-width: 200;
 }
-.kanban-col-teal   { -fx-border-color: #0D9488; -fx-border-width: 0 0 0 4; }
+.kanban-col-teal   { -fx-border-color: #235B4E; -fx-border-width: 0 0 0 4; }
 .kanban-col-amber  { -fx-border-color: sibim-amber; -fx-border-width: 0 0 0 4; }
 .kanban-col-indigo { -fx-border-color: sibim-indigo-dark; -fx-border-width: 0 0 0 4; }
 .kanban-col-title  { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; }

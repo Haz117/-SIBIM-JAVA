@@ -263,7 +263,7 @@
 .filter-chip-amber:selected:hover  { -fx-background-color: sibim-amber-dark; -fx-text-fill: white; -fx-border-color: sibim-amber-dark; }
 .filter-chip-danger:selected:hover { -fx-background-color: sibim-red-dark; -fx-text-fill: white; -fx-border-color: sibim-red-dark; }
 .filter-chip-purple:selected:hover { -fx-background-color: sibim-violet-dark; -fx-text-fill: white; -fx-border-color: sibim-violet-dark; }
-.filter-chip-teal:selected:hover   { -fx-background-color: #0E7490; -fx-text-fill: white; -fx-border-color: #0E7490; }
+.filter-chip-teal:selected:hover   { -fx-background-color: #1B4A3F; -fx-text-fill: white; -fx-border-color: #1B4A3F; }
 .filter-chip:selected:hover        { -fx-background-color: sibim-indigo-dark; -fx-text-fill: white; -fx-border-color: sibim-indigo-dark; }
 
 /* ── Rich stat card alert-active hover — use amber glow ─────────────── */

@@ -57,7 +57,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Dashboard ────────────────────────────────────────────────────────
-            new Step("mdi2v-view-dashboard-outline", "#2563EB", "#1D4ED8",
+            new Step("mdi2v-view-dashboard-outline", "#A2232D", "#5A141A",
                 "Dashboard", "Ctrl + 1", "dashboard", SessionManager.isAdmin() ? new String[]{
                 "Los recuadros de estadísticas son clicables — llevan directo al módulo",
                 "Haz clic en un segmento de la gráfica para filtrar Bienes por esa categoría",
@@ -69,7 +69,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Categorías ANTES que Bienes: flujo correcto de onboarding ────────
-            new Step("mdi2t-tag-multiple-outline", "#0891B2", "#0E7490",
+            new Step("mdi2t-tag-multiple-outline", "#A2232D", "#5A141A",
                 "Categorías", "Ctrl + 4", "categorias", new String[]{
                 "Crea las categorías PRIMERO: Mobiliario, Cómputo, Vehículos, Equipo…",
                 "Cada categoría tiene ícono y color — los bienes los heredan en todos los filtros",
@@ -87,7 +87,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Movimientos ──────────────────────────────────────────────────────
-            new Step("mdi2s-swap-vertical", "#9C7A3C", "#6E5118",
+            new Step("mdi2s-swap-vertical", "#235B4E", "#1B4A3F",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
                 SessionManager.isAdmin()
                     ? "Registra Entrada para equipo nuevo y Salida para bajas oficiales"
@@ -107,7 +107,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Resguardos ───────────────────────────────────────────────────────
-            new Step("mdi2c-clipboard-account-outline", "#0891B2", "#0E7490",
+            new Step("mdi2c-clipboard-account-outline", "#9C7A3C", "#6E5118",
                 "Resguardos", null, "resguardos", new String[]{
                 "Cada resguardo dice quién tiene un bien a su cargo — es el documento oficial de asignación",
                 "Consulta e imprime el PDF del resguardo para firma",
@@ -115,7 +115,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Préstamos ────────────────────────────────────────────────────────
-            new Step("mdi2s-swap-horizontal", "#D97706", "#92400E",
+            new Step("mdi2s-swap-horizontal", "#9C7A3C", "#6E5118",
                 "Préstamos", null, "prestamos", new String[]{
                 "Registra el préstamo temporal de un bien con fecha de devolución esperada",
                 "Vista kanban: columnas Activos / Vencidos / Devueltos para control rápido",
@@ -123,7 +123,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Actas de Entrega-Recepción ───────────────────────────────────────
-            new Step("mdi2s-swap-horizontal-bold", "#1D4ED8", "#1E3A8A",
+            new Step("mdi2s-swap-horizontal-bold", "#9C7A3C", "#6E5118",
                 "Actas E/R", null, "actas", new String[]{
                 "Documenta la entrega formal de bienes entre funcionarios al cambio de administración",
                 "Incluye inventario de bienes entregados, observaciones y firma de responsiva",
@@ -131,7 +131,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Conteo Físico ────────────────────────────────────────────────────
-            new Step("mdi2c-clipboard-check-outline", "#0F766E", "#134E4A",
+            new Step("mdi2c-clipboard-check-outline", "#235B4E", "#1B4A3F",
                 "Conteo Físico", null, null, new String[]{
                 "Ábrelo desde el sidebar o desde Bienes ya filtrado por área o categoría",
                 "Marca \"Visto\" en cada bien que tengas enfrente, o escanea su etiqueta; \"Faltante\" si no está",
@@ -147,7 +147,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Reportes ─────────────────────────────────────────────────────────
-            new Step("mdi2f-file-chart-outline", "#059669", "#065F46",
+            new Step("mdi2f-file-chart-outline", "#235B4E", "#1B4A3F",
                 "Reportes", "Ctrl + 7", "reportes", new String[]{
                 SessionManager.isAdmin()
                     ? "Listados del inventario y formatos oficiales (resguardo, baja, dictamen) en un solo lugar"
@@ -159,7 +159,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Depreciación ─────────────────────────────────────────────────────
-            new Step("mdi2c-chart-line", "#4338CA", "#3730A3",
+            new Step("mdi2c-chart-line", "#235B4E", "#1B4A3F",
                 "Depreciación", "Ctrl + 8", "depreciacion", new String[]{
                 "Cálculo automático: valor de compra ÷ vida útil = depreciación anual (SAT)",
                 "Bienes en rojo = 100% depreciados — candidatos prioritarios a baja o reemplazo",
@@ -167,7 +167,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Organigrama ──────────────────────────────────────────────────────
-            new Step("mdi2o-office-building-outline", "#2563EB", "#1D4ED8",
+            new Step("mdi2o-office-building-outline", "#A2232D", "#5A141A",
                 "Organigrama", "Ctrl + 2", "organigrama", new String[]{
                 "Vista jerárquica de áreas y bienes — ideal para auditorías y actas de entrega",
                 "Clic en el número de bienes de un área → directo a esos bienes en Inventario",

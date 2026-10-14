@@ -255,23 +255,23 @@
 
 /* OPERACIONES — teal */
 .nav-btn.nav-ops:hover {
-    -fx-background-color: #F0FDFA;
-    -fx-text-fill: #0F766E;
-    -fx-border-color: transparent transparent transparent rgba(13,148,136,0.55);
+    -fx-background-color: #EEF5F2;
+    -fx-text-fill: #1B4A3F;
+    -fx-border-color: transparent transparent transparent rgba(35,91,78,0.55);
 }
-.nav-btn.nav-ops:hover .nav-icon { -fx-icon-color: #0D9488; }
-.nav-btn.nav-ops:pressed { -fx-background-color: #CCFBF1; }
+.nav-btn.nav-ops:hover .nav-icon { -fx-icon-color: #235B4E; }
+.nav-btn.nav-ops:pressed { -fx-background-color: #D3E6E0; }
 .nav-btn.nav-ops.nav-active,
 .nav-btn.nav-ops.nav-active:hover,
 .nav-btn.nav-ops.nav-active:armed {
-    -fx-background-color: #F0FDFA;
-    -fx-text-fill: #0F766E;
-    -fx-border-color: transparent transparent transparent #0D9488;
+    -fx-background-color: #EEF5F2;
+    -fx-text-fill: #1B4A3F;
+    -fx-border-color: transparent transparent transparent #235B4E;
 }
-.nav-btn.nav-ops.nav-active .nav-icon { -fx-icon-color: #0D9488; }
+.nav-btn.nav-ops.nav-active .nav-icon { -fx-icon-color: #235B4E; }
 .nav-btn.nav-ops:focus-visible,
 .nav-btn.nav-ops.nav-active:focus-visible {
-    -fx-background-color: #0D9488, #F0FDFA;
+    -fx-background-color: #235B4E, #EEF5F2;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }

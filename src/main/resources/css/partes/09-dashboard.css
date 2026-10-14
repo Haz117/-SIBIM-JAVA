@@ -60,7 +60,7 @@
 .qa-card-icon-indigo { -fx-icon-color: sibim-indigo-darker; -fx-icon-size: 22; }
 .qa-card-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 22; }
 .qa-card-icon-amber  { -fx-icon-color: sibim-amber; -fx-icon-size: 22; }
-.qa-card-icon-blue   { -fx-icon-color: #2563EB; -fx-icon-size: 22; }
+.qa-card-icon-blue   { -fx-icon-color: #A2232D; -fx-icon-size: 22; }
 .qa-card-icon-violet { -fx-icon-color: sibim-violet; -fx-icon-size: 22; }
 
 /* Section divider labels ("RESUMEN DEL INVENTARIO", etc.) */

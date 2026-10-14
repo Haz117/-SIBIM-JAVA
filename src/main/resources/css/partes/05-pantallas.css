@@ -26,8 +26,8 @@
 /* Line chart series */
 .default-color0.chart-series-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
 .default-color0.chart-line-symbol { -fx-background-color: sibim-indigo, white; -fx-background-radius: 5px; -fx-padding: 4px; }
-.default-color1.chart-series-line { -fx-stroke: #0891B2; -fx-stroke-width: 2.5px; }
-.default-color1.chart-line-symbol { -fx-background-color: #0891B2, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+.default-color1.chart-series-line { -fx-stroke: #235B4E; -fx-stroke-width: 2.5px; }
+.default-color1.chart-line-symbol { -fx-background-color: #235B4E, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 /* Area chart trend (Entradas = indigo, Salidas = rose) */
 .default-color0.chart-series-area-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
 .default-color0.chart-series-area-fill { -fx-fill: rgba(162,35,45,0.14); }
@@ -37,12 +37,12 @@
 .default-color1.chart-area-symbol { -fx-background-color: #E11D48, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 /* Pie chart — up to 8 categories using the design system palette */
 .default-color0.chart-pie { -fx-pie-color: sibim-indigo; }
-.default-color1.chart-pie { -fx-pie-color: #0891B2; }
+.default-color1.chart-pie { -fx-pie-color: #235B4E; }
 .default-color2.chart-pie { -fx-pie-color: sibim-amber; }
 .default-color3.chart-pie { -fx-pie-color: sibim-violet; }
 .default-color4.chart-pie { -fx-pie-color: sibim-green; }
 .default-color5.chart-pie { -fx-pie-color: #E11D48; }
-.default-color6.chart-pie { -fx-pie-color: #0284C7; }
+.default-color6.chart-pie { -fx-pie-color: #235B4E; }
 .default-color7.chart-pie { -fx-pie-color: sibim-slate-500; }
 /* Pie labels */
 .chart-pie-label      { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
@@ -96,7 +96,7 @@
 .report-icon-badge .report-icon { -fx-icon-size: 19; -fx-icon-color: white; -fx-padding: 0; }
 .report-icon-badge-indigo { -fx-background-color: sibim-indigo; }
 .report-icon-badge-red    { -fx-background-color: #A2232F; }
-.report-icon-badge-teal   { -fx-background-color: #0891B2; }
+.report-icon-badge-teal   { -fx-background-color: #235B4E; }
 .report-icon-badge-amber  { -fx-background-color: sibim-amber; }
 .report-icon-badge-green  { -fx-background-color: #059669; }
 .report-icon-badge-slate  { -fx-background-color: sibim-slate-600; }

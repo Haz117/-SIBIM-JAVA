@@ -50,9 +50,9 @@
     -fx-padding: 2 8;
 }
 .org-resguardo-badge {
-    -fx-background-color: #EDE9FE;
+    -fx-background-color: #F3EAD8;
     -fx-text-fill: sibim-violet-dark;
-    -fx-border-color: #C4B5FD;
+    -fx-border-color: #DCC8A6;
     -fx-border-width: 1;
     -fx-background-radius: 99;
     -fx-border-radius: 99;
@@ -76,9 +76,9 @@
     -fx-border-color: sibim-red;
 }
 .org-prestamo-badge {
-    -fx-background-color: derive(#3b82f6, 85%);
-    -fx-text-fill: #1d4ed8;
-    -fx-border-color: derive(#3b82f6, 40%);
+    -fx-background-color: derive(#64748B, 85%);
+    -fx-text-fill: #334155;
+    -fx-border-color: derive(#64748B, 40%);
     -fx-border-radius: 10;
     -fx-background-radius: 10;
     -fx-font-size: 11px;

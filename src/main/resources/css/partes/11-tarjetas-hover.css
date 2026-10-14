@@ -16,7 +16,7 @@
 }
 .rich-stat-icon-badge .rich-stat-icon { -fx-icon-size: 17; -fx-icon-color: white; -fx-opacity: 1; -fx-padding: 0; }
 .rich-stat-icon-badge-indigo      { -fx-background-color: sibim-indigo; }
-.rich-stat-icon-badge-teal        { -fx-background-color: #0891B2; }
+.rich-stat-icon-badge-teal        { -fx-background-color: #235B4E; }
 .rich-stat-icon-badge-amber       { -fx-background-color: sibim-amber; }
 .rich-stat-icon-badge-purple      { -fx-background-color: sibim-violet; }
 .rich-stat-icon-badge-green       { -fx-background-color: sibim-green; }

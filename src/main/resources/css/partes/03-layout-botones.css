@@ -74,18 +74,18 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 8, 0, 0, 2);
 }
 /* Page-specific filter bar accent variants */
-.filter-bar-purple { -fx-border-color: sibim-violet sibim-slate-200 sibim-slate-200 sibim-violet; }
-.filter-bar-purple:hover { -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.10), 8, 0, 0, 2); }
-.filter-bar-teal   { -fx-border-color: #0891B2 sibim-slate-200 sibim-slate-200 #0891B2; }
-.filter-bar-teal:hover   { -fx-effect: dropshadow(gaussian, rgba(8,145,178,0.10), 8, 0, 0, 2); }
+.filter-bar-purple { -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo; }
+.filter-bar-purple:hover { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 8, 0, 0, 2); }
+.filter-bar-teal   { -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo; }
+.filter-bar-teal:hover   { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 8, 0, 0, 2); }
 .filter-bar-danger { -fx-border-color: sibim-red-500 sibim-slate-200 sibim-slate-200 sibim-red-500; }
 .filter-bar-danger:hover { -fx-effect: dropshadow(gaussian, rgba(239,68,68,0.10), 8, 0, 0, 2); }
-.filter-bar-indigo { -fx-border-color: sibim-indigo-darker sibim-slate-200 sibim-slate-200 sibim-indigo-darker; }
-.filter-bar-indigo:hover { -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.10), 8, 0, 0, 2); }
-.filter-bar-blue   { -fx-border-color: #1D4ED8 sibim-slate-200 sibim-slate-200 #1D4ED8; }
-.filter-bar-blue:hover   { -fx-effect: dropshadow(gaussian, rgba(29,78,216,0.10), 8, 0, 0, 2); }
-.filter-bar-emerald { -fx-border-color: #059669 sibim-slate-200 sibim-slate-200 #059669; }
-.filter-bar-emerald:hover { -fx-effect: dropshadow(gaussian, rgba(5,150,105,0.10), 8, 0, 0, 2); }
+.filter-bar-indigo { -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo; }
+.filter-bar-indigo:hover { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 8, 0, 0, 2); }
+.filter-bar-blue   { -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo; }
+.filter-bar-blue:hover   { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 8, 0, 0, 2); }
+.filter-bar-emerald { -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo; }
+.filter-bar-emerald:hover { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 8, 0, 0, 2); }
 
 /* Copy-folio button inside gradient headers */
 .dlg-copy-folio-btn {
@@ -142,7 +142,7 @@
 }
 .stat-icon-badge .stat-icon { -fx-icon-size: 19; -fx-icon-color: white; -fx-padding: 0; }
 .stat-icon-badge-indigo      { -fx-background-color: sibim-indigo-dark; }
-.stat-icon-badge-teal        { -fx-background-color: #0891B2; }
+.stat-icon-badge-teal        { -fx-background-color: #235B4E; }
 .stat-icon-badge-amber       { -fx-background-color: sibim-amber; }
 .stat-icon-badge-rose        { -fx-background-color: #E11D48; }
 .stat-icon-badge-violet      { -fx-background-color: sibim-violet; }

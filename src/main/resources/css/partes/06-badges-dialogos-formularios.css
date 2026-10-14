@@ -13,25 +13,25 @@
                       -fx-border-color: #FDE68A; -fx-border-width: 0 0 0 3; -fx-border-radius: 99; }
 .cell-badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: #7F1D1D;
                       -fx-border-color: #FCA5A5; -fx-border-width: 0 0 0 3; -fx-border-radius: 99; }
-.cell-badge-purple  { -fx-background-color: #EDE9FE; -fx-text-fill: #4C1D95; }
-.cell-badge-blue    { -fx-background-color: #DBEAFE; -fx-text-fill: #1E3A8A; }
-.cell-badge-teal    { -fx-background-color: #CCFBF1; -fx-text-fill: #134E4A; }
+.cell-badge-purple  { -fx-background-color: #F3EAD8; -fx-text-fill: #5A4214; }
+.cell-badge-blue    { -fx-background-color: #F1F5F9; -fx-text-fill: #334155; }
+.cell-badge-teal    { -fx-background-color: #D3E6E0; -fx-text-fill: #10312B; }
 .cell-badge-hidden  { -fx-background-color: transparent; -fx-text-fill: transparent; -fx-padding: 0; }
 
 /* Icon-bearing badge: color the glyph and propagate text-fill to the nested label */
 .cell-badge-icon-success { -fx-icon-color: #059669; }
 .cell-badge-icon-warning { -fx-icon-color: sibim-amber; }
 .cell-badge-icon-danger  { -fx-icon-color: sibim-red; }
-.cell-badge-icon-purple  { -fx-icon-color: #6D28D9; }
-.cell-badge-icon-blue    { -fx-icon-color: #1E40AF; }
-.cell-badge-icon-teal    { -fx-icon-color: #0F766E; }
+.cell-badge-icon-purple  { -fx-icon-color: #7D6230; }
+.cell-badge-icon-blue    { -fx-icon-color: #475569; }
+.cell-badge-icon-teal    { -fx-icon-color: #1B4A3F; }
 
 .cell-badge-success .cell-badge-text { -fx-text-fill: #064E3B; }
 .cell-badge-warning .cell-badge-text { -fx-text-fill: #78350F; }
 .cell-badge-danger  .cell-badge-text { -fx-text-fill: #7F1D1D; }
-.cell-badge-purple  .cell-badge-text { -fx-text-fill: #4C1D95; }
-.cell-badge-blue    .cell-badge-text { -fx-text-fill: #1E3A8A; }
-.cell-badge-teal    .cell-badge-text { -fx-text-fill: #134E4A; }
+.cell-badge-purple  .cell-badge-text { -fx-text-fill: #5A4214; }
+.cell-badge-blue    .cell-badge-text { -fx-text-fill: #334155; }
+.cell-badge-teal    .cell-badge-text { -fx-text-fill: #10312B; }
 
 .badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: sibim-red-dark; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 12px; }
 .badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 12px; }
@@ -47,8 +47,8 @@
 .data-table .table-row-cell.row-salida:hover       { -fx-background-color: #FFE4E6; }
 .data-table .table-row-cell.row-ajuste             { -fx-background-color: #FFFDF0; }
 .data-table .table-row-cell.row-ajuste:hover       { -fx-background-color: #FEF9C3; }
-.data-table .table-row-cell.row-transferencia      { -fx-background-color: #F0F6FF; }
-.data-table .table-row-cell.row-transferencia:hover { -fx-background-color: #DBEAFE; }
+.data-table .table-row-cell.row-transferencia      { -fx-background-color: #F8FAFC; }
+.data-table .table-row-cell.row-transferencia:hover { -fx-background-color: #F1F5F9; }
 
 /* ─── Row tints (productos por estado) ─── */
 .data-table .table-row-cell.row-danger              { -fx-background-color: #FFF8F8; }
@@ -61,8 +61,8 @@
 .data-table .table-row-cell.row-warning:even        { -fx-background-color: #FFFBEA; }
 .data-table .table-row-cell.row-warning:hover       { -fx-background-color: #FEF3C7; }
 .data-table .table-row-cell.row-warning:selected    { -fx-background-color: #FDE68A; }
-.data-table .table-row-cell.row-vencido             { -fx-background-color: #FAF5FF; }
-.data-table .table-row-cell.row-vencido:hover       { -fx-background-color: #EDE9FE; }
+.data-table .table-row-cell.row-vencido             { -fx-background-color: #FBF6EC; }
+.data-table .table-row-cell.row-vencido:hover       { -fx-background-color: #F3EAD8; }
 .data-table .table-row-cell.row-inactive            { -fx-opacity: 0.55; }
 .data-table .table-row-cell.row-inactive:hover      { -fx-opacity: 0.72; }
 .data-table .table-row-cell.row-inactive:selected   { -fx-opacity: 1.0; }

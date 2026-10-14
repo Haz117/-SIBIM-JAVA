@@ -179,7 +179,7 @@ public final class ProductoDetailDialog {
         }
         if (!photoLoaded) {
             String monogramBg  = p.getCategoriaColor() != null ? p.getCategoriaColor() + "22" : "#EEF2FF";
-            String monogramFg  = p.getCategoriaColor() != null ? p.getCategoriaColor() : "#4338CA";
+            String monogramFg  = p.getCategoriaColor() != null ? p.getCategoriaColor() : "#A2232D";
             String monogramTxt = p.getCategoriaNombre() != null && !p.getCategoriaNombre().isBlank()
                 ? String.valueOf(p.getCategoriaNombre().charAt(0)).toUpperCase() : "B";
             Label monogram = new Label(monogramTxt);
