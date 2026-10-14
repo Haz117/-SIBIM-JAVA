@@ -97,3 +97,20 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+
+-- Segunda barrera, y lo que pide el Security Advisor de Supabase ("RLS
+-- Disabled in Public"): Row Level Security en cada tabla de SIBIM, con una
+-- sola política que deja a sibim_app ver y escribir todas las filas. Los
+-- roles de la API REST no tienen ninguna, así que aunque algún día vuelvan a
+-- tener permisos sobre una tabla, no ven ni una fila. El dueño (la PC de
+-- administración y las migraciones) no está sujeto a RLS en sus tablas.
+DO $$
+DECLARE
+    t TEXT;
+BEGIN
+    FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = current_user LOOP
+        EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+        EXECUTE format('DROP POLICY IF EXISTS sibim_app_todo ON public.%I', t);
+        EXECUTE format('CREATE POLICY sibim_app_todo ON public.%I FOR ALL TO sibim_app USING (true) WITH CHECK (true)', t);
+    END LOOP;
+END $$;

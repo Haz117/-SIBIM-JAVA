@@ -120,6 +120,37 @@ class RolAppMinimoIntegrationTest extends IntegrationTestBase {
         assertDoesNotThrow(() -> MigrationRunner.run(flyway, false, false));
     }
 
+    /** Supabase's Security Advisor flags every public table without RLS. With
+     *  it on, sibim_app still sees and writes every row (its policy), and a
+     *  REST role that is granted a table again still sees none of its rows. */
+    @Test
+    void rlsEnTodasLasTablas_sibimAppSigueViendoTodo_yLaApiRestNada() throws Exception {
+        try (Connection c = dataSource.getConnection(); Statement st = c.createStatement()) {
+            try (ResultSet rs = st.executeQuery(
+                    "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND NOT rowsecurity")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), "tablas sin RLS");
+            }
+            st.execute("INSERT INTO categories (id, nombre, color) VALUES ('c-rls', 'Cat RLS', '#000000')");
+        }
+        try (Connection c = comoApp(); Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery("SELECT count(*) FROM categories WHERE id = 'c-rls'")) {
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1), "sibim_app ve lo que escribió el dueño");
+        }
+        try (Connection c = dataSource.getConnection(); Statement st = c.createStatement()) {
+            st.execute("GRANT SELECT ON categories TO anon");
+            st.execute("SET ROLE anon");
+            try (ResultSet rs = st.executeQuery("SELECT count(*) FROM categories")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), "la API REST no ve filas");
+            } finally {
+                st.execute("RESET ROLE");
+                st.execute("REVOKE SELECT ON categories FROM anon");
+            }
+        }
+    }
+
     @Test
     void laApiRestDeSupabaseYaNoVeLasTablas() throws Exception {
         try (Connection c = dataSource.getConnection(); Statement st = c.createStatement();
