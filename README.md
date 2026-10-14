@@ -281,7 +281,11 @@ Estas reglas se aplican en los servicios (no solo ocultando botones), así que n
 
 ## Rol de base de datos con mínimo privilegio
 
-Cada PC se conecta directo a PostgreSQL con las credenciales de su `.env`. Si esas credenciales son las del dueño de la base (`postgres`), cualquiera que abra el archivo puede borrar tablas, darse rol de Admin o editar la bitácora, y los permisos por rol de la app no lo impiden. Para que las PCs solo puedan leer y escribir datos:
+Cada PC se conecta directo a PostgreSQL con las credenciales de su `.env`. Si esas credenciales son las del dueño de la base (`postgres`), cualquiera que abra el archivo puede borrar tablas, darse rol de Admin o editar la bitácora, y los permisos por rol de la app no lo impiden.
+
+**Forma corta (instalador que se conecta solo):** en la PC de administración corre `powershell -ExecutionPolicy Bypass -File packaging\preparar-conexion.ps1`. Genera la contraseña de `sibim_app`, escribe `packaging\sibim.env` (git lo ignora), copia el SQL de abajo con esa contraseña al portapapeles y abre el SQL Editor de Supabase para pegarlo; luego comprueba la conexión y genera el instalador. Una PC instalada con él solo pide el usuario y la contraseña de la cuenta de su área. Una PC que ya tenga su propio `%APPDATA%\SIBIM\.env` sigue usando ese: bórralo para que use el del instalador (salvo en la PC de administración).
+
+Paso a paso, para que las PCs solo puedan leer y escribir datos:
 
 1. Edita la contraseña en `scripts/sql/rol_app_minimo.sql` y ejecútalo **una vez** como `postgres` (SQL Editor de Supabase o `psql`). Crea el rol `sibim_app`:
    - sin permisos de DDL (no puede crear, alterar ni borrar tablas);
