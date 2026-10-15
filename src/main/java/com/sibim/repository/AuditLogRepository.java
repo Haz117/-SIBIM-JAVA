@@ -225,6 +225,22 @@ public class AuditLogRepository {
         return result;
     }
 
+    /** Every distinct "entidad" in the log, for the Entidad filter. */
+    public List<String> findDistinctEntidades() throws SQLException {
+        requireAdmin();
+        if (DatabaseConfig.isOfflineMode() || DatabaseConfig.isDemoMode())
+            return findAll(500).stream().map(AuditLog::getEntidad)
+                .filter(e -> e != null && !e.isBlank()).distinct().sorted().toList();
+        List<String> result = new ArrayList<>();
+        String sql = "SELECT DISTINCT entidad FROM audit_log WHERE entidad IS NOT NULL ORDER BY entidad";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) result.add(rs.getString(1));
+        }
+        return result;
+    }
+
     /** Every distinct "usuario_nombre" that has ever logged an action —
      *  feeds the Usuario filter as a dropdown (a free-text field could
      *  never match on a typo, and users who no longer exist would be
@@ -311,14 +327,14 @@ public class AuditLogRepository {
             LocalDate desde, LocalDate hasta, List<Object> params) {
         List<String> conds = new ArrayList<>();
         if (busqueda != null && !busqueda.isBlank()) {
-            String like = "%" + busqueda + "%";
+            String like = Like.contiene(busqueda);
             conds.add("(entidad_nombre ILIKE ? OR detalle ILIKE ? OR accion ILIKE ?)");
             params.add(like); params.add(like); params.add(like);
         }
         if (entidad != null && !entidad.isBlank()) { conds.add("entidad = ?"); params.add(entidad); }
         if (accion != null && !accion.isBlank()) { conds.add("accion = ?"); params.add(accion); }
         if (usuarioNombre != null && !usuarioNombre.isBlank()) {
-            conds.add("usuario_nombre ILIKE ?"); params.add("%" + usuarioNombre + "%");
+            conds.add("usuario_nombre ILIKE ?"); params.add(Like.contiene(usuarioNombre));
         }
         if (desde != null) { conds.add("created_at >= ?"); params.add(Timestamp.valueOf(desde.atStartOfDay())); }
         if (hasta != null) { conds.add("created_at <= ?"); params.add(Timestamp.valueOf(hasta.atTime(LocalTime.MAX))); }

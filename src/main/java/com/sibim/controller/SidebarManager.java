@@ -178,7 +178,7 @@ class SidebarManager {
             }
             if (activeButton != null) updateTabProtrusion(activeButton);
         });
-        t.play();
+        com.sibim.util.AnimationUtils.reproducir(t);
     }
 
     // ── Tab protrusion ────────────────────────────────────────────────────────
@@ -224,7 +224,7 @@ class SidebarManager {
         node.setLayoutX(targetX);
         node.setLayoutY(targetY);
         node.setTranslateY(fromY - targetY);
-        TranslateTransition tt = new TranslateTransition(Duration.millis(190), node);
+        TranslateTransition tt = new TranslateTransition(com.sibim.util.AnimationUtils.duracion(190), node);
         tt.setToY(0);
         tt.setInterpolator(Interpolator.EASE_OUT);
         tt.play();

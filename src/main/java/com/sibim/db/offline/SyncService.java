@@ -255,8 +255,7 @@ public final class SyncService {
                 log.error("SyncService: se sigue en modo offline — {}", motivo);
                 Platform.runLater(() -> {
                     MainController mc = MainController.getInstance();
-                    var scene = mc != null ? mc.getContentAreaScene() : null;
-                    if (scene != null) NotificacionUtil.advertencia(scene,
+                    if (mc != null && mc.getContentAreaScene() != null) NotificacionUtil.importante("Sigues sin conexión",
                         "Hay conexión, pero la base de datos necesita una actualización que esta computadora "
                         + "no puede aplicar. Sigues en modo offline; avisa al administrador del sistema.");
                 });
@@ -356,8 +355,9 @@ public final class SyncService {
                 finally { MOSTRANDO_CONFLICTOS.set(false); }
             }
             if (failed > 0 && scene != null) {
-                NotificacionUtil.advertencia(scene,
-                    failed + " cambio(s) no se pudieron sincronizar y requieren revisión manual.");
+                NotificacionUtil.importante("Cambios sin sincronizar",
+                    failed + " cambio(s) hechos sin conexión no se pudieron subir al servidor y requieren "
+                    + "revisión manual. Avisa al administrador del sistema (Configuración › Errores offline).");
             }
             if (stillPending == 0 && conflicts.isEmpty() && mc != null) {
                 mc.refreshCurrentViewAfterSync();
@@ -685,9 +685,18 @@ public final class SyncService {
                 } else if ("REACTIVAR".equals(operacion)) {
                     repo.reactivarOnline(versionOffline.getId());
                 } else {
+                    // An área's "usar mi versión" must not write back the stale
+                    // precio, resguardante or código its offline copy carries:
+                    // only the fields it may edit go over the server's row.
+                    Producto aplicar = versionOffline;
+                    if (!com.sibim.session.Permisos.editaFichaCompleta()) {
+                        java.util.Optional<Producto> servidor = repo.findByIdOnline(versionOffline.getId());
+                        if (servidor.isPresent())
+                            aplicar = com.sibim.service.ProductoService.soloLoQueEditaUnArea(servidor.get(), versionOffline);
+                    }
                     // Like the batch replay: a código another PC took meanwhile
                     // is replaced, not a reason to throw the offline edit away.
-                    guardarReplicado(repo, versionOffline);
+                    guardarReplicado(repo, aplicar);
                 }
                 markOutbox("product_outbox", outboxId, STATUS_SYNCED, null);
                 log.info("SyncService: conflicto {} ({}) resuelto — versión offline aplicada", outboxId, operacion);

@@ -3,7 +3,6 @@ package com.sibim.controller;
 import com.sibim.model.Producto;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
-import com.sibim.util.NotificacionUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -117,7 +116,7 @@ class ProductosColumnSetup {
         col.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("codigo"));
         col.setCellFactory(column -> new TableCell<>() {
             {
-                setTooltip(new Tooltip("Clic para copiar el código (o Ctrl+C con la fila seleccionada)"));
+                setTooltip(new Tooltip("Ctrl+C copia el código de las filas seleccionadas (también en el clic derecho)"));
             }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -125,13 +124,6 @@ class ProductosColumnSetup {
                 if (empty || item == null) { setText(null); return; }
                 setText(item);
                 getStyleClass().add("codigo-cell");
-                setOnMouseClicked(e -> {
-                    javafx.scene.input.Clipboard cb = javafx.scene.input.Clipboard.getSystemClipboard();
-                    javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
-                    cc.putString(item);
-                    cb.setContent(cc);
-                    NotificacionUtil.info(getScene(), "Código copiado: " + item);
-                });
             }
         });
     }

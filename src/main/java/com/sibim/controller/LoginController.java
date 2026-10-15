@@ -133,9 +133,9 @@ public class LoginController {
         if (brandLogoBadge != null) {
             brandLogoBadge.setOpacity(0);
             brandLogoBadge.setScaleX(0.6); brandLogoBadge.setScaleY(0.6);
-            FadeTransition fade = new FadeTransition(Duration.millis(320), brandLogoBadge);
+            FadeTransition fade = new FadeTransition(com.sibim.util.AnimationUtils.duracion(320), brandLogoBadge);
             fade.setFromValue(0); fade.setToValue(1);
-            ScaleTransition pop = new ScaleTransition(Duration.millis(320), brandLogoBadge);
+            ScaleTransition pop = new ScaleTransition(com.sibim.util.AnimationUtils.duracion(320), brandLogoBadge);
             pop.setFromX(0.6); pop.setFromY(0.6); pop.setToX(1); pop.setToY(1);
             pop.setInterpolator(Interpolator.EASE_OUT);
             ParallelTransition logoIn = new ParallelTransition(fade, pop);
@@ -243,20 +243,18 @@ public class LoginController {
     }
 
     /** A shared área account is used by several people: who it is goes into
-     *  the records. Asked at its first sign-in on this PC and remembered, so
-     *  every other day it is just user and password (the user menu changes
-     *  it). False if they cancel the question (back to the login). */
+     *  the records. Asked at every sign-in, with the last name used on this PC
+     *  already typed in — remembered without asking, the changes of whoever
+     *  sat down next went under the previous person's name. False if they
+     *  cancel the question (back to the login). */
     private boolean pedirOperador(Usuario user) {
         if (user == null || !com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(user.getCargo())) return true;
         String recordado = com.sibim.session.OperadorRecordado.de(user.getId());
-        if (recordado != null) {
-            SessionManager.setOperador(recordado);
-            return true;
-        }
-        var nombre = OperadorDialog.preguntar(user.getNombre(), null);
+        var nombre = OperadorDialog.preguntar(user.getNombre(), recordado);
         nombre.ifPresent(n -> {
             SessionManager.setOperador(n);
             com.sibim.session.OperadorRecordado.recordar(user.getId(), n);
+            OperadorDialog.registrar(user.getId(), n);
         });
         return nombre.isPresent();
     }

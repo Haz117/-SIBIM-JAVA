@@ -42,7 +42,7 @@ class MainBadgeManager {
                     alertBadge.setVisible(true);
                     alertBadge.setManaged(true);
                     if (wasHidden) {
-                        ScaleTransition pop = new ScaleTransition(Duration.millis(320), alertBadge);
+                        ScaleTransition pop = new ScaleTransition(com.sibim.util.AnimationUtils.duracion(320), alertBadge);
                         pop.setFromX(0.3); pop.setFromY(0.3);
                         pop.setToX(1.0);   pop.setToY(1.0);
                         pop.setInterpolator(Interpolator.EASE_OUT);
@@ -71,7 +71,7 @@ class MainBadgeManager {
                     loanBadge.setVisible(true);
                     loanBadge.setManaged(true);
                     if (wasHidden) {
-                        ScaleTransition pop = new ScaleTransition(Duration.millis(320), loanBadge);
+                        ScaleTransition pop = new ScaleTransition(com.sibim.util.AnimationUtils.duracion(320), loanBadge);
                         pop.setFromX(0.3); pop.setFromY(0.3);
                         pop.setToX(1.0);   pop.setToY(1.0);
                         pop.setInterpolator(Interpolator.EASE_OUT);

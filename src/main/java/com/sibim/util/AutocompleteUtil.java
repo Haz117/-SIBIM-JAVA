@@ -23,8 +23,11 @@ public final class AutocompleteUtil {
             popup.hide();
             if (newVal == null || newVal.isBlank()) return;
             String q = newVal.toLowerCase();
+            // Values that start with what was typed first, then the ones that
+            // contain it; each group keeps the given order (most used first).
             List<MenuItem> items = suggestions.stream()
                 .filter(s -> s.toLowerCase().contains(q) && !s.equalsIgnoreCase(newVal))
+                .sorted(java.util.Comparator.comparing((String s) -> !s.toLowerCase().startsWith(q)))
                 .limit(8)
                 .map(s -> {
                     MenuItem mi = new MenuItem(s);

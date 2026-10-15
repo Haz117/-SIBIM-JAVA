@@ -47,6 +47,15 @@ final class ProductosContextMenu {
         });
         cm.getItems().add(cmDetalle);
 
+        // Copying used to happen on any click on the código cell, so selecting
+        // a row there (or double-clicking it) copied and showed a notice.
+        MenuItem cmCopiar = new MenuItem("Copiar código");
+        cmCopiar.setGraphic(new FontIcon("mdi2c-content-copy"));
+        cmCopiar.setAccelerator(new javafx.scene.input.KeyCodeCombination(
+            javafx.scene.input.KeyCode.C, javafx.scene.input.KeyCombination.SHORTCUT_DOWN));
+        cmCopiar.setOnAction(e -> copiarCodigos(table));
+        cm.getItems().add(cmCopiar);
+
         MenuItem cmFicha = new MenuItem("Imprimir ficha técnica");
         cmFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
         cmFicha.setOnAction(e -> {
@@ -119,5 +128,18 @@ final class ProductosContextMenu {
         }
 
         return cm;
+    }
+
+    /** The códigos of the selected rows to the clipboard, one per line. */
+    static boolean copiarCodigos(TableView<Producto> table) {
+        List<String> codigos = table.getSelectionModel().getSelectedItems().stream()
+            .map(Producto::getCodigo).filter(c -> c != null && !c.isBlank()).toList();
+        if (codigos.isEmpty()) return false;
+        javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
+        cc.putString(String.join(System.lineSeparator(), codigos));
+        javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
+        NotificacionUtil.info(table.getScene(), codigos.size() == 1 ? "Código copiado: " + codigos.get(0)
+            : codigos.size() + " códigos copiados");
+        return true;
     }
 }

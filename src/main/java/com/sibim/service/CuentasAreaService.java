@@ -15,8 +15,11 @@ import java.sql.SQLException;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -68,11 +71,24 @@ public class CuentasAreaService {
         if (DatabaseConfig.isOfflineMode())
             throw new IllegalStateException("Crear cuentas requiere conexión con el servidor");
         List<Cuenta> resultado = new ArrayList<>();
+        Set<String> tomados = new HashSet<>();
         for (AreaCatalog.Entrada e : Areas.catalogo().entradas()) {
             String usuario = nombreUsuario(e.nombre());
             Rol rol = rolDe(e);
-            if (usuarios.findByUsername(usuario).isPresent()) {
-                resultado.add(new Cuenta(e.nombre(), usuario, null, rol, false));
+            Optional<Usuario> existente = usuarios.findByUsername(usuario);
+            // Two áreas can shorten alike, and a personal account may already
+            // have the name: then it isn't this área's account. The prefix
+            // tells them apart (it is unique per área).
+            if (!tomados.add(usuario) || existente.filter(u -> !e.nombre().equals(u.getArea())).isPresent()) {
+                usuario = usuario + "." + e.prefijo().toLowerCase(Locale.ROOT);
+                tomados.add(usuario);
+                existente = usuarios.findByUsername(usuario);
+                if (existente.filter(u -> !e.nombre().equals(u.getArea())).isPresent())
+                    throw new IllegalStateException("El usuario \"" + usuario + "\" ya es de otra área ("
+                        + existente.get().getArea() + "); cámbiale el nombre de usuario y vuelve a intentarlo");
+            }
+            if (existente.isPresent()) {
+                resultado.add(new Cuenta(e.nombre(), usuario, null, existente.get().getRol(), false));
                 continue;
             }
             String contrasena = contrasena(usuario);
@@ -104,15 +120,29 @@ public class CuentasAreaService {
         };
     }
 
-    /** "Dirección de Catastro" → "catastro", "Servicios Públicos y Limpias" → "servicios.publicos". */
+    /** "Dirección de Catastro" → "catastro", "Servicios Públicos y Limpias" → "servicios.publicos".
+     *  A sub-área ("Seguridad Pública — C-2") keeps what sets it apart from
+     *  its siblings: "seguridad.c2", not the "seguridad.publica" they all share. */
     static String nombreUsuario(String area) {
         String fijo = NOMBRES.get(area);
         if (fijo != null) return fijo;
-        String plano = Normalizer.normalize(area, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase();
-        List<String> palabras = Arrays.stream(plano.split("[^a-z0-9]+")).filter(p -> !p.isEmpty()).toList();
-        List<String> utiles = palabras.stream().filter(p -> !SIN_SIGNIFICADO.contains(p)).toList();
-        List<String> base = utiles.isEmpty() ? palabras : utiles;
+        String[] partes = area.split("\\s+[—–-]\\s+", 2);
+        if (partes.length == 2) {
+            List<String> cabeza = palabras(partes[0]), resto = palabras(partes[1]);
+            if (!cabeza.isEmpty() && !resto.isEmpty())
+                return cabeza.get(0) + "." + String.join(".", resto.subList(0, Math.min(2, resto.size())));
+        }
+        List<String> base = palabras(area);
         return String.join(".", base.subList(0, Math.min(2, base.size())));
+    }
+
+    /** The words that mean something, accents and case removed ("C-2" is one word: "c2"). */
+    private static List<String> palabras(String texto) {
+        String plano = Normalizer.normalize(texto, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+            .toLowerCase(Locale.ROOT).replaceAll("(?<=[a-z0-9])-(?=[a-z0-9])", "");
+        List<String> todas = Arrays.stream(plano.split("[^a-z0-9]+")).filter(p -> !p.isEmpty()).toList();
+        List<String> utiles = todas.stream().filter(p -> !SIN_SIGNIFICADO.contains(p)).toList();
+        return utiles.isEmpty() ? todas : utiles;
     }
 
     /** Letters that can't be confused when read aloud or handwritten (no vowels, l or q). */

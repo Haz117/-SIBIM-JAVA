@@ -17,10 +17,13 @@
 .rich-stat-icon-badge .rich-stat-icon { -fx-icon-size: 17; -fx-icon-color: white; -fx-opacity: 1; -fx-padding: 0; }
 .rich-stat-icon-badge-indigo      { -fx-background-color: sibim-indigo; }
 .rich-stat-icon-badge-teal        { -fx-background-color: #235B4E; }
-.rich-stat-icon-badge-amber       { -fx-background-color: sibim-amber; }
+/* The summary cards' icons in the institutional palette: the bright green,
+   amber and red of the alerts (kept for states: pills, messages) made these
+   decorative badges look like warnings and clashed with the guinda. */
+.rich-stat-icon-badge-amber       { -fx-background-color: sibim-violet; }
 .rich-stat-icon-badge-purple      { -fx-background-color: sibim-violet; }
-.rich-stat-icon-badge-green       { -fx-background-color: sibim-green; }
-.rich-stat-icon-badge-red         { -fx-background-color: sibim-red; }
+.rich-stat-icon-badge-green       { -fx-background-color: #235B4E; }
+.rich-stat-icon-badge-red         { -fx-background-color: sibim-indigo; }
 /* Was only ever on the Dashboard's old separate .stat-card family
    ("Categorías Activas") — added here so that card could move onto the
    same rich-stat-card the other four list pages already use. */

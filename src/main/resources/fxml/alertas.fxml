@@ -56,41 +56,41 @@
             <ColumnConstraints percentWidth="25"/>
             <ColumnConstraints percentWidth="25"/>
         </columnConstraints>
-        <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card, status-mini-card-violet, alert-tab"
+        <VBox fx:id="statCardGarantiasSum" styleClass="status-mini-card, alert-tab"
               GridPane.columnIndex="0" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2c-calendar-alert" styleClass="status-icon-violet"/>
+                <FontIcon iconLiteral="mdi2c-calendar-alert" styleClass="alert-tab-icon"/>
                 <Label text="GARANTÍAS" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumGarantias" text="0" styleClass="status-mini-count"/>
             <Label fx:id="lblSumGarantiasDetalle" text="— vencidas · — próximas" styleClass="rich-stat-hint"/>
         </VBox>
-        <VBox fx:id="statCardMantenimientoSum" styleClass="status-mini-card, status-mini-card-amber, alert-tab"
+        <VBox fx:id="statCardMantenimientoSum" styleClass="status-mini-card, alert-tab"
               GridPane.columnIndex="1" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2w-wrench-outline" styleClass="status-icon-amber"/>
+                <FontIcon iconLiteral="mdi2w-wrench-outline" styleClass="alert-tab-icon"/>
                 <Label text="MANTENIMIENTO" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumMantenimiento" text="0" styleClass="status-mini-count"/>
             <Label text="revisiones en los próximos 30 días" styleClass="rich-stat-hint"/>
         </VBox>
-        <VBox fx:id="statCardComodatosSum" styleClass="status-mini-card, status-mini-card-red, alert-tab"
+        <VBox fx:id="statCardComodatosSum" styleClass="status-mini-card, alert-tab"
               GridPane.columnIndex="2" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2h-handshake-outline" styleClass="status-icon-red"/>
+                <FontIcon iconLiteral="mdi2h-handshake-outline" styleClass="alert-tab-icon"/>
                 <Label text="COMODATOS" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumComodatos" text="0" styleClass="status-mini-count"/>
             <Label text="vencidos sin concluir" styleClass="rich-stat-hint"/>
         </VBox>
-        <VBox fx:id="statCardPendientesSum" styleClass="status-mini-card, status-mini-card-green, alert-tab"
+        <VBox fx:id="statCardPendientesSum" styleClass="status-mini-card, alert-tab"
               GridPane.columnIndex="3" spacing="5">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="status-icon-green"/>
+                <FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="alert-tab-icon"/>
                 <Label text="PENDIENTES" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumPendientes" text="0" styleClass="status-mini-count"/>

@@ -27,7 +27,7 @@ import java.util.prefs.Preferences;
 public final class TutorialOverlay {
 
     private static final Preferences PREFS = Preferences.userNodeForPackage(TutorialOverlay.class);
-    private static final double CARD_W  = 360;
+    private static final double CARD_W  = 420;
     private static final double ARROW_W = 16;
     // HBox spacing = -2, so card body starts at (ARROW_W - 2) = 14 px from HBox left
 
@@ -56,9 +56,9 @@ public final class TutorialOverlay {
                 "Retoma este tutorial en cualquier momento presionando F2"
             }),
 
-            // ── Dashboard ────────────────────────────────────────────────────────
+            // ── Inicio ───────────────────────────────────────────────────────────
             new Step("mdi2v-view-dashboard-outline", "#A2232D", "#5A141A",
-                "Dashboard", "Ctrl + 1", "dashboard", SessionManager.isAdmin() ? new String[]{
+                "Inicio", "Ctrl + 1", "dashboard", SessionManager.isAdmin() ? new String[]{
                 "Los recuadros de estadísticas son clicables — llevan directo al módulo",
                 "Haz clic en un segmento de la gráfica para filtrar Bienes por esa categoría",
                 "El botón ↺ actualiza métricas en tiempo real tras registrar cambios"
@@ -90,16 +90,16 @@ public final class TutorialOverlay {
             new Step("mdi2s-swap-vertical", "#235B4E", "#1B4A3F",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
                 SessionManager.isAdmin()
-                    ? "Registra Entrada para equipo nuevo y Salida para bajas oficiales"
+                    ? "Entrada y Salida cambian la cantidad; Ajuste la corrige después de un conteo"
                     : "Aquí consultas el historial de tus bienes; los movimientos los registra Patrimonio",
                 SessionManager.isAdmin()
                     ? "Transferencia mueve el bien completo a otra área, con su nuevo código"
                     : "Filtra por tipo y fecha para ver qué entró, salió o cambió de área",
-                "El área que recibe confirma desde la campana cuando ya tiene el bien físicamente"
+                "La transferencia se aplica al instante; el área que recibe solo confirma que ya tiene el bien"
             }),
 
             // ── Sin conexión ─────────────────────────────────────────────────────
-            new Step("mdi2w-wifi-off", "#B45309", "#78350F",
+            new Step("mdi2w-wifi-off", "#9C7A3C", "#6E5118",
                 "Sin internet", null, null, new String[]{
                 "Si se va el internet aparece la franja \"Sin conexión\" y puedes seguir trabajando",
                 "Lo que captures se guarda en esta computadora y se sube solo al volver la conexión",
@@ -130,16 +130,32 @@ public final class TutorialOverlay {
                 "Exporta el acta completa a PDF lista para firma y archivo oficial"
             }),
 
+            // ── Comodatos ────────────────────────────────────────────────────────
+            new Step("mdi2h-handshake-outline", "#9C7A3C", "#6E5118",
+                "Comodatos", null, "comodatos", new String[]{
+                "Préstamo formal de un bien a otra institución, con contrato y vigencia",
+                "Mientras está vigente el bien no se puede transferir ni dar de baja",
+                "Al vencer aparece en Alertas hasta que lo concluyas o lo renueves"
+            }),
+
+            // ── Bajas ────────────────────────────────────────────────────────────
+            new Step("mdi2a-archive-arrow-down-outline", "#9C7A3C", "#6E5118",
+                "Bajas", null, "bajas", new String[]{
+                "El área entrega la solicitud de baja firmada; Patrimonio la registra aquí",
+                "El bien sale del inventario activo pero conserva su código e historial",
+                "Su número queda libre para el siguiente bien nuevo del área"
+            }),
+
             // ── Conteo Físico ────────────────────────────────────────────────────
             new Step("mdi2c-clipboard-check-outline", "#235B4E", "#1B4A3F",
                 "Conteo Físico", null, null, new String[]{
-                "Ábrelo desde el sidebar o desde Bienes ya filtrado por área o categoría",
-                "Marca \"Visto\" en cada bien que tengas enfrente, o escanea su etiqueta; \"Faltante\" si no está",
-                "Al terminar genera el reporte: lo que nadie marcó queda como \"sin revisar\""
+                "Ábrelo desde el menú (Operación) y elige todo el inventario, un área o una categoría",
+                "Da clic en la fila del bien que tienes enfrente, o escanea su etiqueta; \"Faltante\" si no está",
+                "Las pestañas Pendientes y Con incidencia te dicen qué falta; lo que nadie marcó queda \"sin revisar\""
             }),
 
             // ── Alertas ──────────────────────────────────────────────────────────
-            new Step("mdi2b-bell-outline", "#DC2626", "#991B1B",
+            new Step("mdi2b-bell-outline", "#A2232D", "#5A141A",
                 "Alertas", "Ctrl + 6", "alertas", new String[]{
                 "Se generan solas: garantías por vencer, mantenimientos próximos y comodatos vencidos",
                 "El badge rojo en el sidebar muestra cuántas alertas activas hay sin atender",
@@ -170,7 +186,7 @@ public final class TutorialOverlay {
             new Step("mdi2o-office-building-outline", "#A2232D", "#5A141A",
                 "Organigrama", "Ctrl + 2", "organigrama", new String[]{
                 "Vista jerárquica de áreas y bienes — ideal para auditorías y actas de entrega",
-                "Clic en el número de bienes de un área → directo a esos bienes en Inventario",
+                "Clic en el número de bienes de un área: la lista completa, con \"Ver en Inventario\" y exportar",
                 "Exporta el árbol completo a PDF desde la barra de herramientas"
             }),
 
@@ -178,8 +194,8 @@ public final class TutorialOverlay {
             new Step("mdi2c-cog-outline", "#64748B", "#334155",
                 "Configuración", "Ctrl + 9", "configuracion", new String[]{
                 SessionManager.isAdmin()
-                    ? "Gestiona usuarios y roles en 'Administrar Usuarios' — asigna áreas por cuenta"
-                    : "Cambia tu contraseña aquí — el administrador gestiona roles y accesos por área",
+                    ? "Usuarios: crea las cuentas por área de un clic y guarda el PDF con sus contraseñas"
+                    : "Tamaño de letra, densidad de filas y animaciones: en la barra inferior y en Accesibilidad",
                 "Sube el logo del ayuntamiento — se muestra en la pantalla de inicio del sistema",
                 "Genera respaldos de la base de datos y revisa el estado de la conexión"
             }),
@@ -193,7 +209,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Primeros pasos: cierre accionable ────────────────────────────────
-            new Step("mdi2c-check-circle-outline", "#16A34A", "#14532D",
+            new Step("mdi2c-check-circle-outline", "#235B4E", "#1B4A3F",
                 "¡Listo para empezar!", null, "dashboard", new String[]{
                 SessionManager.isAdmin()
                     ? "① Crea categorías (Ctrl+4), da de alta bienes (Ctrl+3 → Ctrl+N) y registra la primera entrada"
@@ -210,13 +226,22 @@ public final class TutorialOverlay {
                 && java.util.Set.of("movimientos", "comodatos", "actas", "bajas", "categorias", "depreciacion", "resguardos", "prestamos")
                     .contains(paso.navigateId()));
 
+        // A shared área account: who is using it goes into every record.
+        if (user != null && com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(user.getCargo()))
+            list.add(1, new Step("mdi2a-account-edit-outline", "#A2232D", "#5A141A",
+                "Cuenta compartida", null, null, new String[]{
+                "Esta cuenta la usa todo el personal de tu área",
+                "Al entrar escribe tu nombre, o confirma el que aparece: así tus cambios quedan a tu nombre",
+                "Si alguien más se sienta sin cerrar sesión: menú de tu cuenta › \"Cambiar quién usa la cuenta\""
+            }));
+
         if (SessionManager.isAdmin()) {
             // Insert Auditoría before the last two steps (Atajos + ¡Listo!)
             list.add(list.size() - 2,
                 new Step("mdi2s-shield-lock-outline", "#475569", "#1E293B",
                     "Auditoría del Sistema", "Ctrl + 0", "auditoria", new String[]{
                     "Registra automáticamente todas las acciones: altas, bajas, ediciones, sesiones",
-                    "Filtra por entidad, usuario y rango de fechas para trazabilidad exacta",
+                    "Filtra por entidad, acción, usuario y fechas; \"Limpiar filtros\" aparece cuando hay alguno",
                     "Exporta el log completo a Excel para revisiones de cumplimiento y control"
                 })
             );
@@ -265,85 +290,74 @@ public final class TutorialOverlay {
         ring.setVisible(false);
         ringLayer.getChildren().add(ring);
 
-        // ── Card header ───────────────────────────────────────────────────────
+        // ── Card header: icon, step, title and shortcut on the step's color ──
+        // (It was a tall band with a white circle hanging off its bottom edge,
+        // the title below it and twenty dots underneath: everything centered,
+        // the step's name far from its number.)
         StackPane header = new StackPane();
-        header.setPrefHeight(96);
-        header.setMaxHeight(96);
-
-        Region progressTrack = new Region();
-        progressTrack.getStyleClass().add("tutorial-progress-track");
-        progressTrack.setPrefHeight(5); progressTrack.setMaxHeight(5);
-
-        Region progressFill = new Region();
-        progressFill.getStyleClass().add("tutorial-progress-fill");
-        progressFill.setPrefHeight(5); progressFill.setMaxHeight(5);
-        progressFill.setPrefWidth(0);
-
-        StackPane progressPane = new StackPane(progressTrack, progressFill);
-        progressPane.setAlignment(Pos.CENTER_LEFT);
-        progressPane.setPrefHeight(5); progressPane.setMaxHeight(5);
-        progressTrack.prefWidthProperty().bind(header.widthProperty());
-        StackPane.setAlignment(progressPane, Pos.TOP_LEFT);
 
         FontIcon icon = new FontIcon();
-        icon.setIconSize(28);
+        icon.setIconSize(24);
+        icon.setIconColor(Color.WHITE);
         StackPane iconBadge = new StackPane(icon);
         iconBadge.getStyleClass().add("tutorial-icon-badge");
-        iconBadge.setPrefSize(64, 64); iconBadge.setMaxSize(64, 64);
-        iconBadge.setTranslateY(32);
-        StackPane.setAlignment(iconBadge, Pos.BOTTOM_CENTER);
+        iconBadge.setMinSize(50, 50); iconBadge.setPrefSize(50, 50); iconBadge.setMaxSize(50, 50);
+
+        Label lblCounter = new Label();
+        lblCounter.getStyleClass().add("tutorial-counter");
+        Label lblTitle = new Label();
+        lblTitle.getStyleClass().add("tutorial-title");
+        lblTitle.setWrapText(true);
+
+        FontIcon kbIcon = new FontIcon("mdi2k-keyboard-outline");
+        kbIcon.setIconSize(12);
+        kbIcon.setIconColor(Color.WHITE);
+        Label lblShortcut = new Label();
+        lblShortcut.getStyleClass().add("tutorial-shortcut-text");
+        HBox shortcutPill = new HBox(6, kbIcon, lblShortcut);
+        shortcutPill.getStyleClass().add("tutorial-shortcut-pill");
+        shortcutPill.setAlignment(Pos.CENTER_LEFT);
+        shortcutPill.setMaxWidth(Region.USE_PREF_SIZE);
+        StackPane shortcutWrap = new StackPane(shortcutPill);
+        shortcutWrap.setAlignment(Pos.CENTER_LEFT);
+
+        VBox titulos = new VBox(3, lblCounter, lblTitle, shortcutWrap);
+        titulos.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(titulos, Priority.ALWAYS);
+        HBox headerContent = new HBox(14, iconBadge, titulos);
+        headerContent.setAlignment(Pos.CENTER_LEFT);
+        headerContent.setPadding(new Insets(18, 52, 16, 20));
 
         Button btnClose = new Button("×");
         btnClose.getStyleClass().add("tutorial-close-btn");
         btnClose.setFocusTraversable(false);
         btnClose.setAccessibleText("Cerrar tutorial");
         StackPane.setAlignment(btnClose, Pos.TOP_RIGHT);
-        StackPane.setMargin(btnClose, new Insets(8, 8, 0, 0));
+        StackPane.setMargin(btnClose, new Insets(10, 10, 0, 0));
 
-        header.getChildren().addAll(progressPane, iconBadge, btnClose);
+        header.getChildren().addAll(headerContent, btnClose);
 
-        // ── Slide content ─────────────────────────────────────────────────────
-        Label lblTitle = new Label();
-        lblTitle.getStyleClass().add("tutorial-title");
-        lblTitle.setWrapText(true);
-        lblTitle.setMaxWidth(CARD_W - 56);
-        lblTitle.setAlignment(Pos.CENTER);
+        // ── Progress: one thin bar under the header, instead of twenty dots ──
+        Region progressTrack = new Region();
+        progressTrack.getStyleClass().add("tutorial-progress-track");
+        progressTrack.setPrefHeight(4); progressTrack.setMaxHeight(4);
+        Region progressFill = new Region();
+        progressFill.getStyleClass().add("tutorial-progress-fill");
+        progressFill.setPrefHeight(4); progressFill.setMaxHeight(4);
+        progressFill.setPrefWidth(0);
+        StackPane progressPane = new StackPane(progressTrack, progressFill);
+        progressPane.setAlignment(Pos.CENTER_LEFT);
+        progressPane.setPrefHeight(4); progressPane.setMaxHeight(4);
+        progressTrack.prefWidthProperty().bind(progressPane.widthProperty());
 
-        VBox bulletBox = new VBox(8);
+        // ── Slide content: the step's points, numbered ──
+        VBox bulletBox = new VBox(10);
         bulletBox.setAlignment(Pos.CENTER_LEFT);
-        bulletBox.setMaxWidth(CARD_W - 56);
+        bulletBox.setMaxWidth(CARD_W - 44);
 
-        FontIcon kbIcon = new FontIcon("mdi2k-keyboard-outline");
-        kbIcon.setIconSize(13);
-        kbIcon.getStyleClass().add("tutorial-shortcut-icon");
-        Label lblShortcut = new Label();
-        lblShortcut.getStyleClass().add("tutorial-shortcut-text");
-        HBox shortcutPill = new HBox(7, kbIcon, lblShortcut);
-        shortcutPill.getStyleClass().add("tutorial-shortcut-pill");
-        shortcutPill.setAlignment(Pos.CENTER);
-        shortcutPill.setMaxWidth(Region.USE_PREF_SIZE);
-        StackPane shortcutWrap = new StackPane(shortcutPill);
-        shortcutWrap.setAlignment(Pos.CENTER);
-
-        VBox slideContent = new VBox(14, lblTitle, bulletBox, shortcutWrap);
-        slideContent.setAlignment(Pos.CENTER);
-        slideContent.setMaxWidth(CARD_W - 56);
-
-        // ── Dots + counter ────────────────────────────────────────────────────
-        HBox dotsRow = new HBox(7);
-        dotsRow.setAlignment(Pos.CENTER);
-        Circle[] circles = new Circle[STEPS.length];
-        for (int i = 0; i < STEPS.length; i++) {
-            circles[i] = new Circle(3.5);
-            circles[i].getStyleClass().add("tutorial-dot");
-            circles[i].setCursor(Cursor.HAND);
-            circles[i].setAccessibleHelp("Ir al paso " + (i + 1) + " de " + STEPS.length);
-            dotsRow.getChildren().add(circles[i]);
-        }
-        Label lblCounter = new Label();
-        lblCounter.getStyleClass().add("tutorial-counter");
-        VBox dotsArea = new VBox(5, dotsRow, lblCounter);
-        dotsArea.setAlignment(Pos.CENTER);
+        VBox slideContent = new VBox(0, bulletBox);
+        slideContent.setAlignment(Pos.CENTER_LEFT);
+        slideContent.setMaxWidth(CARD_W - 44);
 
         // ── Nav buttons ───────────────────────────────────────────────────────
         Button btnPrev = new Button("← Anterior");
@@ -352,7 +366,7 @@ public final class TutorialOverlay {
         Button btnNext = new Button("Siguiente →");
         btnNext.getStyleClass().add("tutorial-btn-primary");
         btnNext.setAccessibleText("Siguiente paso");
-        Button btnSkip = new Button("Saltar");
+        Button btnSkip = new Button("Saltar tutorial");
         btnSkip.getStyleClass().add("tutorial-btn-skip");
         btnSkip.setAccessibleText("Saltar tutorial");
         Region btnSpacer = new Region();
@@ -361,16 +375,15 @@ public final class TutorialOverlay {
         btnRow.setAlignment(Pos.CENTER_RIGHT);
 
         // ── Keyboard hint ─────────────────────────────────────────────────────
-        Label kbHint = new Label("← → navegar  ·  Esc cerrar");
+        Label kbHint = new Label("← → para avanzar o regresar  ·  Esc para cerrar");
         kbHint.getStyleClass().add("tutorial-kb-hint");
 
         // ── Card body VBox ────────────────────────────────────────────────────
-        // top padding = badge overlap (32) + gap (12) = 44
-        VBox contentPad = new VBox(14, slideContent, dotsArea, btnRow, kbHint);
+        VBox contentPad = new VBox(16, slideContent, btnRow, kbHint);
         contentPad.setAlignment(Pos.CENTER);
-        contentPad.setPadding(new Insets(44, 24, 14, 24));
+        contentPad.setPadding(new Insets(18, 22, 14, 22));
 
-        VBox card = new VBox(0, header, contentPad);
+        VBox card = new VBox(0, header, progressPane, contentPad);
         card.getStyleClass().add("tutorial-card");
         card.setAlignment(Pos.TOP_CENTER);
         card.setPrefWidth(CARD_W);
@@ -411,11 +424,11 @@ public final class TutorialOverlay {
             outerStack.heightProperty().removeListener(sizeListener[0]);
             if (pulseAnim[0] != null) { pulseAnim[0].stop(); pulseAnim[0] = null; }
             if (posAnim[0]   != null) { posAnim[0].stop();   posAnim[0]   = null; }
-            FadeTransition fadeDim  = new FadeTransition(Duration.millis(220), dimLayer);
+            FadeTransition fadeDim  = new FadeTransition(AnimationUtils.duracion(220), dimLayer);
             fadeDim.setToValue(0);
-            FadeTransition fadeCard = new FadeTransition(Duration.millis(220), cardContainer);
+            FadeTransition fadeCard = new FadeTransition(AnimationUtils.duracion(220), cardContainer);
             fadeCard.setToValue(0);
-            ScaleTransition shrink  = new ScaleTransition(Duration.millis(220), card);
+            ScaleTransition shrink  = new ScaleTransition(AnimationUtils.duracion(220), card);
             shrink.setToX(0.92); shrink.setToY(0.92);
             shrink.setInterpolator(Interpolator.EASE_IN);
             ParallelTransition exit = new ParallelTransition(fadeDim, fadeCard, shrink);
@@ -447,26 +460,21 @@ public final class TutorialOverlay {
             else        card.getStyleClass().remove("tutorial-card-with-arrow");
 
             icon.setIconLiteral(s.icon());
-            icon.setIconColor(Color.web(s.color()));
-            iconBadge.setStyle(
-                "-fx-border-color: " + hexToRgba(s.color(), 0.28) + ";"
-                + " -fx-border-width: 2.5; -fx-border-radius: 38;"
-                + " -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.42) + ", 20, 0.04, 0, 4);"
-            );
             lblTitle.setText(s.title());
 
+            // Numbered points: each one its own line of reading.
             bulletBox.getChildren().clear();
+            int n = 1;
             for (String b : s.bullets()) {
-                FontIcon chevron = new FontIcon("mdi2c-chevron-right");
-                chevron.setIconSize(14);
-                // setIconColor, not setStyle: an inline style on a FontIcon replaced the
-                // icon font and the glyph rendered as an empty box.
-                chevron.setIconColor(Color.web(s.color()));
+                Label num = new Label(String.valueOf(n++));
+                num.getStyleClass().add("tutorial-bullet-num");
+                num.setStyle("-fx-background-color: " + hexToRgba(s.color(), 0.12) + "; -fx-text-fill: " + s.color() + ";");
+                num.setMinSize(22, 22); num.setPrefSize(22, 22); num.setMaxSize(22, 22);
                 Label lbl = new Label(b);
                 lbl.getStyleClass().add("tutorial-bullet-text");
                 lbl.setWrapText(true);
-                lbl.setMaxWidth(CARD_W - 72);
-                HBox row = new HBox(8, chevron, lbl);
+                lbl.setMaxWidth(CARD_W - 84);
+                HBox row = new HBox(10, num, lbl);
                 row.setAlignment(Pos.TOP_LEFT);
                 row.getStyleClass().add("tutorial-bullet-row");
                 bulletBox.getChildren().add(row);
@@ -474,31 +482,16 @@ public final class TutorialOverlay {
 
             if (s.shortcut() != null) {
                 lblShortcut.setText(s.shortcut());
-                kbIcon.setIconColor(Color.web(s.color()));
-                shortcutPill.setStyle(
-                    "-fx-background-color: " + hexToRgba(s.color(), 0.09) + ";"
-                    + "-fx-border-color: " + hexToRgba(s.color(), 0.30) + ";");
-                lblShortcut.setStyle("-fx-text-fill: " + s.color() + ";");
                 shortcutWrap.setVisible(true);  shortcutWrap.setManaged(true);
             } else {
                 shortcutWrap.setVisible(false); shortcutWrap.setManaged(false);
             }
 
-            for (int i = 0; i < circles.length; i++) {
-                circles[i].getStyleClass().removeAll("tutorial-dot-active");
-                if (i == step[0]) {
-                    circles[i].getStyleClass().add("tutorial-dot-active");
-                    circles[i].setStyle("-fx-fill: " + s.color() + ";");
-                    circles[i].setRadius(5.0);
-                } else {
-                    circles[i].setStyle("");
-                    circles[i].setRadius(3.5);
-                }
-            }
+            progressFill.setStyle("-fx-background-color: " + s.color() + ";");
 
             boolean isFirst = step[0] == 0;
             boolean isLast  = step[0] == STEPS.length - 1;
-            lblCounter.setText("Paso " + (step[0] + 1) + " de " + STEPS.length);
+            lblCounter.setText("PASO " + (step[0] + 1) + " DE " + STEPS.length);
             btnPrev.setVisible(!isFirst); btnPrev.setManaged(!isFirst);
             btnNext.setText(isLast ? "Comenzar  ✓" : "Siguiente →");
             btnNext.setAccessibleText(isLast ? "Comenzar a usar SIBIM" : "Siguiente paso");
@@ -519,12 +512,12 @@ public final class TutorialOverlay {
         // ── Animated step transition ──────────────────────────────────────────
         BiConsumer<Integer, Integer> goTo = (newIdx, dir) -> {
             btnNext.setDisable(true); btnPrev.setDisable(true);
-            btnSkip.setDisable(true); dotsRow.setMouseTransparent(true);
+            btnSkip.setDisable(true);
 
-            TranslateTransition slideOut = new TranslateTransition(Duration.millis(155), slideContent);
+            TranslateTransition slideOut = new TranslateTransition(AnimationUtils.duracion(155), slideContent);
             slideOut.setToX(dir * -48.0);
             slideOut.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition fadeOut = new FadeTransition(Duration.millis(135), slideContent);
+            FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(135), slideContent);
             fadeOut.setToValue(0);
             ParallelTransition exitAnim = new ParallelTransition(slideOut, fadeOut);
 
@@ -533,15 +526,15 @@ public final class TutorialOverlay {
                 render.run();
 
                 double targetW = progressPane.getWidth() * (newIdx + 1.0) / STEPS.length;
-                new Timeline(
+                AnimationUtils.reproducir(new Timeline(
                     new KeyFrame(Duration.ZERO,
                         new KeyValue(progressFill.prefWidthProperty(), progressFill.getPrefWidth())),
                     new KeyFrame(Duration.millis(270),
                         new KeyValue(progressFill.prefWidthProperty(), targetW, Interpolator.EASE_OUT))
-                ).play();
+                ));
 
                 iconBadge.setScaleX(0.5); iconBadge.setScaleY(0.5);
-                new Timeline(
+                AnimationUtils.reproducir(new Timeline(
                     new KeyFrame(Duration.ZERO,
                         new KeyValue(iconBadge.scaleXProperty(), 0.5, Interpolator.EASE_OUT),
                         new KeyValue(iconBadge.scaleYProperty(), 0.5, Interpolator.EASE_OUT)),
@@ -551,17 +544,17 @@ public final class TutorialOverlay {
                     new KeyFrame(Duration.millis(300),
                         new KeyValue(iconBadge.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
                         new KeyValue(iconBadge.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
-                ).play();
+                ));
 
                 slideContent.setTranslateX(dir * 48.0);
-                TranslateTransition slideIn = new TranslateTransition(Duration.millis(210), slideContent);
+                TranslateTransition slideIn = new TranslateTransition(AnimationUtils.duracion(210), slideContent);
                 slideIn.setToX(0); slideIn.setInterpolator(Interpolator.EASE_OUT);
-                FadeTransition fadeIn = new FadeTransition(Duration.millis(190), slideContent);
+                FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(190), slideContent);
                 fadeIn.setFromValue(0); fadeIn.setToValue(1);
                 ParallelTransition enterAnim = new ParallelTransition(slideIn, fadeIn);
                 enterAnim.setOnFinished(done -> {
                     btnNext.setDisable(false); btnPrev.setDisable(false);
-                    btnSkip.setDisable(false); dotsRow.setMouseTransparent(false);
+                    btnSkip.setDisable(false);
                 });
                 enterAnim.play();
 
@@ -569,9 +562,9 @@ public final class TutorialOverlay {
                 int[] idx = {0};
                 bulletBox.getChildren().forEach(n -> {
                     int delay = 75 + idx[0] * 55;
-                    FadeTransition bf = new FadeTransition(Duration.millis(195), n);
+                    FadeTransition bf = new FadeTransition(AnimationUtils.duracion(195), n);
                     bf.setFromValue(0); bf.setToValue(1); bf.setDelay(Duration.millis(delay));
-                    TranslateTransition bt = new TranslateTransition(Duration.millis(195), n);
+                    TranslateTransition bt = new TranslateTransition(AnimationUtils.duracion(195), n);
                     bt.setFromY(11); bt.setToY(0); bt.setDelay(Duration.millis(delay));
                     bt.setInterpolator(Interpolator.EASE_OUT);
                     new ParallelTransition(bf, bt).play();
@@ -581,9 +574,9 @@ public final class TutorialOverlay {
                 if (shortcutWrap.isVisible()) {
                     shortcutPill.setOpacity(0);
                     shortcutPill.setScaleX(0.65); shortcutPill.setScaleY(0.65);
-                    FadeTransition sf = new FadeTransition(Duration.millis(200), shortcutPill);
+                    FadeTransition sf = new FadeTransition(AnimationUtils.duracion(200), shortcutPill);
                     sf.setFromValue(0); sf.setToValue(1); sf.setDelay(Duration.millis(180));
-                    ScaleTransition sp = new ScaleTransition(Duration.millis(240), shortcutPill);
+                    ScaleTransition sp = new ScaleTransition(AnimationUtils.duracion(240), shortcutPill);
                     sp.setFromX(0.65); sp.setFromY(0.65);
                     sp.setToX(1); sp.setToY(1);
                     sp.setInterpolator(Interpolator.EASE_OUT); sp.setDelay(Duration.millis(180));
@@ -592,14 +585,6 @@ public final class TutorialOverlay {
             });
             exitAnim.play();
         };
-
-        for (int i = 0; i < STEPS.length; i++) {
-            final int idx = i;
-            circles[i].setOnMouseClicked(e -> {
-                if (idx != step[0] && !btnNext.isDisabled())
-                    goTo.accept(idx, idx > step[0] ? 1 : -1);
-            });
-        }
 
         btnClose.setOnAction(e -> dismiss.run());
 
@@ -641,18 +626,18 @@ public final class TutorialOverlay {
         card.setScaleX(0.86); card.setScaleY(0.86);
         card.setTranslateY(16);
 
-        FadeTransition  dimIn     = new FadeTransition(Duration.millis(280), dimLayer);
+        FadeTransition  dimIn     = new FadeTransition(AnimationUtils.duracion(280), dimLayer);
         dimIn.setToValue(targetDimOpacity);
-        FadeTransition  ctrIn     = new FadeTransition(Duration.millis(280), cardContainer);
+        FadeTransition  ctrIn     = new FadeTransition(AnimationUtils.duracion(280), cardContainer);
         ctrIn.setFromValue(0); ctrIn.setToValue(1);
-        ScaleTransition cardScale = new ScaleTransition(Duration.millis(380), card);
+        ScaleTransition cardScale = new ScaleTransition(AnimationUtils.duracion(380), card);
         cardScale.setFromX(0.86); cardScale.setFromY(0.86);
         cardScale.setToX(1.0);   cardScale.setToY(1.0);
         cardScale.setInterpolator(Interpolator.EASE_OUT);
-        TranslateTransition cardRise = new TranslateTransition(Duration.millis(380), card);
+        TranslateTransition cardRise = new TranslateTransition(AnimationUtils.duracion(380), card);
         cardRise.setFromY(16); cardRise.setToY(0);
         cardRise.setInterpolator(Interpolator.EASE_OUT);
-        FadeTransition  cardFade  = new FadeTransition(Duration.millis(380), card);
+        FadeTransition  cardFade  = new FadeTransition(AnimationUtils.duracion(380), card);
         cardFade.setFromValue(0); cardFade.setToValue(1);
 
         ParallelTransition entrance = new ParallelTransition(dimIn, ctrIn, cardScale, cardRise, cardFade);
@@ -662,9 +647,9 @@ public final class TutorialOverlay {
             int[] idx = {0};
             bulletBox.getChildren().forEach(n -> {
                 int delay = idx[0] * 60;
-                FadeTransition bf = new FadeTransition(Duration.millis(195), n);
+                FadeTransition bf = new FadeTransition(AnimationUtils.duracion(195), n);
                 bf.setFromValue(0); bf.setToValue(1); bf.setDelay(Duration.millis(delay));
-                TranslateTransition bt = new TranslateTransition(Duration.millis(195), n);
+                TranslateTransition bt = new TranslateTransition(AnimationUtils.duracion(195), n);
                 bt.setFromY(10); bt.setToY(0); bt.setDelay(Duration.millis(delay));
                 bt.setInterpolator(Interpolator.EASE_OUT);
                 new ParallelTransition(bf, bt).play();

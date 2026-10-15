@@ -89,6 +89,7 @@ public class MainController {
     @FXML private Button btnGlobalSearch;
     @FXML private VBox secNavegacion;
     @FXML private VBox secOperaciones;
+    @FXML private VBox secReportes;
     @FXML private VBox secControl;
     @FXML private VBox secSistema;
     @FXML private Label alertBadge;
@@ -100,6 +101,7 @@ public class MainController {
     @FXML private Button offlineBannerSyncBtn;
     @FXML private Label statusDbLabel;
     @FXML private Tooltip statusDbTooltip;
+    @FXML private Label statusDbHelpBadge;
     @FXML private Label statusUserLabel;
     @FXML private Label statusVersionLabel;
     @FXML private Label statusTimeLabel;
@@ -162,6 +164,7 @@ public class MainController {
         sidebarSections = new SidebarSections(Map.of(
             NavSection.NAVEGACION,  secNavegacion,
             NavSection.OPERACIONES, secOperaciones,
+            NavSection.REPORTES,    secReportes,
             NavSection.CONTROL,     secControl,
             NavSection.SISTEMA,     secSistema),
             SidebarSections.defaultPrefs(), true);
@@ -178,6 +181,8 @@ public class MainController {
             offlineBanner, offlineBannerLabel, offlineBannerSyncBtn,
             statusDbLabel, statusDbTooltip, statusUserLabel, statusTimeLabel, statusDotIcon);
         if (statusVersionLabel != null) statusVersionLabel.setText("SIBIM v" + UpdateChecker.currentVersion());
+        // The connection "?" opened only on hover: also on click and with Tab + Enter.
+        if (statusDbHelpBadge != null) DialogUtil.enableClickToShowTooltip(statusDbHelpBadge);
         badgeManager   = new MainBadgeManager(alertBadge, loanBadge, alertProductoService, prestamoService);
         startupChecks  = new MainStartupChecks(alertProductoService, prestamoService);
         startupChecks.cleanupStaleTempFiles();
@@ -199,6 +204,14 @@ public class MainController {
             if (!it.adminOnly() || it.button() == null) continue;
             it.button().setVisible(admin);
             it.button().setManaged(admin);
+        }
+        // A group left with nothing to open (Control patrimonial, for an área)
+        // showed its header over an empty list.
+        for (VBox sec : List.of(secNavegacion, secOperaciones, secReportes, secControl, secSistema)) {
+            if (sec == null || sec.getChildren().size() < 2 || !(sec.getChildren().get(1) instanceof javafx.scene.layout.Pane items)) continue;
+            boolean vacia = items.getChildren().stream().noneMatch(MainController::muestraUnBoton);
+            sec.setVisible(!vacia);
+            sec.setManaged(!vacia);
         }
 
         // Single scene listener — consolidates what were three separate listeners.
@@ -401,8 +414,8 @@ public class MainController {
             page("categorias",    NavSection.NAVEGACION,  btnCategorias,    KeyCode.DIGIT4).restrictedToAdmin(),
             page("movimientos",   NavSection.OPERACIONES, btnMovimientos,   KeyCode.DIGIT5).restrictedToAdmin(),
             page("alertas",       NavSection.OPERACIONES, btnAlertas,       KeyCode.DIGIT6),
-            page("reportes",      NavSection.OPERACIONES, btnReportes,      KeyCode.DIGIT7),
-            page("depreciacion",  NavSection.OPERACIONES, btnDepreciacion,  KeyCode.DIGIT8).restrictedToAdmin(),
+            page("reportes",      NavSection.REPORTES,    btnReportes,      KeyCode.DIGIT7),
+            page("depreciacion",  NavSection.REPORTES,    btnDepreciacion,  KeyCode.DIGIT8).restrictedToAdmin(),
             action("conteo",      NavSection.OPERACIONES, btnConteoFisico,  this::onConteoFisico, KeyCode.C, ctrlAlt).hiddenFromPalette().restrictedToAdmin(),
             page("resguardos",    NavSection.CONTROL,     btnResguardos,    KeyCode.G, ctrlAlt).restrictedToAdmin(),
             page("prestamos",     NavSection.CONTROL,     btnPrestamos,     KeyCode.P, ctrlAlt).restrictedToAdmin(),
@@ -468,7 +481,7 @@ public class MainController {
 
             if (!contentArea.getChildren().isEmpty()) {
                 Node current = contentArea.getChildren().get(0);
-                FadeTransition out = new FadeTransition(Duration.millis(110), current);
+                FadeTransition out = new FadeTransition(com.sibim.util.AnimationUtils.duracion(110), current);
                 out.setFromValue(current.getOpacity());
                 out.setToValue(0);
                 out.setOnFinished(ev -> {
@@ -554,7 +567,11 @@ public class MainController {
     }
 
     private void applyTextScaleClass() {
-        AccessibilityUtils.applyCurrentTextScaleClass(contentArea);
+        // On the window's root, not only the content: the sidebar and the
+        // status bar grow too (see EscalaTexto).
+        javafx.scene.Parent raiz = outerStack != null && outerStack.getParent() != null
+            ? outerStack.getParent() : contentArea;
+        AccessibilityUtils.applyCurrentTextScaleClass(raiz);
         if (btnTextSize != null) {
             int idx = AccessibilityUtils.getTextScaleIndex();
             btnTextSize.setText("Texto: " + AccessibilityUtils.TEXT_SCALE_LABELS[idx]);
@@ -798,6 +815,14 @@ public class MainController {
             navEntries);
     }
 
+    /** A nav entry still on screen: a visible button, or the StackPane that pairs one with its badge. */
+    private static boolean muestraUnBoton(javafx.scene.Node n) {
+        if (!n.isVisible()) return false;
+        if (n instanceof Button) return true;
+        return n instanceof javafx.scene.Parent p
+            && p.getChildrenUnmodifiable().stream().anyMatch(MainController::muestraUnBoton);
+    }
+
     private void setupNavHover(Button... buttons) {
         for (Button btn : buttons) {
             if (btn == null) continue;
@@ -812,7 +837,7 @@ public class MainController {
                         new KeyValue(btn.translateXProperty(), 6.0, Interpolator.EASE_OUT))
                 );
                 navHoverAnims.put(btn, t);
-                t.play();
+                com.sibim.util.AnimationUtils.reproducir(t);
             });
             btn.setOnMouseExited(e -> {
                 if (btn == sidebarManager.getActive()) return;
@@ -825,7 +850,7 @@ public class MainController {
                         new KeyValue(btn.translateXProperty(), 0.0, Interpolator.EASE_OUT))
                 );
                 navHoverAnims.put(btn, t);
-                t.play();
+                com.sibim.util.AnimationUtils.reproducir(t);
             });
         }
     }

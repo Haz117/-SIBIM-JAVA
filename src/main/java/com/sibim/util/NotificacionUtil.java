@@ -46,6 +46,26 @@ public class NotificacionUtil {
     public static void info(Scene scene, String mensaje)        { mostrar(scene, mensaje, Tipo.INFO); }
     public static void advertencia(Scene scene, String mensaje) { mostrar(scene, mensaje, Tipo.ADVERTENCIA); }
 
+    /** For what must not go unread: a dialog that stays until someone closes
+     *  it, not a toast that leaves on its own after a few seconds (and while
+     *  you look elsewhere). Doesn't wait for the answer; safe from any thread. */
+    public static void importante(String titulo, String mensaje) {
+        Platform.runLater(() -> dialogoImportante(titulo, mensaje).show());
+    }
+
+    /** The same, waiting until it is closed — FX thread only: for a warning
+     *  that must be read before what comes next. */
+    public static void importanteYEspera(String titulo, String mensaje) {
+        dialogoImportante(titulo, mensaje).showAndWait();
+    }
+
+    private static javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogoImportante(String titulo, String mensaje) {
+        var dlg = DialogUtil.styledMessage("mdi2a-alert-circle-outline", titulo, "Léelo antes de continuar",
+            AppColors.WARNING_D, AppColors.WARNING_DD, mensaje);
+        dlg.getDialogPane().getButtonTypes().setAll(javafx.scene.control.ButtonType.OK);
+        return dlg;
+    }
+
     /** Toast de éxito con botón de acción (p.ej. "↶ Deshacer"). Se oculta a los 8 s o al pulsar el botón. */
     public static void exitoConAccion(Scene scene, String mensaje, String btnLabel, Runnable onAction) {
         if (scene == null) return;
@@ -126,8 +146,8 @@ public class NotificacionUtil {
         box.getStyleClass().addAll("toast-box", toastClass);
 
         // Popup is not in the main scene, so apply stylesheet directly to the root node
-        var css = NotificacionUtil.class.getResource("/css/styles.css");
-        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
         box.setTranslateY(-16);
@@ -143,12 +163,12 @@ public class NotificacionUtil {
         activeToasts++;
         popup.show(owner, x, y);
 
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(200), box);
+        FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(200), box);
         fadeIn.setFromValue(0); fadeIn.setToValue(1);
-        TranslateTransition slideIn = new TranslateTransition(Duration.millis(200), box);
+        TranslateTransition slideIn = new TranslateTransition(AnimationUtils.duracion(200), box);
         slideIn.setFromY(-16); slideIn.setToY(0);
         slideIn.setInterpolator(Interpolator.EASE_OUT);
-        ScaleTransition iconPop = new ScaleTransition(Duration.millis(240), iconBadge);
+        ScaleTransition iconPop = new ScaleTransition(AnimationUtils.duracion(240), iconBadge);
         iconPop.setFromX(0.55); iconPop.setFromY(0.55);
         iconPop.setToX(1.0);   iconPop.setToY(1.0);
         iconPop.setInterpolator(Interpolator.EASE_OUT);
@@ -161,17 +181,24 @@ public class NotificacionUtil {
         box.setAccessibleText((tipo == Tipo.ERROR ? "Error: " : tipo == Tipo.ADVERTENCIA ? "Aviso: " : "") + mensaje);
         PauseTransition pause = new PauseTransition(Duration.millis(ms));
 
-        TranslateTransition slideOut = new TranslateTransition(Duration.millis(260), box);
+        TranslateTransition slideOut = new TranslateTransition(AnimationUtils.duracion(260), box);
         slideOut.setToX(54);
         slideOut.setInterpolator(Interpolator.EASE_IN);
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(260), box);
+        FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(260), box);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
         dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
 
-        SequentialTransition seq = new SequentialTransition(
-            new ParallelTransition(fadeIn, slideIn, iconPop), pause, dismissAnim);
+        ParallelTransition entrada = new ParallelTransition(fadeIn, slideIn, iconPop);
+        SequentialTransition seq = new SequentialTransition(entrada, pause, dismissAnim);
         seq.play();
+        // Reading a long one takes longer than its timer: the pointer on the
+        // toast holds it (only during the reading pause, not mid-movement).
+        box.setOnMouseEntered(e -> {
+            double t = seq.getCurrentTime().toMillis(), ini = entrada.getTotalDuration().toMillis();
+            if (seq.getStatus() == Animation.Status.RUNNING && t >= ini && t < ini + ms) seq.pause();
+        });
+        box.setOnMouseExited(e -> { if (seq.getStatus() == Animation.Status.PAUSED) seq.play(); });
 
         // Guards against a fast double-click: without it, a second click
         // during the 150ms quickFade below re-enters this handler and plays
@@ -184,10 +211,10 @@ public class NotificacionUtil {
             if (closing[0]) return;
             closing[0] = true;
             seq.stop();
-            TranslateTransition quickSlide = new TranslateTransition(Duration.millis(190), box);
+            TranslateTransition quickSlide = new TranslateTransition(AnimationUtils.duracion(190), box);
             quickSlide.setToX(54);
             quickSlide.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition quickFade = new FadeTransition(Duration.millis(190), box);
+            FadeTransition quickFade = new FadeTransition(AnimationUtils.duracion(190), box);
             quickFade.setFromValue(box.getOpacity()); quickFade.setToValue(0);
             ParallelTransition quickDismiss = new ParallelTransition(quickSlide, quickFade);
             quickDismiss.setOnFinished(ev -> { popup.hide(); releaseSlot(); });
@@ -235,8 +262,8 @@ public class NotificacionUtil {
         box.setMaxWidth(360);
         box.getStyleClass().add("transfer-cel-card");
 
-        var css = NotificacionUtil.class.getResource("/css/styles.css");
-        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
         box.setScaleX(0.85); box.setScaleY(0.85);
@@ -253,36 +280,36 @@ public class NotificacionUtil {
             popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
             popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
 
-            ScaleTransition popIn = new ScaleTransition(Duration.millis(340), box);
+            ScaleTransition popIn = new ScaleTransition(AnimationUtils.duracion(340), box);
             popIn.setToX(1.04); popIn.setToY(1.04);
             popIn.setInterpolator(Interpolator.EASE_OUT);
-            ScaleTransition settle = new ScaleTransition(Duration.millis(140), box);
+            ScaleTransition settle = new ScaleTransition(AnimationUtils.duracion(140), box);
             settle.setToX(1); settle.setToY(1);
             settle.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(260), box);
+            FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(260), box);
             fadeIn.setToValue(1);
 
-            TranslateTransition arrowSlide = new TranslateTransition(Duration.millis(280), arrowLbl);
+            TranslateTransition arrowSlide = new TranslateTransition(AnimationUtils.duracion(280), arrowLbl);
             arrowSlide.setToY(0);
             arrowSlide.setDelay(Duration.millis(260));
             arrowSlide.setInterpolator(Interpolator.EASE_OUT);
-            FadeTransition arrowFade = new FadeTransition(Duration.millis(220), arrowLbl);
+            FadeTransition arrowFade = new FadeTransition(AnimationUtils.duracion(220), arrowLbl);
             arrowFade.setToValue(1);
             arrowFade.setDelay(Duration.millis(260));
 
-            ScaleTransition toPop = new ScaleTransition(Duration.millis(280), toLbl);
+            ScaleTransition toPop = new ScaleTransition(AnimationUtils.duracion(280), toLbl);
             toPop.setToX(1.12); toPop.setToY(1.12);
             toPop.setDelay(Duration.millis(440));
             toPop.setInterpolator(Interpolator.EASE_OUT);
-            ScaleTransition toSettle = new ScaleTransition(Duration.millis(140), toLbl);
+            ScaleTransition toSettle = new ScaleTransition(AnimationUtils.duracion(140), toLbl);
             toSettle.setToX(1); toSettle.setToY(1);
             toSettle.setDelay(Duration.millis(720));
             toSettle.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition toFade = new FadeTransition(Duration.millis(220), toLbl);
+            FadeTransition toFade = new FadeTransition(AnimationUtils.duracion(220), toLbl);
             toFade.setToValue(1);
             toFade.setDelay(Duration.millis(440));
 
-            FadeTransition fadeOut = new FadeTransition(Duration.millis(280), box);
+            FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(280), box);
             fadeOut.setToValue(0);
             fadeOut.setOnFinished(e -> popup.hide());
 
@@ -327,8 +354,8 @@ public class NotificacionUtil {
         box.setMaxWidth(340);
         box.getStyleClass().add("transfer-cel-card");
 
-        var css = NotificacionUtil.class.getResource("/css/styles.css");
-        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
         box.setScaleX(0.85); box.setScaleY(0.85);
@@ -342,16 +369,16 @@ public class NotificacionUtil {
             popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
             popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
 
-            ScaleTransition popIn = new ScaleTransition(Duration.millis(340), box);
+            ScaleTransition popIn = new ScaleTransition(AnimationUtils.duracion(340), box);
             popIn.setToX(1.04); popIn.setToY(1.04);
             popIn.setInterpolator(Interpolator.EASE_OUT);
-            ScaleTransition settle = new ScaleTransition(Duration.millis(140), box);
+            ScaleTransition settle = new ScaleTransition(AnimationUtils.duracion(140), box);
             settle.setToX(1); settle.setToY(1);
             settle.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(260), box);
+            FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(260), box);
             fadeIn.setToValue(1);
 
-            FadeTransition fadeOut = new FadeTransition(Duration.millis(280), box);
+            FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(280), box);
             fadeOut.setToValue(0);
             fadeOut.setOnFinished(e -> popup.hide());
 
@@ -389,8 +416,8 @@ public class NotificacionUtil {
         box.setMaxWidth(360);
         box.getStyleClass().add("transfer-cel-card");
 
-        var css = NotificacionUtil.class.getResource("/css/styles.css");
-        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
         box.setScaleX(0.94); box.setScaleY(0.94);
@@ -404,13 +431,13 @@ public class NotificacionUtil {
             popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
             popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
 
-            ScaleTransition growIn = new ScaleTransition(Duration.millis(240), box);
+            ScaleTransition growIn = new ScaleTransition(AnimationUtils.duracion(240), box);
             growIn.setToX(1); growIn.setToY(1);
             growIn.setInterpolator(Interpolator.EASE_OUT);
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(240), box);
+            FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(240), box);
             fadeIn.setToValue(1);
 
-            FadeTransition fadeOut = new FadeTransition(Duration.millis(280), box);
+            FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(280), box);
             fadeOut.setToValue(0);
             fadeOut.setOnFinished(e -> popup.hide());
 
@@ -462,8 +489,8 @@ public class NotificacionUtil {
 
         VBox box = new VBox(0, content, countdownBar);
 
-        var css = NotificacionUtil.class.getResource("/css/styles.css");
-        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
         box.setTranslateY(-16);
@@ -477,9 +504,9 @@ public class NotificacionUtil {
         activeToasts++;
         popup.show(owner, x, y);
 
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(200), box);
+        FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(200), box);
         fadeIn.setFromValue(0); fadeIn.setToValue(1);
-        TranslateTransition slideIn = new TranslateTransition(Duration.millis(200), box);
+        TranslateTransition slideIn = new TranslateTransition(AnimationUtils.duracion(200), box);
         slideIn.setFromY(-16); slideIn.setToY(0);
         slideIn.setInterpolator(Interpolator.EASE_OUT);
         new ParallelTransition(fadeIn, slideIn).play();
@@ -489,10 +516,10 @@ public class NotificacionUtil {
             new KeyFrame(Duration.seconds(5), new KeyValue(countdownBar.progressProperty(), 0.0, Interpolator.LINEAR))
         );
 
-        TranslateTransition slideOut = new TranslateTransition(Duration.millis(260), box);
+        TranslateTransition slideOut = new TranslateTransition(AnimationUtils.duracion(260), box);
         slideOut.setToX(54);
         slideOut.setInterpolator(Interpolator.EASE_IN);
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(260), box);
+        FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(260), box);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
         dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
@@ -504,9 +531,9 @@ public class NotificacionUtil {
             if (closing[0]) return;
             closing[0] = true;
             countdown.stop();
-            TranslateTransition qs = new TranslateTransition(Duration.millis(190), box);
+            TranslateTransition qs = new TranslateTransition(AnimationUtils.duracion(190), box);
             qs.setToX(54); qs.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition qf = new FadeTransition(Duration.millis(190), box);
+            FadeTransition qf = new FadeTransition(AnimationUtils.duracion(190), box);
             qf.setFromValue(box.getOpacity()); qf.setToValue(0);
             ParallelTransition qd = new ParallelTransition(qs, qf);
             qd.setOnFinished(ev -> { popup.hide(); releaseSlot(); });
@@ -556,8 +583,8 @@ public class NotificacionUtil {
         box.setPadding(new Insets(13, 16, 13, 16));
         box.getStyleClass().addAll("toast-box", toastClass);
 
-        var css = NotificacionUtil.class.getResource("/css/styles.css");
-        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
         box.setTranslateY(-16);
@@ -571,16 +598,16 @@ public class NotificacionUtil {
         activeToasts++;
         popup.show(owner, x, y);
 
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(200), box);
+        FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(200), box);
         fadeIn.setFromValue(0); fadeIn.setToValue(1);
-        TranslateTransition slideIn = new TranslateTransition(Duration.millis(200), box);
+        TranslateTransition slideIn = new TranslateTransition(AnimationUtils.duracion(200), box);
         slideIn.setFromY(-16); slideIn.setToY(0);
         slideIn.setInterpolator(Interpolator.EASE_OUT);
         PauseTransition pause = new PauseTransition(Duration.millis(8000));
-        TranslateTransition slideOut = new TranslateTransition(Duration.millis(260), box);
+        TranslateTransition slideOut = new TranslateTransition(AnimationUtils.duracion(260), box);
         slideOut.setToX(54);
         slideOut.setInterpolator(Interpolator.EASE_IN);
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(260), box);
+        FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(260), box);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
         dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
@@ -591,9 +618,9 @@ public class NotificacionUtil {
 
         Runnable dismiss = () -> {
             seq.stop();
-            TranslateTransition qs = new TranslateTransition(Duration.millis(190), box);
+            TranslateTransition qs = new TranslateTransition(AnimationUtils.duracion(190), box);
             qs.setToX(54); qs.setInterpolator(Interpolator.EASE_IN);
-            FadeTransition qf = new FadeTransition(Duration.millis(190), box);
+            FadeTransition qf = new FadeTransition(AnimationUtils.duracion(190), box);
             qf.setFromValue(box.getOpacity()); qf.setToValue(0);
             ParallelTransition qd = new ParallelTransition(qs, qf);
             qd.setOnFinished(ev -> { popup.hide(); releaseSlot(); });

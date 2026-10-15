@@ -623,8 +623,14 @@ public class ConfiguracionController {
             },
             r -> {
                 loadUsers();
-                NotificacionUtil.exito(scene, r.getKey() == 0 ? "Todas las áreas ya tenían cuenta"
-                    : r.getKey() + " cuenta(s) creadas");
+                // The PDF is a temporary file, deleted when SIBIM closes, and
+                // the passwords are stored only as hashes: it is their one copy.
+                // Read before the PDF's window, where "Guardar como…" is.
+                if (r.getKey() == 0) NotificacionUtil.exito(scene, "Todas las áreas ya tenían cuenta");
+                else NotificacionUtil.importanteYEspera("Guarda el PDF de contraseñas", r.getKey() + " cuenta(s) creadas.\n\n"
+                    + "En la siguiente ventana usa «Guardar como…» y guárdalo en un lugar seguro: es un archivo "
+                    + "temporal que se borra al cerrar SIBIM, y las contraseñas no se pueden volver a ver "
+                    + "(solo restablecer una por una).");
                 DialogUtil.showExportResultDialog(scene, r.getValue());
             },
             e -> NotificacionUtil.error(scene, "No se pudieron crear las cuentas: " + e.getMessage()));

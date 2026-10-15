@@ -179,7 +179,10 @@ public class MovimientosController {
         boolean admin = SessionManager.isAdmin();
         btnNuevo.setVisible(admin); btnNuevo.setManaged(admin);
         if (btnPendientes != null) {
-            btnPendientes.setVisible(admin); btnPendientes.setManaged(admin);
+            // Shown only while an old request is waiting (loadPendientesCount):
+            // a transfer Patrimonio registers is applied at once, and an empty
+            // "pendientes de aprobación" made it look like the área approved it.
+            btnPendientes.setVisible(false); btnPendientes.setManaged(false);
             if (admin) installPendientesBadge();
         }
         loadPendientesCount();
@@ -568,6 +571,8 @@ public class MovimientosController {
             () -> movimientoService.getPendientesTransferencias().size(),
             count -> {
                 if (btnPendientes == null) return;
+                boolean mostrar = SessionManager.isAdmin() && count > 0;
+                btnPendientes.setVisible(mostrar); btnPendientes.setManaged(mostrar);
                 String base = "Pendientes";
                 btnPendientes.setText(count > 0 ? base + " (" + count + ")" : base);
                 btnPendientes.getStyleClass().removeAll("btn-secondary", "btn-warning-outline");

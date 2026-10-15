@@ -136,7 +136,7 @@ class ProductoTabPatrimonioFields {
         // ── Mantenimiento ────────────────────────────────────────────────────
         fProximaRevision = new DatePicker(
             existing != null ? existing.getProximaRevision() : null);
-        fProximaRevision.setPromptText("dd/MM/yyyy");
+        fProximaRevision.setPromptText("dd/mm/aaaa");
         fProximaRevision.getStyleClass().add("form-input");
 
         fNotasMant = new TextArea(

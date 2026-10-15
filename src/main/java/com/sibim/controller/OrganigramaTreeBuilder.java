@@ -411,36 +411,20 @@ class OrganigramaTreeBuilder {
         return row;
     }
 
+    /** The first five bienes of an área; the rest open in its dialog, whose
+     *  table only draws the rows on screen. They used to be built here too,
+     *  hidden, for every área on every rebuild (load, each search, "solo
+     *  alertas"): some 13 000 nodes for 3 300 bienes, which froze the screen. */
     private void addProductPreview(Pane container, List<Producto> prods, String areaName) {
         int preview = Math.min(prods.size(), 5);
         for (int i = 0; i < preview; i++)
             container.getChildren().add(buildProductRow(prods.get(i)));
 
         if (prods.size() > 5) {
-            List<javafx.scene.Node> extras = new ArrayList<>();
-            for (int j = 5; j < prods.size(); j++) {
-                HBox row = buildProductRow(prods.get(j));
-                row.setVisible(false); row.setManaged(false);
-                container.getChildren().add(row);
-                extras.add(row);
-            }
-            Hyperlink more = new Hyperlink("  +" + (prods.size() - 5) + " bienes más");
+            Hyperlink more = new Hyperlink("  +" + (prods.size() - 5) + " bienes más — ver todos");
             more.getStyleClass().add("org-more-link");
-            Hyperlink less = new Hyperlink("  Mostrar menos");
-            less.getStyleClass().add("org-more-link");
-            less.setVisible(false); less.setManaged(false);
-            more.setOnAction(e -> {
-                extras.forEach(n -> { n.setVisible(true); n.setManaged(true); });
-                AnimationUtils.staggeredFadeInUp(extras, 200, 40);
-                more.setVisible(false); more.setManaged(false);
-                less.setVisible(true);  less.setManaged(true);
-            });
-            less.setOnAction(e -> {
-                extras.forEach(n -> { n.setVisible(false); n.setManaged(false); });
-                less.setVisible(false); less.setManaged(false);
-                more.setVisible(true);  more.setManaged(true);
-            });
-            container.getChildren().addAll(more, less);
+            more.setOnAction(e -> onAreaClick.show(areaName, prods, false));
+            container.getChildren().add(more);
         }
     }
 

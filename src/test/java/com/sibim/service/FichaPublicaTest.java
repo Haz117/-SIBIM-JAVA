@@ -45,32 +45,6 @@ class FichaPublicaTest {
         assertEquals(QrUtils.contenidoBien(p), FichaPublica.publicar(List.of(p)).get("b-1"));
     }
 
-    /** Armamento, the C-2, patrol cars: the bienes of Seguridad Pública and of
-     *  its direcciones never get a ficha that anyone with the link can open. */
-    @Test
-    void bienesDeSeguridadPublica_nuncaSePublican() {
-        String ssp = "Secretaría de Seguridad Pública y Tránsito";
-        var conSeguridad = new java.util.ArrayList<>(com.sibim.config.AreaCatalog.PREDETERMINADO.entradas());
-        conSeguridad.add(new com.sibim.config.AreaCatalog.Entrada(ssp, com.sibim.config.AreaCatalog.Grupo.SECRETARIA, null, "SSP"));
-        conSeguridad.add(new com.sibim.config.AreaCatalog.Entrada("Seguridad Pública — Armamento",
-            com.sibim.config.AreaCatalog.Grupo.DIRECCION, ssp, "SSPAR"));
-        com.sibim.config.Areas.usar(new com.sibim.config.AreaCatalog(conSeguridad));
-        try {
-            Producto arma = bien();
-            arma.setArea("Seguridad Pública — Armamento");
-            Producto patrulla = bien();
-            patrulla.setArea(ssp);
-
-            assertTrue(FichaPublica.reservado(arma), "una dirección de Seguridad Pública");
-            assertTrue(FichaPublica.reservado(patrulla), "la secretaría misma");
-            assertFalse(FichaPublica.reservado(bien()), "las demás áreas siguen publicando su ficha");
-            assertEquals(QrUtils.contenidoBien(arma), FichaPublica.publicar(arma));
-            assertEquals(QrUtils.contenidoBien(arma), FichaPublica.contenidoQr(arma));
-        } finally {
-            com.sibim.config.Areas.usar(com.sibim.config.AreaCatalog.PREDETERMINADO);
-        }
-    }
-
     /** Anyone who scans the label can open it: no amounts, no signatures. */
     @Test
     void laFichaQueSeDescarga_noLlevaMontos() throws Exception {

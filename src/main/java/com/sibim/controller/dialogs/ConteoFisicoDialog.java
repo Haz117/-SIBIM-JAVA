@@ -28,6 +28,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
@@ -103,8 +104,31 @@ public final class ConteoFisicoDialog {
     }
 
     // Width of each column, shared by the header and by every row so they line up.
-    private static final double ANCHO_VISTO = 44, ANCHO_SISTEMA = 56, ANCHO_CONTADO = 90,
-                                ANCHO_DIF = 46, ANCHO_ESTADO = 124, ANCHO_NOTA = 38;
+    private static final double ANCHO_VISTO = 58, ANCHO_SISTEMA = 78, ANCHO_CONTADO = 100,
+                                ANCHO_DIF = 52, ANCHO_ESTADO = 150, ANCHO_NOTA = 44;
+
+    /** The estado of a row nobody has marked yet reads "Pendiente", not
+     *  "Encontrado": every bien said "Encontrado" before anyone looked. */
+    private static final class CeldaEstado extends ListCell<EstadoConteo> {
+        private final BooleanProperty visto;
+        CeldaEstado(BooleanProperty visto) { this.visto = visto; }
+        @Override protected void updateItem(EstadoConteo v, boolean empty) {
+            super.updateItem(v, empty);
+            getStyleClass().remove("conteo-pendiente");
+            if (empty || v == null) { setText(null); return; }
+            boolean pendiente = !visto.get() && v == EstadoConteo.ENCONTRADO;
+            setText(pendiente ? "Pendiente" : v.toString());
+            if (pendiente) getStyleClass().add("conteo-pendiente");
+        }
+        void refrescar() { updateItem(getItem(), getItem() == null); }
+    }
+
+    /** True when {@code target} is {@code control} or inside it. */
+    private static boolean dentroDe(Object target, Node... controles) {
+        for (Node n = target instanceof Node t ? t : null; n != null; n = n.getParent())
+            for (Node c : controles) if (n == c) return true;
+        return false;
+    }
 
     private static Label encabezado(String texto, double ancho) {
         Label l = new Label(texto);
@@ -418,7 +442,11 @@ public final class ConteoFisicoDialog {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(730);
+        // As wide as the screen allows (730 px cut the toolbar, the column
+        // headers and the footer buttons down to "…"), and resizable.
+        javafx.geometry.Rectangle2D pantalla = javafx.stage.Screen.getPrimary().getVisualBounds();
+        dialog.getDialogPane().setPrefWidth(Math.max(760, Math.min(1120, pantalla.getWidth() - 80)));
+        dialog.setResizable(true);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
@@ -429,14 +457,28 @@ public final class ConteoFisicoDialog {
         // Toolbar
         TextField searchField = new TextField();
         searchField.setPromptText("Buscar por nombre, código o serie…");
+        searchField.getStyleClass().add("search-field");
         HBox.setHgrow(searchField, Priority.ALWAYS);
-        CheckBox soloDiferencias = new CheckBox("Solo incidencias");
-        CheckBox soloPendientes = new CheckBox("Solo pendientes");
-        soloPendientes.setTooltip(new Tooltip("Muestra solo los bienes que todavía no se han verificado"));
+        // Which rows to show, as tabs with their count (two loose check boxes
+        // could both be ticked and said nothing about how many there were).
+        ToggleGroup vista = new ToggleGroup();
+        ToggleButton fTodos = new ToggleButton(), fPendientes = new ToggleButton(),
+                     fVistos = new ToggleButton(), fIncidencias = new ToggleButton();
+        for (ToggleButton t : List.of(fTodos, fPendientes, fVistos, fIncidencias)) {
+            t.setToggleGroup(vista);
+            t.getStyleClass().add("filter-chip");
+            t.setMinWidth(Region.USE_PREF_SIZE);
+        }
+        fTodos.setSelected(true);
+        // A tab can't be "unselected" into showing nothing.
+        vista.selectedToggleProperty().addListener((o, a, b) -> { if (b == null) a.setSelected(true); });
+        fPendientes.setTooltip(new Tooltip("Los bienes que todavía nadie marcó como vistos"));
+        fIncidencias.setTooltip(new Tooltip("Cantidad distinta, mal estado, en otra área o faltante"));
         Button btnHistorial = new Button("Historial");
-        btnHistorial.setGraphic(new FontIcon("mdi2c-clipboard-list-outline"));
+        btnHistorial.setGraphic(new FontIcon("mdi2h-history"));
         btnHistorial.setContentDisplay(ContentDisplay.LEFT);
-        btnHistorial.getStyleClass().add("btn-secondary");
+        btnHistorial.getStyleClass().add("btn-ghost");
+        btnHistorial.setMinWidth(Region.USE_PREF_SIZE);
         btnHistorial.setOnAction(e -> {
             if (SessionManager.isAdmin()) {
                 HistorialConteosDialog.show(dialog.getDialogPane().getScene());
@@ -445,26 +487,31 @@ public final class ConteoFisicoDialog {
                     "Solo el administrador puede ver el historial de conteos");
             }
         });
-        Button btnScan = new Button("Escanear");
+        Button btnScan = new Button("Escanear etiqueta");
         btnScan.setGraphic(new FontIcon("mdi2q-qrcode-scan"));
         btnScan.getStyleClass().add("btn-secondary");
         btnScan.setContentDisplay(ContentDisplay.LEFT);
+        btnScan.setMinWidth(Region.USE_PREF_SIZE);
         btnScan.setDisable(scope.isEmpty());
 
-        HBox toolbar = new HBox(10, searchField, soloPendientes, soloDiferencias, btnScan, btnHistorial);
+        HBox toolbar = new HBox(10, searchField, btnScan, btnHistorial);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(14, 14, 8, 14));
+        HBox filtros = new HBox(6, fTodos, fPendientes, fVistos, fIncidencias);
+        filtros.setAlignment(Pos.CENTER_LEFT);
 
         // Feature 4: progress bar
         int totalItems = scope.size();
         SimpleIntegerProperty touchedCount = new SimpleIntegerProperty(0);
         ProgressBar progressBar = new ProgressBar(0);
-        progressBar.setPrefWidth(200);
-        Label progressLabel = new Label(totalItems == 0 ? "" : "Verificados 0 de " + totalItems);
+        progressBar.setPrefWidth(220);
+        Label progressLabel = new Label(totalItems == 0 ? "" : "0 de " + totalItems + " vistos");
         progressLabel.getStyleClass().add("muted-sm");
-        HBox progressBox = new HBox(10, progressBar, progressLabel);
+        Region espacio = new Region();
+        HBox.setHgrow(espacio, Priority.ALWAYS);
+        HBox progressBox = new HBox(10, filtros, espacio, progressBar, progressLabel);
         progressBox.setAlignment(Pos.CENTER_LEFT);
-        progressBox.setPadding(new Insets(0, 14, 8, 14));
+        progressBox.setPadding(new Insets(0, 14, 10, 14));
         progressBox.setVisible(!scope.isEmpty());
         progressBox.setManaged(!scope.isEmpty());
 
@@ -474,6 +521,8 @@ public final class ConteoFisicoDialog {
         Label hVisto = encabezado("VISTO", ANCHO_VISTO), hSistema = encabezado("SISTEMA", ANCHO_SISTEMA),
               hContado = encabezado("CONTADO", ANCHO_CONTADO), hDif = encabezado("DIF.", ANCHO_DIF),
               hEstado = encabezado("ESTADO", ANCHO_ESTADO), hNota = encabezado("NOTA", ANCHO_NOTA);
+        hSistema.setTooltip(new Tooltip("La cantidad que tiene registrada SIBIM"));
+        hContado.setTooltip(new Tooltip("La cantidad que encontraste"));
         Label hBien = new Label("BIEN");
         hBien.getStyleClass().add("nav-section-label");
         HBox.setHgrow(hBien, Priority.ALWAYS);
@@ -504,6 +553,7 @@ public final class ConteoFisicoDialog {
             estadoCb.getItems().addAll(EstadoConteo.values());
             estadoCb.setValue(initEst);
             estadoCb.setPrefWidth(ANCHO_ESTADO); estadoCb.setMinWidth(ANCHO_ESTADO);
+            estadoCb.setTooltip(new Tooltip("Cómo encontraste el bien"));
 
             // Feature 3: note field (collapsible)
             TextField notaField = new TextField();
@@ -516,8 +566,9 @@ public final class ConteoFisicoDialog {
 
             Button btnNota = new Button();
             btnNota.setGraphic(new FontIcon("mdi2n-note-text-outline"));
-            btnNota.getStyleClass().add("btn-secondary");
+            btnNota.getStyleClass().add("btn-ghost");
             btnNota.setTooltip(new Tooltip("Agregar observación"));
+            btnNota.setAccessibleText("Agregar observación");
             btnNota.setOnAction(e -> {
                 boolean show = !notaField.isVisible();
                 notaField.setVisible(show);
@@ -535,8 +586,11 @@ public final class ConteoFisicoDialog {
                 vista(dv != null && dv.verificado(), initialCount, p.getStockActual(), initEst));
             CheckBox visto = new CheckBox();
             visto.setMinWidth(ANCHO_VISTO);
-            visto.setTooltip(new Tooltip("Márcalo cuando tengas el bien a la vista"));
+            visto.setTooltip(new Tooltip("Márcalo cuando tengas el bien a la vista (o da clic en la fila)"));
+            visto.setAccessibleText("Visto: " + p.getNombre());
             visto.selectedProperty().bindBidirectional(touched);
+            CeldaEstado celdaEstado = new CeldaEstado(touched);
+            estadoCb.setButtonCell(celdaEstado);
             // A row with a difference or an estado stays marked: its ajuste is
             // applied on finalizing, so it can't be unticked into "sin revisar".
             // Put the count and the estado back first to unmark it.
@@ -556,6 +610,13 @@ public final class ConteoFisicoDialog {
                 delta.setText(diff == 0 ? "✓" : (diff > 0 ? "+" + diff : String.valueOf(diff)));
                 delta.getStyleClass().removeAll("dlg-stock-new-ok", "dlg-stock-new-warn");
                 delta.getStyleClass().add(diff == 0 ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
+                // The row only takes color when it says something: seen, or
+                // with an incidencia. (Every row had the same guinda edge.)
+                boolean incidencia = diff != 0 || estadoCb.getValue() != EstadoConteo.ENCONTRADO;
+                rowHBox.getStyleClass().removeAll("conteo-row-visto", "conteo-row-incidencia");
+                if (incidencia) rowHBox.getStyleClass().add("conteo-row-incidencia");
+                else if (touched.get()) rowHBox.getStyleClass().add("conteo-row-visto");
+                celdaEstado.refrescar();
                 if (rowHBox.getUserData() instanceof Runnable r) r.run();
             };
             updateDelta.run();
@@ -573,22 +634,38 @@ public final class ConteoFisicoDialog {
             });
             touched.addListener((o, a, b) -> updateDelta.run());
 
-            VBox info = new VBox(1);
-            Label nombre = new Label(p.getNombre() + "  [" + p.getCodigo() + "]");
-            nombre.getStyleClass().add("dlg-detail-value");
+            // Name on one line (it wrapped into four), the código as a tag, the área below.
+            VBox info = new VBox(2);
+            Label nombre = new Label(p.getNombre());
+            nombre.getStyleClass().add("conteo-nombre");
+            nombre.setTooltip(new Tooltip(p.getNombre()));
+            nombre.setMinWidth(0);
+            Label codigo = new Label(p.getCodigo());
+            codigo.getStyleClass().add("codigo-cell");
+            codigo.setMinWidth(Region.USE_PREF_SIZE);
+            HBox lineaNombre = new HBox(8, codigo, nombre);
+            lineaNombre.setAlignment(Pos.CENTER_LEFT);
             Label area = new Label(p.getArea() != null ? p.getArea() : "Sin área");
             area.getStyleClass().add("muted-sm");
-            info.getChildren().addAll(nombre, area);
+            info.getChildren().addAll(lineaNombre, area);
+            info.setMinWidth(0);
             HBox.setHgrow(info, Priority.ALWAYS);
 
             Label sistema = new Label(String.valueOf(p.getStockActual()));
             sistema.getStyleClass().add("dlg-stock-val");
             sistema.setMinWidth(ANCHO_SISTEMA);
 
-            rowHBox.getStyleClass().add("dlg-detail-header");
+            rowHBox.getStyleClass().add("conteo-row");
             rowHBox.setPadding(new Insets(8, 12, 8, 12));
             rowHBox.setAlignment(Pos.CENTER_LEFT);
             rowHBox.getChildren().addAll(visto, info, sistema, contado, delta, estadoCb, btnNota);
+            updateDelta.run();
+            // A click anywhere on the row (not on its fields) marks it as seen,
+            // or unmarks it — the check box alone was a 16-pixel target.
+            rowHBox.setOnMouseClicked(e -> {
+                if (dentroDe(e.getTarget(), visto, contado, estadoCb, btnNota) || visto.isDisabled()) return;
+                touched.set(!touched.get());
+            });
 
             VBox rowWrapper = new VBox(0, rowHBox, notaField);
 
@@ -601,8 +678,10 @@ public final class ConteoFisicoDialog {
                     || (p.getNumeroSerie() != null && p.getNumeroSerie().toLowerCase().contains(q));
                 boolean hasIncidencia = contado.getValue() != p.getStockActual()
                     || estadoCb.getValue() != EstadoConteo.ENCONTRADO;
-                boolean visible = matchesSearch && (!soloDiferencias.isSelected() || hasIncidencia)
-                    && (!soloPendientes.isSelected() || !touched.get());
+                boolean visible = matchesSearch
+                    && (!fIncidencias.isSelected() || hasIncidencia)
+                    && (!fPendientes.isSelected() || !touched.get())
+                    && (!fVistos.isSelected() || touched.get());
                 rowWrapper.setVisible(visible);
                 rowWrapper.setManaged(visible);
             };
@@ -616,12 +695,22 @@ public final class ConteoFisicoDialog {
         // Wire progress bar — a bien can also be unmarked, so count instead of adding one.
         Runnable actualizarAvance = () -> {
             int n = (int) rows.stream().filter(r -> r.touched().get()).count();
+            int inc = (int) rows.stream().filter(r -> r.contado().getValue() != r.producto().getStockActual()
+                || r.estado().getValue() != EstadoConteo.ENCONTRADO).count();
             touchedCount.set(n);
-            progressLabel.setText("Verificados " + n + " de " + totalItems
-                + (n < totalItems ? " — faltan " + (totalItems - n) : " — completo"));
+            progressLabel.setText(n + " de " + totalItems + " vistos"
+                + (n < totalItems ? " · faltan " + (totalItems - n) : " · completo"));
             progressBar.setProgress(totalItems > 0 ? (double) n / totalItems : 0);
+            fTodos.setText("Todos (" + totalItems + ")");
+            fPendientes.setText("Pendientes (" + (totalItems - n) + ")");
+            fVistos.setText("Vistos (" + n + ")");
+            fIncidencias.setText("Con incidencia (" + inc + ")");
         };
-        for (Row r : rows) r.touched().addListener((o, a, b) -> actualizarAvance.run());
+        for (Row r : rows) {
+            r.touched().addListener((o, a, b) -> actualizarAvance.run());
+            r.contado().valueProperty().addListener((o, a, b) -> actualizarAvance.run());
+            r.estado().valueProperty().addListener((o, a, b) -> actualizarAvance.run());
+        }
         actualizarAvance.run();   // a resumed draft already has bienes verified
 
         // The entrance animation is per row: with a whole inventory (thousands of
@@ -633,12 +722,12 @@ public final class ConteoFisicoDialog {
             if (n.getUserData() instanceof Runnable r) r.run();
         });
         searchField.textProperty().addListener((o, a, b) -> applyAllVisibility.run());
-        soloDiferencias.selectedProperty().addListener((o, a, b) -> applyAllVisibility.run());
-        soloPendientes.selectedProperty().addListener((o, a, b) -> applyAllVisibility.run());
+        vista.selectedToggleProperty().addListener((o, a, b) -> applyAllVisibility.run());
 
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
-        scroll.setPrefHeight(370);
+        scroll.setPrefHeight(Math.max(320, pantalla.getHeight() - 400));
+        VBox.setVgrow(scroll, Priority.ALWAYS);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
         // Footer
@@ -711,6 +800,7 @@ public final class ConteoFisicoDialog {
         btnFinalizar.getStyleClass().add("btn-primary");
         btnFinalizar.setDisable(scope.isEmpty());
 
+        for (Control b : List.of(btnBorrador, btnExportar, btnFinalizar)) b.setMinWidth(Region.USE_PREF_SIZE);
         HBox actions = new HBox(10, summary, btnBorrador, btnExportar, btnFinalizar);
         actions.setAlignment(Pos.CENTER_LEFT);
         actions.setPadding(new Insets(10, 4, 4, 4));

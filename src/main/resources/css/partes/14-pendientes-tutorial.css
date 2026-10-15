@@ -50,31 +50,32 @@
     -fx-background-radius: 20 20 0 0;
 }
 
-/* Floating icon badge — white circle, border + glow set inline per step */
+/* Icon of the step, on the header: a translucent white tile */
 .tutorial-icon-badge {
-    -fx-background-color: white;
-    -fx-background-radius: 38;
+    -fx-background-color: rgba(255,255,255,0.16);
+    -fx-background-radius: 14;
+    -fx-border-color: rgba(255,255,255,0.28);
+    -fx-border-radius: 14;
 }
 
-/* Progress track inside header */
+/* Progress bar under the header; the fill takes the step's color (inline) */
 .tutorial-progress-track {
-    -fx-background-color: rgba(255,255,255,0.20);
-    -fx-background-radius: 20 20 0 0;
+    -fx-background-color: sibim-slate-200;
 }
 
 /* Progress fill — width animated in Java */
 .tutorial-progress-fill {
-    -fx-background-color: rgba(255,255,255,0.90);
+    -fx-background-color: sibim-indigo;
     -fx-background-radius: 0 3 3 0;
 }
 
 /* Step title */
 .tutorial-title {
-    -fx-font-size: 20px;
+    -fx-font-size: 19px;
     -fx-font-weight: bold;
-    -fx-text-fill: sibim-slate-950;
-    -fx-text-alignment: CENTER;
-    -fx-alignment: CENTER;
+    -fx-text-fill: white;
+    -fx-text-alignment: LEFT;
+    -fx-alignment: CENTER_LEFT;
 }
 
 /* Bullet rows */
@@ -88,13 +89,19 @@
 }
 
 /* Shortcut pill — static layout here; dynamic bg/border colors set inline per step */
-.tutorial-shortcut-icon { -fx-icon-size: 13; }
-.tutorial-shortcut-text { -fx-font-size: 13px; -fx-font-weight: bold; }
+.tutorial-shortcut-icon { -fx-icon-size: 12; }
+.tutorial-shortcut-text { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: white; }
 .tutorial-shortcut-pill {
+    -fx-background-color: rgba(255,255,255,0.16);
     -fx-background-radius: 99;
-    -fx-border-radius: 99;
-    -fx-border-width: 1.5;
-    -fx-padding: 6 16;
+    -fx-padding: 3 10;
+}
+/* Number of each point: a tinted circle in the step's color (inline) */
+.tutorial-bullet-num {
+    -fx-background-radius: 99;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER;
 }
 
 /* Progress dots */
@@ -104,8 +111,8 @@
 /* Step counter */
 .tutorial-counter {
     -fx-font-size: 11px;
-    -fx-text-fill: sibim-slate-500;
-    -fx-font-weight: 600;
+    -fx-text-fill: rgba(255,255,255,0.78);
+    -fx-font-weight: bold;
 }
 
 /* Primary action button — background set inline per step */

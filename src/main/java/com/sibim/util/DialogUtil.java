@@ -145,8 +145,7 @@ public final class DialogUtil {
      *  deferred to the pane's sceneProperty so it runs after the caller has
      *  finished adding its buttons/content, right when the dialog is shown. */
     public static void applyStylesheet(DialogPane pane) {
-        var css = DialogUtil.class.getResource("/css/styles.css");
-        if (css != null) pane.getStylesheets().add(css.toExternalForm());
+        pane.getStylesheets().addAll(EscalaTexto.hojas());
         AccessibilityUtils.applyCurrentTextScaleClass(pane);
         pane.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
@@ -940,8 +939,8 @@ public final class DialogUtil {
         box.setPadding(new Insets(13, 18, 13, 16));
         box.getStyleClass().addAll("toast-box", "toast-info");
 
-        var css = DialogUtil.class.getResource("/css/styles.css");
-        if (css != null) box.getStylesheets().add(css.toExternalForm());
+        box.getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(box);
         box.setOpacity(0);
 
         Popup popup = new Popup();
@@ -952,8 +951,7 @@ public final class DialogUtil {
             double x = owner.getX() + (owner.getWidth() - 500) / 2.0;
             double y = owner.getY() + 22;
             popup.show(owner, x, y);
-            FadeTransition ft = new FadeTransition(
-                Duration.millis(180), box);
+            FadeTransition ft = new FadeTransition(AnimationUtils.duracion(180), box);
             ft.setToValue(1); ft.play();
         }
 
@@ -981,8 +979,7 @@ public final class DialogUtil {
             final R finalResult = result;
             final Exception finalError = error;
             Platform.runLater(() -> {
-                FadeTransition ft = new FadeTransition(
-                    Duration.millis(160), box);
+                FadeTransition ft = new FadeTransition(AnimationUtils.duracion(160), box);
                 ft.setToValue(0);
                 ft.setOnFinished(e -> popup.hide());
                 ft.play();

@@ -1,9 +1,10 @@
 package com.sibim.controller;
 
-/** The four groups of the sidebar. {@code defaultExpanded} is the accordion state on a fresh install. */
+/** The groups of the sidebar, top to bottom. {@code defaultExpanded} is the accordion state on a fresh install. */
 enum NavSection {
-    NAVEGACION("NAVEGACIÓN", true),
-    OPERACIONES("OPERACIONES", true),
+    NAVEGACION("INVENTARIO", true),
+    OPERACIONES("OPERACIÓN", true),
+    REPORTES("REPORTES", true),
     CONTROL("CONTROL PATRIMONIAL", false),
     SISTEMA("SISTEMA", false);
 

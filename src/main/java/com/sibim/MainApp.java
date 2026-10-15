@@ -27,9 +27,6 @@ import java.util.prefs.Preferences;
 
 public class MainApp extends Application {
 
-    private static final String STYLESHEET =
-        Objects.requireNonNull(MainApp.class.getResource("/css/styles.css")).toExternalForm();
-
     /** Remembers the main window's size/position/maximized state between
      *  sessions — it used to always reopen centered at the fixed default
      *  size even if the user had maximized it last time. Only ever read/
@@ -57,6 +54,7 @@ public class MainApp extends Application {
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
         primaryStage = stage;
         applyAppIcon(primaryStage);
+        com.sibim.util.VentanaWindows.instalar();
         com.sibim.service.TrayService.install(primaryStage);
         showSplash();
     }
@@ -65,7 +63,7 @@ public class MainApp extends Application {
         Parent root = FXMLLoader.load(
             Objects.requireNonNull(MainApp.class.getResource("/fxml/splash.fxml")));
         Scene scene = new Scene(root, 560, 390);
-        scene.getStylesheets().add(STYLESHEET);
+        scene.getStylesheets().addAll(com.sibim.util.EscalaTexto.hojas());
         scene.setFill(Color.web(AppColors.SCENE_BG));
         primaryStage.setTitle("SIBIM — Sistema Integral de Bienes Municipales");
         primaryStage.setScene(scene);
@@ -171,9 +169,11 @@ public class MainApp extends Application {
         Scene oldScene = primaryStage.getScene();
         primaryStage.setTitle("SIBIM — Sistema Integral de Bienes Municipales");
 
-        if (oldScene == null) {
+        // With animations off the new screen just replaces the old one: the
+        // whole-window fade and zoom is the biggest movement in the app.
+        if (oldScene == null || !com.sibim.util.AnimationUtils.isEnabled()) {
             Scene finalScene = new Scene(newRoot, targetWidth, targetHeight);
-            finalScene.getStylesheets().add(STYLESHEET);
+            finalScene.getStylesheets().addAll(com.sibim.util.EscalaTexto.hojas());
             primaryStage.setWidth(targetWidth);
             primaryStage.setHeight(targetHeight);
             primaryStage.setScene(finalScene);
@@ -188,7 +188,7 @@ public class MainApp extends Application {
 
         StackPane transitionRoot = new StackPane(newRoot, outgoing);
         Scene transitionScene = new Scene(transitionRoot, targetWidth, targetHeight);
-        transitionScene.getStylesheets().add(STYLESHEET);
+        transitionScene.getStylesheets().addAll(com.sibim.util.EscalaTexto.hojas());
 
         primaryStage.setWidth(targetWidth);
         primaryStage.setHeight(targetHeight);
@@ -222,7 +222,7 @@ public class MainApp extends Application {
             // be a child of another Parent and the root of a Scene.
             transitionRoot.getChildren().remove(newRoot);
             Scene finalScene = new Scene(newRoot, targetWidth, targetHeight);
-            finalScene.getStylesheets().add(STYLESHEET);
+            finalScene.getStylesheets().addAll(com.sibim.util.EscalaTexto.hojas());
             primaryStage.setScene(finalScene);
         });
         cross.play();

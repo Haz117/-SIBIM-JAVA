@@ -144,7 +144,16 @@
     -fx-effect: none;
 }
 .date-picker:hover { -fx-border-color: sibim-indigo-300; }
-.date-picker:focused, .date-picker .text-field:focused { -fx-border-color: sibim-indigo; }
+/* One border, the picker's: the text field inside drew a second one on focus. */
+.date-picker:focused, .date-picker:focus-within { -fx-border-color: sibim-indigo; }
+.date-picker .text-field:focused { -fx-border-color: transparent; -fx-background-color: transparent; }
+.date-picker > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0 10 10 0;
+    -fx-cursor: hand;
+}
+.date-picker > .arrow-button:hover { -fx-background-color: sibim-indigo-50; }
+.date-picker > .arrow-button > .arrow { -fx-background-color: sibim-indigo; }
 
 /* Spinner */
 .spinner { -fx-border-color: #D1D9E6; -fx-border-radius: 10; -fx-background-radius: 10; }

@@ -22,6 +22,13 @@ public final class SupabaseStorage {
     private static String anonKey;
     private static final Object LOCK = new Object();
 
+    /** One client for every upload: a new one per photo opened a new TLS
+     *  connection (and its threads) each time — a sheet of labels uploads
+     *  dozens of fichas in a row. */
+    private static final HttpClient HTTP = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(20))
+        .build();
+
     private SupabaseStorage() {}
 
     /** True when Supabase Storage is configured and the app is online. */
@@ -49,10 +56,6 @@ public final class SupabaseStorage {
 
         byte[] bytes = Files.readAllBytes(localFile.toPath());
 
-        HttpClient client = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(20))
-            .build();
-
         HttpRequest req = HttpRequest.newBuilder()
             .uri(URI.create(supabaseUrl + "/storage/v1/object/" + BUCKET + "/" + remoteName))
             .header("apikey", anonKey)
@@ -65,7 +68,7 @@ public final class SupabaseStorage {
             .build();
 
         try {
-            HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() < 200 || resp.statusCode() >= 300)
                 throw new IOException("Storage " + resp.statusCode() + ": " + resp.body());
         } catch (InterruptedException e) {

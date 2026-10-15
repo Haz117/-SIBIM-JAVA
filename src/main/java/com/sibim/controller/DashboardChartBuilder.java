@@ -137,7 +137,7 @@ class DashboardChartBuilder {
                         new KeyValue(pb.progressProperty(), target,
                             Interpolator.EASE_OUT))
                 );
-                anim.play();
+                com.sibim.util.AnimationUtils.reproducir(anim);
             });
             wait.play();
             i++;

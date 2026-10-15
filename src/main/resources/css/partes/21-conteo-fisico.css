@@ -1,0 +1,35 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CONTEO FÍSICO — one row per bien, neutral until it says something:
+   seen (verde institucional edge) or with an incidencia (ámbar edge and
+   tint). Every row used to carry the same guinda edge, so nothing stood out.
+   ═══════════════════════════════════════════════════════════════════ */
+.conteo-row {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+}
+.conteo-row:hover { -fx-background-color: sibim-surface; }
+.conteo-row-visto {
+    -fx-border-color: sibim-slate-200 sibim-slate-200 sibim-slate-200 #235B4E;
+    -fx-border-width: 1 1 1 4;
+}
+.conteo-row-incidencia {
+    -fx-background-color: #FFF8EB;
+    -fx-border-color: sibim-amber-dark sibim-slate-200 sibim-slate-200 sibim-amber-dark;
+    -fx-border-width: 1 1 1 4;
+}
+.conteo-row-incidencia:hover { -fx-background-color: #FFF1D6; }
+.conteo-nombre {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: sibim-slate-900;
+    -fx-text-overrun: ellipsis;
+}
+/* "Pendiente" in the estado of a row nobody has marked yet. */
+.conteo-pendiente {
+    -fx-text-fill: sibim-slate-500;
+    -fx-font-style: italic;
+}

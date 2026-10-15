@@ -787,6 +787,53 @@ class SyncServiceTest extends IntegrationTestBase {
         assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId));
     }
 
+    /** An área's "usar mi versión" carried its whole stale offline copy: the
+     *  precio and código Patrimonio had changed on the server went back. Only
+     *  what an área may edit (ubicación, descripción, estado físico, fotos) goes. */
+    @Test
+    void resolveConflicto_comoCuentaDeArea_soloAplicaLoQueElAreaEdita() throws Exception {
+        String area = "Secretaría General Municipal";
+        String catId = insertPgCategory("Mobiliario conflicto");
+        var repo = new com.sibim.repository.ProductoRepository();
+        Producto enServidor = bienSgm(catId, "Escritorio", "SGM/07", area);
+        enServidor.setPrecioCompra(new BigDecimal("5000"));
+        enServidor.setPrecioVenta(new BigDecimal("5000"));
+        enServidor.setUbicacion("Oficina 1");
+        repo.saveOnline(enServidor);
+
+        Producto offline = enServidor.copia();
+        offline.setPrecioCompra(new BigDecimal("100"));   // the área's copy, from before Patrimonio's change
+        offline.setPrecioVenta(new BigDecimal("100"));
+        offline.setCodigo("SGM/99");
+        offline.setUbicacion("Bodega");                   // what the área actually changed
+        try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement("""
+            INSERT INTO product_outbox (operacion, producto_id, nombre, codigo, categoria_id,
+                stock_actual, stock_minimo, stock_maximo, area, created_at, status)
+            VALUES ('SAVE', ?, 'Escritorio', 'SGM/99', ?, 1, 0, 1, ?, datetime('now'), 'CONFLICT')
+            """)) {
+            ps.setString(1, enServidor.getId());
+            ps.setString(2, catId);
+            ps.setString(3, area);
+            ps.executeUpdate();
+        }
+        int rowId = outboxId("product_outbox", "producto_id", enServidor.getId());
+
+        com.sibim.model.Usuario secretaria = new com.sibim.model.Usuario();
+        secretaria.setId("u-sgm"); secretaria.setRol(com.sibim.model.enums.Rol.SECRETARIO); secretaria.setArea(area);
+        com.sibim.session.SessionManager.setCurrentUser(secretaria);
+        try {
+            SyncService.resolveConflicto(rowId, offline, "SAVE");
+        } finally {
+            com.sibim.session.SessionManager.logout();
+        }
+
+        Producto r = repo.findByIdOnline(enServidor.getId()).orElseThrow();
+        assertEquals("Bodega", r.getUbicacion());
+        assertEquals(0, new BigDecimal("5000").compareTo(r.getPrecioCompra()), "el precio de Patrimonio se queda");
+        assertEquals("SGM/07", r.getCodigo());
+        assertEquals("SYNCED", getOutboxStatus("product_outbox", rowId));
+    }
+
     /** A bien captured offline took its número from this PC's copy; if another
      *  PC used it meanwhile it gets the next free one instead of being discarded. */
     @Test

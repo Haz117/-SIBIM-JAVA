@@ -111,6 +111,17 @@
 .timeline-detail { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
 
 /* Audit action pills */
+/* Acción column: a compact pill per row, in the institutional palette. */
+.audit-pill {
+    -fx-background-radius: 99;
+    -fx-padding: 3 10;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.audit-pill-verde  { -fx-background-color: #E3EEEB; -fx-text-fill: #1B4A3F; }
+.audit-pill-dorado { -fx-background-color: #F3EAD8; -fx-text-fill: #6E5118; }
+.audit-pill-guinda { -fx-background-color: sibim-indigo-50; -fx-text-fill: sibim-indigo-darker; }
+.audit-pill-neutro { -fx-background-color: sibim-slate-100; -fx-text-fill: sibim-slate-600; }
 .audit-pill-green  { -fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-red    { -fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-blue   { -fx-background-color: #F1F5F9; -fx-text-fill: #334155; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }

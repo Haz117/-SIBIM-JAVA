@@ -47,7 +47,7 @@ class MainShortcutHelpDialog {
         };
 
         GridPane navGrid = makeSection.apply("NAVEGACIÓN", new String[][]{
-            {"Ctrl + 1",      "Dashboard"},
+            {"Ctrl + 1",      "Inicio"},
             {"Ctrl + 2",      "Organigrama"},
             {"Ctrl + 3",      "Bienes / Inventario"},
             {"Ctrl + 4",      "Categorías"},
@@ -67,7 +67,7 @@ class MainShortcutHelpDialog {
             {"Ctrl + I",        "Importar bienes desde CSV (sólo en Bienes)"},
             {"Supr",            "Dar de baja / eliminar fila seleccionada"},
             {"Escape",          "Deseleccionar todas las filas de la tabla"},
-            {"Doble clic",      "Ver detalle del registro"},
+            {"Doble clic / Enter", "Ver detalle del registro"},
             {"F5",              "Actualizar datos de la vista actual"},
             {"Ctrl / Shift+clic","Selección múltiple — activa barra de acciones en lote (sólo Bienes)"},
         });

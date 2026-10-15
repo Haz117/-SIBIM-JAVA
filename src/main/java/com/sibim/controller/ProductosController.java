@@ -258,18 +258,10 @@ public class ProductosController {
                 }
             });
         }
-        // The código cell copies on click; Ctrl+C on the selected rows is the keyboard way.
+        // Ctrl+C on the selected rows copies their códigos (also in the context menu).
         table.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
             if (ev.getCode() != javafx.scene.input.KeyCode.C || !ev.isShortcutDown()) return;
-            java.util.List<String> codigos = table.getSelectionModel().getSelectedItems().stream()
-                .map(Producto::getCodigo).filter(c -> c != null && !c.isBlank()).toList();
-            if (codigos.isEmpty()) return;
-            javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
-            cc.putString(String.join(System.lineSeparator(), codigos));
-            javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
-            NotificacionUtil.info(table.getScene(), codigos.size() == 1 ? "Código copiado: " + codigos.get(0)
-                : codigos.size() + " códigos copiados");
-            ev.consume();
+            if (ProductosContextMenu.copiarCodigos(table)) ev.consume();
         });
         searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
         btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
@@ -1014,11 +1006,11 @@ public class ProductosController {
         MovimientoTimelineDialog.show(p, table.getScene(), movimientoService);
     }
 
-    private record CategoriasYFotos(List<Categoria> cats, List<String> fotos) {}
+    private record DatosFormulario(List<Categoria> cats, List<String> fotos, ProductoDialogFactory.Extras extras) {}
 
     private void showProductDialog(Producto existing) {
         javafx.scene.Scene scene = table.getScene();
-        DialogUtil.runAsyncWithProgress(scene, "Cargando categorías…",
+        DialogUtil.runAsyncWithProgress(scene, "Abriendo el formulario…",
             () -> {
                 List<Categoria> cats = categoriaService.findAll();
                 List<String> existingFotos;
@@ -1028,18 +1020,20 @@ public class ProductosController {
                 } else {
                     existingFotos = new java.util.ArrayList<>();
                 }
-                return new CategoriasYFotos(cats, existingFotos);
+                return new DatosFormulario(cats, existingFotos,
+                    ProductoDialogFactory.cargarExtras(productoService, existing, log));
             },
-            r -> openProductDialog(existing, r.cats(), r.fotos()),
+            r -> openProductDialog(existing, r.cats(), r.fotos(), r.extras()),
             e -> {
                 log.error("Error al abrir el formulario de bien", e);
                 NotificacionUtil.error(scene, "Error al abrir el formulario. Verifica la conexión a la base de datos.");
             });
     }
 
-    private void openProductDialog(Producto existing, List<Categoria> cats, List<String> existingFotos) {
+    private void openProductDialog(Producto existing, List<Categoria> cats, List<String> existingFotos,
+                                   ProductoDialogFactory.Extras extras) {
         try {
-            Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos);
+            Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos, extras);
             boolean isNew = existing == null;
             String facturaAnterior = existing != null ? existing.getFacturaUrl() : null;
             result.ifPresent(p -> DialogUtil.runAsync(
@@ -1077,7 +1071,7 @@ public class ProductosController {
                     NotificacionUtil.error(table.getScene(),
                         (e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo guardar el bien")
                             + " — revisa los datos e inténtalo de nuevo");
-                    Platform.runLater(() -> openProductDialog(p, cats, existingFotos));
+                    Platform.runLater(() -> openProductDialog(p, cats, existingFotos, extras));
                 }
             ));
 

@@ -61,7 +61,7 @@
     <HBox spacing="12">
         <padding><Insets top="14" right="22" bottom="0" left="34"/></padding>
         <VBox fx:id="statCardTotal" styleClass="rich-stat-card, rich-stat-slate"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
@@ -73,7 +73,7 @@
             <Label text="registros con los filtros actuales" styleClass="rich-stat-hint"/>
         </VBox>
         <VBox fx:id="statCardLogins" styleClass="rich-stat-card, rich-stat-green"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
@@ -85,7 +85,7 @@
             <Label text="accesos exitosos" styleClass="rich-stat-hint"/>
         </VBox>
         <VBox fx:id="statCardFallidos" styleClass="rich-stat-card, rich-stat-red"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
@@ -100,7 +100,7 @@
             <Label text="usuario o contraseña incorrectos" styleClass="rich-stat-hint"/>
         </VBox>
         <VBox fx:id="statCardEliminaciones" styleClass="rich-stat-card, rich-stat-amber"
-              HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
+              HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
@@ -115,47 +115,43 @@
     </VBox>
 
     <!-- FILTER BAR -->
-    <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
-        <padding><Insets top="12" right="22" bottom="12" left="34"/></padding>
-        <StackPane prefWidth="220">
-            <TextField fx:id="searchField" promptText="Buscar por nombre, detalle o acción…"
-                       styleClass="search-field" maxWidth="Infinity"
-                       onKeyReleased="#onSearch"/>
-        </StackPane>
-        <HBox spacing="6" alignment="CENTER_LEFT">
-            <Label text="Entidad:" styleClass="form-label"/>
-            <ComboBox fx:id="entidadFilter" prefWidth="140" onAction="#onFilter"/>
-        </HBox>
-        <HBox spacing="6" alignment="CENTER_LEFT">
-            <Label text="Acción:" styleClass="form-label"/>
-            <ComboBox fx:id="accionFilter" prefWidth="140" onAction="#onFilter"/>
-        </HBox>
-        <HBox spacing="6" alignment="CENTER_LEFT">
-            <Label text="Usuario:" styleClass="form-label"/>
-            <ComboBox fx:id="usuarioFilter" prefWidth="170" onAction="#onFilter"/>
-        </HBox>
-        <Separator orientation="VERTICAL"/>
-        <HBox spacing="6" alignment="CENTER_LEFT">
-            <Label text="Desde:" styleClass="form-label"/>
-            <DatePicker fx:id="desdeField" prefWidth="130" onAction="#onFiltroFecha"/>
-        </HBox>
-        <HBox spacing="6" alignment="CENTER_LEFT">
-            <Label text="Hasta:" styleClass="form-label"/>
-            <DatePicker fx:id="hastaField" prefWidth="130" onAction="#onFiltroFecha"/>
-        </HBox>
-        <Button fx:id="btnPresetHoy"    text="Hoy"    onAction="#onPresetHoy"    styleClass="btn-preset">
-            <tooltip><Tooltip text="Solo el día de hoy"/></tooltip>
-        </Button>
-        <Button fx:id="btnPresetSemana" text="Semana" onAction="#onPresetSemana" styleClass="btn-preset">
-            <tooltip><Tooltip text="Últimos 7 días"/></tooltip>
-        </Button>
-        <Button fx:id="btnPresetMes"    text="Mes"    onAction="#onPresetMes"    styleClass="btn-preset">
-            <tooltip><Tooltip text="Mes actual (del 1 al hoy)"/></tooltip>
-        </Button>
-        <Button text="Limpiar" onAction="#onLimpiar" styleClass="btn-secondary">
-            <graphic><FontIcon iconLiteral="mdi2c-close-circle-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Limpiar todos los filtros y búsqueda activos"/></tooltip>
-        </Button>
+    <!-- One row on a wide screen, wrapping when it doesn't fit; aligned with
+         the cards above. The combos say what they filter in their own first
+         option ("Todas las entidades"), so they need no "Entidad:" label;
+         "Limpiar filtros" only shows while a filter is on. -->
+    <FlowPane fx:id="filterBar" hgap="8" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar">
+        <VBox.margin><Insets top="12" right="22" left="34"/></VBox.margin>
+        <padding><Insets top="10" right="14" bottom="10" left="16"/></padding>
+            <StackPane prefWidth="260">
+                <TextField fx:id="searchField" promptText="Buscar por nombre, detalle o acción…"
+                           styleClass="search-field" maxWidth="Infinity"
+                           onKeyReleased="#onSearch" accessibleText="Buscar en la bitácora"/>
+            </StackPane>
+            <ComboBox fx:id="entidadFilter" prefWidth="180" onAction="#onFilter" accessibleText="Entidad"/>
+            <ComboBox fx:id="accionFilter" prefWidth="180" onAction="#onFilter" accessibleText="Acción"/>
+            <ComboBox fx:id="usuarioFilter" prefWidth="210" onAction="#onFilter" accessibleText="Usuario"/>
+            <Separator orientation="VERTICAL" prefHeight="24"/>
+            <Button fx:id="btnPresetHoy"    text="Hoy"     onAction="#onPresetHoy"    styleClass="btn-preset">
+                <tooltip><Tooltip text="Solo el día de hoy"/></tooltip>
+            </Button>
+            <Button fx:id="btnPresetSemana" text="7 días"  onAction="#onPresetSemana" styleClass="btn-preset">
+                <tooltip><Tooltip text="Los últimos 7 días"/></tooltip>
+            </Button>
+            <Button fx:id="btnPresetMes"    text="Este mes" onAction="#onPresetMes"   styleClass="btn-preset">
+                <tooltip><Tooltip text="Del día 1 a hoy"/></tooltip>
+            </Button>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <DatePicker fx:id="desdeField" prefWidth="140" onAction="#onFiltroFecha" promptText="Desde"
+                            accessibleText="Desde"/>
+                <Label text="–" styleClass="muted"/>
+                <DatePicker fx:id="hastaField" prefWidth="140" onAction="#onFiltroFecha" promptText="Hasta"
+                            accessibleText="Hasta"/>
+            </HBox>
+            <Button fx:id="btnLimpiar" text="Limpiar filtros" onAction="#onLimpiar" styleClass="btn-ghost"
+                    visible="false" managed="false">
+                <graphic><FontIcon iconLiteral="mdi2f-filter-remove-outline" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Quitar la búsqueda y todos los filtros"/></tooltip>
+            </Button>
     </FlowPane>
 
     <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
@@ -169,6 +165,8 @@
 
     <!-- TABLE -->
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
+        <!-- The same margins as the cards and the filters: it ran from the sidebar to the window's edge. -->
+        <VBox.margin><Insets top="6" right="22" left="34"/></VBox.margin>
         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/></columnResizePolicy>
         <placeholder>
             <VBox alignment="CENTER" spacing="10" styleClass="empty-state-pane">

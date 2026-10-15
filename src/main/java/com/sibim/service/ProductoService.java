@@ -242,19 +242,7 @@ public class ProductoService {
             // Secretarías and direcciones update the descriptive data of their
             // bienes; the código patrimonial and the accounting values are
             // Patrimonio's (admin), so theirs stay as the database has them.
-            if (!com.sibim.session.Permisos.editaFichaCompleta()) {
-                // An área keeps four things current: where the bien is, its description,
-                // its physical condition and its photos. Everything else stays as the
-                // database has it, whatever the form sent.
-                Producto soloLoPermitido = actual.copia();
-                soloLoPermitido.setUbicacion(p.getUbicacion());
-                soloLoPermitido.setDescripcion(p.getDescripcion());
-                soloLoPermitido.setEstadoFisico(p.getEstadoFisico());
-                soloLoPermitido.setFotoUrl(p.getFotoUrl());
-                soloLoPermitido.setFotosUrls(p.getFotosUrls());
-                soloLoPermitido.setActualizadoEn(p.getActualizadoEn());
-                p = soloLoPermitido;
-            }
+            if (!com.sibim.session.Permisos.editaFichaCompleta()) p = soloLoQueEditaUnArea(actual, p);
             // A signed resguardo says who holds the bien (ResguardoRepository
             // keeps products.resguardante in step with it); an edit — single
             // or in bulk — can't contradict the document.
@@ -318,6 +306,22 @@ public class ProductoService {
         }
 
         return saved;
+    }
+
+    /** An área keeps four things of a bien current: where it is, its
+     *  description, its physical condition and its photos. Everything else
+     *  stays as {@code actual} has it, whatever {@code cambios} says — on save,
+     *  and when a change made offline is applied over a newer server copy
+     *  (SyncService, "usar mi versión"). */
+    public static Producto soloLoQueEditaUnArea(Producto actual, Producto cambios) {
+        Producto r = actual.copia();
+        r.setUbicacion(cambios.getUbicacion());
+        r.setDescripcion(cambios.getDescripcion());
+        r.setEstadoFisico(cambios.getEstadoFisico());
+        r.setFotoUrl(cambios.getFotoUrl());
+        r.setFotosUrls(cambios.getFotosUrls());
+        r.setActualizadoEn(cambios.getActualizadoEn());
+        return r;
     }
 
     /** Menor número positivo no usado por ningún bien activo con el prefijo

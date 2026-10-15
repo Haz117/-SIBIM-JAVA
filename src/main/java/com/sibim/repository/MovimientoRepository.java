@@ -314,7 +314,7 @@ public class MovimientoRepository {
         }
         if (query != null && !query.isBlank()) {
             conditions.add("(p.nombre ILIKE ? OR m.motivo ILIKE ? OR m.referencia ILIKE ?)");
-            String likeVal = "%" + query + "%";
+            String likeVal = Like.contiene(query);
             params.add(likeVal);
             params.add(likeVal);
             params.add(likeVal);

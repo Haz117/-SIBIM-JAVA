@@ -89,6 +89,14 @@ class ConfigAreasSectionBuilder {
             });
             return row;
         });
+        // Enter edits the selected área, as the double click does.
+        table.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+            if (editable && ev.getCode() == javafx.scene.input.KeyCode.ENTER
+                    && table.getSelectionModel().getSelectedItem() != null) {
+                editar(table.getSelectionModel().getSelectedItem());
+                ev.consume();
+            }
+        });
         HBox actions = new HBox(8, btnNueva, btnEditar);
         actions.setAlignment(Pos.CENTER_LEFT);
         if (!editable) {

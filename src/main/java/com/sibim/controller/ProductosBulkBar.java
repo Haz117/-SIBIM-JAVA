@@ -66,13 +66,13 @@ final class ProductosBulkBar {
             bulkBar.setTranslateY(12);
             bulkBar.setVisible(true);
             bulkBar.setManaged(true);
-            FadeTransition ft = new FadeTransition(Duration.millis(180), bulkBar);
+            FadeTransition ft = new FadeTransition(com.sibim.util.AnimationUtils.duracion(180), bulkBar);
             ft.setToValue(1);
-            TranslateTransition tt = new TranslateTransition(Duration.millis(180), bulkBar);
+            TranslateTransition tt = new TranslateTransition(com.sibim.util.AnimationUtils.duracion(180), bulkBar);
             tt.setToY(0);
             new ParallelTransition(ft, tt).play();
         } else {
-            FadeTransition ft = new FadeTransition(Duration.millis(140), bulkBar);
+            FadeTransition ft = new FadeTransition(com.sibim.util.AnimationUtils.duracion(140), bulkBar);
             ft.setToValue(0);
             ft.setOnFinished(e -> { bulkBar.setVisible(false); bulkBar.setManaged(false); });
             ft.play();

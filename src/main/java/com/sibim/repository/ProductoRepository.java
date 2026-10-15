@@ -86,7 +86,7 @@ public class ProductoRepository {
         if (!f.incluirBaja()) conds.add("p.fecha_baja IS NULL");
         if (f.soloSinEtiquetar()) conds.add("p.etiquetado = FALSE");
         if (f.busqueda() != null && !f.busqueda().isBlank()) {
-            String like = "%" + f.busqueda().toLowerCase() + "%";
+            String like = Like.contiene(f.busqueda().toLowerCase());
             conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ? OR LOWER(COALESCE(p.marca,'')) LIKE ? OR LOWER(COALESCE(p.modelo,'')) LIKE ? OR LOWER(COALESCE(p.numero_serie,'')) LIKE ?)");
             params.add(like); params.add(like); params.add(like); params.add(like); params.add(like);
             params.add(like); params.add(like); params.add(like);
@@ -193,22 +193,45 @@ public class ProductoRepository {
         return result;
     }
 
-    public List<String> findDistinctMarcas()      { return findDistinctField("marca"); }
-    public List<String> findDistinctModelos()     { return findDistinctField("modelo"); }
-    public List<String> findDistinctProveedores() { return findDistinctField("proveedor"); }
-    public List<String> findDistinctUbicaciones() { return findDistinctField("ubicacion"); }
+    public List<String> findDistinctMarcas()      { return findDistinctField("marca", Producto::getMarca); }
+    public List<String> findDistinctModelos()     { return findDistinctField("modelo", Producto::getModelo); }
+    public List<String> findDistinctProveedores() { return findDistinctField("proveedor", Producto::getProveedor); }
+    public List<String> findDistinctUbicaciones() { return findDistinctField("ubicacion", Producto::getUbicacion); }
 
-    private List<String> findDistinctField(String column) {
-        if (DatabaseConfig.getLocalDataStore() != null) return List.of();
-        String sql = "SELECT DISTINCT " + column + " FROM products WHERE fecha_baja IS NULL AND "
-            + column + " IS NOT NULL AND " + column + " <> '' ORDER BY 1 LIMIT 120";
-        List<String> result = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) result.add(rs.getString(1));
-        } catch (Exception e) { /* best-effort — autocomplete isn't critical */ }
-        return result;
+    /** Suggestions for an autocomplete field: the values used in the caller's
+     *  áreas, most used first. (The first 120 in alphabetical order, from every
+     *  área, left most ubicaciones of a 3 000-bien inventory out.) */
+    static final int MAX_SUGERENCIAS = 2000;
+
+    private List<String> findDistinctField(String column, java.util.function.Function<Producto, String> campo) {
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        try {
+            if (local != null) {
+                return local.findAllProductos(accessible).stream()
+                    .filter(p -> !p.isDadoDeBaja())
+                    .map(campo).filter(v -> v != null && !v.isBlank())
+                    .collect(Collectors.groupingBy(v -> v, Collectors.counting()))
+                    .entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed()
+                        .thenComparing(Map.Entry.comparingByKey()))
+                    .limit(MAX_SUGERENCIAS).map(Map.Entry::getKey).toList();
+            }
+            List<Object> params = new ArrayList<>();
+            String sql = "SELECT " + column + " FROM products WHERE fecha_baja IS NULL AND "
+                + column + " IS NOT NULL AND " + column + " <> ''";
+            if (accessible != null) { sql += " AND area = ANY(?)"; params.add(accessible.toArray(new String[0])); }
+            sql += " GROUP BY " + column + " ORDER BY COUNT(*) DESC, " + column + " LIMIT " + MAX_SUGERENCIAS;
+            List<String> result = new ArrayList<>();
+            try (Connection conn = DatabaseConfig.getConnection();
+                 PreparedStatement ps = buildStatement(conn, sql, params);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(rs.getString(1));
+            }
+            return result;
+        } catch (Exception e) {
+            return List.of();   // best-effort — autocomplete isn't critical
+        }
     }
 
     /** Aggregate stats for the Bienes stat cards — one round-trip, full inventory. */

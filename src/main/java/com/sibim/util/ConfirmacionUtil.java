@@ -41,8 +41,8 @@ public class ConfirmacionUtil {
         dialog.getDialogPane().setPrefWidth(420);
         dialog.getDialogPane().getStyleClass().add("confirm-pane");
 
-        var css = ConfirmacionUtil.class.getResource("/css/styles.css");
-        if (css != null) dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
+        dialog.getDialogPane().getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(dialog.getDialogPane());
 
         FontIcon iconLbl = new FontIcon(icon);
         iconLbl.setIconSize(20);
@@ -105,8 +105,8 @@ public class ConfirmacionUtil {
         dialog.getDialogPane().setPrefWidth(400);
         dialog.getDialogPane().getStyleClass().add("confirm-pane");
 
-        var css = ConfirmacionUtil.class.getResource("/css/styles.css");
-        if (css != null) dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
+        dialog.getDialogPane().getStylesheets().addAll(EscalaTexto.hojas());
+        AccessibilityUtils.applyCurrentTextScaleClass(dialog.getDialogPane());
 
         FontIcon iconLbl = new FontIcon(icon);
         iconLbl.setIconSize(20);

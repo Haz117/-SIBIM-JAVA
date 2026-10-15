@@ -46,32 +46,35 @@ class OrganigramaDataLoader {
     void load(Consumer<OrganigramaData> onSuccess, Consumer<Exception> onError) {
         DialogUtil.runAsync(
             () -> {
-                Map<String, List<Producto>> porArea = productoService.getAll().stream()
-                    .filter(p -> p.getArea() != null && !p.getArea().isBlank())
-                    .collect(Collectors.groupingBy(Producto::getArea));
+                // The four reads are independent: at the same time, the screen
+                // waits for the slowest instead of their sum.
+                java.util.concurrent.CompletableFuture<List<Resguardo>> resguardos;
+                java.util.concurrent.CompletableFuture<List<Prestamo>> prestamos;
+                java.util.concurrent.CompletableFuture<List<Comodato>> comodatos;
+                Map<String, List<Producto>> porArea;
+                try (var paralelo = java.util.concurrent.Executors.newFixedThreadPool(3)) {
+                    resguardos = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(resguardoService::getAll, "resguardos"), paralelo);
+                    prestamos  = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(prestamoService::getActivos, "préstamos"), paralelo);
+                    comodatos  = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(comodatoService::getVigentes, "comodatos"), paralelo);
+                    porArea = productoService.getAll().stream()
+                        .filter(p -> p.getArea() != null && !p.getArea().isBlank())
+                        .collect(Collectors.groupingBy(Producto::getArea));
+                }
 
                 Map<String, List<Resguardo>> rsgPorArea = new HashMap<>();
-                try {
-                    resguardoService.getAll().stream()
-                        .filter(r -> Resguardo.ESTADO_ACTIVO.equals(r.getEstado())
-                            && r.getResguardanteArea() != null && !r.getResguardanteArea().isBlank())
-                        .forEach(r -> rsgPorArea
-                            .computeIfAbsent(r.getResguardanteArea(), k -> new ArrayList<>())
-                            .add(r));
-                } catch (Exception ignored) {
-                    log.debug("Could not load resguardos for organigrama", ignored);
-                }
+                resguardos.join().stream()
+                    .filter(r -> Resguardo.ESTADO_ACTIVO.equals(r.getEstado())
+                        && r.getResguardanteArea() != null && !r.getResguardanteArea().isBlank())
+                    .forEach(r -> rsgPorArea
+                        .computeIfAbsent(r.getResguardanteArea(), k -> new ArrayList<>())
+                        .add(r));
 
                 Map<String, List<Prestamo>> prestPorArea = new HashMap<>();
-                try {
-                    prestamoService.getActivos().stream()
-                        .filter(p -> p.getAreaDestino() != null && !p.getAreaDestino().isBlank())
-                        .forEach(p -> prestPorArea
-                            .computeIfAbsent(p.getAreaDestino(), k -> new ArrayList<>())
-                            .add(p));
-                } catch (Exception ignored) {
-                    log.debug("Could not load prestamos for organigrama", ignored);
-                }
+                prestamos.join().stream()
+                    .filter(p -> p.getAreaDestino() != null && !p.getAreaDestino().isBlank())
+                    .forEach(p -> prestPorArea
+                        .computeIfAbsent(p.getAreaDestino(), k -> new ArrayList<>())
+                        .add(p));
 
                 // Build a flat lookup of productoId -> area for cross-referencing comodatos
                 Map<String, String> productoIdToArea = new HashMap<>();
@@ -79,25 +82,35 @@ class OrganigramaDataLoader {
                     prods.forEach(p -> productoIdToArea.put(p.getId(), area)));
 
                 Map<String, List<Comodato>> comodPorArea = new HashMap<>();
-                try {
-                    comodatoService.getVigentes().stream()
-                        .filter(c -> c.getProductoId() != null)
-                        .forEach(c -> {
-                            String area = productoIdToArea.get(c.getProductoId());
-                            if (area != null) {
-                                comodPorArea
-                                    .computeIfAbsent(area, k -> new ArrayList<>())
-                                    .add(c);
-                            }
-                        });
-                } catch (Exception ignored) {
-                    log.debug("Could not load comodatos for organigrama", ignored);
-                }
+                comodatos.join().stream()
+                    .filter(c -> c.getProductoId() != null)
+                    .forEach(c -> {
+                        String area = productoIdToArea.get(c.getProductoId());
+                        if (area != null) {
+                            comodPorArea
+                                .computeIfAbsent(area, k -> new ArrayList<>())
+                                .add(c);
+                        }
+                    });
 
                 return new OrganigramaData(porArea, rsgPorArea, prestPorArea, comodPorArea);
             },
             onSuccess,
             onError
         );
+    }
+
+    @FunctionalInterface
+    interface Lectura<T> { List<T> leer() throws Exception; }
+
+    /** Documents only add badges to the organigrama: one that can't be read
+     *  (offline, no permission) leaves its badges out, it doesn't stop the screen. */
+    private <T> List<T> leer(Lectura<T> lectura, String que) {
+        try {
+            return lectura.leer();
+        } catch (Exception e) {
+            log.debug("No se pudieron leer los {} para el organigrama", que, e);
+            return List.of();
+        }
     }
 }

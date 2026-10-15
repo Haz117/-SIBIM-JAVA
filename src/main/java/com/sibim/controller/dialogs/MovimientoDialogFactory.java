@@ -224,9 +224,9 @@ public final class MovimientoDialogFactory {
                     new KeyValue(chipDestino.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
             );
             // Stagger: arrow first, chip lands right after the arrow peaks
-            PauseTransition delay = new PauseTransition(Duration.millis(80));
-            delay.setOnFinished(e -> chipAnim.play());
-            new ParallelTransition(arrowAnim, delay).play();
+            PauseTransition delay = new PauseTransition(com.sibim.util.AnimationUtils.duracion(80));
+            delay.setOnFinished(e -> com.sibim.util.AnimationUtils.reproducir(chipAnim));
+            com.sibim.util.AnimationUtils.reproducir(new ParallelTransition(arrowAnim, delay));
         };
 
         // Origin chip pops in when a product is selected while in transfer mode
@@ -244,7 +244,7 @@ public final class MovimientoDialogFactory {
                     new KeyValue(chipOrigen.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
                     new KeyValue(chipOrigen.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
             );
-            t.play();
+            com.sibim.util.AnimationUtils.reproducir(t);
         };
 
         fAreaDestino.valueProperty().addListener((o, a, b) -> {
@@ -264,11 +264,11 @@ public final class MovimientoDialogFactory {
                 fAreaDestino.setVisible(true);    fAreaDestino.setManaged(true);
                 transferPreview.setOpacity(0);    transferPreview.setTranslateY(-14);
                 transferPreview.setVisible(true); transferPreview.setManaged(true);
-                new Timeline(
+                com.sibim.util.AnimationUtils.reproducir(new Timeline(
                     new KeyFrame(Duration.millis(280),
                         new KeyValue(transferPreview.opacityProperty(), 1.0, Interpolator.EASE_OUT),
                         new KeyValue(transferPreview.translateYProperty(), 0.0, Interpolator.EASE_OUT))
-                ).play();
+                ));
             } else if (!isTransfer) {
                 lblAreaDestino.setVisible(false); lblAreaDestino.setManaged(false);
                 fAreaDestino.setVisible(false);   fAreaDestino.setManaged(false);

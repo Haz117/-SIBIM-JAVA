@@ -46,17 +46,39 @@ public final class ProductoDialogFactory {
 
     private ProductoDialogFactory() {}
 
+    /** What the form needs from the database besides the bien: the
+     *  autocomplete suggestions and the folio of the resguardo that covers it.
+     *  Read with {@link #cargarExtras} off the FX thread — five round-trips to
+     *  the server froze the window for a second or two on every open. */
+    public record Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
+                         List<String> ubicaciones, String folioResguardo) {}
+
+    /** Call it in the background (DialogUtil.runAsync…), never on the FX thread. */
+    public static Extras cargarExtras(ProductoService productoService, Producto existing, Logger log) {
+        String folio = null;
+        if (existing != null && existing.getId() != null) {
+            try {
+                folio = new com.sibim.repository.ResguardoRepository()
+                    .findActivoByProductoId(existing.getId())
+                    .map(com.sibim.model.Resguardo::getNumero).orElse(null);
+            } catch (Exception e) {
+                log.debug("No se pudo consultar el resguardo activo de '{}'", existing.getId(), e);
+            }
+        }
+        return new Extras(productoService.getMarcas(), productoService.getModelos(),
+            productoService.getProveedores(), productoService.getUbicaciones(), folio);
+    }
+
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
                                            Map<String, Image> thumbnailCache, Logger log,
-                                           List<String> existingFotos) {
+                                           List<String> existingFotos, Extras extras) {
         boolean isNewProduct = existing == null || existing.getId() == null;
 
-        // Load autocomplete suggestions (fast queries; best-effort)
         ProductoService productoService = new ProductoService();
-        List<String> sugestMarcas      = productoService.getMarcas();
-        List<String> sugestModelos     = productoService.getModelos();
-        List<String> sugestProveedores = productoService.getProveedores();
-        List<String> sugestUbicaciones = productoService.getUbicaciones();
+        List<String> sugestMarcas      = extras.marcas();
+        List<String> sugestModelos     = extras.modelos();
+        List<String> sugestProveedores = extras.proveedores();
+        List<String> sugestUbicaciones = extras.ubicaciones();
 
         Dialog<Producto> dialog = DialogUtil.create(580);
         DialogUtil.styleOkButton(dialog.getDialogPane(), isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS);
@@ -85,16 +107,7 @@ public final class ProductoDialogFactory {
 
         var stockTab = new ProductoTabStockFields(existing);
 
-        String folioResguardo = null;
-        if (!isNewProduct) {
-            try {
-                folioResguardo = new com.sibim.repository.ResguardoRepository()
-                    .findActivoByProductoId(existing.getId())
-                    .map(com.sibim.model.Resguardo::getNumero).orElse(null);
-            } catch (Exception e) {
-                log.debug("No se pudo consultar el resguardo activo de '{}'", existing.getId(), e);
-            }
-        }
+        String folioResguardo = isNewProduct ? null : extras.folioResguardo();
         var patrimonioTab = new ProductoTabPatrimonioFields(existing,
             sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones, folioResguardo);
 

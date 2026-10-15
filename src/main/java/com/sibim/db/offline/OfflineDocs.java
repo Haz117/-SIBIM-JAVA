@@ -76,9 +76,32 @@ public final class OfflineDocs {
 
     // ── Copy ───────────────────────────────────────────────────────────────
 
-    /** Refreshes the copy after an online read. Never throws. */
+    /** Writes the copy refreshed by online reads, one batch after another.
+     *  It shares the offline store's lock with the bienes mirror, which an
+     *  online read of the inventory refreshes at the same moment: done in the
+     *  read itself, the Organigrama waited for SQLite before showing anything. */
+    private static final java.util.concurrent.ExecutorService COPIA =
+        java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "sibim-copia-documentos");
+            t.setDaemon(true);
+            return t;
+        });
+
+    /** Refreshes the copy after an online read, in the background. Never throws. */
     public static <T> void guardarTodos(String tipo, List<T> docs, Function<T, String> id) {
         if (docs == null || docs.isEmpty() || DatabaseConfig.isDemoMode()) return;
+        // Serialized here: the objects are the caller's and may change after it returns.
+        List<String[]> filas = new ArrayList<>();
+        try {
+            for (T d : docs) filas.add(new String[]{ id.apply(d), JSON.writeValueAsString(d) });
+        } catch (Exception e) {
+            log.warn("OfflineDocs: no se pudo preparar la copia local de {}", tipo, e);
+            return;
+        }
+        COPIA.submit(() -> escribirCopia(tipo, filas));
+    }
+
+    private static void escribirCopia(String tipo, List<String[]> filas) {
         try {
             Connection db = OfflineStore.sharedConnection();
             synchronized (OfflineStore.class) {
@@ -87,10 +110,10 @@ public final class OfflineDocs {
                 try (PreparedStatement ps = db.prepareStatement(
                         "INSERT INTO doc_cache (tipo, id, json) VALUES (?,?,?) "
                         + "ON CONFLICT(tipo, id) DO UPDATE SET json = excluded.json")) {
-                    for (T d : docs) {
+                    for (String[] f : filas) {
                         ps.setString(1, tipo);
-                        ps.setString(2, id.apply(d));
-                        ps.setString(3, JSON.writeValueAsString(d));
+                        ps.setString(2, f[0]);
+                        ps.setString(3, f[1]);
                         ps.addBatch();
                     }
                     ps.executeBatch();
@@ -107,7 +130,25 @@ public final class OfflineDocs {
         }
     }
 
+    /** Lets the copies already queued land before the copy is read or changed
+     *  directly — an online read right before going offline must be there.
+     *  Never call it holding the OfflineStore lock: the copy needs it. */
+    static void esperarCopia() {
+        try {
+            COPIA.submit(() -> {}).get(30, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            log.warn("OfflineDocs: la copia local tardó demasiado en escribirse", e);
+        }
+    }
+
     public static <T> void guardar(String tipo, String id, T doc) throws SQLException {
+        esperarCopia();
+        guardarAhora(tipo, id, doc);
+    }
+
+    private static <T> void guardarAhora(String tipo, String id, T doc) throws SQLException {
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                 "INSERT INTO doc_cache (tipo, id, json) VALUES (?,?,?) "
                 + "ON CONFLICT(tipo, id) DO UPDATE SET json = excluded.json")) {
@@ -119,6 +160,7 @@ public final class OfflineDocs {
     }
 
     public static <T> List<T> todos(String tipo, Class<T> clase) throws SQLException {
+        esperarCopia();
         List<T> lista = new ArrayList<>();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                 "SELECT json FROM doc_cache WHERE tipo = ?")) {
@@ -134,6 +176,7 @@ public final class OfflineDocs {
     }
 
     public static <T> Optional<T> uno(String tipo, String id, Class<T> clase) throws SQLException {
+        esperarCopia();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                 "SELECT json FROM doc_cache WHERE tipo = ? AND id = ?")) {
             ps.setString(1, tipo);
@@ -148,12 +191,13 @@ public final class OfflineDocs {
 
     /** Stores the document in the copy and queues the change, atomically. */
     public static <T> void registrar(String tipo, String operacion, String id, T doc) throws SQLException {
+        esperarCopia();   // before the lock: the queued copy needs it
         Connection db = OfflineStore.sharedConnection();
         synchronized (OfflineStore.class) {
             boolean auto = db.getAutoCommit();
             db.setAutoCommit(false);
             try {
-                guardar(tipo, id, doc);
+                guardarAhora(tipo, id, doc);
                 try (PreparedStatement ps = db.prepareStatement(
                         "INSERT INTO doc_outbox (tipo, operacion, doc_id, json, created_at) VALUES (?,?,?,?,?)")) {
                     ps.setString(1, tipo);
@@ -174,6 +218,7 @@ public final class OfflineDocs {
     }
 
     public static void borrar(String tipo, String id) throws SQLException {
+        esperarCopia();
         try (PreparedStatement ps = OfflineStore.sharedConnection().prepareStatement(
                 "DELETE FROM doc_cache WHERE tipo = ? AND id = ?")) {
             ps.setString(1, tipo);

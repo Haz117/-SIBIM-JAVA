@@ -324,7 +324,7 @@
        nudge it to the icon's top-right corner as a compact counter instead. */
     -fx-translate-x: 6;
     -fx-translate-y: -11;
-    -fx-font-size: 8.5px;
+    -fx-font-size: 11px;   /* the minimum legible size (see 20-accesibilidad.css) */
     -fx-padding: 0 4;
-    -fx-min-width: 15; -fx-min-height: 15;
+    -fx-min-width: 17; -fx-min-height: 17;
 }

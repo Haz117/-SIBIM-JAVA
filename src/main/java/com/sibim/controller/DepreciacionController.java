@@ -587,7 +587,7 @@ public class DepreciacionController {
                     new KeyFrame(Duration.millis(800),
                         new KeyValue(pb.progressProperty(), target,
                             Interpolator.EASE_BOTH)));
-                tl.play();
+                com.sibim.util.AnimationUtils.reproducir(tl);
                 AnimationUtils.animateCount(countLbl, rCount, 750, v -> FormatUtils.plural(v, "bien", "bienes"));
             });
             wait.play();

@@ -63,6 +63,24 @@ public final class AnimationUtils {
 
     public static boolean isEnabled() { return enabled; }
 
+    /** The length of a movement: {@code ms}, or one millisecond with
+     *  animations off — the node still ends where it should and onFinished
+     *  still runs. For transitions only; a PauseTransition keeps its real
+     *  length (a toast's reading time). */
+    public static Duration duracion(double ms) {
+        return enabled ? Duration.millis(ms) : Duration.ONE;
+    }
+
+    /** Plays a decorative animation built elsewhere (a toast sliding in, the
+     *  sidebar folding, a tutorial step) — or, with animations off, runs it
+     *  to its end at once: same final state, same onFinished. Only for motion:
+     *  an animation that includes a pause someone must be able to read through,
+     *  or a timer, would be cut short too. */
+    public static void reproducir(Animation a) {
+        if (!enabled && a.getCycleCount() != Animation.INDEFINITE) a.setRate(a.getRate() * 1000);
+        a.play();
+    }
+
     public static void setEnabled(boolean value) {
         enabled = value;
         ANIM_PREFS.putBoolean("enabled", value);

@@ -41,6 +41,7 @@ public class AuditoriaController {
         DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     @FXML private FlowPane filterBar;
+    @FXML private Button btnLimpiar;
     @FXML private TextField searchField;
     @FXML private ComboBox<String> entidadFilter;
     @FXML private ComboBox<String> accionFilter;
@@ -76,8 +77,95 @@ public class AuditoriaController {
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private HBox paginationBar;
 
+    /** Column widths and sort, kept between sessions. */
     private static final Preferences STICKY =
         Preferences.userRoot().node("sibim/filters/auditoria");
+
+    /** The filters, kept while SIBIM is open (leaving the screen and coming
+     *  back) but not between sessions: remembered in the registry, a filter
+     *  set days ago greeted the next visit with "4 registros" and no sign why. */
+    private static final java.util.Map<String, String> FILTROS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    static final String TODAS_ENTIDADES = "Todas las entidades";
+    static final String TODAS_ACCIONES  = "Todas las acciones";
+    static final String TODOS_USUARIOS  = "Todos los usuarios";
+
+    /** What each "entidad" stored in the bitácora is called on screen. */
+    static String etiquetaEntidad(String entidad) {
+        if (entidad == null) return "";
+        return switch (entidad) {
+            case "sesion" -> "Sesiones";
+            case "producto" -> "Bienes";
+            case "movimiento" -> "Movimientos";
+            case "categoria" -> "Categorías";
+            case "usuario" -> "Usuarios";
+            case "resguardo" -> "Resguardos";
+            case "area_resguardo" -> "Resguardos de área";
+            case "prestamo" -> "Préstamos";
+            case "comodato" -> "Comodatos";
+            case "acta" -> "Actas E/R";
+            case "area" -> "Áreas";
+            case "mantenimiento" -> "Mantenimiento";
+            case "configuracion" -> "Configuración";
+            case "solicitud" -> "Solicitudes";
+            case "conteo" -> "Conteos físicos";
+            case "backup" -> "Respaldos";
+            case "sistema" -> "Sistema";
+            default -> Character.toUpperCase(entidad.charAt(0)) + entidad.substring(1).replace('_', ' ');
+        };
+    }
+
+    /** What each "accion" stored in the bitácora reads as on screen. */
+    static String etiquetaAccion(String accion) {
+        if (accion == null || accion.isBlank()) return "";
+        return switch (accion.toLowerCase()) {
+            case "login" -> "Inicio de sesión";
+            case "logout" -> "Cierre de sesión";
+            case "login_fallido" -> "Acceso fallido";
+            case "operador" -> "Quién usa la cuenta";
+            case "crear" -> "Alta";
+            case "actualizar" -> "Actualización";
+            case "eliminar" -> "Eliminación";
+            case "baja" -> "Baja";
+            case "reactivar" -> "Reactivación";
+            case "cambio_precio" -> "Cambio de precio";
+            case "codigo_reasignado" -> "Código reasignado";
+            case "transferencia_aprobada" -> "Transferencia aprobada";
+            case "transferencia_rechazada" -> "Transferencia rechazada";
+            case "transferencia_recibida" -> "Transferencia recibida";
+            case "cancelar" -> "Cancelación";
+            case "devolver" -> "Devolución";
+            case "concluir" -> "Conclusión";
+            case "rescindir" -> "Rescisión";
+            case "restaurar" -> "Restauración";
+            case "aprobar" -> "Aprobación";
+            case "rechazar" -> "Rechazo";
+            default -> Character.toUpperCase(accion.charAt(0)) + accion.substring(1).replace('_', ' ');
+        };
+    }
+
+    /** The pill's tone: done or let in (verde), changed (dorado), taken out
+     *  or refused (guinda), the rest neutral — the institutional palette, not
+     *  the bright alert colors that filled whole cells. */
+    static String tonoAccion(String accion) {
+        if (accion == null) return "audit-pill-neutro";
+        return switch (accion.toLowerCase()) {
+            case "login", "crear", "reactivar", "operador", "transferencia_recibida", "transferencia_aprobada",
+                 "aprobar", "devolver", "concluir", "restaurar" -> "audit-pill-verde";
+            case "baja", "eliminar", "login_fallido", "transferencia_rechazada", "cancelar", "rescindir",
+                 "rechazar" -> "audit-pill-guinda";
+            case "actualizar", "cambio_precio", "codigo_reasignado" -> "audit-pill-dorado";
+            default -> "audit-pill-neutro";
+        };
+    }
+
+    /** Each loadData() takes a number; a response that isn't the latest is
+     *  dropped. Several reads go out together (opening the screen, a combo
+     *  filled in the background, quick changes), and one that came back late
+     *  put another filter's rows under the current one. */
+    private long consulta;
+    /** While the combos are being filled or restored, selecting doesn't reload. */
+    private boolean ajustando;
 
     private final AuditLogRepository auditRepo    = new AuditLogRepository();
     private final ReporteService      reporteService = new ReporteService();
@@ -90,45 +178,37 @@ public class AuditoriaController {
 
     @FXML
     public void initialize() {
+        ajustando = true;
         setupColumns();
-        setupEntidadFilter();
-        setupAccionFilter();
-        setupUsuarioFilter();
+        setupComboFilter(entidadFilter, TODAS_ENTIDADES, "entidad", auditRepo::findDistinctEntidades,
+            AuditoriaController::etiquetaEntidad);
+        setupComboFilter(accionFilter, TODAS_ACCIONES, "accion", auditRepo::findDistinctAcciones,
+            AuditoriaController::etiquetaAccion);
+        setupComboFilter(usuarioFilter, TODOS_USUARIOS, "usuario", auditRepo::findDistinctUsuarios, u -> u);
         setupPageSizeBox();
         setupResumenToggle();
 
         searchDebounce = new PauseTransition(Duration.millis(280));
         searchDebounce.setOnFinished(e -> {
+            guardarFiltros();
             currentPage = 0;
             loadData();
         });
 
-        // Restore sticky filters from previous navigation
-        if (searchField   != null) searchField.setText(STICKY.get("search", ""));
-        String stickyUsuario = STICKY.get("usuario", "Todos");
-        if (usuarioFilter != null && usuarioFilter.getItems().contains(stickyUsuario))
-            usuarioFilter.getSelectionModel().select(stickyUsuario);
-        String stickyEntidad = STICKY.get("entidad", "Todas");
-        if (entidadFilter != null && entidadFilter.getItems().contains(stickyEntidad))
-            entidadFilter.getSelectionModel().select(stickyEntidad);
-        String stickyAccion = STICKY.get("accion", "Todas");
-        if (accionFilter != null && accionFilter.getItems().contains(stickyAccion))
-            accionFilter.getSelectionModel().select(stickyAccion);
-        String desdeStr = STICKY.get("desde", "");
-        String hastaStr = STICKY.get("hasta", "");
-        if (!desdeStr.isBlank() && desdeField != null)
-            try { desdeField.setValue(LocalDate.parse(desdeStr)); } catch (Exception ignored) {
-                log.debug("Could not restore sticky 'desde' date filter value '{}'", desdeStr, ignored);
-            }
-        if (!hastaStr.isBlank() && hastaField != null)
-            try { hastaField.setValue(LocalDate.parse(hastaStr)); } catch (Exception ignored) {
-                log.debug("Could not restore sticky 'hasta' date filter value '{}'", hastaStr, ignored);
-            }
+        // The filters of this session (see FILTROS).
+        if (searchField != null) searchField.setText(FILTROS.getOrDefault("search", ""));
+        try {
+            if (desdeField != null && FILTROS.containsKey("desde")) desdeField.setValue(LocalDate.parse(FILTROS.get("desde")));
+            if (hastaField != null && FILTROS.containsKey("hasta")) hastaField.setValue(LocalDate.parse(FILTROS.get("hasta")));
+        } catch (Exception ignored) {
+            log.debug("Filtro de fecha de Auditoría no válido; se ignora", ignored);
+        }
 
         if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
         updateExportButtons();
 
         AnimationUtils.fadeInDown(filterBar, 220, 0);
+        ajustando = false;
         loadData();
 
         if (searchField != null) {
@@ -192,65 +272,45 @@ public class AuditoriaController {
             colUsuario, colDetalle, FECHA_FMT, STICKY);
     }
 
-    private void setupEntidadFilter() {
-        if (entidadFilter == null) return;
-        entidadFilter.getItems().addAll(
-            "Todas", "sesion", "movimiento", "producto", "categoria",
-            "usuario", "backup", "conteo"
-        );
-        entidadFilter.getSelectionModel().selectFirst();
-    }
+    @FunctionalInterface
+    private interface Valores { List<String> leer() throws Exception; }
 
-    /** Populated asynchronously from whatever "accion" values actually exist
-     *  in the log, instead of a hardcoded list that would drift out of sync
-     *  with whatever callers pass to {@code AuditLogRepository.log(...)}. */
-    private void setupAccionFilter() {
-        if (accionFilter == null) return;
-        accionFilter.getItems().add("Todas");
-        accionFilter.getSelectionModel().selectFirst();
-        AppExecutor.submit(() -> {
-            try {
-                List<String> acciones = auditRepo.findDistinctAcciones();
-                Platform.runLater(() -> {
-                    List<String> items = new ArrayList<>();
-                    items.add("Todas");
-                    items.addAll(acciones);
-                    accionFilter.getItems().setAll(items);
-                    String sticky = STICKY.get("accion", "Todas");
-                    if (accionFilter.getItems().contains(sticky))
-                        accionFilter.getSelectionModel().select(sticky);
-                    else
-                        accionFilter.getSelectionModel().selectFirst();
-                });
-            } catch (Exception ignored) {
-                // admin-only guard or a transient DB error — filter just stays on "Todas"
+    /** A filter combo whose options are the values the bitácora actually has
+     *  (a fixed list knew 7 of the 17 entidades SIBIM logs), shown by
+     *  {@code etiqueta}; {@code todas} is "no filter". Filled in the background
+     *  and set back to this session's choice without reloading the table. */
+    private void setupComboFilter(ComboBox<String> combo, String todas, String clave,
+                                  Valores valores, java.util.function.Function<String, String> etiqueta) {
+        if (combo == null) return;
+        javafx.util.Callback<ListView<String>, ListCell<String>> celdas = lv -> new ListCell<>() {
+            @Override protected void updateItem(String v, boolean empty) {
+                super.updateItem(v, empty);
+                setText(empty || v == null ? null : todas.equals(v) ? v : etiqueta.apply(v));
             }
-        });
-    }
-
-    /** Same idea as {@link #setupAccionFilter()} but for usuarios — a free-text
-     *  field could never match on a typo and a stale/renamed user would be
-     *  impossible to filter by name if this instead read the live users table. */
-    private void setupUsuarioFilter() {
-        if (usuarioFilter == null) return;
-        usuarioFilter.getItems().add("Todos");
-        usuarioFilter.getSelectionModel().selectFirst();
+        };
+        combo.setCellFactory(celdas);
+        combo.setButtonCell(celdas.call(null));
+        combo.getItems().setAll(todas);
+        combo.getSelectionModel().selectFirst();
         AppExecutor.submit(() -> {
             try {
-                List<String> usuarios = auditRepo.findDistinctUsuarios();
+                List<String> lista = valores.leer();
                 Platform.runLater(() -> {
+                    boolean antes = ajustando;
+                    ajustando = true;
                     List<String> items = new ArrayList<>();
-                    items.add("Todos");
-                    items.addAll(usuarios);
-                    usuarioFilter.getItems().setAll(items);
-                    String sticky = STICKY.get("usuario", "Todos");
-                    if (usuarioFilter.getItems().contains(sticky))
-                        usuarioFilter.getSelectionModel().select(sticky);
-                    else
-                        usuarioFilter.getSelectionModel().selectFirst();
+                    items.add(todas);
+                    items.addAll(lista);
+                    combo.getItems().setAll(items);
+                    String elegido = FILTROS.get(clave);
+                    if (elegido != null && items.contains(elegido)) combo.getSelectionModel().select(elegido);
+                    else combo.getSelectionModel().selectFirst();
+                    ajustando = antes;
+                    // A filter of this session that the first read didn't have yet.
+                    if (elegido != null && items.contains(elegido)) { currentPage = 0; loadData(); }
                 });
             } catch (Exception ignored) {
-                log.debug("Could not load user filter options in AuditoriaController", ignored);
+                log.debug("No se pudieron leer las opciones del filtro '{}' de Auditoría", clave, ignored);
             }
         });
     }
@@ -280,14 +340,8 @@ public class AuditoriaController {
         LocalDate desde = desdeField != null ? desdeField.getValue() : null;
         LocalDate hasta = hastaField != null ? hastaField.getValue() : null;
         int offset = currentPage * pageSize;
-
-        // Persist current filters
-        STICKY.put("search",  busqueda != null ? busqueda : "");
-        STICKY.put("usuario", usuario  != null ? usuario  : "Todos");
-        STICKY.put("entidad", entidad  != null ? entidad  : "Todas");
-        STICKY.put("accion",  accion   != null ? accion   : "Todas");
-        STICKY.put("desde",   desde    != null ? desde.toString() : "");
-        STICKY.put("hasta",   hasta    != null ? hasta.toString() : "");
+        long mia = ++consulta;
+        actualizarLimpiar();
 
         AppExecutor.submit(() -> {
             try {
@@ -296,6 +350,7 @@ public class AuditoriaController {
                     busqueda, entidad, accion, usuario, desde, hasta);
                 AuditLogRepository.AuditStats stats = auditRepo.getStats(busqueda, entidad, accion, usuario, desde, hasta);
                 Platform.runLater(() -> {
+                    if (mia != consulta) return;   // a newer read is on its way
                     if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
                     totalCount = total;
                     table.getItems().setAll(rows);
@@ -306,6 +361,7 @@ public class AuditoriaController {
                 });
             } catch (SecurityException se) {
                 Platform.runLater(() -> {
+                    if (mia != consulta) return;
                     if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
                     table.getItems().clear();
                     if (lblTotal != null) lblTotal.setText("Acceso denegado — se requiere rol Administrador");
@@ -315,6 +371,7 @@ public class AuditoriaController {
             } catch (Exception ex) {
                 log.error("Error al cargar registros de auditoría", ex);
                 Platform.runLater(() -> {
+                    if (mia != consulta) return;
                     if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
                     Scene scene = table.getScene();
                     if (scene != null)
@@ -336,22 +393,40 @@ public class AuditoriaController {
         if (btnExportar != null) btnExportar.setDisable(empty);
     }
 
-    private String getEntidadValue() {
-        if (entidadFilter == null) return null;
-        String sel = entidadFilter.getSelectionModel().getSelectedItem();
-        return (sel == null || sel.equals("Todas")) ? null : sel;
+    private static String valor(ComboBox<String> combo, String todas) {
+        if (combo == null) return null;
+        String sel = combo.getSelectionModel().getSelectedItem();
+        return (sel == null || sel.equals(todas)) ? null : sel;
     }
 
-    private String getAccionValue() {
-        if (accionFilter == null) return null;
-        String sel = accionFilter.getSelectionModel().getSelectedItem();
-        return (sel == null || sel.equals("Todas")) ? null : sel;
+    private String getEntidadValue() { return valor(entidadFilter, TODAS_ENTIDADES); }
+    private String getAccionValue()  { return valor(accionFilter, TODAS_ACCIONES); }
+    private String getUsuarioValue() { return valor(usuarioFilter, TODOS_USUARIOS); }
+
+    /** Remembers the filters for this session (see FILTROS). A combo still
+     *  waiting for its options keeps what was saved instead of erasing it. */
+    private void guardarFiltros() {
+        guardar("search", searchField != null && !searchField.getText().isBlank() ? searchField.getText() : null);
+        if (entidadFilter != null && entidadFilter.getItems().size() > 1) guardar("entidad", getEntidadValue());
+        if (accionFilter  != null && accionFilter.getItems().size()  > 1) guardar("accion",  getAccionValue());
+        if (usuarioFilter != null && usuarioFilter.getItems().size() > 1) guardar("usuario", getUsuarioValue());
+        guardar("desde", desdeField != null && desdeField.getValue() != null ? desdeField.getValue().toString() : null);
+        guardar("hasta", hastaField != null && hastaField.getValue() != null ? hastaField.getValue().toString() : null);
     }
 
-    private String getUsuarioValue() {
-        if (usuarioFilter == null) return null;
-        String sel = usuarioFilter.getSelectionModel().getSelectedItem();
-        return (sel == null || sel.equals("Todos")) ? null : sel;
+    private static void guardar(String clave, String valor) {
+        if (valor == null) FILTROS.remove(clave); else FILTROS.put(clave, valor);
+    }
+
+    /** "Limpiar filtros" only while there is something to clear. */
+    private void actualizarLimpiar() {
+        if (btnLimpiar == null) return;
+        boolean hay = (searchField != null && !searchField.getText().isBlank())
+            || getEntidadValue() != null || getAccionValue() != null || getUsuarioValue() != null
+            || (desdeField != null && desdeField.getValue() != null)
+            || (hastaField != null && hastaField.getValue() != null);
+        btnLimpiar.setVisible(hay);
+        btnLimpiar.setManaged(hay);
     }
 
     private void updatePaginationUI() {
@@ -389,27 +464,41 @@ public class AuditoriaController {
     }
 
     @FXML private void onFilter() {
+        if (ajustando) return;
+        guardarFiltros();
         currentPage = 0;
         loadData();
     }
 
     @FXML private void onLimpiar() {
+        ajustando = true;
         if (searchField   != null) searchField.clear();
         if (usuarioFilter != null) usuarioFilter.getSelectionModel().selectFirst();
         if (accionFilter  != null) accionFilter.getSelectionModel().selectFirst();
         if (desdeField    != null) desdeField.setValue(null);
         if (hastaField    != null) hastaField.setValue(null);
         if (entidadFilter != null) entidadFilter.getSelectionModel().selectFirst();
-        STICKY.put("search", ""); STICKY.put("usuario", "Todos");
-        STICKY.put("entidad", "Todas"); STICKY.put("accion", "Todas");
-        STICKY.put("desde", ""); STICKY.put("hasta", "");
+        ajustando = false;
+        FILTROS.clear();
         currentPage = 0;
         loadData();
     }
 
     @FXML private void onRefresh() { loadData(); }
 
-    @FXML private void onFiltroFecha() { onFilter(); }
+    /** "Desde" after "Hasta" found nothing and said nothing: the two are swapped. */
+    @FXML private void onFiltroFecha() {
+        if (ajustando) return;
+        if (desdeField != null && hastaField != null && desdeField.getValue() != null && hastaField.getValue() != null
+                && desdeField.getValue().isAfter(hastaField.getValue())) {
+            ajustando = true;
+            LocalDate d = desdeField.getValue();
+            desdeField.setValue(hastaField.getValue());
+            hastaField.setValue(d);
+            ajustando = false;
+        }
+        onFilter();
+    }
 
     @FXML private void onPresetHoy() {
         LocalDate hoy = LocalDate.now();
@@ -426,8 +515,10 @@ public class AuditoriaController {
     }
 
     private void aplicarPreset(LocalDate desde, LocalDate hasta) {
+        ajustando = true;   // one read, not one per date picker
         if (desdeField != null) desdeField.setValue(desde);
         if (hastaField  != null) hastaField.setValue(hasta);
+        ajustando = false;
         onFilter();
     }
 

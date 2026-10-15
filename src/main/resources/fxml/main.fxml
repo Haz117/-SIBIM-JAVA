@@ -83,14 +83,14 @@
 
                     <VBox fx:id="secNavegacion" styleClass="nav-section">
                         <HBox styleClass="nav-section-header" alignment="CENTER_LEFT" spacing="6">
-                            <Label text="NAVEGACIÓN" styleClass="nav-section-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                            <Label text="INVENTARIO" styleClass="nav-section-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                             <Label styleClass="nav-section-badge" visible="false" managed="false" mouseTransparent="true"/>
                             <FontIcon iconLiteral="mdi2c-chevron-down" styleClass="nav-section-chevron"/>
                         </HBox>
                         <VBox styleClass="nav-section-items" spacing="3">
-                            <Button fx:id="btnDashboard" text="Dashboard" onAction="#onNavItem" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                            <Button fx:id="btnDashboard" text="Inicio" onAction="#onNavItem" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                                 <graphic><FontIcon iconLiteral="mdi2v-view-dashboard" styleClass="nav-icon"/></graphic>
-                                <tooltip><Tooltip text="Dashboard  (Ctrl+1)"/></tooltip>
+                                <tooltip><Tooltip text="Inicio: resumen del inventario  (Ctrl+1)"/></tooltip>
                             </Button>
                             <Button fx:id="btnOrganigrama" text="Organigrama" onAction="#onNavItem" styleClass="nav-btn" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                                 <graphic><FontIcon iconLiteral="mdi2s-sitemap" styleClass="nav-icon"/></graphic>
@@ -109,7 +109,7 @@
 
                     <VBox fx:id="secOperaciones" styleClass="nav-section">
                         <HBox styleClass="nav-section-header" alignment="CENTER_LEFT" spacing="6">
-                            <Label text="OPERACIONES" styleClass="nav-section-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                            <Label text="OPERACIÓN" styleClass="nav-section-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                             <Label styleClass="nav-section-badge" visible="false" managed="false" mouseTransparent="true"/>
                             <FontIcon iconLiteral="mdi2c-chevron-down" styleClass="nav-section-chevron"/>
                         </HBox>
@@ -130,6 +130,20 @@
                                        visible="false" managed="false" mouseTransparent="true"
                                        StackPane.alignment="CENTER_RIGHT"/>
                             </StackPane>
+                            <Button fx:id="btnConteoFisico" text="Conteo Físico" onAction="#onNavItem" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                                <graphic><FontIcon iconLiteral="mdi2c-clipboard-search-outline" styleClass="nav-icon"/></graphic>
+                                <tooltip><Tooltip text="Tomar conteo físico del inventario  (Ctrl+Alt+C)"/></tooltip>
+                            </Button>
+                        </VBox>
+                    </VBox>
+
+                    <VBox fx:id="secReportes" styleClass="nav-section">
+                        <HBox styleClass="nav-section-header" alignment="CENTER_LEFT" spacing="6">
+                            <Label text="REPORTES" styleClass="nav-section-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                            <Label styleClass="nav-section-badge" visible="false" managed="false" mouseTransparent="true"/>
+                            <FontIcon iconLiteral="mdi2c-chevron-down" styleClass="nav-section-chevron"/>
+                        </HBox>
+                        <VBox styleClass="nav-section-items" spacing="3">
                             <Button fx:id="btnReportes" text="Reportes" onAction="#onNavItem" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                                 <graphic><FontIcon iconLiteral="mdi2f-file-chart" styleClass="nav-icon"/></graphic>
                                 <tooltip><Tooltip text="Exportar reportes  (Ctrl+7)"/></tooltip>
@@ -137,10 +151,6 @@
                             <Button fx:id="btnDepreciacion" text="Depreciación" onAction="#onNavItem" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                                 <graphic><FontIcon iconLiteral="mdi2c-chart-line" styleClass="nav-icon"/></graphic>
                                 <tooltip><Tooltip text="Depreciación de activos  (Ctrl+8)"/></tooltip>
-                            </Button>
-                            <Button fx:id="btnConteoFisico" text="Conteo Físico" onAction="#onNavItem" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                                <graphic><FontIcon iconLiteral="mdi2c-clipboard-search-outline" styleClass="nav-icon"/></graphic>
-                                <tooltip><Tooltip text="Tomar conteo físico del inventario  (Ctrl+Alt+C)"/></tooltip>
                             </Button>
                         </VBox>
                     </VBox>

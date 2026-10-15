@@ -3,6 +3,8 @@ package com.sibim.controller;
 import com.sibim.model.AuditLog;
 import com.sibim.util.DialogUtil;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -34,7 +36,8 @@ class AuditoriaColumnSetup {
         });
 
         colEntidad.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getEntidad() != null ? c.getValue().getEntidad() : "—"));
+            new SimpleStringProperty(c.getValue().getEntidad() != null
+                ? AuditoriaController.etiquetaEntidad(c.getValue().getEntidad()) : "—"));
 
         colNombre.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getEntidadNombre() != null ? c.getValue().getEntidadNombre() : "—"));
@@ -51,24 +54,19 @@ class AuditoriaColumnSetup {
 
         colAccion.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getAccion() != null ? c.getValue().getAccion() : "—"));
+        // A compact pill with the action in words ("Inicio de sesión", "Baja"),
+        // not a colored block filling the whole cell with "login" or "baja".
         colAccion.setCellFactory(col -> new TableCell<>() {
+            private final Label pill = new Label();
+            { pill.getStyleClass().add("audit-pill"); setContentDisplay(ContentDisplay.GRAPHIC_ONLY); }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                getStyleClass().removeAll("audit-pill-green", "audit-pill-red", "audit-pill-blue",
-                                          "audit-pill-orange", "audit-pill-slate", "audit-pill-purple");
-                if (empty || item == null) { setText(null); return; }
-                setText(item);
-                String cls = switch (item.toLowerCase()) {
-                    case "login"              -> "audit-pill-green";
-                    case "logout"             -> "audit-pill-slate";
-                    case "save", "edicion",
-                         "edición", "alta"   -> "audit-pill-blue";
-                    case "delete", "baja",
-                         "login_fallido"      -> "audit-pill-red";
-                    case "conteo"             -> "audit-pill-purple";
-                    default                   -> "audit-pill-orange";
-                };
-                getStyleClass().add(cls);
+                if (empty || item == null || "—".equals(item)) { setGraphic(null); setText(null); return; }
+                pill.setText(AuditoriaController.etiquetaAccion(item));
+                pill.getStyleClass().removeAll("audit-pill-verde", "audit-pill-guinda", "audit-pill-dorado", "audit-pill-neutro");
+                pill.getStyleClass().add(AuditoriaController.tonoAccion(item));
+                setText(null);
+                setGraphic(pill);
             }
         });
 

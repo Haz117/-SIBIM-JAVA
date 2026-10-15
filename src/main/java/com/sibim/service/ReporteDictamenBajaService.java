@@ -87,8 +87,9 @@ public class ReporteDictamenBajaService extends ReporteFormatoBajaBase {
             fila(datos, "Resguardante", enBlanco ? vacio : p.getResguardante(), bold, regular, i++);
             fila(datos, "Fecha de adquisición", enBlanco ? vacio
                 : p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : null, bold, regular, i++);
+            // Like the solicitud: a dirección prints it without seeing amounts.
             fila(datos, "Valor de adquisición", enBlanco ? vacio
-                : FormatUtils.formatCurrency(p.getPrecioCompra()), bold, regular, i++);
+                : com.sibim.session.Permisos.pesos(p.getPrecioCompra()), bold, regular, i++);
             datosYFoto.addCell(new Cell().add(sectionTitle("DATOS DEL BIEN", bold, COLOR_HEADER)).add(datos)
                 .setBorder(Border.NO_BORDER).setPaddingRight(10));
             datosYFoto.addCell(fotoCell(p, bold, regular, 150));

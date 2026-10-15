@@ -53,7 +53,7 @@ class MainUserMenu {
             && com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(yo.getCargo());
         if (!compartida) menu.getItems().add(miPassword);
         else {
-            // Asked once per PC at sign-in; whoever sits down next changes it here.
+            // Asked at every sign-in; whoever sits down without signing out changes it here.
             MenuItem miOperador = new MenuItem("Cambiar quién usa la cuenta…");
             miOperador.setGraphic(new FontIcon("mdi2a-account-edit-outline"));
             miOperador.setOnAction(e -> OperadorDialog.preguntar(
@@ -62,6 +62,7 @@ class MainUserMenu {
                 .ifPresent(n -> {
                     com.sibim.session.SessionManager.setOperador(n);
                     com.sibim.session.OperadorRecordado.recordar(yo.getId(), n);
+                    OperadorDialog.registrar(yo.getId(), n);
                     onOperadorCambiado.run();
                     com.sibim.util.NotificacionUtil.exito(contentArea.getScene(),
                         "Desde ahora los cambios quedan a nombre de " + n);

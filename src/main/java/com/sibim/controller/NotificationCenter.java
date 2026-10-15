@@ -69,7 +69,7 @@ class NotificationCenter {
                 badge.setVisible(true);
                 badge.setManaged(true);
                 if (wasHidden) {
-                    ScaleTransition pop = new ScaleTransition(Duration.millis(320), badge);
+                    ScaleTransition pop = new ScaleTransition(com.sibim.util.AnimationUtils.duracion(320), badge);
                     pop.setFromX(0.3); pop.setFromY(0.3);
                     pop.setToX(1.0);   pop.setToY(1.0);
                     pop.setInterpolator(Interpolator.EASE_OUT);

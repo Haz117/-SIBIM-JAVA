@@ -135,7 +135,7 @@ class MainStatusBarManager {
     private void startSpin() {
         if (statusDotIcon == null) return;
         if (spinAnim == null) {
-            spinAnim = new RotateTransition(Duration.millis(900), statusDotIcon);
+            spinAnim = new RotateTransition(com.sibim.util.AnimationUtils.duracion(900), statusDotIcon);
             spinAnim.setByAngle(360);
             spinAnim.setCycleCount(Animation.INDEFINITE);
             spinAnim.setInterpolator(Interpolator.LINEAR);

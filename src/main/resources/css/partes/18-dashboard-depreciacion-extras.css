@@ -13,10 +13,10 @@
 }
 .status-mini-card:pressed { -fx-translate-y: 0; }
 
-.status-mini-card-green  { -fx-border-color: #A7F3D0; }
-.status-mini-card-amber  { -fx-border-color: #FDE68A; }
-.status-mini-card-red    { -fx-border-color: #FECACA; }
-.status-mini-card-violet { -fx-border-color: #EADCC3; }
+/* Alertas' four tabs look alike, in the institutional palette: a mint, a
+   yellow and a pink border, each with its own icon color, clashed with the
+   rest of the app. Only the chosen tab takes color (.alert-tab:selected). */
+.alert-tab-icon { -fx-icon-color: sibim-indigo; -fx-icon-size: 16; }
 
 .status-mini-label { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-500; }
 .status-mini-count { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }

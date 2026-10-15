@@ -519,7 +519,7 @@ public class OrganigramaController {
                     new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
                         new javafx.animation.KeyValue(pb.progressProperty(), target,
                             javafx.animation.Interpolator.EASE_OUT)));
-                anim.play();
+                com.sibim.util.AnimationUtils.reproducir(anim);
                 AnimationUtils.animateCount(countLbl, countL, 750, v -> FormatUtils.plural(v, "bien", "bienes"));
             });
             wait.play();

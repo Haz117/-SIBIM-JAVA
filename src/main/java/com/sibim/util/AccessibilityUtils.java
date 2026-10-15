@@ -36,6 +36,16 @@ public final class AccessibilityUtils {
         if (root == null) return;
         makeKeyboardActivatable(root);
         if (root instanceof javafx.scene.layout.GridPane grid) etiquetarCampos(grid);
+        // Every "?" opens its help on click and with Tab + Enter, not only after
+        // hovering: six of them (Auditoría, Configuración, Reportes) were never
+        // wired by their screen and seemed not to work.
+        if (root instanceof javafx.scene.control.Label ayuda && ayuda.getStyleClass().contains("help-badge")
+                && ayuda.getTooltip() != null && ayuda.getOnMouseClicked() == null)
+            DialogUtil.enableClickToShowTooltip(ayuda);
+        // Without a prompt of its own a DatePicker shows the pattern in English ("dd/mm/yyyy").
+        if (root instanceof javafx.scene.control.DatePicker dp
+                && (dp.getPromptText() == null || dp.getPromptText().isBlank()) && !dp.promptTextProperty().isBound())
+            dp.setPromptText("dd/mm/aaaa");
         if (root instanceof Labeled labeled) {
             boolean noVisibleText = labeled.getText() == null || labeled.getText().isBlank();
             boolean noAccessibleTextYet = labeled.getAccessibleText() == null || labeled.getAccessibleText().isBlank();
