@@ -2,7 +2,6 @@ package com.sibim.controller;
 
 import com.sibim.controller.dialogs.PanelEjecutivoDialog;
 import com.sibim.model.Movimiento;
-import com.sibim.model.Producto;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.service.DashboardService;
 import com.sibim.service.MovimientoService;
@@ -10,8 +9,6 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
-import com.sibim.util.AnimationUtils;
-import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -29,11 +26,8 @@ import javafx.fxml.FXML;
 import javafx.scene.Scene;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
@@ -56,11 +50,7 @@ public class DashboardController implements Refreshable {
     @FXML private Label hintCategorias;
 
     // ── Banner ───────────────────────────────────────────────────────
-    @FXML private Label lblBienvenida;
-    @FXML private Label lblUsuario;
     @FXML private Label lblOrgBanner;
-    @FXML private Label lblFechaDia;
-    @FXML private Label lblFechaMes;
     @FXML private HBox  alertBanner;
     @FXML private Label lblAlertBannerText;
     @FXML private Label  lblStatsActualizacion;
@@ -69,10 +59,6 @@ public class DashboardController implements Refreshable {
 
     // ── Help badges ("?") ────────────────────────────────────────────
     @FXML private Label helpStats;
-    @FXML private Label helpTotalBienes;
-    @FXML private Label helpValorTotal;
-    @FXML private Label helpMovimientosHoy;
-    @FXML private Label helpCategorias;
     @FXML private Label helpAnalisis;
 
     // ── Charts ───────────────────────────────────────────────────────
@@ -91,9 +77,8 @@ public class DashboardController implements Refreshable {
     @FXML private VBox  dashBanner;
     @FXML private HBox  chartsRow;
     @FXML private VBox  activityCard;
+    @FXML private HBox  quickActionsHeader;
     @FXML private HBox  quickActionsRow;
-    @FXML private VBox  cardNuevoBien;
-    @FXML private VBox  cardNuevaEntrada;
     @FXML private VBox  miAreaSection;
 
     private boolean chartsVisible = true;
@@ -107,16 +92,11 @@ public class DashboardController implements Refreshable {
     private DashboardService.Resumen lastResumen;
     private Timeline autoRefresh;
     private ChangeListener<Scene> sceneReadyListener;
-    private boolean chartsFirstLoad = true;
     private DashboardChartBuilder chartBuilder;
 
     @FXML
     public void initialize() {
-        var user = SessionManager.getCurrentUser();
-        if (user != null) lblUsuario.setText(user.getNombre());
-        lblBienvenida.setText(getBienvenida());
         loadOrgNameAsync();
-        setupDateBanner();
 
         new DashboardTablaRecienteSetup(tablaReciente, productoService, movimientoService, log).setup();
         chartBuilder = new DashboardChartBuilder(
@@ -143,30 +123,22 @@ public class DashboardController implements Refreshable {
             btnToggleAnalisis.setText(chartsVisible ? "Ocultar" : "Mostrar");
     }
 
+    /** "H. Ayuntamiento de Ixmiquilpan · martes 21 de octubre de 2026" — the institution's
+     *  name as configured (it outlives any administration), and today's date. */
     private void loadOrgNameAsync() {
         if (lblOrgBanner == null) return;
+        String hoy = FormatUtils.formatDateLong(LocalDate.now());
+        String porDefecto = lblOrgBanner.getText();
+        lblOrgBanner.setText(porDefecto + "  ·  " + hoy);
         DialogUtil.runAsync(
-            () -> {
-                ConfiguracionRepository cr = new ConfiguracionRepository();
-                return cr.get("nombre_ayuntamiento", "H. Ayuntamiento de Ixmiquilpan")
-                     + "  ·  Bienes Municipales";
-            },
-            txt -> { if (lblOrgBanner != null) lblOrgBanner.setText(txt); },
+            () -> new ConfiguracionRepository().get("nombre_ayuntamiento", porDefecto),
+            nombre -> lblOrgBanner.setText((nombre == null || nombre.isBlank() ? porDefecto : nombre) + "  ·  " + hoy),
             e -> {}
         );
     }
 
-    private void setupDateBanner() {
-        LocalDate hoy = LocalDate.now();
-        String[] meses = {"Enero","Febrero","Marzo","Abril","Mayo","Junio",
-                          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"};
-        if (lblFechaDia != null) lblFechaDia.setText(String.valueOf(hoy.getDayOfMonth()));
-        if (lblFechaMes != null) lblFechaMes.setText(meses[hoy.getMonthValue()-1] + " " + hoy.getYear());
-    }
-
     private void setupHelpBadges() {
-        for (Label badge : new Label[]{ helpStats, helpTotalBienes, helpValorTotal,
-                helpMovimientosHoy, helpCategorias, helpAnalisis }) {
+        for (Label badge : new Label[]{ helpStats, helpAnalisis }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
     }
@@ -175,8 +147,11 @@ public class DashboardController implements Refreshable {
         // "Nuevo bien" / "Nueva entrada": alta and movimientos are Patrimonio's (admin).
         boolean canEdit = SessionManager.isAdmin();
         if (!canEdit) {
-            if (cardNuevoBien    != null) { cardNuevoBien.setVisible(false);    cardNuevoBien.setManaged(false); }
-            if (cardNuevaEntrada != null) { cardNuevaEntrada.setVisible(false); cardNuevaEntrada.setManaged(false); }
+            // Without "Nuevo bien" and "Registrar movimiento" only "Generar reporte" would be
+            // left, which the menu already has: the áreas don't get the row at all.
+            for (javafx.scene.Node n : new javafx.scene.Node[]{ quickActionsHeader, quickActionsRow }) {
+                if (n != null) { n.setVisible(false); n.setManaged(false); }
+            }
             // Movimientos and Categorías are not screens of the áreas: the cards stay as plain figures.
             soloCifra(cardMovimientosHoy, hintMovimientosHoy);
             soloCifra(cardCategorias, hintCategorias);
@@ -204,12 +179,6 @@ public class DashboardController implements Refreshable {
             javafx.application.Platform.runLater(() -> {
                 if (rootScrollPane != null) rootScrollPane.setVvalue(0);
             });
-            if (dashBanner != null && !dashBanner.getChildren().isEmpty())
-                AnimationUtils.staggeredFadeInUp(dashBanner.getChildren(), 300, 70);
-            AnimationUtils.staggeredFadeInUp(statsGrid.getChildren(), 280, 45);
-            if (quickActionsRow != null) AnimationUtils.staggeredFadeInUp(quickActionsRow.getChildren(), 260, 40);
-            if (chartsRow      != null) chartsRow.setOpacity(0);
-            if (activityCard   != null) activityCard.setOpacity(0);
             loadDataAsync();
             autoRefresh = new Timeline(
                 new KeyFrame(Duration.minutes(10), e -> loadDataAsync()));
@@ -255,30 +224,17 @@ public class DashboardController implements Refreshable {
         updateTrendIndicator(data);
         updateNewBienesHint();
         updateTableReciente(data);
-
-        if (chartsFirstLoad) {
-            chartsFirstLoad = false;
-            if (chartsRow    != null) AnimationUtils.fadeInUp(chartsRow,    350, 0);
-            if (activityCard != null) AnimationUtils.fadeInUp(activityCard, 350, 80);
-        }
     }
 
     private void updateStatCards(DashboardService.Resumen data) {
         var stats = data.stats();
-        AnimationUtils.animateCount(lblTotalBienes,    stats.total(),              750);
-        AnimationUtils.animateCount(lblMovimientosHoy, data.movHoy().size(),       580);
-        AnimationUtils.animateCount(lblCategorias,     stats.categorias(),         580);
-        AnimationUtils.animateCount(lblValorTotal,
-            stats.valorTotal().longValue(), 850,
-            v -> com.sibim.session.Permisos.pesos(BigDecimal.valueOf(v)));
-        PauseTransition popDelay =
-            new PauseTransition(Duration.millis(820));
-        popDelay.setOnFinished(ev -> statsGrid.getChildren().forEach(AnimationUtils::statCardPop));
-        popDelay.play();
+        lblTotalBienes.setText(String.valueOf(stats.total()));
+        lblMovimientosHoy.setText(String.valueOf(data.movHoy().size()));
+        lblCategorias.setText(String.valueOf(stats.categorias()));
+        lblValorTotal.setText(com.sibim.session.Permisos.pesos(stats.valorTotal()));
         if (lblStatsActualizacion != null) {
             lblStatsActualizacion.setText("Actualizado " +
                 FormatUtils.formatTime(LocalTime.now()));
-            AnimationUtils.pulse(lblStatsActualizacion, 2);
         }
     }
 
@@ -294,12 +250,12 @@ public class DashboardController implements Refreshable {
                 parts.add(garantias + (garantias != 1 ? " garantías" : " garantía") + " por vencer");
             if (proximasRevisiones > 0)
                 parts.add(proximasRevisiones + " con revisión próxima");
-            lblAlertBannerText.setText(String.join("  ·  ", parts) + " — requieren atención");
-            alertBanner.setAccessibleText(String.join(", ", parts) + " — requieren atención. Ver alertas");
+            String requieren = garantias + proximasRevisiones == 1 ? "requiere" : "requieren";
+            lblAlertBannerText.setText(String.join("  ·  ", parts) + " — " + requieren + " atención");
+            alertBanner.setAccessibleText(String.join(", ", parts) + " — " + requieren + " atención. Ver alertas");
         }
         alertBanner.setVisible(showAlert);
         alertBanner.setManaged(showAlert);
-        if (showAlert) AnimationUtils.springIn(alertBanner);
     }
 
     private void updateTrendIndicator(DashboardService.Resumen data) {
@@ -357,12 +313,11 @@ public class DashboardController implements Refreshable {
             .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
             .limit(8).toList();
         tablaReciente.getItems().setAll(ultimos);
-        AnimationUtils.staggerTableRows(tablaReciente);
         if (lblCountReciente != null) {
             int n = ultimos.size();
             lblCountReciente.setVisible(n > 0);
             lblCountReciente.setManaged(n > 0);
-            if (n > 0) AnimationUtils.animateCount(lblCountReciente, n, 380);
+            if (n > 0) lblCountReciente.setText(String.valueOf(n));
             else       lblCountReciente.setText("");
         }
     }
@@ -380,15 +335,6 @@ public class DashboardController implements Refreshable {
     private void onAccionNuevaEntrada() {
         NavigationContext.setPendingNuevoMovimiento();
         navigarA("Movimientos");
-    }
-
-    @FXML
-    private void onBusquedaGlobal() {
-        Scene scene = statsGrid != null ? statsGrid.getScene() : null;
-        if (scene == null) return;
-        scene.getRoot().fireEvent(new KeyEvent(
-            KeyEvent.KEY_PRESSED, "k", "k",
-            KeyCode.K, false, true, false, false));
     }
 
     private void navigarA(String vista) {
@@ -417,13 +363,6 @@ public class DashboardController implements Refreshable {
 
 
     // ── Helpers ──────────────────────────────────────────────────────
-
-    private String getBienvenida() {
-        int hour = LocalTime.now().getHour();
-        if (hour < 12) return "Buenos días,";
-        if (hour < 19) return "Buenas tardes,";
-        return "Buenas noches,";
-    }
 
     @FXML
     private void onExportarDashboardPdf() {

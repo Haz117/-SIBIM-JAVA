@@ -42,7 +42,6 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -129,15 +128,8 @@ public class ProductosController {
     @FXML private VBox statCardValor;
     @FXML private VBox cardAlertas;
     @FXML private VBox cardSinEtiquetar;
-    @FXML private Label helpAlertas;
-    @FXML private Label helpResguardante;
-    @FXML private Label helpTotal;
-    @FXML private Label helpValor;
-    @FXML private Label helpChips;
     @FXML private Label helpPresets;
     @FXML private Label helpColumnas;
-    @FXML private Label helpFechaReg;
-    @FXML private Label helpResumen;
     @FXML private DatePicker desdeRegFilter;
     @FXML private DatePicker hastaRegFilter;
 
@@ -278,8 +270,6 @@ public class ProductosController {
             areaFilter.setValue(savedArea);
         listo = true;
         loadData();
-        AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(statCardTotal, statCardValor, cardAlertas, cardSinEtiquetar), 300, 55);
         if (cardSinEtiquetar != null) {
             cardSinEtiquetar.getStyleClass().add("stat-card-clickable");
             cardSinEtiquetar.setOnMouseClicked(e -> onCardSinEtiquetar());
@@ -287,15 +277,8 @@ public class ProductosController {
             Tooltip.install(cardSinEtiquetar, new Tooltip("Clic para filtrar bienes sin etiqueta física"));
         }
         Platform.runLater(() -> searchField.requestFocus());
-        if (helpAlertas      != null) DialogUtil.enableClickToShowTooltip(helpAlertas);
-        if (helpResguardante != null) DialogUtil.enableClickToShowTooltip(helpResguardante);
-        if (helpTotal        != null) DialogUtil.enableClickToShowTooltip(helpTotal);
-        if (helpValor        != null) DialogUtil.enableClickToShowTooltip(helpValor);
-        if (helpChips    != null) DialogUtil.enableClickToShowTooltip(helpChips);
         if (helpPresets  != null) DialogUtil.enableClickToShowTooltip(helpPresets);
         if (helpColumnas != null) DialogUtil.enableClickToShowTooltip(helpColumnas);
-        if (helpFechaReg != null) DialogUtil.enableClickToShowTooltip(helpFechaReg);
-        if (helpResumen  != null) DialogUtil.enableClickToShowTooltip(helpResumen);
     }
 
     // ── Table setup ──────────────────────────────────────────────────────────
@@ -503,19 +486,10 @@ public class ProductosController {
     }
 
     private void updateStats(ProductoRepository.InventarioStats stats) {
-        if (lblStatTotal   != null) AnimationUtils.animateCount(lblStatTotal,   stats.total(), 700);
-        if (lblStatValor   != null) AnimationUtils.animateCount(lblStatValor,   stats.valorTotal().longValue(), 880,
-            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
-        if (lblStatAlertas != null) AnimationUtils.animateCount(lblStatAlertas, stats.alertas(), 580);
-        if (lblStatSinEtiquetar != null) AnimationUtils.animateCount(lblStatSinEtiquetar, stats.sinEtiquetar(), 600);
-
-        // Pop the stat cards once their numbers finish counting
-        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(900));
-        pop.setOnFinished(e -> {
-            if (statCardTotal != null) AnimationUtils.statCardPop(statCardTotal);
-            if (statCardValor != null) AnimationUtils.statCardPop(statCardValor);
-        });
-        pop.play();
+        if (lblStatTotal   != null) lblStatTotal.setText(String.valueOf(stats.total()));
+        if (lblStatValor   != null) lblStatValor.setText(FormatUtils.formatCurrency(stats.valorTotal()));
+        if (lblStatAlertas != null) lblStatAlertas.setText(String.valueOf(stats.alertas()));
+        if (lblStatSinEtiquetar != null) lblStatSinEtiquetar.setText(String.valueOf(stats.sinEtiquetar()));
     }
 
     private String getSelectedEstado() {
@@ -725,6 +699,7 @@ public class ProductosController {
         String idBaja = seleccionado.getId();
         final ProductoBajasDialog.BajaResult r = resultado;
         final Producto sel = seleccionado;
+        javafx.scene.Node rowNode = table.lookup(".table-row-cell:selected");
         Runnable doDelete = () -> DialogUtil.runAsync(
             () -> {
                 if (r.tipoDestino() != null)
@@ -740,10 +715,12 @@ public class ProductosController {
                 populateBajaFields(sel, r);
                 exportActaBaja(sel);
             },
-            e -> NotificacionUtil.error(table.getScene(),
-                e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo dar de baja el bien")
+            e -> {
+                if (rowNode != null) rowNode.setOpacity(1);   // no baja: the faded row comes back
+                NotificacionUtil.error(table.getScene(),
+                    e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo dar de baja el bien");
+            }
         );
-        javafx.scene.Node rowNode = table.lookup(".table-row-cell:selected");
         if (rowNode != null) {
             AnimationUtils.flashClass(rowNode, "row-warning", 200);
             AnimationUtils.fadeOut(rowNode, 260, doDelete);
@@ -931,7 +908,8 @@ public class ProductosController {
     }
 
     private void exportarEtiquetasQr(List<Producto> productos) {
-        ProductosExporter.exportEtiquetasQr(table.getScene(), productos, reporteService);
+        ProductosExporter.exportEtiquetasQr(table.getScene(), productos, reporteService,
+            () -> ofrecerMarcarEtiquetados(productos));
     }
 
     @FXML
@@ -955,7 +933,13 @@ public class ProductosController {
     }
 
     private void exportarEtiquetaFisica(List<Producto> productos) {
-        ProductosExporter.exportEtiquetaFisica(table.getScene(), productos, reporteService);
+        ProductosExporter.exportEtiquetaFisica(table.getScene(), productos, reporteService,
+            () -> ofrecerMarcarEtiquetados(productos));
+    }
+
+    private void ofrecerMarcarEtiquetados(List<Producto> impresos) {
+        ProductosBulkDialog.ofrecerMarcarEtiquetados(impresos, table.getScene(), productoService,
+            () -> { refreshing = true; loadData(); });
     }
 
     // ── Filter presets ───────────────────────────────────────────────────────

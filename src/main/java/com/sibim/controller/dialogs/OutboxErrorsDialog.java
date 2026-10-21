@@ -2,7 +2,6 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.db.offline.SyncService;
 import com.sibim.db.offline.SyncService.OutboxEntry;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -70,7 +69,6 @@ public final class OutboxErrorsDialog {
         dialog.getDialogPane().setContent(root);
         dialog.getDialogPane().setPrefWidth(720);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
-        if (!entries.isEmpty()) AnimationUtils.fadeInUp(content, 250, 0);
 
         dialog.setResultConverter(bt -> bt);
         dialog.showAndWait().ifPresent(bt -> {

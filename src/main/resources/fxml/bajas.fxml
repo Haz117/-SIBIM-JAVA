@@ -11,7 +11,7 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2a-archive-arrow-down-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -45,10 +45,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-indigo" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2a-archive-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="BIENES DADOS DE BAJA" styleClass="rich-stat-label"/>
+                <Label text="Bienes dados de baja" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblTotal" text="—" styleClass="rich-stat-value"/>
             <Label text="en tus áreas" styleClass="rich-stat-hint"/>
@@ -56,10 +56,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-teal" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-calendar-today" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="ESTE AÑO" styleClass="rich-stat-label"/>
+                <Label text="Este año" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblAnio" text="—" styleClass="rich-stat-value"/>
             <Label text="bajas registradas" styleClass="rich-stat-hint"/>
@@ -67,10 +67,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-amber" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-cash-minus" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="VALOR DADO DE BAJA" styleClass="rich-stat-label"/>
+                <Label text="Valor dado de baja" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblValor" text="—" styleClass="rich-stat-value"/>
             <Label text="costo de adquisición" styleClass="rich-stat-hint"/>
@@ -78,10 +78,10 @@
         <VBox styleClass="rich-stat-card, rich-stat-rose" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-rose">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2f-file-alert-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="SIN SOLICITUD REGISTRADA" styleClass="rich-stat-label"/>
+                <Label text="Sin solicitud registrada" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblSinSolicitud" text="—" styleClass="rich-stat-value"/>
             <Label text="bajas anteriores a la regla" styleClass="rich-stat-hint"/>

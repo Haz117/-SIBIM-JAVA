@@ -8,13 +8,11 @@ import javafx.beans.value.ChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -32,7 +30,7 @@ public final class TutorialOverlay {
     // HBox spacing = -2, so card body starts at (ARROW_W - 2) = 14 px from HBox left
 
     private record Step(
-        String icon, String color, String gradEnd,
+        String icon, String color,
         String title, String shortcut, String navigateId, String[] bullets
     ) {}
 
@@ -49,7 +47,7 @@ public final class TutorialOverlay {
 
         List<Step> list = new ArrayList<>(List.of(
             // ── Bienvenida personalizada ──────────────────────────────────────────
-            new Step("mdi2b-book-open-outline", "#A2232D", "#5A141A",
+            new Step("mdi2b-book-open-outline", AppColors.PRIMARY,
                 welcomeTitle, null, null, new String[]{
                 rolDesc,
                 "Cada paso navega al módulo que describe — explóralo en vivo mientras lees",
@@ -57,7 +55,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Inicio ───────────────────────────────────────────────────────────
-            new Step("mdi2v-view-dashboard-outline", "#A2232D", "#5A141A",
+            new Step("mdi2v-view-dashboard-outline", AppColors.PRIMARY,
                 "Inicio", "Ctrl + 1", "dashboard", SessionManager.isAdmin() ? new String[]{
                 "Los recuadros de estadísticas son clicables — llevan directo al módulo",
                 "Haz clic en un segmento de la gráfica para filtrar Bienes por esa categoría",
@@ -69,7 +67,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Categorías ANTES que Bienes: flujo correcto de onboarding ────────
-            new Step("mdi2t-tag-multiple-outline", "#A2232D", "#5A141A",
+            new Step("mdi2t-tag-multiple-outline", AppColors.PRIMARY,
                 "Categorías", "Ctrl + 4", "categorias", new String[]{
                 "Crea las categorías PRIMERO: Mobiliario, Cómputo, Vehículos, Equipo…",
                 "Cada categoría tiene ícono y color — los bienes los heredan en todos los filtros",
@@ -77,7 +75,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Bienes ───────────────────────────────────────────────────────────
-            new Step("mdi2p-package-variant", "#A2232D", "#5A141A",
+            new Step("mdi2p-package-variant", AppColors.PRIMARY,
                 "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
                 SessionManager.isAdmin()
                     ? "Ctrl+N abre el formulario: llena nombre, código, área, categoría y valor"
@@ -87,7 +85,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Movimientos ──────────────────────────────────────────────────────
-            new Step("mdi2s-swap-vertical", "#235B4E", "#1B4A3F",
+            new Step("mdi2s-swap-vertical", "#235B4E",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
                 SessionManager.isAdmin()
                     ? "Entrada y Salida cambian la cantidad; Ajuste la corrige después de un conteo"
@@ -99,7 +97,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Sin conexión ─────────────────────────────────────────────────────
-            new Step("mdi2w-wifi-off", "#9C7A3C", "#6E5118",
+            new Step("mdi2w-wifi-off", "#9C7A3C",
                 "Sin internet", null, null, new String[]{
                 "Si se va el internet aparece la franja \"Sin conexión\" y puedes seguir trabajando",
                 "Lo que captures se guarda en esta computadora y se sube solo al volver la conexión",
@@ -107,7 +105,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Resguardos ───────────────────────────────────────────────────────
-            new Step("mdi2c-clipboard-account-outline", "#9C7A3C", "#6E5118",
+            new Step("mdi2c-clipboard-account-outline", "#9C7A3C",
                 "Resguardos", null, "resguardos", new String[]{
                 "Cada resguardo dice quién tiene un bien a su cargo — es el documento oficial de asignación",
                 "Consulta e imprime el PDF del resguardo para firma",
@@ -115,7 +113,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Préstamos ────────────────────────────────────────────────────────
-            new Step("mdi2s-swap-horizontal", "#9C7A3C", "#6E5118",
+            new Step("mdi2s-swap-horizontal", "#9C7A3C",
                 "Préstamos", null, "prestamos", new String[]{
                 "Registra el préstamo temporal de un bien con fecha de devolución esperada",
                 "Vista kanban: columnas Activos / Vencidos / Devueltos para control rápido",
@@ -123,7 +121,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Actas de Entrega-Recepción ───────────────────────────────────────
-            new Step("mdi2s-swap-horizontal-bold", "#9C7A3C", "#6E5118",
+            new Step("mdi2s-swap-horizontal-bold", "#9C7A3C",
                 "Actas E/R", null, "actas", new String[]{
                 "Documenta la entrega formal de bienes entre funcionarios al cambio de administración",
                 "Incluye inventario de bienes entregados, observaciones y firma de responsiva",
@@ -131,7 +129,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Comodatos ────────────────────────────────────────────────────────
-            new Step("mdi2h-handshake-outline", "#9C7A3C", "#6E5118",
+            new Step("mdi2h-handshake-outline", "#9C7A3C",
                 "Comodatos", null, "comodatos", new String[]{
                 "Préstamo formal de un bien a otra institución, con contrato y vigencia",
                 "Mientras está vigente el bien no se puede transferir ni dar de baja",
@@ -139,7 +137,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Bajas ────────────────────────────────────────────────────────────
-            new Step("mdi2a-archive-arrow-down-outline", "#9C7A3C", "#6E5118",
+            new Step("mdi2a-archive-arrow-down-outline", "#9C7A3C",
                 "Bajas", null, "bajas", new String[]{
                 "El área entrega la solicitud de baja firmada; Patrimonio la registra aquí",
                 "El bien sale del inventario activo pero conserva su código e historial",
@@ -147,7 +145,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Conteo Físico ────────────────────────────────────────────────────
-            new Step("mdi2c-clipboard-check-outline", "#235B4E", "#1B4A3F",
+            new Step("mdi2c-clipboard-check-outline", "#235B4E",
                 "Conteo Físico", null, null, new String[]{
                 "Ábrelo desde el menú (Operación) y elige todo el inventario, un área o una categoría",
                 "Da clic en la fila del bien que tienes enfrente, o escanea su etiqueta; \"Faltante\" si no está",
@@ -155,7 +153,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Alertas ──────────────────────────────────────────────────────────
-            new Step("mdi2b-bell-outline", "#A2232D", "#5A141A",
+            new Step("mdi2b-bell-outline", AppColors.PRIMARY,
                 "Alertas", "Ctrl + 6", "alertas", new String[]{
                 "Se generan solas: garantías por vencer, mantenimientos próximos y comodatos vencidos",
                 "El badge rojo en el sidebar muestra cuántas alertas activas hay sin atender",
@@ -163,7 +161,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Reportes ─────────────────────────────────────────────────────────
-            new Step("mdi2f-file-chart-outline", "#235B4E", "#1B4A3F",
+            new Step("mdi2f-file-chart-outline", "#235B4E",
                 "Reportes", "Ctrl + 7", "reportes", new String[]{
                 SessionManager.isAdmin()
                     ? "Listados del inventario y formatos oficiales (resguardo, baja, dictamen) en un solo lugar"
@@ -175,7 +173,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Depreciación ─────────────────────────────────────────────────────
-            new Step("mdi2c-chart-line", "#235B4E", "#1B4A3F",
+            new Step("mdi2c-chart-line", "#235B4E",
                 "Depreciación", "Ctrl + 8", "depreciacion", new String[]{
                 "Cálculo automático: valor de compra ÷ vida útil = depreciación anual (SAT)",
                 "Bienes en rojo = 100% depreciados — candidatos prioritarios a baja o reemplazo",
@@ -183,15 +181,15 @@ public final class TutorialOverlay {
             }),
 
             // ── Organigrama ──────────────────────────────────────────────────────
-            new Step("mdi2o-office-building-outline", "#A2232D", "#5A141A",
+            new Step("mdi2o-office-building-outline", AppColors.PRIMARY,
                 "Organigrama", "Ctrl + 2", "organigrama", new String[]{
                 "Vista jerárquica de áreas y bienes — ideal para auditorías y actas de entrega",
-                "Clic en el número de bienes de un área: la lista completa, con \"Ver en Inventario\" y exportar",
+                "Clic en el número de bienes de un área: la lista completa, con \"Ver en Bienes\" y exportar",
                 "Exporta el árbol completo a PDF desde la barra de herramientas"
             }),
 
             // ── Configuración (contenido distinto para admin) ─────────────────────
-            new Step("mdi2c-cog-outline", "#64748B", "#334155",
+            new Step("mdi2c-cog-outline", "#64748B",
                 "Configuración", "Ctrl + 9", "configuracion", new String[]{
                 SessionManager.isAdmin()
                     ? "Usuarios: crea las cuentas por área de un clic y guarda el PDF con sus contraseñas"
@@ -201,7 +199,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Atajos de teclado ────────────────────────────────────────────────
-            new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
+            new Step("mdi2k-keyboard-outline", "#64748B",
                 "Atajos de Teclado", "F1", null, new String[]{
                 "Ctrl+1…9 navega entre módulos; Ctrl+0 abre Auditoría (solo admin)",
                 "Ctrl+F busca en la tabla activa · F5 actualiza · Ctrl+N crea nuevo registro",
@@ -209,7 +207,7 @@ public final class TutorialOverlay {
             }),
 
             // ── Primeros pasos: cierre accionable ────────────────────────────────
-            new Step("mdi2c-check-circle-outline", "#235B4E", "#1B4A3F",
+            new Step("mdi2c-check-circle-outline", "#235B4E",
                 "¡Listo para empezar!", null, "dashboard", new String[]{
                 SessionManager.isAdmin()
                     ? "① Crea categorías (Ctrl+4), da de alta bienes (Ctrl+3 → Ctrl+N) y registra la primera entrada"
@@ -228,7 +226,7 @@ public final class TutorialOverlay {
 
         // A shared área account: who is using it goes into every record.
         if (user != null && com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(user.getCargo()))
-            list.add(1, new Step("mdi2a-account-edit-outline", "#A2232D", "#5A141A",
+            list.add(1, new Step("mdi2a-account-edit-outline", AppColors.PRIMARY,
                 "Cuenta compartida", null, null, new String[]{
                 "Esta cuenta la usa todo el personal de tu área",
                 "Al entrar escribe tu nombre, o confirma el que aparece: así tus cambios quedan a tu nombre",
@@ -238,7 +236,7 @@ public final class TutorialOverlay {
         if (SessionManager.isAdmin()) {
             // Insert Auditoría before the last two steps (Atajos + ¡Listo!)
             list.add(list.size() - 2,
-                new Step("mdi2s-shield-lock-outline", "#475569", "#1E293B",
+                new Step("mdi2s-shield-lock-outline", "#475569",
                     "Auditoría del Sistema", "Ctrl + 0", "auditoria", new String[]{
                     "Registra automáticamente todas las acciones: altas, bajas, ediciones, sesiones",
                     "Filtra por entidad, acción, usuario y fechas; \"Limpiar filtros\" aparece cuando hay alguno",
@@ -447,11 +445,10 @@ public final class TutorialOverlay {
             Step s = STEPS[step[0]];
             boolean hasNav = s.navigateId() != null;
 
-            // Header: dynamic left radius — squared when arrow is shown
-            String hRadius = hasNav ? "0 20 0 0" : "20 20 0 0";
+            // Header: the step's color, flat; left corners square when the arrow is shown
+            String hRadius = hasNav ? "0 12 0 0" : "12 12 0 0";
             header.setStyle(
-                "-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
-                + s.color() + ", " + s.gradEnd() + ");"
+                "-fx-background-color: " + s.color() + ";"
                 + " -fx-background-radius: " + hRadius + ";"
             );
 

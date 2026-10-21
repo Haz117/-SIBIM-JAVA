@@ -13,10 +13,8 @@ import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
 import org.kordamp.ikonli.javafx.FontIcon;
-import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.util.Duration;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -31,7 +29,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -61,12 +58,8 @@ public class CategoriasController {
     @FXML private Label lblStatTotal;
     @FXML private Label lblStatClasificados;
     @FXML private Label lblStatTop;
-    @FXML private Label helpStatTotal;
-    @FXML private Label helpStatClasificados;
-    @FXML private Label helpStatTop;
     @FXML private VBox resumenBox;
     @FXML private Button btnToggleResumen;
-    @FXML private Label helpResumen;
 
     private static final Preferences STICKY =
         Preferences.userRoot().node("sibim/filters/categorias");
@@ -79,7 +72,7 @@ public class CategoriasController {
     @FXML
     public void initialize() {
         setupTable();
-        for (Label badge : new Label[]{ helpCategorias, helpStatTotal, helpStatClasificados, helpStatTop, helpResumen }) {
+        for (Label badge : new Label[]{ helpCategorias }) {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
         if (btnToggleResumen != null && resumenBox != null)
@@ -177,15 +170,6 @@ public class CategoriasController {
         }
 
         loadData();
-        if (rootPane != null) {
-            var children = rootPane.getChildren();
-            if (!children.isEmpty()) {
-                AnimationUtils.fadeInDown(children.get(0), 280, 0);
-                if (children.size() > 1)
-                    AnimationUtils.staggeredFadeInUp(
-                        new ArrayList<>(children.subList(1, children.size())), 300, 55);
-            }
-        }
         String savedSearch = STICKY.get("search", "");
         if (!savedSearch.isBlank()) searchField.setText(savedSearch);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
@@ -295,9 +279,9 @@ public class CategoriasController {
      *  do), not whatever the search box currently narrows the table to —
      *  they describe the whole catalog, not the current view. */
     private void updateStats() {
-        if (lblStatTotal != null) AnimationUtils.animateCount(lblStatTotal, allData.size(), 600);
+        if (lblStatTotal != null) lblStatTotal.setText(String.valueOf(allData.size()));
         int clasificados = allData.stream().mapToInt(Categoria::getTotalProductos).sum();
-        if (lblStatClasificados != null) AnimationUtils.animateCount(lblStatClasificados, clasificados, 650);
+        if (lblStatClasificados != null) lblStatClasificados.setText(String.valueOf(clasificados));
         if (lblStatTop != null) {
             Categoria top = allData.stream()
                 .max(Comparator.comparingInt(Categoria::getTotalProductos))
@@ -305,13 +289,6 @@ public class CategoriasController {
                 .orElse(null);
             lblStatTop.setText(top != null ? top.getNombre() : "—");
         }
-        PauseTransition pop = new PauseTransition(Duration.millis(700));
-        pop.setOnFinished(e -> {
-            for (VBox card : new VBox[]{ statCardTotal, statCardClasificados, statCardTop }) {
-                if (card != null) AnimationUtils.statCardPop(card);
-            }
-        });
-        pop.play();
     }
 
     private void applyFilter(String query) {
@@ -327,8 +304,7 @@ public class CategoriasController {
             table.setPlaceholder(defaultPlaceholder);
         }
         table.getItems().setAll(filtered);
-        AnimationUtils.staggerTableRows(table);
-        AnimationUtils.animateCount(lblTotal, filtered.size(), 350, v -> v + (v == 1 ? " categoría" : " categorías"));
+        lblTotal.setText(FormatUtils.plural(filtered.size(), "categoría", "categorías"));
     }
 
     @FXML private void onRefresh() { loadData(); }
@@ -386,7 +362,7 @@ public class CategoriasController {
 
         HBox header = DialogUtil.gradientHeader(
             isNew ? "mdi2t-tag-plus-outline" : "mdi2p-pencil",
-            isNew ? "Nueva Categoría" : "Editar Categoría",
+            isNew ? "Nueva categoría" : "Editar categoría",
             isNew ? "Agrega una nueva clasificación al inventario"
                   : "Actualiza los datos de la categoría " + (existing != null ? existing.getNombre() : ""),
             isNew ? AppColors.CYAN : AppColors.INDIGO,
@@ -509,7 +485,6 @@ public class CategoriasController {
         grid.add(DialogUtil.fieldLabel("Ícono"),       0, r); grid.add(iconGrid,     1, r++);
         grid.add(new Label(),                          0, r); grid.add(previewRow,   1, r);
 
-        AnimationUtils.staggeredFadeInUp(List.of(header, grid), 270, 70);
         DialogUtil.setScrollableContent(dialog.getDialogPane(), new VBox(0, header, grid));
         Platform.runLater(() -> fNombre.requestFocus());
 
@@ -564,7 +539,7 @@ public class CategoriasController {
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2s-source-merge",
-            "Fusionar Categoría",
+            "Fusionar categoría",
             "Mueve todos los bienes a otra categoría y elimina \"" + source.getNombre() + "\"",
             AppColors.WARNING, AppColors.WARNING_D);
 

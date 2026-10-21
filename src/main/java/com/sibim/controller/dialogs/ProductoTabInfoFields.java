@@ -6,7 +6,6 @@ import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
-import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.ImageUtils;
@@ -27,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Builds and holds all fields for the "Información General" tab of the
+/** Builds and holds all fields for the "Información general" tab of the
  *  "Nuevo/Editar Bien" dialog.  Package-private — only used by
  *  {@link ProductoDialogFactory}. */
 class ProductoTabInfoFields {

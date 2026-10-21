@@ -15,10 +15,7 @@
     <!-- ── Centro ─────────────────────────────────────────────── -->
     <VBox fx:id="splashContent" alignment="CENTER" maxWidth="340" spacing="0">
 
-        <!-- Two pulse rings stacked behind the mark — sonar effect (SplashController offsets them 900 ms) -->
-        <StackPane fx:id="markWrap" alignment="CENTER" maxWidth="-Infinity" maxHeight="-Infinity">
-            <Region fx:id="logoPulse2" styleClass="splash-pulse" mouseTransparent="true"/>
-            <Region fx:id="logoPulse"  styleClass="splash-pulse" mouseTransparent="true"/>
+        <StackPane alignment="CENTER" maxWidth="-Infinity" maxHeight="-Infinity">
             <StackPane fx:id="logoBadge" styleClass="splash-logo-badge" alignment="CENTER">
                 <FontIcon iconLiteral="mdi2p-package-variant" styleClass="splash-logo-icon"/>
             </StackPane>
@@ -28,7 +25,7 @@
         <Label fx:id="lblSubtitle" text="Sistema Integral de Bienes Municipales" styleClass="splash-subtitle"/>
 
         <!-- Thin indigo separator between wordmark and progress block -->
-        <Region fx:id="splashSep" styleClass="splash-sep">
+        <Region styleClass="splash-sep">
             <VBox.margin><Insets top="22" bottom="22"/></VBox.margin>
         </Region>
 

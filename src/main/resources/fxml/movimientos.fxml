@@ -12,7 +12,7 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
         <!-- Icon badge -->
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -36,9 +36,6 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
         <Button fx:id="btnPorRecibir" text="Por recibir" onAction="#onVerPorRecibir"
                 styleClass="btn-secondary" visible="false" managed="false"
                 contentDisplay="LEFT" graphicTextGap="8">
@@ -51,7 +48,7 @@
             <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Transferencias pendientes de aprobación"/></tooltip>
         </Button>
-        <Button fx:id="btnNuevo" text="Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary"
+        <Button fx:id="btnNuevo" text="Nuevo movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Registrar entrada, salida, ajuste o transferencia  (Ctrl+N)"/></tooltip>
@@ -61,8 +58,7 @@
     <VBox fx:id="resumenBox" spacing="12">
     <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar-purple"/>
-        <Label text="RESUMEN DE MOVIMIENTOS" styleClass="dash-section-label"/>
+        <Label text="Resumen de movimientos" styleClass="dash-section-label"/>
     </HBox>
 
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
@@ -72,11 +68,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTAL MOVIMIENTOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpTotalMov" text="?" styleClass="help-badge">
+                <Label text="Total de movimientos" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Cantidad de movimientos que caen dentro de los filtros activos (búsqueda, tipo, categoría y rango de fechas)." wrapText="true" maxWidth="250"/></tooltip>
                 </Label>
             </HBox>
@@ -89,11 +84,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2t-trending-up" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="ENTRADAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpEntradas" text="?" styleClass="help-badge">
+                <Label text="Entradas" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Movimientos de tipo Entrada dentro del período filtrado — suman a la cantidad." wrapText="true" maxWidth="230"/></tooltip>
                 </Label>
             </HBox>
@@ -106,11 +100,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2t-trending-down" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="SALIDAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpSalidas" text="?" styleClass="help-badge">
+                <Label text="Salidas" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Movimientos de tipo Salida dentro del período filtrado — restan de la cantidad." wrapText="true" maxWidth="230"/></tooltip>
                 </Label>
             </HBox>
@@ -123,11 +116,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2t-transfer" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="AJUSTES / TRANSF." styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpAjustes" text="?" styleClass="help-badge">
+                <Label text="Ajustes y transferencias" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Ajuste: corrección manual de la cantidad. Transferencia: bien trasladado de un área a otra (requiere aprobación)." wrapText="true" maxWidth="260"/></tooltip>
                 </Label>
             </HBox>
@@ -139,8 +131,7 @@
 
     <!-- ══ BUSCAR Y FILTRAR ════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar-purple"/>
-        <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
+        <Label text="Buscar y filtrar" styleClass="dash-section-label"/>
         <!-- Search stays in this row so collapsing the filters never hides it. -->
         <StackPane prefWidth="340" maxWidth="460" HBox.hgrow="SOMETIMES">
             <TextField fx:id="searchField"
@@ -163,15 +154,16 @@
     <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-purple">
         <!-- Tipo filter chips (populated by controller) -->
         <HBox fx:id="tipoChipsBar" spacing="5" alignment="CENTER_LEFT"/>
-        <Label fx:id="helpTipoChips" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Filtra por tipo de movimiento:&#10;• Entrada — suma a la cantidad&#10;• Salida — resta de la cantidad&#10;• Ajuste — corrección manual&#10;• Transferencia — traslado entre áreas (requiere aprobación)" wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
         <Separator orientation="VERTICAL"/>
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="170">
             <tooltip><Tooltip text="Filtrar por la categoría del bien involucrado en el movimiento"/></tooltip>
         </ComboBox>
         <Separator orientation="VERTICAL"/>
-        <Label text="Desde:" styleClass="muted"/>
+        <!-- The date controls wrap as one group, so "Mes" and "×" never end up alone on a row. -->
+        <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Desde:" styleClass="muted, con-ayuda">
+            <tooltip><Tooltip text="Filtra por la fecha en que se registró el movimiento. Usa los accesos rápidos (Hoy/Semana/Mes) o elige un rango manual con Desde/Hasta." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <DatePicker fx:id="desdeFilter" prefWidth="130" promptText="dd/mm/aaaa">
             <tooltip><Tooltip text="Fecha inicial del rango"/></tooltip>
         </DatePicker>
@@ -192,10 +184,7 @@
             <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
             <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
         </Button>
-        <Label fx:id="helpFechaMov" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Filtra por la fecha en que se registró el movimiento. Usa los accesos rápidos (Hoy/Semana/Mes) o elige un rango manual con Desde/Hasta." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
-        <Separator orientation="VERTICAL"/>
+        </HBox>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
                 styleClass="btn-secondary" visible="false" managed="false"
                 contentDisplay="LEFT" graphicTextGap="8">
@@ -206,8 +195,7 @@
 
     <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar-purple"/>
-        <Label text="TABLA DE MOVIMIENTOS" styleClass="dash-section-label"/>
+        <Label text="Tabla de movimientos" styleClass="dash-section-label"/>
         <Region HBox.hgrow="ALWAYS"/>
         <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">

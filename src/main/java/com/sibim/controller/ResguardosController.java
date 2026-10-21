@@ -170,12 +170,10 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         long cancelados = list.stream().filter(r -> !r.isActivo()).count();
         long bienes     = list.stream().filter(Resguardo::isActivo)
                               .mapToLong(r -> r.getItems().size()).sum();
-        AnimationUtils.animateCount(lblStatTotal,      (long) list.size(), 700);
-        AnimationUtils.animateCount(lblStatActivos,    activos,            700);
-        AnimationUtils.animateCount(lblStatCancelados, cancelados,         700);
-        AnimationUtils.animateCount(lblStatBienes,     bienes,             700);
-        AnimationUtils.staggeredFadeInUp(
-            List.of(statCardTotal, statCardActivos, statCardCancelados, statCardBienes), 280, 55);
+        lblStatTotal.setText(String.valueOf((long) list.size()));
+        lblStatActivos.setText(String.valueOf(activos));
+        lblStatCancelados.setText(String.valueOf(cancelados));
+        lblStatBienes.setText(String.valueOf(bienes));
         setupStatCardFilters();
     }
 
@@ -303,13 +301,13 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     private void mostrarDialogoNuevo(List<Producto> productos, javafx.scene.Scene scene) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Nuevo Resguardo de Bienes");
+        dialog.setTitle("Nuevo resguardo de bienes");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialog.getDialogPane().setPrefWidth(700);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-account-outline",
-            "Nuevo Resguardo", "Documento oficial de resguardo patrimonial",
+            "Nuevo resguardo", "Documento oficial de resguardo patrimonial",
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         GridPane form = DialogUtil.formGrid(130);
@@ -469,7 +467,6 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         okBtn.setText("Guardar resguardo");
         okBtn.getStyleClass().add("dialog-ok-btn");
 
-        AnimationUtils.staggeredFadeInUp(List.of(header, form, itemsTable), 280, 70);
         Platform.runLater(fNombre::requestFocus);
 
         okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
@@ -535,7 +532,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             meta.add(k, 0, i); meta.add(v, 1, i++);
         }
 
-        Label lblBienes = new Label("BIENES EN RESGUARDO");
+        Label lblBienes = new Label("Bienes en resguardo");
         lblBienes.getStyleClass().add("dash-section-label");
 
         ObservableList<ResguardoItem> items = FXCollections.observableArrayList(r.getItems());
@@ -582,7 +579,6 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         VBox content = new VBox(12, header, meta, lblBienes, itemsTable, hintVer);
         content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
-        AnimationUtils.staggeredFadeInUp(List.of(header, meta, itemsTable), 260, 65);
         dialog.showAndWait();
     }
 

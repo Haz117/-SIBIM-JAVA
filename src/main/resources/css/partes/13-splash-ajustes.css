@@ -9,28 +9,18 @@
 
 /* Brand mark — 68 px flat indigo rounded square with a soft glow */
 .splash-logo-badge {
-    -fx-background-color: sibim-indigo-dark;
+    -fx-background-color: sibim-marca-dark;
     -fx-background-radius: 18;
     -fx-border-color: rgba(229,143,150,0.32);
     -fx-border-radius: 18;
     -fx-border-width: 1;
     -fx-min-width: 68; -fx-min-height: 68;
     -fx-max-width: 68; -fx-max-height: 68;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 28, 0.25, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 28, 0.25, 0, 0);
 }
 .splash-logo-icon {
     -fx-icon-color: white;
     -fx-icon-size: 30px;
-}
-/* Two stacked rings that breathe out from the mark (sonar effect, offset by 900 ms in SplashController) */
-.splash-pulse {
-    -fx-background-color: transparent;
-    -fx-border-color: rgba(208,96,106,0.55);
-    -fx-border-width: 1;
-    -fx-border-radius: 18;
-    -fx-min-width: 68; -fx-min-height: 68;
-    -fx-max-width: 68; -fx-max-height: 68;
-    -fx-opacity: 0;
 }
 
 /* "SIBIM" wordmark */
@@ -43,7 +33,7 @@
 }
 .splash-subtitle {
     -fx-font-size: 12px;
-    -fx-text-fill: sibim-indigo-300;
+    -fx-text-fill: sibim-marca-300;
     -fx-font-family: 'Segoe UI';
 }
 
@@ -65,7 +55,7 @@
     -fx-pref-height: 3;
 }
 .splash-progress .bar {
-    -fx-background-color: linear-gradient(to right, #A2232D, #D0606A);
+    -fx-background-color: sibim-marca;
     -fx-background-radius: 999;
     -fx-background-insets: 0;
     -fx-pref-height: 3;
@@ -95,12 +85,12 @@
    PROGRESS INDICATOR — brand-colored spinner
    ═══════════════════════════════════════════════════════════════════ */
 .progress-indicator {
-    -fx-progress-color: sibim-indigo;
+    -fx-progress-color: sibim-marca;
     -fx-indeterminate-seg-count: 8;
     -fx-spin-enabled: true;
 }
 .progress-indicator .percentage { -fx-text-fill: transparent; -fx-font-size: 0; }
-.progress-indicator .tick        { -fx-fill: sibim-indigo; }
+.progress-indicator .tick        { -fx-fill: sibim-marca; }
 
 /* ═══════════════════════════════════════════════════════════════════
    TOAST — subtle hover lift
@@ -136,9 +126,9 @@
    ═══════════════════════════════════════════════════════════════════ */
 .empty-state-pane {
     -fx-background-color: white;
-    -fx-background-radius: 14;
+    -fx-background-radius: 10;
     -fx-border-color: sibim-slate-200;
-    -fx-border-radius: 14;
+    -fx-border-radius: 10;
     -fx-border-width: 1;
 }
 
@@ -148,10 +138,10 @@
 .help-badge {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
-    -fx-text-fill: sibim-indigo-darker;
-    -fx-background-color: sibim-indigo-50;
+    -fx-text-fill: sibim-marca-darker;
+    -fx-background-color: sibim-marca-50;
     -fx-background-radius: 99;
-    -fx-border-color: sibim-indigo-200;
+    -fx-border-color: sibim-marca-200;
     -fx-border-width: 1;
     -fx-border-radius: 99;
     /* Looks 18 px, but the click area is 24 x 24 (WCAG 2.5.8): the 3 px ring
@@ -166,8 +156,11 @@
 }
 .help-badge:hover {
     -fx-background-color: #F9DEE0;
-    -fx-border-color: sibim-indigo;
+    -fx-border-color: sibim-marca;
 }
+/* A figure's or filter's own label that shows its help (hover, click, Tab + Enter)
+   instead of a "?" beside it — see AccessibilityUtils. */
+.con-ayuda { -fx-cursor: hand; }
 
 /* ═══════════════════════════════════════════════════════════════════
    TRANSFERENCIA CELEBRATION — centered popup shown once a transfer is
@@ -175,11 +168,11 @@
    ═══════════════════════════════════════════════════════════════════ */
 .transfer-cel-card {
     -fx-background-color: white;
-    -fx-background-radius: 20;
+    -fx-background-radius: 12;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.28), 40, 0.05, 0, 12);
     -fx-border-color: #F9DEE0;
     -fx-border-width: 1.5;
-    -fx-border-radius: 20;
+    -fx-border-radius: 12;
 }
 .transfer-cel-title {
     -fx-font-size: 15.5px;
@@ -188,7 +181,7 @@
 }
 .transfer-cel-product {
     -fx-font-size: 13px;
-    -fx-text-fill: sibim-indigo-dark;
+    -fx-text-fill: sibim-marca-dark;
     -fx-font-weight: 600;
     -fx-text-alignment: center;
 }
@@ -203,17 +196,17 @@
     -fx-border-width: 1;
     -fx-border-radius: 7;
 }
-.transfer-cel-arrow { -fx-icon-color: sibim-indigo-dark; }
+.transfer-cel-arrow { -fx-icon-color: sibim-marca-dark; }
 /* Big green check on the white card (toast-icon-success is white-on-green-circle). */
 .transfer-cel-check { -fx-icon-color: #16A34A; -fx-icon-size: 34; }
 .transfer-cel-chip-to {
-    -fx-background-color: sibim-indigo-50;
+    -fx-background-color: sibim-marca-50;
     -fx-background-radius: 7;
     -fx-padding: 8 12;
     -fx-font-size: 12px;
     -fx-font-weight: 700;
-    -fx-text-fill: sibim-indigo-darker;
-    -fx-border-color: sibim-indigo;
+    -fx-text-fill: sibim-marca-darker;
+    -fx-border-color: sibim-marca;
     -fx-border-width: 1.5;
     -fx-border-radius: 7;
 }
@@ -237,8 +230,8 @@
 
 /* ── Dialog image box hover ──────────────────────────────────────────── */
 .dlg-img-box:hover {
-    -fx-border-color: sibim-indigo;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.22), 8, 0, 0, 0);
+    -fx-border-color: sibim-marca;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.1), 8, 0, 0, 0);
     -fx-cursor: hand;
 }
 
@@ -257,10 +250,10 @@
 
 /* ── btn-preset-active hover — keep bold indigo, don't regress to light ── */
 .btn-preset-active:hover {
-    -fx-background-color: sibim-indigo-dark;
+    -fx-background-color: sibim-marca-dark;
     -fx-text-fill: white;
 }
-.btn-preset-active:pressed { -fx-background-color: sibim-indigo-darker; }
+.btn-preset-active:pressed { -fx-background-color: sibim-marca-darker; }
 
 /* ── Filter chip selected+hover — keep white text on colored background ── */
 .filter-chip-green:selected:hover  { -fx-background-color: sibim-green-dark; -fx-text-fill: white; -fx-border-color: sibim-green-dark; }
@@ -268,7 +261,7 @@
 .filter-chip-danger:selected:hover { -fx-background-color: sibim-red-dark; -fx-text-fill: white; -fx-border-color: sibim-red-dark; }
 .filter-chip-purple:selected:hover { -fx-background-color: #6E5118; -fx-text-fill: white; -fx-border-color: #6E5118; }
 .filter-chip-teal:selected:hover   { -fx-background-color: #1B4A3F; -fx-text-fill: white; -fx-border-color: #1B4A3F; }
-.filter-chip:selected:hover        { -fx-background-color: sibim-indigo-dark; -fx-text-fill: white; -fx-border-color: sibim-indigo-dark; }
+.filter-chip:selected:hover        { -fx-background-color: sibim-marca-dark; -fx-text-fill: white; -fx-border-color: sibim-marca-dark; }
 
 /* ── Rich stat card alert-active hover — use amber glow ─────────────── */
 .rich-stat-card-alert-active:hover {

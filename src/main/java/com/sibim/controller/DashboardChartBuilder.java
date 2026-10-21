@@ -4,15 +4,8 @@ import com.sibim.model.Movimiento;
 import com.sibim.repository.ProductoRepository;
 import com.sibim.session.NavigationContext;
 import com.sibim.util.AccessibilityUtils;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.PauseTransition;
-import javafx.animation.Timeline;
 import javafx.scene.chart.*;
-import javafx.util.Duration;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
@@ -101,6 +94,7 @@ class DashboardChartBuilder {
 
             Label nameLbl = new Label(cv.nombre());
             nameLbl.getStyleClass().add("area-bar-name");
+            nameLbl.setMaxWidth(Double.MAX_VALUE);   // pushes the amount to the right edge
             javafx.scene.layout.HBox.setHgrow(nameLbl, javafx.scene.layout.Priority.ALWAYS);
 
             Label valLbl = new Label(FormatUtils.formatCurrency(cv.valor()));
@@ -109,7 +103,7 @@ class DashboardChartBuilder {
             javafx.scene.layout.HBox nameRow = new javafx.scene.layout.HBox(nameLbl, valLbl);
             nameRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(pct);
             pb.setMaxWidth(Double.MAX_VALUE);
             pb.getStyleClass().addAll("area-bar-pb", AREA_BAR_CLASSES[i % AREA_BAR_CLASSES.length]);
 
@@ -125,21 +119,6 @@ class DashboardChartBuilder {
             Tooltip.install(item, new Tooltip(catName + ": " + FormatUtils.formatCurrency(cv.valor())));
             categoriaValorBox.getChildren().add(item);
 
-            double target = pct;
-            int delay = i * 90;
-            PauseTransition wait = new PauseTransition(
-                Duration.millis(delay + 400));
-            wait.setOnFinished(ev -> {
-                Timeline anim = new Timeline(
-                    new KeyFrame(Duration.ZERO,
-                        new KeyValue(pb.progressProperty(), 0)),
-                    new KeyFrame(Duration.millis(900),
-                        new KeyValue(pb.progressProperty(), target,
-                            Interpolator.EASE_OUT))
-                );
-                com.sibim.util.AnimationUtils.reproducir(anim);
-            });
-            wait.play();
             i++;
         }
 
@@ -147,10 +126,8 @@ class DashboardChartBuilder {
         categoriaValorBox.setVisible(hasData);
         categoriaValorBox.setManaged(hasData);
         if (pieEmptyState != null) {
-            boolean wasVisible = pieEmptyState.isVisible();
             pieEmptyState.setVisible(!hasData);
             pieEmptyState.setManaged(!hasData);
-            if (!hasData && !wasVisible) AnimationUtils.springIn(pieEmptyState);
         }
     }
 

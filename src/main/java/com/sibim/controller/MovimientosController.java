@@ -82,10 +82,6 @@ public class MovimientosController {
     @FXML private Label lblStatEntradas;
     @FXML private Label lblStatSalidas;
     @FXML private Label lblStatAjustes;
-    @FXML private VBox  statCardTotal;
-    @FXML private VBox  statCardEntrada;
-    @FXML private VBox  statCardSalida;
-    @FXML private VBox  statCardAjuste;
     @FXML private Button btnDelete;
     /** "Solo los seleccionados" submenu of the Exportar menu. */
     @FXML private MenuItem btnExportarSeleccion;
@@ -94,13 +90,6 @@ public class MovimientosController {
     @FXML private Button btnPendientes;
     @FXML private Button btnPorRecibir;
     private Label pendientesBadge;
-    @FXML private Label helpAjustes;
-    @FXML private Label helpResumen;
-    @FXML private Label helpTipoChips;
-    @FXML private Label helpFechaMov;
-    @FXML private Label helpTotalMov;
-    @FXML private Label helpEntradas;
-    @FXML private Label helpSalidas;
     @FXML private ComboBox<String> categoriaFilter;
 
     private final MovimientoService movimientoService = new MovimientoService();
@@ -139,7 +128,6 @@ public class MovimientosController {
         setupFilters();
         setupTipoChips();
         setupPagination();
-        setupHelpBadges();
         setupPermissions();
         setupKeyboardShortcuts();
         setupSelectionListener();
@@ -154,8 +142,6 @@ public class MovimientosController {
             Platform.runLater(this::onNuevoMovimiento);
 
         loadData();
-        AnimationUtils.staggeredFadeInUp(
-            List.of(statCardTotal, statCardEntrada, statCardSalida, statCardAjuste), 300, 55);
         if (lblPage != null) {
             lblPage.getStyleClass().add("page-label-jump");
             lblPage.setOnMouseClicked(e -> { if (e.getClickCount() == 2) promptJumpToPage(); });
@@ -164,13 +150,6 @@ public class MovimientosController {
     }
 
     // ── Setup helpers ──────────────────────────────────────────────────────────
-
-    private void setupHelpBadges() {
-        for (Label badge : new Label[]{ helpAjustes, helpTotalMov, helpEntradas,
-                helpSalidas, helpResumen, helpTipoChips, helpFechaMov }) {
-            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
-        }
-    }
 
     private void setupPermissions() {
         // Patrimonio registers every movement; the áreas only read the history and
@@ -316,10 +295,6 @@ public class MovimientosController {
         emptyState.getStyleClass().add("empty-state-pane");
         emptyState.setMaxWidth(380);
         emptyState.setPadding(new Insets(32, 24, 32, 24));
-        emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
-            if (isVisible && !wasVisible) AnimationUtils.springIn(emptyState);
-            else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
-        });
         emptyStatePlaceholder = emptyState;
         table.setPlaceholder(emptyState);
         DialogUtil.setupColumnVisibilityMenu("movimientos.cols", table,
@@ -404,7 +379,6 @@ public class MovimientosController {
 
                 totalFiltered = r.count();
                 filteredData.setAll(r.page());
-                AnimationUtils.staggerTableRows(table);
                 updateTablePage();
                 updateMovStats(r.stats());
 
@@ -443,7 +417,6 @@ public class MovimientosController {
             r -> {
                 totalFiltered = r.count();
                 filteredData.setAll(r.page());
-                AnimationUtils.staggerTableRows(table);
                 updateTablePage();
                 boolean hasFilters = hasActiveFilters();
                 updateEmptyState(hasFilters);
@@ -493,19 +466,10 @@ public class MovimientosController {
     }
 
     private void updateMovStats(MovimientoRepository.MovimientoStats stats) {
-        if (lblStatTotalMov != null) AnimationUtils.animateCount(lblStatTotalMov, stats.total(),    600);
-        if (lblStatEntradas != null) AnimationUtils.animateCount(lblStatEntradas, stats.entradas(), 540);
-        if (lblStatSalidas  != null) AnimationUtils.animateCount(lblStatSalidas,  stats.salidas(),  540);
-        if (lblStatAjustes  != null) AnimationUtils.animateCount(lblStatAjustes,  stats.ajustes(),  540);
-        javafx.animation.PauseTransition pop =
-            new javafx.animation.PauseTransition(javafx.util.Duration.millis(620));
-        pop.setOnFinished(e -> {
-            if (statCardTotal   != null) AnimationUtils.statCardPop(statCardTotal);
-            if (statCardEntrada != null) AnimationUtils.statCardPop(statCardEntrada);
-            if (statCardSalida  != null) AnimationUtils.statCardPop(statCardSalida);
-            if (statCardAjuste  != null) AnimationUtils.statCardPop(statCardAjuste);
-        });
-        pop.play();
+        if (lblStatTotalMov != null) lblStatTotalMov.setText(String.valueOf(stats.total()));
+        if (lblStatEntradas != null) lblStatEntradas.setText(String.valueOf(stats.entradas()));
+        if (lblStatSalidas  != null) lblStatSalidas.setText(String.valueOf(stats.salidas()));
+        if (lblStatAjustes  != null) lblStatAjustes.setText(String.valueOf(stats.ajustes()));
     }
 
     private void updateTablePage() {
@@ -677,16 +641,19 @@ public class MovimientosController {
             return;
         }
         if (!ConfirmacionUtil.confirmarEliminar("este movimiento")) return;
+        Node rowNode = table.lookup(".table-row-cell:selected");
         Runnable doDelete = () -> DialogUtil.runAsync(
             () -> movimientoService.eliminar(sel.getId()),
             () -> {
                 loadData();
                 NotificacionUtil.exito(table.getScene(), "Movimiento eliminado");
             },
-            e -> NotificacionUtil.error(table.getScene(),
-                e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo eliminar el movimiento")
+            e -> {
+                if (rowNode != null) rowNode.setOpacity(1);   // not deleted: the faded row comes back
+                NotificacionUtil.error(table.getScene(),
+                    e instanceof MovimientoService.ValidationException ? e.getMessage() : "No se pudo eliminar el movimiento");
+            }
         );
-        Node rowNode = table.lookup(".table-row-cell:selected");
         if (rowNode != null) {
             AnimationUtils.flashClass(rowNode, "row-danger", 200);
             AnimationUtils.fadeOut(rowNode, 260, doDelete);
@@ -785,13 +752,6 @@ public class MovimientosController {
                                 else
                                     NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
                             }
-                            if (statCardTotal   != null) AnimationUtils.statCardPop(statCardTotal);
-                            VBox targetCard = switch (m.getTipo()) {
-                                case ENTRADA -> statCardEntrada;
-                                case SALIDA  -> statCardSalida;
-                                default      -> statCardAjuste;
-                            };
-                            if (targetCard != null) AnimationUtils.statCardPop(targetCard);
                         }
                     },
                     e -> {

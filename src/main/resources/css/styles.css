@@ -6,7 +6,7 @@
  * componente, edita su parte; para agregar uno, añade un archivo nuevo al final
  * (o junto a su tema) y su @import aquí.
  *
- * Los colores con nombre (sibim-indigo, sibim-red…) se definen en .root dentro
+ * Los colores con nombre (sibim-marca, sibim-red…) se definen en .root dentro
  * de 00-tokens-base.css y valen para todas las partes. */
 @import url("partes/00-tokens-base.css");
 @import url("partes/01-login.css");

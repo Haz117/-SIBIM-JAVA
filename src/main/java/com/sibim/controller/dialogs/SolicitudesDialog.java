@@ -1,17 +1,12 @@
 package com.sibim.controller.dialogs;
 
-import com.sibim.config.Areas;
-import com.sibim.model.Producto;
 import com.sibim.model.Solicitud;
 import com.sibim.service.SolicitudService;
 import com.sibim.session.SessionManager;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -19,7 +14,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -73,7 +67,6 @@ public final class SolicitudesDialog {
         scroll.setPrefHeight(420);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
-        AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }

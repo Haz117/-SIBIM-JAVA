@@ -12,7 +12,7 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2b-bell-alert" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -61,7 +61,7 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2c-calendar-alert" styleClass="alert-tab-icon"/>
-                <Label text="GARANTÍAS" styleClass="status-mini-label"/>
+                <Label text="Garantías" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumGarantias" text="0" styleClass="status-mini-count"/>
             <Label fx:id="lblSumGarantiasDetalle" text="— vencidas · — próximas" styleClass="rich-stat-hint"/>
@@ -71,7 +71,7 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2w-wrench-outline" styleClass="alert-tab-icon"/>
-                <Label text="MANTENIMIENTO" styleClass="status-mini-label"/>
+                <Label text="Mantenimiento" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumMantenimiento" text="0" styleClass="status-mini-count"/>
             <Label text="revisiones en los próximos 30 días" styleClass="rich-stat-hint"/>
@@ -81,7 +81,7 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2h-handshake-outline" styleClass="alert-tab-icon"/>
-                <Label text="COMODATOS" styleClass="status-mini-label"/>
+                <Label text="Comodatos" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumComodatos" text="0" styleClass="status-mini-count"/>
             <Label text="vencidos sin concluir" styleClass="rich-stat-hint"/>
@@ -91,7 +91,7 @@
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="6" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2c-clipboard-check-outline" styleClass="alert-tab-icon"/>
-                <Label text="PENDIENTES" styleClass="status-mini-label"/>
+                <Label text="Pendientes" styleClass="status-mini-label"/>
             </HBox>
             <Label fx:id="lblSumPendientes" text="0" styleClass="status-mini-count"/>
             <Label fx:id="lblSumPendientesDetalle" text="sin resguardante · sin etiquetar" styleClass="rich-stat-hint"/>

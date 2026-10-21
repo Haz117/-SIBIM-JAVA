@@ -10,8 +10,8 @@
    together with .pagination-lbl / .pagination-btn, near "PAGINACIÓN" above.
    Both are icon-only now (chevrons), so the icon-color rules are shared too. */
 .btn-page .btn-icon, .pagination-btn .btn-icon { -fx-icon-size: 15; -fx-icon-color: sibim-slate-600; }
-.btn-page:hover .btn-icon, .pagination-btn:hover .btn-icon { -fx-icon-color: sibim-indigo-darker; }
-.btn-page:pressed, .pagination-btn:pressed { -fx-background-color: sibim-indigo-50; }
+.btn-page:hover .btn-icon, .pagination-btn:hover .btn-icon { -fx-icon-color: sibim-marca-darker; }
+.btn-page:pressed, .pagination-btn:pressed { -fx-background-color: sibim-marca-50; }
 .btn-page:disabled {
     -fx-background-color: sibim-surface;
     -fx-cursor: default;
@@ -30,7 +30,7 @@
 .btn-icon-only:hover {
     -fx-background-color: rgba(162,35,45,0.08);
 }
-.btn-icon-only:hover .btn-icon { -fx-icon-color: sibim-indigo-darker; }
+.btn-icon-only:hover .btn-icon { -fx-icon-color: sibim-marca-darker; }
 .btn-icon-only:pressed { -fx-background-color: rgba(162,35,45,0.15); }
 
 /* Ghost (tertiary) button — transparent default, subtle border on hover.
@@ -54,27 +54,27 @@
     -fx-border-color: sibim-slate-300;
 }
 .btn-ghost:pressed  { -fx-background-color: sibim-slate-200; -fx-translate-y: 1; }
-.btn-ghost:focused  { -fx-border-color: sibim-indigo-dark; -fx-border-width: 2; -fx-padding: 5 13; }
+.btn-ghost:focused  { -fx-border-color: sibim-marca-dark; -fx-border-width: 2; -fx-padding: 5 13; }
 .btn-ghost:disabled { -fx-text-fill: sibim-slate-300; -fx-opacity: 1; -fx-cursor: default; }
 .btn-ghost .btn-icon { -fx-icon-size: 14; -fx-icon-color: sibim-slate-500; }
 .btn-ghost:hover .btn-icon { -fx-icon-color: sibim-slate-600; }
 
 /* Active filter chips (Depreciación) */
 .filter-chip-active {
-    -fx-background-color: sibim-indigo-50;
-    -fx-border-color: sibim-indigo-300;
+    -fx-background-color: sibim-marca-50;
+    -fx-border-color: sibim-marca-300;
     -fx-border-radius: 20;
     -fx-background-radius: 20;
     -fx-padding: 3 8 3 12;
 }
 .filter-chip-label {
     -fx-font-size: 11px;
-    -fx-text-fill: sibim-indigo-900;
+    -fx-text-fill: sibim-marca-900;
 }
 .filter-chip-close {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-text-fill: sibim-indigo-dark;
+    -fx-text-fill: sibim-marca-dark;
     -fx-font-size: 13px;
     -fx-cursor: hand;
     -fx-padding: 0 2;
@@ -120,7 +120,7 @@
 }
 .audit-pill-verde  { -fx-background-color: #E3EEEB; -fx-text-fill: #1B4A3F; }
 .audit-pill-dorado { -fx-background-color: #F3EAD8; -fx-text-fill: #6E5118; }
-.audit-pill-guinda { -fx-background-color: sibim-indigo-50; -fx-text-fill: sibim-indigo-darker; }
+.audit-pill-guinda { -fx-background-color: sibim-marca-50; -fx-text-fill: sibim-marca-darker; }
 .audit-pill-neutro { -fx-background-color: sibim-slate-100; -fx-text-fill: sibim-slate-600; }
 .audit-pill-green  { -fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
 .audit-pill-red    { -fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-background-radius: 20; -fx-padding: 2 10; -fx-font-size: 11px; -fx-font-weight: bold; }
@@ -178,8 +178,8 @@
 }
 .menu-item:focused,
 .menu-item:hover {
-    -fx-background-color: sibim-indigo-50;
-    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-color: sibim-marca-50;
+    -fx-text-fill: sibim-marca-darker;
 }
 .menu-item .label { -fx-text-fill: inherit; }
 .menu-item .graphic { -fx-padding: 0 6 0 0; }
@@ -193,7 +193,7 @@
 /* Inline table cell editor — stockMín / stockMáx double-click edit */
 .inline-edit-field {
     -fx-background-color: white;
-    -fx-border-color: sibim-indigo;
+    -fx-border-color: sibim-marca;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-border-width: 1.5;

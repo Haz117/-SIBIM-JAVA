@@ -12,11 +12,11 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
         <!-- Icon badge -->
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2t-tag-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Categorías de Bienes" styleClass="page-title"/>
+            <Label text="Categorías de bienes" styleClass="page-title"/>
             <Label text="Clasificaciones para organizar el inventario patrimonial" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22"
@@ -37,10 +37,7 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
-        <Button fx:id="btnNueva" text="Nueva Categoría" onAction="#onNuevaCategoria" styleClass="btn-primary"
+        <Button fx:id="btnNueva" text="Nueva categoría" onAction="#onNuevaCategoria" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Crear una nueva categoría de bienes  (Ctrl+N)"/></tooltip>
@@ -50,8 +47,7 @@
     <VBox fx:id="resumenBox" spacing="12">
     <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar-teal"/>
-        <Label text="RESUMEN DE CATEGORÍAS" styleClass="dash-section-label"/>
+        <Label text="Resumen de categorías" styleClass="dash-section-label"/>
     </HBox>
 
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
@@ -61,11 +57,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTAL DE CATEGORÍAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpStatTotal" text="?" styleClass="help-badge">
+                <Label text="Total de categorías" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Cantidad de categorías registradas en el sistema, tengan o no bienes asignados." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
@@ -78,11 +73,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2p-package-variant" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="BIENES CLASIFICADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpStatClasificados" text="?" styleClass="help-badge">
+                <Label text="Bienes clasificados" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Total de bienes activos que ya tienen una categoría asignada, sumando todas las categorías." wrapText="true" maxWidth="250"/></tooltip>
                 </Label>
             </HBox>
@@ -95,11 +89,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2s-star-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="CATEGORÍA CON MÁS BIENES" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpStatTop" text="?" styleClass="help-badge">
+                <Label text="Categoría con más bienes" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="La categoría con la mayor cantidad de bienes asignados, sin importar su valor." wrapText="true" maxWidth="250"/></tooltip>
                 </Label>
             </HBox>
@@ -111,8 +104,7 @@
 
     <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar-teal"/>
-        <Label text="LISTADO DE CATEGORÍAS" styleClass="dash-section-label"/>
+        <Label text="Listado de categorías" styleClass="dash-section-label"/>
         <Label fx:id="helpCategorias" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Las categorías clasifican los bienes del inventario (Mobiliario, Vehículos, etc.). La columna Bienes cuenta cuántos bienes activos tiene cada una; solo se puede eliminar una categoría si no tiene bienes asignados." wrapText="true" maxWidth="280"/></tooltip>
         </Label>

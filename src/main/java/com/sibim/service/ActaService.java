@@ -47,7 +47,7 @@ public class ActaService {
         this.cfgRepo = cfgRepo;
     }
 
-    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(162, 35, 45);   // guinda Pantone 1805 C
+    private static final DeviceRgb COLOR_HEADER  = ColoresDocumento.MARCA;
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(252, 240, 241); // guinda claro tint
     private static final DeviceRgb COLOR_AREA_BG = new DeviceRgb(252, 240, 241);
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);

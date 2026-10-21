@@ -52,14 +52,12 @@ final class MiAreaPanel {
         this.movimientos = movimientos;
         this.log = log;
 
-        Region barra = new Region();
-        barra.getStyleClass().add("dash-section-bar");
-        Label titulo = new Label(SessionManager.isSecretario() ? "PENDIENTES DE TU SECRETARÍA" : "PENDIENTES DE TU ÁREA");
+        Label titulo = new Label(SessionManager.isSecretario() ? "Pendientes de tu secretaría" : "Pendientes de tu área");
         titulo.getStyleClass().add("dash-section-label");
         Region espacio = new Region();
         HBox.setHgrow(espacio, Priority.ALWAYS);
         resumen.getStyleClass().add("muted");
-        HBox encabezado = new HBox(10, barra, titulo, espacio, resumen);
+        HBox encabezado = new HBox(10, titulo, espacio, resumen);
         encabezado.setAlignment(Pos.CENTER_LEFT);
 
         raiz.getChildren().setAll(encabezado, tarjetas);

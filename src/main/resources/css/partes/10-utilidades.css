@@ -1,17 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════════
    PAGE HEADER ICON BADGES — shared gradient StackPane on each page
    ═══════════════════════════════════════════════════════════════════ */
+/* The page's icon beside its title: the icon alone in guinda, no colored tile
+   behind it (a tile per page was one more "app template" detail). */
 .page-header-icon {
-    -fx-background-radius: 10;
-    -fx-min-width: 44; -fx-min-height: 44;
-    -fx-max-width: 44; -fx-max-height: 44;
+    -fx-min-width: 30; -fx-min-height: 30;
+    -fx-max-width: 30; -fx-max-height: 30;
 }
-.page-header-icon-indigo {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.40), 8, 0, 0, 2);
-}
-/* Icon label inside the badge */
-.page-icon-symbol { -fx-icon-size: 22; -fx-icon-color: white; }
+.page-icon-symbol { -fx-icon-size: 24; -fx-icon-color: sibim-marca; }
 
 /* ═══════════════════════════════════════════════════════════════════
    CONFIGURACIÓN — profile section utilities
@@ -33,9 +29,9 @@
 /* Small icon badge used in card section headers */
 /* The symbol is white for the solid page-header badge; on this pale one it
    was invisible (white on indigo-50). */
-.section-icon-badge .page-icon-symbol { -fx-icon-color: sibim-indigo-dark; -fx-icon-size: 18; }
+.section-icon-badge .page-icon-symbol { -fx-icon-color: sibim-marca-dark; -fx-icon-size: 18; }
 .section-icon-badge {
-    -fx-background-color: sibim-indigo-50;
+    -fx-background-color: sibim-marca-50;
     -fx-background-radius: 8;
     -fx-min-width: 36; -fx-min-height: 36;
     -fx-max-width: 36; -fx-max-height: 36;
@@ -56,21 +52,6 @@
 .card-icon-lg { -fx-icon-size: 17; }
 
 /* Section accent bar in green variant (reportes page) */
-.dash-section-bar-green {
-    -fx-background-color: sibim-indigo;
-    -fx-min-width: 3; -fx-min-height: 16;
-    -fx-background-radius: 2;
-}
-.dash-section-bar-purple {
-    -fx-background-color: sibim-indigo;
-    -fx-min-width: 3; -fx-min-height: 16;
-    -fx-background-radius: 2;
-}
-.dash-section-bar-teal {
-    -fx-background-color: sibim-indigo;
-    -fx-min-width: 3; -fx-min-height: 16;
-    -fx-background-radius: 2;
-}
 
 /* Transparent inner ScrollPane (organigrama tree) */
 .page-scroll-inner {
@@ -100,17 +81,17 @@
 /* Área A → Área B preview (Movimientos, transferencia) */
 .dlg-transfer-preview { -fx-background-color: #FBF6EC; -fx-background-radius: 10; -fx-border-color: #EFE2C9; -fx-border-width: 1; -fx-border-radius: 10; }
 .dlg-transfer-chip     { -fx-background-color: white; -fx-background-radius: 999; -fx-border-color: #EADCC3; -fx-border-width: 1; -fx-border-radius: 999; -fx-padding: 4 10; }
-.dlg-transfer-chip-to  { -fx-border-color: sibim-violet; -fx-background-color: #FDF4F5; -fx-effect: dropshadow(gaussian, rgba(156,122,60,0.22), 8, 0, 0, 2); }
+.dlg-transfer-chip-to  { -fx-border-color: sibim-dorado; -fx-background-color: #FDF4F5; -fx-effect: dropshadow(gaussian, rgba(156,122,60,0.22), 8, 0, 0, 2); }
 .dlg-transfer-chip-lbl { -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #5A4214; }
 .dlg-transfer-chip-empty-lbl { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #6B7280; }
-.dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: sibim-violet; }
+.dlg-transfer-arrow    { -fx-icon-size: 18; -fx-icon-color: sibim-dorado; }
 
 /* Product detail dialog header card */
-.dlg-detail-header { -fx-background-color: sibim-surface; -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
+.dlg-detail-header { -fx-background-color: sibim-surface; -fx-border-color: sibim-marca sibim-slate-200 sibim-slate-200 sibim-marca; -fx-border-width: 0 1 1 4; -fx-background-radius: 12; -fx-border-radius: 12; }
 .dlg-thumb-photo   { -fx-background-color: white; -fx-background-radius: 12; -fx-border-color: sibim-slate-200; -fx-border-radius: 12; -fx-border-width: 1; }
 .dlg-qr-thumb          { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: sibim-slate-200; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 4; }
 .dlg-qr-thumb-clickable { -fx-cursor: hand; }
-.dlg-qr-thumb-clickable:hover { -fx-border-color: sibim-indigo; -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.25), 8, 0, 0, 0); }
+.dlg-qr-thumb-clickable:hover { -fx-border-color: sibim-marca; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.11), 8, 0, 0, 0); }
 .dlg-detail-name   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
 .dlg-detail-code   { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 
@@ -129,10 +110,10 @@
 /* Depreciation progress bar in product detail dialog */
 .dep-progress-bar { -fx-pref-height: 8px; -fx-background-radius: 4px; }
 .dep-progress-bar .track { -fx-background-color: sibim-slate-200; -fx-background-radius: 4px; }
-.dep-progress-bar .bar   { -fx-background-color: linear-gradient(to right, #A2232D, #D0606A); -fx-background-radius: 4px; -fx-background-insets: 0; }
-.dep-progress-bar.dep-progress-ok .bar      { -fx-background-color: linear-gradient(to right, #16A34A, #4ADE80); }
-.dep-progress-bar.dep-progress-warn .bar    { -fx-background-color: linear-gradient(to right, #D97706, #FCD34D); }
-.dep-progress-bar.dep-progress-danger .bar  { -fx-background-color: linear-gradient(to right, #DC2626, #FCA5A5); }
+.dep-progress-bar .bar   { -fx-background-color: sibim-marca; -fx-background-radius: 4px; -fx-background-insets: 0; }
+.dep-progress-bar.dep-progress-ok .bar      { -fx-background-color: #16A34A; }
+.dep-progress-bar.dep-progress-warn .bar    { -fx-background-color: #D97706; }
+.dep-progress-bar.dep-progress-danger .bar  { -fx-background-color: #DC2626; }
 
 /* Image picker widget inside product form dialog */
 .dlg-img-placeholder { -fx-text-fill: sibim-slate-500; -fx-font-size: 12px; -fx-text-alignment: center; -fx-alignment: center; }
@@ -155,15 +136,15 @@
     -fx-font-weight: 600;
 }
 .dlg-tabpane > .tab-header-area > .headers-region > .tab:hover .tab-label {
-    -fx-text-fill: sibim-indigo-darker;
+    -fx-text-fill: sibim-marca-darker;
 }
 .dlg-tabpane > .tab-header-area > .headers-region > .tab:selected {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent sibim-indigo-darker transparent;
+    -fx-border-color: transparent transparent sibim-marca-darker transparent;
     -fx-border-width: 0 0 3 0;
 }
 .dlg-tabpane > .tab-header-area > .headers-region > .tab:selected .tab-label {
-    -fx-text-fill: sibim-indigo-darker;
+    -fx-text-fill: sibim-marca-darker;
     -fx-font-weight: bold;
 }
 .dlg-tabpane > .tab-content-area {
@@ -206,10 +187,10 @@
     -fx-background-color: sibim-slate-300;
     -fx-pref-height: 2; -fx-min-height: 2; -fx-max-height: 2;
 }
-.stepper-connector-done { -fx-background-color: sibim-indigo-dark; }
-.stepper-step-active .stepper-circle { -fx-background-color: sibim-indigo-dark; }
+.stepper-connector-done { -fx-background-color: sibim-marca-dark; }
+.stepper-step-active .stepper-circle { -fx-background-color: sibim-marca-dark; }
 .stepper-step-active .stepper-num    { -fx-text-fill: white; }
-.stepper-step-active .stepper-label  { -fx-font-weight: bold; -fx-text-fill: sibim-indigo-darker; }
+.stepper-step-active .stepper-label  { -fx-font-weight: bold; -fx-text-fill: sibim-marca-darker; }
 .stepper-step-done .stepper-circle   { -fx-background-color: #10B981; }
 .stepper-step-done .stepper-num      { -fx-text-fill: white; }
 .stepper-step-done .stepper-label    { -fx-text-fill: sibim-green-dark; }
@@ -238,8 +219,8 @@
    DATE PRESET BUTTONS — quick date range shortcuts in filter bars
    ═══════════════════════════════════════════════════════════════════ */
 .btn-preset {
-    -fx-background-color: sibim-indigo-50;
-    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-color: sibim-marca-50;
+    -fx-text-fill: sibim-marca-darker;
     -fx-background-radius: 20;
     -fx-border-radius: 20;
     -fx-padding: 4 13;
@@ -251,13 +232,13 @@
 }
 .btn-preset:hover {
     -fx-background-color: #F9DEE0;
-    -fx-text-fill: sibim-indigo-900;
+    -fx-text-fill: sibim-marca-900;
 }
-.btn-preset:pressed { -fx-background-color: sibim-indigo-200; }
+.btn-preset:pressed { -fx-background-color: sibim-marca-200; }
 .btn-preset-active {
-    -fx-background-color: sibim-indigo;
+    -fx-background-color: sibim-marca;
     -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.28), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 6, 0, 0, 2);
 }
 .btn-preset-clear {
     -fx-background-color: transparent;
@@ -284,9 +265,10 @@
 .dash-health-seg-mid    { -fx-background-radius: 0; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CATEGORY BADGE — shared static styles (color set dynamically via setStyle)
+   CATEGORY CELL (Bienes) — gray icon + plain name; the color stays for the
+   Tipo / Estado pills. CATEGORY PREVIEW BADGE — color set via setStyle.
    ═══════════════════════════════════════════════════════════════════ */
-.cat-badge       { -fx-background-radius: 5; -fx-padding: 2 9; -fx-font-size: 12px; -fx-font-weight: bold; }
+.cat-cell-icon   { -fx-icon-color: sibim-slate-500; }
 .cat-preview-badge { -fx-background-radius: 5; -fx-padding: 3 10; -fx-font-size: 12px; -fx-font-weight: bold; }
 .dlg-monogram      { -fx-font-size: 22px; -fx-font-weight: bold; }
 .dlg-thumb-monogram { -fx-background-radius: 12; }
@@ -312,11 +294,11 @@
     -fx-font-family: "Consolas", "Courier New", monospace;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-text-fill: sibim-indigo-darker;
-    -fx-background-color: sibim-indigo-50;
+    -fx-text-fill: sibim-marca-darker;
+    -fx-background-color: sibim-marca-50;
     -fx-background-radius: 4;
     -fx-padding: 2 8;
-    -fx-border-color: sibim-indigo-200;
+    -fx-border-color: sibim-marca-200;
     -fx-border-radius: 4;
     -fx-border-width: 1;
 }

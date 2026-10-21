@@ -6,10 +6,11 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 
 ## Características
 
-- **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios, foto y datos de depreciación; filtros combinables guardables como **presets de acceso rápido** (máx. 10, persistidos en `~/.sibim/presets-bienes.json`); importación masiva desde CSV
+- **Inventario de bienes** — registro completo con código, área, resguardante, stock, precios, foto y datos de depreciación; filtros combinables guardables como **presets de acceso rápido** (máx. 10, persistidos en `~/.sibim/presets-bienes.json`); importación masiva desde CSV. El autocompletado de marca, modelo, proveedor y ubicación sugiere los valores de tus áreas, los más usados primero; **Ctrl+C** (o clic derecho › Copiar código) copia el código de las filas seleccionadas; en la búsqueda, `%` y `_` se buscan tal cual
+- **Nomenclatura de códigos `PREFIJO/NN`** — cada bien activo lleva el prefijo de su área y el número libre más bajo (`SGM/07`). Al transferirse toma el siguiente número libre del área de destino; al darse de baja conserva su código (para el acta). En ambos casos su número queda libre y lo toma el siguiente bien nuevo del área. `scripts/sql/revisar_nomenclatura.sql` revisa en la base real, en modo de solo lectura, que se cumpla
 - **Depreciación en línea recta (SAT)** — cada bien puede tener fecha de adquisición, vida útil en años y valor residual; el sistema calcula automáticamente el valor depreciado actual y el porcentaje depreciado, visible en el detalle del bien con una barra de progreso codificada por color (verde / ámbar / rojo)
-- **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino. El **stock y el área de un bien solo cambian con movimientos**: el formulario de edición los muestra en solo lectura, la acción masiva "Transferir" registra transferencias (con aprobación para no-Admin) y guardar una edición nunca pisa un movimiento registrado mientras el formulario estaba abierto (si otro usuario modificó el bien, pide volver a abrirlo). Cada transferencia guarda el código patrimonial anterior y el nuevo. Solo el Admin puede eliminar un movimiento, y solo el más reciente de cada bien; los demás usan **Revertir**, que deja ambos registros
-- **Flujo de aprobación de transferencias** — cuando un usuario no-Admin registra una transferencia, queda en estado **PENDIENTE** (sin mover stock ni área) hasta que un Admin la apruebe o rechace desde el panel "⏳ Pendientes" en Movimientos; el botón muestra un contador en tiempo real y cambia de color cuando hay solicitudes esperando
+- **Movimientos** — entradas, salidas, ajustes y **transferencias reales entre áreas** (reasignan el bien, no solo restan stock), con historial, candado de concurrencia para evitar pérdida de datos entre usuarios simultáneos, y una vista previa animada "Área A → Área B" al elegir el destino. El **stock y el área de un bien solo cambian con movimientos**: el formulario de edición los muestra en solo lectura, la acción masiva "Transferir" registra transferencias y guardar una edición nunca pisa un movimiento registrado mientras el formulario estaba abierto (si otro usuario modificó el bien, pide volver a abrirlo). Cada transferencia guarda el código patrimonial anterior y el nuevo. Solo el Admin puede eliminar un movimiento, y solo el más reciente de cada bien; los demás usan **Revertir**, que deja ambos registros
+- **Transferencias con acuse de recibo** — Patrimonio registra la transferencia y se aplica al instante (área y código nuevos); nadie la aprueba. El área que recibe ve el bien en "Pendientes de tu área" y confirma cuando ya lo tiene físicamente: es un acuse que no detiene nada. El botón "Pendientes" de Movimientos solo aparece si quedan solicitudes de transferencia de antes de que las áreas dejaran de enviarlas
 - **Préstamos, resguardos y comodatos solo de Patrimonio** — solo Patrimonio (Admin) los registra; las áreas ya no envían solicitudes por SIBIM (las piden directamente a Patrimonio). Las solicitudes enviadas antes de ese cambio siguen en la campana del Admin y en Préstamos/Resguardos → "Solicitudes", donde se aprueban o rechazan
 - **Equipos por cuenta** — una cuenta solo puede entrar sin internet en una PC donde ya entró con conexión en los últimos 30 días. Cada ingreso con conexión se anota por computadora, y Configuración → Usuarios → "Equipos por cuenta" (solo Admin) muestra qué cuentas ya están listas para trabajar sin internet, cuáles tienen el acceso vencido y cuáles no han entrado en ninguna PC. La lista incluye la versión de SIBIM instalada en cada equipo
 - **Errores de equipos** — los errores que SIBIM tiene en cualquier computadora se envían a la base (máximo 25 por sesión, sin repetir) y el Admin los ve en Configuración → "Errores de equipos" con el equipo, la cuenta y la versión; se conservan 90 días
@@ -19,26 +20,31 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 - **Ficha y etiquetas del bien** — en la barra inferior de Bienes: **Ficha** (ficha técnica en PDF; con varios seleccionados, todas en un PDF) y **Etiqueta ▾** (etiqueta de inventario con datos y QR, o solo QR), además de **QR**
 - **El QR descarga la ficha del bien** — con el almacenamiento de fotos configurado (`SUPABASE_ANON_KEY`), el QR de un bien es un enlace a su ficha en PDF: se publica al generar el QR o las etiquetas QR y se actualiza al guardar el bien. Esa copia no lleva montos, historial ni firmas, porque cualquiera frente a la etiqueta puede abrirla. Sin almacenamiento, y en la etiqueta oficial (su QR es muy chico para un enlace), el QR lleva lo que la etiqueta no imprime: resguardante, ubicación, estado físico, adquisición, factura, garantía y próxima revisión. El lector de SIBIM sigue obteniendo el código en ambos casos
 - **Abrir, imprimir y guardar documentos** — cada PDF/Excel generado muestra Guardar como / Imprimir / Abrir / Carpeta / Copiar ruta; si Java no logra abrir el archivo en la PC se usa el mismo mecanismo que el Explorador de Windows. "Imprimir" abre el visor para elegir impresora (Ctrl+P)
-- **Conteo físico de inventario** — verificación bien por bien: se marca "Visto" cada bien que se tiene a la vista (o se escanea su etiqueta con la pistola lectora, sin abrir nada) y se anota lo que no coincide (mal estado, en otra área, faltante, o una cantidad distinta). El avance muestra cuántos faltan y "Solo pendientes" deja ver únicamente lo que queda. Al finalizar se reconcilian las diferencias con movimientos de Ajuste auditados y se guarda la sesión completa; un bien que nadie marcó queda como "sin revisar", no como encontrado, y el reporte lo dice. El borrador se guarda en un archivo de la PC y recuerda lo ya visto
-- **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, tipo de acción y usuario (con accesos rápidos Hoy/Semana/Mes), con tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportable a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
+- **Conteo físico de inventario** — verificación bien por bien: un clic en la fila (o en "Visto") marca el bien que se tiene a la vista, o se escanea su etiqueta con la pistola lectora sin abrir nada, y se anota lo que no coincide (mal estado, en otra área, faltante, o una cantidad distinta). Las pestañas **Todos / Pendientes / Vistos / Con incidencia** muestran cuántos hay de cada uno; una fila dice "Pendiente" hasta que alguien la revisa y solo toma color cuando ya se vio (verde) o tiene una incidencia (ámbar). La ventana ocupa el ancho de la pantalla y se puede agrandar. Al finalizar se reconcilian las diferencias con movimientos de Ajuste auditados y se guarda la sesión completa; un bien que nadie marcó queda como "sin revisar", no como encontrado, y el reporte lo dice. El borrador se guarda en un archivo de la PC y recuerda lo ya visto
+- **Auditoría de cambios** — historial de quién creó/editó/eliminó/dio de baja/reactivó cada bien, categoría, usuario, resguardo, préstamo, acta o configuración; filtrable por entidad, acción, usuario y fechas (accesos rápidos Hoy / 7 días / Este mes) en una sola barra, con las entidades y acciones que la bitácora realmente tiene y en palabras ("Bienes", "Inicio de sesión", "Baja"). Los filtros duran mientras SIBIM esté abierto y "Limpiar filtros" aparece cuando hay alguno; una respuesta que llega tarde nunca muestra los registros de otro filtro. Tarjetas de resumen (total, inicios de sesión, intentos fallidos, eliminaciones/bajas) y exportación a PDF, Excel y CSV — consultable desde el menú lateral (solo Admin)
 - **Centro de notificaciones** — icono de campana en la barra de estado, visible en cualquier pantalla, con las garantías por vencer, los préstamos vencidos o por vencer, los bienes por recibir y las solicitudes por atender; cada elemento navega directo a la pantalla correspondiente. Su número es la suma de los contadores de Alertas y Préstamos del menú lateral, y el aviso del Dashboard usa las mismas listas que la pantalla de Alertas, así que las tres cifras cuadran
 - **Respaldo y restauración manual** — desde Configuración (solo Admin), exporta todas las tablas a un único archivo **cifrado con AES-256-GCM y una contraseña que tú eliges** (necesaria de nuevo para restaurar — no queda ligada a esta PC, para poder restaurar en otro equipo), o restaura la base de datos completa desde uno (reemplaza todo dentro de una sola transacción — si algo falla, no queda a medias). La bitácora de auditoría nunca se borra al restaurar (solo se le agregan las entradas del respaldo que falten). Un respaldo de una versión anterior deja intactas las tablas que no incluye; si alguna de ellas depende de los bienes y tiene datos (fotos, comodatos, historial de precios, mantenimiento), se rechaza en vez de borrarlas. Solo disponible conectado a la base de datos real, no en modo offline/demo
 - **Depreciación de activos** — 4 tarjetas (valor compra, valor actual, % promedio, totalmente depreciados); distribución del inventario en 4 rangos de depreciación (0–24 % / 25–49 % / 50–99 % / 100 %+) como barras animadas; columna de visualización con `ProgressBar` codificada por color en la tabla; gráfica de proyección del valor a 10 años; exportable a PDF / Excel / fichas técnicas en lote
 - **Cambio de contraseña obligatorio** — cualquier cuenta con contraseña temporal conocida (cuentas semilla, o un usuario recién creado/restablecido por un Admin) es forzada a definir su propia contraseña en el primer login, antes de poder usar el sistema
 - **Alertas y pendientes** — garantías vencidas o por vencer, mantenimientos próximos, comodatos vencidos y pendientes patrimoniales (bienes sin resguardante o sin etiqueta física); exportable a PDF, Excel y CSV. SIBIM es un inventario patrimonial, no de tienda: no existen los estados "agotado" ni "bajo stock", ni mínimos de existencia ni reposiciones
-- **Dashboard** — tarjetas de resumen con `ProgressBar` codificada por color, gráfica de movimientos semanal, gráfica por categoría y barras de distribución de las 5 áreas con más bienes
+- **Inicio** — tarjetas de resumen con `ProgressBar` codificada por color, gráfica de movimientos semanal, gráfica por categoría y barras de distribución de las 5 áreas con más bienes; para las áreas, "Pendientes de tu área" (bienes sin foto, ubicación o estado físico, y bienes por recibir)
+- **Menú lateral por grupos** — Inventario (Inicio, Organigrama, Bienes, Categorías), Operación (Movimientos, Alertas, Conteo físico), Reportes (Reportes, Depreciación), Control patrimonial (Resguardos, Préstamos, Comodatos, Actas, Bajas) y Sistema (Configuración, Auditoría). Un grupo sin nada que abrir para la cuenta (Control patrimonial, para un área) no se muestra
 - **Reportes** — exportación a PDF, Excel y CSV (inventario, movimientos, alertas, distribución por área); el encabezado de todos los documentos PDF y Excel usa el nombre del ayuntamiento configurado en Configuración
-- **Organigrama** — 4 tarjetas de resumen (áreas, bienes distribuidos, área con más bienes, valor patrimonial total); barras horizontales animadas con las top-5 áreas; **tres modos de vista**: árbol jerárquico por secretaría/dirección, tabla de resumen y tarjetas por área (toggle en la barra de herramientas); las **tarjetas de área** muestran valor patrimonial, cantidad total y bienes con garantía vencida — con borde de acento ámbar (1–2 alertas) o rojo (3 o más); clic en el botón de área abre un diálogo con tabs de **Bienes**, **Préstamos activos**, **Comodatos** y **Actas de entrega**, con exportación a PDF; salto directo al Inventario filtrado por esa área
+- **Organigrama** — 4 tarjetas de resumen (áreas, bienes distribuidos, área con más bienes, valor patrimonial total); barras horizontales animadas con las top-5 áreas; **tres modos de vista**: árbol jerárquico por secretaría/dirección, tabla de resumen y tarjetas por área (toggle en la barra de herramientas). El árbol muestra los primeros 5 bienes de cada área y "ver todos" abre la lista completa (antes armaba una fila oculta por cada bien del inventario en cada búsqueda); bienes, resguardos, préstamos y comodatos se leen en paralelo; las **tarjetas de área** muestran valor patrimonial, cantidad total y bienes con garantía vencida — con borde de acento ámbar (1–2 alertas) o rojo (3 o más); clic en el botón de área abre un diálogo con tabs de **Bienes**, **Préstamos activos**, **Comodatos** y **Actas de entrega**, con exportación a PDF; salto directo al Inventario filtrado por esa área
 - **Gestión de usuarios** — roles Admin, Secretario y Dirección con control de acceso por área; buscador en tiempo real; activar/desactivar cuentas (desactivar bloquea el acceso tanto online como en modo offline); la eliminación de un usuario con bienes/movimientos relacionados ofrece desactivar la cuenta como alternativa a borrar
+- **Cuentas por área** — Configuración › Usuarios › "Cuentas por área" crea de un clic una cuenta compartida por cada área del organigrama (Patrimonio como administrador, Presidencia y secretarías como secretario, direcciones y organismos como dirección) y genera un PDF con usuarios y contraseñas. Los usuarios salen del nombre del área (`catastro`, `seguridad.c2`); si dos áreas se abreviarían igual o una cuenta personal ya tiene ese nombre, se agrega el prefijo del área (`catastro.dcat`). Las cuentas que ya existen no se tocan. El PDF es temporal y las contraseñas no se pueden volver a ver: SIBIM pide guardarlo antes de abrirlo
+- **Quién usa una cuenta compartida** — en cada inicio de sesión de una cuenta de área se confirma el nombre de la persona (ya viene escrito el último que se usó en esa PC); todo lo que haga queda a nombre de "Persona · Área" y la bitácora registra el cambio de persona
 - **Configuración institucional** — nombre del ayuntamiento, municipio, área responsable y correo de contacto editables desde Configuración (solo Admin); todos los reportes PDF/Excel usan automáticamente estos datos
 - **Reportes y avisos programados** — a partir de las 06:00, la primera PC abierta con sesión de administrador genera los reportes programados (según la frecuencia configurada) y envía los avisos diarios de préstamos vencidos y el resumen de los lunes. Cada tarea se "reclama" en la base de datos, así que aunque haya varias PCs abiertas se hace una sola vez al día
 - **Áreas y prefijos editables** — el organigrama del municipio y el prefijo con que se numeran los bienes de cada área (p. ej. `TICS/01`) viven en la tabla `areas` y se editan en Configuración → Áreas y prefijos (solo Admin): agregar un área, cambiar de quién depende o su prefijo. El nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan. Sin conexión se usa la última copia descargada en la PC
-- **Formatos oficiales en guinda institucional** — los PDF y Excel (resguardos, actas, préstamos, comodatos, reportes) usan el guinda del ayuntamiento y el logo municipal: el configurado en Configuración (la imagen se guarda en la base, así que todas las PCs imprimen el mismo logo) o, si no hay, `src/main/resources/img/logo-municipio.png` incluido en la app. La interfaz del sistema conserva su propio color índigo
+- **Formatos oficiales en guinda institucional** — los PDF y Excel (resguardos, actas, préstamos, comodatos, reportes) usan el guinda del ayuntamiento y el logo municipal: el configurado en Configuración (la imagen se guarda en la base, así que todas las PCs imprimen el mismo logo) o, si no hay, `src/main/resources/img/logo-municipio.png` incluido en la app. La interfaz usa la misma paleta institucional: guinda (#A2232D), dorado y verde institucional (#235B4E); el verde, el ámbar y el rojo brillantes se reservan para estados (hecho, cuidado, error)
+- **Ventanas con la identidad del sistema** — en Windows 11 la barra de título y el borde de cada ventana de SIBIM son guinda con texto blanco (atributos de ventana de DWM), sin perder lo nativo: ajustar a media pantalla, maximizar, redimensionar. En Windows 10 la barra queda como la del sistema. El selector de fecha también lleva encabezado guinda
 - **Interfaz animada** — splash con progreso de carga y transiciones cross-fade; animaciones de entrada escalonadas en cada módulo; contadores animados de 0 al valor real; barra de salud con revelado izquierda→derecha; micro-animaciones de hover/press; animación de transferencia con flecha que se estira al disparar y chip de destino que entra desde la derecha con rebote; efecto shake en errores de validación
 - **Aviso de inactividad** — alerta al usuario si permanece sin interacción durante un período prolongado
-- **Notificaciones toast** en tiempo real
+- **Notificaciones** — avisos (toast) que se quedan mientras el puntero está encima; los avisos que no pueden pasar desapercibidos (el PDF de contraseñas, cambios sin sincronizar, base que necesita actualizarse) son una ventana que espera a que alguien la cierre
 - **Recuperación de formularios** — si falla el guardado (BD caída, validación), el diálogo se reabre con los datos ya capturados en vez de perderlos
-- **Accesibilidad** — texto accesible automático para lectores de pantalla en botones de solo-ícono (toma el texto del tooltip); tamaño de texto ajustable (Normal / Grande / Extra grande) y densidad de filas de tabla (Compacto / Normal / Cómodo), ambos en la barra de estado; interruptor para desactivar animaciones en equipos de gama baja (Configuración → Accesibilidad y rendimiento); el **tutorial de bienvenida** incluye botón de cierre (×), puntos de navegación con etiqueta de paso, y todos los botones tienen texto accesible para lectores de pantalla
+- **Accesibilidad** — texto accesible automático para lectores de pantalla en botones de solo-ícono (toma el texto del tooltip); **tamaño de texto** (Normal / Grande / Extra grande) que agranda todo el texto de la app, menú, barra de estado, diálogos y avisos incluidos (una hoja de estilos generada al arrancar escala cada tamaño del CSS; los botones conservan el suyo para no cortarse) y densidad de filas de tabla (Compacto / Normal / Cómodo), ambos en la barra de estado; las **animaciones** siguen el ajuste "Mostrar animaciones" de Windows y se apagan en Configuración → Accesibilidad y rendimiento, lo que cubre también avisos, cambios de pantalla, tutorial y menú lateral; cada "?" de ayuda se abre con clic o con Tab + Enter; los selectores de fecha dicen "dd/mm/aaaa"
+- **Tutorial (F2)** — un paso por módulo, solo los que la cuenta puede abrir: encabezado con el ícono, "Paso N de M", título y atajo de teclado; una barra de avance; los puntos de cada paso numerados; navega al módulo que describe. Las cuentas compartidas tienen un paso sobre quién usa la cuenta
 - **Un solo menú "Exportar"** — todas las pantallas exportan desde el mismo menú (PDF / Excel / CSV según la pantalla); en Bienes y Movimientos incluye además "Solo los seleccionados"
 - **Menú lateral adaptable** — en ventanas angostas (menos de 1360 px) el menú lateral se compacta solo a iconos y se vuelve a expandir al agrandar la ventana
 - **Columnas de tabla restaurables** — en las tablas con menú de columnas (Auditoría, Categorías, Movimientos, Depreciación, Alertas), un botón junto a "Actualizar" regresa el orden, ancho y visibilidad de las columnas a como estaban originalmente, sin tener que recordar qué se cambió
@@ -60,7 +66,8 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Cifrado de datos en reposo | AES-256-GCM — `offline.db.enc` cifrada con una clave aleatoria sellada con DPAPI de Windows para la cuenta del usuario |
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres (1070 tests en la última ejecución) |
+| Windows | JNA (DPAPI para sellar claves; colores de la barra de título vía DWM) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres + TestFX (1132 tests en la última ejecución) |
 
 ---
 
@@ -76,7 +83,7 @@ El sistema implementa múltiples capas de defensa:
 | Credenciales offline | Caché local expira a los **30 días** — requiere conexión periódica al servidor para renovar; el estado `activo` se sincroniza en cada login online — una cuenta desactivada no puede entrar ni en modo offline |
 | Autorización | Guards en capa de servicio/repositorio: `SecurityException` si el rol no tiene permiso (no solo en UI). Como cada PC se conecta directo a PostgreSQL, estos guards no protegen contra quien tenga las credenciales de la base: por eso las PCs deben usar el rol `sibim_app` (ver [Rol de base de datos con mínimo privilegio](#rol-de-base-de-datos-con-mínimo-privilegio)) |
 | Control de acceso | Admin ve todo; Secretario ve su secretaría y direcciones dependientes; Dirección ve solo su área. Los préstamos son visibles si el área accesible coincide con el área de origen **o** destino (una transferencia debe verse desde ambos lados); los resguardos se acotan por su área única; las actas de entrega-recepción son documentos de todo el ayuntamiento y no se acotan por área (no tienen un área propia — son un corte de administración completa) | Solo el administrador da de alta, da de baja, reactiva, registra movimientos y gestiona resguardos, préstamos y comodatos (las áreas solo los consultan e imprimen); Secretaría y Dirección solo actualizan datos de sus bienes (ver Roles de usuario).
-| Cifrado en tránsito | Configurable via `DB_SSL_MODE` en `.env`; la app emite advertencia en log si la BD es remota y SSL no está en modo `require` |
+| Cifrado en tránsito | Con una base remota la app exige `DB_SSL_MODE=require` o más estricto y no arranca sin él ni sin `DB_PASSWORD` (`DB_SSL_BYPASS=true` solo para desarrollo). `require` cifra la conexión pero no comprueba el certificado del servidor; `verify-full` con el certificado de Supabase lo haría |
 | Auditoría | Toda creación/edición/baja/reactivación de bienes, categorías, usuarios, resguardos, préstamos, actas y configuración queda en `audit_log` con usuario y timestamp, incluyendo intentos de inicio de sesión fallidos |
 | Backup | Solo Admin puede ejecutar respaldo/restauración; el archivo debe estar cifrado con AES-256-GCM y una contraseña elegida al momento; los respaldos JSON en claro se rechazan |
 | Supabase Storage | La app usa únicamente la clave **anon/public** de Supabase (`SUPABASE_ANON_KEY`, nunca `service_role`) para subir fotos de bienes — la app corre en las PCs del ayuntamiento, así que cualquier clave embebida ahí debe asumirse extraíble; el bucket debe tener políticas RLS que permitan solo las operaciones necesarias. Si en `SUPABASE_ANON_KEY` hay una clave secreta, la app no la usa, y si el `.env` contiene una clave de servicio (`SUPABASE_SERVICE_KEY`, etc.) lo registra como error en el log |
@@ -87,10 +94,8 @@ El sistema implementa múltiples capas de defensa:
 
 ## Requisitos
 
-- **Java 21** o superior instalado y en el PATH
-  Verificar: `java -version`
-- **PostgreSQL** con la base de datos creada (ver sección de configuración)
-- Windows 10/11 (el script `iniciar.bat` es para Windows)
+- **Para usar SIBIM**: Windows 10/11 y el instalador (`SIBIM-Desktop-<versión>-win64-setup.exe`), que trae su propio Java y se instala sin permisos de administrador. Ver [Despliegue en producción](#despliegue-en-producción-varias-pcs-del-ayuntamiento)
+- **Para desarrollar**: Java 21 o superior en el PATH (`java -version`) y PostgreSQL con la base creada (ver la sección siguiente); Maven va incluido en `maven-dist/`
 
 ---
 
@@ -155,7 +160,7 @@ El esquema ya no se aplica a mano: **Flyway lo crea/actualiza automáticamente l
 
 Doble clic en **`iniciar.bat`**
 
-El script compila automáticamente si detecta cambios y lanza la aplicación.
+El script compila (sin correr las pruebas) y lanza la aplicación con `java -jar`. Ojo: usa el `.env` de `%APPDATA%\SIBIM\` si existe, así que en una PC con SIBIM instalado se conecta a la base real. Para probar sin tocarla, arráncalo con `DEMO_MODE=true` desde una carpeta sin `.env` y con `APPDATA` apuntando a una carpeta vacía.
 
 ### Opción 2 — Maven directo
 
@@ -164,23 +169,23 @@ El script compila automáticamente si detecta cambios y lanza la aplicación.
 maven-dist/apache-maven-3.9.9/bin/mvn javafx:run
 ```
 
-> **Nota:** El fat JAR generado por `mvn package` no es directamente ejecutable con `java -jar` en JavaFX 21 (el runtime nativo de JavaFX no puede empaquetarse en un shade JAR). Para distribución usa el instalador (ver sección siguiente).
-
 ---
 
 ## Despliegue en producción (varias PCs del ayuntamiento)
 
-`iniciar.bat` es para **desarrollo**: recompila con Maven en cada arranque, lo cual requiere tener el código fuente completo y acceso a Maven Central en esa máquina. Para las PCs reales del ayuntamiento **no** se debe copiar el repositorio completo — en su lugar:
+Las PCs del ayuntamiento usan el **instalador**, nunca el código fuente:
 
-1. En una máquina de desarrollo (con Maven e internet), compila una sola vez:
-   ```bash
-   mvn package -q
+1. **Conexión que lleva el instalador** — en la PC de administración, `powershell -ExecutionPolicy Bypass -File packaging\preparar-conexion.ps1` genera `packaging\sibim.env` (git lo ignora) con el usuario de mínimo privilegio `sibim_app` (ver [Rol de base de datos con mínimo privilegio](#rol-de-base-de-datos-con-mínimo-privilegio)).
+2. **Generar el instalador** — sube la versión en `pom.xml` (Windows no instala la misma versión encima y "Publicar actualización" exige una mayor), corre las pruebas (`mvn clean test`) y luego:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File packaging\build-installer.ps1 -Type exe -SkipTests
    ```
-   Esto genera el JAR de compilación, pero para distribuir JavaFX en Windows usa el app-image de `packaging/build-installer.ps1` o el workflow de release; así se incluyen correctamente los runtimes nativos de JavaFX.
-2. Copia a cada PC del ayuntamiento **únicamente** la carpeta `SIBIM Desktop` generada, `produccion.bat` y un `.env` con las credenciales reales de esa instalación.
-3. Ejecuta `produccion.bat`; el app-image incluye el runtime de Java y no requiere Maven, código fuente ni Java instalado.
+   Sale `packaging\dist\SIBIM-Desktop-<versión>-win64-setup.exe` con `sibim.env` adentro y su `.firma`. La firma la pone la llave de TI, que solo existe en la PC de administración (`%APPDATA%\SIBIM`); el `.firma` lleva el sha256 del instalador. WiX 3.14 portátil va en `tools\wix314`.
+3. **Instalar** — el instalador es por usuario (no pide permisos de administrador), trae su propio Java y se conecta solo como `sibim_app`. Una PC que tenga su propio `%APPDATA%\SIBIM\.env` usa ese; en las PCs de trabajo bórralo para que use el del instalador. La PC de administración conserva el suyo (usuario `postgres`) y es la primera en abrir cada versión nueva, para aplicar las migraciones.
+4. **Actualizar las demás PCs** — desde la PC de administración, Configuración › Publicar actualización sube el instalador firmado a la base; cada PC lo ofrece al arrancar y solo instala los que lleven la firma de TI.
+5. **Dejar la PC de administración sin secretos de más** — `powershell -ExecutionPolicy Bypass -File packaging\limpiar-env.ps1` quita del `.env` la clave de servicio de Supabase y las credenciales dentro de `DB_URL`, sin mostrarlas, y deja un respaldo junto al archivo. Después rota la clave en Supabase y borra el respaldo.
 
-Así el código fuente y las credenciales de producción no quedan expuestos en cada estación de trabajo, y una PC no puede quedar corriendo una versión distinta a las demás por una recompilación local accidental.
+`produccion.bat` y el app-image (`build-installer.ps1` sin `-Type`) siguen sirviendo para una PC sin instalador, con su propio `.env`.
 
 ---
 
@@ -226,7 +231,8 @@ SIBIM-Java/
 │   │   │   └── config/            # Áreas del organigrama y configuración de BD
 │   │   └── resources/
 │   │       ├── fxml/              # 18 vistas de la interfaz
-│   │       ├── css/               # Design System (tema indigo/purple, 0 inline styles, context menus, badges, empty states)
+│   │       ├── css/               # styles.css importa css/partes/00–21 (paleta institucional guinda/dorado/verde);
+│   │       │                      # EscalaTexto genera al arrancar la hoja de "Texto: Grande / Extra"
 │   │       ├── db/migration/      # Migraciones Flyway V1–V31, se aplican solas al arrancar
 │   │       ├── offline.sql        # Esquema del almacén SQLite offline
 │   │       └── seed_demo.sql      # Datos de ejemplo (solo desarrollo, nunca producción)
@@ -240,7 +246,13 @@ SIBIM-Java/
 │       ├── session/               # Tests de SessionManager
 │       └── util/                  # Tests de utilidades
 ├── packaging/
-│   └── build-installer.ps1        # Genera instalador .exe/.msi con jpackage
+│   ├── build-installer.ps1        # Genera el instalador .exe/.msi firmado con jpackage
+│   ├── preparar-conexion.ps1      # Escribe sibim.env (sibim_app) para el instalador
+│   └── limpiar-env.ps1            # Quita secretos del .env de una PC sin mostrarlos
+├── scripts/sql/
+│   ├── rol_app_minimo.sql         # Rol sibim_app: sin DDL, bitácora solo crece, RLS
+│   ├── storage_fotos.sql          # Políticas del bucket de fotos y fichas
+│   └── revisar_nomenclatura.sql   # Revisión de solo lectura de códigos, transferencias y bajas
 ├── maven-dist/                    # Maven embebido (no requiere Maven instalado)
 ├── iniciar.bat                    # Arranque para desarrollo (compila y ejecuta)
 ├── produccion.bat                 # Arranque para producción (solo ejecuta el JAR)
@@ -253,17 +265,18 @@ SIBIM-Java/
 
 | Módulo | Descripción |
 |---|---|
-| Dashboard | 4 mini-tarjetas de estado con `ProgressBar` animada; gráfica de movimientos semanal; gráfica por categoría; barras de distribución top-5 áreas; contadores animados |
+| Inicio | 4 mini-tarjetas de estado con `ProgressBar` animada; gráfica de movimientos semanal; gráfica por categoría; barras de distribución top-5 áreas; contadores animados; "Pendientes de tu área" para las áreas |
 | Inventario | Búsqueda, filtros combinables, presets guardables, importación CSV masiva (Admin), paginación, conteo físico (Admin), baja con solicitud firmada (Admin) o "Solicitar baja" (áreas), botones Ficha / Etiqueta / QR, fotos que se comparten entre PCs y panel de depreciación en el detalle |
-| Movimientos | Entradas / salidas / ajustes / transferencias, registradas solo por el administrador; eliminar un movimiento deshace su efecto (una transferencia regresa el bien a su área con un código de esa área). Aprobar o rechazar solicitudes de transferencia pendientes requiere conexión |
+| Movimientos | Entradas / salidas / ajustes / transferencias, registradas solo por el administrador y aplicadas al instante (el área que recibe una transferencia solo da el acuse de recibo); eliminar un movimiento deshace su efecto (una transferencia regresa el bien a su área con un código de esa área). Las solicitudes de transferencia antiguas que queden se resuelven desde "Pendientes", que solo aparece si hay alguna |
+| Conteo físico | Pestañas Todos / Pendientes / Vistos / Con incidencia; clic en la fila para marcarla vista; escaneo con pistola; borrador en la PC; ajustes auditados al finalizar (solo Admin) |
 | Bajas | Pantalla dedicada: bajas con folio de solicitud, dictamen, destino y acta; filtros, exportación, acta, ficha y reactivación (Admin) |
 | Alertas | Garantías vencidas/por vencer, mantenimientos próximos, comodatos vencidos y pendientes patrimoniales (sin resguardante / sin etiqueta); búsqueda en tiempo real (Ctrl+F); export a PDF, Excel y CSV |
 | Categorías | Gestión de clasificaciones con selector de color e ícono predefinidos (paleta de swatches) |
 | Organigrama | 4 tarjetas de resumen; barras animadas top-5 áreas; vista árbol / tabla / tarjetas (toggle); tarjetas con borde de acento por nivel de alertas; diálogo por área con tabs Bienes / Préstamos / Comodatos / Actas; acceso directo al Inventario filtrado por área |
 | Reportes | Exportación multi-formato con selector de período (PDF, Excel, CSV); encabezado institucional configurable |
 | Depreciación | Tarjetas de valor compra/actual/% promedio/totalmente depreciados; distribución en 4 rangos como barras animadas; columna visual `ProgressBar` en la tabla; gráfica de proyección a 10 años; export PDF/Excel/fichas en lote |
-| Auditoría | Registro de acciones de todo el sistema (bienes, movimientos, usuarios, resguardos, préstamos, actas, configuración, inicios de sesión); filtros por entidad/acción/usuario con presets de fecha; tarjetas de resumen; export PDF/Excel/CSV (solo Admin) |
-| Configuración | Datos institucionales editables (nombre, municipio, responsable, correo); áreas y prefijos de código; gestión de cuentas con activar/desactivar; historial de auditoría; conteos físicos; respaldo/restauración cifrado (solo Admin); interruptor de animaciones |
+| Auditoría | Registro de acciones de todo el sistema (bienes, movimientos, usuarios, resguardos, préstamos, actas, configuración, inicios de sesión y quién usa cada cuenta compartida); filtros en una barra por entidad/acción/usuario/fechas, en palabras y con lo que la bitácora tiene; acciones como píldoras; tarjetas de resumen; export PDF/Excel/CSV (solo Admin) |
+| Configuración | Datos institucionales editables (nombre, municipio, responsable, correo); áreas y prefijos de código; gestión de cuentas con activar/desactivar y cuentas por área de un clic; historial de auditoría; conteos físicos; respaldo/restauración cifrado (solo Admin); publicar actualización; accesibilidad (animaciones) |
 
 ---
 
@@ -272,10 +285,12 @@ SIBIM-Java/
 | Rol | Permisos |
 |---|---|
 | **Admin (Patrimonio)** | Hace todo: alta, baja y reactivación de bienes, movimientos (y revertirlos), conteo físico, importación, código patrimonial y valores contables, usuarios, áreas y prefijos, configuración, respaldos, auditoría y reportes globales |
-| **Secretario** | Ve su secretaría y las direcciones que dependen de ella. Solo **actualiza los datos** de los bienes asignados ahí (descripción, marca, modelo, serie, ubicación, fotos…). No da de alta ni de baja (genera la **solicitud de baja**), no registra movimientos, y no cambia el código ni los valores contables |
-| **Dirección** | Ve solo su dirección. Mismas reglas que Secretario: actualiza datos de sus bienes y genera solicitudes de baja; no da de alta, no da de baja, no registra movimientos |
+| **Secretario** | Ve su secretaría y las direcciones que dependen de ella. De los bienes asignados ahí solo **actualiza cuatro cosas**: ubicación, descripción, estado físico y fotos. No da de alta ni de baja (genera la **solicitud de baja**), no registra movimientos, y no cambia el código, el resguardante ni los valores contables. Ve los importes |
+| **Dirección** | Ve solo su dirección. Mismas reglas que Secretario, pero sin ver importes en pesos (tampoco en los formatos que imprime, como la solicitud y el dictamen de baja) |
 
-Estas reglas se aplican en los servicios (no solo ocultando botones), así que ninguna pantalla ni atajo puede saltárselas.
+Estas reglas se aplican en los servicios (no solo ocultando botones), así que ninguna pantalla ni atajo puede saltárselas, tampoco al resolver un conflicto sin conexión: si un área elige "usar mi versión", solo se aplican los cuatro campos que puede editar.
+
+Las cuentas de las áreas suelen ser **compartidas** (ver "Cuentas por área"): su contraseña la cambia Patrimonio, no quien la usa, y cada inicio de sesión confirma quién está usando la cuenta.
 
 ---
 
@@ -322,14 +337,14 @@ pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d 
 
 El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta periódicamente fuera de esa PC.
 
-El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V31__descripcion.sql` (numeración consecutiva a partir de V30) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
+El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V32__descripcion.sql` (numeración consecutiva a partir de V31) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 
 ---
 
 ## Tests
 
 ```bash
-# Correr todos los tests (1111 en total)
+# Correr todos los tests (1132 en total; los de interfaz abren ventanas unos minutos)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

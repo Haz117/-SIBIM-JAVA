@@ -2,7 +2,6 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
 import com.sibim.service.DashboardService;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -47,7 +46,7 @@ public final class PanelEjecutivoDialog {
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         VBox content = new VBox(0);
-        HBox header = DialogUtil.gradientHeader("mdi2c-chart-donut", "Panel Ejecutivo",
+        HBox header = DialogUtil.gradientHeader("mdi2c-chart-donut", "Panel ejecutivo",
             "Depreciación patrimonial y proyección de bajas",
             AppColors.DEEP_PURPLE, AppColors.INDIGO_D);
         content.getChildren().add(header);
@@ -79,7 +78,7 @@ public final class PanelEjecutivoDialog {
         VBox depreciacionSection = new VBox(12, stats, barBox, coverage);
 
         // ── Proyección de bajas ──
-        Label finVidaTitle = new Label("BIENES QUE CUMPLEN SU VIDA ÚTIL ESTE AÑO ("
+        Label finVidaTitle = new Label("Bienes que cumplen su vida útil este año ("
             + r.bienesFinVidaUtilEsteAnio() + ")");
         finVidaTitle.getStyleClass().add("dash-section-label");
 
@@ -127,7 +126,6 @@ public final class PanelEjecutivoDialog {
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
         dlg.getDialogPane().setContent(content);
-        AnimationUtils.staggeredFadeInUp(List.of(header, body), 260, 60);
         dlg.showAndWait();
     }
 

@@ -2,11 +2,9 @@ package com.sibim.controller;
 
 import com.sibim.model.Producto;
 import com.sibim.service.MovimientoService;
-import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
-import com.sibim.util.NotificacionUtil;
 import com.sibim.util.PaginationUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -241,11 +239,6 @@ class ProductosTableManager {
         emptyState.getStyleClass().add("empty-state-pane");
         emptyState.setMaxWidth(380);
         emptyState.setPadding(new Insets(32, 24, 32, 24));
-        // Spring-in when placeholder becomes visible; reset transforms when hidden
-        emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
-            if (isVisible && !wasVisible) AnimationUtils.springIn(emptyState);
-            else if (!isVisible) { emptyState.setOpacity(1); emptyState.setScaleX(1); emptyState.setScaleY(1); }
-        });
         emptyStatePlaceholder = emptyState;
         table.setPlaceholder(emptyState);
     }

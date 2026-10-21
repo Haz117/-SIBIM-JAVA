@@ -3,23 +3,19 @@ package com.sibim.controller;
 import com.sibim.MainApp;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Usuario;
+import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.service.AuthService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.DialogUtil;
 import com.sibim.controller.dialogs.CambiarPasswordDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
-import javafx.animation.FadeTransition;
-import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
-import javafx.animation.ParallelTransition;
 import javafx.animation.PauseTransition;
-import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -33,15 +29,9 @@ public class LoginController {
     @FXML private Button loginButton;
     @FXML private Label errorLabel;
     @FXML private ProgressIndicator spinner;
-    @FXML private StackPane brandPanel;
-    @FXML private VBox formPanel;
     @FXML private VBox testAccountsBox;
-    @FXML private StackPane brandLogoBadge;
-    @FXML private VBox featureList;
-    @FXML private VBox formHeader;
-    @FXML private VBox usernameBox;
-    @FXML private VBox passwordBox;
     @FXML private Label lblCapsLock;
+    @FXML private Label lblInstitucion;
 
     private final AuthService authService = new AuthService();
     private int failedAttempts = 0;
@@ -118,44 +108,18 @@ public class LoginController {
             else          { lblCapsLock.setVisible(false); lblCapsLock.setManaged(false); }
         });
 
-        playEntrance();
+        loadInstitucion();
     }
 
-    /** The panels slide/fade in as a whole first (primary arrival motion);
-     *  once each is fully visible, a second layer of staggered per-element
-     *  flourishes plays on top — a logo "pop", the feature checklist
-     *  cascading in, and the form fields arriving one after another. Timed
-     *  so the two layers never overlap (no compounding opacity fades). */
-    private void playEntrance() {
-        if (brandPanel != null) AnimationUtils.fadeInLeft(brandPanel, 480, 0);
-        if (formPanel  != null) AnimationUtils.fadeInRight(formPanel, 480, 140);
-
-        if (brandLogoBadge != null) {
-            brandLogoBadge.setOpacity(0);
-            brandLogoBadge.setScaleX(0.6); brandLogoBadge.setScaleY(0.6);
-            FadeTransition fade = new FadeTransition(com.sibim.util.AnimationUtils.duracion(320), brandLogoBadge);
-            fade.setFromValue(0); fade.setToValue(1);
-            ScaleTransition pop = new ScaleTransition(com.sibim.util.AnimationUtils.duracion(320), brandLogoBadge);
-            pop.setFromX(0.6); pop.setFromY(0.6); pop.setToX(1); pop.setToY(1);
-            pop.setInterpolator(Interpolator.EASE_OUT);
-            ParallelTransition logoIn = new ParallelTransition(fade, pop);
-            logoIn.setDelay(Duration.millis(520));
-            logoIn.play();
-        }
-        if (featureList != null) staggerFadeInUp(featureList.getChildren(), 680, 70);
-
-        if (formHeader   != null) AnimationUtils.fadeInUp(formHeader,   300, 640);
-        if (usernameBox  != null) AnimationUtils.fadeInUp(usernameBox,  300, 700);
-        if (passwordBox  != null) AnimationUtils.fadeInUp(passwordBox,  300, 760);
-        if (loginButton  != null) AnimationUtils.fadeInUp(loginButton,  300, 820);
-    }
-
-    private void staggerFadeInUp(Iterable<Node> nodes, int baseDelayMs, int staggerMs) {
-        int i = 0;
-        for (Node n : nodes) {
-            AnimationUtils.fadeInUp(n, 280, baseDelayMs + i * staggerMs);
-            i++;
-        }
+    /** The institution's configured name: it outlives any administration. */
+    private void loadInstitucion() {
+        if (lblInstitucion == null) return;
+        String porDefecto = lblInstitucion.getText();
+        DialogUtil.runAsync(
+            () -> new ConfiguracionRepository().get("nombre_ayuntamiento", porDefecto),
+            nombre -> { if (nombre != null && !nombre.isBlank()) lblInstitucion.setText(nombre); },
+            e -> {}
+        );
     }
 
     @FXML

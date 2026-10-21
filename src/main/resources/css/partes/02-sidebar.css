@@ -11,7 +11,7 @@
 .sidebar {
     -fx-background-color: white;
     -fx-background-insets: 0;
-    -fx-background-radius: 0 24 24 0;
+    -fx-background-radius: 0 12 12 0;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 24, 0, 6, 0);
 }
 
@@ -38,7 +38,7 @@
 
 /* Logo area */
 .sidebar-logo-badge {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
+    -fx-background-color: sibim-marca;
     -fx-background-radius: 9;
     -fx-text-fill: white;
     -fx-font-size: 15px;
@@ -49,7 +49,7 @@
     -fx-max-width: 36;
     -fx-max-height: 36;
     -fx-alignment: CENTER;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 8, 0, 0, 2);
 }
 .sidebar-logo {
     -fx-font-size: 17px;
@@ -72,20 +72,20 @@
    overlay that only read correctly against a dark background. */
 .sidebar-user-box {
     -fx-background-color: transparent;
-    -fx-background-radius: 14;
+    -fx-background-radius: 10;
     -fx-alignment: CENTER_LEFT;
     -fx-padding: 6 8;
     -fx-cursor: hand;
 }
 .sidebar-user-box:hover { -fx-background-color: sibim-slate-100; }
 .user-avatar {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #A2232D, #6F1820);
+    -fx-background-color: sibim-marca;
     -fx-background-radius: 999;
     -fx-min-width: 36;
     -fx-min-height: 36;
     -fx-max-width: 36;
     -fx-max-height: 36;
-    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 6, 0, 0, 1);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 6, 0, 0, 1);
 }
 .user-avatar-text {
     -fx-text-fill: white;
@@ -134,19 +134,19 @@
     -fx-faint-focus-color: transparent;
 }
 .nav-section-header:focus-visible {
-    -fx-background-color: sibim-indigo-dark, sibim-indigo-50;
+    -fx-background-color: sibim-marca-dark, sibim-marca-50;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 10, 8;
 }
 .nav-section-header .nav-section-label { -fx-padding: 0; }
 .nav-section-chevron { -fx-icon-size: 14; -fx-icon-color: #64748B; }
-.nav-section-header:hover .nav-section-chevron { -fx-icon-color: sibim-indigo; }
+.nav-section-header:hover .nav-section-chevron { -fx-icon-color: sibim-marca; }
 /* The section that holds the active page keeps a hint of where you are, even when folded. */
-.nav-section-active .nav-section-label   { -fx-text-fill: sibim-indigo-dark; }
-.nav-section-active .nav-section-chevron { -fx-icon-color: sibim-indigo; }
+.nav-section-active .nav-section-label   { -fx-text-fill: sibim-marca-dark; }
+.nav-section-active .nav-section-chevron { -fx-icon-color: sibim-marca; }
 /* Sum of the items' badges (alerts, overdue loans) — only visible while the section is folded. */
 .nav-section-badge {
-    -fx-background-color: sibim-indigo-dark;
+    -fx-background-color: sibim-marca-dark;
     -fx-text-fill: white;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
@@ -191,7 +191,7 @@
    click also gives the button focus, and the ring then sat on top of the active
    pill as a heavy double box. */
 .nav-btn:focus-visible {
-    -fx-background-color: sibim-indigo-dark, sibim-indigo-50;
+    -fx-background-color: sibim-marca-dark, sibim-marca-50;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }
@@ -201,26 +201,26 @@
 .nav-btn.nav-active,
 .nav-btn.nav-active:hover,
 .nav-btn.nav-active:armed {
-    -fx-background-color: sibim-indigo-50;
-    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-color: sibim-marca-50;
+    -fx-text-fill: sibim-marca-darker;
     -fx-font-weight: 700;
     -fx-background-radius: 12;
-    -fx-border-color: transparent transparent transparent sibim-indigo;
+    -fx-border-color: transparent transparent transparent sibim-marca;
     -fx-border-width: 0 0 0 3;
     -fx-border-insets: 0;
     -fx-padding: 10 14;
     -fx-translate-x: 0;
 }
 .nav-btn.nav-active:focus-visible {
-    -fx-background-color: sibim-indigo-dark, sibim-indigo-50;
+    -fx-background-color: sibim-marca-dark, sibim-marca-50;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 12, 10;
 }
 
 /* Nav FontIcon colors */
 .nav-icon { -fx-icon-size: 16; -fx-icon-color: sibim-slate-500; }
-.nav-btn:hover .nav-icon { -fx-icon-color: sibim-indigo; }
-.nav-btn.nav-active .nav-icon { -fx-icon-color: sibim-indigo; }
+.nav-btn:hover .nav-icon { -fx-icon-color: sibim-marca; }
+.nav-btn.nav-active .nav-icon { -fx-icon-color: sibim-marca; }
 .logout-btn .nav-icon { -fx-icon-color: #64748B; }
 .logout-btn:hover .nav-icon { -fx-icon-color: #B91C1C; }
 

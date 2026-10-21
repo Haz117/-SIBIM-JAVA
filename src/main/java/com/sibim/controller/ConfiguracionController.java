@@ -30,7 +30,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -173,7 +172,6 @@ public class ConfiguracionController {
         // Config card — visible to all, editable only by admin
         loadConfigCard(isAdmin);
         if (configCard != null) {
-            AnimationUtils.fadeInUp(configCard, 320, 105);
             configCard.sceneProperty().addListener((obs, old, scene) -> {
                 if (scene == null) return;
                 scene.getAccelerators().put(
@@ -182,15 +180,6 @@ public class ConfiguracionController {
                     () -> { if (btnGuardarConfig != null && !btnGuardarConfig.isDisable()) onGuardarConfig(); }
                 );
             });
-        }
-
-        // Entrance animations — cards cascade in from below
-        if (profileCard  != null) AnimationUtils.fadeInUp(profileCard,  320,   0);
-        if (sysInfoCard  != null) AnimationUtils.fadeInUp(sysInfoCard,  320,  70);
-        if (isAdmin) {
-            if (adminSection  != null) AnimationUtils.fadeInUp(adminSection,  320, 175);
-            if (auditSection  != null) AnimationUtils.fadeInUp(auditSection,  320, 245);
-            if (backupSection != null) AnimationUtils.fadeInUp(backupSection, 320, 315);
         }
 
         if (isAdmin) new ConfigAreasSectionBuilder(backupSection).build();
@@ -376,7 +365,6 @@ public class ConfiguracionController {
                     lblDecoNombre.setText(parts.length > 1 ? parts[0] + " de" : nombre);
                     if (lblDecoSub != null) lblDecoSub.setText(parts.length > 1 ? parts[1] : municipio);
                 }
-                if (configCard != null) AnimationUtils.statCardPop(configCard);
             },
             e -> NotificacionUtil.error(configCard != null ? configCard.getScene() : null,
                 e instanceof IllegalArgumentException ? e.getMessage() : "No se pudo guardar la configuración")
@@ -520,7 +508,6 @@ public class ConfiguracionController {
         lblAreaUsuario.setText(u.getArea() != null ? u.getArea() : "—");
         if (lblAvatarPerfil != null && u.getNombre() != null && !u.getNombre().isBlank())
             lblAvatarPerfil.setText(String.valueOf(u.getNombre().charAt(0)).toUpperCase());
-        if (profileCard != null) AnimationUtils.statCardPop(profileCard);
     }
 
     private void loadUsers() {
@@ -551,7 +538,6 @@ public class ConfiguracionController {
                           || (u.getArea()     != null && u.getArea().toLowerCase().contains(q)))
                 .toList());
         }
-        AnimationUtils.staggerTableRows(usersTable);
     }
 
     @FXML

@@ -4,7 +4,6 @@ import com.sibim.config.Areas;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
 import com.sibim.service.ProductoService;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -245,7 +244,6 @@ public class ImportacionBienesDialog {
             lblResumen.setVisible(true); lblResumen.setManaged(true);
             preview.setItems(FXCollections.observableArrayList(rows));
             preview.setVisible(true); preview.setManaged(true);
-            AnimationUtils.fadeInUp(preview, 240, 0);
             btnImportar.setDisable(validas == 0);
             btnImportar.setText("Importar " + validas + " registro(s)");
         };

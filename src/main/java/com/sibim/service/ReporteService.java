@@ -24,7 +24,6 @@ import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.model.Resguardo;
 import com.sibim.model.Usuario;
-import com.sibim.model.enums.EstadoProducto;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.FolioRepository;
 import com.sibim.repository.MovimientoRepository;
@@ -145,7 +144,7 @@ public class ReporteService {
         }
     }
 
-    protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(162, 35, 45); // guinda Pantone 1805 C
+    protected static final DeviceRgb COLOR_HEADER = ColoresDocumento.MARCA;
     protected static final DeviceRgb ROW_ALT_BG  = new DeviceRgb(252, 240, 241); // guinda claro tint for alternating rows
     protected static final DeviceRgb BORDER_LIGHT = new DeviceRgb(226, 228, 233); // light gray border
     protected static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -590,8 +589,7 @@ public class ReporteService {
         if (wb instanceof org.apache.poi.xssf.usermodel.XSSFWorkbook xssfWb) {
             org.apache.poi.xssf.usermodel.XSSFCellStyle xStyle =
                 (org.apache.poi.xssf.usermodel.XSSFCellStyle) style;
-            xStyle.setFillForegroundColor(
-                new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)162, (byte)35, (byte)45}, null));
+            xStyle.setFillForegroundColor(ColoresDocumento.marcaXlsx());
         } else {
             style.setFillForegroundColor(IndexedColors.MAROON.getIndex());   // closest indexed guinda
         }

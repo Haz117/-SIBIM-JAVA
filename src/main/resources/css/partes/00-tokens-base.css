@@ -8,22 +8,31 @@
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
     -fx-font-size: 13px;
     -fx-background-color: #EEF2F7;
+    /* ── Brand color: the ONE place to change it ─────────────────────
+       The institutional guinda (Pantone 1805 C). Set the same tone in
+       AppColors.PRIMARY (Java: dialogs, PDFs, spreadsheets, e-mails).
+       JavaFX can't add transparency to a named color, so the soft tints
+       are written as rgba(162,35,45,…) and the darker gradient stops as
+       hex: search for "162,35,45" and the hex values below when changing
+       it. An administration's own colors or logo don't belong here: the
+       system outlives them. */
+    sibim-marca:         #A2232D;
+    sibim-marca-dark:    #891D26;
+    sibim-marca-darker:  #6F1820;
+    sibim-marca-900:     #5A141A;
+    sibim-marca-50:      #FCF0F1;
+    sibim-marca-200:     #F2BCC0;
+    sibim-marca-300:     #E58F96;
     /* JavaFX's own accent (progress bars, selections, focus rings without a
-       style of their own) was its default sky blue: the brand guinda instead. */
-    -fx-accent: #A2232D;
-    -fx-focus-color: #A2232D;
+       style of their own) was its default sky blue: the brand color instead. */
+    -fx-accent:          sibim-marca;
+    -fx-focus-color:     sibim-marca;
     -fx-faint-focus-color: rgba(162,35,45,0.13);
-    /* ── Design tokens (JavaFX looked-up colors) ─────────────────── */
-    /* sibim-indigo* is the brand color, kept under its old name: since 1.0.5 it
-       is the institutional guinda (Pantone 1805 C, #A2232D), the same one the
-       PDFs, resguardos and labels use. AppColors.PRIMARY/INDIGO mirror it.
-       The rest of the palette is the institutional one too (since 1.0.8):
-       sibim-violet* is the dorado (#B38E5D family), the old cyan/teal accents
-       are the verde institucional (#235B4E family), the old blue accents are
-       guinda. Green / amber / red keep their meaning (done, careful, error). */
-    sibim-indigo:        #A2232D;
-    sibim-indigo-dark:   #891D26;
-    sibim-indigo-darker: #6F1820;
+
+    /* ── Rest of the palette (institutional since 1.0.8) ─────────────
+       sibim-dorado* is the dorado (#B38E5D family); the old cyan/teal
+       accents are the verde institucional (#235B4E family). Green / amber
+       / red keep their meaning (done, careful, error). */
     sibim-slate-900:     #1E293B;
     sibim-slate-600:     #475569;
     sibim-slate-500:     #64748B;
@@ -34,11 +43,7 @@
     sibim-green:         #16A34A;
     sibim-red:           #DC2626;
     sibim-amber:         #D97706;
-    sibim-violet:        #9C7A3C;
-    sibim-indigo-50:     #FCF0F1;
-    sibim-indigo-200:    #F2BCC0;
-    sibim-indigo-300:    #E58F96;
-    sibim-indigo-900:    #5A141A;
+    sibim-dorado:        #9C7A3C;
     sibim-slate-950:     #0F172A;
     sibim-slate-700:     #334155;
     sibim-slate-100:     #F1F5F9;
@@ -47,7 +52,7 @@
     sibim-amber-dark:    #B45309;
     sibim-red-dark:      #B91C1C;
     sibim-red-500:       #EF4444;
-    sibim-violet-dark:   #7D6230;
+    sibim-dorado-dark:   #7D6230;
 }
 
 /* Scrollbars — slim modern style */
@@ -62,7 +67,7 @@
 .scroll-bar:vertical .thumb:hover,
 .scroll-bar:horizontal .thumb:hover { -fx-background-color: #8896AB; }
 .scroll-bar:vertical .thumb:pressed,
-.scroll-bar:horizontal .thumb:pressed { -fx-background-color: sibim-indigo; }
+.scroll-bar:horizontal .thumb:pressed { -fx-background-color: sibim-marca; }
 .scroll-bar .track                   { -fx-background-color: transparent; }
 .scroll-bar .increment-button,
 .scroll-bar .decrement-button        { -fx-background-color: transparent; -fx-padding: 0; }

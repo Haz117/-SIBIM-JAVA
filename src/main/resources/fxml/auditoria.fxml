@@ -11,11 +11,11 @@
     <!-- PAGE HEADER -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
         <padding><Insets top="18" right="22" bottom="18" left="34"/></padding>
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Auditoría del Sistema" styleClass="page-title"/>
+            <Label text="Auditoría del sistema" styleClass="page-title"/>
             <Label text="Registro completo de acciones realizadas por los usuarios" styleClass="page-subtitle"/>
         </VBox>
         <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary"
@@ -51,9 +51,6 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
     </HBox>
 
     <VBox fx:id="resumenBox" spacing="12">
@@ -64,10 +61,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2f-format-list-bulleted" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTAL" styleClass="rich-stat-label"/>
+                <Label text="Total" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
             <Label text="registros con los filtros actuales" styleClass="rich-stat-hint"/>
@@ -76,10 +73,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-green">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2l-login" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="INICIOS DE SESIÓN" styleClass="rich-stat-label"/>
+                <Label text="Inicios de sesión" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatLogins" text="—" styleClass="rich-stat-value"/>
             <Label text="accesos exitosos" styleClass="rich-stat-hint"/>
@@ -88,11 +85,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2a-alert-octagon-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="INTENTOS FALLIDOS" styleClass="rich-stat-label"/>
-                <Label fx:id="helpFallidos" text="?" styleClass="help-badge">
+                <Label text="Intentos fallidos" styleClass="rich-stat-label, con-ayuda">
                     <tooltip><Tooltip text="Intentos de inicio de sesión con usuario o contraseña incorrectos. Varios seguidos a la misma cuenta pueden indicar un intento de acceso no autorizado." wrapText="true" maxWidth="260"/></tooltip>
                 </Label>
             </HBox>
@@ -103,10 +99,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="TOP_LEFT">
             <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2d-delete-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="ELIMINACIONES / BAJAS" styleClass="rich-stat-label"/>
+                <Label text="Eliminaciones y bajas" styleClass="rich-stat-label"/>
             </HBox>
             <Label fx:id="lblStatEliminaciones" text="—" styleClass="rich-stat-value"/>
             <Label text="registros eliminados o dados de baja" styleClass="rich-stat-hint"/>
@@ -157,8 +153,7 @@
     <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
         <padding><Insets top="8" right="22" bottom="0" left="34"/></padding>
-        <Region styleClass="dash-section-bar"/>
-        <Label text="REGISTROS" styleClass="dash-section-label"/>
+        <Label text="Registros" styleClass="dash-section-label"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblTotal" styleClass="muted-sm"/>
     </HBox>

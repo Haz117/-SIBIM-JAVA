@@ -10,7 +10,6 @@ import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.util.AccessibilityUtils;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
@@ -154,8 +153,6 @@ public class AlertasController implements Refreshable {
 
         loadData();
 
-        AnimationUtils.staggeredFadeInUp(List.of(statCardGarantiasSum, statCardMantenimientoSum,
-            statCardComodatosSum, statCardPendientesSum), 250, 60);
         Platform.runLater(searchField::requestFocus);
 
         keyFilter = ev -> {
@@ -342,7 +339,6 @@ public class AlertasController implements Refreshable {
 
         mostrar(pGarantias, tableGarantias, allGarantias, q, "Sin garantías vencidas ni por vencer");
         mostrar(pMantenimiento, tableMantenimiento, allMantenimiento, q, "Sin revisiones en los próximos 30 días");
-        AnimationUtils.staggerTableRows(tableGarantias);
 
         pComodatos.total = allComodatosVencidos.size();
         pComodatos.mostrados = comodatos.mostrar(allComodatosVencidos, q);
@@ -379,7 +375,7 @@ public class AlertasController implements Refreshable {
 
     private void updateSumCards() {
         int nGa = allGarantias.size();
-        AnimationUtils.animateCount(lblSumGarantias, nGa, 600);
+        lblSumGarantias.setText(String.valueOf(nGa));
         long vencidas = allGarantias.stream()
             .filter(p -> p.getFechaVencimiento() != null
                 && p.getFechaVencimiento().isBefore(LocalDate.now()))
@@ -387,9 +383,9 @@ public class AlertasController implements Refreshable {
         lblSumGarantiasDetalle.setText(
             vencidas + (vencidas == 1 ? " vencida" : " vencidas")
             + " · " + (nGa - vencidas) + " próximas");
-        AnimationUtils.animateCount(lblSumMantenimiento, allMantenimiento.size(), 600);
-        AnimationUtils.animateCount(lblSumComodatos, allComodatosVencidos.size(), 600);
-        AnimationUtils.animateCount(lblSumPendientes, allPendientes.size(), 600);
+        lblSumMantenimiento.setText(String.valueOf(allMantenimiento.size()));
+        lblSumComodatos.setText(String.valueOf(allComodatosVencidos.size()));
+        lblSumPendientes.setText(String.valueOf(allPendientes.size()));
         lblSumPendientesDetalle.setText(
             AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDANTE)
             + " sin resguardante · "

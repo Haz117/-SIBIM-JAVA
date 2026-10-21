@@ -80,8 +80,9 @@ final class ProductosExporter {
 
     // ── QR label export ─────────────────────────────────────────────────────
 
+    /** {@code despues} runs once the user closes the "PDF generado" dialog. */
     static void exportEtiquetasQr(
-            Scene scene, List<Producto> productos, ReporteService reporteService) {
+            Scene scene, List<Producto> productos, ReporteService reporteService, Runnable despues) {
         DialogUtil.runAsyncWithProgress(scene, "Generando etiquetas QR…",
             () -> reporteService.exportEtiquetasQrPdf(productos),
             file -> {
@@ -90,6 +91,7 @@ final class ProductosExporter {
                     return;
                 }
                 DialogUtil.showExportResultDialog(scene, file);
+                despues.run();
             },
             e -> NotificacionUtil.error(scene, "No se pudo generar las etiquetas QR" + causa(e))
         );
@@ -97,8 +99,9 @@ final class ProductosExporter {
 
     // ── Physical label export ────────────────────────────────────────────────
 
+    /** {@code despues} runs once the user closes the "PDF generado" dialog. */
     static void exportEtiquetaFisica(
-            Scene scene, List<Producto> productos, ReporteService reporteService) {
+            Scene scene, List<Producto> productos, ReporteService reporteService, Runnable despues) {
         DialogUtil.runAsyncWithProgress(scene, "Generando etiquetas físicas…",
             () -> reporteService.exportEtiquetaFisicaPdf(productos),
             file -> {
@@ -107,6 +110,7 @@ final class ProductosExporter {
                     return;
                 }
                 DialogUtil.showExportResultDialog(scene, file);
+                despues.run();
             },
             e -> NotificacionUtil.error(scene, "No se pudo generar las etiquetas" + causa(e))
         );

@@ -3,7 +3,6 @@ package com.sibim.controller;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.service.EmailService;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -32,7 +31,7 @@ class ConfigEmailSectionBuilder {
         emailCard.getStyleClass().add("card");
         emailCard.setPadding(new Insets(18));
 
-        Label title = new Label("Notificaciones por Email");
+        Label title = new Label("Notificaciones por correo");
         title.getStyleClass().add("card-section-title");
         FontIcon titleIcon = new FontIcon("mdi2e-email-outline");
         titleIcon.setIconSize(18);
@@ -130,6 +129,5 @@ class ConfigEmailSectionBuilder {
 
         emailCard.getChildren().addAll(titleRow, chkHabilitado, grid, btnsRow);
         rootVBox.getChildren().add(emailCard);
-        AnimationUtils.fadeInUp(emailCard, 320, 385);
     }
 }

@@ -105,7 +105,6 @@ public class ReportesController {
             if (ahora != null) ahora.getAccelerators().putAll(atajos);
         });
 
-        AnimationUtils.staggeredFadeInUp(List.of(periodCard, listaListados, listaFormatos), 300, 70);
     }
 
     // ── Catálogo de reportes ───────────────────────────────────────────────────
@@ -118,19 +117,19 @@ public class ReportesController {
         boolean control = com.sibim.session.Permisos.veReportesDeControl();
 
         List<Node> listados = new ArrayList<>();
-        listados.add(ReporteFila.crear("mdi2p-package-variant", "indigo", "Inventario General",
+        listados.add(ReporteFila.crear("mdi2p-package-variant", "indigo", "Inventario general",
             "Listado de los bienes patrimoniales con cantidad, valor unitario y estado actual.",
             periodoTexto, "Exportar", formatos(
                 delPeriodo(reporteService::exportInventarioPdf),
                 delPeriodo(reporteService::exportInventarioExcel),
                 delPeriodo(reporteService::exportInventarioCsv))));
-        if (control) listados.add(ReporteFila.crear("mdi2s-swap-vertical", "teal", "Registro de Movimientos",
+        if (control) listados.add(ReporteFila.crear("mdi2s-swap-vertical", "teal", "Registro de movimientos",
             "Historial de entradas, salidas, ajustes y transferencias.",
             periodoTexto, "Exportar", formatos(
                 delPeriodo(reporteService::exportMovimientosPdf),
                 delPeriodo(reporteService::exportMovimientosExcel),
                 delPeriodo(reporteService::exportMovimientosCsv))));
-        listados.add(ReporteFila.crear("mdi2s-sitemap", "green", "Distribución por Área",
+        listados.add(ReporteFila.crear("mdi2s-sitemap", "green", "Distribución por área",
             "Bienes agrupados por secretaría y dirección del Ayuntamiento.",
             null, "Exportar", formatos(
                 completo(reporteService::exportDistribucionPdf),
@@ -142,7 +141,7 @@ public class ReportesController {
                 completo(reporteService::exportAlertasPdf),
                 completo(reporteService::exportAlertasExcel),
                 completo(reporteService::exportAlertasCsv))));
-        if (control) listados.add(ReporteFila.crear("mdi2d-delete-circle-outline", "slate", "Bienes Dados de Baja",
+        if (control) listados.add(ReporteFila.crear("mdi2d-delete-circle-outline", "slate", "Bienes dados de baja",
             "Bienes fuera del inventario activo; su historial se conserva para auditoría.",
             null, "Exportar", formatos(
                 completo(reporteService::exportBajasPdf),
@@ -155,19 +154,19 @@ public class ReportesController {
                 "Todos los bienes con resguardante, valor de adquisición, depreciación acumulada, valor en libros y condición. Para actos formales de entrega-recepción.",
                 null, null, List.of(pdf(completo(
                     () -> reporteService.exportEntregaRecepcionPdf(productoService.getAll()))))));
-            oficiales.add(ReporteFila.crear("mdi2c-car-outline", "indigo", "Parque Vehicular (V.6)",
+            oficiales.add(ReporteFila.crear("mdi2c-car-outline", "indigo", "Parque vehicular (V.6)",
                 "Una ficha por vehículo con identificación, condición y lista de verificación de componentes. Solo incluye bienes con marca registrada.",
                 null, null, List.of(pdf(completo(this::exportarParqueVehicular)))));
-            oficiales.add(ReporteFila.crear("mdi2s-shield-lock-outline", "purple", "Auditoría Consolidada",
+            oficiales.add(ReporteFila.crear("mdi2s-shield-lock-outline", "purple", "Auditoría consolidada",
                 "Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Para auditorías y cambios de administración.",
                 null, null, List.of(pdf(completo(reporteService::exportAuditoriaPdf)))));
         }
         // Every área has the two formats a baja needs; only Patrimonio registers the baja itself.
-        oficiales.add(ReporteFila.crear("mdi2f-file-remove-outline", "amber", "Solicitud de Baja",
+        oficiales.add(ReporteFila.crear("mdi2f-file-remove-outline", "amber", "Solicitud de baja",
             "Lo llena y firma el área que tiene el bien para pedir su baja a Patrimonio. Una página por bien.",
             null, null, List.of(new ReporteFila.Formato("PDF", "mdi2f-file-pdf-box", "report-export-icon-pdf",
                 () -> formatoDeBaja("Solicitud de baja", "la solicitud de baja", reporteService::exportSolicitudBaja)))));
-        oficiales.add(ReporteFila.crear("mdi2f-file-certificate-outline", "slate", "Dictamen Técnico de Baja",
+        oficiales.add(ReporteFila.crear("mdi2f-file-certificate-outline", "slate", "Dictamen técnico de baja",
             "Lo llena el área técnica que revisó el bien: estado, diagnóstico, si procede la baja y destino final. Se anexa a la solicitud de baja firmada.",
             null, "Generar", List.of(
                 new ReporteFila.Formato("De un bien (por código)…", "mdi2m-magnify", "report-export-icon-pdf",
@@ -424,7 +423,6 @@ public class ReportesController {
                     ver(vacio, !hay);
                     ver(chart, hay);
                     if (hay) {
-                        AnimationUtils.fadeInUp(chart, 350, 0);
                         // One extra pulse so the chart scene graph creates the bar nodes
                         Platform.runLater(() -> listas.accept(series));
                     }

@@ -1,6 +1,5 @@
 package com.sibim.controller;
 
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
@@ -17,7 +16,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -59,7 +57,6 @@ public abstract class BaseDocumentController<T> {
     @FXML protected ProgressIndicator spinner;
     @FXML protected VBox          resumenBox;
     @FXML protected Button        btnToggleResumen;
-    @FXML protected Label         helpResumen;
     @FXML protected TextField     searchField;
     @FXML protected HBox          filterBar;
 
@@ -78,7 +75,6 @@ public abstract class BaseDocumentController<T> {
         if (btnToggleResumen != null && resumenBox != null)
             DialogUtil.makeCollapsible(getClass().getSimpleName() + ".resumen.colapsado",
                 btnToggleResumen, resumenBox, "Mostrar resumen", "Ocultar resumen");
-        if (helpResumen != null) DialogUtil.enableClickToShowTooltip(helpResumen);
         setupTableBase();
         setupColumns();
         setupSortPersistence();
@@ -228,7 +224,6 @@ public abstract class BaseDocumentController<T> {
                 List<T> list = fetchAll();
                 Platform.runLater(() -> {
                     onDataLoaded(list);
-                    AnimationUtils.staggerTableRows(table);
                     if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }
                 });
             } catch (Exception e) {
@@ -387,7 +382,7 @@ public abstract class BaseDocumentController<T> {
                 btnExp.getStyleClass().add("btn-secondary");
                 btnExp.setTooltip(new Tooltip("Exportar lista actual"));
                 if (excelFn != null) {
-                    MenuItem miExcel = new MenuItem("Exportar Excel");
+                    MenuItem miExcel = new MenuItem("Exportar a Excel");
                     miExcel.setGraphic(new FontIcon("mdi2m-microsoft-excel"));
                     miExcel.setOnAction(e -> doListExport(excelFn, "No se pudo exportar el Excel"));
                     btnExp.getItems().add(miExcel);

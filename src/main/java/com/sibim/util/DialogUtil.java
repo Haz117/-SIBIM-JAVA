@@ -219,7 +219,9 @@ public final class DialogUtil {
 
     // ── Gradient header ──────────────────────────────────────────────────
 
-    /** Build the standard gradient header used in all app dialogs. */
+    /** Build the standard header used in all app dialogs. The name is historical:
+     *  the icon tile is flat {@code color1} now ({@code color2}, the old
+     *  gradient's end, is unused). */
     public static HBox gradientHeader(String icon, String title, String subtitle,
                                       String color1, String color2) {
         FontIcon iconNode = new FontIcon(icon);
@@ -229,8 +231,7 @@ public final class DialogUtil {
         StackPane badge = new StackPane(iconNode);
         badge.getStyleClass().add("dlg-header-icon-badge");
         // The dialog's own color lives only here now (see below).
-        badge.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%,"
-            + color1 + "," + color2 + ");");
+        badge.setStyle("-fx-background-color: " + color1 + ";");
 
         Label titleLbl = new Label(title);
         titleLbl.getStyleClass().add("dlg-header-title");
@@ -1113,7 +1114,6 @@ public final class DialogUtil {
         actions.setPadding(new Insets(10, 18, 8, 18));
         actions.setAlignment(Pos.CENTER_LEFT);
 
-        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, fileCard, actions), 260, 60);
         dialog.getDialogPane().setContent(new VBox(0, header, fileCard, actions));
         dialog.showAndWait();
     }

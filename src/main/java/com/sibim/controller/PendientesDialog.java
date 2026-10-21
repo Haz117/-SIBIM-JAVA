@@ -2,7 +2,6 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.service.MovimientoService;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -37,7 +36,7 @@ class PendientesDialog {
         // read-only form to know they're still waiting.
         boolean resuelve = com.sibim.session.SessionManager.isAdmin();
         HBox header = DialogUtil.gradientHeader("mdi2t-timer-sand",
-            resuelve ? "Transferencias Pendientes de Aprobación" : "Mis solicitudes de transferencia",
+            resuelve ? "Transferencias pendientes de aprobación" : "Mis solicitudes de transferencia",
             resuelve ? "Solicitudes de traslado que requieren tu autorización"
                      : "Esperan la aprobación de Patrimonio; al aprobarlas, el área que recibe confirma la recepción",
             AppColors.WARNING, AppColors.WARNING_D);
@@ -138,7 +137,6 @@ class PendientesDialog {
         scroll.setPrefHeight(400);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
-        AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }

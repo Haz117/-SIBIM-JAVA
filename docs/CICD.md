@@ -219,7 +219,19 @@ Todas las PCs pueden escribir en la base (cada una tiene su `.env`), así que el
 - Una fila de `actualizaciones` sin firma válida (subida a mano, o anterior a V31) se ignora. Con `rol_app_minimo.sql`, además, solo el usuario dueño puede escribir esas tablas: publica desde la PC de administración.
 - Los instaladores de GitHub Releases no llevan firma: sirven para instalar a mano, no para publicarlos por SIBIM.
 
-Si se pierde la llave (la PC de TI se formatea o se cambia de cuenta de Windows):
+**Respáldala** en una USB (la llave va cifrada con una contraseña que eliges; guarda la contraseña en otro lugar):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging\respaldar-llave-firma.ps1 -Respaldar E:\sibim-llave-firma.respaldo
+```
+
+En la PC nueva (o después de formatear), la restauras y sigues firmando sin que nadie note el cambio:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging\respaldar-llave-firma.ps1 -Restaurar E:\sibim-llave-firma.respaldo
+```
+
+Si se pierde la llave sin respaldo (la PC de TI se formatea o se cambia de cuenta de Windows):
 
 ```powershell
 java -cp target\sibim-desktop-<versión>.jar com.sibim.service.FirmaActualizaciones generar --reemplazar

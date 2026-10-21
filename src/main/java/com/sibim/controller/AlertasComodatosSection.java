@@ -50,11 +50,11 @@ class AlertasComodatosSection {
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
         colNombre.setPrefWidth(220);
 
-        TableColumn<Comodato, String> colEntidad = new TableColumn<>("Entidad Receptora");
+        TableColumn<Comodato, String> colEntidad = new TableColumn<>("Entidad receptora");
         colEntidad.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEntidadReceptora()));
         colEntidad.setPrefWidth(200);
 
-        TableColumn<Comodato, String> colFechaFin = new TableColumn<>("Fecha Fin");
+        TableColumn<Comodato, String> colFechaFin = new TableColumn<>("Fecha fin");
         colFechaFin.setCellValueFactory(c -> {
             java.time.LocalDate ff = c.getValue().getFechaFin();
             return new SimpleStringProperty(ff != null ? FormatUtils.formatDate(ff) : "—");

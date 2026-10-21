@@ -2,7 +2,6 @@ package com.sibim.controller;
 
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
-import com.sibim.util.AnimationUtils;
 import javafx.stage.DirectoryChooser;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -34,7 +33,7 @@ class ConfigSchedulerSectionBuilder {
         schedCard.getStyleClass().add("card");
         schedCard.setPadding(new Insets(18));
 
-        Label title = new Label("Reportes Programados");
+        Label title = new Label("Reportes programados");
         title.getStyleClass().add("card-section-title");
         FontIcon titleIcon = new FontIcon("mdi2c-clock-outline");
         titleIcon.setIconSize(18);
@@ -113,6 +112,5 @@ class ConfigSchedulerSectionBuilder {
 
         schedCard.getChildren().addAll(titleRow, chkHabilitado, grid, lblUltima, btnGuardarSched);
         rootVBox.getChildren().add(schedCard);
-        AnimationUtils.fadeInUp(schedCard, 320, 455);
     }
 }

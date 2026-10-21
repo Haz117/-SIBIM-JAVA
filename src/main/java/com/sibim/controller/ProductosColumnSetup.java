@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /** Static column-setup helpers extracted from ProductosController.
@@ -138,19 +137,15 @@ class ProductosColumnSetup {
                 super.updateItem(value, empty);
                 setGraphic(null); setText(null);
                 if (empty || value == null || value.isBlank()) return;
-                Producto p = getTableRow() != null ? (Producto) getTableRow().getItem() : null;
-                String catColor = (p != null && p.getCategoriaColor() != null)
-                    ? p.getCategoriaColor() : "#A2232D";
-                String bgColor  = catColor + "22";
+                // A gray icon and the plain name: a pastel badge per category made
+                // every row a different color and competed with the Estado pill.
                 Label lbl = new Label(value);
                 FontIcon ico = com.sibim.util.CategoriaIcons.iconFor(value);
                 ico.setIconSize(16);
-                ico.setIconColor(javafx.scene.paint.Color.web(catColor));
-                javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(5, ico, lbl);
+                ico.getStyleClass().add("cat-cell-icon");
+                javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(6, ico, lbl);
                 box.setAlignment(Pos.CENTER_LEFT);
-                box.getStyleClass().add("cat-badge");
-                box.setStyle("-fx-background-color: " + bgColor + ";");
-                lbl.setStyle("-fx-text-fill: " + catColor + ";");
+                box.getStyleClass().add("cat-cell");
                 setGraphic(box);
             }
         });

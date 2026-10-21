@@ -38,10 +38,24 @@ public final class AccessibilityUtils {
         if (root instanceof javafx.scene.layout.GridPane grid) etiquetarCampos(grid);
         // Every "?" opens its help on click and with Tab + Enter, not only after
         // hovering: six of them (Auditoría, Configuración, Reportes) were never
-        // wired by their screen and seemed not to work.
-        if (root instanceof javafx.scene.control.Label ayuda && ayuda.getStyleClass().contains("help-badge")
-                && ayuda.getTooltip() != null && ayuda.getOnMouseClicked() == null)
-            DialogUtil.enableClickToShowTooltip(ayuda);
+        // wired by their screen and seemed not to work. A label marked
+        // "con-ayuda" (a figure's or a filter's name that carries its own
+        // explanation, instead of a "?" beside it) works the same way.
+        if (root instanceof javafx.scene.control.Label ayuda && ayuda.getTooltip() != null
+                && ayuda.getOnMouseClicked() == null) {
+            if (ayuda.getStyleClass().contains("help-badge")) {
+                DialogUtil.enableClickToShowTooltip(ayuda);
+            } else if (ayuda.getStyleClass().contains("con-ayuda")) {
+                Node tarjeta = ancestroClicable(ayuda);
+                if (tarjeta == null) {
+                    DialogUtil.enableClickToShowTooltip(ayuda);
+                    // Read as "Total de bienes. Total de bienes activos…", not "Ayuda: …" without its name.
+                    ayuda.setAccessibleText(ayuda.getText() + ". " + ayuda.getTooltip().getText());
+                } else {
+                    ayudaEnTarjeta(ayuda, tarjeta);
+                }
+            }
+        }
         // Without a prompt of its own a DatePicker shows the pattern in English ("dd/mm/yyyy").
         if (root instanceof javafx.scene.control.DatePicker dp
                 && (dp.getPromptText() == null || dp.getPromptText().isBlank()) && !dp.promptTextProperty().isBound())
@@ -57,6 +71,29 @@ public final class AccessibilityUtils {
             }
         }
         forEachChild(root, AccessibilityUtils::applyAccessibleTextFromTooltips);
+    }
+
+    /** The card a figure's label sits in, when clicking that card does something
+     *  (open its screen, filter): its label must not swallow the click. */
+    private static Node ancestroClicable(Node n) {
+        Node p = n.getParent();
+        for (int i = 0; i < 4 && p != null; i++, p = p.getParent())
+            if (p.getOnMouseClicked() != null) return p;
+        return null;
+    }
+
+    /** Help of a label inside a clickable card: the click stays the card's, the
+     *  help shows on hover (the label's tooltip), when the card is reached with
+     *  Tab, and is read by screen readers as the card's help. */
+    private static void ayudaEnTarjeta(javafx.scene.control.Label ayuda, Node tarjeta) {
+        if (ayuda.getProperties().putIfAbsent("sibim.ayudaEnTarjeta", Boolean.TRUE) != null) return;
+        Tooltip tip = ayuda.getTooltip();
+        tarjeta.setAccessibleHelp(tip.getText());
+        tarjeta.focusVisibleProperty().addListener((obs, antes, visible) -> {
+            Bounds b = ayuda.localToScreen(ayuda.getBoundsInLocal());
+            if (visible && b != null) tip.show(ayuda, b.getMinX(), b.getMaxY() + 4);
+            else tip.hide();
+        });
     }
 
     /** Forms are GridPanes with the label in one column and its field in the

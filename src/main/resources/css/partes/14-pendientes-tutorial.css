@@ -38,24 +38,24 @@
 /* Card: border-radius and left-side radius are overridden inline when arrow is shown */
 .tutorial-card {
     -fx-background-color: white;
-    -fx-background-radius: 20;
+    -fx-background-radius: 12;
     -fx-border-color: #E4EAF4;
-    -fx-border-radius: 20;
+    -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.26), 44, 0.04, 0, 14);
 }
 
 /* Header radius is set inline per step (dynamic left-corner); this is a fallback */
 .tutorial-card > StackPane {
-    -fx-background-radius: 20 20 0 0;
+    -fx-background-radius: 12 12 0 0;
 }
 
 /* Icon of the step, on the header: a translucent white tile */
 .tutorial-icon-badge {
     -fx-background-color: rgba(255,255,255,0.16);
-    -fx-background-radius: 14;
+    -fx-background-radius: 10;
     -fx-border-color: rgba(255,255,255,0.28);
-    -fx-border-radius: 14;
+    -fx-border-radius: 10;
 }
 
 /* Progress bar under the header; the fill takes the step's color (inline) */
@@ -65,7 +65,7 @@
 
 /* Progress fill — width animated in Java */
 .tutorial-progress-fill {
-    -fx-background-color: sibim-indigo;
+    -fx-background-color: sibim-marca;
     -fx-background-radius: 0 3 3 0;
 }
 
@@ -106,7 +106,7 @@
 
 /* Progress dots */
 .tutorial-dot        { -fx-fill: sibim-slate-300; }
-.tutorial-dot-active { -fx-fill: sibim-indigo; }
+.tutorial-dot-active { -fx-fill: sibim-marca; }
 
 /* Step counter */
 .tutorial-counter {
@@ -179,8 +179,8 @@
 
 /* When arrow-caret is shown, left corners are squared on the card */
 .tutorial-card-with-arrow {
-    -fx-background-radius: 0 20 20 0;
-    -fx-border-radius: 0 20 20 0;
+    -fx-background-radius: 0 12 12 0;
+    -fx-border-radius: 0 12 12 0;
 }
 
 /* Keyboard navigation hint below buttons */

@@ -4,41 +4,32 @@
    ═══════════════════════════════════════════════════════════════════ */
 .rich-stat-card {
     -fx-background-color: white;
-    -fx-background-radius: 18;
+    -fx-background-radius: 12;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
 }
 
-/* Circular icon badge — the color lives here now, not on the whole card */
+/* Circular icon badge of a figure card: one color for all of them. A color per
+   card (guinda, green, gold, gray) meant nothing and read as decoration. */
 .rich-stat-icon-badge {
     -fx-min-width: 36; -fx-min-height: 36;
     -fx-max-width: 36; -fx-max-height: 36;
     -fx-background-radius: 999;
+    -fx-background-color: sibim-marca;
 }
 .rich-stat-icon-badge .rich-stat-icon { -fx-icon-size: 17; -fx-icon-color: white; -fx-opacity: 1; -fx-padding: 0; }
-.rich-stat-icon-badge-indigo      { -fx-background-color: sibim-indigo; }
-.rich-stat-icon-badge-teal        { -fx-background-color: #235B4E; }
-/* The summary cards' icons in the institutional palette: the bright green,
-   amber and red of the alerts (kept for states: pills, messages) made these
-   decorative badges look like warnings and clashed with the guinda. */
-.rich-stat-icon-badge-amber       { -fx-background-color: sibim-violet; }
-.rich-stat-icon-badge-purple      { -fx-background-color: sibim-violet; }
-.rich-stat-icon-badge-green       { -fx-background-color: #235B4E; }
-.rich-stat-icon-badge-red         { -fx-background-color: sibim-indigo; }
-/* Was only ever on the Dashboard's old separate .stat-card family
-   ("Categorías Activas") — added here so that card could move onto the
-   same rich-stat-card the other four list pages already use. */
-.rich-stat-icon-badge-dark-indigo { -fx-background-color: sibim-indigo-900; }
 
 /* Dashboard's four top stat cards navigate somewhere on click — the other
    rich-stat-card users (Bienes, Organigrama, Categorías, Depreciación)
    don't, so this is opt-in rather than baked into .rich-stat-card itself. */
 .rich-stat-card-clickable { -fx-cursor: hand; }
-/* Extra indigo border on hover distinguishes clickable cards from the plain
-   ones that also lift on hover — makes the interactivity more obvious. */
+/* Only a card that does something when clicked lifts and gets a guinda
+   border on hover; a card that only shows a figure stays put. */
 .rich-stat-card-clickable:hover {
-    -fx-border-color: sibim-indigo-200;
+    -fx-border-color: sibim-marca-200;
     -fx-border-width: 1.5;
-    -fx-border-radius: 18;
+    -fx-border-radius: 12;
+    -fx-translate-y: -4;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.14), 28, 0, 0, 9);
 }
 
 /* Toggled state for a rich-stat-card used as a click-to-filter control
@@ -48,7 +39,7 @@
 .rich-stat-card-clickable:selected {
     -fx-border-color: sibim-red;
     -fx-border-width: 2;
-    -fx-border-radius: 18;
+    -fx-border-radius: 12;
 }
 
 /* Alert active — amber card pulses with stronger border+glow */
@@ -61,10 +52,10 @@
 /* Filter-active state for stat cards used as click-to-filter controls
    in list screens (Resguardos, Préstamos, Comodatos). Indigo bottom accent. */
 .rich-stat-card-filter-active {
-    -fx-border-color: transparent transparent sibim-indigo-dark transparent;
+    -fx-border-color: transparent transparent sibim-marca-dark transparent;
     -fx-border-width: 0 0 3 0;
-    -fx-border-radius: 18;
-    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.30), 22, 0.05, 0, 7);
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 22, 0.05, 0, 7);
 }
 
 /* Urgency tint for the "Préstamos Vencidos" card when count > 0 */
@@ -76,16 +67,17 @@
 
 /* Descendant selectors (0,0,2,0) — dark text now that the card is white */
 .rich-stat-card .rich-stat-label { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; -fx-font-weight: bold; }
-.rich-stat-card .rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
-.rich-stat-card .rich-stat-value.rich-stat-value-sm { -fx-font-size: 18px; }
+/* Big enough to read at a glance, not the giant number of a template dashboard */
+.rich-stat-card .rich-stat-value { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.rich-stat-card .rich-stat-value.rich-stat-value-sm { -fx-font-size: 16px; }
 /* Extra-small variant — a rich-stat-value repurposed as a short description
    line (e.g. "Acerca de esta función" cards) instead of a big number. */
 .rich-stat-card .rich-stat-value.rich-stat-value-xs { -fx-font-size: 13px; }
 .rich-stat-card .rich-stat-hint  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
 /* Single-class fallbacks for sizing only */
 .rich-stat-label { -fx-font-size: 11px; -fx-font-weight: bold; -fx-wrap-text: true; }  /* two lines beat "VALOR TOTAL DE COM…" */
-.rich-stat-value { -fx-font-size: 30px; -fx-font-weight: bold; }
-.rich-stat-value-sm { -fx-font-size: 18px; }
+.rich-stat-value { -fx-font-size: 24px; -fx-font-weight: bold; }
+.rich-stat-value-sm { -fx-font-size: 16px; }
 .rich-stat-value-xs { -fx-font-size: 13px; }
 .rich-stat-hint  { -fx-font-size: 11px; }
 
@@ -107,7 +99,7 @@
 }
 .text-area:focused .content {
     -fx-background-color: white;
-    -fx-border-color: sibim-indigo;
+    -fx-border-color: sibim-marca;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -144,14 +136,5 @@
     -fx-text-fill: #991B1B;
     -fx-border-color: sibim-red-500;
     -fx-border-width: 0 0 0 3;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   RICH STAT CARD — micro lift on hover (shadow can't override inline,
-   but translate-y does lift the card)
-   ═══════════════════════════════════════════════════════════════════ */
-.rich-stat-card:hover {
-    -fx-translate-y: -4;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.14), 28, 0, 0, 9);
 }
 

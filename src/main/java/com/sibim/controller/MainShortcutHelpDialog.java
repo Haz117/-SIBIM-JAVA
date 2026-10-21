@@ -21,7 +21,7 @@ class MainShortcutHelpDialog {
         dlg.getDialogPane().setPrefWidth(540);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2k-keyboard-outline", "Atajos de Teclado",
+        HBox header = DialogUtil.gradientHeader("mdi2k-keyboard-outline", "Atajos de teclado",
             "Referencia rápida de todos los atajos disponibles en SIBIM",
             AppColors.INDIGO, AppColors.INDIGO_D);
 
@@ -104,8 +104,6 @@ class MainShortcutHelpDialog {
 
         VBox content = new VBox(0, header, scroll);
         dlg.getDialogPane().setContent(content);
-        com.sibim.util.AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(header, navGrid, accGrid, busqGrid, sysGrid), 260, 60);
         dlg.showAndWait();
     }
 }

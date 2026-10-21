@@ -5,6 +5,7 @@ import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
+import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -170,7 +171,32 @@ final class ProductosBulkDialog {
         if (!ConfirmacionUtil.confirmar("Marcar como etiquetado", msg)) return;
         table.lookupAll(".table-row-cell:selected")
              .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
-        List<String> ids = sel.stream().map(Producto::getId).toList();
+        marcarEtiquetados(sel.stream().map(Producto::getId).toList(), scene, service, onSuccess, onRetry);
+    }
+
+    /**
+     * Right after printing labels: offers to mark the printed bienes that aren't
+     * yet as etiquetados, so "Sin etiquetar" in Alertas goes down as the labels
+     * go on, without a separate step. Asks first because printing is not sticking
+     * them on. Only Patrimonio (admin) marks; nothing is asked when all of them
+     * already are.
+     */
+    static void ofrecerMarcarEtiquetados(
+            List<Producto> impresos, Scene scene, ProductoService service, Runnable onSuccess) {
+        if (!SessionManager.isAdmin()) return;
+        List<String> ids = impresos.stream().filter(p -> !p.isEtiquetado()).map(Producto::getId).toList();
+        if (ids.isEmpty()) return;
+        String cuales = ids.size() == 1 ? "este bien" : "estos " + ids.size() + " bienes";
+        if (!ConfirmacionUtil.confirmar("¿Marcar como etiquetados?",
+                "Cuando las etiquetas de " + cuales + " ya estén pegadas, márcalos como etiquetados "
+                + "para que dejen de contar en Alertas como \"Sin etiquetar\".\n\n"
+                + "Si todavía no se pegan, puedes hacerlo después desde Bienes › Marcar como etiquetado.")) return;
+        marcarEtiquetados(ids, scene, service, onSuccess,
+            () -> ofrecerMarcarEtiquetados(impresos, scene, service, onSuccess));
+    }
+
+    private static void marcarEtiquetados(List<String> ids, Scene scene, ProductoService service,
+                                          Runnable onSuccess, Runnable onRetry) {
         DialogUtil.runAsyncWithProgress(scene, "Actualizando etiquetado…",
             () -> { service.marcarEtiquetado(ids, true); return ids.size(); },
             count -> {

@@ -231,12 +231,10 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         long activos   = list.stream().filter(p -> Prestamo.ESTADO_ACTIVO.equals(p.getEstado())).count();
         long vencidos  = list.stream().filter(p -> Prestamo.ESTADO_VENCIDO.equals(p.getEstado()) || p.isVencidoCalc()).count();
         long devueltos = list.stream().filter(p -> Prestamo.ESTADO_DEVUELTO.equals(p.getEstado())).count();
-        AnimationUtils.animateCount(lblStatActivos,   activos,            700);
-        AnimationUtils.animateCount(lblStatVencidos,  vencidos,           700);
-        AnimationUtils.animateCount(lblStatDevueltos, devueltos,          700);
-        AnimationUtils.animateCount(lblStatTotal,     (long) list.size(), 700);
-        AnimationUtils.staggeredFadeInUp(
-            List.of(statCardActivos, statCardVencidos, statCardDevueltos, statCardTotal), 280, 55);
+        lblStatActivos.setText(String.valueOf(activos));
+        lblStatVencidos.setText(String.valueOf(vencidos));
+        lblStatDevueltos.setText(String.valueOf(devueltos));
+        lblStatTotal.setText(String.valueOf((long) list.size()));
     }
 
     @Override
@@ -456,13 +454,13 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
     private void mostrarDialogoNuevo(List<Producto> productos, javafx.scene.Scene scene) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Nuevo Préstamo Temporal");
+        dialog.setTitle("Nuevo préstamo temporal");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialog.getDialogPane().setPrefWidth(600);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2s-swap-horizontal",
-            "Nuevo Préstamo Temporal",
+            "Nuevo préstamo temporal",
             "Registra el préstamo de un bien entre áreas con fecha de devolución",
             AppColors.GREEN, AppColors.GREEN_D);
 
@@ -524,7 +522,6 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         okBtn.setText("Registrar préstamo");
         okBtn.getStyleClass().add("dialog-ok-btn");
 
-        AnimationUtils.staggeredFadeInUp(List.of(header, form), 280, 70);
         Platform.runLater(productoCombo::requestFocus);
 
         okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
@@ -661,7 +658,6 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         VBox content = new VBox(0, header, g);
         g.setPadding(new Insets(16, 22, 16, 22));
         dialog.getDialogPane().setContent(content);
-        AnimationUtils.staggeredFadeInUp(List.of(header, g), 260, 70);
         dialog.showAndWait();
     }
 }

@@ -4,9 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.util.Base64;
+import javax.crypto.AEADBadTagException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -54,6 +58,24 @@ class FirmaActualizacionesTest {
         var f = new FirmaActualizaciones.Firma("1.2.0", SHA, "abc+/=");
         FirmaActualizaciones.escribir(archivo, f);
         assertEquals(f, FirmaActualizaciones.leer(archivo));
+    }
+
+    @Test
+    void elRespaldoDeLaLlave_vuelveConLaContrasenaYNoSinElla() throws Exception {
+        KeyPair ti = par();
+        byte[] pkcs8 = ti.getPrivate().getEncoded();
+        byte[] respaldo = FirmaActualizaciones.cifrarRespaldo(pkcs8, "una contraseña larga".toCharArray());
+
+        String texto = new String(respaldo, StandardCharsets.US_ASCII);
+        assertTrue(texto.startsWith(FirmaActualizaciones.CABECERA_RESPALDO + "\n"));
+        assertFalse(texto.contains(Base64.getEncoder().encodeToString(pkcs8)), "la llave no va en claro");
+
+        assertArrayEquals(pkcs8, FirmaActualizaciones.descifrarRespaldo(respaldo, "una contraseña larga".toCharArray()));
+        assertThrows(AEADBadTagException.class,
+            () -> FirmaActualizaciones.descifrarRespaldo(respaldo, "otra contraseña".toCharArray()));
+        assertThrows(GeneralSecurityException.class,
+            () -> FirmaActualizaciones.descifrarRespaldo("no es un respaldo".getBytes(StandardCharsets.US_ASCII),
+                "una contraseña larga".toCharArray()));
     }
 
     private static KeyPair par() throws Exception {

@@ -11,11 +11,11 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Actas de Entrega-Recepción" styleClass="page-title"/>
+            <Label text="Actas de entrega-recepción" styleClass="page-title"/>
             <Label text="Documentos para cambio de administración · captura el inventario completo" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22" visible="false" managed="false"/>
@@ -29,10 +29,7 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
-        <Button fx:id="btnNueva" text="Nueva Acta" onAction="#onNuevaActa" styleClass="btn-primary"
+        <Button fx:id="btnNueva" text="Nueva acta" onAction="#onNuevaActa" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Registrar una nueva acta de entrega-recepción"/></tooltip>
@@ -46,10 +43,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="ACTAS GENERADAS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="Actas generadas" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
             <Label text="documentos de entrega-recepción" styleClass="rich-stat-hint"/>
@@ -58,10 +55,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="VALOR TOTAL DOCUMENTADO" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="Valor total documentado" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatValor" text="—" styleClass="rich-stat-value"/>
             <Label text="suma de bienes en todas las actas" styleClass="rich-stat-hint"/>
@@ -93,7 +90,7 @@
             <TableColumn fx:id="colEntrante"  text="Entrante"   prefWidth="200"/>
             <TableColumn fx:id="colFecha"     text="Fecha"      prefWidth="100"/>
             <TableColumn fx:id="colBienes"    text="Bienes"     prefWidth="70"/>
-            <TableColumn fx:id="colValor"     text="Valor Total" prefWidth="130"/>
+            <TableColumn fx:id="colValor"     text="Valor total" prefWidth="130"/>
         </columns>
         <placeholder>
             <Label text="No hay actas generadas. Crea la primera con &quot;Nueva Acta&quot; (solo Admin)."

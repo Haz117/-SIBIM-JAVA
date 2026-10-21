@@ -12,14 +12,9 @@ import com.sibim.util.EmptyStateUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
 import com.sibim.util.SearchUtils;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.util.Duration;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -80,13 +75,8 @@ public class DepreciacionController {
     @FXML private Label lblStatSinDatos;
     @FXML private Label lblStatTotalmente;
     @FXML private Label helpConcepto;
-    @FXML private Label helpValorCompra;
-    @FXML private Label helpValorActual;
-    @FXML private Label helpPct;
-    @FXML private Label helpTotalmente;
     @FXML private VBox resumenBox;
     @FXML private Button btnToggleResumen;
-    @FXML private Label helpResumen;
     @FXML private LineChart<String, Number> chartTendencia;
     @FXML private Label lblTotalFiltrado;
     @FXML private TextField searchField;
@@ -126,15 +116,8 @@ public class DepreciacionController {
             DialogUtil.makeCollapsible("depreciacion.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
         loadData();
-        AnimationUtils.staggeredFadeInUp(
-            List.of(statCardCompra, statCardActual, statCardPct, statCardTotalmente), 300, 55);
         javafx.application.Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
         if (helpConcepto     != null) DialogUtil.enableClickToShowTooltip(helpConcepto);
-        if (helpValorCompra  != null) DialogUtil.enableClickToShowTooltip(helpValorCompra);
-        if (helpValorActual  != null) DialogUtil.enableClickToShowTooltip(helpValorActual);
-        if (helpPct          != null) DialogUtil.enableClickToShowTooltip(helpPct);
-        if (helpTotalmente   != null) DialogUtil.enableClickToShowTooltip(helpTotalmente);
-        if (helpResumen      != null) DialogUtil.enableClickToShowTooltip(helpResumen);
     }
 
     private void setupFiltros() {
@@ -337,7 +320,6 @@ public class DepreciacionController {
                 || (p.getArea() != null && p.getArea().toLowerCase().contains(q)))
             .toList();
         table.setItems(FXCollections.observableArrayList(mostrar));
-        AnimationUtils.staggerTableRows(table);
         if (lblTotalFiltrado != null)
             lblTotalFiltrado.setText(mostrar.size() + (mostrar.size() == 1 ? " bien" : " bienes"));
         // The table's placeholder is generic "no data at all" text — without
@@ -513,25 +495,14 @@ public class DepreciacionController {
             .filter(p -> { Integer pct = p.getPorcentajeDepreciado(); return pct != null && pct >= 100; })
             .count();
 
-        if (lblStatCompra != null) AnimationUtils.animateCount(lblStatCompra, totalCompra.longValue(), 700,
-            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
-        if (lblStatActual != null) AnimationUtils.animateCount(lblStatActual, totalActual.longValue(), 880,
-            v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v)));
-        if (lblStatPct != null) AnimationUtils.animateCount(lblStatPct, pctPromedio, 580, v -> v + "%");
+        if (lblStatCompra != null) lblStatCompra.setText(FormatUtils.formatCurrency(totalCompra));
+        if (lblStatActual != null) lblStatActual.setText(FormatUtils.formatCurrency(totalActual));
+        if (lblStatPct != null) lblStatPct.setText(pctPromedio + "%");
         if (lblStatSinDatos != null) lblStatSinDatos.setText(sinDatos == 0
             ? "todos los bienes con datos completos"
             : sinDatos + " bien(es) sin datos de depreciación");
-        if (lblStatTotalmente != null) AnimationUtils.animateCount(lblStatTotalmente, totalmenteDepreciados, 700);
+        if (lblStatTotalmente != null) lblStatTotalmente.setText(String.valueOf(totalmenteDepreciados));
         updateRangos(bienes);
-
-        PauseTransition pop = new PauseTransition(Duration.millis(900));
-        pop.setOnFinished(e -> {
-            if (statCardCompra     != null) AnimationUtils.statCardPop(statCardCompra);
-            if (statCardActual     != null) AnimationUtils.statCardPop(statCardActual);
-            if (statCardPct        != null) AnimationUtils.statCardPop(statCardPct);
-            if (statCardTotalmente != null) AnimationUtils.statCardPop(statCardTotalmente);
-        });
-        pop.play();
     }
 
     private void updateRangos(List<Producto> bienes) {
@@ -558,40 +529,21 @@ public class DepreciacionController {
             new Rango("50 – 99%",   "status-pb-amber",  r3),
             new Rango("100%+",      "status-pb-red",   r4));
 
-        int idx = 0;
         for (Rango r : rangos) {
             Label nameLbl = new Label(r.label());
             nameLbl.getStyleClass().add("depr-range-label");
 
-            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar((double) r.count() / total);
             pb.getStyleClass().addAll("status-pb", r.pbClass());
             pb.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(pb, javafx.scene.layout.Priority.ALWAYS);
 
-            Label countLbl = new Label("0 bienes");
+            Label countLbl = new Label(FormatUtils.plural(r.count(), "bien", "bienes"));
             countLbl.getStyleClass().add("depr-range-count");
 
             HBox row = new HBox(10, nameLbl, pb, countLbl);
             row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             rangoBox.getChildren().add(row);
-
-            double target = (double) r.count() / total;
-            long rCount = r.count();
-            int delay = 150 + idx * 80;
-            PauseTransition wait =
-                new PauseTransition(Duration.millis(delay));
-            wait.setOnFinished(ev -> {
-                Timeline tl = new Timeline(
-                    new KeyFrame(Duration.ZERO,
-                        new KeyValue(pb.progressProperty(), 0)),
-                    new KeyFrame(Duration.millis(800),
-                        new KeyValue(pb.progressProperty(), target,
-                            Interpolator.EASE_BOTH)));
-                com.sibim.util.AnimationUtils.reproducir(tl);
-                AnimationUtils.animateCount(countLbl, rCount, 750, v -> FormatUtils.plural(v, "bien", "bienes"));
-            });
-            wait.play();
-            idx++;
         }
     }
 

@@ -46,6 +46,7 @@ class OrganigramaDataLoader {
     void load(Consumer<OrganigramaData> onSuccess, Consumer<Exception> onError) {
         DialogUtil.runAsync(
             () -> {
+                long inicio = System.nanoTime();
                 // The four reads are independent: at the same time, the screen
                 // waits for the slowest instead of their sum.
                 java.util.concurrent.CompletableFuture<List<Resguardo>> resguardos;
@@ -93,6 +94,10 @@ class OrganigramaDataLoader {
                         }
                     });
 
+                // How long the screen waits with the real inventory: the basis for
+                // deciding whether it must load by área instead of everything at once.
+                log.info("Organigrama cargado: {} bienes en {} áreas, {} ms",
+                    productoIdToArea.size(), porArea.size(), (System.nanoTime() - inicio) / 1_000_000);
                 return new OrganigramaData(porArea, rsgPorArea, prestPorArea, comodPorArea);
             },
             onSuccess,

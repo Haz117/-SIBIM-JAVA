@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-/** Builds and drives the "Registrar Movimiento" dialog. Extracted out of
+/** Builds and drives the "Registrar movimiento" dialog. Extracted out of
  *  MovimientosController for the same reason as ProductoDialogFactory — the
  *  controller only deals with the table/filters/persistence and this class
  *  only deals with the form. Returns the validated form data on OK (the
@@ -60,7 +60,7 @@ public final class MovimientoDialogFactory {
         DialogUtil.styleOkButton(dialog.getDialogPane(), AppColors.PURPLE);
 
         // Only Patrimonio gets here — see MovimientoService.registrar.
-        HBox header = DialogUtil.gradientHeader("mdi2s-swap-vertical", "Registrar Movimiento",
+        HBox header = DialogUtil.gradientHeader("mdi2s-swap-vertical", "Registrar movimiento",
                 "Registra una nueva entrada, salida, ajuste o transferencia al inventario",
                 AppColors.PURPLE, AppColors.PURPLE_D);
 
@@ -181,80 +181,8 @@ public final class MovimientoDialogFactory {
         };
         updateTransferPreview.run();
 
-        // Arrow blasts forward with glow; destination chip rockets in from the
-        // right and lands with an overshoot bounce.
-        Runnable animateTransferArrival = () -> {
-            // Arrow: shoot right + stretch + glow flash
-            Timeline arrowAnim = new Timeline(
-                new KeyFrame(Duration.ZERO,
-                    new KeyValue(transferArrow.scaleXProperty(), 1.0),
-                    new KeyValue(transferArrow.scaleYProperty(), 1.0),
-                    new KeyValue(transferArrow.translateXProperty(), 0.0),
-                    new KeyValue(transferArrow.opacityProperty(), 1.0)),
-                new KeyFrame(Duration.millis(130),
-                    new KeyValue(transferArrow.scaleXProperty(), 2.2, Interpolator.EASE_OUT),
-                    new KeyValue(transferArrow.scaleYProperty(), 0.7, Interpolator.EASE_OUT),
-                    new KeyValue(transferArrow.translateXProperty(), 20.0, Interpolator.EASE_OUT),
-                    new KeyValue(transferArrow.opacityProperty(), 0.5, Interpolator.EASE_OUT)),
-                new KeyFrame(Duration.millis(260),
-                    new KeyValue(transferArrow.scaleXProperty(), 1.0, Interpolator.EASE_IN),
-                    new KeyValue(transferArrow.scaleYProperty(), 1.0, Interpolator.EASE_IN),
-                    new KeyValue(transferArrow.translateXProperty(), 0.0, Interpolator.EASE_IN),
-                    new KeyValue(transferArrow.opacityProperty(), 1.0, Interpolator.EASE_IN))
-            );
-            // Destination chip: rocket in from right with hard bounce
-            Timeline chipAnim = new Timeline(
-                new KeyFrame(Duration.ZERO,
-                    new KeyValue(chipDestino.opacityProperty(), 0.0),
-                    new KeyValue(chipDestino.translateXProperty(), 50.0),
-                    new KeyValue(chipDestino.scaleXProperty(), 0.75),
-                    new KeyValue(chipDestino.scaleYProperty(), 0.75)),
-                new KeyFrame(Duration.millis(200),
-                    new KeyValue(chipDestino.opacityProperty(), 1.0, Interpolator.EASE_OUT),
-                    new KeyValue(chipDestino.translateXProperty(), -8.0, Interpolator.EASE_OUT),
-                    new KeyValue(chipDestino.scaleXProperty(), 1.10, Interpolator.EASE_OUT),
-                    new KeyValue(chipDestino.scaleYProperty(), 1.10, Interpolator.EASE_OUT)),
-                new KeyFrame(Duration.millis(310),
-                    new KeyValue(chipDestino.translateXProperty(), 3.0, Interpolator.EASE_BOTH),
-                    new KeyValue(chipDestino.scaleXProperty(), 0.97, Interpolator.EASE_BOTH),
-                    new KeyValue(chipDestino.scaleYProperty(), 0.97, Interpolator.EASE_BOTH)),
-                new KeyFrame(Duration.millis(400),
-                    new KeyValue(chipDestino.translateXProperty(), 0.0, Interpolator.EASE_BOTH),
-                    new KeyValue(chipDestino.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
-                    new KeyValue(chipDestino.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
-            );
-            // Stagger: arrow first, chip lands right after the arrow peaks
-            PauseTransition delay = new PauseTransition(com.sibim.util.AnimationUtils.duracion(80));
-            delay.setOnFinished(e -> com.sibim.util.AnimationUtils.reproducir(chipAnim));
-            com.sibim.util.AnimationUtils.reproducir(new ParallelTransition(arrowAnim, delay));
-        };
-
-        // Origin chip pops in when a product is selected while in transfer mode
-        Runnable animateOrigenArrival = () -> {
-            Timeline t = new Timeline(
-                new KeyFrame(Duration.ZERO,
-                    new KeyValue(chipOrigen.opacityProperty(), 0.2),
-                    new KeyValue(chipOrigen.scaleXProperty(), 0.88),
-                    new KeyValue(chipOrigen.scaleYProperty(), 0.88)),
-                new KeyFrame(Duration.millis(220),
-                    new KeyValue(chipOrigen.opacityProperty(), 1.0, Interpolator.EASE_OUT),
-                    new KeyValue(chipOrigen.scaleXProperty(), 1.05, Interpolator.EASE_OUT),
-                    new KeyValue(chipOrigen.scaleYProperty(), 1.05, Interpolator.EASE_OUT)),
-                new KeyFrame(Duration.millis(320),
-                    new KeyValue(chipOrigen.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
-                    new KeyValue(chipOrigen.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
-            );
-            com.sibim.util.AnimationUtils.reproducir(t);
-        };
-
-        fAreaDestino.valueProperty().addListener((o, a, b) -> {
-            updateTransferPreview.run();
-            if (b != null) animateTransferArrival.run();
-        });
-        fProducto.valueProperty().addListener((o, a, b) -> {
-            updateTransferPreview.run();
-            if (b != null && fTipo.getValue() == TipoMovimiento.TRANSFERENCIA) animateOrigenArrival.run();
-        });
+        fAreaDestino.valueProperty().addListener((o, a, b) -> updateTransferPreview.run());
+        fProducto.valueProperty().addListener((o, a, b) -> updateTransferPreview.run());
 
         // Transfer section slides down smoothly when TRANSFERENCIA is selected
         Runnable updateAreaDestinoVisibility = () -> {
@@ -285,7 +213,7 @@ public final class MovimientoDialogFactory {
         stockPreview.getStyleClass().add("dlg-stock-preview");
 
         VBox stockAntes = new VBox(2);
-        Label lblAntesTit = new Label("ACTUAL");
+        Label lblAntesTit = new Label("Actual");
         lblAntesTit.getStyleClass().add("dlg-stock-tit");
         Label lblStockActual = new Label("—");
         lblStockActual.getStyleClass().add("dlg-stock-val");
@@ -295,7 +223,7 @@ public final class MovimientoDialogFactory {
         arrow.getStyleClass().add("dlg-stock-arrow");
 
         VBox stockDespues = new VBox(2);
-        Label lblDespuesTit = new Label("RESULTANTE");
+        Label lblDespuesTit = new Label("Resultante");
         lblDespuesTit.getStyleClass().add("dlg-stock-tit");
         Label lblStockNuevo = new Label("—");
         lblStockNuevo.getStyleClass().add("dlg-stock-val");
@@ -460,7 +388,6 @@ public final class MovimientoDialogFactory {
         // band under our own buttons; re-fit it to the real content once shown.
         dialog.setOnShown(ev -> dialog.getDialogPane().getScene().getWindow().sizeToScene());
 
-        AnimationUtils.staggeredFadeInUp(List.of(grid, actionBar), 280, 70);
         // Only the form scrolls — actionBar stays pinned at the bottom so it's
         // always reachable even when the form is taller than the screen
         // (was reproducible with the dialog's real button-bar off-screen;

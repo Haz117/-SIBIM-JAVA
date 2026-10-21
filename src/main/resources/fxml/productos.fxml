@@ -12,11 +12,11 @@
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
         <!-- Icon badge -->
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2p-package-variant" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Bienes Patrimoniales" styleClass="page-title"/>
+            <Label text="Bienes patrimoniales" styleClass="page-title"/>
             <Label text="Inventario de bienes del H. Ayuntamiento de Ixmiquilpan" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
@@ -50,7 +50,7 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Button fx:id="btnNuevoBien" text="Nuevo Bien" onAction="#onNuevoBien" styleClass="btn-primary"
+        <Button fx:id="btnNuevoBien" text="Nuevo bien" onAction="#onNuevoBien" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Registrar un nuevo bien en el inventario  (Ctrl+N)"/></tooltip>
@@ -60,8 +60,7 @@
     <VBox fx:id="resumenBox" spacing="9">
     <!-- ══ SECCIÓN RESUMEN ══════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="RESUMEN DEL INVENTARIO" styleClass="dash-section-label"/>
+        <Label text="Resumen del inventario" styleClass="dash-section-label"/>
     </HBox>
 
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
@@ -71,11 +70,10 @@
               HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
             <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-cube-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTAL DE BIENES" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpTotal" text="?" styleClass="help-badge">
+                <Label text="Total de bienes" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, dados de baja excluidos." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
@@ -88,11 +86,10 @@
               HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
             <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="VALOR DEL INVENTARIO" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpValor" text="?" styleClass="help-badge">
+                <Label text="Valor del inventario" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Suma del costo de adquisición × cantidad de todos los bienes activos del inventario." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
@@ -105,11 +102,10 @@
               HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
             <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2b-bell-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="GARANTÍA VENCIDA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpAlertas" text="?" styleClass="help-badge">
+                <Label text="Garantía vencida" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Bienes cuya garantía ya venció." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
             </HBox>
@@ -122,10 +118,10 @@
               HBox.hgrow="ALWAYS" spacing="3" alignment="CENTER_LEFT">
             <padding><Insets top="11" right="18" bottom="11" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2t-tag-off-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="SIN ETIQUETAR" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="Sin etiquetar" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatSinEtiquetar" text="—" styleClass="rich-stat-value"/>
             <Label text="bienes sin etiqueta física" styleClass="rich-stat-hint"/>
@@ -135,10 +131,9 @@
 
     <!-- ══ BUSCAR Y FILTRAR ════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
+        <Label text="Buscar y filtrar" styleClass="dash-section-label"/>
         <!-- Search stays in this row so collapsing the filters never hides it. -->
-        <StackPane prefWidth="340" maxWidth="460" HBox.hgrow="SOMETIMES">
+        <StackPane prefWidth="380" maxWidth="460" HBox.hgrow="SOMETIMES">
             <TextField fx:id="searchField"
                        promptText="Buscar por nombre, código, serie, marca, resguardante…"
                        maxWidth="Infinity" styleClass="search-field"/>
@@ -159,12 +154,13 @@
     <FlowPane fx:id="filterBar" hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-indigo">
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="165"/>
         <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="190"/>
-        <ComboBox fx:id="resguardanteFilter" promptText="Resguardante..." prefWidth="165"/>
-        <Label fx:id="helpResguardante" text="?" styleClass="help-badge">
+        <ComboBox fx:id="resguardanteFilter" promptText="Resguardante..." prefWidth="165">
             <tooltip><Tooltip text="Resguardante: persona responsable de la custodia del bien. Filtrar por encargado."/></tooltip>
-        </Label>
+        </ComboBox>
         <Separator orientation="VERTICAL"/>
-        <Label text="Registrado desde:" styleClass="form-label"/>
+        <Label text="Registrado desde:" styleClass="form-label, con-ayuda">
+            <tooltip><Tooltip text="Filtra por la fecha en que el bien fue registrado en el sistema (no la fecha de compra). Deja un campo vacío para no acotar ese extremo del rango." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
         <DatePicker fx:id="desdeRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
         <Label text="hasta:" styleClass="form-label"/>
         <DatePicker fx:id="hastaRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
@@ -173,15 +169,9 @@
             <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Limpiar filtro de fechas de registro"/></tooltip>
         </Button>
-        <Label fx:id="helpFechaReg" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Filtra por la fecha en que el bien fue registrado en el sistema (no la fecha de compra). Deja un campo vacío para no acotar ese extremo del rango." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
         <Separator orientation="VERTICAL"/>
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
-        <Label fx:id="helpChips" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Filtra por estado:&#10;• Activo — garantía vigente o sin garantía registrada&#10;• Vencido — garantía vencida&#10;&#10;Se combina con el resto de filtros activos." wrapText="true" maxWidth="280"/></tooltip>
-        </Label>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
                 styleClass="btn-secondary" visible="false" managed="false"
@@ -204,8 +194,7 @@
     <!-- ══ PRESET BAR ══════════════════════════════════════════════ -->
     <HBox fx:id="presetsHeader" alignment="CENTER_LEFT" spacing="8"
           visible="false" managed="false">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="ACCESOS RÁPIDOS" styleClass="dash-section-label"/>
+        <Label text="Filtros guardados" styleClass="dash-section-label"/>
         <Label fx:id="helpPresets" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Guarda la combinación actual de filtros (búsqueda, categoría, área, estado...) con un nombre para abrirla con un clic. Ideal para búsquedas frecuentes como 'Vehículos sin etiquetar' o 'Área Obras'. El botón 'Guardar filtro' aparece cuando hay filtros activos." wrapText="true" maxWidth="290"/></tooltip>
         </Label>
@@ -215,8 +204,7 @@
 
     <!-- ══ SECCIÓN TABLA ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="TABLA DE BIENES" styleClass="dash-section-label"/>
+        <Label text="Tabla de bienes" styleClass="dash-section-label"/>
         <Label fx:id="helpColumnas" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="▸ Columnas: usa el botón ⋮ (arriba a la derecha de la tabla) o clic derecho en el encabezado para mostrar u ocultar columnas. Con 'Restaurar columnas' vuelven a como venían." wrapText="true" maxWidth="310"/></tooltip>
         </Label>
@@ -273,7 +261,7 @@
             <TableColumn fx:id="colArea"      text="Área / Dirección" prefWidth="190" maxWidth="260" sortable="true" minWidth="150"/>
             <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="170" maxWidth="240" sortable="true" minWidth="130"/>
             <TableColumn fx:id="colStock"     text="Cantidad"           prefWidth="90"  sortable="true" minWidth="90"/>
-            <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="115" minWidth="100" sortable="true"/>
+            <TableColumn fx:id="colValor"     text="Valor unit."     prefWidth="115" minWidth="100" sortable="true"/>
             <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="126" sortable="true" minWidth="126"/>
         </columns>
         <placeholder>
@@ -331,7 +319,7 @@
     </HBox>
 
     <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
+    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 resultados" styleClass="muted"/>
         <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
         <Label fx:id="lblSeleccionados" text="" styleClass="status-bar-selection" visible="false" managed="false"/>

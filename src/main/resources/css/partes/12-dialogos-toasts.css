@@ -25,15 +25,15 @@
     -fx-text-fill: sibim-slate-600;
 }
 .confirm-ok-btn {
-    -fx-background-color: sibim-indigo;
+    -fx-background-color: sibim-marca;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-padding: 8 22;
 }
-.confirm-ok-btn:hover   { -fx-background-color: sibim-indigo-dark; }
-.confirm-ok-btn:pressed { -fx-background-color: sibim-indigo-darker; -fx-translate-y: 1; }
+.confirm-ok-btn:hover   { -fx-background-color: sibim-marca-dark; }
+.confirm-ok-btn:pressed { -fx-background-color: sibim-marca-darker; -fx-translate-y: 1; }
 .confirm-ok-btn-danger          { -fx-background-color: #EF4444; }
 .confirm-ok-btn-danger:hover    { -fx-background-color: sibim-red; }
 .confirm-ok-btn-danger:pressed  { -fx-background-color: #B91C1C; -fx-translate-y: 1; }
@@ -132,36 +132,36 @@
    DIALOG OK BUTTON — base style; color variants applied via CSS class
    ═══════════════════════════════════════════════════════════════════ */
 .dialog-ok-btn {
-    -fx-background-color: sibim-indigo;
+    -fx-background-color: sibim-marca;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
     -fx-cursor: hand;
     -fx-padding: 8 22;
 }
-.dialog-ok-btn:hover        { -fx-background-color: sibim-indigo-dark; }
-.dialog-ok-btn:pressed      { -fx-background-color: sibim-indigo-darker; -fx-translate-y: 1; }
+.dialog-ok-btn:hover        { -fx-background-color: sibim-marca-dark; }
+.dialog-ok-btn:pressed      { -fx-background-color: sibim-marca-darker; -fx-translate-y: 1; }
 .dialog-ok-btn:disabled     { -fx-background-color: #DDE3EF; -fx-text-fill: #64748B; -fx-font-weight: bold; -fx-padding: 8 22; -fx-opacity: 1; -fx-cursor: default; }
 .dialog-ok-btn-danger       { -fx-background-color: #EF4444; }
 .dialog-ok-btn-danger:hover { -fx-background-color: sibim-red; }
 
 /* Prominent in-form submit button — always visible, fires the hidden OK */
 .form-submit-btn {
-    -fx-background-color: sibim-indigo;
+    -fx-background-color: sibim-marca;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 13px;
     -fx-background-radius: 10;
     -fx-cursor: hand;
     -fx-padding: 8 20;   /* same height as the Cancelar button next to it */
-    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.25), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.11), 6, 0, 0, 2);
 }
 .form-submit-btn:hover {
-    -fx-background-color: sibim-indigo-dark;
-    -fx-effect: dropshadow(gaussian, rgba(137,29,38,0.55), 14, 0, 0, 5);
+    -fx-background-color: sibim-marca-dark;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 14, 0, 0, 5);
 }
 .form-submit-btn:pressed {
-    -fx-background-color: sibim-indigo-darker;
+    -fx-background-color: sibim-marca-darker;
     -fx-effect: none;
     -fx-translate-y: 1;
 }

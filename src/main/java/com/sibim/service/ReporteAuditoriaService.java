@@ -112,7 +112,7 @@ public class ReporteAuditoriaService extends ReporteService {
             .filter(r -> com.sibim.model.Resguardo.ESTADO_ACTIVO.equals(r.getEstado()))
             .toList();
 
-        com.itextpdf.kernel.colors.DeviceRgb colorPurple  = new com.itextpdf.kernel.colors.DeviceRgb(162, 35, 45);
+        com.itextpdf.kernel.colors.DeviceRgb colorPurple  = ColoresDocumento.MARCA;
         com.itextpdf.kernel.colors.DeviceRgb colorMuted   = new com.itextpdf.kernel.colors.DeviceRgb(100, 116, 139);
         com.itextpdf.kernel.colors.DeviceRgb colorAmber   = new com.itextpdf.kernel.colors.DeviceRgb(146, 64, 14);
         com.itextpdf.kernel.colors.DeviceRgb colorSubhead = new com.itextpdf.kernel.colors.DeviceRgb(241, 245, 249);

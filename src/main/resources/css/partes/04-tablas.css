@@ -16,13 +16,16 @@
     -fx-padding: 11 14;
     -fx-cursor: col-resize;
 }
+/* The header's own padding already spaces the title; the theme's extra label
+   padding cut short titles like "Foto" or "Cantidad" to "F…". */
 .data-table .column-header .label {
     -fx-font-weight: bold;
-    -fx-text-fill: sibim-indigo-200;
+    -fx-text-fill: sibim-marca-200;
     -fx-font-size: 12px;
+    -fx-padding: 0;
 }
 .data-table .column-header-background {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6F1820, #4A1016);
+    -fx-background-color: sibim-marca-darker;
     -fx-background-radius: 12 12 0 0;
 }
 .data-table .column-header:hover {
@@ -59,10 +62,10 @@
 }
 .data-table .table-row-cell:selected {
     -fx-background-color: #F6DADD;
-    -fx-border-color: sibim-indigo transparent transparent transparent;
+    -fx-border-color: sibim-marca transparent transparent transparent;
     -fx-border-width: 0 0 0 3;
 }
-.data-table .table-row-cell:selected .text { -fx-fill: sibim-indigo-900; }
+.data-table .table-row-cell:selected .text { -fx-fill: sibim-marca-900; }
 .data-table .table-cell {
     -fx-padding: 0 14;
     -fx-text-fill: sibim-gray-700;
@@ -85,8 +88,8 @@
 .data-table .column-header:hover .arrow { -fx-background-color: white; }
 .data-table .column-header:pressed { -fx-background-color: rgba(255,255,255,0.14); }
 .card > .data-table {
-    -fx-border-radius: 0 0 20 20;
-    -fx-background-radius: 0 0 20 20;
+    -fx-border-radius: 0 0 12 12;
+    -fx-background-radius: 0 0 12 12;
     -fx-border-color: transparent;
     -fx-effect: none;
 }
@@ -103,10 +106,10 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.04), 4, 0, 0, 1);
 }
 .text-field:hover {
-    -fx-border-color: sibim-indigo-300;
+    -fx-border-color: sibim-marca-300;
 }
 .text-field:focused {
-    -fx-border-color: sibim-indigo;
+    -fx-border-color: sibim-marca;
     -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
 }
 .combo-box {
@@ -118,8 +121,8 @@
     -fx-padding: 1 4;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.04), 4, 0, 0, 1);
 }
-.combo-box:hover { -fx-border-color: sibim-indigo-300; }
-.combo-box:focused { -fx-border-color: sibim-indigo; }
+.combo-box:hover { -fx-border-color: sibim-marca-300; }
+.combo-box:focused { -fx-border-color: sibim-marca; }
 .combo-box .text-field {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
@@ -127,8 +130,8 @@
 }
 .combo-box .list-cell { -fx-text-fill: sibim-gray-700; -fx-padding: 4 10; }
 .combo-box-popup .list-view { -fx-background-color: white; -fx-border-color: sibim-slate-200; -fx-border-radius: 8; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.14), 14, 0, 0, 5); }
-.combo-box-popup .list-view .list-cell:filled:hover { -fx-background-color: sibim-indigo-50; -fx-text-fill: sibim-indigo-darker; }
-.combo-box-popup .list-view .list-cell:filled:selected { -fx-background-color: sibim-indigo; -fx-text-fill: white; }
+.combo-box-popup .list-view .list-cell:filled:hover { -fx-background-color: sibim-marca-50; -fx-text-fill: sibim-marca-darker; }
+.combo-box-popup .list-view .list-cell:filled:selected { -fx-background-color: sibim-marca; -fx-text-fill: white; }
 .date-picker {
     -fx-background-color: white;
     -fx-border-color: #D1D9E6;
@@ -143,17 +146,17 @@
     -fx-padding: 5 8;
     -fx-effect: none;
 }
-.date-picker:hover { -fx-border-color: sibim-indigo-300; }
+.date-picker:hover { -fx-border-color: sibim-marca-300; }
 /* One border, the picker's: the text field inside drew a second one on focus. */
-.date-picker:focused, .date-picker:focus-within { -fx-border-color: sibim-indigo; }
+.date-picker:focused, .date-picker:focus-within { -fx-border-color: sibim-marca; }
 .date-picker .text-field:focused { -fx-border-color: transparent; -fx-background-color: transparent; }
 .date-picker > .arrow-button {
     -fx-background-color: transparent;
     -fx-background-radius: 0 10 10 0;
     -fx-cursor: hand;
 }
-.date-picker > .arrow-button:hover { -fx-background-color: sibim-indigo-50; }
-.date-picker > .arrow-button > .arrow { -fx-background-color: sibim-indigo; }
+.date-picker > .arrow-button:hover { -fx-background-color: sibim-marca-50; }
+.date-picker > .arrow-button > .arrow { -fx-background-color: sibim-marca; }
 
 /* Spinner */
 .spinner { -fx-border-color: #D1D9E6; -fx-border-radius: 10; -fx-background-radius: 10; }

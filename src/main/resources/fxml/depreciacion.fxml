@@ -13,12 +13,12 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2c-chart-line" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
             <HBox spacing="6" alignment="CENTER_LEFT">
-                <Label text="Depreciación de Activos" styleClass="page-title"/>
+                <Label text="Depreciación de activos" styleClass="page-title"/>
                 <Label fx:id="helpConcepto" text="?" styleClass="help-badge">
                     <tooltip>
                         <Tooltip text="¿Cómo funciona? Cada bien pierde valor de forma pareja cada año (depreciación lineal, método de línea recta - SAT México): se resta el mismo monto anual desde su fecha de adquisición hasta llegar a su valor residual al cumplir la vida útil que le asignaste al capturarlo. Sirve para saber cuánto vale hoy cada bien en libros y para planear cuándo conviene darlo de baja o reemplazarlo — revisa la columna &quot;Depreciado el&quot; de la tabla para ver esa fecha por bien."/>
@@ -66,9 +66,6 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
     </HBox>
 
     <VBox fx:id="resumenBox" spacing="20">
@@ -78,11 +75,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="VALOR TOTAL DE COMPRA" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpValorCompra" text="?" styleClass="help-badge">
+                <Label text="Valor total de compra" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Suma del precio de compra original de todos los bienes con datos de depreciación completos (fecha de adquisición, vida útil y valor residual capturados)."/></tooltip>
                 </Label>
             </HBox>
@@ -94,11 +90,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-cash-check" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="VALOR ACTUAL EN LIBROS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpValorActual" text="?" styleClass="help-badge">
+                <Label text="Valor actual en libros" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Valor de los mismos bienes hoy, después de aplicar la depreciación lineal (línea recta, SAT México) desde su fecha de adquisición."/></tooltip>
                 </Label>
             </HBox>
@@ -110,11 +105,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-chart-donut" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="PROMEDIO DEPRECIADO (%)" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpPct" text="?" styleClass="help-badge">
+                <Label text="Promedio depreciado (%)" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Promedio del % depreciado sobre los bienes con datos de depreciación completos."/></tooltip>
                 </Label>
             </HBox>
@@ -127,11 +121,10 @@
               accessibleRole="BUTTON" accessibleText="Totalmente depreciados — filtrar la tabla solo a estos bienes">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-red">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTALMENTE DEPRECIADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="helpTotalmente" text="?" styleClass="help-badge">
+                <Label text="Totalmente depreciados" styleClass="rich-stat-label, con-ayuda" HBox.hgrow="ALWAYS">
                     <tooltip><Tooltip text="Bienes que ya llegaron a su valor residual (100% depreciado) según su vida útil capturada — candidatos a revisar para baja o reemplazo. Haz clic en la tarjeta para filtrar la tabla."/></tooltip>
                 </Label>
             </HBox>
@@ -146,7 +139,7 @@
         <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="8">
             <FontIcon iconLiteral="mdi2c-chart-bar" styleClass="card-icon-indigo"/>
-            <Label text="Distribución por Rango de Depreciación" styleClass="card-title"/>
+            <Label text="Distribución por rango de depreciación" styleClass="card-title"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblRangoTotal" text="" styleClass="muted"/>
         </HBox>
@@ -158,7 +151,7 @@
         <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="8">
             <FontIcon iconLiteral="mdi2c-chart-line" styleClass="card-icon-indigo"/>
-            <Label text="Proyección del Valor del Activo Fijo" styleClass="card-title"/>
+            <Label text="Proyección del valor del activo fijo" styleClass="card-title"/>
         </HBox>
         <LineChart fx:id="chartTendencia" prefHeight="240" animated="false">
             <xAxis><CategoryAxis label="Año"/></xAxis>
@@ -168,8 +161,7 @@
 
     <!-- ══ SECCIÓN TABLA ════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Region styleClass="dash-section-bar"/>
-        <Label text="DETALLE POR BIEN" styleClass="dash-section-label"/>
+        <Label text="Detalle por bien" styleClass="dash-section-label"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label fx:id="lblTotalFiltrado" text="—" styleClass="muted"/>
     </HBox>

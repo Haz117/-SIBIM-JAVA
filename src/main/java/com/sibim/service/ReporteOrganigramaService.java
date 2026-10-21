@@ -47,7 +47,7 @@ public class ReporteOrganigramaService extends ReporteService {
             PdfFont regular = PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
             PdfFont bold    = PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD);
 
-            DeviceRgb indigo  = new DeviceRgb(162, 35, 45);
+            DeviceRgb indigo  = ColoresDocumento.MARCA;
             DeviceRgb dark    = new DeviceRgb(17,  24,  39);
             DeviceRgb muted   = new DeviceRgb(107, 114, 128);
             DeviceRgb bgLight = new DeviceRgb(252, 240, 241);

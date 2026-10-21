@@ -11,11 +11,11 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
+        <StackPane styleClass="page-header-icon">
             <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Resguardos de Bienes" styleClass="page-title"/>
+            <Label text="Resguardos de bienes" styleClass="page-title"/>
             <Label text="Documentos oficiales de custodia patrimonial por servidor público" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="22" prefHeight="22" visible="false" managed="false"/>
@@ -29,15 +29,12 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
-        </Label>
         <Button fx:id="btnSolicitudes" text="Solicitudes" onAction="#onSolicitudes" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2t-timer-sand" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Solicitudes de préstamo y resguardo de las áreas" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
-        <Button fx:id="btnNuevo" text="Nuevo Resguardo" onAction="#onNuevoResguardo" styleClass="btn-primary"
+        <Button fx:id="btnNuevo" text="Nuevo resguardo" onAction="#onNuevoResguardo" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Registrar un nuevo resguardo"/></tooltip>
@@ -51,10 +48,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="TOTAL RESGUARDOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="Total de resguardos" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
             <Label text="documentos registrados" styleClass="rich-stat-hint"/>
@@ -63,10 +60,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-check-circle-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="ACTIVOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="Activos" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatActivos" text="—" styleClass="rich-stat-value"/>
             <Label text="resguardos vigentes" styleClass="rich-stat-hint"/>
@@ -75,10 +72,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2c-cancel" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="CANCELADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="Cancelados" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatCancelados" text="—" styleClass="rich-stat-value"/>
             <Label text="resguardos dados de baja" styleClass="rich-stat-hint"/>
@@ -87,10 +84,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
+                <StackPane styleClass="rich-stat-icon-badge">
                     <FontIcon iconLiteral="mdi2p-package-variant-closed" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="BIENES RESGUARDADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="Bienes resguardados" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatBienes" text="—" styleClass="rich-stat-value"/>
             <Label text="ítems bajo custodia activa" styleClass="rich-stat-hint"/>

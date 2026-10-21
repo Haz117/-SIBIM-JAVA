@@ -1,7 +1,6 @@
 package com.sibim.controller;
 
 import com.sibim.model.AuditLog;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -21,7 +20,7 @@ class AuditoriaDialog {
         dialog.getDialogPane().setPrefWidth(600);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2h-history", "Historial de Auditoría",
+        HBox header = DialogUtil.gradientHeader("mdi2h-history", "Historial de auditoría",
             "Cambios en bienes, categorías y usuarios — últimos " + entries.size() + " registros",
             AppColors.SLATE, AppColors.SLATE_D);
 
@@ -57,7 +56,6 @@ class AuditoriaDialog {
         scroll.setPrefHeight(400);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
-        AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }
