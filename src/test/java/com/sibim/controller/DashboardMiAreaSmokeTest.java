@@ -48,6 +48,20 @@ class DashboardMiAreaSmokeTest extends ControllerSmokeTestBase {
         }
     }
 
+    /** A dirección doesn't see amounts: no "Valor patrimonial" card showing
+     *  "—"; the other three figures share the row instead of leaving a gap. */
+    @Test
+    void unaDireccion_noVeLaTarjetaDeValor_yLasOtrasTresLlenanLaFila() {
+        javafx.scene.layout.GridPane cifras = lookup("#statsGrid").query();
+        assertTrue(lookup("#cardValorTotal").tryQuery().isEmpty());
+        assertEquals(3, cifras.getChildren().size());
+        assertEquals(3, cifras.getColumnConstraints().size());
+        for (Node tarjeta : cifras.getChildren()) {
+            Integer columna = javafx.scene.layout.GridPane.getColumnIndex(tarjeta);
+            assertTrue(columna != null && columna < 3, "sin hueco donde estaba la tarjeta de valor");
+        }
+    }
+
     @Test
     void losPendientes_sonLoQueFaltaDeVerdad() {
         com.sibim.model.Producto completo = new com.sibim.model.Producto();
