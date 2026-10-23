@@ -51,7 +51,8 @@ public final class AccesosEquipoDialog {
             "Equipos por cuenta",
             sinEntrar == 0
                 ? "Todas las cuentas activas ya entraron en alguna computadora"
-                : sinEntrar + " cuenta(s) aún no entran en ninguna computadora: sin internet no podrán entrar",
+                : (sinEntrar == 1 ? "1 cuenta aún no entra en ninguna computadora: sin internet no podrá entrar"
+                   : sinEntrar + " cuentas aún no entran en ninguna computadora: sin internet no podrán entrar"),
             AppColors.PRIMARY_D, AppColors.INDIGO);
 
         Label nota = new Label("Una cuenta puede entrar sin internet solo en las computadoras donde ya entró con "

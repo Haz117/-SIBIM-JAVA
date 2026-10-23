@@ -109,7 +109,7 @@ public final class MigrationRunner {
      *  this PC isn't allowed to apply them ({@value #MIGRATE_KEY}=false). */
     public static final class MigracionesPendientesException extends RuntimeException {
         MigracionesPendientesException(int pendientes) {
-            super("La base de datos tiene " + pendientes + " migración(es) pendiente(s) para esta versión de SIBIM "
+            super("La base de datos tiene " + (pendientes == 1 ? "1 migración pendiente" : pendientes + " migraciones pendientes") + " para esta versión de SIBIM "
                 + "y esta PC no puede aplicarlas (" + MIGRATE_KEY + "=false). Ejecuta esta versión una vez desde "
                 + "la PC de administración, con el usuario dueño de la base y sin " + MIGRATE_KEY + "=false.");
         }

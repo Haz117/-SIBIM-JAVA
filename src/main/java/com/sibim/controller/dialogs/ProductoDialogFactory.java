@@ -287,9 +287,14 @@ public final class ProductoDialogFactory {
             btnNextNav.setDisable(onLast && btnGuardar.isDisable());
         });
 
+        // "Cancelar" sits next to "Siguiente": the dialog's own button bar below
+        // held only Cancelar and read as a second footer (hidden further down).
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.getStyleClass().add("btn-secondary");
+
         Region navSpacer = new Region();
         HBox.setHgrow(navSpacer, Priority.ALWAYS);
-        HBox navBar = new HBox(10, btnPrev, navSpacer, btnNextNav);
+        HBox navBar = new HBox(10, btnPrev, navSpacer, btnCancelar, btnNextNav);
         navBar.getStyleClass().add("stepper-nav-bar");
 
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
@@ -312,6 +317,18 @@ public final class ProductoDialogFactory {
                         "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?"))
                     e.consume();
             });
+            // The visible Cancelar goes through the dialog's own (same confirmation, same result).
+            btnCancelar.setOnAction(e -> ((Button) cancelBtn).fire());
+        } else {
+            btnCancelar.setOnAction(e -> dialog.close());
+        }
+        // DialogPane keeps room for its button bar even when it's hidden: no height at all.
+        if (dialog.getDialogPane().lookup(".button-bar") instanceof Region buttonBar) {
+            buttonBar.setVisible(false);
+            buttonBar.setMinHeight(0);
+            buttonBar.setPrefHeight(0);
+            buttonBar.setMaxHeight(0);
+            buttonBar.setPadding(Insets.EMPTY);
         }
         dialog.setOnCloseRequest(e -> {
             if (!savingNow[0] && dirty[0] && !ConfirmacionUtil.confirmar("Descartar cambios",

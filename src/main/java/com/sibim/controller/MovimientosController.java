@@ -249,7 +249,7 @@ public class MovimientosController {
                 if (btnDelete            != null) btnDelete.setDisable(!hasSelection);
                 if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(!hasSelection);
                 if (lblSeleccionados     != null) {
-                    lblSeleccionados.setText(hasSelection ? n + " seleccionado(s)" : "");
+                    lblSeleccionados.setText(hasSelection ? FormatUtils.plural(n, "seleccionado", "seleccionados") : "");
                     lblSeleccionados.setVisible(hasSelection);
                     lblSeleccionados.setManaged(hasSelection);
                 }

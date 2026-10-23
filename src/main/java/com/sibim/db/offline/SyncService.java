@@ -40,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.sibim.util.FormatUtils;
 
 /**
  * Watches for the real Postgres connection coming back while the app is in
@@ -273,7 +274,7 @@ public final class SyncService {
                 MainController mc = MainController.getInstance();
                 var scene = mc != null ? mc.getContentAreaScene() : null;
                 if (scene != null) NotificacionUtil.info(scene,
-                    "Conexión restablecida — sincronizando " + pendingBefore + " cambio(s) pendiente(s)...");
+                    "Conexión restablecida — sincronizando " + FormatUtils.plural(pendingBefore, "cambio pendiente", "cambios pendientes") + "...");
             });
         }
 
@@ -345,7 +346,7 @@ public final class SyncService {
             MainController mc = MainController.getInstance();
             var scene = mc != null ? mc.getContentAreaScene() : null;
             if (synced > 0) {
-                String msg = "Se sincronizaron " + synced + " cambio(s) con el servidor.";
+                String msg = (synced == 1 ? "Se sincronizó 1 cambio" : "Se sincronizaron " + synced + " cambios") + " con el servidor.";
                 if (scene != null) NotificacionUtil.exito(scene, msg);
             }
             // The poll keeps running while the dialog waits for an answer:
@@ -356,7 +357,8 @@ public final class SyncService {
             }
             if (failed > 0 && scene != null) {
                 NotificacionUtil.importante("Cambios sin sincronizar",
-                    failed + " cambio(s) hechos sin conexión no se pudieron subir al servidor y requieren "
+                    (failed == 1 ? "1 cambio hecho sin conexión no se pudo subir al servidor y requiere "
+                               : failed + " cambios hechos sin conexión no se pudieron subir al servidor y requieren ")
                     + "revisión manual. Avisa al administrador del sistema (Configuración › Errores offline).");
             }
             if (stillPending == 0 && conflicts.isEmpty() && mc != null) {
@@ -1061,7 +1063,7 @@ public final class SyncService {
             log.error("SyncService: {} {} descartado tras {} intento(s) fallidos: {}",
                 entidad, entidadId, attempts, ex.getMessage());
             writeAuditEntry(entidad, entidadId, entidadNombre, "sync_descartado",
-                "Se agotaron " + attempts + " intento(s) de sincronización — requiere revisión manual: "
+                "Se agotaron " + FormatUtils.plural(attempts, "intento", "intentos") + " de sincronización — requiere revisión manual: "
                     + ex.getMessage());
             return STATUS_DISCARDED;
         }

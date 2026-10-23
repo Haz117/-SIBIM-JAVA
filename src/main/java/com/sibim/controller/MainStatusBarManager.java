@@ -15,6 +15,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import com.sibim.util.FormatUtils;
 
 class MainStatusBarManager {
 
@@ -69,7 +70,7 @@ class MainStatusBarManager {
 
         if (statusDbLabel != null) {
             String text = offline
-                ? (pending > 0 ? "Sin conexión · " + pending + " pendiente(s)" : "Sin conexión")
+                ? (pending > 0 ? "Sin conexión · " + FormatUtils.plural(pending, "pendiente", "pendientes") : "Sin conexión")
                 : demo ? "Modo demo" : "Conectado";
             statusDbLabel.setText(text);
 
@@ -86,7 +87,7 @@ class MainStatusBarManager {
             if (statusDbTooltip != null) {
                 String tip = offline
                     ? (pending > 0
-                        ? "Sin conexión a la base de datos.\n" + pending + " operación(es) pendiente(s) de sincronizar\ncuando se recupere la conexión."
+                        ? "Sin conexión a la base de datos.\n" + FormatUtils.plural(pending, "operación pendiente", "operaciones pendientes") + " de sincronizar\ncuando se recupere la conexión."
                         : "Sin conexión a la base de datos.\nTus cambios se guardan localmente\ny se sincronizarán cuando vuelva la conexión.")
                     : demo
                     ? "Modo demostración activo.\nLos datos mostrados no son reales\ny no se almacenan en ninguna base de datos."
@@ -102,7 +103,7 @@ class MainStatusBarManager {
             if (show && offlineBannerLabel != null) {
                 offlineBannerLabel.setText(offline
                     ? (pending > 0
-                        ? "Sin conexión — " + pending + " cambio(s) guardados localmente, se sincronizarán al reconectar"
+                        ? "Sin conexión — " + FormatUtils.plural(pending, "cambio guardado", "cambios guardados") + " localmente, se sincronizarán al reconectar"
                         : "Sin conexión — trabajando en modo offline")
                     : "Modo demostración — los datos no se guardan");
             }

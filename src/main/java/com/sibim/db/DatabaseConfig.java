@@ -34,6 +34,12 @@ public final class DatabaseConfig {
      *  for local development without a Postgres instance at all. */
     public static boolean isDemoMode() { return demoMode; }
 
+    /** This PC connects with the áreas' database user (scripts/sql/rol_areas.sql),
+     *  which can't make Patrimonio's changes: altas, movimientos, bajas, usuarios. */
+    public static boolean esConexionDeAreas() {
+        return !demoMode && setting("DB_USER", "").startsWith("sibim_areas");
+    }
+
     public static void setDemoMode(boolean dm) {
         demoMode = dm;
         offlineMode = false;

@@ -247,7 +247,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
         if (conMontos)
             l.add(par("Costo de adquisición", p.getPrecioCompra() != null ? pesos(p.getPrecioCompra()) : null));
         BigDecimal enLibros = p.getValorDepreciado() != null ? p.getValorDepreciado() : p.getValorTotal();
-        l.add(par("Vida útil", p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() + " año(s)" : null));
+        l.add(par("Vida útil", p.getVidaUtilAnios() != null ? FormatUtils.plural(p.getVidaUtilAnios(), "año", "años") : null));
         if (conMontos) {
             l.add(par("Valor en libros", enLibros != null ? pesos(enLibros) : null));
             if (p.getPorcentajeDepreciado() != null && p.getPrecioCompra() != null && p.getValorDepreciado() != null)

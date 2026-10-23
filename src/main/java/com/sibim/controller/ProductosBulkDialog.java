@@ -16,6 +16,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextInputDialog;
 
 import java.util.List;
+import com.sibim.util.FormatUtils;
 
 /**
  * Builds and shows the bulk-action dialogs for the Bienes (Productos) screen.
@@ -76,7 +77,7 @@ final class ProductosBulkDialog {
                     Math.max(1, p.getStockActual()), "Transferencia en lote", null, area)),
                 r -> {
                     onSuccess.run();
-                    if (r.ok() > 0) NotificacionUtil.exito(scene, r.ok() + " bien(es) transferidos a \"" + area + "\"");
+                    if (r.ok() > 0) NotificacionUtil.exito(scene, FormatUtils.plural(r.ok(), "bien transferido", "bienes transferidos") + " a \"" + area + "\"");
                     avisarFallidos(scene, r, "transferir");
                 },
                 e -> NotificacionUtil.errorConAccion(scene,
@@ -112,7 +113,7 @@ final class ProductosBulkDialog {
                 () -> porCadaBien(sel, p -> { p.setResguardante(nombre); service.save(p); }),
                 r -> {
                     onSuccess.run();
-                    if (r.ok() > 0) NotificacionUtil.exito(scene, r.ok() + " bien(es) asignados a \"" + nombre + "\"");
+                    if (r.ok() > 0) NotificacionUtil.exito(scene, FormatUtils.plural(r.ok(), "bien asignado", "bienes asignados") + " a \"" + nombre + "\"");
                     avisarFallidos(scene, r, "actualizar");
                 },
                 e -> NotificacionUtil.errorConAccion(scene,
@@ -143,7 +144,7 @@ final class ProductosBulkDialog {
 
     private static void avisarFallidos(Scene scene, Resultado r, String verbo) {
         if (r.errores().isEmpty()) return;
-        NotificacionUtil.advertencia(scene, "No se pudo " + verbo + " " + r.errores().size() + " bien(es). "
+        NotificacionUtil.advertencia(scene, "No se pudo " + verbo + " " + FormatUtils.plural(r.errores().size(), "bien", "bienes") + ". "
             + r.errores().get(0) + (r.errores().size() > 1 ? " (y otros)" : ""));
     }
 
@@ -201,7 +202,7 @@ final class ProductosBulkDialog {
             () -> { service.marcarEtiquetado(ids, true); return ids.size(); },
             count -> {
                 onSuccess.run();
-                NotificacionUtil.exito(scene, count + " bien(es) marcados como etiquetados");
+                NotificacionUtil.exito(scene, FormatUtils.plural(count, "bien marcado", "bienes marcados") + " como etiquetados");
             },
             e -> NotificacionUtil.errorConAccion(scene,
                     "No se pudo actualizar el etiquetado", "Reintentar", onRetry)

@@ -34,6 +34,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.concurrent.atomic.AtomicReference;
+import com.sibim.util.FormatUtils;
 
 public class ImportacionBienesDialog {
 
@@ -231,10 +232,10 @@ public class ImportacionBienesDialog {
             long validas = rows.stream().filter(r -> "ok".equals(r.status())).count();
             long errores = rows.size() - validas;
             lblArchivo.getStyleClass().remove("field-hint-error");
-            lblArchivo.setText(fileName + "  ·  " + rows.size() + " fila(s) leídas");
+            lblArchivo.setText(fileName + "  ·  " + FormatUtils.plural(rows.size(), "fila leída", "filas leídas"));
             if (validas > 0) {
-                lblResumen.setText("✓  " + validas + " fila(s) listas para importar"
-                    + (errores > 0 ? "  ·  ⚠  " + errores + " con error(es) (se omitirán)" : ""));
+                lblResumen.setText("✓  " + FormatUtils.plural(validas, "fila lista", "filas listas") + " para importar"
+                    + (errores > 0 ? "  ·  ⚠  " + errores + (errores == 1 ? " con error (se omitirá)" : " con error (se omitirán)") : ""));
                 lblResumen.getStyleClass().removeAll("import-summary-warn", "import-summary-ok");
                 lblResumen.getStyleClass().add(errores > 0 ? "import-summary-warn" : "import-summary-ok");
             } else {
@@ -247,7 +248,7 @@ public class ImportacionBienesDialog {
             preview.setVisible(true); preview.setManaged(true);
             AnimationUtils.fadeInUp(preview, 240, 0);
             btnImportar.setDisable(validas == 0);
-            btnImportar.setText("Importar " + validas + " registro(s)");
+            btnImportar.setText("Importar " + FormatUtils.plural(validas, "registro", "registros"));
         };
 
         // ── Drag & drop on drop zone ──────────────────────────────────
@@ -342,7 +343,7 @@ public class ImportacionBienesDialog {
                 .toList();
             if (validas.isEmpty()) return;
 
-            DialogUtil.runAsyncWithProgress(ownerScene, "Importando " + validas.size() + " bien(es)…",
+            DialogUtil.runAsyncWithProgress(ownerScene, "Importando " + FormatUtils.plural(validas.size(), "bien", "bienes") + "…",
                 () -> {
                     int ok = 0; int fail = 0;
                     for (Producto p : validas) {
@@ -356,10 +357,10 @@ public class ImportacionBienesDialog {
                     int ok   = result[0];
                     int fail = result[1];
                     if (fail == 0)
-                        NotificacionUtil.exito(ownerScene, ok + " bien(es) importado(s) correctamente");
+                        NotificacionUtil.exito(ownerScene, FormatUtils.plural(ok, "bien importado", "bienes importados") + " correctamente");
                     else
                         NotificacionUtil.advertencia(ownerScene,
-                            ok + " importado(s), " + fail + " no pudieron guardarse (códigos duplicados u otro error)");
+                            FormatUtils.plural(ok, "importado", "importados") + ", " + fail + " no pudieron guardarse (códigos duplicados u otro error)");
                 },
                 ex -> NotificacionUtil.error(ownerScene, "Error durante la importación")
             );

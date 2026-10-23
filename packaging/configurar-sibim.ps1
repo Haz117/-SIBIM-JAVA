@@ -11,12 +11,18 @@
     y DB_MIGRATE=false. Con -Admin configura la PC de administracion, que usa
     el usuario dueno (postgres) y aplica las migraciones de cada version nueva.
 
+    Con -Archivo configura una PC de Patrimonio con la conexion que dejo
+    preparar-conexion.ps1 -Areas (packaging\conexion-patrimonio.env, llevada
+    en una USB): sin escribir ninguna contrasena. Las PCs de las areas no
+    necesitan este script: el instalador ya trae su conexion.
+
 .EXAMPLE
+    .\configurar-sibim.ps1 -Archivo E:\conexion-patrimonio.env   # PC de Patrimonio
     .\configurar-sibim.ps1              # PC de trabajo (sibim_app), modo interactivo
     .\configurar-sibim.ps1 -Admin       # PC de administracion (postgres)
     .\configurar-sibim.ps1 -Silent      # usa variables de entorno SIBIM_DB_PASS y SIBIM_SUPABASE_ANON_KEY
 #>
-param([switch]$Silent, [switch]$Admin)
+param([switch]$Silent, [switch]$Admin, [string]$Archivo)
 
 $ErrorActionPreference = "Stop"
 
@@ -48,6 +54,21 @@ if (Test-Path $EnvFile) {
     Write-Host "  Ya existe una configuracion en $EnvFile" -ForegroundColor Yellow
     $resp = if ($Silent) { "n" } else { Read-Host "  Sobreescribir? [s/N]" }
     if ($resp -notin @("s","S")) { Write-Host "  Cancelado."; exit 0 }
+}
+
+# -- PC de Patrimonio: la conexion viene en un archivo --------------------------
+if ($Archivo) {
+    if (-not (Test-Path $Archivo)) { throw "No existe $Archivo" }
+    $texto = [IO.File]::ReadAllText((Resolve-Path $Archivo).Path, (New-Object System.Text.UTF8Encoding($false)))
+    if ($texto -notmatch '(?m)^DB_USER=sibim_app\.' -or $texto -notmatch '(?m)^DB_PASSWORD=\S') {
+        throw "$Archivo no es la conexion de Patrimonio (debe tener DB_USER=sibim_app... y su contrasena)."
+    }
+    New-Item -ItemType Directory -Force -Path $SibimDir | Out-Null
+    [System.IO.File]::WriteAllText($EnvFile, $texto, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "  PC de Patrimonio lista: conexion guardada en $EnvFile" -ForegroundColor Green
+    Write-Host "  Cuando termines con todas las PCs de Patrimonio, borra el archivo de la USB." -ForegroundColor DarkGray
+    Write-Host ""
+    exit 0
 }
 
 # ── Pedir contrasena de BD ────────────────────────────────────────────────────

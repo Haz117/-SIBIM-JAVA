@@ -46,7 +46,7 @@ public final class ErroresEquipoDialog {
         HBox header = DialogUtil.gradientHeader("mdi2a-alert-circle-outline",
             "Errores de los equipos",
             errores.isEmpty() ? "Ninguna computadora ha reportado errores"
-                : errores.size() + " reporte(s) — se conservan " + 90 + " días",
+                : FormatUtils.plural(errores.size(), "reporte", "reportes") + " — se conservan " + 90 + " días",
             AppColors.DANGER, AppColors.DANGER_D);
 
         VBox list = new VBox(6);

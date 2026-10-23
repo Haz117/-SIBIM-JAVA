@@ -21,6 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import com.sibim.util.FormatUtils;
 
 /**
  * One generic account per área of the organigrama, shared by everyone in that
@@ -108,7 +109,7 @@ public class CuentasAreaService {
         }
         long nuevas = resultado.stream().filter(Cuenta::nueva).count();
         if (nuevas > 0)
-            audit.log("usuario", null, "Cuentas por área", "crear", nuevas + " cuenta(s) de área creadas");
+            audit.log("usuario", null, "Cuentas por área", "crear", FormatUtils.plural(nuevas, "cuenta de área creada", "cuentas de área creadas"));
         return resultado;
     }
 

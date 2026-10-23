@@ -183,7 +183,7 @@
         </VBox>
 
         <!-- Valor Patrimonial — Teal -->
-        <VBox styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
+        <VBox fx:id="cardValorTotal" styleClass="rich-stat-card, rich-stat-card-clickable" spacing="8"
               onMouseClicked="#onVerReportes"
               GridPane.columnIndex="1" GridPane.rowIndex="0"
               accessibleRole="BUTTON" accessibleText="Valor patrimonial total — ver reportes">

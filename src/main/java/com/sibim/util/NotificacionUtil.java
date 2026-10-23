@@ -344,7 +344,7 @@ public class NotificacionUtil {
         Label titleLbl = new Label("Conteo completado");
         titleLbl.getStyleClass().add("transfer-cel-title");
 
-        Label subtitleLbl = new Label("Sin diferencias en " + totalItems + " bien(es)");
+        Label subtitleLbl = new Label("Sin diferencias en " + FormatUtils.plural(totalItems, "bien", "bienes"));
         subtitleLbl.getStyleClass().add("transfer-cel-product");
         subtitleLbl.setWrapText(true);
 

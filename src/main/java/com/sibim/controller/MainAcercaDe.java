@@ -13,6 +13,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import com.sibim.util.FormatUtils;
 
 class MainAcercaDe {
 
@@ -37,7 +38,7 @@ class MainAcercaDe {
             { "Plataforma",       "Java " + System.getProperty("java.version") + " · JavaFX 21" },
             { "Sistema",          System.getProperty("os.name") + " " + System.getProperty("os.version") },
             { "Modo de datos",    DatabaseConfig.isDemoMode() ? "Demo (sin base de datos)"
-                                 : DatabaseConfig.isOfflineMode() ? "Offline (" + SyncService.pendingCount() + " pendiente(s) de sincronizar)"
+                                 : DatabaseConfig.isOfflineMode() ? "Offline (" + FormatUtils.plural(SyncService.pendingCount(), "pendiente", "pendientes") + " de sincronizar)"
                                  : "PostgreSQL (conectado)" },
             { "Desarrollado por", "H. Ayuntamiento Municipal" },
             { "Año",              "2026" },

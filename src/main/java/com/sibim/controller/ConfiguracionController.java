@@ -138,7 +138,7 @@ public class ConfiguracionController {
             boolean offline = DatabaseConfig.isOfflineMode();
             String texto, dotClass;
             if (offline) {
-                texto = "Modo offline · " + SyncService.pendingCount() + " pendiente(s)";
+                texto = "Modo offline · " + FormatUtils.plural(SyncService.pendingCount(), "pendiente", "pendientes");
                 dotClass = "dot-amber";
             } else if (demo) {
                 texto = "Modo demostración";
@@ -627,7 +627,7 @@ public class ConfiguracionController {
                 // the passwords are stored only as hashes: it is their one copy.
                 // Read before the PDF's window, where "Guardar como…" is.
                 if (r.getKey() == 0) NotificacionUtil.exito(scene, "Todas las áreas ya tenían cuenta");
-                else NotificacionUtil.importanteYEspera("Guarda el PDF de contraseñas", r.getKey() + " cuenta(s) creadas.\n\n"
+                else NotificacionUtil.importanteYEspera("Guarda el PDF de contraseñas", FormatUtils.plural(r.getKey(), "cuenta creada", "cuentas creadas") + ".\n\n"
                     + "En la siguiente ventana usa «Guardar como…» y guárdalo en un lugar seguro: es un archivo "
                     + "temporal que se borra al cerrar SIBIM, y las contraseñas no se pueden volver a ver "
                     + "(solo restablecer una por una).");

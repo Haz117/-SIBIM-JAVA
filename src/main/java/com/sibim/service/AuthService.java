@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.Optional;
+import com.sibim.util.FormatUtils;
 
 public class AuthService {
 
@@ -63,7 +64,7 @@ public class AuthService {
             if (windowStart > 0 && ahora - windowStart < VENTANA_MS && intentos >= MAX_INTENTOS) {
                 long mins = Math.max(1, (VENTANA_MS - (ahora - windowStart)) / 60_000 + 1);
                 throw new AuthException(
-                    "Demasiados intentos fallidos. Espera " + mins + " minuto(s) antes de volver a intentar.");
+                    "Demasiados intentos fallidos. Espera " + FormatUtils.plural(mins, "minuto", "minutos") + " antes de volver a intentar.");
             } else if (windowStart > 0 && ahora - windowStart > VENTANA_MS) {
                 AuthAttemptStore.clear(key); // ventana expirada — reiniciar
             }
@@ -78,7 +79,7 @@ public class AuthService {
                 if (compartido) {
                     long minsCompartido = minutosBloqueoCompartido(key);
                     if (minsCompartido > 0) throw new AuthException(
-                        "Demasiados intentos fallidos. Espera " + minsCompartido + " minuto(s) antes de volver a intentar.");
+                        "Demasiados intentos fallidos. Espera " + FormatUtils.plural(minsCompartido, "minuto", "minutos") + " antes de volver a intentar.");
                 }
                 opt = usuarioRepo.findByUsername(key);
             } catch (SQLException | com.zaxxer.hikari.pool.HikariPool.PoolInitializationException e) {

@@ -65,7 +65,11 @@ INV.DIG MLA/
 
 # ── WiX portable para jpackage (se descarga, no se versiona) ──────
 tools/wix314/
+# pg_dump / pg_restore portable (scripts/instalar_pg_dump.ps1)
+tools/pgsql/
 
 # ── Configuración que el instalador lleva dentro (contraseña de sibim_app) ──
 packaging/sibim.env
+# The sibim_app connection kept for Patrimonio's PCs (preparar-conexion.ps1 -Areas)
+packaging/conexion-patrimonio.env
 packaging/crear-rol-sibim_app.sql

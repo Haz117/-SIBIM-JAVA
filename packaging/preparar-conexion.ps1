@@ -20,17 +20,26 @@
     usuario y la contrasena de la cuenta del area. Una PC que ya tenga su
     propio %APPDATA%\SIBIM\.env sigue usando ese (como la de administracion).
 
+    Con -Areas hace lo mismo con sibim_areas (scripts\sql\rol_areas.sql), el
+    usuario que solo puede lo que hace un area: el instalador, que reciben
+    todas las PCs, lleva esa conexion. Antes guarda la de sibim_app en
+    packaging\conexion-patrimonio.env, para las PCs de Patrimonio
+    (configurar-sibim.ps1 -Archivo).
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File packaging\preparar-conexion.ps1
+    powershell -ExecutionPolicy Bypass -File packaging\preparar-conexion.ps1 -Areas
 #>
+param([switch]$Areas)
 $ErrorActionPreference = "Stop"
 
 $Root      = Split-Path -Parent $PSScriptRoot
 $EnvFile   = "$PSScriptRoot\sibim.env"
-$SqlFile   = "$Root\scripts\sql\rol_app_minimo.sql"
+$Rol       = if ($Areas) { "sibim_areas" } else { "sibim_app" }
+$SqlFile   = if ($Areas) { "$Root\scripts\sql\rol_areas.sql" } else { "$Root\scripts\sql\rol_app_minimo.sql" }
+$Patrimonio = "$PSScriptRoot\conexion-patrimonio.env"
 $Proyecto  = "zjrzrcfpvkkefsscvzyh"
 $DbUrl     = "jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:5432/postgres"
-$DbUser    = "sibim_app.$Proyecto"
+$DbUser    = "$Rol.$Proyecto"
 $SqlEditor = "https://supabase.com/dashboard/project/$Proyecto/sql/new"
 $Utf8      = New-Object System.Text.UTF8Encoding($false)
 
@@ -47,11 +56,21 @@ Write-Host "  SIBIM - conexion para el instalador" -ForegroundColor Cyan
 Write-Host "  ===================================" -ForegroundColor Cyan
 Write-Host ""
 
-# -- 1. Contrasena de sibim_app ------------------------------------------------
+# -- 1. Contrasena del rol ----------------------------------------------------
 $anterior = if (Test-Path $EnvFile) { Leer-Env $EnvFile } else { @{} }
+if ($anterior["DB_USER"] -and $anterior["DB_USER"] -ne $DbUser) {
+    # The installer is changing role. The sibim_app connection it carried is
+    # what Patrimonio's PCs keep using: saved once, never overwritten.
+    if ($anterior["DB_USER"].StartsWith("sibim_app") -and -not (Test-Path $Patrimonio)) {
+        Copy-Item $EnvFile $Patrimonio
+        Write-Host "  La conexion de Patrimonio (sibim_app) quedo en packaging\conexion-patrimonio.env." -ForegroundColor Green
+        Write-Host "  Llevala en una USB a cada PC de Patrimonio: configurar-sibim.ps1 -Archivo <ruta>" -ForegroundColor DarkGray
+    }
+    $anterior.Remove("DB_PASSWORD")
+}
 $Clave = $anterior["DB_PASSWORD"]
 if ($Clave) {
-    Write-Host "  packaging\sibim.env ya tiene una contrasena para sibim_app."
+    Write-Host "  packaging\sibim.env ya tiene una contrasena para $Rol."
     $nueva = Read-Host "  Generar una NUEVA? Las PCs instaladas con la anterior dejarian de conectarse [s/N]"
     if ($nueva -in @("s", "S")) { $Clave = $null }
 }
@@ -111,7 +130,7 @@ $lineaAnon = if ($Anon) { "SUPABASE_ANON_KEY=$Anon" } else { "# SUPABASE_ANON_KE
 $contenido = @"
 # SIBIM Desktop - conexion que lleva el instalador (packaging\build-installer.ps1).
 # Generado por packaging\preparar-conexion.ps1. Rol de minimo privilegio
-# sibim_app (scripts\sql\rol_app_minimo.sql). NO subir a git ni compartir.
+# $Rol ($([IO.Path]::GetFileName($SqlFile))). NO subir a git ni compartir.
 DB_URL=$DbUrl
 DB_USER=$DbUser
 DB_PASSWORD=$Clave
@@ -133,7 +152,7 @@ if (-not $sql.Contains($marca)) { throw "No encontre la linea de la contrasena e
 $sqlListo = $sql.Replace($marca, "clave TEXT := '$Clave';")
 Set-Clipboard -Value $sqlListo
 Write-Host ""
-Write-Host "  El SQL del rol sibim_app ya esta en el portapapeles." -ForegroundColor Yellow
+Write-Host "  El SQL del rol $Rol ya esta en el portapapeles." -ForegroundColor Yellow
 Write-Host "  Se abre el SQL Editor de Supabase: pega (Ctrl+V) y da clic en Run."
 Write-Host "  Debe terminar con 'Success. No rows returned'."
 Write-Host "  No copies nada ni tomes capturas de pantalla antes de pegar: reemplazan el portapapeles." -ForegroundColor DarkGray
@@ -144,7 +163,7 @@ while ((Read-Host "  Cuando lo hayas ejecutado, presiona Enter (C + Enter = copi
 }
 Set-Clipboard -Value " "   # que la contrasena no se quede en el portapapeles
 
-# -- 3. Comprobar la conexion como sibim_app -----------------------------------
+# -- 3. Comprobar la conexion con el rol ---------------------------------------
 [xml]$pom = Get-Content "$Root\pom.xml" -Encoding UTF8
 $Jar = "$Root\target\sibim-desktop-$($pom.project.version).jar"
 $JShell = @("$env:JAVA_HOME\bin\jshell.exe", "C:\Program Files\Microsoft\jdk-21.0.11.10-hotspot\bin\jshell.exe") |
@@ -157,7 +176,7 @@ if (-not (Test-Path $Jar) -or -not $JShell) {
     Write-Host "  [AVISO] No pude comprobar la conexion (falta $Jar o jshell). Corre 'mvn package' y repite." -ForegroundColor Yellow
 } else {
     Write-Host ""
-    Write-Host "  Comprobando la conexion como sibim_app..."
+    Write-Host "  Comprobando la conexion como $Rol..."
     $prueba = Join-Path $env:TEMP "sibim-prueba-conexion.jsh"
     @'
 var p = new java.util.Properties();
@@ -191,7 +210,8 @@ try (var c = java.sql.DriverManager.getConnection(System.getenv("SIBIM_PRUEBA_UR
         Remove-Item $prueba -ErrorAction SilentlyContinue
     }
     Write-Host ""
-    Write-Host "  Esperado: entra como sibim_app, puede registrar bienes = t, borrar tablas = f, publicar = f." -ForegroundColor DarkGray
+    $esperado = if ($Areas) { "puede registrar bienes = f" } else { "puede registrar bienes = t" }
+    Write-Host "  Esperado: entra como $Rol, $esperado, borrar tablas = f, publicar = f." -ForegroundColor DarkGray
     Write-Host "  Si 'Areas sin cuenta' no es 0: entra como administrador -> Configuracion -> Usuarios ->" -ForegroundColor DarkGray
     Write-Host "  'Cuentas por area' (crea las que falten y genera el PDF con las contrasenas)." -ForegroundColor DarkGray
 }

@@ -50,8 +50,8 @@ class ConteosDialog {
             VBox info = new VBox(2);
             Label titulo = new Label(FormatUtils.formatDateTime(c.getCreadoEn()) + " · " + c.getUsuarioNombre());
             titulo.getStyleClass().add("dlg-detail-value");
-            Label detalle = new Label(c.getTotalContados() + " bien(es) revisado(s) · "
-                + c.getTotalDiscrepancias() + " diferencia(s)");
+            Label detalle = new Label(FormatUtils.plural(c.getTotalContados(), "bien revisado", "bienes revisados") + " · "
+                + FormatUtils.plural(c.getTotalDiscrepancias(), "diferencia", "diferencias"));
             detalle.getStyleClass().add("muted-sm");
             info.getChildren().addAll(titulo, detalle);
             HBox.setHgrow(info, Priority.ALWAYS);

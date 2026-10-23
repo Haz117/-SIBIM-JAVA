@@ -80,7 +80,7 @@ public final class ComparacionBienesDialog {
         long diffCount = rows.stream().filter(r -> !Objects.equals(r[1], r[2])).count();
         Label lblSummary = new Label(diffCount == 0
             ? "Los bienes son idénticos en todos los campos comparados."
-            : diffCount + " campo(s) difieren — destacados en amarillo");
+            : (diffCount == 1 ? "1 campo difiere" : diffCount + " campos difieren") + " — destacados en amarillo");
         lblSummary.getStyleClass().add(diffCount == 0 ? "field-hint-ok" : "field-hint-warn");
         FontIcon summaryIcon = new FontIcon(diffCount == 0 ? "mdi2c-check-circle-outline" : "mdi2a-alert-circle-outline");
         summaryIcon.getStyleClass().add(diffCount == 0 ? "status-icon-green" : "status-icon-amber");

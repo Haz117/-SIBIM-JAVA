@@ -64,25 +64,25 @@ class MainShortcutHelpDialog {
         GridPane accGrid = makeSection.apply("ACCIONES EN TABLA", new String[][]{
             {"Ctrl + N",        "Nuevo registro (Bienes / Movimientos / Categorías)"},
             {"Ctrl + E",        "Editar fila seleccionada (Bienes / Categorías)"},
-            {"Ctrl + I",        "Importar bienes desde CSV (sólo en Bienes)"},
+            {"Ctrl + I",        "Importar bienes desde CSV (solo en Bienes)"},
             {"Supr",            "Dar de baja / eliminar fila seleccionada"},
             {"Escape",          "Deseleccionar todas las filas de la tabla"},
             {"Doble clic / Enter", "Ver detalle del registro"},
             {"F5",              "Actualizar datos de la vista actual"},
-            {"Ctrl / Shift+clic","Selección múltiple — activa barra de acciones en lote (sólo Bienes)"},
+            {"Ctrl / Shift+clic","Selección múltiple — muestra las acciones en lote (solo en Bienes)"},
         });
 
         GridPane busqGrid = makeSection.apply("BÚSQUEDA Y FILTROS", new String[][]{
-            {"Escribir",             "Búsqueda en tiempo real (con debounce 280 ms)"},
+            {"Escribir",             "Busca mientras escribes"},
             {"✕ (botón)",            "Limpiar campo de búsqueda"},
-            {"Hoy / Semana / Mes",   "Presets de rango de fechas en Movimientos y Reportes"},
-            {"Guardar preset",        "Guarda los filtros activos como preset con nombre (sólo Bienes)"},
-            {"Clic en chip de preset","Aplica o elimina un preset de filtros guardado (sólo Bienes)"},
+            {"Hoy / Semana / Mes",   "Atajos de fecha en Movimientos y Reportes"},
+            {"Guardar filtro",        "Guarda los filtros activos con un nombre (solo en Bienes)"},
+            {"Clic en filtro guardado","Lo aplica o lo borra (solo en Bienes)"},
             {"Clic derecho en fila",  "Menú contextual: Ver detalle · Imprimir ficha técnica · (editar/baja si admin)"},
         });
 
         GridPane sysGrid = makeSection.apply("SISTEMA", new String[][]{
-            {"Ctrl+K",      "Búsqueda global / paleta de comandos"},
+            {"Ctrl+K",      "Buscar en todo SIBIM"},
             {"F1",          "Mostrar esta ayuda de atajos"},
             {"F2",          "Tutorial interactivo del sistema"},
             {"F5 / Ctrl+R", "Actualizar vista actual"},

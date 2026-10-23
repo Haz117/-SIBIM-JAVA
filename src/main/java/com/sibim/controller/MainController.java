@@ -61,6 +61,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.prefs.Preferences;
+import com.sibim.util.FormatUtils;
 
 public class MainController {
 
@@ -240,6 +241,11 @@ public class MainController {
                         NotificacionUtil.advertencia(scene,
                             "Modo demostración activo — los datos no son reales. "
                             + "Para conectar a PostgreSQL, crea %APPDATA%\\SIBIM\\.env con DB_URL, DB_USER y DB_PASSWORD.");
+                    // An administrator at an área's PC: its connection can't make Patrimonio's changes.
+                    if (SessionManager.isAdmin() && DatabaseConfig.esConexionDeAreas())
+                        NotificacionUtil.importante("PC de área",
+                            "Esta PC tiene la conexión de las áreas: aquí puedes consultar, pero las altas, "
+                            + "movimientos, bajas, resguardos y usuarios hazlos desde una PC de Patrimonio.");
 
                     // Delay badge 800 ms so dashboard queries finish first
                     javafx.animation.PauseTransition badgeDelay =
@@ -514,7 +520,7 @@ public class MainController {
         if (offlineBannerLabel != null) {
             int pending = SyncService.pendingCount();
             offlineBannerLabel.setText(pending > 0
-                ? "Sincronizando " + pending + " cambio(s) pendiente(s)…"
+                ? "Sincronizando " + FormatUtils.plural(pending, "cambio pendiente", "cambios pendientes") + "…"
                 : "Conectando con el servidor…");
         }
         statusBarManager.setConnecting(true);

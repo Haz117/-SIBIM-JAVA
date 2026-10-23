@@ -15,8 +15,9 @@
     y copia periódicamente la carpeta fuera de esta PC.
 
     Requiere pg_dump de la misma versión mayor que el servidor o más nueva
-    (Supabase usa PostgreSQL 15/17). Si no está instalado: instalador de
-    PostgreSQL de EDB para Windows, marcando solo "Command Line Tools".
+    (Supabase usa PostgreSQL 15/17). Lo busca primero en tools\pgsql\bin (una
+    copia portátil, que deja scripts\instalar_pg_dump.ps1), luego en el PATH y
+    en C:\Program Files\PostgreSQL.
 
 .PARAMETER Destino
     Carpeta de los respaldos. Por defecto %APPDATA%\SIBIM\respaldos.
@@ -25,9 +26,9 @@
     Respaldos más viejos que esto se borran. Por defecto 30.
 
 .PARAMETER Registrar
-    En vez de respaldar, registra una tarea programada de Windows que ejecuta
-    este script todos los días a la -Hora indicada (por defecto 23:00) con la
-    cuenta actual.
+    Registra una tarea programada de Windows que ejecuta este script todos los
+    días a la -Hora indicada (por defecto 23:00) con la cuenta actual, y hace
+    un primer respaldo en ese momento para comprobar que funciona.
 
 .EXAMPLE
     .\scripts\respaldo_diario.ps1
@@ -51,7 +52,7 @@ if ($Registrar) {
     Register-ScheduledTask -TaskName "SIBIM - respaldo diario" -Action $accion -Trigger $disparador `
         -Settings $ajustes -Description "pg_dump de la base de SIBIM (scripts\respaldo_diario.ps1)" -Force | Out-Null
     Write-Host "Tarea 'SIBIM - respaldo diario' registrada: todos los días a las $Hora."
-    exit 0
+    Write-Host "Primer respaldo, para comprobar que funciona..."
 }
 
 # ── Conexión (mismo orden que DatabaseConfig) ────────────────────────────────
@@ -80,13 +81,14 @@ $pgPort = if ($Matches[2]) { $Matches[2] } else { "5432" }
 $pgDb   = $Matches[3]
 
 # ── pg_dump ──────────────────────────────────────────────────────────────────
-$pgDump = (Get-Command pg_dump -ErrorAction SilentlyContinue).Source
+$portatil = Join-Path (Split-Path -Parent $PSScriptRoot) "tools\pgsql\bin\pg_dump.exe"
+$pgDump = if (Test-Path $portatil) { $portatil } else { (Get-Command pg_dump -ErrorAction SilentlyContinue).Source }
 if (-not $pgDump) {
     $pgDump = Get-ChildItem "C:\Program Files\PostgreSQL\*\bin\pg_dump.exe" -ErrorAction SilentlyContinue |
         Sort-Object { [int]($_.Directory.Parent.Name -replace '\D', '') } -Descending |
         Select-Object -First 1 -ExpandProperty FullName
 }
-if (-not $pgDump) { throw "No encontré pg_dump. Instala las 'Command Line Tools' de PostgreSQL (instalador de EDB)." }
+if (-not $pgDump) { throw "No encontré pg_dump. Córrelo antes: scripts\instalar_pg_dump.ps1" }
 
 New-Item -ItemType Directory -Force -Path $Destino | Out-Null
 $archivo = Join-Path $Destino ("sibim-{0}.dump" -f (Get-Date -Format "yyyyMMdd-HHmm"))
@@ -107,6 +109,9 @@ try {
 
 $tamano = [math]::Round((Get-Item $archivo).Length / 1MB, 2)
 Write-Host "Respaldo guardado: $archivo ($tamano MB)"
+if ($Destino.StartsWith($env:APPDATA)) {
+    Write-Host "Copia de vez en cuando la carpeta $Destino a una USB o a otra PC: si esta PC se descompone, los respaldos se van con ella."
+}
 
 # ── Retención: solo archivos sibim-*.dump de esta carpeta ────────────────────
 Get-ChildItem $Destino -Filter "sibim-*.dump" |

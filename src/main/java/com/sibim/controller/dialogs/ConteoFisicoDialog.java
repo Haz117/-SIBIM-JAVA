@@ -375,14 +375,15 @@ public final class ConteoFisicoDialog {
         );
         if (sinRevisar > 0) {
             stats.getChildren().add(summaryRow("Sin revisar", sinRevisar, "text-warn"));
-            Label aviso = new Label("Los " + sinRevisar + " bien(es) que no marcaste como vistos quedarán en el "
+            Label aviso = new Label((sinRevisar == 1 ? "El bien que no marcaste como visto quedará en el "
+                : "Los " + sinRevisar + " bienes que no marcaste como vistos quedarán en el ")
                 + "registro como \"sin revisar\", no como encontrados. Con \"Guardar borrador\" puedes seguir después.");
             aviso.getStyleClass().add("muted-sm");
             aviso.setWrapText(true);
             stats.getChildren().add(aviso);
         }
         if (conDiff > 0) {
-            Label note = new Label("Se registrarán " + conDiff + " ajuste(s) de cantidad al confirmar.");
+            Label note = new Label((conDiff == 1 ? "Se registrará 1 ajuste" : "Se registrarán " + conDiff + " ajustes") + " de cantidad al confirmar.");
             note.getStyleClass().add("muted-sm");
             note.setWrapText(true);
             stats.getChildren().add(note);
@@ -431,7 +432,7 @@ public final class ConteoFisicoDialog {
         boolean hasDraft = !rawDraft.isEmpty();
         if (hasDraft) {
             boolean resume = ConfirmacionUtil.confirmar("Reanudar borrador",
-                "Hay un borrador guardado el " + draftFecha + " con " + rawDraft.size() + " bien(es) de este conteo.\n"
+                "Hay un borrador guardado el " + draftFecha + " con " + FormatUtils.plural(rawDraft.size(), "bien", "bienes") + " de este conteo.\n"
                 + "¿Deseas retomarlo? (Cancelar = empezar desde cero)");
             draftMap = resume ? rawDraft : Collections.emptyMap();
             if (!resume) clearDraft(enAlcance);
@@ -899,14 +900,14 @@ public final class ConteoFisicoDialog {
                     String base;
                     if (totalDiscrepancias == 0) {
                         base = "Conteo guardado — sin diferencias en " + (items.size() - sinRevisar)
-                            + " bien(es) revisado(s)";
+                            + (items.size() - sinRevisar == 1 ? " bien revisado" : " bienes revisados");
                     } else if (fallidosFinal.isEmpty()) {
-                        base = okFinal + " ajuste(s) aplicado(s) correctamente";
+                        base = FormatUtils.plural(okFinal, "ajuste aplicado", "ajustes aplicados") + " correctamente";
                     } else {
                         String nombres = fallidosFinal.stream().limit(3)
                             .collect(Collectors.joining(", "))
                             + (fallidosFinal.size() > 3 ? "…" : "");
-                        base = okFinal + " ajuste(s) aplicado(s), " + fallidosFinal.size()
+                        base = FormatUtils.plural(okFinal, "ajuste aplicado", "ajustes aplicados") + ", " + fallidosFinal.size()
                             + " fallaron: " + nombres;
                     }
                     // A conteo closed halfway is not a clean inventory: say how many are left.
@@ -939,7 +940,7 @@ public final class ConteoFisicoDialog {
                               || r.estado().getValue() != EstadoConteo.ENCONTRADO
                               || !r.notaField().getText().isBlank()).count();
                 if (changed > 0 && !ConfirmacionUtil.confirmar("Salir sin guardar",
-                        "Lo capturado en " + changed + " bien(es) se perderá.\n"
+                        "Lo capturado en " + FormatUtils.plural(changed, "bien", "bienes") + " se perderá.\n"
                         + "Para conservarlo cancela y usa \"Guardar borrador\".\n¿Salir de todos modos?"))
                     we.consume();
             }));

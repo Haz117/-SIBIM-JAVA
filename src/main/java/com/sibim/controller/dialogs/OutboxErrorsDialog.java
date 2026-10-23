@@ -14,6 +14,7 @@ import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
+import com.sibim.util.FormatUtils;
 
 /**
  * Shows all permanently-discarded outbox rows so an admin can review what
@@ -46,7 +47,7 @@ public final class OutboxErrorsDialog {
             "Errores de sincronización offline",
             entries.isEmpty()
                 ? "Todos los cambios offline se sincronizaron correctamente"
-                : entries.size() + " cambio(s) descartados permanentemente — no llegaron al servidor",
+                : FormatUtils.plural(entries.size(), "cambio descartado", "cambios descartados") + " permanentemente — no llegaron al servidor",
             AppColors.WARNING, AppColors.WARNING_D);
 
         VBox content = new VBox(12);
@@ -77,7 +78,7 @@ public final class OutboxErrorsDialog {
             if (bt == limpiarType) {
                 boolean ok = ConfirmacionUtil.confirmar(
                     "¿Limpiar todos los errores?",
-                    "Se eliminarán " + entries.size() + " registro(s) de la cola local. "
+                    "Se eliminarán " + FormatUtils.plural(entries.size(), "registro", "registros") + " de la cola local. "
                     + "Esta acción no se puede deshacer.");
                 if (ok) SyncService.clearDiscarded();
             }

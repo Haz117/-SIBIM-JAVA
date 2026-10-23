@@ -184,7 +184,7 @@ class OrganigramaTreeBuilder {
             alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
             alertDot.setOnMouseClicked(e -> { e.consume(); onAreaClick.show(parentName, allAreaProds, true); });
             AccessibilityUtils.asButton(alertDot, "Ver bienes con alerta de " + parentName);
-            Tooltip.install(alertDot, new Tooltip(alertasArea + " bien(es) con garantía vencida en esta área — clic para verlos"));
+            Tooltip.install(alertDot, new Tooltip(FormatUtils.plural(alertasArea, "bien", "bienes") + " con garantía vencida en esta área — clic para verlos"));
             header.getChildren().add(alertDot);
         }
 
@@ -200,7 +200,7 @@ class OrganigramaTreeBuilder {
             final List<Resguardo> rsgFinal = List.copyOf(rsgArea);
             rsgDot.setOnMouseClicked(e -> { e.consume(); onRsgClick.accept(parentName, rsgFinal); });
             AccessibilityUtils.asButton(rsgDot, "Ver resguardos de " + parentName);
-            Tooltip.install(rsgDot, new Tooltip(rsgArea.size() + " resguardo(s) activo(s) en esta área — clic para verlos"));
+            Tooltip.install(rsgDot, new Tooltip(FormatUtils.plural(rsgArea.size(), "resguardo activo", "resguardos activos") + " en esta área — clic para verlos"));
             header.getChildren().add(rsgDot);
         }
 
@@ -216,7 +216,7 @@ class OrganigramaTreeBuilder {
             final List<Prestamo> prestFinal = List.copyOf(prestArea);
             prestDot.setOnMouseClicked(e -> { e.consume(); onPrestClick.accept(parentName, prestFinal); });
             AccessibilityUtils.asButton(prestDot, "Ver préstamos de " + parentName);
-            Tooltip.install(prestDot, new Tooltip(prestArea.size() + " préstamo(s) activo(s) en esta área — clic para verlos"));
+            Tooltip.install(prestDot, new Tooltip(FormatUtils.plural(prestArea.size(), "préstamo activo", "préstamos activos") + " en esta área — clic para verlos"));
             header.getChildren().add(prestDot);
         }
 
@@ -232,7 +232,7 @@ class OrganigramaTreeBuilder {
             final List<Comodato> comodFinal = List.copyOf(comodArea);
             comodDot.setOnMouseClicked(e -> { e.consume(); onComodClick.accept(parentName, comodFinal); });
             AccessibilityUtils.asButton(comodDot, "Ver comodatos de " + parentName);
-            Tooltip.install(comodDot, new Tooltip(comodArea.size() + " comodato(s) activo(s) en esta área — clic para verlos"));
+            Tooltip.install(comodDot, new Tooltip(FormatUtils.plural(comodArea.size(), "comodato activo", "comodatos activos") + " en esta área — clic para verlos"));
             header.getChildren().add(comodDot);
         }
 
@@ -309,7 +309,7 @@ class OrganigramaTreeBuilder {
                 alertDot.getStyleClass().addAll("org-alert-badge", "org-alert-badge-clickable");
                 alertDot.setOnMouseClicked(e -> { e.consume(); onAreaClick.show(child, childProds, true); });
                 AccessibilityUtils.asButton(alertDot, "Ver bienes con alerta de " + child);
-                Tooltip.install(alertDot, new Tooltip(alertasChild + " bien(es) con garantía vencida en " + child + " — clic para verlos"));
+                Tooltip.install(alertDot, new Tooltip(FormatUtils.plural(alertasChild, "bien", "bienes") + " con garantía vencida en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(alertDot);
             }
 
@@ -324,7 +324,7 @@ class OrganigramaTreeBuilder {
                 final List<Resguardo> rsgChildFinal = List.copyOf(rsgChild);
                 rsgDot.setOnMouseClicked(e -> { e.consume(); onRsgClick.accept(child, rsgChildFinal); });
                 AccessibilityUtils.asButton(rsgDot, "Ver resguardos de " + child);
-                Tooltip.install(rsgDot, new Tooltip(rsgChild.size() + " resguardo(s) activo(s) en " + child + " — clic para verlos"));
+                Tooltip.install(rsgDot, new Tooltip(FormatUtils.plural(rsgChild.size(), "resguardo activo", "resguardos activos") + " en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(rsgDot);
             }
 
@@ -339,7 +339,7 @@ class OrganigramaTreeBuilder {
                 final List<Prestamo> prestChildFinal = List.copyOf(prestChild);
                 prestDot.setOnMouseClicked(e -> { e.consume(); onPrestClick.accept(child, prestChildFinal); });
                 AccessibilityUtils.asButton(prestDot, "Ver préstamos de " + child);
-                Tooltip.install(prestDot, new Tooltip(prestChild.size() + " préstamo(s) activo(s) en " + child + " — clic para verlos"));
+                Tooltip.install(prestDot, new Tooltip(FormatUtils.plural(prestChild.size(), "préstamo activo", "préstamos activos") + " en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(prestDot);
             }
 
@@ -354,7 +354,7 @@ class OrganigramaTreeBuilder {
                 final List<Comodato> comodChildFinal = List.copyOf(comodChild);
                 comodDot.setOnMouseClicked(e -> { e.consume(); onComodClick.accept(child, comodChildFinal); });
                 AccessibilityUtils.asButton(comodDot, "Ver comodatos de " + child);
-                Tooltip.install(comodDot, new Tooltip(comodChild.size() + " comodato(s) activo(s) en " + child + " — clic para verlos"));
+                Tooltip.install(comodDot, new Tooltip(FormatUtils.plural(comodChild.size(), "comodato activo", "comodatos activos") + " en " + child + " — clic para verlos"));
                 childHeader.getChildren().add(comodDot);
             }
 

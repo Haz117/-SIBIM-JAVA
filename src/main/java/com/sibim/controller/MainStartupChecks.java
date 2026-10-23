@@ -10,6 +10,7 @@ import java.io.File;
 import javafx.scene.Scene;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.sibim.util.FormatUtils;
 
 /** Startup async checks — vencidos, préstamos y update checker.
  *  Extracted from MainController to keep initialize() focused. */
@@ -36,10 +37,10 @@ class MainStartupChecks {
                 int vencidos = counts[0], proximos = counts[1];
                 if (vencidos > 0)
                     NotificacionUtil.advertencia(scene,
-                        vencidos + " préstamo(s) vencido(s) — revisa la sección Préstamos");
+                        FormatUtils.plural(vencidos, "préstamo vencido", "préstamos vencidos") + " — revisa la sección Préstamos");
                 else if (proximos > 0)
                     NotificacionUtil.advertencia(scene,
-                        proximos + " préstamo(s) vencen en los próximos 3 días");
+                        (proximos == 1 ? "1 préstamo vence" : proximos + " préstamos vencen") + " en los próximos 3 días");
             },
             e -> log.debug("Startup préstamos check failed", e)
         );
@@ -53,7 +54,7 @@ class MainStartupChecks {
                     // The list includes garantías that already expired, not only the
                     // ones about to: say what it counts.
                     NotificacionUtil.advertencia(scene,
-                        vencidos.size() + " bien(es) con garantía vencida o por vencer en 7 días — revisa Alertas");
+                        FormatUtils.plural(vencidos.size(), "bien", "bienes") + " con garantía vencida o por vencer en 7 días — revisa Alertas");
             },
             e -> log.debug("Startup vencidos check failed", e)
         );

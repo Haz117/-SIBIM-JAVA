@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import com.sibim.util.FormatUtils;
 
 /**
  * Handles export of Conteo Físico (physical inventory count) sessions to PDF and Excel.
@@ -70,9 +71,10 @@ public class ReporteConteoService extends ReporteService {
             String statusText = sinDiff
                 ? "INVENTARIO CONFORME — Sin diferencias detectadas"
                 : (c.getTotalDiscrepancias() > 0
-                    ? c.getTotalDiscrepancias() + " diferencia(s) detectada(s) y registrada(s) como ajustes" : "")
+                    ? (c.getTotalDiscrepancias() == 1 ? "1 diferencia detectada y registrada como ajuste"
+                                                   : c.getTotalDiscrepancias() + " diferencias detectadas y registradas como ajustes") : "")
                   + (c.getTotalDiscrepancias() > 0 && sinRevisar > 0 ? "  ·  " : "")
-                  + (sinRevisar > 0 ? "CONTEO INCOMPLETO — " + sinRevisar + " bien(es) sin revisar" : "");
+                  + (sinRevisar > 0 ? "CONTEO INCOMPLETO — " + FormatUtils.plural(sinRevisar, "bien", "bienes") + " sin revisar" : "");
             doc.add(new Paragraph(statusText)
                 .setFont(bold).setFontSize(10)
                 .setFontColor(sinDiff ? new DeviceRgb(5, 150, 105) : new DeviceRgb(217, 119, 6))

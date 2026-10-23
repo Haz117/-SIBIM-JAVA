@@ -119,8 +119,8 @@ public final class HistorialConteosDialog {
         Label titulo = new Label(fechaStr + "  ·  " + (c.getUsuarioNombre() != null ? c.getUsuarioNombre() : "—"));
         titulo.getStyleClass().add("dlg-detail-value");
         boolean hasDiscrep = c.getTotalDiscrepancias() > 0;
-        Label stats = new Label(c.getTotalContados() + " bien(es) contado(s)"
-            + (hasDiscrep ? "  ·  " + c.getTotalDiscrepancias() + " discrepancia(s)" : "  ·  Sin diferencias"));
+        Label stats = new Label(FormatUtils.plural(c.getTotalContados(), "bien contado", "bienes contados")
+            + (hasDiscrep ? "  ·  " + FormatUtils.plural(c.getTotalDiscrepancias(), "discrepancia", "discrepancias") : "  ·  Sin diferencias"));
         stats.getStyleClass().addAll("muted-sm", hasDiscrep ? "text-warn" : "text-ok");
         info.getChildren().addAll(titulo, stats);
         HBox.setHgrow(info, Priority.ALWAYS);
@@ -151,8 +151,8 @@ public final class HistorialConteosDialog {
         String fechaStr = c.getCreadoEn() != null ? FormatUtils.formatDateTime(c.getCreadoEn()) : "—";
         HBox hdr = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
             "Detalle del conteo — " + fechaStr,
-            c.getUsuarioNombre() + "  ·  " + c.getTotalContados() + " bien(es)"
-                + (c.getTotalDiscrepancias() > 0 ? "  ·  " + c.getTotalDiscrepancias() + " discrepancia(s)" : ""),
+            c.getUsuarioNombre() + "  ·  " + FormatUtils.plural(c.getTotalContados(), "bien", "bienes")
+                + (c.getTotalDiscrepancias() > 0 ? "  ·  " + FormatUtils.plural(c.getTotalDiscrepancias(), "discrepancia", "discrepancias") : ""),
             AppColors.CYAN, AppColors.CYAN_D);
 
         ProgressIndicator sp = new ProgressIndicator();

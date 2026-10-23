@@ -430,7 +430,7 @@ public class DepreciacionController {
             return;
         }
         DialogUtil.runAsyncWithProgress(table.getScene(),
-            "Generando " + lista.size() + " ficha(s)…",
+            "Generando " + FormatUtils.plural(lista.size(), "ficha", "fichas") + "…",
             () -> reporteService.exportFichasTecnicasMasivas(lista, movimientoService),
             file -> DialogUtil.showExportResultDialog(table.getScene(), file),
             ex -> {
@@ -520,7 +520,7 @@ public class DepreciacionController {
         if (lblStatPct != null) AnimationUtils.animateCount(lblStatPct, pctPromedio, 580, v -> v + "%");
         if (lblStatSinDatos != null) lblStatSinDatos.setText(sinDatos == 0
             ? "todos los bienes con datos completos"
-            : sinDatos + " bien(es) sin datos de depreciación");
+            : FormatUtils.plural(sinDatos, "bien", "bienes") + " sin datos de depreciación");
         if (lblStatTotalmente != null) AnimationUtils.animateCount(lblStatTotalmente, totalmenteDepreciados, 700);
         updateRangos(bienes);
 

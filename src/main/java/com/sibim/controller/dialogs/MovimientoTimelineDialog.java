@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import com.sibim.util.FormatUtils;
 
 /**
  * "Cadena de custodia" del bien: une en una sola línea de tiempo cronológica
@@ -76,7 +77,7 @@ public final class MovimientoTimelineDialog {
                 content.getStyleClass().add("timeline-root");
                 HBox header = DialogUtil.gradientHeader(
                     "mdi2h-history", "Cadena de custodia",
-                    p.getNombre() + "  ·  " + entradas.size() + " registro(s)",
+                    p.getNombre() + "  ·  " + FormatUtils.plural(entradas.size(), "registro", "registros"),
                     AppColors.SLATE, AppColors.SLATE_D);
                 content.getChildren().add(header);
 

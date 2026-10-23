@@ -431,6 +431,14 @@ public class ProductoRepository {
     }
 
     public Producto saveOnline(Producto p) throws SQLException {
+        // A secretaría or dirección only changes the descriptive data of an
+        // existing bien (ProductoService.soloLoQueEditaUnArea): writing just
+        // those columns lets the áreas' PCs connect with a database user that
+        // can't change the rest (scripts/sql/rol_areas.sql). Offline changes
+        // replayed by SyncService come through here too.
+        if (SessionManager.isLoggedIn() && !com.sibim.session.Permisos.editaFichaCompleta()
+                && p.getId() != null && guardarDatosDeAreaOnline(p))
+            return p;
         String sql = """
             INSERT INTO products (id, nombre, codigo, descripcion, categoria_id, precio_compra,
                 precio_venta, stock_actual, stock_minimo, stock_maximo, unidad, proveedor,
@@ -523,17 +531,42 @@ public class ProductoRepository {
             // from the object's on an update), and the new updated_at so a
             // second edit of this same object isn't rejected as stale.
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    p.setStockActual(rs.getInt("stock_actual"));
-                    p.setArea(rs.getString("area"));
-                    Timestamp creado = rs.getTimestamp("created_at");
-                    if (creado != null) p.setCreadoEn(creado.toLocalDateTime());
-                    Timestamp ua = rs.getTimestamp("updated_at");
-                    if (ua != null) p.setActualizadoEn(ua.toLocalDateTime());
-                }
+                if (rs.next()) leerLoQueQuedo(rs, p);
             }
         }
         return p;
+    }
+
+    /** The four things an área keeps current, and nothing else. False when the
+     *  bien isn't on the server (an área doesn't register bienes). */
+    private boolean guardarDatosDeAreaOnline(Producto p) throws SQLException {
+        String sql = "UPDATE products SET ubicacion = ?, descripcion = ?, estado_fisico = ?, foto_url = ?, "
+                   + "updated_at = NOW() WHERE id = ? RETURNING stock_actual, area, created_at, updated_at";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, p.getUbicacion());
+            ps.setString(2, p.getDescripcion());
+            ps.setString(3, p.getEstadoFisico());
+            ps.setString(4, p.getFotoUrl());
+            ps.setString(5, p.getId());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return false;
+                leerLoQueQuedo(rs, p);
+                return true;
+            }
+        }
+    }
+
+    /** Reflects what the row actually holds now (stock/área may differ from
+     *  the object's on an update), and the new updated_at so a second edit of
+     *  this same object isn't rejected as stale. */
+    private static void leerLoQueQuedo(ResultSet rs, Producto p) throws SQLException {
+        p.setStockActual(rs.getInt("stock_actual"));
+        p.setArea(rs.getString("area"));
+        Timestamp creado = rs.getTimestamp("created_at");
+        if (creado != null) p.setCreadoEn(creado.toLocalDateTime());
+        Timestamp ua = rs.getTimestamp("updated_at");
+        if (ua != null) p.setActualizadoEn(ua.toLocalDateTime());
     }
 
 

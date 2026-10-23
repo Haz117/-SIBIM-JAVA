@@ -6,7 +6,7 @@
 
     <groupId>com.sibim</groupId>
     <artifactId>sibim-desktop</artifactId>
-    <version>1.0.11</version>
+    <version>1.0.12</version>
     <packaging>jar</packaging>
     <name>SIBIM Desktop</name>
     <description>Sistema Integral de Bienes Municipales - Aplicacion de escritorio Java</description>
@@ -44,7 +44,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.4</version>
+            <version>42.7.13</version>
         </dependency>
 
         <!-- SQLite JDBC - local persistent store for modo offline (see
@@ -360,7 +360,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.12</version>
+                <version>0.8.15</version>
                 <configuration>
                     <excludes>
                         <exclude>com/sibim/controller/**</exclude>

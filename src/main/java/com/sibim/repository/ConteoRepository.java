@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.sibim.util.FormatUtils;
 
 public class ConteoRepository {
 
@@ -56,8 +57,8 @@ public class ConteoRepository {
     private void auditConteo(ConteoFisico c) {
         new AuditLogRepository().log("conteo", c.getId(),
             "Conteo físico de inventario", "crear",
-            "Conteo finalizado: " + c.getTotalContados() + " bien(es), "
-                + c.getTotalDiscrepancias() + " discrepancia(s)");
+            "Conteo finalizado: " + FormatUtils.plural(c.getTotalContados(), "bien", "bienes") + ", "
+                + FormatUtils.plural(c.getTotalDiscrepancias(), "discrepancia", "discrepancias"));
     }
 
     /**

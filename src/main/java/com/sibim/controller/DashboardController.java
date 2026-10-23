@@ -50,6 +50,7 @@ public class DashboardController implements Refreshable {
     @FXML private Label lblValorTotal;
     @FXML private Label lblMovimientosHoy;
     @FXML private Label lblCategorias;
+    @FXML private VBox  cardValorTotal;
     @FXML private VBox  cardMovimientosHoy;
     @FXML private VBox  cardCategorias;
     @FXML private Label hintMovimientosHoy;
@@ -180,6 +181,17 @@ public class DashboardController implements Refreshable {
             // Movimientos and Categorías are not screens of the áreas: the cards stay as plain figures.
             soloCifra(cardMovimientosHoy, hintMovimientosHoy);
             soloCifra(cardCategorias, hintCategorias);
+        }
+        // A dirección doesn't see amounts: no "Valor patrimonial" card showing "—";
+        // the other three share the row instead of leaving a gap.
+        if (!com.sibim.session.Permisos.veValores() && cardValorTotal != null && statsGrid != null) {
+            statsGrid.getChildren().remove(cardValorTotal);
+            for (javafx.scene.Node n : statsGrid.getChildren()) {
+                Integer col = GridPane.getColumnIndex(n);
+                if (col != null && col > 1) GridPane.setColumnIndex(n, col - 1);
+            }
+            statsGrid.getColumnConstraints().remove(statsGrid.getColumnConstraints().size() - 1);
+            statsGrid.getColumnConstraints().forEach(c -> c.setPercentWidth(100.0 / 3));
         }
         if (btnPanelEjecutivo != null) {
             boolean isAdmin = SessionManager.isAdmin();
