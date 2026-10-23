@@ -140,6 +140,21 @@ public class OrganigramaController {
             DialogUtil.makeCollapsible("organigrama.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
 
+        // On a narrow window (or with large text) the hint gives way first, so
+        // the buttons keep their names instead of shrinking to "Expan…".
+        if (lblVistaHint != null && lblVistaHint.getParent() instanceof HBox barra)
+            barra.widthProperty().addListener((o, a, ancho) -> {
+                double necesario = barra.getInsets().getLeft() + barra.getInsets().getRight()
+                    + 220   // the search field, which shrinks down to this
+                    + barra.getSpacing() * (barra.getChildren().size() - 1);
+                for (javafx.scene.Node n : barra.getChildren())
+                    if (!(n instanceof StackPane) && (n.isManaged() || n == lblVistaHint))
+                        necesario += n.prefWidth(-1);
+                boolean cabe = ancho.doubleValue() >= necesario;
+                lblVistaHint.setVisible(cabe);
+                lblVistaHint.setManaged(cabe);
+            });
+
         // Re-parenting changes who sees which bienes: Patrimonio only.
         if (btnAcomodar != null) {
             btnAcomodar.setMinWidth(Region.USE_PREF_SIZE);   // the toolbar is tight: never squeeze it to a blank pill

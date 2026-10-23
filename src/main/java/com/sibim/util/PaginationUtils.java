@@ -4,12 +4,24 @@ import javafx.collections.FXCollections;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 
 import java.util.List;
 
 public final class PaginationUtils {
 
     private PaginationUtils() {}
+
+    /** "Pág 2 de 5", with the rows shown ("26–50 de 120") in its tooltip: the
+     *  short text leaves room for the bottom bar's buttons to keep their names
+     *  on a laptop screen or with large text. */
+    private static void mostrarPagina(Label lblPage, int pagina, int totalPages, int from, int to, int total) {
+        if (lblPage == null) return;
+        lblPage.setText(total == 0 ? "—" : "Pág " + (pagina + 1) + " de " + totalPages);
+        String filas = total == 0 ? "Sin resultados" : (from + 1) + "–" + to + " de " + total;
+        if (lblPage.getTooltip() == null) lblPage.setTooltip(new Tooltip(filas));
+        else lblPage.getTooltip().setText(filas);
+    }
 
     /**
      * Slices {@code filteredData} into the page identified by {@code currentPage}/{@code pageSize},
@@ -34,8 +46,7 @@ public final class PaginationUtils {
         AnimationUtils.staggerTableRows(table);
 
         if (lblTotal != null) lblTotal.setText(total + (total == 1 ? " " + singular : " " + plural));
-        if (lblPage != null) lblPage.setText(total == 0 ? "—"
-            : "Pág " + (clampedPage + 1) + " de " + totalPages + "  ·  " + (from + 1) + "–" + to);
+        mostrarPagina(lblPage, clampedPage, totalPages, from, to, total);
         if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
         if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
     }
@@ -57,8 +68,7 @@ public final class PaginationUtils {
         int from = clampedPage * pageSize;
         int to = Math.min(from + pageSize, totalFiltered);
         if (lblTotal != null) lblTotal.setText(totalFiltered + (totalFiltered == 1 ? " " + singular : " " + plural));
-        if (lblPage != null) lblPage.setText(totalFiltered == 0 ? "—"
-            : "Pág " + (clampedPage + 1) + " de " + totalPages + "  ·  " + (from + 1) + "–" + to);
+        mostrarPagina(lblPage, clampedPage, totalPages, from, to, totalFiltered);
         if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
         if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
     }

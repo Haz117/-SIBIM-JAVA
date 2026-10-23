@@ -158,6 +158,9 @@
 .text-scale-xl .dlg-header-subtitle        { -fx-font-size: 15px; }
 .text-scale-xl .dlg-message-body           { -fx-font-size: 17px; }
 .text-scale-xl .muted-sm                   { -fx-font-size: 14px; }
+/* Date fields widen with the text: at "Extra" the prompt read "dd/mm/aaa". */
+.text-scale-lg .date-picker                { -fx-pref-width: 165px; -fx-min-width: 165px; }
+.text-scale-xl .date-picker                { -fx-pref-width: 185px; -fx-min-width: 185px; }
 
 /* ─── Dashboard trend indicator ─── */
 .trend-lbl {

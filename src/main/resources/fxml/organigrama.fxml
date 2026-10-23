@@ -149,7 +149,7 @@
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
             </Button>
         </StackPane>
-        <ToggleButton fx:id="btnSoloAlertas" text="⚠ Solo alertas" styleClass="btn-secondary, btn-sm"
+        <ToggleButton fx:id="btnSoloAlertas" text="⚠ Solo alertas" styleClass="btn-secondary, btn-sm" minWidth="-Infinity"
                       onAction="#onToggleSoloAlertas">
             <tooltip><Tooltip text="Mostrar solo las áreas que tienen bienes con garantía vencida" wrapText="true" maxWidth="220"/></tooltip>
         </ToggleButton>
@@ -181,10 +181,10 @@
             <graphic><FontIcon iconLiteral="mdi2c-cursor-move" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Acomodar el organigrama: arrastra una dirección a la secretaría de la que depende" wrapText="true" maxWidth="260"/></tooltip>
         </ToggleButton>
-        <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary, btn-sm">
+        <Button text="Expandir todo" onAction="#onExpandAll" styleClass="btn-secondary, btn-sm" minWidth="-Infinity">
             <tooltip><Tooltip text="Expande todas las secciones visibles"/></tooltip>
         </Button>
-        <Button text="Colapsar todo" onAction="#onCollapseAll" styleClass="btn-secondary, btn-sm">
+        <Button text="Colapsar todo" onAction="#onCollapseAll" styleClass="btn-secondary, btn-sm" minWidth="-Infinity">
             <tooltip><Tooltip text="Colapsa todas las secciones visibles"/></tooltip>
         </Button>
     </HBox>

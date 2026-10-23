@@ -164,15 +164,21 @@
             <tooltip><Tooltip text="Resguardante: persona responsable de la custodia del bien. Filtrar por encargado."/></tooltip>
         </Label>
         <Separator orientation="VERTICAL"/>
-        <Label text="Registrado desde:" styleClass="form-label"/>
-        <DatePicker fx:id="desdeRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
-        <Label text="hasta:" styleClass="form-label"/>
-        <DatePicker fx:id="hastaRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
-        <Button onAction="#onLimpiarFechaReg" styleClass="btn-secondary"
-                prefWidth="28" prefHeight="28">
-            <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Limpiar filtro de fechas de registro"/></tooltip>
-        </Button>
+        <!-- Each label wraps together with its field (with large text a row break
+             left "hasta:" at the end of one line and its date on the next). -->
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Registrado desde:" styleClass="form-label"/>
+            <DatePicker fx:id="desdeRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
+        </HBox>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="hasta:" styleClass="form-label"/>
+            <DatePicker fx:id="hastaRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
+            <Button onAction="#onLimpiarFechaReg" styleClass="btn-secondary"
+                    prefWidth="28" prefHeight="28">
+                <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
+                <tooltip><Tooltip text="Limpiar filtro de fechas de registro"/></tooltip>
+            </Button>
+        </HBox>
         <Label fx:id="helpFechaReg" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Filtra por la fecha en que el bien fue registrado en el sistema (no la fecha de compra). Deja un campo vacío para no acotar ese extremo del rango." wrapText="true" maxWidth="260"/></tooltip>
         </Label>
@@ -331,7 +337,8 @@
     </HBox>
 
     <!-- ══ BOTTOM ACTION BAR ══════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="bottom-action-bar">
+    <!-- 8 px between items: with 12 the buttons lost their names at 1280 px. -->
+    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 resultados" styleClass="muted"/>
         <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
         <Label fx:id="lblSeleccionados" text="" styleClass="status-bar-selection" visible="false" managed="false"/>
