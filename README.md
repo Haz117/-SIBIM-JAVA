@@ -251,7 +251,8 @@ SIBIM-Java/
 │   └── limpiar-env.ps1            # Quita secretos del .env de una PC sin mostrarlos
 ├── scripts/sql/
 │   ├── rol_app_minimo.sql         # Rol sibim_app: sin DDL, bitácora solo crece, RLS
-│   ├── storage_fotos.sql          # Políticas del bucket de fotos y fichas
+│   ├── rol_areas.sql              # Rol sibim_areas: lo que hace un área, nada más
+│   ├── storage_fotos.sql          # Políticas del bucket: fotos solo se agregan, fichas se reemplazan
 │   └── revisar_nomenclatura.sql   # Revisión de solo lectura de códigos, transferencias y bajas
 ├── maven-dist/                    # Maven embebido (no requiere Maven instalado)
 ├── iniciar.bat                    # Arranque para desarrollo (compila y ejecuta)
@@ -316,20 +317,35 @@ Paso a paso, para que las PCs solo puedan leer y escribir datos:
 
 `src/test/java/com/sibim/db/integration/RolAppMinimoIntegrationTest.java` verifica el script contra un PostgreSQL real.
 
+### Usuario de las áreas (`sibim_areas`)
+
+`sibim_app` puede leer y escribir cualquier dato, y su contraseña va en el instalador. `scripts/sql/rol_areas.sql` crea `sibim_areas`, que puede lo mismo que hace un área en SIBIM y nada más: lee todo; actualiza ubicación, descripción, estado físico y fotos de un bien; confirma la recepción de una transferencia; cambia la contraseña de cuentas que no son de administrador; guarda resguardos por área, folios y su rastro (bitácora, intentos de acceso, equipos, errores). No puede dar de alta, borrar ni revaluar bienes, moverlos de área, registrar movimientos ni tocar usuarios o configuración. Cuando la sesión es de un área, la app guarda un bien escribiendo solo esas cuatro columnas (también al sincronizar lo capturado sin conexión).
+
+Como todas las PCs reciben el mismo instalador por actualización, el instalador lleva `sibim_areas` y las PCs de Patrimonio usan su propio `%APPDATA%\SIBIM\.env` con `sibim_app`:
+
+1. En la PC de administración: `packaging\preparar-conexion.ps1 -Areas` (sube antes la versión del `pom.xml` si la actual ya se repartió). Guarda la conexión de `sibim_app` en `packaging\conexion-patrimonio.env` (git lo ignora), pone `rol_areas.sql` con su contraseña en el portapapeles para pegarlo en Supabase, comprueba la conexión y genera el instalador.
+2. En cada PC de Patrimonio, **antes** de publicar: `packaging\configurar-sibim.ps1 -Archivo <USB>\conexion-patrimonio.env`.
+3. Publica la actualización. Si un administrador entra desde una PC de área, SIBIM le avisa que ahí solo puede consultar.
+
+`RolAreasIntegrationTest` ejecuta los flujos de un área con `sibim_areas` y comprueba lo que no puede hacer.
+
 ---
 
 ## Respaldo de la base de datos
 
 Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo cifrado, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado. El respaldo incluye las solicitudes de las áreas; el registro de en qué equipos entró cada cuenta no se respalda, pero se conserva al restaurar. El respaldo cubre la base de datos: las fotos y facturas de los bienes son archivos en Supabase Storage y no van en él (el respaldo guarda sus direcciones). Se toma como una foto de un mismo instante, aunque otras PCs sigan trabajando, y se escribe cifrado directo al archivo.
 
-**Respaldo automático diario** (en una PC de administración, con las *Command Line Tools* de PostgreSQL instaladas — `pg_dump` de la misma versión mayor que el servidor o más nueva):
+**Respaldo automático diario** (en la PC de administración; `pg_dump` de la misma versión mayor que el servidor o más nueva). Activo desde el 23-oct-2026 en la PC de administración, todos los días a las 14:00:
 
 ```powershell
+# pg_dump portátil en tools\pgsql\bin (sin instalar PostgreSQL; git lo ignora)
+.\scripts\instalar_pg_dump.ps1
+
 # Respaldo ahora (lee la conexión de %APPDATA%\SIBIM\.env; guarda en %APPDATA%\SIBIM\respaldos, conserva 30 días)
 .\scripts\respaldo_diario.ps1
 
-# Registrar la tarea programada de Windows (todos los días a las 23:00)
-.\scripts\respaldo_diario.ps1 -Registrar
+# Registrar la tarea programada de Windows y hacer un primer respaldo para comprobarla
+.\scripts\respaldo_diario.ps1 -Registrar -Hora 14:00
 
 # Restaurar un respaldo
 pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d <base> sibim-20260926-2300.dump

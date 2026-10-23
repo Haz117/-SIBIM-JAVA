@@ -51,6 +51,16 @@ class SupabaseStorageTest {
     }
 
     @Test
+    void yaExiste_reconoceElObjetoRepetido_yNadaMas() {
+        assertTrue(SupabaseStorage.yaExiste(409, ""));
+        assertTrue(SupabaseStorage.yaExiste(400,
+            "{\"statusCode\":\"409\",\"error\":\"Duplicate\",\"message\":\"The resource already exists\"}"));
+        assertFalse(SupabaseStorage.yaExiste(403,
+            "{\"statusCode\":\"403\",\"error\":\"Unauthorized\",\"message\":\"new row violates row-level security policy\"}"));
+        assertFalse(SupabaseStorage.yaExiste(500, null));
+    }
+
+    @Test
     void isRemoteUrl_httpsSupabaseStorageUrl_returnsTrue() {
         assertTrue(SupabaseStorage.isRemoteUrl(
             "https://zjrzrcfpvkkefsscvzyh.supabase.co/storage/v1/object/public/sibim-fotos/abc123_0.jpg"));
