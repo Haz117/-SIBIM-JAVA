@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.model.AuditLog;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.service.ReporteService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.EmptyStateUtil;
@@ -206,6 +207,7 @@ public class AuditoriaController {
         if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
         updateExportButtons();
 
+        AnimationUtils.fadeInDown(filterBar, 220, 0);
         ajustando = false;
         loadData();
 
@@ -352,6 +354,7 @@ public class AuditoriaController {
                     if (loadSpinner != null) { loadSpinner.setVisible(false); loadSpinner.setManaged(false); }
                     totalCount = total;
                     table.getItems().setAll(rows);
+                    AnimationUtils.staggerTableRows(table);
                     updatePaginationUI();
                     updateExportButtons();
                     updateStats(stats);

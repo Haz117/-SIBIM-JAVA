@@ -1,20 +1,32 @@
 package com.sibim.util;
 
 import javafx.animation.*;
+import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.Region;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.LongFunction;
 import java.util.prefs.Preferences;
 
-/** The motion SIBIM keeps: feedback for something the user just did (a field
- *  shakes on an error, a saved row flashes, a toast slides in and out, a
- *  removed row fades). Decorative motion — numbers counting up from zero,
- *  cards cascading in, pulses and pop-ins — was taken out in 1.0.11 because
- *  it made the system look like a generated template; don't add it back. */
 public final class AnimationUtils {
 
     private AnimationUtils() {}
+
+    // Slide distances — vertical and horizontal are intentionally different:
+    // horizontal travel feels faster at the same pixel count, so it uses a
+    // slightly larger value to match the perceived weight of the vertical ones.
+    private static final int SLIDE_V_OFFSET   = 24;
+    private static final int SLIDE_H_OFFSET   = 28;
+    // Stagger cap: animating more than this many rows at once creates visual
+    // noise and makes the UI feel slow rather than lively.
+    static final int MAX_STAGGER_ROWS = 15;
 
     // ── Global on/off switch (Configuración → low-end machines) ────────────
     // Every method below checks this first and, when off, jumps the node
@@ -85,6 +97,66 @@ public final class AnimationUtils {
         ft.play();
     }
 
+    /** Direction for directional slide-in animations. */
+    public enum Direction { UP, DOWN, LEFT, RIGHT }
+
+    /** Slide up from below while fading in. */
+    public static void fadeInUp(Node node, int durationMs, int delayMs)    { fadeInImpl(node,  0,  SLIDE_V_OFFSET, durationMs, delayMs); }
+    /** Slide down from above while fading in. */
+    public static void fadeInDown(Node node, int durationMs, int delayMs)  { fadeInImpl(node,  0, -SLIDE_V_OFFSET, durationMs, delayMs); }
+    /** Slide in from the right while fading in. */
+    public static void fadeInRight(Node node, int durationMs, int delayMs) { fadeInImpl(node,  SLIDE_H_OFFSET, 0, durationMs, delayMs); }
+    /** Slide in from the left while fading in. */
+    public static void fadeInLeft(Node node, int durationMs, int delayMs)  { fadeInImpl(node, -SLIDE_H_OFFSET, 0, durationMs, delayMs); }
+
+    /** Slide in from {@code dir} while fading in — direction-typed overload. */
+    public static void fadeIn(Node node, Direction dir, int durationMs, int delayMs) {
+        double tx = 0, ty = 0;
+        switch (dir) {
+            case UP:    ty =  SLIDE_V_OFFSET;  break;
+            case DOWN:  ty = -SLIDE_V_OFFSET;  break;
+            case RIGHT: tx =  SLIDE_H_OFFSET;  break;
+            case LEFT:  tx = -SLIDE_H_OFFSET;  break;
+        }
+        fadeInImpl(node, tx, ty, durationMs, delayMs);
+    }
+
+    private static void fadeInImpl(Node node, double tx, double ty, int durationMs, int delayMs) {
+        if (!enabled) {
+            node.setOpacity(1);
+            if (tx != 0) node.setTranslateX(0);
+            if (ty != 0) node.setTranslateY(0);
+            return;
+        }
+        node.setOpacity(0);
+        node.setTranslateX(tx);
+        node.setTranslateY(ty);
+        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
+        fade.setFromValue(0); fade.setToValue(1);
+        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
+        slide.setFromX(tx); slide.setToX(0);
+        slide.setFromY(ty); slide.setToY(0);
+        slide.setInterpolator(Interpolator.EASE_OUT);
+        ParallelTransition pt = new ParallelTransition(fade, slide);
+        pt.setDelay(Duration.millis(delayMs));
+        pt.play();
+    }
+
+    /** Staggered fade-in-up for a collection of nodes. */
+    public static void staggeredFadeInUp(List<? extends Node> nodes, int durationMs, int staggerMs) {
+        for (int i = 0; i < nodes.size(); i++) {
+            fadeInUp(nodes.get(i), durationMs, i * staggerMs);
+        }
+    }
+
+    /**
+     * Page content transition: new page slides in from the right.
+     * Call immediately after adding the node to the scene graph.
+     */
+    public static void pageIn(Node node) {
+        fadeInRight(node, 240, 0);
+    }
+
     /**
      * Horizontal shake — error feedback for form fields.
      */
@@ -103,6 +175,141 @@ public final class AnimationUtils {
         tl.play();
     }
 
+
+    /** Quick scale-pop on a stat card after its value updates. */
+    public static void statCardPop(Node card) {
+        if (!enabled) return;
+        ScaleTransition grow = new ScaleTransition(Duration.millis(130), card);
+        grow.setToX(1.07); grow.setToY(1.07);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(160), card);
+        shrink.setToX(1.0); shrink.setToY(1.0);
+        shrink.setInterpolator(Interpolator.EASE_IN);
+        new SequentialTransition(grow, shrink).play();
+    }
+
+    /**
+     * Animates a Label's text from 0 up to {@code target} using an ease-both
+     * interpolator. Each tick calls {@code formatter} so the caller controls
+     * how the number looks (plain integer, currency, percentage, etc.).
+     * The last frame always calls formatter(target) for exact precision.
+     */
+    public static void animateCount(Label label, long target, int durationMs,
+                                    LongFunction<String> formatter) {
+        if (!enabled) { label.setText(formatter.apply(target)); return; }
+        label.setText(formatter.apply(0));
+        if (target == 0) return;
+        SimpleDoubleProperty prop = new SimpleDoubleProperty(0);
+        prop.addListener((obs, o, n) -> label.setText(formatter.apply((long) n.doubleValue())));
+        Timeline tl = new Timeline(new KeyFrame(Duration.millis(durationMs),
+            new KeyValue(prop, (double) target, Interpolator.EASE_BOTH)));
+        tl.setOnFinished(e -> label.setText(formatter.apply(target)));
+        tl.play();
+    }
+
+    /** Overload: plain {@code String.valueOf(long)} formatter. */
+    public static void animateCount(Label label, long target, int durationMs) {
+        animateCount(label, target, durationMs, String::valueOf);
+    }
+
+    /** An amount in centavos, to count up with a {@code BigDecimal.valueOf(v, 2)}
+     *  formatter: counting whole pesos ended on the total without its cents. */
+    public static long centavos(java.math.BigDecimal pesos) {
+        return pesos == null ? 0 : pesos.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+    }
+
+    /**
+     * Reveals {@code bar} (an HBox health bar) with a left-to-right clip
+     * that grows from 0 to the bar's actual width over {@code durationMs}.
+     * Must be called after the bar has been added to the scene graph (so
+     * layoutBounds are available); use a short Timeline delay if needed.
+     */
+    public static void revealBarLTR(Region bar, int durationMs) {
+        if (!enabled) { bar.setClip(null); return; }
+        double w = bar.getWidth();
+        if (w <= 0) w = bar.getPrefWidth() > 0 ? bar.getPrefWidth() : 500;
+        Rectangle clip = new Rectangle(0, 0, 0, bar.getBoundsInLocal().getHeight() + 4);
+        bar.heightProperty().addListener((o, x, h) -> clip.setHeight(h.doubleValue() + 4));
+        bar.setClip(clip);
+        new Timeline(new KeyFrame(Duration.millis(durationMs),
+            new KeyValue(clip.widthProperty(), w, Interpolator.EASE_OUT))).play();
+    }
+
+    /**
+     * Heartbeat scale-pulse — good for alert badges and notification chips.
+     * Returns the animation so the caller can stop it when the badge hides.
+     */
+    public static SequentialTransition pulse(Node node, int cycles) {
+        ScaleTransition grow = new ScaleTransition(Duration.millis(150), node);
+        grow.setToX(1.16); grow.setToY(1.16);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(230), node);
+        shrink.setToX(1.0); shrink.setToY(1.0);
+        shrink.setInterpolator(Interpolator.EASE_IN);
+        SequentialTransition beat = new SequentialTransition(grow, shrink);
+        beat.setCycleCount(cycles);
+        // Built either way so callers can unconditionally call .stop() on the
+        // result later — just never started when animations are off, so the
+        // badge stays at its normal (unscaled) size instead of pulsing.
+        if (enabled) beat.play();
+        return beat;
+    }
+
+    /**
+     * Spring-like pop-in: scale 0.85 → 1.06 → 0.98 → 1.0 while fading in.
+     * More satisfying than a plain fadeIn for overlays and dialog entrances.
+     */
+    public static void springIn(Node node) {
+        if (!enabled) { node.setOpacity(1); node.setScaleX(1); node.setScaleY(1); return; }
+        node.setOpacity(0);
+        node.setScaleX(0.85);
+        node.setScaleY(0.85);
+        FadeTransition fade = new FadeTransition(Duration.millis(200), node);
+        fade.setToValue(1);
+        Timeline spring = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(node.scaleXProperty(), 0.85),
+                new KeyValue(node.scaleYProperty(), 0.85)),
+            new KeyFrame(Duration.millis(220),
+                new KeyValue(node.scaleXProperty(), 1.06, Interpolator.EASE_OUT),
+                new KeyValue(node.scaleYProperty(), 1.06, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(330),
+                new KeyValue(node.scaleXProperty(), 0.98, Interpolator.EASE_BOTH),
+                new KeyValue(node.scaleYProperty(), 0.98, Interpolator.EASE_BOTH)),
+            new KeyFrame(Duration.millis(420),
+                new KeyValue(node.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                new KeyValue(node.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+        );
+        new ParallelTransition(fade, spring).play();
+    }
+
+    /** Slide out to the right while fading; calls {@code after} when done. */
+    public static void slideOutRight(Node node, int durationMs, Runnable after) {
+        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
+        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
+        fade.setToValue(0);
+        fade.setInterpolator(Interpolator.EASE_IN);
+        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
+        slide.setToX(SLIDE_H_OFFSET);
+        slide.setInterpolator(Interpolator.EASE_IN);
+        ParallelTransition pt = new ParallelTransition(fade, slide);
+        if (after != null) pt.setOnFinished(e -> after.run());
+        pt.play();
+    }
+
+    /** Slide out to the left while fading; calls {@code after} when done. */
+    public static void slideOutLeft(Node node, int durationMs, Runnable after) {
+        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
+        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
+        fade.setToValue(0);
+        fade.setInterpolator(Interpolator.EASE_IN);
+        TranslateTransition slide = new TranslateTransition(Duration.millis(durationMs), node);
+        slide.setToX(-SLIDE_H_OFFSET);
+        slide.setInterpolator(Interpolator.EASE_IN);
+        ParallelTransition pt = new ParallelTransition(fade, slide);
+        if (after != null) pt.setOnFinished(e -> after.run());
+        pt.play();
+    }
 
     /** Fade a node out; calls {@code after} on the FX thread when done. */
     public static void fadeOut(Node node, int durationMs, Runnable after) {
@@ -126,6 +333,11 @@ public final class AnimationUtils {
             e -> node.getStyleClass().remove(cssClass))).play();
     }
 
+    /**
+     * Staggered fade-in + slide-up for visible table rows after data loads.
+     * Must be called on the FX thread; uses Platform.runLater to wait one
+     * pulse so JavaFX finishes laying out the new rows before we animate them.
+     */
     /** Builds a pulsing skeleton placeholder, sets it on the table, and returns
      *  the Timeline so the caller can stop it when real data arrives. */
     public static javafx.animation.Timeline buildSkeletonPlaceholder(
@@ -151,6 +363,44 @@ public final class AnimationUtils {
         if (enabled) pulse.play(); else box.setOpacity(0.55);
         table.setPlaceholder(box);
         return pulse;
+    }
+
+    public static <T> void staggerTableRows(TableView<T> table) {
+        Platform.runLater(() -> {
+            var allRowCells = table.lookupAll(".table-row-cell").stream()
+                .filter(n -> n instanceof TableRow<?>)
+                .map(n -> (TableRow<?>) n)
+                .toList();
+            // TableView recycles TableRow nodes as data reloads/pagination/filtering
+            // happen — a row's opacity/translateY from a PREVIOUS stagger call stays
+            // on that Node even after it's reused to display different data, since
+            // TableRow.updateItem() only refreshes cell content, not these Node-level
+            // effects. If that previous fade got interrupted (another reload firing
+            // mid-animation) or the row fell outside this run's limit/isEmpty filter
+            // below, it's left permanently faded. Unconditionally resetting every
+            // realized row first guarantees none can ever get stuck that way.
+            for (TableRow<?> row : allRowCells) { row.setOpacity(1); row.setTranslateY(0); }
+            if (!enabled) return;
+            var rows = allRowCells.stream()
+                .filter(r -> !r.isEmpty())
+                .sorted(Comparator.comparingDouble(Node::getLayoutY))
+                .limit(MAX_STAGGER_ROWS)
+                .toList();
+            for (int i = 0; i < rows.size(); i++) {
+                Node row = rows.get(i);
+                row.setOpacity(0);
+                row.setTranslateY(10);
+                int delay = i * 22;
+                FadeTransition ft = new FadeTransition(Duration.millis(200), row);
+                ft.setFromValue(0); ft.setToValue(1); ft.setDelay(Duration.millis(delay));
+                TranslateTransition tt = new TranslateTransition(Duration.millis(200), row);
+                tt.setFromY(10); tt.setToY(0); tt.setDelay(Duration.millis(delay));
+                tt.setInterpolator(Interpolator.EASE_OUT);
+                ParallelTransition pt = new ParallelTransition(ft, tt);
+                pt.setOnFinished(e -> { row.setOpacity(1); row.setTranslateY(0); });
+                pt.play();
+            }
+        });
     }
 
     // ── helpers ──────────────────────────────────────────────────

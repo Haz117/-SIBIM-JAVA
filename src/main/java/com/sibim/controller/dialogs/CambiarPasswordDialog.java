@@ -19,6 +19,7 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -107,6 +108,7 @@ public final class CambiarPasswordDialog {
             errorLbl);
         form.setPadding(new Insets(18, 22, 20, 22));
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, form), 260, 70);
         dialog.getDialogPane().setContent(new VBox(header, form));
 
         Node guardarBtn = dialog.getDialogPane().lookupButton(btnGuardar);
@@ -255,6 +257,7 @@ public final class CambiarPasswordDialog {
             errorLbl);
         form.setPadding(new Insets(18, 22, 20, 22));
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, form), 260, 70);
         dialog.getDialogPane().setContent(new VBox(header, form));
 
         Node guardarBtn = dialog.getDialogPane().lookupButton(btnGuardar);

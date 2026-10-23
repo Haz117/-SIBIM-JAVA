@@ -7,6 +7,7 @@ import com.sibim.service.ComodatoService;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
 import com.sibim.session.NavigationContext;
+import com.sibim.session.SessionManager;
 import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
@@ -170,10 +171,12 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         long vigentes   = list.stream().filter(c -> Comodato.ESTADO_VIGENTE.equals(c.getEstado()) && !c.isVencido()).count();
         long vencidos   = list.stream().filter(c -> Comodato.ESTADO_VENCIDO.equals(c.getEstado()) || c.isVencido()).count();
         long concluidos = list.stream().filter(c -> Comodato.ESTADO_CONCLUIDO.equals(c.getEstado())).count();
-        lblStatVigentes.setText(String.valueOf(vigentes));
-        lblStatVencidos.setText(String.valueOf(vencidos));
-        lblStatConcluidos.setText(String.valueOf(concluidos));
-        lblStatTotal.setText(String.valueOf((long) list.size()));
+        AnimationUtils.animateCount(lblStatVigentes,   vigentes,           700);
+        AnimationUtils.animateCount(lblStatVencidos,   vencidos,           700);
+        AnimationUtils.animateCount(lblStatConcluidos, concluidos,         700);
+        AnimationUtils.animateCount(lblStatTotal,      (long) list.size(), 700);
+        AnimationUtils.staggeredFadeInUp(
+            List.of(statCardVigentes, statCardVencidos, statCardConcluidos, statCardTotal), 280, 55);
     }
 
     @Override
@@ -300,13 +303,13 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
     private void mostrarDialogoNuevo(List<Producto> productos, javafx.scene.Scene scene) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Nuevo comodato");
+        dialog.setTitle("Nuevo Comodato");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialog.getDialogPane().setPrefWidth(640);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
-            "Nuevo comodato",
+            "Nuevo Comodato",
             "Registra el préstamo formal de un bien a una entidad externa",
             AppColors.DEEP_PURPLE, AppColors.PURPLE);
 
@@ -384,6 +387,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         okBtn.setText("Registrar comodato");
         okBtn.getStyleClass().add("dialog-ok-btn");
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, form), 280, 70);
         Platform.runLater(productoCombo::requestFocus);
 
         okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
@@ -539,7 +543,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         }
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
-            "Comodato " + c.getNumero(), c.getProductoNombre(), AppColors.DEEP_PURPLE, AppColors.PRIMARY_D);
+            "Comodato " + c.getNumero(), c.getProductoNombre(), "#4A1016", "#891D26");
         DialogUtil.addCopyButton(header, c.getNumero());
 
         GridPane g = DialogUtil.formGrid(170);
@@ -568,6 +572,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
         VBox content = new VBox(0, header, g);
         g.setPadding(new Insets(16, 22, 16, 22));
         dialog.getDialogPane().setContent(content);
+        AnimationUtils.staggeredFadeInUp(List.of(header, g), 260, 70);
         dialog.showAndWait();
     }
 }

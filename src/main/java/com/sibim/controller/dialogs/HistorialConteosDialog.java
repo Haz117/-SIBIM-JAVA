@@ -4,6 +4,7 @@ import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.repository.ConteoRepository;
 import com.sibim.service.ReporteConteoService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.DialogUtil;
@@ -48,7 +49,7 @@ public final class HistorialConteosDialog {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline",
-            "Historial de conteos físicos",
+            "Historial de Conteos Físicos",
             "Registro de todos los levantamientos de inventario realizados",
             AppColors.CYAN, AppColors.CYAN_D);
 
@@ -95,6 +96,7 @@ public final class HistorialConteosDialog {
                     listBox.getChildren().add(buildRow(c, scene, dialog));
                 }
                 scroll.setContent(listBox);
+                AnimationUtils.staggeredFadeInUp(listBox.getChildren(), 200, 45);
             });
         });
 
@@ -239,6 +241,7 @@ public final class HistorialConteosDialog {
                     list.getChildren().add(empty);
                 }
                 scroll.setContent(list);
+                AnimationUtils.staggeredFadeInUp(list.getChildren(), 180, 30);
             });
         });
 

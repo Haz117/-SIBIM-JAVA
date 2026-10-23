@@ -18,11 +18,15 @@ import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.Node;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +38,10 @@ public class SplashController {
 
     @FXML private StackPane splashRoot;
     @FXML private VBox splashContent;
+    @FXML private StackPane markWrap;
+    @FXML private Region logoPulse;
+    @FXML private Region logoPulse2;
+    @FXML private Region splashSep;
     @FXML private StackPane logoBadge;
     @FXML private Label lblTitle;
     @FXML private Label lblSubtitle;
@@ -46,6 +54,7 @@ public class SplashController {
     private static final double LOGO_SIZE = 68;
 
     private Timeline dotAnim;
+    private final List<Animation> pulseAnims = new ArrayList<>();
     private boolean finishing     = false;
     private boolean animReady     = false;
     private boolean dbReady       = false;
@@ -60,9 +69,10 @@ public class SplashController {
     static boolean isDbInitFinished() { return dbInitFinished; }
 
     /**
-     * The window fades in, the bar fills non-linearly and the status line names each
-     * startup phase. The badge's spring, the staggered rise and the "sonar" rings were
-     * taken out (decorative, see AnimationUtils).
+     * Entrance: window fades in, badge springs in (0.78→1.06→1.0 overshoot), then wordmark,
+     * subtitle, separator and progress box rise in staggered. Two sonar rings breathe out from
+     * the badge. Bar fills non-linearly and status text crossfades through startup phases.
+     * With animations disabled everything simply shows at once.
      */
     @FXML
     public void initialize() {
@@ -74,6 +84,14 @@ public class SplashController {
         FadeTransition rootFade = new FadeTransition(Duration.millis(300), splashRoot);
         rootFade.setFromValue(0); rootFade.setToValue(1);
         rootFade.setInterpolator(Interpolator.EASE_OUT);
+
+        revealSpring(markWrap,   80);
+        reveal(lblTitle,        280, 8, 1);
+        reveal(lblSubtitle,     370, 8, 1);
+        reveal(splashSep,       460, 0, 1);
+        reveal(progressBox,     500, 8, 1);
+        reveal(lblOrg,          640, 0, 1);
+        reveal(lblVersion,      640, 0, 1);
 
         // Non-linear fill; stops at 88 % so the bar never falsely reaches 100 % before the DB is ready
         Timeline progressAnim = new Timeline(
@@ -93,6 +111,8 @@ public class SplashController {
         );
         statusAnim.setDelay(Duration.millis(500));
 
+        startPulse();
+
         PauseTransition hold = new PauseTransition(Duration.millis(300));
         hold.setOnFinished(e -> {
             animReady = true;
@@ -106,6 +126,73 @@ public class SplashController {
         ParallelTransition entrance = new ParallelTransition(rootFade, progressAnim, statusAnim);
         entrance.setOnFinished(e -> hold.play());
         entrance.play();
+    }
+
+    /** Fade a node in with an optional rise after {@code delayMs}. */
+    private static void reveal(Node node, int delayMs, double riseFrom, double scaleFrom) {
+        if (node == null) return;
+        if (!AnimationUtils.isEnabled()) return;
+        node.setOpacity(0);
+        node.setTranslateY(riseFrom);
+        node.setScaleX(scaleFrom); node.setScaleY(scaleFrom);
+        FadeTransition fade = new FadeTransition(Duration.millis(420), node);
+        fade.setFromValue(0); fade.setToValue(1);
+        fade.setInterpolator(Interpolator.EASE_OUT);
+        ParallelTransition in = new ParallelTransition(fade);
+        if (riseFrom != 0) {
+            TranslateTransition rise = new TranslateTransition(Duration.millis(420), node);
+            rise.setFromY(riseFrom); rise.setToY(0);
+            rise.setInterpolator(Interpolator.EASE_OUT);
+            in.getChildren().add(rise);
+        }
+        in.setDelay(Duration.millis(delayMs));
+        in.play();
+    }
+
+    /** Scale-spring entrance for the badge: grows slightly past 1.0 then settles, like a physical object dropping in. */
+    private static void revealSpring(Node node, int delayMs) {
+        if (node == null) return;
+        if (!AnimationUtils.isEnabled()) return;
+        node.setOpacity(0);
+        node.setScaleX(0.78); node.setScaleY(0.78);
+        FadeTransition fade = new FadeTransition(Duration.millis(380), node);
+        fade.setFromValue(0); fade.setToValue(1);
+        fade.setInterpolator(Interpolator.EASE_OUT);
+        Timeline spring = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(node.scaleXProperty(), 0.78),
+                new KeyValue(node.scaleYProperty(), 0.78)),
+            new KeyFrame(Duration.millis(430),
+                new KeyValue(node.scaleXProperty(), 1.07, Interpolator.EASE_OUT),
+                new KeyValue(node.scaleYProperty(), 1.07, Interpolator.EASE_OUT)),
+            new KeyFrame(Duration.millis(570),
+                new KeyValue(node.scaleXProperty(), 1.0, Interpolator.EASE_IN),
+                new KeyValue(node.scaleYProperty(), 1.0, Interpolator.EASE_IN))
+        );
+        ParallelTransition in = new ParallelTransition(fade, spring);
+        in.setDelay(Duration.millis(delayMs));
+        in.play();
+    }
+
+    /** Two sonar rings expand and fade from the badge; the second is offset 900 ms for a ripple feel. */
+    private void startPulse() {
+        if (!AnimationUtils.isEnabled()) return;
+        if (logoPulse  != null) pulseAnims.add(buildRing(logoPulse,  800,    0));
+        if (logoPulse2 != null) pulseAnims.add(buildRing(logoPulse2, 800, 900));
+    }
+
+    private static Animation buildRing(Region ring, int durationMs, int delayMs) {
+        ScaleTransition grow = new ScaleTransition(Duration.millis(durationMs), ring);
+        grow.setFromX(1); grow.setFromY(1); grow.setToX(2.2); grow.setToY(2.2);
+        grow.setInterpolator(Interpolator.EASE_OUT);
+        FadeTransition fade = new FadeTransition(Duration.millis(durationMs), ring);
+        fade.setFromValue(0.50); fade.setToValue(0);
+        fade.setInterpolator(Interpolator.EASE_OUT);
+        ParallelTransition anim = new ParallelTransition(grow, fade);
+        anim.setDelay(Duration.millis(delayMs));
+        anim.setCycleCount(Animation.INDEFINITE);
+        anim.play();
+        return anim;
     }
 
     /** Swap the status line with a quick crossfade instead of a hard text change. */
@@ -137,6 +224,10 @@ public class SplashController {
 
     private void stopLoops() {
         if (dotAnim != null) { dotAnim.stop(); dotAnim = null; }
+        for (Animation a : pulseAnims) a.stop();
+        pulseAnims.clear();
+        if (logoPulse  != null) logoPulse.setOpacity(0);
+        if (logoPulse2 != null) logoPulse2.setOpacity(0);
     }
 
     /** Once both the intro and the database are done: close the bar to 100 %, say "Listo", beat, continue. */

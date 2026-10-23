@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.model.Movimiento;
 import com.sibim.service.MovimientoService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -104,6 +105,7 @@ class PorRecibirDialog {
         scroll.setPrefHeight(400);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }

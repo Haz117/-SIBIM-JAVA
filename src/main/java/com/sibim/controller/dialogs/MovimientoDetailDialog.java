@@ -5,6 +5,7 @@ import com.sibim.model.Producto;
 import com.sibim.model.enums.TipoMovimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.session.SessionManager;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
@@ -181,6 +182,7 @@ public final class MovimientoDetailDialog {
         }
 
         VBox content = new VBox(0, header, grid, footer);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid, footer), 260, 70);
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
     }

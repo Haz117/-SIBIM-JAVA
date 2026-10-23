@@ -9,7 +9,7 @@
 }
 .kanban-col-teal   { -fx-border-color: #235B4E; -fx-border-width: 0 0 0 4; }
 .kanban-col-amber  { -fx-border-color: sibim-amber; -fx-border-width: 0 0 0 4; }
-.kanban-col-indigo { -fx-border-color: sibim-marca-dark; -fx-border-width: 0 0 0 4; }
+.kanban-col-indigo { -fx-border-color: sibim-indigo-dark; -fx-border-width: 0 0 0 4; }
 .kanban-col-title  { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; }
 .kanban-col-count  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; -fx-font-weight: bold; }
 .kanban-col-icon   { -fx-icon-size: 14; -fx-icon-color: sibim-slate-500; }
@@ -30,6 +30,6 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 10, 0, 0, 3);
 }
 .kanban-card-title  { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
-.kanban-card-folio  { -fx-font-size: 11px; -fx-text-fill: sibim-marca-dark; -fx-font-weight: bold; }
+.kanban-card-folio  { -fx-font-size: 11px; -fx-text-fill: sibim-indigo-dark; -fx-font-weight: bold; }
 .kanban-card-meta   { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 .kanban-card-overdue { -fx-text-fill: sibim-red; -fx-font-weight: bold; }

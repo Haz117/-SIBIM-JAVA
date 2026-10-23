@@ -12,6 +12,7 @@ import com.sibim.service.ReporteEntregaRecepcionService;
 import com.sibim.service.ReporteOrganigramaService;
 import com.sibim.service.ResguardoService;
 import com.sibim.util.AccessibilityUtils;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -49,8 +50,13 @@ public class OrganigramaController {
     @FXML private VBox  statCardAreas;
     @FXML private VBox  statCardBienes;
     @FXML private VBox  statCardTop;
+    @FXML private Label helpAreas;
+    @FXML private Label helpBienes;
+    @FXML private Label helpTopArea;
     @FXML private VBox  statCardValor;
     @FXML private Label lblStatValor;
+    @FXML private Label helpValor;
+    @FXML private Label helpResumen;
     @FXML private VBox  areaDistribCard;
     @FXML private VBox  areaDistribBox;
     @FXML private VBox  resumenBox;
@@ -127,6 +133,9 @@ public class OrganigramaController {
         dataLoader = new OrganigramaDataLoader(productoService, resguardoService, prestamoService, comodatoService, log);
         dialogs    = new OrganigramaDialogs(movimientoService, reporteService, entregaService, log);
 
+        for (Label badge : new Label[]{ helpAreas, helpBienes, helpTopArea, helpValor, helpResumen }) {
+            if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
+        }
         if (btnToggleResumen != null && resumenBox != null)
             DialogUtil.makeCollapsible("organigrama.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
@@ -148,6 +157,8 @@ public class OrganigramaController {
             btnClearSearch.setOnAction(e -> { searchField.clear(); STICKY.put("search", ""); searchField.requestFocus(); });
         }
         loadData(false);
+        AnimationUtils.staggeredFadeInUp(
+            List.of(statCardAreas, statCardBienes, statCardTop, statCardValor), 300, 55);
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
 
         searchField.sceneProperty().addListener((obs, old, scene) -> {
@@ -354,6 +365,7 @@ public class OrganigramaController {
             orgTree.getChildren().add(empty);
         } else {
             orgTree.getChildren().add(flow);
+            AnimationUtils.staggeredFadeInUp(flow.getChildren(), 220, 40);
         }
     }
 
@@ -403,15 +415,23 @@ public class OrganigramaController {
         if (lblStatAreas == null) return;
         Map<String, List<Producto>> rollup = rollupByTopLevelArea();
         int totalBienes = productosPorArea.values().stream().mapToInt(List::size).sum();
-        lblStatAreas.setText(String.valueOf(rollup.size()));
-        lblStatBienes.setText(String.valueOf(totalBienes));
+        AnimationUtils.animateCount(lblStatAreas,  rollup.size(), 650);
+        AnimationUtils.animateCount(lblStatBienes, totalBienes,   800);
 
         java.math.BigDecimal totalValor = productosPorArea.values().stream()
             .flatMap(List::stream)
             .map(Producto::getValorTotal)
             .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
-        if (lblStatValor != null) lblStatValor.setText(com.sibim.session.Permisos.pesos(totalValor));
+        javafx.animation.PauseTransition pop = new javafx.animation.PauseTransition(javafx.util.Duration.millis(820));
+        pop.setOnFinished(e -> {
+            if (statCardAreas  != null) AnimationUtils.statCardPop(statCardAreas);
+            if (statCardBienes != null) AnimationUtils.statCardPop(statCardBienes);
+            if (statCardTop    != null) AnimationUtils.statCardPop(statCardTop);
+            if (statCardValor  != null) AnimationUtils.statCardPop(statCardValor);
+            if (lblStatValor   != null) lblStatValor.setText(com.sibim.session.Permisos.pesos(totalValor));
+        });
+        pop.play();
 
         rollup.entrySet().stream()
             .max(Comparator.comparingInt(e -> e.getValue().size()))
@@ -474,18 +494,35 @@ public class OrganigramaController {
             nameLbl.setMinWidth(120);
             nameLbl.setMaxWidth(180);
 
-            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(maxCount > 0 ? (double) count / maxCount : 0);
+            javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);
             pb.getStyleClass().addAll("area-bar-pb", DISTRIB_COLORS[i]);
             pb.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(pb, Priority.ALWAYS);
 
-            Label countLbl = new Label(FormatUtils.plural(count, "bien", "bienes"));
+            Label countLbl = new Label("0 bienes");
             countLbl.getStyleClass().add("area-bar-count");
             countLbl.setMinWidth(70);
 
             HBox row = new HBox(10, nameLbl, pb, countLbl);
             row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             areaDistribBox.getChildren().add(row);
+
+            double target = maxCount > 0 ? (double) count / maxCount : 0;
+            long countL = count;
+            int delay = 300 + i * 90;
+            javafx.animation.PauseTransition wait =
+                new javafx.animation.PauseTransition(javafx.util.Duration.millis(delay));
+            wait.setOnFinished(ev -> {
+                javafx.animation.Timeline anim = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                        new javafx.animation.KeyValue(pb.progressProperty(), 0)),
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
+                        new javafx.animation.KeyValue(pb.progressProperty(), target,
+                            javafx.animation.Interpolator.EASE_OUT)));
+                com.sibim.util.AnimationUtils.reproducir(anim);
+                AnimationUtils.animateCount(countLbl, countL, 750, v -> FormatUtils.plural(v, "bien", "bienes"));
+            });
+            wait.play();
         }
     }
 
@@ -717,13 +754,14 @@ public class OrganigramaController {
             totalCount(rows.stream().mapToInt(AreaRow::comodatos).sum(), "comodato", "comodatos"));
         totals.getStyleClass().add("org-table-totals");
         totals.setAlignment(Pos.CENTER_LEFT);
-        Label lblTotal = new Label("Total");
+        Label lblTotal = new Label("TOTAL");
         lblTotal.getStyleClass().add("org-table-totals-title");
         totals.getChildren().add(0, lblTotal);
 
         VBox wrap = new VBox(table, totals);
         wrap.getStyleClass().add("org-table-wrap");
         orgTree.getChildren().add(wrap);
+        AnimationUtils.staggeredFadeInUp(List.of(wrap), 280, 0);
     }
 
     private static final double ORG_TABLE_ROW = 54;

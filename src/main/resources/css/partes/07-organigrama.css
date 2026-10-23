@@ -2,9 +2,9 @@
    ORGANIGRAMA IMPROVEMENTS
    ═══════════════════════════════════════════════════════════════════ */
 .org-area-count {
-    -fx-background-color: sibim-marca-50;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-padding: 2 10;
@@ -13,8 +13,8 @@
     -fx-cursor: hand;
 }
 .org-area-count-clickable:hover {
-    -fx-background-color: sibim-marca-200;
-    -fx-text-fill: sibim-marca-900;
+    -fx-background-color: sibim-indigo-200;
+    -fx-text-fill: sibim-indigo-900;
 }
 .org-area-name {
     -fx-text-fill: sibim-slate-950;
@@ -22,7 +22,7 @@
     -fx-font-weight: bold;
 }
 .org-my-area-badge {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
     -fx-text-fill: white;
     -fx-padding: 2 8;
     -fx-background-radius: 99;
@@ -51,7 +51,7 @@
 }
 .org-resguardo-badge {
     -fx-background-color: #F3EAD8;
-    -fx-text-fill: sibim-dorado-dark;
+    -fx-text-fill: sibim-violet-dark;
     -fx-border-color: #DCC8A6;
     -fx-border-width: 1;
     -fx-background-radius: 99;
@@ -109,17 +109,17 @@
     -fx-max-width: 360;
 }
 .org-card-view-card:hover {
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
     -fx-translate-y: -3;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 18, 0, 0, 6);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 18, 0, 0, 6);
 }
 .org-product-code {
-    -fx-text-fill: sibim-marca-dark;
+    -fx-text-fill: sibim-indigo-dark;
     -fx-font-family: monospace;
     -fx-font-size: 11px;
 }
 .org-more-link {
-    -fx-text-fill: sibim-marca-dark;
+    -fx-text-fill: sibim-indigo-dark;
     -fx-font-size: 12px;
     -fx-padding: 3 0 5 20;
     -fx-cursor: hand;
@@ -128,7 +128,7 @@
     -fx-background-color: transparent;
 }
 .org-more-link:hover {
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-underline: true;
 }
 .org-product-row {
@@ -163,7 +163,7 @@
 
 /* Organigrama — programmatically-built node styles */
 .org-section-icon-badge {
-    -fx-background-color: sibim-marca-50;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
     -fx-min-width: 28; -fx-min-height: 28;
     -fx-max-width: 28; -fx-max-height: 28;
@@ -176,11 +176,11 @@
 .org-child-card {
     -fx-background-color: #FAFAFB;
     -fx-background-radius: 8;
-    -fx-border-color: sibim-slate-200 sibim-slate-200 sibim-slate-200 sibim-marca-300;
+    -fx-border-color: sibim-slate-200 sibim-slate-200 sibim-slate-200 sibim-indigo-300;
     -fx-border-width: 0 1 1 3;
     -fx-border-radius: 8;
 }
-.org-child-card-myarea { -fx-border-color: #F2BCC0 #F2BCC0 #F2BCC0 sibim-marca; }
+.org-child-card-myarea { -fx-border-color: #F2BCC0 #F2BCC0 #F2BCC0 sibim-indigo; }
 
 /* Child count badge "my area" override */
 .org-area-count-myarea { -fx-background-color: #F9DEE0; -fx-text-fill: #6F1820; }
@@ -198,8 +198,8 @@
     -fx-padding: 12 16;
 }
 .org-titled-section:expanded > .title {
-    -fx-background-color: sibim-marca-50;
-    -fx-border-color: sibim-marca-200;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #FCF0F1, #FDF4F5);
+    -fx-border-color: sibim-indigo-200;
     -fx-border-radius: 12 12 0 0;
     -fx-background-radius: 12 12 0 0;
 }
@@ -208,11 +208,11 @@
     -fx-padding: 0 6 0 0;
 }
 .org-titled-section > .title > .arrow-button > .arrow {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
 }
 .org-titled-section > .content {
     -fx-background-color: white;
-    -fx-border-color: sibim-marca-200;
+    -fx-border-color: sibim-indigo-200;
     -fx-border-radius: 0 0 12 12;
     -fx-background-radius: 0 0 12 12;
     -fx-border-width: 0 1 1 1;
@@ -236,7 +236,7 @@
 
 /* Inner product list separator */
 .org-products-inner-box {
-    -fx-border-color: sibim-marca-50 transparent transparent transparent;
+    -fx-border-color: sibim-indigo-50 transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
 }
 
@@ -258,10 +258,10 @@
 .org-table .table-cell.col-num {
     -fx-alignment: CENTER-RIGHT;
     -fx-font-weight: bold;
-    -fx-text-fill: sibim-marca-900;
+    -fx-text-fill: sibim-indigo-900;
 }
 .org-table .table-cell.col-center { -fx-alignment: CENTER; }
-.org-table-area { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-marca-900; }
+.org-table-area { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-900; }
 .org-table-sub  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
 .org-table-num  { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-gray-700; }
 .org-table-track {
@@ -271,7 +271,7 @@
     -fx-max-width: 90;
 }
 .org-table-fill {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: linear-gradient(to right, #A2232D, #6F1820);
     -fx-background-radius: 99;
     -fx-min-height: 6; -fx-pref-height: 6; -fx-max-height: 6;
 }
@@ -283,7 +283,7 @@
     -fx-border-width: 1 0 0 0;
 }
 .org-table-totals-title   { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #6F1820; }
-.org-table-totals-value   { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-marca-900; }
+.org-table-totals-value   { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-900; }
 .org-table-totals-caption { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 
 /* ── Tablero "Acomodar" (arrastrar direcciones entre áreas) ─────── */
@@ -300,7 +300,7 @@
 }
 .org-acomodo-col-drop {
     -fx-background-color: #FCF0F1;
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
     -fx-border-style: dashed;
 }
 .org-acomodo-ficha {
@@ -313,7 +313,7 @@
 }
 .org-acomodo-ficha:hover {
     -fx-background-color: #FBEFF0;
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
 }
 .org-acomodo-ficha-arrastrando { -fx-opacity: 0.4; }
 .org-acomodo-asa { -fx-icon-color: sibim-slate-500; }
@@ -326,8 +326,8 @@
 .org-acomodar-btn { -fx-text-fill: sibim-gray-700; }
 .org-acomodar-btn .btn-icon { -fx-icon-color: sibim-gray-700; }
 .org-acomodar-btn:selected {
-    -fx-background-color: sibim-marca-darker;
-    -fx-border-color: sibim-marca-darker;
+    -fx-background-color: sibim-indigo-darker;
+    -fx-border-color: sibim-indigo-darker;
     -fx-text-fill: white;
 }
 .org-acomodar-btn:selected .btn-icon { -fx-icon-color: white; }

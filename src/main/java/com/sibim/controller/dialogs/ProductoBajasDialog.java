@@ -156,7 +156,7 @@ public final class ProductoBajasDialog {
         dialog.getDialogPane().setPrefWidth(640);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2d-delete-circle-outline", "Bienes dados de baja",
+        HBox header = DialogUtil.gradientHeader("mdi2d-delete-circle-outline", "Bienes Dados de Baja",
             "Fuera del inventario activo — su historial se conserva",
             AppColors.DANGER, AppColors.DANGER_D);
 
@@ -220,6 +220,9 @@ public final class ProductoBajasDialog {
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(360);
         scroll.getStyleClass().add("dlg-tabs-scroll");
+
+        if (!rows.isEmpty())
+            AnimationUtils.staggeredFadeInUp(new ArrayList<>(rows), 240, 40);
 
         // ── export bar ───────────────────────────────────────────────────────
         Label lblCount = new Label(bajas.size() + (bajas.size() == 1 ? " bien" : " bienes"));

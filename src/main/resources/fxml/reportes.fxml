@@ -13,11 +13,11 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon">
+        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
             <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Reportes y exportaciones" styleClass="page-title"/>
+            <Label text="Reportes y Exportaciones" styleClass="page-title"/>
             <Label fx:id="lblSubtitulo" text="Listados y formatos oficiales en PDF, Excel y CSV" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
@@ -73,7 +73,8 @@
          ReportesController#construirReportes y las dibuja ReporteFila.
          ══════════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Label text="Listados" styleClass="dash-section-label"/>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="LISTADOS" styleClass="dash-section-label"/>
         <Label fx:id="helpTiposReporte" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="PDF: para imprimir o compartir tal cual. Excel: para seguir analizando o editando los datos. CSV: para importar a otro sistema. Solo los reportes que muestran la etiqueta de período se limitan a las fechas elegidas arriba; los demás incluyen siempre todo." wrapText="true" maxWidth="300"/></tooltip>
         </Label>
@@ -81,12 +82,14 @@
     <VBox fx:id="listaListados" styleClass="report-list"/>
 
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Label text="Formatos oficiales" styleClass="dash-section-label"/>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="FORMATOS OFICIALES" styleClass="dash-section-label"/>
     </HBox>
     <VBox fx:id="listaFormatos" styleClass="report-list"/>
 
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Label text="Gráficas del período" styleClass="dash-section-label"/>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="GRÁFICAS DEL PERÍODO" styleClass="dash-section-label"/>
     </HBox>
 
     <!-- ══ GRÁFICA BIENES POR ÁREA ══════════════════════════════════════ -->

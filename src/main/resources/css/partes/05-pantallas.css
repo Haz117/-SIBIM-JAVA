@@ -3,8 +3,8 @@
    ═══════════════════════════════════════════════════════════════════ */
 /* Informative, not alarming: counts that need a look, in the app's own color. */
 .alert-banner {
-    -fx-background-color: sibim-marca-50;
-    -fx-border-color: sibim-marca-dark;
+    -fx-background-color: sibim-indigo-50;
+    -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 0 0 0 4;
     -fx-background-radius: 0 10 10 0;
     -fx-border-radius: 0 10 10 0;
@@ -24,22 +24,22 @@
 .axis-label { -fx-text-fill: sibim-slate-500; -fx-font-size: 11px; }
 .axis       { -fx-tick-label-fill: sibim-slate-500; -fx-font-size: 11px; }
 /* Line chart series */
-.default-color0.chart-series-line { -fx-stroke: sibim-marca; -fx-stroke-width: 2.5px; }
-.default-color0.chart-line-symbol { -fx-background-color: sibim-marca, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+.default-color0.chart-series-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
+.default-color0.chart-line-symbol { -fx-background-color: sibim-indigo, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 .default-color1.chart-series-line { -fx-stroke: #235B4E; -fx-stroke-width: 2.5px; }
 .default-color1.chart-line-symbol { -fx-background-color: #235B4E, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 /* Area chart trend (Entradas = indigo, Salidas = rose) */
-.default-color0.chart-series-area-line { -fx-stroke: sibim-marca; -fx-stroke-width: 2.5px; }
+.default-color0.chart-series-area-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
 .default-color0.chart-series-area-fill { -fx-fill: rgba(162,35,45,0.14); }
-.default-color0.chart-area-symbol { -fx-background-color: sibim-marca, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+.default-color0.chart-area-symbol { -fx-background-color: sibim-indigo, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 .default-color1.chart-series-area-line { -fx-stroke: #E11D48; -fx-stroke-width: 2.5px; }
 .default-color1.chart-series-area-fill { -fx-fill: rgba(225,29,72,0.10); }
 .default-color1.chart-area-symbol { -fx-background-color: #E11D48, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 /* Pie chart — up to 8 categories using the design system palette */
-.default-color0.chart-pie { -fx-pie-color: sibim-marca; }
+.default-color0.chart-pie { -fx-pie-color: sibim-indigo; }
 .default-color1.chart-pie { -fx-pie-color: #235B4E; }
 .default-color2.chart-pie { -fx-pie-color: sibim-amber; }
-.default-color3.chart-pie { -fx-pie-color: sibim-dorado; }
+.default-color3.chart-pie { -fx-pie-color: sibim-violet; }
 .default-color4.chart-pie { -fx-pie-color: sibim-green; }
 .default-color5.chart-pie { -fx-pie-color: #E11D48; }
 .default-color6.chart-pie { -fx-pie-color: #235B4E; }
@@ -54,17 +54,17 @@
 /* The summary cards are the tabs of the screen: the chosen one is outlined. */
 .alert-tab { -fx-cursor: hand; }
 .alert-tab:selected {
-    -fx-background-color: sibim-marca-50;
-    -fx-border-color: sibim-marca;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 12, 0, 0, 3);
+    -fx-background-color: sibim-indigo-50;
+    -fx-border-color: sibim-indigo;
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.30), 12, 0, 0, 3);
 }
-.alert-tab:focused { -fx-border-color: sibim-marca-300; }
-.alert-tab:selected:focused { -fx-border-color: sibim-marca-dark; }
+.alert-tab:focused { -fx-border-color: sibim-indigo-300; }
+.alert-tab:selected:focused { -fx-border-color: sibim-indigo-dark; }
 /* One panel with the table of the chosen category. */
 .alert-panel {
     -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
     -fx-border-color: sibim-slate-200;
     -fx-border-width: 1;
     -fx-padding: 16 18 18 18;
@@ -77,7 +77,7 @@
 /* One white card per group of reports; each report is a row inside it. */
 .report-list {
     -fx-background-color: white;
-    -fx-background-radius: 12;
+    -fx-background-radius: 16;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 18, 0, 0, 5);
 }
 .report-row {
@@ -94,15 +94,15 @@
     -fx-background-radius: 999;
 }
 .report-icon-badge .report-icon { -fx-icon-size: 19; -fx-icon-color: white; -fx-padding: 0; }
-.report-icon-badge-indigo { -fx-background-color: sibim-marca; }
+.report-icon-badge-indigo { -fx-background-color: sibim-indigo; }
 .report-icon-badge-red    { -fx-background-color: #A2232F; }
 .report-icon-badge-teal   { -fx-background-color: #235B4E; }
 /* Amber and emerald were the only report icons outside the institutional
    palette: they take the dorado and the verde institucional. */
-.report-icon-badge-amber  { -fx-background-color: sibim-dorado; }
+.report-icon-badge-amber  { -fx-background-color: sibim-violet; }
 .report-icon-badge-green  { -fx-background-color: #235B4E; }
 .report-icon-badge-slate  { -fx-background-color: sibim-slate-600; }
-.report-icon-badge-purple { -fx-background-color: sibim-dorado; }
+.report-icon-badge-purple { -fx-background-color: sibim-violet; }
 .report-title {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
@@ -135,7 +135,7 @@
     -fx-text-fill: sibim-gray-700;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 4, 0, 0, 1);
 }
-.pagination-btn:hover, .btn-page:hover { -fx-background-color: #FBF6F6; -fx-border-color: sibim-marca-300; -fx-text-fill: sibim-marca-darker; }
+.pagination-btn:hover, .btn-page:hover { -fx-background-color: #FBF6F6; -fx-border-color: sibim-indigo-300; -fx-text-fill: sibim-indigo-darker; }
 .pagination-btn:disabled, .btn-page:disabled { -fx-background-color: sibim-surface; -fx-text-fill: sibim-slate-300; -fx-cursor: default; -fx-effect: none; }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -145,15 +145,15 @@
 .titled-pane > .title {
     -fx-background-color: white;
     -fx-background-radius: 10;
-    -fx-border-color: sibim-marca sibim-slate-200 sibim-slate-200 sibim-marca;
+    -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo;
     -fx-border-radius: 10;
     -fx-border-width: 0 1 1 3;
     -fx-padding: 12 16;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 6, 0, 0, 1);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 6, 0, 0, 1);
 }
 .titled-pane > .title:hover {
     -fx-background-color: #FDF4F5;
-    -fx-border-color: #D0606A sibim-marca-300 sibim-marca-300 #D0606A;
+    -fx-border-color: #D0606A sibim-indigo-300 sibim-indigo-300 #D0606A;
 }
 .titled-pane > .title .text { -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; -fx-font-size: 14px; }
 .titled-pane > .content {

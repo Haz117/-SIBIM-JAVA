@@ -2,6 +2,7 @@ package com.sibim.controller.dialogs;
 
 import com.sibim.service.ErroresEquipoService;
 import com.sibim.service.ErroresEquipoService.ErrorEquipo;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -92,6 +93,7 @@ public final class ErroresEquipoDialog {
             pie.setPadding(new Insets(8, 6, 0, 6));
             contenido.getChildren().add(pie);
         }
+        AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(contenido);
         dialog.showAndWait();
     }

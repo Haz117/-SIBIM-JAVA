@@ -2,6 +2,8 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.Rectangle?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <HBox xmlns:fx="http://javafx.com/fxml/1"
@@ -9,7 +11,17 @@
       prefWidth="960" prefHeight="620" styleClass="login-root">
 
     <!-- ── Left: Brand panel ── -->
-    <StackPane styleClass="login-brand" prefWidth="400" minWidth="400">
+    <StackPane fx:id="brandPanel" styleClass="login-brand" prefWidth="400" minWidth="400">
+
+        <!-- Decorative blobs -->
+        <Circle radius="220" styleClass="login-deco-circle-1" StackPane.alignment="BOTTOM_RIGHT"
+                translateX="100" translateY="100"/>
+        <Circle radius="140" styleClass="login-deco-circle-2" StackPane.alignment="TOP_LEFT"
+                translateX="-55" translateY="-55"/>
+        <Circle radius="90"  styleClass="login-deco-circle-3" StackPane.alignment="CENTER"
+                translateX="60" translateY="-80"/>
+        <Circle radius="50"  styleClass="login-deco-circle-4" StackPane.alignment="BOTTOM_LEFT"
+                translateX="30" translateY="-30"/>
 
         <!-- Content -->
         <VBox alignment="CENTER_LEFT" spacing="0" StackPane.alignment="CENTER">
@@ -17,7 +29,7 @@
 
             <!-- Logo badge -->
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="brand-logo-badge" alignment="CENTER">
+                <StackPane fx:id="brandLogoBadge" styleClass="brand-logo-badge" alignment="CENTER">
                     <FontIcon iconLiteral="mdi2p-package-variant" styleClass="brand-logo-icon"/>
                 </StackPane>
                 <VBox spacing="1">
@@ -27,14 +39,29 @@
                 </VBox>
             </HBox>
 
-            <!-- The institution (its configured name, set in LoginController), never an
-                 administration's logo, motto or period: the system outlives them. -->
-            <Label fx:id="lblInstitucion" text="H. Ayuntamiento de Ixmiquilpan"
-                   styleClass="brand-institution" wrapText="true">
-                <VBox.margin><Insets top="22"/></VBox.margin>
-            </Label>
-
             <Region prefHeight="28"/>
+
+            <!-- Feature list -->
+            <VBox fx:id="featureList" spacing="10">
+                <Label text="Inventario patrimonial centralizado" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
+                <Label text="Control por roles y áreas municipales" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
+                <Label text="Alertas de garantías y pendientes" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
+                <Label text="Reportes en PDF y Excel" styleClass="brand-feature"
+                       contentDisplay="LEFT" graphicTextGap="8">
+                    <graphic><FontIcon iconLiteral="mdi2c-check-circle" styleClass="feature-check-icon"/></graphic>
+                </Label>
+            </VBox>
+
+            <Region prefHeight="32"/>
             <Separator styleClass="brand-divider"/>
             <Region prefHeight="20"/>
 
@@ -42,7 +69,7 @@
                  LoginController#initialize); a real deployment against
                  production Postgres has no seeded test accounts to fill. -->
             <VBox fx:id="testAccountsBox" spacing="0">
-                <Label text="Cuentas de prueba" styleClass="brand-hint"/>
+                <Label text="CUENTAS DE PRUEBA" styleClass="brand-hint"/>
                 <Region prefHeight="10"/>
                 <HBox spacing="8" alignment="CENTER_LEFT">
                     <Button text="Admin" onAction="#fillAdmin" styleClass="test-btn">
@@ -60,15 +87,18 @@
     </StackPane>
 
     <!-- ── Right: Form panel ── -->
-    <VBox styleClass="login-form-panel" alignment="CENTER" spacing="0" HBox.hgrow="ALWAYS">
+    <VBox fx:id="formPanel" styleClass="login-form-panel" alignment="CENTER" spacing="0" HBox.hgrow="ALWAYS">
         <padding><Insets top="64" right="64" bottom="64" left="64"/></padding>
 
         <!-- Header -->
-        <Label text="Iniciar sesión" styleClass="login-title" maxWidth="Infinity"/>
+        <VBox fx:id="formHeader" spacing="6">
+            <Label text="Bienvenido de nuevo" styleClass="login-subtitle"/>
+            <Label text="Iniciar sesión" styleClass="login-title"/>
+        </VBox>
         <Region prefHeight="32"/>
 
         <!-- Username -->
-        <VBox spacing="7">
+        <VBox fx:id="usernameBox" spacing="7">
             <Label text="Usuario" styleClass="form-label"/>
             <TextField fx:id="usernameField" promptText="Usuario de tu área"
                        onAction="#handleLogin" styleClass="form-input" maxWidth="Infinity"
@@ -78,7 +108,7 @@
         <Region prefHeight="18"/>
 
         <!-- Password -->
-        <VBox spacing="7">
+        <VBox fx:id="passwordBox" spacing="7">
             <Label text="Contraseña" styleClass="form-label"/>
             <StackPane>
                 <PasswordField fx:id="passwordField"

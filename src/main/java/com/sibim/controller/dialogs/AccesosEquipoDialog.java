@@ -4,6 +4,7 @@ import com.sibim.db.offline.OfflineUserCache;
 import com.sibim.service.AccesosEquipoService;
 import com.sibim.service.AccesosEquipoService.Cuenta;
 import com.sibim.service.AccesosEquipoService.Equipo;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -96,6 +97,7 @@ public final class AccesosEquipoDialog {
         scroll.setPrefHeight(440);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }

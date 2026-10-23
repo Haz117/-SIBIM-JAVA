@@ -134,16 +134,24 @@ class MovimientosColumnSetup {
         ));
     }
 
-    /** New-row flash via pendingHighlightId. Rows are not tinted by type: the
-     *  Tipo pill already says it, and whole rows in green/pink/yellow competed
-     *  with it. */
+    /** Row tints by movement type; new-row flash via pendingHighlightId. */
     static void configureRowFactory(TableView<Movimiento> table, Supplier<String> pendingHighlightId) {
         table.setRowFactory(tv -> new TableRow<>() {
             @Override protected void updateItem(Movimiento m, boolean empty) {
                 super.updateItem(m, empty);
-                getStyleClass().remove("row-new");
-                if (!empty && m != null && m.getId() != null && m.getId().equals(pendingHighlightId.get()))
-                    getStyleClass().add("row-new");
+                getStyleClass().removeAll("row-entrada", "row-salida", "row-ajuste", "row-transferencia", "row-new");
+                if (!empty && m != null) {
+                    String clase = switch (m.getTipo().getEtiqueta()) {
+                        case "Entrada"       -> "row-entrada";
+                        case "Salida"        -> "row-salida";
+                        case "Ajuste"        -> "row-ajuste";
+                        case "Transferencia" -> "row-transferencia";
+                        default              -> null;
+                    };
+                    if (clase != null) getStyleClass().add(clase);
+                    if (m.getId() != null && m.getId().equals(pendingHighlightId.get()))
+                        getStyleClass().add("row-new");
+                }
             }
         });
     }

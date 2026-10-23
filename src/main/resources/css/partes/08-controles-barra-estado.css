@@ -18,7 +18,7 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 18, 0, 0, 6);
 }
 .date-picker-popup > .month-year-pane {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: linear-gradient(to right, sibim-indigo, sibim-indigo-dark);
     -fx-background-radius: 12 12 0 0;
     -fx-border-color: transparent;
     -fx-padding: 10 10 10 10;
@@ -57,7 +57,7 @@
     -fx-background-color: transparent;
 }
 .date-picker-popup > .calendar-grid .day-name-cell {
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-font-weight: bold;
     -fx-font-size: 0.82em;
 }
@@ -70,10 +70,10 @@
 }
 .date-picker-popup > .calendar-grid > .today {
     -fx-background-color: transparent;
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
     -fx-border-width: 1.5;
     -fx-border-radius: 99;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-font-weight: bold;
 }
 .date-picker-popup > .calendar-grid > .selected,
@@ -81,18 +81,18 @@
 .date-picker-popup > .calendar-grid > .previous-month.today.selected,
 .date-picker-popup > .calendar-grid > .next-month.today.selected,
 .date-picker-popup > .calendar-grid > .next-month.selected {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
     -fx-border-color: transparent;
     -fx-background-radius: 99;
     -fx-text-fill: white;
     -fx-font-weight: bold;
 }
 .date-picker-popup > .calendar-grid > .day-cell:hover {
-    -fx-background-color: sibim-marca-50;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
 }
 .date-picker-popup > .calendar-grid > .selected:hover {
-    -fx-background-color: sibim-marca-dark;
+    -fx-background-color: sibim-indigo-dark;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -111,7 +111,7 @@
    ALERT NAV BADGE  — contador de alertas en sidebar
    ═══════════════════════════════════════════════════════════════════ */
 .alert-nav-badge {
-    -fx-background-color: sibim-marca-dark;
+    -fx-background-color: sibim-indigo-dark;
     -fx-text-fill: white;
     -fx-background-radius: 99;
     -fx-font-size: 11px;
@@ -128,7 +128,7 @@
 /* Count on an icon-only header button (e.g. Movimientos "Pendientes" when
    ResponsiveHeader hides its "(N)" label). */
 .btn-count-badge {
-    -fx-background-color: sibim-marca-dark;
+    -fx-background-color: sibim-indigo-dark;
     -fx-text-fill: white;
     -fx-background-radius: 99;
     -fx-font-size: 11px;
@@ -142,7 +142,7 @@
    translate offset (tuned for a wide sidebar nav row, not a small icon-only
    status-bar button where the badge should just sit at its StackPane corner). */
 .notif-bell-badge {
-    -fx-background-color: sibim-marca-dark;
+    -fx-background-color: sibim-indigo-dark;
     -fx-text-fill: white;
     -fx-background-radius: 99;
     -fx-font-size: 11px;
@@ -171,11 +171,11 @@
     -fx-max-height: 36;
 }
 .offline-banner-demo {
-    -fx-background-color: sibim-marca-50;
-    -fx-border-color: transparent transparent sibim-marca-300 transparent;
+    -fx-background-color: sibim-indigo-50;
+    -fx-border-color: transparent transparent sibim-indigo-300 transparent;
 }
-.offline-banner-demo .offline-banner-icon { -fx-icon-color: sibim-marca; }
-.offline-banner-demo .offline-banner-text { -fx-text-fill: sibim-marca-darker; }
+.offline-banner-demo .offline-banner-icon { -fx-icon-color: sibim-indigo; }
+.offline-banner-demo .offline-banner-text { -fx-text-fill: sibim-indigo-darker; }
 .offline-banner-icon {
     -fx-icon-color: sibim-amber;
     -fx-icon-size: 16;
@@ -223,12 +223,13 @@
     -fx-cursor: hand;
 }
 .status-shortcut-hint:hover {
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
 }
-/* Same quiet gray as the rest of the bar (it was guinda, bold, typewriter font) */
 .status-time {
-    -fx-text-fill: sibim-slate-600;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-font-family: monospace;
 }
 .status-dot-ok {
     -fx-text-fill: #15803D;
@@ -271,15 +272,15 @@
 }
 .tab-pane > .tab-header-area > .headers-region > .tab:selected {
     -fx-background-color: white;
-    -fx-border-color: transparent transparent sibim-marca transparent;
+    -fx-border-color: transparent transparent sibim-indigo transparent;
     -fx-border-width: 0 0 2 0;
 }
 .tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-font-weight: bold;
 }
 .tab-pane > .tab-header-area > .headers-region > .tab:hover .tab-label {
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
 }
 .tab-pane > .tab-content-area {
     -fx-background-color: white;
@@ -300,7 +301,7 @@
     -fx-padding: 4 14;
 }
 .btn-secondary:focus-visible {
-    -fx-border-color: sibim-marca-dark;
+    -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 2;
     -fx-border-radius: 12;
     -fx-padding: 6 13;
@@ -335,19 +336,19 @@
 .rich-stat-card-clickable:focused {
     -fx-border-color: #D0606A;
     -fx-border-width: 2;
-    -fx-border-radius: 12;
+    -fx-border-radius: 18;
 }
 .rich-stat-card-clickable:selected:focused {
-    -fx-border-color: sibim-marca-dark;
+    -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 3;
 }
 .alert-banner:focused {
     -fx-background-color: #F9DEE0;
-    -fx-border-color: sibim-marca-dark;
+    -fx-border-color: sibim-indigo-dark;
     -fx-border-width: 2 2 2 4;
 }
 .status-shortcut-hint:focused {
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-underline: true;
 }
 
@@ -367,17 +368,17 @@
 }
 .filter-chip:hover {
     -fx-background-color: #FDF4F5;
-    -fx-border-color: sibim-marca-300;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-border-color: sibim-indigo-300;
+    -fx-text-fill: sibim-indigo-darker;
 }
 .filter-chip:selected {
-    -fx-background-color: sibim-marca;
-    -fx-border-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
+    -fx-border-color: sibim-indigo;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 6, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.30), 6, 0, 0, 2);
 }
-.filter-chip:focused { -fx-border-color: sibim-marca-dark; -fx-border-width: 2; }
+.filter-chip:focused { -fx-border-color: sibim-indigo-dark; -fx-border-width: 2; }
 
 /* Color-coded chip variants — hover and selected states per semantic color */
 .filter-chip-green:hover   { -fx-background-color: #F0FDF4; -fx-border-color: #6EE7B7; -fx-text-fill: sibim-green-dark; }
@@ -387,21 +388,24 @@
 .filter-chip-danger:hover  { -fx-background-color: #FFF8F8; -fx-border-color: #FCA5A5; -fx-text-fill: #991B1B; }
 .filter-chip-danger:selected { -fx-background-color: sibim-red; -fx-border-color: sibim-red; -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.32), 6, 0, 0, 2); }
 .filter-chip-purple:hover  { -fx-background-color: #FBF6EC; -fx-border-color: #DCC8A6; -fx-text-fill: #6E5118; }
-.filter-chip-purple:selected { -fx-background-color: sibim-dorado-dark; -fx-border-color: sibim-dorado-dark; -fx-effect: dropshadow(gaussian, rgba(156,122,60,0.32), 6, 0, 0, 2); }
+.filter-chip-purple:selected { -fx-background-color: sibim-violet-dark; -fx-border-color: sibim-violet-dark; -fx-effect: dropshadow(gaussian, rgba(156,122,60,0.32), 6, 0, 0, 2); }
 .filter-chip-teal:hover    { -fx-background-color: #EEF5F2; -fx-border-color: #7FB3A5; -fx-text-fill: #1B4A3F; }
 .filter-chip-teal:selected  { -fx-background-color: #235B4E; -fx-border-color: #235B4E; -fx-effect: dropshadow(gaussian, rgba(35,91,78,0.32), 6, 0, 0, 2); }
 
 /* PAGE HEADER per-section color overrides */
-.page-header-indigo  { -fx-border-color: sibim-marca-darker sibim-slate-200 sibim-slate-200 sibim-marca-darker; -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 10, 0, 0, 2); }
+.page-header-indigo  { -fx-border-color: sibim-indigo-darker sibim-slate-200 sibim-slate-200 sibim-indigo-darker; -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.10), 10, 0, 0, 2); }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CODIGO CELL — monospace so codes line up; no tinted background (it
-   painted the whole column pink)
+   CODIGO CELL — monospace badge, signals click-to-copy
    ═══════════════════════════════════════════════════════════════════ */
 .codigo-cell {
     -fx-font-family: "Consolas", "Courier New", monospace;
     -fx-font-size: 12px;
-    -fx-text-fill: sibim-slate-700;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-color: sibim-indigo-50;
+    -fx-background-radius: 4;
+    -fx-padding: 1 6;
+    -fx-cursor: hand;
 }
 
 
@@ -411,7 +415,7 @@
 .combo-box:focused > .list-cell,
 .date-picker:focused > .text-field,
 .spinner:focused .text-field {
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
     -fx-border-width: 1.5;
     -fx-border-radius: 7;
 }
@@ -422,6 +426,6 @@
     -fx-border-radius: 8;
 }
 .combo-box-popup .list-view .list-cell:filled:hover {
-    -fx-background-color: sibim-marca-50;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-background-color: sibim-indigo-50;
+    -fx-text-fill: sibim-indigo-darker;
 }

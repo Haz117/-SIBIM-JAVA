@@ -449,7 +449,7 @@ public final class ConteoFisicoDialog {
         dialog.setResizable(true);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo físico de inventario",
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
             "Marca cada bien que tengas a la vista (o escanea su etiqueta) y anota lo que no coincida — "
                 + FormatUtils.formatDate(LocalDate.now()),
             AppColors.CYAN, AppColors.CYAN_D);
@@ -523,7 +523,7 @@ public final class ConteoFisicoDialog {
               hEstado = encabezado("ESTADO", ANCHO_ESTADO), hNota = encabezado("NOTA", ANCHO_NOTA);
         hSistema.setTooltip(new Tooltip("La cantidad que tiene registrada SIBIM"));
         hContado.setTooltip(new Tooltip("La cantidad que encontraste"));
-        Label hBien = new Label("Bien");
+        Label hBien = new Label("BIEN");
         hBien.getStyleClass().add("nav-section-label");
         HBox.setHgrow(hBien, Priority.ALWAYS);
         hBien.setMaxWidth(Double.MAX_VALUE);
@@ -712,6 +712,11 @@ public final class ConteoFisicoDialog {
             r.estado().valueProperty().addListener((o, a, b) -> actualizarAvance.run());
         }
         actualizarAvance.run();   // a resumed draft already has bienes verified
+
+        // The entrance animation is per row: with a whole inventory (thousands of
+        // rows) it only made the dialog take longer to become usable.
+        if (!list.getChildren().isEmpty() && list.getChildren().size() <= 60)
+            AnimationUtils.staggeredFadeInUp(list.getChildren(), 180, 38);
 
         Runnable applyAllVisibility = () -> list.getChildren().forEach(n -> {
             if (n.getUserData() instanceof Runnable r) r.run();
@@ -920,6 +925,8 @@ public final class ConteoFisicoDialog {
             });
         });
 
+        AnimationUtils.staggeredFadeInUp(
+            java.util.List.of(header, toolbar, progressBox, colHeaders, scroll, actions), 260, 60);
         dialog.getDialogPane().setContent(
             new VBox(0, header, toolbar, progressBox, colHeaders, scroll, actions));
 

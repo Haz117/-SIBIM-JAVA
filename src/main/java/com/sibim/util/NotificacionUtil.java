@@ -151,6 +151,8 @@ public class NotificacionUtil {
 
         box.setOpacity(0);
         box.setTranslateY(-16);
+        iconBadge.setScaleX(0.55);
+        iconBadge.setScaleY(0.55);
 
         Popup popup = new Popup();
         popup.setAutoHide(false);
@@ -166,6 +168,10 @@ public class NotificacionUtil {
         TranslateTransition slideIn = new TranslateTransition(AnimationUtils.duracion(200), box);
         slideIn.setFromY(-16); slideIn.setToY(0);
         slideIn.setInterpolator(Interpolator.EASE_OUT);
+        ScaleTransition iconPop = new ScaleTransition(AnimationUtils.duracion(240), iconBadge);
+        iconPop.setFromX(0.55); iconPop.setFromY(0.55);
+        iconPop.setToX(1.0);   iconPop.setToY(1.0);
+        iconPop.setInterpolator(Interpolator.EASE_OUT);
 
         // Reading time grows with the text: a two-line error needs longer than "Guardado".
         long base = (tipo == Tipo.ERROR || tipo == Tipo.ADVERTENCIA) ? 4500 : 2800;
@@ -183,7 +189,7 @@ public class NotificacionUtil {
         ParallelTransition dismissAnim = new ParallelTransition(slideOut, fadeOut);
         dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
 
-        ParallelTransition entrada = new ParallelTransition(fadeIn, slideIn);
+        ParallelTransition entrada = new ParallelTransition(fadeIn, slideIn, iconPop);
         SequentialTransition seq = new SequentialTransition(entrada, pause, dismissAnim);
         seq.play();
         // Reading a long one takes longer than its timer: the pointer on the
@@ -216,10 +222,10 @@ public class NotificacionUtil {
         });
     }
 
-    /** Centered (not stacked with the corner toasts — this is a one-off
-     *  confirmation), a bit bigger than a normal toast. It fades in, stays long
-     *  enough to read the route and fades out; the bounce and the pieces
-     *  arriving one by one were taken out (decorative, see AnimationUtils). */
+    /** Centered (not stacked with the corner toasts — this is a one-off,
+     *  standalone celebration), a bit bigger than a normal toast, with a
+     *  proper entrance flourish: the card pops in with a slight overshoot,
+     *  then the arrow slides in and the destination chip pops in right after. */
     private static void showTransferencia(Window owner, String producto, String from, String to) {
         if (owner == null) return;
 
@@ -240,7 +246,11 @@ public class NotificacionUtil {
         FontIcon arrowLbl = new FontIcon("mdi2a-arrow-down");
         arrowLbl.setIconSize(18);
         arrowLbl.getStyleClass().add("transfer-cel-arrow");
+        arrowLbl.setTranslateY(-8);
+        arrowLbl.setOpacity(0);
         Label toLbl = routeChip("A", to, "transfer-cel-chip-to");
+        toLbl.setScaleX(0.6); toLbl.setScaleY(0.6);
+        toLbl.setOpacity(0);
         javafx.scene.layout.VBox routeRow = new javafx.scene.layout.VBox(6, fromLbl, arrowLbl, toLbl);
         routeRow.setAlignment(Pos.CENTER);
         routeRow.setFillWidth(true);
@@ -256,6 +266,7 @@ public class NotificacionUtil {
         AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
+        box.setScaleX(0.85); box.setScaleY(0.85);
 
         Popup popup = new Popup();
         popup.setAutoHide(false);
@@ -269,13 +280,45 @@ public class NotificacionUtil {
             popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
             popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
 
-            FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(200), box);
+            ScaleTransition popIn = new ScaleTransition(AnimationUtils.duracion(340), box);
+            popIn.setToX(1.04); popIn.setToY(1.04);
+            popIn.setInterpolator(Interpolator.EASE_OUT);
+            ScaleTransition settle = new ScaleTransition(AnimationUtils.duracion(140), box);
+            settle.setToX(1); settle.setToY(1);
+            settle.setInterpolator(Interpolator.EASE_IN);
+            FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(260), box);
             fadeIn.setToValue(1);
+
+            TranslateTransition arrowSlide = new TranslateTransition(AnimationUtils.duracion(280), arrowLbl);
+            arrowSlide.setToY(0);
+            arrowSlide.setDelay(Duration.millis(260));
+            arrowSlide.setInterpolator(Interpolator.EASE_OUT);
+            FadeTransition arrowFade = new FadeTransition(AnimationUtils.duracion(220), arrowLbl);
+            arrowFade.setToValue(1);
+            arrowFade.setDelay(Duration.millis(260));
+
+            ScaleTransition toPop = new ScaleTransition(AnimationUtils.duracion(280), toLbl);
+            toPop.setToX(1.12); toPop.setToY(1.12);
+            toPop.setDelay(Duration.millis(440));
+            toPop.setInterpolator(Interpolator.EASE_OUT);
+            ScaleTransition toSettle = new ScaleTransition(AnimationUtils.duracion(140), toLbl);
+            toSettle.setToX(1); toSettle.setToY(1);
+            toSettle.setDelay(Duration.millis(720));
+            toSettle.setInterpolator(Interpolator.EASE_IN);
+            FadeTransition toFade = new FadeTransition(AnimationUtils.duracion(220), toLbl);
+            toFade.setToValue(1);
+            toFade.setDelay(Duration.millis(440));
+
             FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(280), box);
             fadeOut.setToValue(0);
             fadeOut.setOnFinished(e -> popup.hide());
 
-            new SequentialTransition(fadeIn, new PauseTransition(Duration.millis(2400)), fadeOut).play();
+            new SequentialTransition(
+                new ParallelTransition(fadeIn, new SequentialTransition(popIn, settle),
+                    arrowSlide, arrowFade, toPop, toSettle, toFade),
+                new PauseTransition(Duration.millis(1900)),
+                fadeOut
+            ).play();
         });
     }
 
@@ -315,6 +358,7 @@ public class NotificacionUtil {
         AccessibilityUtils.applyCurrentTextScaleClass(box);
 
         box.setOpacity(0);
+        box.setScaleX(0.85); box.setScaleY(0.85);
 
         Popup popup = new Popup();
         popup.setAutoHide(false);
@@ -325,13 +369,24 @@ public class NotificacionUtil {
             popup.setX(owner.getX() + (owner.getWidth() - box.getWidth()) / 2.0);
             popup.setY(owner.getY() + (owner.getHeight() - box.getHeight()) / 2.0);
 
-            FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(200), box);
+            ScaleTransition popIn = new ScaleTransition(AnimationUtils.duracion(340), box);
+            popIn.setToX(1.04); popIn.setToY(1.04);
+            popIn.setInterpolator(Interpolator.EASE_OUT);
+            ScaleTransition settle = new ScaleTransition(AnimationUtils.duracion(140), box);
+            settle.setToX(1); settle.setToY(1);
+            settle.setInterpolator(Interpolator.EASE_IN);
+            FadeTransition fadeIn = new FadeTransition(AnimationUtils.duracion(260), box);
             fadeIn.setToValue(1);
+
             FadeTransition fadeOut = new FadeTransition(AnimationUtils.duracion(280), box);
             fadeOut.setToValue(0);
             fadeOut.setOnFinished(e -> popup.hide());
 
-            new SequentialTransition(fadeIn, new PauseTransition(Duration.millis(2000)), fadeOut).play();
+            new SequentialTransition(
+                new ParallelTransition(fadeIn, new SequentialTransition(popIn, settle)),
+                new PauseTransition(Duration.millis(1700)),
+                fadeOut
+            ).play();
         });
     }
 

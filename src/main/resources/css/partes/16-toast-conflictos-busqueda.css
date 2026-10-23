@@ -25,7 +25,7 @@
     -fx-background-insets: 0;
 }
 .toast-countdown .bar {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
     -fx-background-radius: 0 0 10 10;
     -fx-background-insets: 0;
     -fx-padding: 0;
@@ -33,7 +33,7 @@
 
 /* Indeterminate spinner inside the progress toast */
 .toast-spinner {
-    -fx-progress-color: sibim-marca;
+    -fx-progress-color: sibim-indigo;
 }
 .toast-spinner .percentage { visibility: hidden; }
 
@@ -113,7 +113,7 @@
 }
 .palette-nav-icon {
     -fx-icon-size: 16;
-    -fx-icon-color: sibim-marca;
+    -fx-icon-color: sibim-indigo;
 }
 .batch-reponer-row {
     -fx-padding: 8 4 8 4;

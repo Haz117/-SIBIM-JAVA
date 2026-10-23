@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  */
 public class ReporteBienesMueblesService extends ReporteService {
 
-    private static final DeviceRgb GUINDA     = ColoresDocumento.MARCA;
+    private static final DeviceRgb GUINDA     = new DeviceRgb(162, 35, 45);
     private static final DeviceRgb GUINDA_D   = new DeviceRgb(120, 25, 33);
     private static final DeviceRgb GRAY_100   = new DeviceRgb(243, 244, 246);
     private static final DeviceRgb GRAY_300   = new DeviceRgb(209, 213, 219);

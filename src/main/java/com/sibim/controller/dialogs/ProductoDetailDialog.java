@@ -13,6 +13,7 @@ import com.sibim.controller.dialogs.MovimientoTimelineDialog;
 import com.sibim.service.ReporteService;
 import com.sibim.service.ResguardoService;
 import com.sibim.util.AccessibilityUtils;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -121,7 +122,7 @@ public final class ProductoDetailDialog {
 
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Detalle del bien");
+        dialog.setTitle("Detalle del Bien");
 
         ButtonType fichaBtn    = new ButtonType("Imprimir ficha",        ButtonBar.ButtonData.LEFT);
         ButtonType timelineBtn = new ButtonType("Cadena de custodia",    ButtonBar.ButtonData.LEFT);
@@ -178,7 +179,7 @@ public final class ProductoDetailDialog {
         }
         if (!photoLoaded) {
             String monogramBg  = p.getCategoriaColor() != null ? p.getCategoriaColor() + "22" : "#EEF2FF";
-            String monogramFg  = p.getCategoriaColor() != null ? p.getCategoriaColor() : AppColors.PRIMARY;
+            String monogramFg  = p.getCategoriaColor() != null ? p.getCategoriaColor() : "#A2232D";
             String monogramTxt = p.getCategoriaNombre() != null && !p.getCategoriaNombre().isBlank()
                 ? String.valueOf(p.getCategoriaNombre().charAt(0)).toUpperCase() : "B";
             Label monogram = new Label(monogramTxt);
@@ -628,6 +629,7 @@ public final class ProductoDetailDialog {
             btnAgregarMant.setOnAction(e -> showAgregarMantenimientoDialog(p, mantSvc, scene, rebuildHolder[0]));
         }
 
+        AnimationUtils.staggeredFadeInUp(root.getChildren(), 270, 70);
 
         // Same overflow risk as the create/edit "Nuevo Bien" dialog: the header
         // card + 12-row detail grid + depreciación block easily exceed a

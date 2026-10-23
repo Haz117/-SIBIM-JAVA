@@ -35,7 +35,7 @@ import java.util.List;
 
 public class ReporteResguardoService extends ReporteService {
 
-    private static final DeviceRgb PURPLE        = ColoresDocumento.MARCA;
+    private static final DeviceRgb PURPLE        = new DeviceRgb(162, 35, 45);  // guinda Pantone 1805 C
     private static final DeviceRgb PURPLE_DARK   = new DeviceRgb(120, 25, 33); // guinda oscuro
     private static final DeviceRgb GRAY_100      = new DeviceRgb(243, 244, 246);
     private static final DeviceRgb GRAY_300      = new DeviceRgb(209, 213, 219);

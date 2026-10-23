@@ -85,7 +85,7 @@ public final class ProductoDialogFactory {
 
         HBox dialogHeader = DialogUtil.gradientHeader(
             isNewProduct ? "mdi2p-package-variant" : "mdi2p-pencil",
-            isNewProduct ? "Nuevo bien patrimonial" : "Editar bien",
+            isNewProduct ? "Nuevo Bien Patrimonial" : "Editar Bien",
             isNewProduct ? "Registra un nuevo bien en el inventario municipal"
                          : "Actualiza los datos de " + existing.getNombre(),
             isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS,
@@ -114,11 +114,11 @@ public final class ProductoDialogFactory {
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        Tab tabInfo       = new Tab("Información general", infoTab.grid);
+        Tab tabInfo       = new Tab("Información General", infoTab.grid);
         tabInfo.setGraphic(new FontIcon("mdi2i-information-outline"));
         Tab tabStock      = new Tab("Valor y cantidad", stockTab.grid);
         tabStock.setGraphic(new FontIcon("mdi2c-chart-bar"));
-        Tab tabPatrimonio = new Tab("Datos patrimoniales", patrimonioTab.grid);
+        Tab tabPatrimonio = new Tab("Datos Patrimoniales", patrimonioTab.grid);
         tabPatrimonio.setGraphic(new FontIcon("mdi2b-badge-account-outline"));
         tabs.getTabs().addAll(tabInfo, tabStock, tabPatrimonio);
         tabs.getStyleClass().addAll("dlg-tabpane", "dlg-stepper");
@@ -295,6 +295,7 @@ public final class ProductoDialogFactory {
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));
         VBox dialogContent = new VBox(0, dialogHeader, stepBar, tabsScroll, lblFormError, navBar);
         dialog.getDialogPane().setContent(dialogContent);
+        AnimationUtils.staggeredFadeInUp(List.of(dialogHeader, stepBar, tabs), 280, 70);
 
         // ── Dirty tracking ───────────────────────────────────────────────────
         boolean[] dirty = {false};

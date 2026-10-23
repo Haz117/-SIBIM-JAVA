@@ -48,7 +48,7 @@ public class PrestamoService {
         this.auditRepo    = auditRepo;
     }
 
-    private static final DeviceRgb COLOR_HEADER  = ColoresDocumento.MARCA;   // like every other formato
+    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(162, 35, 45);   // guinda Pantone 1805 C, like every other formato
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(241, 245, 249);
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);
     private static final DeviceRgb COLOR_WARN    = new DeviceRgb(146, 64, 14);    // amber-800
@@ -166,7 +166,8 @@ public class PrestamoService {
             hFont.setBold(true);
             hFont.setColor(org.apache.poi.ss.usermodel.IndexedColors.WHITE.getIndex());
             hStyle.setFont(hFont);
-            hStyle.setFillForegroundColor(ColoresDocumento.marcaXlsx());   // guinda, like every other formato
+            hStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                new byte[]{(byte)162, (byte)35, (byte)45}, null));   // guinda, like every other formato
             hStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
 
             org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);

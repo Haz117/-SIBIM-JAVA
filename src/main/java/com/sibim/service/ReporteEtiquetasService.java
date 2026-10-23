@@ -46,7 +46,7 @@ public class ReporteEtiquetasService extends ReporteService {
         File file = tempFile("etiquetas_qr", ".pdf");
         PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        DeviceRgb headerBg = ColoresDocumento.MARCA;
+        DeviceRgb headerBg = new DeviceRgb(162, 35, 45);
 
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);

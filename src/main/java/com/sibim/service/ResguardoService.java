@@ -21,7 +21,6 @@ import com.sibim.model.ResguardoItem;
 import com.sibim.repository.AuditLogRepository;
 import com.sibim.repository.ConfiguracionRepository;
 import com.sibim.repository.ResguardoRepository;
-import com.sibim.util.FormatUtils;
 import com.sibim.util.QrUtils;
 
 import java.io.File;
@@ -46,7 +45,7 @@ public class ResguardoService {
         this.auditRepo = auditRepo;
     }
 
-    private static final DeviceRgb COLOR_HEADER  = ColoresDocumento.MARCA;
+    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(162, 35, 45);  // guinda Pantone 1805 C
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(241, 245, 249);
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);
     private static final DateTimeFormatter FMT   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -264,7 +263,7 @@ public class ResguardoService {
                     orDash(item.getArea()),
                     orDash(item.getNumeroSerie()),
                     item.getValorUnitario() != null
-                        ? FormatUtils.formatCurrency(item.getValorUnitario()) : "—");
+                        ? com.sibim.session.Permisos.pesos(item.getValorUnitario()) : "—");
                 if (item.getValorUnitario() != null)
                     totalValor = totalValor.add(item.getValorUnitario());
             }
@@ -274,7 +273,7 @@ public class ResguardoService {
                     .setTextAlignment(TextAlignment.RIGHT))
                 .setBackgroundColor(COLOR_SUBHEAD).setPadding(5).setBorder(null);
             com.itextpdf.layout.element.Cell totalVal = new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(FormatUtils.formatCurrency(totalValor))
+                .add(new Paragraph(com.sibim.session.Permisos.pesos(totalValor))
                     .setFont(bold).setFontSize(8))
                 .setBackgroundColor(COLOR_SUBHEAD).setPadding(5).setBorder(null);
             bienesTable.addCell(totalLbl);

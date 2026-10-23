@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.repository.ConteoRepository;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -29,7 +30,7 @@ class ConteosDialog {
         dialog.getDialogPane().setPrefWidth(600);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Historial de conteos físicos",
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Historial de Conteos Físicos",
             "Tomas de inventario físico realizadas",
             AppColors.CYAN, AppColors.CYAN_D);
 
@@ -72,6 +73,7 @@ class ConteosDialog {
         scroll.setPrefHeight(400);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, scroll), 260, 70);
         dialog.getDialogPane().setContent(new VBox(0, header, scroll));
         dialog.showAndWait();
     }
@@ -83,7 +85,7 @@ class ConteosDialog {
         dialog.getDialogPane().setPrefWidth(680);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2m-magnify", "Detalle del conteo",
+        HBox header = DialogUtil.gradientHeader("mdi2m-magnify", "Detalle del Conteo",
             FormatUtils.formatDateTime(conteo.getCreadoEn()) + " · " + conteo.getUsuarioNombre(),
             AppColors.CYAN, AppColors.CYAN_D);
 
@@ -155,6 +157,7 @@ class ConteosDialog {
         scroll.setPrefHeight(380);
         scroll.getStyleClass().add("dlg-tabs-scroll");
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, colHeaders, scroll), 260, 60);
         dialog.getDialogPane().setContent(new VBox(0, header, colHeaders, scroll));
         dialog.showAndWait();
     }

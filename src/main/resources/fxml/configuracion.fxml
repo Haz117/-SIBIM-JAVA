@@ -14,11 +14,11 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon">
+        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
             <FontIcon iconLiteral="mdi2c-cog" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
-            <Label text="Configuración del sistema" styleClass="page-title"/>
+            <Label text="Configuración del Sistema" styleClass="page-title"/>
             <Label text="Perfil de usuario y administración de accesos" styleClass="page-subtitle"/>
         </VBox>
     </HBox>
@@ -56,12 +56,12 @@
             <HBox spacing="0">
                 <!-- Usuario -->
                 <VBox spacing="5" HBox.hgrow="ALWAYS" styleClass="profile-field-col-left">
-                    <Label text="Usuario" styleClass="profile-field-key"/>
+                    <Label text="USUARIO" styleClass="profile-field-key"/>
                     <Label fx:id="lblUsernameUsuario" text="—" styleClass="profile-value"/>
                 </VBox>
                 <!-- Área -->
                 <VBox spacing="5" HBox.hgrow="ALWAYS" styleClass="profile-field-col-right">
-                    <Label text="Área o dependencia" styleClass="profile-field-key"/>
+                    <Label text="ÁREA / DEPENDENCIA" styleClass="profile-field-key"/>
                     <Label fx:id="lblAreaUsuario" text="—" styleClass="profile-value" wrapText="true"/>
                 </VBox>
             </HBox>
@@ -72,7 +72,8 @@
     <VBox fx:id="sysInfoCard" styleClass="card" spacing="10">
         <padding><Insets top="16" right="20" bottom="18" left="20"/></padding>
         <HBox alignment="CENTER_LEFT" spacing="10">
-            <Label text="Información del sistema" styleClass="dash-section-label"/>
+            <Region styleClass="dash-section-bar"/>
+            <Label text="INFORMACIÓN DEL SISTEMA" styleClass="dash-section-label"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button fx:id="btnErroresEquipos" text="Errores de equipos" onAction="#onErroresEquipos"
                     styleClass="btn-secondary" visible="false" managed="false" contentDisplay="LEFT" graphicTextGap="8">
@@ -88,12 +89,12 @@
         <HBox spacing="0">
             <!-- Versión -->
             <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col">
-                <Label text="Versión" styleClass="profile-field-key"/>
+                <Label text="VERSIÓN" styleClass="profile-field-key"/>
                 <Label fx:id="lblSistemaVersion" text="SIBIM" styleClass="sys-info-value"/>
             </VBox>
             <!-- Modo -->
             <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col">
-                <Label text="Modo" styleClass="profile-field-key"/>
+                <Label text="MODO" styleClass="profile-field-key"/>
                 <HBox spacing="5" alignment="CENTER_LEFT">
                     <Label fx:id="dotSistemaModo" text="●"/>
                     <Label fx:id="lblSistemaModo" text="—" styleClass="sys-info-value"/>
@@ -101,7 +102,7 @@
             </VBox>
             <!-- Sesión -->
             <VBox spacing="4" HBox.hgrow="ALWAYS" styleClass="sys-info-col, sys-info-col-last">
-                <Label text="Inicio de sesión" styleClass="profile-field-key"/>
+                <Label text="INICIO DE SESIÓN" styleClass="profile-field-key"/>
                 <Label fx:id="lblSistemaHora" text="—" styleClass="sys-info-value"/>
             </VBox>
         </HBox>
@@ -115,7 +116,7 @@
                 <FontIcon iconLiteral="mdi2c-cog-outline" styleClass="page-icon-symbol"/>
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
-                <Label text="Configuración del sistema" styleClass="card-title"/>
+                <Label text="Configuración del Sistema" styleClass="card-title"/>
                 <Label text="Datos institucionales que aparecen en reportes y documentos generados"
                        styleClass="page-subtitle"/>
             </VBox>
@@ -127,23 +128,23 @@
                 <ColumnConstraints hgrow="ALWAYS" percentWidth="50"/>
             </columnConstraints>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                <Label text="Nombre del Ayuntamiento" styleClass="profile-field-key"/>
+                <Label text="NOMBRE DEL AYUNTAMIENTO" styleClass="profile-field-key"/>
                 <TextField fx:id="tfNombreAyuntamiento" promptText="Ej. H. Ayuntamiento de Ixmiquilpan" maxWidth="Infinity"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                <Label text="Municipio y estado" styleClass="profile-field-key"/>
+                <Label text="MUNICIPIO Y ESTADO" styleClass="profile-field-key"/>
                 <TextField fx:id="tfMunicipio" promptText="Ej. Ixmiquilpan, Hidalgo" maxWidth="Infinity"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                <Label text="Área responsable" styleClass="profile-field-key"/>
+                <Label text="ÁREA RESPONSABLE" styleClass="profile-field-key"/>
                 <TextField fx:id="tfResponsable" promptText="Ej. Dirección de Bienes Patrimoniales" maxWidth="Infinity"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                <Label text="Correo de contacto" styleClass="profile-field-key"/>
+                <Label text="CORREO DE CONTACTO" styleClass="profile-field-key"/>
                 <TextField fx:id="tfCorreoContacto" promptText="correo@municipio.gob.mx" maxWidth="Infinity"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2">
-                <Label text="Logo del Ayuntamiento" styleClass="profile-field-key"/>
+                <Label text="LOGO DEL AYUNTAMIENTO" styleClass="profile-field-key"/>
                 <HBox spacing="8" alignment="CENTER_LEFT">
                     <TextField fx:id="tfLogoPath" promptText="Ruta al archivo de imagen (PNG, JPG)" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                     <Button fx:id="btnLogoPath" text="Examinar…" onAction="#onSeleccionarLogo" styleClass="btn-secondary">
@@ -155,7 +156,7 @@
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
                 <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Tiempo de inactividad (minutos)" styleClass="profile-field-key"/>
+                    <Label text="TIEMPO DE INACTIVIDAD (MINUTOS)" styleClass="profile-field-key"/>
                     <Label text="?" styleClass="help-badge">
                         <tooltip><Tooltip text="Minutos sin actividad antes de cerrar la sesión automáticamente. Mínimo 6 minutos (se muestra una advertencia 5 minutos antes). Cambio efectivo en la próxima sesión." wrapText="true" maxWidth="280"/></tooltip>
                     </Label>
@@ -214,7 +215,7 @@
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
                 <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Gestión de usuarios" styleClass="card-title"/>
+                    <Label text="Gestión de Usuarios" styleClass="card-title"/>
                     <Label fx:id="helpUsuarios" text="?" styleClass="help-badge">
                         <tooltip><Tooltip text="El Área es obligatoria para Secretario y Dirección (define qué ven en el resto del sistema); Admin la ignora porque ya tiene acceso a todo. Cualquier cuenta que crees o restablezcas aquí queda forzada a cambiar su contraseña en el primer login." wrapText="true" maxWidth="280"/></tooltip>
                     </Label>
@@ -233,7 +234,7 @@
                 <graphic><FontIcon iconLiteral="mdi2a-account-group-outline" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Crea una cuenta compartida para cada área que todavía no tenga y genera un PDF con usuarios y contraseñas para entregar" wrapText="true" maxWidth="280"/></tooltip>
             </Button>
-            <Button text="Nuevo usuario" onAction="#onNuevoUsuario" styleClass="btn-primary"
+            <Button text="Nuevo Usuario" onAction="#onNuevoUsuario" styleClass="btn-primary"
                     contentDisplay="LEFT" graphicTextGap="8">
                 <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
                 <tooltip><Tooltip text="Registrar un nuevo usuario en el sistema"/></tooltip>
@@ -302,7 +303,7 @@
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
                 <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Auditoría del sistema" styleClass="card-title"/>
+                    <Label text="Auditoría del Sistema" styleClass="card-title"/>
                     <Label fx:id="helpAuditoria" text="?" styleClass="help-badge">
                         <tooltip><Tooltip text="Cada creación, edición, eliminación, baja o reactivación de un bien, categoría o usuario queda registrada con quién la hizo y cuándo — incluyendo los cambios que llegan de una PC que estuvo offline." wrapText="true" maxWidth="270"/></tooltip>
                     </Label>
@@ -337,7 +338,7 @@
             </StackPane>
             <VBox spacing="2" HBox.hgrow="ALWAYS">
                 <HBox spacing="6" alignment="CENTER_LEFT">
-                    <Label text="Respaldo y restauración" styleClass="card-title"/>
+                    <Label text="Respaldo y Restauración" styleClass="card-title"/>
                     <Label fx:id="helpRespaldo" text="?" styleClass="help-badge">
                         <tooltip><Tooltip text="&quot;Restaurar&quot; REEMPLAZA todos los bienes, movimientos, usuarios, categorías, auditoría y conteos actuales con los del archivo elegido — no es un merge. Úsalo solo para recuperar un respaldo, no como forma de compartir datos entre instalaciones. Requiere conexión a la base de datos real." wrapText="true" maxWidth="290"/></tooltip>
                     </Label>

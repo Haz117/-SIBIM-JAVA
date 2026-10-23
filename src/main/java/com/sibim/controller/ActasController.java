@@ -22,12 +22,15 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import java.io.File;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ActasController extends BaseDocumentController<ActaEntregaRecepcion> {
 
     @FXML private Label   lblStatTotal;
     @FXML private Label   lblStatValor;
+    @FXML private VBox    statCardTotal;
+    @FXML private VBox    statCardValor;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colNumero;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colSaliente;
     @FXML private TableColumn<ActaEntregaRecepcion, String> colEntrante;
@@ -106,8 +109,13 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
             .map(ActaEntregaRecepcion::getValorTotal)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (lblStatTotal != null) lblStatTotal.setText(String.valueOf((long) list.size()));
+        if (lblStatTotal != null) AnimationUtils.animateCount(lblStatTotal, (long) list.size(), 700);
         if (lblStatValor != null) lblStatValor.setText(FormatUtils.formatCurrency(valorTotal));
+
+        List<VBox> cards = new ArrayList<>();
+        if (statCardTotal != null) cards.add(statCardTotal);
+        if (statCardValor != null) cards.add(statCardValor);
+        if (!cards.isEmpty()) AnimationUtils.staggeredFadeInUp(cards, 280, 60);
     }
 
     @Override
@@ -212,6 +220,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         VBox content = new VBox(0, header, g);
         g.setPadding(new Insets(16, 22, 16, 22));
         dialog.getDialogPane().setContent(content);
+        AnimationUtils.staggeredFadeInUp(List.of(header, g), 260, 70);
         dialog.showAndWait();
     }
 
@@ -241,7 +250,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         GridPane form = DialogUtil.formGrid(160);
         int row = 0;
 
-        Label secSal = new Label("Funcionario saliente");
+        Label secSal = new Label("FUNCIONARIO SALIENTE");
         secSal.getStyleClass().add("dialog-field-label");
         form.add(secSal, 0, row++, 2, 1);
         form.add(new Separator(), 0, row++, 2, 1);
@@ -253,7 +262,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         form.add(DialogUtil.fieldLabel("Nombre *"), 0, row); form.add(fNombreSal, 1, row++);
         form.add(DialogUtil.fieldLabel("Cargo"),   0, row); form.add(fCargoSal,  1, row++);
 
-        Label secEnt = new Label("Funcionario entrante");
+        Label secEnt = new Label("FUNCIONARIO ENTRANTE");
         secEnt.getStyleClass().add("dialog-field-label");
         form.add(new Region(), 0, row++);
         form.add(secEnt, 0, row++, 2, 1);
@@ -266,7 +275,7 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         form.add(DialogUtil.fieldLabel("Nombre *"), 0, row); form.add(fNombreEnt, 1, row++);
         form.add(DialogUtil.fieldLabel("Cargo"),   0, row); form.add(fCargoEnt,  1, row++);
 
-        Label secGen = new Label("Datos del acta");
+        Label secGen = new Label("DATOS DEL ACTA");
         secGen.getStyleClass().add("dialog-field-label");
         form.add(new Region(), 0, row++);
         form.add(secGen, 0, row++);
@@ -297,9 +306,10 @@ public class ActasController extends BaseDocumentController<ActaEntregaRecepcion
         DialogUtil.setScrollableContent(dialog.getDialogPane(), content);
 
         Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okBtn.setText("Generar acta");
+        okBtn.setText("Generar Acta");
         okBtn.getStyleClass().add("dialog-ok-btn");
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, form), 280, 70);
         Platform.runLater(fNombreSal::requestFocus);
 
         okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {

@@ -3,6 +3,7 @@ package com.sibim.controller.dialogs;
 import com.sibim.db.offline.ConflictoInfo;
 import com.sibim.db.offline.SyncService;
 import com.sibim.model.Producto;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
@@ -76,6 +77,7 @@ public final class ConflictResolutionDialog {
         dialog.getDialogPane().setContent(root);
         dialog.getDialogPane().setPrefWidth(700);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
+        AnimationUtils.staggeredFadeInUp(cards, 220, 50);
 
         // Deliberately unconditional: apply the current selections regardless
         // of how the dialog closed (the button, Escape, or the window's own

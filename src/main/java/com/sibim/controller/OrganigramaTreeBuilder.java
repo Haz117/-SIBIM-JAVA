@@ -8,6 +8,7 @@ import com.sibim.model.Resguardo;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AccessibilityUtils;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.FormatUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -95,6 +96,7 @@ class OrganigramaTreeBuilder {
             empty.setPadding(new Insets(48, 24, 48, 24));
             orgTree.getChildren().add(empty);
         }
+        AnimationUtils.staggeredFadeInUp(orgTree.getChildren(), 270, 50);
     }
 
     /** No bienes, resguardos, préstamos or comodatos recorded under this exact area name. */

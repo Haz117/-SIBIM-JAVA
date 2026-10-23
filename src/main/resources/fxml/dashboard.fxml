@@ -13,20 +13,28 @@
     <padding><Insets top="16" right="20" bottom="18" left="24"/></padding>
 
     <!-- ══════════════════════════════════════════════════════════
-         PAGE BANNER
+         WELCOME BANNER
          ══════════════════════════════════════════════════════════ -->
     <VBox fx:id="dashBanner" styleClass="dashboard-banner" spacing="0">
         <padding><Insets top="14" right="22" bottom="14" left="22"/></padding>
 
-        <!-- The page's name and the institution's (configured) name with today's date;
-             a "Buenas tardes, <nombre>" greeting read like a generated template. -->
-        <VBox spacing="5">
-            <Label text="Inicio" styleClass="banner-name"/>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="banner-brand-icon"/>
-                <Label fx:id="lblOrgBanner" text="H. Ayuntamiento de Ixmiquilpan" styleClass="banner-org"/>
-            </HBox>
-        </VBox>
+        <!-- Greeting row -->
+        <HBox alignment="CENTER_LEFT" spacing="0">
+            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <Label fx:id="lblBienvenida" styleClass="banner-greeting"/>
+                <Label fx:id="lblUsuario"    styleClass="banner-name"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="mdi2o-office-building-outline" styleClass="banner-brand-icon"/>
+                    <Label fx:id="lblOrgBanner" text="H. Ayuntamiento de Ixmiquilpan  ·  Bienes Municipales"
+                           styleClass="banner-org"/>
+                </HBox>
+            </VBox>
+            <!-- Date widget -->
+            <VBox alignment="CENTER_RIGHT" spacing="2" styleClass="banner-date-widget">
+                <Label fx:id="lblFechaDia"  styleClass="banner-date-day"/>
+                <Label fx:id="lblFechaMes"  styleClass="banner-date-month"/>
+            </VBox>
+        </HBox>
     </VBox>
 
     <!-- ══════════════════════════════════════════════════════════
@@ -39,7 +47,7 @@
         <FontIcon iconLiteral="mdi2b-bell-ring" styleClass="alert-banner-icon"/>
         <Label fx:id="lblAlertBannerText" text="Hay bienes que requieren atención."
                wrapText="true" HBox.hgrow="ALWAYS"/>
-        <Label text="Ver alertas" styleClass="alert-banner-cta"/>
+        <Label text="Ver alertas →" styleClass="alert-banner-cta"/>
     </HBox>
 
     <!-- PENDIENTES DE TU ÁREA (solo cuentas de área; lo llena MiAreaPanel) -->
@@ -48,32 +56,44 @@
     <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: ACCIONES RÁPIDAS
          ══════════════════════════════════════════════════════════ -->
-    <!-- Three actions; "Ver alertas" and "Buscar bien" repeated the menu and Ctrl+K. -->
-    <HBox fx:id="quickActionsHeader" alignment="CENTER_LEFT" spacing="10">
-        <Label text="Acciones rápidas" styleClass="dash-section-label"/>
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ACCIONES RÁPIDAS" styleClass="dash-section-label"/>
     </HBox>
     <HBox fx:id="quickActionsRow" spacing="10">
-        <VBox styleClass="quick-action-card" onMouseClicked="#onAccionNuevoBien"
+        <VBox fx:id="cardNuevoBien" styleClass="quick-action-card" onMouseClicked="#onAccionNuevoBien"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
               accessibleRole="BUTTON" accessibleText="Nuevo Bien — registrar un activo al inventario">
             <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2p-plus-circle-outline" styleClass="qa-card-icon-indigo"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
-                    <Label text="Nuevo bien" styleClass="qa-card-title"/>
+                    <Label text="Nuevo Bien" styleClass="qa-card-title"/>
                     <Label text="Registrar un activo al inventario" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
-        <VBox styleClass="quick-action-card" onMouseClicked="#onAccionNuevaEntrada"
+        <VBox fx:id="cardNuevaEntrada" styleClass="quick-action-card" onMouseClicked="#onAccionNuevaEntrada"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
               accessibleRole="BUTTON" accessibleText="Registrar Movimiento — entrada, salida, ajuste o transferencia">
             <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2a-arrow-up-bold-circle-outline" styleClass="qa-card-icon-green"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
-                    <Label text="Registrar movimiento" styleClass="qa-card-title"/>
+                    <Label text="Registrar Movimiento" styleClass="qa-card-title"/>
                     <Label text="Entrada, salida o transferencia" styleClass="qa-card-hint"/>
+                </VBox>
+            </HBox>
+        </VBox>
+        <VBox styleClass="quick-action-card" onMouseClicked="#onVerAlertas"
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
+              accessibleRole="BUTTON" accessibleText="Ver Alertas — inventario, garantías y pendientes">
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2b-bell-alert-outline" styleClass="qa-card-icon-amber"/>
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
+                    <Label text="Ver Alertas" styleClass="qa-card-title"/>
+                    <Label text="Inventario, garantías y pendientes" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
@@ -84,8 +104,20 @@
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <FontIcon iconLiteral="mdi2f-file-chart-outline" styleClass="qa-card-icon-blue"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
-                    <Label text="Generar reporte" styleClass="qa-card-title"/>
+                    <Label text="Generar Reporte" styleClass="qa-card-title"/>
                     <Label text="Exportar inventario y más" styleClass="qa-card-hint"/>
+                </VBox>
+            </HBox>
+        </VBox>
+        <VBox styleClass="quick-action-card" onMouseClicked="#onBusquedaGlobal"
+              HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
+              accessibleRole="BUTTON" accessibleText="Buscar Bien — búsqueda global, atajo Ctrl+K">
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="mdi2m-magnify" styleClass="qa-card-icon-violet"/>
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
+                    <Label text="Buscar Bien" styleClass="qa-card-title"/>
+                    <Label text="Búsqueda global  (Ctrl+K)" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>
@@ -95,7 +127,8 @@
          SECCIÓN: RESUMEN DEL INVENTARIO
          ══════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Label text="Resumen del inventario" styleClass="dash-section-label"/>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="RESUMEN DEL INVENTARIO" styleClass="dash-section-label"/>
         <Label fx:id="helpStats" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Cifras clave del inventario, actualizadas cada vez que entras al dashboard. Haz clic en una tarjeta para ver el detalle." wrapText="true" maxWidth="260"/></tooltip>
         </Label>
@@ -134,17 +167,18 @@
               accessibleRole="BUTTON" accessibleText="Total de bienes — ver inventario completo">
             <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
                     <FontIcon iconLiteral="mdi2p-package-variant" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
-            </HBox>
-            <VBox spacing="5">
-                <Label text="Total de bienes" styleClass="rich-stat-label, con-ayuda">
+                <Label fx:id="helpTotalBienes" text="?" styleClass="help-badge">
                     <tooltip><Tooltip text="Total de bienes activos registrados en el inventario, dados de baja excluidos." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
+            </HBox>
+            <VBox spacing="5">
+                <Label text="TOTAL DE BIENES" styleClass="rich-stat-label"/>
                 <Label fx:id="lblTotalBienes" text="—" styleClass="rich-stat-value"/>
-                <Label text="Ver inventario" styleClass="rich-stat-hint"/>
+                <Label text="Ver inventario →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
 
@@ -155,17 +189,18 @@
               accessibleRole="BUTTON" accessibleText="Valor patrimonial total — ver reportes">
             <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
                     <FontIcon iconLiteral="mdi2c-currency-usd" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
-            </HBox>
-            <VBox spacing="5">
-                <Label text="Valor patrimonial" styleClass="rich-stat-label, con-ayuda">
+                <Label fx:id="helpValorTotal" text="?" styleClass="help-badge">
                     <tooltip><Tooltip text="Suma del valor de adquisición de todos los bienes activos del inventario." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
+            </HBox>
+            <VBox spacing="5">
+                <Label text="VALOR PATRIMONIAL" styleClass="rich-stat-label"/>
                 <Label fx:id="lblValorTotal" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
-                <Label text="Ver reportes" styleClass="rich-stat-hint"/>
+                <Label text="Ver reportes →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
 
@@ -176,17 +211,18 @@
               accessibleRole="BUTTON" accessibleText="Movimientos de hoy — ver historial">
             <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-purple">
                     <FontIcon iconLiteral="mdi2s-sync" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
-            </HBox>
-            <VBox spacing="5">
-                <Label text="Movimientos hoy" styleClass="rich-stat-label, con-ayuda">
+                <Label fx:id="helpMovimientosHoy" text="?" styleClass="help-badge">
                     <tooltip><Tooltip text="Entradas, salidas, ajustes y transferencias registrados hoy." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
+            </HBox>
+            <VBox spacing="5">
+                <Label text="MOVIMIENTOS HOY" styleClass="rich-stat-label"/>
                 <Label fx:id="lblMovimientosHoy" text="—" styleClass="rich-stat-value"/>
-                <Label fx:id="hintMovimientosHoy" text="Ver historial" styleClass="rich-stat-hint"/>
+                <Label fx:id="hintMovimientosHoy" text="Ver historial →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
 
@@ -197,17 +233,18 @@
               accessibleRole="BUTTON" accessibleText="Categorías activas — ver categorías del inventario">
             <padding><Insets top="12" right="14" bottom="12" left="16"/></padding>
             <HBox alignment="CENTER" spacing="8">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-dark-indigo">
                     <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
                 <Region HBox.hgrow="ALWAYS"/>
-            </HBox>
-            <VBox spacing="5">
-                <Label text="Categorías activas" styleClass="rich-stat-label, con-ayuda">
+                <Label fx:id="helpCategorias" text="?" styleClass="help-badge">
                     <tooltip><Tooltip text="Categorías con al menos un bien activo asignado." wrapText="true" maxWidth="240"/></tooltip>
                 </Label>
+            </HBox>
+            <VBox spacing="5">
+                <Label text="CATEGORÍAS ACTIVAS" styleClass="rich-stat-label"/>
                 <Label fx:id="lblCategorias" text="—" styleClass="rich-stat-value"/>
-                <Label fx:id="hintCategorias" text="Ver categorías" styleClass="rich-stat-hint"/>
+                <Label fx:id="hintCategorias" text="Ver categorías →" styleClass="rich-stat-hint"/>
             </VBox>
         </VBox>
     </GridPane>
@@ -216,10 +253,11 @@
          SECCIÓN: ACTIVIDAD RECIENTE
          ══════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Label text="Actividad reciente" styleClass="dash-section-label"/>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ACTIVIDAD RECIENTE" styleClass="dash-section-label"/>
         <Label fx:id="lblCountReciente" text="" styleClass="dash-activity-badge"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Ver todos" onAction="#onVerMovimientos"
+        <Button text="Ver todos →" onAction="#onVerMovimientos"
                 styleClass="btn-secondary, btn-sm">
             <tooltip><Tooltip text="Ir a la sección de Movimientos"/></tooltip>
         </Button>
@@ -241,9 +279,10 @@
          SECCIÓN: ANÁLISIS DE INVENTARIO
          ══════════════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
-        <Label text="Análisis del inventario" styleClass="dash-section-label"/>
+        <Region styleClass="dash-section-bar"/>
+        <Label text="ANÁLISIS DE INVENTARIO" styleClass="dash-section-label"/>
         <Label fx:id="helpAnalisis" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Movimientos de la semana: entradas y salidas por día. Valor por categoría: cómo se reparte el valor patrimonial entre categorías." wrapText="true" maxWidth="270"/></tooltip>
+            <tooltip><Tooltip text="Movimientos Semanales: entradas vs. salidas por día. Valor por Categoría: cómo se reparte el valor patrimonial entre categorías." wrapText="true" maxWidth="270"/></tooltip>
         </Label>
         <Label text="Últimos 7 días" styleClass="dash-section-badge"/>
         <Region HBox.hgrow="ALWAYS"/>
@@ -260,7 +299,7 @@
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
                 <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="card-icon-indigo"/>
-                <Label text="Movimientos de la semana" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+                <Label text="Movimientos Semanales" styleClass="card-title" HBox.hgrow="ALWAYS"/>
             </HBox>
             <LineChart fx:id="chartMovimientos" prefHeight="190" animated="false">
                 <xAxis><CategoryAxis label="Día"/></xAxis>
@@ -272,7 +311,7 @@
             <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
             <HBox alignment="CENTER_LEFT" spacing="8">
                 <FontIcon iconLiteral="mdi2t-tag-multiple-outline" styleClass="card-icon"/>
-                <Label text="Valor por categoría" styleClass="card-title"/>
+                <Label text="Valor por Categoría" styleClass="card-title"/>
             </HBox>
             <StackPane VBox.vgrow="ALWAYS">
                 <VBox fx:id="categoriaValorBox" spacing="12"/>

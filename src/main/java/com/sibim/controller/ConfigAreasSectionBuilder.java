@@ -4,6 +4,7 @@ import com.sibim.config.AreaCatalog;
 import com.sibim.config.Areas;
 import com.sibim.db.DatabaseConfig;
 import com.sibim.service.AreaService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.beans.property.SimpleStringProperty;
@@ -109,6 +110,7 @@ class ConfigAreasSectionBuilder {
 
         card.getChildren().addAll(titleRow, hint, table, actions);
         rootVBox.getChildren().add(rootVBox.getChildren().indexOf(anchorSection), card);
+        AnimationUtils.fadeInUp(card, 320, 280);
     }
 
     private void refrescar() {

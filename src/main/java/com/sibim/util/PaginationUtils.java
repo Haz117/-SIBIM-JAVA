@@ -1,37 +1,15 @@
 package com.sibim.util;
 
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
-import javafx.scene.control.Tooltip;
 
 import java.util.List;
 
 public final class PaginationUtils {
 
     private PaginationUtils() {}
-
-    /** "Pág 2 de 5", with the rows shown ("26–50 de 120") in its tooltip: the
-     *  short text leaves room for the bottom bar's buttons to keep their names. */
-    private static void mostrarPagina(Label lblPage, int pagina, int totalPages, int from, int to, int total) {
-        if (lblPage == null) return;
-        lblPage.setText(total == 0 ? "—" : "Pág " + (pagina + 1) + " de " + totalPages);
-        String filas = total == 0 ? "Sin resultados" : (from + 1) + "–" + to + " de " + total;
-        if (lblPage.getTooltip() == null) lblPage.setTooltip(new Tooltip(filas));
-        else lblPage.getTooltip().setText(filas);
-    }
-
-    /** A row faded out on delete or baja (AnimationUtils.fadeOut) keeps that
-     *  opacity when the TableView reuses its node for another item, and would
-     *  show as a blank row: every realized row is made visible again. */
-    private static void mostrarFilas(TableView<?> table) {
-        Platform.runLater(() -> table.lookupAll(".table-row-cell").forEach(r -> {
-            r.setOpacity(1);
-            r.setTranslateY(0);
-        }));
-    }
 
     /**
      * Slices {@code filteredData} into the page identified by {@code currentPage}/{@code pageSize},
@@ -53,10 +31,11 @@ public final class PaginationUtils {
         int to = Math.min(from + pageSize, total);
 
         table.setItems(FXCollections.observableArrayList(filteredData.subList(from, to)));
-        mostrarFilas(table);
+        AnimationUtils.staggerTableRows(table);
 
         if (lblTotal != null) lblTotal.setText(total + (total == 1 ? " " + singular : " " + plural));
-        mostrarPagina(lblPage, clampedPage, totalPages, from, to, total);
+        if (lblPage != null) lblPage.setText(total == 0 ? "—"
+            : "Pág " + (clampedPage + 1) + " de " + totalPages + "  ·  " + (from + 1) + "–" + to);
         if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
         if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
     }
@@ -72,13 +51,14 @@ public final class PaginationUtils {
             Label lblTotal, Label lblPage, Button btnPrev, Button btnNext,
             String singular, String plural) {
         table.setItems(FXCollections.observableArrayList(pageData));
-        mostrarFilas(table);
+        AnimationUtils.staggerTableRows(table);
         int totalPages = Math.max(1, (int) Math.ceil((double) totalFiltered / pageSize));
         int clampedPage = Math.max(0, Math.min(currentPage, totalPages - 1));
         int from = clampedPage * pageSize;
         int to = Math.min(from + pageSize, totalFiltered);
         if (lblTotal != null) lblTotal.setText(totalFiltered + (totalFiltered == 1 ? " " + singular : " " + plural));
-        mostrarPagina(lblPage, clampedPage, totalPages, from, to, totalFiltered);
+        if (lblPage != null) lblPage.setText(totalFiltered == 0 ? "—"
+            : "Pág " + (clampedPage + 1) + " de " + totalPages + "  ·  " + (from + 1) + "–" + to);
         if (btnPrev != null) btnPrev.setDisable(clampedPage == 0);
         if (btnNext != null) btnNext.setDisable(clampedPage >= totalPages - 1);
     }

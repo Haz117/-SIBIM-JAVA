@@ -6,7 +6,7 @@
     -fx-background-color: #4A1016;
     -fx-padding: 9 18 9 18;
     -fx-background-radius: 10;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 10, 0, 0, -2);
+    -fx-effect: dropshadow(gaussian, rgba(74,16,22,0.35), 10, 0, 0, -2);
 }
 .bulk-bar-icon {
     -fx-icon-color: #E58F96;
@@ -47,18 +47,18 @@
 
 /* Chip outer container — pill border */
 .preset-chip-box {
-    -fx-background-color: sibim-marca-50;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 20;
-    -fx-border-color: sibim-marca-300;
+    -fx-border-color: sibim-indigo-300;
     -fx-border-radius: 20;
     -fx-border-width: 1;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.05), 3, 0, 0, 1);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.10), 3, 0, 0, 1);
 }
 
 /* Label button — click to apply */
 .preset-chip {
     -fx-background-color: transparent;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-font-size: 12px;
     -fx-font-weight: 500;
     -fx-padding: 3 6 3 10;
@@ -66,7 +66,7 @@
     -fx-cursor: hand;
 }
 .preset-chip:hover { -fx-background-color: #F9DEE0; }
-.preset-chip:pressed { -fx-background-color: sibim-marca-200; }
+.preset-chip:pressed { -fx-background-color: sibim-indigo-200; }
 
 /* Delete (×) button inside chip */
 .preset-chip-delete {
@@ -88,9 +88,9 @@
 
 /* Toolbar import button — indigo outline, matches export buttons' weight */
 .btn-import {
-    -fx-background-color: sibim-marca-50;
-    -fx-text-fill: sibim-marca-darker;
-    -fx-border-color: sibim-marca-300;
+    -fx-background-color: sibim-indigo-50;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-border-color: sibim-indigo-300;
     -fx-border-width: 1.5;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -100,8 +100,8 @@
     -fx-padding: 5 12;
 }
 .btn-import:hover  { -fx-background-color: #F9DEE0; -fx-border-color: #D0606A; }
-.btn-import:pressed { -fx-background-color: sibim-marca-200; }
-.btn-import .btn-icon { -fx-icon-color: sibim-marca-darker; }
+.btn-import:pressed { -fx-background-color: sibim-indigo-200; }
+.btn-import .btn-icon { -fx-icon-color: sibim-indigo-darker; }
 
 /* Instructions card inside the dialog */
 .import-instructions-card {
@@ -115,7 +115,7 @@
 
 /* Step number badge */
 .import-step-num {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 11px;

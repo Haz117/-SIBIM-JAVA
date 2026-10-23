@@ -10,7 +10,7 @@ import javafx.scene.layout.GridPane;
 
 import java.util.List;
 
-/** Builds and holds all fields for the "Datos patrimoniales" tab of the
+/** Builds and holds all fields for the "Datos Patrimoniales" tab of the
  *  "Nuevo/Editar Bien" dialog.  Package-private — only used by
  *  {@link ProductoDialogFactory}. */
 class ProductoTabPatrimonioFields {

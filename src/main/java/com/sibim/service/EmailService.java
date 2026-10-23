@@ -3,7 +3,6 @@ package com.sibim.service;
 import com.sibim.model.Prestamo;
 import com.sibim.model.Producto;
 import com.sibim.repository.ConfiguracionRepository;
-import com.sibim.util.AppColors;
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
 import org.slf4j.Logger;
@@ -72,7 +71,7 @@ public class EmailService {
 
             StringBuilder html = new StringBuilder("<html><body style='font-family:sans-serif'>");
             html.append("<h2 style='color:#4C1D95'>&#9888; Alertas de Inventario — SIBIM</h2>");
-            appendSection(html, "Garantías por Vencer (próximos 30 días)", vencidos, AppColors.PRIMARY);
+            appendSection(html, "Garantías por Vencer (próximos 30 días)", vencidos, "#A2232D");
             html.append("</body></html>");
 
             Message msg = new MimeMessage(session);
@@ -187,7 +186,7 @@ public class EmailService {
                 .append(statCell("Movimientos", String.valueOf(totalMovimientos), "#235B4E"))
                 .append(statCell("Préstamos activos", String.valueOf(prestamosActivos.size()), "#059669"))
                 .append(statCell("Préstamos vencidos", String.valueOf(prestamosVencidos.size()), "#DC2626"))
-                .append(statCell("Resguardos activos", String.valueOf(resguardosActivos.size()), AppColors.PRIMARY))
+                .append(statCell("Resguardos activos", String.valueOf(resguardosActivos.size()), "#A2232D"))
                 .append("</div>");
 
             html.append("<div style='padding:16px 24px'>");

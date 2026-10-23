@@ -36,6 +36,19 @@
 .badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: sibim-red-dark; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 12px; }
 .badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-padding: 3 10; -fx-background-radius: 99; -fx-font-weight: bold; -fx-font-size: 12px; }
 
+/* ─── Row tints (movimientos por tipo) ─── */
+.data-table .table-row-cell.row-entrada            { -fx-background-color: #F6FEF9; }
+.data-table .table-row-cell.row-entrada:odd        { -fx-background-color: #F6FEF9; }
+.data-table .table-row-cell.row-entrada:even       { -fx-background-color: #F0FDF4; }
+.data-table .table-row-cell.row-entrada:hover      { -fx-background-color: #DCFCE7; }
+.data-table .table-row-cell.row-salida             { -fx-background-color: #FFF8F8; }
+.data-table .table-row-cell.row-salida:odd         { -fx-background-color: #FFF8F8; }
+.data-table .table-row-cell.row-salida:even        { -fx-background-color: #FFF4F4; }
+.data-table .table-row-cell.row-salida:hover       { -fx-background-color: #FFE4E6; }
+.data-table .table-row-cell.row-ajuste             { -fx-background-color: #FFFDF0; }
+.data-table .table-row-cell.row-ajuste:hover       { -fx-background-color: #FEF9C3; }
+.data-table .table-row-cell.row-transferencia      { -fx-background-color: #F8FAFC; }
+.data-table .table-row-cell.row-transferencia:hover { -fx-background-color: #F1F5F9; }
 
 /* ─── Row tints (productos por estado) ─── */
 .data-table .table-row-cell.row-danger              { -fx-background-color: #FFF8F8; }
@@ -61,7 +74,7 @@
 
 /* ─── Stock mini progress bar ─── */
 .stock-num { -fx-font-size: 11px; -fx-font-weight: 600; }
-.stock-progress { -fx-pref-height: 5px; -fx-max-height: 5px; -fx-background-radius: 3px; -fx-accent: sibim-marca; }
+.stock-progress { -fx-pref-height: 5px; -fx-max-height: 5px; -fx-background-radius: 3px; -fx-accent: sibim-indigo; }
 .stock-progress .bar { -fx-background-radius: 3px; -fx-background-insets: 0; }
 .stock-progress .track { -fx-background-radius: 3px; -fx-background-color: sibim-slate-200; -fx-background-insets: 0; }
 .stock-progress-ok   .bar { -fx-background-color: #059669; }
@@ -78,7 +91,7 @@
 /* Photo thumbnail cell */
 .foto-cell-box    { -fx-background-color: sibim-slate-100; -fx-background-radius: 7; }
 .foto-cell-box-clickable { -fx-cursor: hand; }
-.foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 6, 0.3, 0, 0); }
+.foto-cell-box-clickable:hover { -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.45), 6, 0.3, 0, 0); }
 .foto-placeholder { -fx-font-size: 16px; -fx-icon-color: #64748B; }
 
 /* Stock movement arrow cell (Mov. → Nuevo) */
@@ -133,9 +146,9 @@
 }
 .icon-swatch:hover    { -fx-background-color: sibim-slate-100; }
 .icon-swatch:selected {
-    -fx-background-color: sibim-marca-50;
-    -fx-border-color: sibim-marca;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-background-color: sibim-indigo-50;
+    -fx-border-color: sibim-indigo;
+    -fx-text-fill: sibim-indigo-darker;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -157,13 +170,13 @@
    ═══════════════════════════════════════════════════════════════════ */
 .dialog-pane {
     -fx-background-color: white;
-    -fx-border-radius: 10;
-    -fx-background-radius: 10;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.20), 28, 0, 0, 10);
 }
 .dialog-pane > .content { -fx-background-color: white; -fx-padding: 0; }
 .dialog-pane .header-panel {
-    -fx-background-color: sibim-surface;
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #F8FAFC, #F1F5F9);
     -fx-border-color: transparent transparent sibim-slate-200 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 16 20;
@@ -188,13 +201,13 @@
     -fx-font-weight: bold;
 }
 .dialog-pane .button-bar .button:default {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #A2232D, #6F1820);
     -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
 }
 .dialog-pane .button-bar .button:default:hover {
-    -fx-background-color: sibim-marca-dark;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 12, 0, 0, 4);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #5A141A);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 12, 0, 0, 4);
 }
 .dialog-pane .button-bar .button:cancel {
     -fx-background-color: white;
@@ -206,8 +219,8 @@
 }
 .dialog-pane .button-bar .button:cancel:hover {
     -fx-background-color: #FBF6F6;
-    -fx-border-color: sibim-marca-300;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-border-color: sibim-indigo-300;
+    -fx-text-fill: sibim-indigo-darker;
 }
 .dialog-pane .grid-pane .label {
     -fx-text-fill: sibim-gray-700;
@@ -232,12 +245,12 @@
 .dialog-pane .text-field:hover, .dialog-pane .text-area:hover,
 .dialog-pane .combo-box:hover, .dialog-pane .date-picker:hover,
 .dialog-pane .spinner:hover {
-    -fx-border-color: sibim-marca-300;
+    -fx-border-color: sibim-indigo-300;
 }
 .dialog-pane .text-field:focused, .dialog-pane .combo-box:focused,
 .dialog-pane .text-area:focused, .dialog-pane .date-picker:focused,
 .dialog-pane .spinner:focused {
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
     -fx-background-color: white;
     -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
 }
@@ -270,7 +283,7 @@
    CONFIGURACIÓN — PERFIL
    ═══════════════════════════════════════════════════════════════════ */
 .profile-card-header {
-    -fx-background-color: sibim-marca-900;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #5A141A, #5A141A);
     -fx-background-radius: 12 12 0 0;
     -fx-background-insets: 0;
 }
@@ -318,18 +331,23 @@
    PROGRESS INDICATOR
    ═══════════════════════════════════════════════════════════════════ */
 .progress-indicator .percentage { -fx-fill: transparent; }
-.progress-indicator .tick        { -fx-fill: sibim-marca; }
+.progress-indicator .tick        { -fx-fill: sibim-indigo; }
 .progress-indicator .arc-track   { -fx-stroke: sibim-slate-200; -fx-stroke-width: 3px; }
-.progress-indicator .arc-bar     { -fx-stroke: sibim-marca; -fx-stroke-width: 3px; }
+.progress-indicator .arc-bar     { -fx-stroke: sibim-indigo; -fx-stroke-width: 3px; }
 
 /* ═══════════════════════════════════════════════════════════════════
    DASHBOARD WELCOME BANNER
    ═══════════════════════════════════════════════════════════════════ */
 .dashboard-banner {
-    -fx-background-color: sibim-marca-900;
-    -fx-background-radius: 10;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4A1016, #6F1820);
+    -fx-background-radius: 14;
     -fx-background-insets: 0;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 16, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.45), 16, 0, 0, 4);
+}
+.banner-greeting {
+    -fx-text-fill: sibim-indigo-200;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
 }
 .banner-name {
     -fx-text-fill: white;
@@ -337,9 +355,26 @@
     -fx-font-weight: bold;
 }
 .banner-org {
-    -fx-text-fill: sibim-marca-300;
+    -fx-text-fill: sibim-indigo-300;
     -fx-font-size: 11px;
     -fx-font-weight: 600;
+}
+.banner-date {
+    -fx-text-fill: sibim-indigo-200;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+.banner-date-day {
+    -fx-text-fill: white;
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_RIGHT;
+}
+.banner-date-month {
+    -fx-text-fill: sibim-indigo-300;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-alignment: CENTER_RIGHT;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -357,10 +392,10 @@
 .status-bar-selection {
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-text-fill: sibim-marca-darker;
-    -fx-background-color: sibim-marca-50;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
-    -fx-border-color: sibim-marca-200;
+    -fx-border-color: sibim-indigo-200;
     -fx-border-radius: 99;
     -fx-border-width: 1;
     -fx-padding: 2 9;
@@ -379,10 +414,10 @@
     -fx-prompt-text-fill: sibim-slate-500;
 }
 .search-field:hover {
-    -fx-border-color: sibim-marca-300;
+    -fx-border-color: sibim-indigo-300;
 }
 .search-field:focused {
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
     -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.18), 8, 0, 0, 0);
 }
 

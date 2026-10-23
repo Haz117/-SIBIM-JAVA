@@ -5,11 +5,15 @@
 
 /* ── Brand panel (left) ── */
 .login-brand {
-    -fx-background-color: sibim-marca-900;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #3A0C10, #5A141A, #4A1016);
 }
+.login-deco-circle-1 { -fx-fill: #FFFFFF09; }
+.login-deco-circle-2 { -fx-fill: #FFFFFF06; }
+.login-deco-circle-3 { -fx-fill: #FFFFFF0B; }
+.login-deco-circle-4 { -fx-fill: #FFFFFF0E; }
 /* Same brand mark as the splash: flat indigo rounded square with the package icon */
 .brand-logo-badge {
-    -fx-background-color: sibim-marca-dark;
+    -fx-background-color: sibim-indigo-dark;
     -fx-background-radius: 13;
     -fx-border-color: rgba(229,143,150,0.35);
     -fx-border-radius: 13;
@@ -32,10 +36,11 @@
     -fx-text-fill: #F2BCC0;
     -fx-font-weight: 600;
 }
-.brand-institution {
+.brand-feature {
     -fx-font-size: 13px;
     -fx-text-fill: #F9DEE0;
 }
+.feature-check-icon { -fx-icon-size: 14; -fx-icon-color: #D0606A; }
 .brand-divider .line { -fx-border-color: rgba(255,255,255,0.15); }
 .brand-hint {
     -fx-text-fill: #F2BCC0;
@@ -61,13 +66,14 @@
 
 /* ── Form panel (right) ── */
 .login-form-panel {
-    -fx-background-color: white;
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #FCF0F1, white);
 }
 .login-title {
     -fx-font-size: 27px;
     -fx-font-weight: bold;
     -fx-text-fill: sibim-slate-950;
 }
+.login-subtitle { -fx-text-fill: sibim-slate-500; -fx-font-size: 14px; }
 .form-label {
     -fx-text-fill: sibim-gray-700;
     -fx-font-size: 13px;
@@ -85,29 +91,29 @@
 }
 .form-input:hover {
     -fx-background-color: white;
-    -fx-border-color: sibim-marca-300;
+    -fx-border-color: sibim-indigo-300;
 }
 .form-input:focused {
     -fx-background-color: white;
-    -fx-border-color: sibim-marca;
+    -fx-border-color: sibim-indigo;
     -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.20), 8, 0, 0, 0);
 }
 .login-btn {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #A2232D, #6F1820);
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 9;
     -fx-padding: 13;
     -fx-cursor: hand;
     -fx-font-size: 14px;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 12, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.45), 12, 0, 0, 4);
 }
 .login-btn:hover {
-    -fx-background-color: sibim-marca-dark;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 16, 0, 0, 6);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #5A141A);
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.60), 16, 0, 0, 6);
 }
 .login-btn:pressed {
-    -fx-background-color: sibim-marca-darker;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #6F1820, #4A1016);
     -fx-effect: none;
 }
 .login-btn:disabled { -fx-background-color: #E58F96; -fx-effect: none; }
@@ -130,4 +136,4 @@
     -fx-background-color: transparent;
     -fx-padding: 2 4;
 }
-.login-forgot-link:hover { -fx-text-fill: sibim-marca-dark; -fx-underline: true; }
+.login-forgot-link:hover { -fx-text-fill: sibim-indigo-dark; -fx-underline: true; }

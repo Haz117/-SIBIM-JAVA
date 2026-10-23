@@ -7,6 +7,7 @@ import com.sibim.repository.AreaResguardoRepository;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.ConfirmacionUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -203,6 +204,7 @@ public final class AreaResguardosDialog {
         content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, uploadGrid, scrollList), 270, 70);
         Platform.runLater(() -> areaCombo.requestFocus());
         dialog.showAndWait();
     }

@@ -11,7 +11,7 @@
 
     <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <StackPane styleClass="page-header-icon">
+        <StackPane styleClass="page-header-icon, page-header-icon-indigo">
             <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="page-icon-symbol"/>
         </StackPane>
         <VBox spacing="2" HBox.hgrow="ALWAYS">
@@ -29,7 +29,10 @@
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Muestra u oculta las tarjetas de resumen para dar más espacio a la tabla" wrapText="true" maxWidth="240"/></tooltip>
         </Button>
-        <Button fx:id="btnNuevo" text="Nuevo comodato" onAction="#onNuevoComodato" styleClass="btn-primary"
+        <Label fx:id="helpResumen" text="?" styleClass="help-badge">
+            <tooltip><Tooltip text="Oculta las tarjetas de resumen para darle más espacio a la tabla — se puede volver a mostrar con el mismo botón." wrapText="true" maxWidth="260"/></tooltip>
+        </Label>
+        <Button fx:id="btnNuevo" text="Nuevo Comodato" onAction="#onNuevoComodato" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Registrar un nuevo comodato"/></tooltip>
@@ -43,10 +46,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-teal">
                     <FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="Vigentes" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="VIGENTES" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatVigentes" text="—" styleClass="rich-stat-value"/>
             <Label text="comodatos activos" styleClass="rich-stat-hint"/>
@@ -55,10 +58,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-amber">
                     <FontIcon iconLiteral="mdi2a-alert-circle-outline" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="Vencidos" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="VENCIDOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatVencidos" text="—" styleClass="rich-stat-value"/>
             <Label text="fuera de plazo" styleClass="rich-stat-hint"/>
@@ -67,10 +70,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-indigo">
                     <FontIcon iconLiteral="mdi2c-check-all" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="Concluidos" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="CONCLUIDOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatConcluidos" text="—" styleClass="rich-stat-value"/>
             <Label text="comodatos cerrados" styleClass="rich-stat-hint"/>
@@ -79,10 +82,10 @@
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
             <padding><Insets top="16" right="18" bottom="16" left="18"/></padding>
             <HBox spacing="8" alignment="CENTER_LEFT">
-                <StackPane styleClass="rich-stat-icon-badge">
+                <StackPane styleClass="rich-stat-icon-badge, rich-stat-icon-badge-slate">
                     <FontIcon iconLiteral="mdi2f-format-list-bulleted" styleClass="rich-stat-icon"/>
                 </StackPane>
-                <Label text="Total" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
+                <Label text="TOTAL" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatTotal" text="—" styleClass="rich-stat-value"/>
             <Label text="comodatos registrados" styleClass="rich-stat-hint"/>
@@ -112,7 +115,7 @@
         <columns>
             <TableColumn fx:id="colNumero"    text="Folio"            prefWidth="120"/>
             <TableColumn fx:id="colBien"      text="Bien"             prefWidth="200" maxWidth="260"/>
-            <TableColumn fx:id="colEntidad"   text="Entidad receptora" prefWidth="200" maxWidth="240"/>
+            <TableColumn fx:id="colEntidad"   text="Entidad Receptora" prefWidth="200" maxWidth="240"/>
             <TableColumn fx:id="colContacto"  text="Contacto"         prefWidth="160"/>
             <TableColumn fx:id="colFechaInicio" text="Inicio"         prefWidth="90"/>
             <TableColumn fx:id="colFechaFin"  text="Fin"              prefWidth="90"/>

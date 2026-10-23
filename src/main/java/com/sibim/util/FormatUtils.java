@@ -17,7 +17,6 @@ public final class FormatUtils {
     private static final DateTimeFormatter DATE_FMT     = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter TIME_FMT     = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter LONG_FMT     = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM 'de' yyyy", LOCALE_MX);
 
     private FormatUtils() {}
 
@@ -29,12 +28,6 @@ public final class FormatUtils {
     public static String formatDate(LocalDate date) {
         if (date == null) return "";
         return date.format(DATE_FMT);
-    }
-
-    /** "martes 20 de octubre de 2026" */
-    public static String formatDateLong(LocalDate date) {
-        if (date == null) return "";
-        return date.format(LONG_FMT);
     }
 
     public static String formatDateTime(LocalDateTime dt) {

@@ -56,7 +56,8 @@ public class ComodatoService {
         this.auditRepo    = auditRepo;
     }
 
-    private static final DeviceRgb COLOR_HEADER  = ColoresDocumento.MARCA;
+    // Guinda header — rgb(162, 35, 45) = Pantone 1805 C
+    private static final DeviceRgb COLOR_HEADER  = new DeviceRgb(162, 35, 45);
     private static final DeviceRgb COLOR_SUBHEAD = new DeviceRgb(252, 240, 241);  // guinda-50
     private static final DeviceRgb COLOR_MUTED   = new DeviceRgb(100, 116, 139);
     private static final DeviceRgb COLOR_WARN    = new DeviceRgb(146, 64, 14);    // amber-800

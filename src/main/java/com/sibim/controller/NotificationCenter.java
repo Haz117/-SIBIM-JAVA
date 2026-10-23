@@ -3,11 +3,15 @@ package com.sibim.controller;
 import com.sibim.session.SessionManager;
 import com.sibim.service.PrestamoService;
 import com.sibim.service.ProductoService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.DialogUtil;
+import javafx.animation.ScaleTransition;
+import javafx.animation.Interpolator;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,8 +65,18 @@ class NotificationCenter {
             int total = items.stream().mapToInt(Item::count).sum();
             if (total > 0) {
                 badge.setText(total > 99 ? "99+" : String.valueOf(total));
+                boolean wasHidden = !badge.isVisible();
                 badge.setVisible(true);
                 badge.setManaged(true);
+                if (wasHidden) {
+                    ScaleTransition pop = new ScaleTransition(com.sibim.util.AnimationUtils.duracion(320), badge);
+                    pop.setFromX(0.3); pop.setFromY(0.3);
+                    pop.setToX(1.0);   pop.setToY(1.0);
+                    pop.setInterpolator(Interpolator.EASE_OUT);
+                    pop.play();
+                } else {
+                    AnimationUtils.pulse(badge, 2);
+                }
             } else {
                 badge.setVisible(false);
                 badge.setManaged(false);

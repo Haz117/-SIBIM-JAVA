@@ -10,6 +10,7 @@ import com.sibim.model.enums.EstadoProducto;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteEntregaRecepcionService;
 import com.sibim.service.ReporteOrganigramaService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -23,6 +24,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
@@ -64,9 +66,9 @@ class OrganigramaDialogs {
                 .toList()
             : allProds;
 
-        ButtonType btnVerInventario   = new ButtonType("Ver en Bienes",               ButtonBar.ButtonData.OTHER);
-        ButtonType btnExportarArea    = new ButtonType("Exportar área",               ButtonBar.ButtonData.OTHER);
-        ButtonType btnActaEntrega     = new ButtonType("Acta de entrega-recepción",   ButtonBar.ButtonData.OTHER);
+        ButtonType btnVerInventario   = new ButtonType("Ver en Inventario →",        ButtonBar.ButtonData.OTHER);
+        ButtonType btnExportarArea    = new ButtonType("Exportar área →",             ButtonBar.ButtonData.OTHER);
+        ButtonType btnActaEntrega     = new ButtonType("Acta de Entrega-Recepción →", ButtonBar.ButtonData.OTHER);
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle(areaName);
@@ -264,7 +266,7 @@ class OrganigramaDialogs {
             .limit(6)
             .toList();
         long maxCat = sortedCats.isEmpty() ? 1 : sortedCats.get(0).getValue();
-        String[] catColors = { AppColors.PRIMARY, "#235B4E", "#059669", "#D97706", "#B38E5D", "#475569" };
+        String[] catColors = { "#A2232D", "#235B4E", "#059669", "#D97706", "#B38E5D", "#475569" };
         for (int i = 0; i < sortedCats.size(); i++) {
             var entry = sortedCats.get(i);
             Label catName = new Label(entry.getKey());
@@ -317,6 +319,7 @@ class OrganigramaDialogs {
                 movs -> {
                     movTbl.getItems().setAll(movs);
                     movTbl.setPlaceholder(new Label("Sin movimientos recientes"));
+                    AnimationUtils.staggeredFadeInUp(List.of(movTbl), 270, 0);
                 },
                 ex -> {
                     log.error("Error cargando movimientos en organigrama dialog", ex);
@@ -324,6 +327,7 @@ class OrganigramaDialogs {
                 });
         });
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, tabPane), 270, 70);
         VBox content = new VBox(8, header, tabPane);
         content.setPadding(new Insets(0, 0, 0, 0));
         dialog.getDialogPane().setContent(content);
@@ -389,6 +393,7 @@ class OrganigramaDialogs {
             }
         });
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, tbl), 270, 70);
         VBox content = new VBox(8, header, tbl);
         content.setPadding(new Insets(0, 0, 0, 0));
         dialog.getDialogPane().setContent(content);
@@ -474,6 +479,7 @@ class OrganigramaDialogs {
         tbl.getColumns().addAll(cBien, cNum, cDest, cVence, cEstado);
         tbl.getItems().setAll(prestamos);
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, tbl), 270, 70);
         VBox content = new VBox(8, header, tbl);
         content.setPadding(new Insets(0, 0, 0, 0));
         dialog.getDialogPane().setContent(content);
@@ -538,6 +544,7 @@ class OrganigramaDialogs {
         tbl.getColumns().addAll(cBien, cEntidad, cVence, cEstado);
         tbl.getItems().setAll(comodatos);
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, tbl), 270, 70);
         VBox content = new VBox(8, header, tbl);
         content.setPadding(new Insets(0, 0, 0, 0));
         dialog.getDialogPane().setContent(content);

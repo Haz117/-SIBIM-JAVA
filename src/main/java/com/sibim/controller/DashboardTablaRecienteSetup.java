@@ -4,6 +4,7 @@ import com.sibim.controller.dialogs.ProductoDetailDialog;
 import com.sibim.model.Movimiento;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -34,6 +35,23 @@ class DashboardTablaRecienteSetup {
         if (tablaReciente == null) return;
         tablaReciente.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
+        tablaReciente.setRowFactory(tv -> new TableRow<>() {
+            @Override protected void updateItem(Movimiento m, boolean empty) {
+                super.updateItem(m, empty);
+                getStyleClass().removeAll("row-entrada","row-salida","row-ajuste","row-transferencia");
+                if (!empty && m != null) {
+                    String cls = switch (m.getTipo()) {
+                        case ENTRADA      -> "row-entrada";
+                        case SALIDA       -> "row-salida";
+                        case AJUSTE       -> "row-ajuste";
+                        case TRANSFERENCIA -> "row-transferencia";
+                        default           -> "";
+                    };
+                    if (!cls.isEmpty()) getStyleClass().add(cls);
+                }
+            }
+        });
+
         TableColumn<Movimiento, String> cProd = new TableColumn<>("Bien");
         cProd.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             c.getValue().getProductoNombre() != null ? c.getValue().getProductoNombre() : ""));
@@ -61,7 +79,7 @@ class DashboardTablaRecienteSetup {
 
         TableColumn<Movimiento, Integer> cCant = new TableColumn<>("Cant.");
         cCant.setCellValueFactory(c -> new javafx.beans.property.SimpleObjectProperty<>(c.getValue().getCantidad()));
-        cCant.setPrefWidth(80); cCant.setMinWidth(72); cCant.setMaxWidth(96);
+        cCant.setPrefWidth(55); cCant.setMinWidth(50); cCant.setMaxWidth(70);
         cCant.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Integer v, boolean empty) {
                 super.updateItem(v, empty);
@@ -163,7 +181,7 @@ class DashboardTablaRecienteSetup {
 
         Label bienLbl = new Label(m.getProductoNombre());
         bienLbl.setWrapText(true);
-        Hyperlink linkVerBien = new Hyperlink("Ver ficha");
+        Hyperlink linkVerBien = new Hyperlink("Ver ficha →");
         linkVerBien.getStyleClass().add("muted-sm");
         linkVerBien.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         if (m.getProductoId() != null) {
@@ -190,6 +208,7 @@ class DashboardTablaRecienteSetup {
         grid.add(DialogUtil.fieldLabel("Usuario"), 0, r); grid.add(new Label(m.getUsuarioNombre()), 1, r++);
         grid.add(DialogUtil.fieldLabel("Fecha"),   0, r); grid.add(new Label(FormatUtils.formatDateTime(m.getCreadoEn())), 1, r);
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
         dlg.getDialogPane().setContent(new javafx.scene.layout.VBox(0, header, grid));
         dlg.showAndWait();
     }

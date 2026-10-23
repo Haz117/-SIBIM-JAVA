@@ -130,7 +130,7 @@
                                        visible="false" managed="false" mouseTransparent="true"
                                        StackPane.alignment="CENTER_RIGHT"/>
                             </StackPane>
-                            <Button fx:id="btnConteoFisico" text="Conteo físico" onAction="#onNavItem" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                            <Button fx:id="btnConteoFisico" text="Conteo Físico" onAction="#onNavItem" styleClass="nav-btn, nav-ops" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                                 <graphic><FontIcon iconLiteral="mdi2c-clipboard-search-outline" styleClass="nav-icon"/></graphic>
                                 <tooltip><Tooltip text="Tomar conteo físico del inventario  (Ctrl+Alt+C)"/></tooltip>
                             </Button>

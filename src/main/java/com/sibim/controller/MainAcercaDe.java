@@ -2,6 +2,7 @@ package com.sibim.controller;
 
 import com.sibim.db.DatabaseConfig;
 import com.sibim.db.offline.SyncService;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.UpdateChecker;
@@ -53,6 +54,7 @@ class MainAcercaDe {
 
         VBox content = new VBox(0, header, g);
         dialog.getDialogPane().setContent(content);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, g), 260, 70);
         dialog.showAndWait();
     }
 }

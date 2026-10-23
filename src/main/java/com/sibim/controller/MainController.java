@@ -28,7 +28,9 @@ import com.sibim.util.NotificacionUtil;
 import com.sibim.util.TutorialOverlay;
 import com.sibim.util.UpdateChecker;
 import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.scene.control.Dialog;
@@ -54,6 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -117,6 +120,7 @@ public class MainController {
     private MainStatusBarManager statusBarManager;
     private Object   currentController;
     private Timeline badgeRefresh;
+    private final Map<Button, Timeline> navHoverAnims = new HashMap<>();
     private Timeline clock;
     private Timeline sessionGuard;
     private final ProductoService alertProductoService = new ProductoService();
@@ -190,6 +194,7 @@ public class MainController {
         applyDensityClass();
         applyTextScaleClass();
         navRegistry.tuneTooltips(Duration.millis(700), Duration.millis(200));
+        setupNavHover(navRegistry.buttons().toArray(new Button[0]));
 
         // The áreas get a short menu: what only Patrimonio works with (catalogue,
         // movements, depreciation, physical count, resguardos, préstamos, comodatos, actas, bajas, audit)
@@ -394,6 +399,7 @@ public class MainController {
         if (badgeRefresh != null) badgeRefresh.stop();
         if (clock != null) clock.stop();
         if (sessionGuard != null) sessionGuard.stop();
+        if (badgeManager != null) badgeManager.stopBadgePulse();
         if (currentController instanceof AlertasController ac) ac.stopAutoRefresh();
         if (currentController instanceof DashboardController dc) dc.stopAutoRefresh();
     }
@@ -455,6 +461,10 @@ public class MainController {
                 log.warn("Intento de navegación con botón nulo para vista: {}", view);
                 return;
             }
+            // Update nav state + reset hover transforms immediately
+            Timeline pendingHover = navHoverAnims.remove(button);
+            if (pendingHover != null) pendingHover.stop();
+            button.setTranslateX(0);
             sidebarSections.reveal(button);      // unfold its section first so the active-tab marker lands right
             sidebarManager.setActive(button);
             sidebarSections.markActive(button);
@@ -476,10 +486,12 @@ public class MainController {
                 out.setToValue(0);
                 out.setOnFinished(ev -> {
                     contentArea.getChildren().setAll(node);
+                    AnimationUtils.pageIn(node);
                 });
                 out.play();
             } else {
                 contentArea.getChildren().setAll(node);
+                AnimationUtils.pageIn(node);
             }
         } catch (Exception e) {
             log.error("No se pudo cargar la vista: {}", view, e);
@@ -684,6 +696,7 @@ public class MainController {
         lblCountdown.getStyleClass().add("inactivity-countdown");
         VBox body = buildInactivityBody(lblCountdown);
 
+        AnimationUtils.staggeredFadeInUp(List.of(header, body), 260, 70);
         dlg.getDialogPane().setContent(new VBox(header, body));
 
         long[] msLeft = { INACTIVITY_WARN_WINDOW_MS };
@@ -808,6 +821,38 @@ public class MainController {
         if (n instanceof Button) return true;
         return n instanceof javafx.scene.Parent p
             && p.getChildrenUnmodifiable().stream().anyMatch(MainController::muestraUnBoton);
+    }
+
+    private void setupNavHover(Button... buttons) {
+        for (Button btn : buttons) {
+            if (btn == null) continue;
+            btn.setOnMouseEntered(e -> {
+                if (btn == sidebarManager.getActive()) return;
+                Timeline prev = navHoverAnims.get(btn);
+                if (prev != null) prev.stop();
+                Timeline t = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(btn.translateXProperty(), btn.getTranslateX())),
+                    new KeyFrame(Duration.millis(170),
+                        new KeyValue(btn.translateXProperty(), 6.0, Interpolator.EASE_OUT))
+                );
+                navHoverAnims.put(btn, t);
+                com.sibim.util.AnimationUtils.reproducir(t);
+            });
+            btn.setOnMouseExited(e -> {
+                if (btn == sidebarManager.getActive()) return;
+                Timeline prev = navHoverAnims.get(btn);
+                if (prev != null) prev.stop();
+                Timeline t = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(btn.translateXProperty(), btn.getTranslateX())),
+                    new KeyFrame(Duration.millis(210),
+                        new KeyValue(btn.translateXProperty(), 0.0, Interpolator.EASE_OUT))
+                );
+                navHoverAnims.put(btn, t);
+                com.sibim.util.AnimationUtils.reproducir(t);
+            });
+        }
     }
 
     private void refreshCurrentView() {

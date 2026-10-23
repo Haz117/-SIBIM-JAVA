@@ -32,17 +32,17 @@
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.04), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.07), 8, 0, 0, 2);
 }
 .quick-action-card:hover {
     -fx-background-color: #FDF4F5;
-    -fx-border-color: sibim-marca-200;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.08), 14, 0, 0, 4);
+    -fx-border-color: sibim-indigo-200;
+    -fx-effect: dropshadow(gaussian, rgba(111,24,32,0.18), 14, 0, 0, 4);
     -fx-translate-y: -2;
 }
 .quick-action-card:pressed {
     -fx-translate-y: 0;
-    -fx-background-color: sibim-marca-50;
+    -fx-background-color: sibim-indigo-50;
 }
 /* "Todo al día" in Pendientes de tu área: a message, not a button. */
 .quick-action-card-static,
@@ -57,11 +57,11 @@
 .qa-card-hint  { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
 /* Wrap instead of ellipsizing — five cards share ~990px at the default window size. */
 .qa-card-title, .qa-card-hint { -fx-wrap-text: true; }
-.qa-card-icon-indigo { -fx-icon-color: sibim-marca-darker; -fx-icon-size: 22; }
+.qa-card-icon-indigo { -fx-icon-color: sibim-indigo-darker; -fx-icon-size: 22; }
 .qa-card-icon-green  { -fx-icon-color: #059669; -fx-icon-size: 22; }
 .qa-card-icon-amber  { -fx-icon-color: sibim-amber; -fx-icon-size: 22; }
 .qa-card-icon-blue   { -fx-icon-color: #A2232D; -fx-icon-size: 22; }
-.qa-card-icon-violet { -fx-icon-color: sibim-dorado; -fx-icon-size: 22; }
+.qa-card-icon-violet { -fx-icon-color: sibim-violet; -fx-icon-size: 22; }
 
 /* Section divider labels ("RESUMEN DEL INVENTARIO", etc.) */
 .dash-section-label {
@@ -73,9 +73,9 @@
 
 /* Small chip badge next to section labels ("Últimos 7 días") */
 .dash-section-badge {
-    -fx-background-color: sibim-marca-50;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 99;
-    -fx-text-fill: sibim-marca-darker;
+    -fx-text-fill: sibim-indigo-darker;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-padding: 2 10;
@@ -85,7 +85,7 @@
 .dash-health-card {
     -fx-background-color: white;
     -fx-background-radius: 12;
-    -fx-border-color: sibim-marca sibim-slate-200 sibim-slate-200 sibim-marca;
+    -fx-border-color: sibim-indigo sibim-slate-200 sibim-slate-200 sibim-indigo;
     -fx-border-width: 0 1 1 4;
     -fx-border-radius: 12;
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.07), 10, 0, 0, 2);
@@ -102,7 +102,7 @@
 
 /* Recent activity count badge */
 .dash-activity-badge {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
     -fx-background-radius: 99;
     -fx-text-fill: white;
     -fx-font-size: 11px;
@@ -123,12 +123,12 @@
    ORGANIGRAMA — TitledPane expand arrow coloring
    ═══════════════════════════════════════════════════════════════════ */
 .titled-pane > .title > .arrow-button > .arrow {
-    -fx-background-color: sibim-marca;
+    -fx-background-color: sibim-indigo;
     -fx-background-insets: 0;
     -fx-padding: 3.5;
 }
 .titled-pane > .title:hover > .arrow-button > .arrow {
-    -fx-background-color: sibim-marca-darker;
+    -fx-background-color: sibim-indigo-darker;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -184,12 +184,12 @@
 }
 .sidebar-toggle-btn:hover .ikonli-font-icon,
 .sidebar-icon-btn:hover .ikonli-font-icon {
-    -fx-icon-color: sibim-marca;
+    -fx-icon-color: sibim-indigo;
 }
 
 /* Status bar DB pill — container around icon + label + help badge */
 .status-db-pill {
-    -fx-background-color: sibim-slate-100;
+    -fx-background-color: sibim-indigo-50;
     -fx-background-radius: 20;
     -fx-padding: 4 10 4 8;
 }
@@ -203,10 +203,10 @@
 
 /* Help badge "?" next to the DB status text */
 .status-db-help-badge {
-    -fx-text-fill: sibim-slate-600;
+    -fx-text-fill: sibim-indigo-900;
     -fx-font-size: 11px;
     -fx-font-weight: 700;
-    -fx-background-color: sibim-slate-200;
+    -fx-background-color: sibim-indigo-200;
     -fx-background-radius: 50%;
     -fx-min-width: 14px;
     -fx-min-height: 14px;
@@ -216,8 +216,8 @@
     -fx-cursor: hand;
 }
 .status-db-help-badge:hover {
-    -fx-background-color: sibim-slate-300;
-    -fx-text-fill: sibim-slate-900;
+    -fx-background-color: sibim-indigo-300;
+    -fx-text-fill: #4A1016;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -234,12 +234,26 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 /* Accent bar used before section labels */
+.dash-section-bar {
+    -fx-background-color: sibim-indigo;
+    -fx-min-width: 3;
+    -fx-min-height: 16;
+    -fx-background-radius: 2;
+}
+
+/* Date widget inside welcome banner */
+.banner-date-widget {
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-background-radius: 10;
+    -fx-padding: 10 16;
+}
+
 /* Small brand icon in banner */
 .banner-brand-icon { -fx-icon-size: 13; -fx-icon-color: white; -fx-opacity: 0.65; }
 
 /* Alert banner label styles */
-.alert-banner-icon { -fx-icon-color: sibim-marca-dark; -fx-icon-size: 15; }
-.alert-banner-cta  { -fx-text-fill: sibim-marca-dark; -fx-font-weight: bold; -fx-font-size: 12px; }
+.alert-banner-icon { -fx-icon-color: sibim-indigo-dark; -fx-icon-size: 15; }
+.alert-banner-cta  { -fx-text-fill: sibim-indigo-dark; -fx-font-weight: bold; -fx-font-size: 12px; }
 
 /* Health bar strip */
 .dash-health-bar { -fx-background-radius: 5; }
@@ -252,15 +266,15 @@
 .dot-green  { -fx-text-fill: sibim-green-dark; -fx-font-size: 11px; }
 .dot-amber  { -fx-text-fill: sibim-amber-dark; -fx-font-size: 11px; }
 .dot-red    { -fx-text-fill: sibim-red; -fx-font-size: 11px; }
-.dot-violet { -fx-text-fill: sibim-dorado-dark; -fx-font-size: 11px; }
+.dot-violet { -fx-text-fill: sibim-violet-dark; -fx-font-size: 11px; }
 
 /* Card-section icon (small, decorative) */
 .card-icon         { -fx-icon-size: 15; -fx-icon-color: sibim-slate-500; }
-.card-icon-indigo  { -fx-icon-size: 15; -fx-icon-color: sibim-marca; }
+.card-icon-indigo  { -fx-icon-size: 15; -fx-icon-color: sibim-indigo; }
 .card-icon-emerald { -fx-icon-size: 15; -fx-icon-color: #059669; }
 
 /* Icon inside area-filter ComboBox cells */
-.area-filter-icon  { -fx-icon-size: 13; -fx-icon-color: sibim-marca; }
+.area-filter-icon  { -fx-icon-size: 13; -fx-icon-color: sibim-indigo; }
 .combo-cell-label  { -fx-font-size: 12px; }
 
 /* Quick-action icon (large emoji in banner buttons) */
@@ -302,7 +316,7 @@
    paths (static FXML <placeholder> blocks vs. table.setPlaceholder() built
    in Java) can never visually drift apart again. */
 .empty-icon-lg { -fx-icon-size: 52; -fx-icon-color: #CBD5E1; }
-.empty-state-icon { -fx-icon-size: 34; -fx-icon-color: sibim-marca; }
+.empty-state-icon { -fx-icon-size: 34; -fx-icon-color: sibim-indigo; }
 
 /* Pie chart empty state overlay */
 .pie-empty-state { -fx-min-height: 140; }

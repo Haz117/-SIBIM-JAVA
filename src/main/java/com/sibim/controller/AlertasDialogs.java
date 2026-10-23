@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.model.Producto;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -46,6 +47,7 @@ class AlertasDialogs {
         grid.add(DialogUtil.fieldLabel("Días restantes"), 0, r); grid.add(diasLbl, 1, r);
 
         VBox content = new VBox(0, header, grid);
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 260, 70);
         dlg.getDialogPane().setContent(content);
         dlg.showAndWait();
     }

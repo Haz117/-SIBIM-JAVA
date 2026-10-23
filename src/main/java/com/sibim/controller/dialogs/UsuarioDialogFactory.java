@@ -5,6 +5,7 @@ import com.sibim.config.Areas;
 import com.sibim.model.Usuario;
 import com.sibim.model.enums.Rol;
 import com.sibim.repository.UsuarioRepository;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
@@ -45,8 +46,8 @@ public final class UsuarioDialogFactory {
         String accent  = passwordOnly ? AppColors.WARNING_D : (isNew ? AppColors.PRIMARY_D : "#0369A1");
         String accent2 = passwordOnly ? AppColors.WARNING   : (isNew ? AppColors.PURPLE    : AppColors.CYAN);
         String iconChar = passwordOnly ? "mdi2k-key-outline" : (isNew ? "mdi2a-account-plus-outline" : "mdi2p-pencil");
-        String titleStr = passwordOnly ? "Cambiar contraseña"
-            : (isNew ? "Nuevo usuario" : "Editar usuario");
+        String titleStr = passwordOnly ? "Cambiar Contraseña"
+            : (isNew ? "Nuevo Usuario" : "Editar Usuario");
         String subStr = passwordOnly
             ? "Actualiza la contraseña de " + (existing != null ? existing.getNombre() : "usuario")
             : (isNew ? "Registra una nueva cuenta de acceso al sistema"
@@ -162,6 +163,7 @@ public final class UsuarioDialogFactory {
             }
         }
 
+        AnimationUtils.staggeredFadeInUp(java.util.List.of(header, grid), 270, 70);
         DialogUtil.setScrollableContent(dialog.getDialogPane(), new VBox(0, header, grid, lblFormError));
         Platform.runLater(() -> (passwordOnly ? fPassword : fNombre).requestFocus());
 

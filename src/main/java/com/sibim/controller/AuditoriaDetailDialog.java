@@ -1,6 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.model.AuditLog;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import javafx.geometry.Insets;
@@ -14,6 +15,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /** Single-entry detail dialog for an audit log row — extracted from
  *  AuditoriaController since it's self-contained beyond the entry itself. */
@@ -64,6 +66,7 @@ final class AuditoriaDetailDialog {
 
         VBox content = new VBox(0, header, g);
         dlg.getDialogPane().setContent(content);
+        AnimationUtils.staggeredFadeInUp(List.of(header, g), 260, 70);
         dlg.showAndWait();
     }
 }

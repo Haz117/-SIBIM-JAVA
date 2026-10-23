@@ -1,6 +1,7 @@
 package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
+import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
@@ -29,7 +30,7 @@ public final class ComparacionBienesDialog {
     @SuppressWarnings("unchecked")
     public static void show(Producto a, Producto b, Scene owner) {
         Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.setTitle("Comparar bienes");
+        dlg.setTitle("Comparar Bienes");
         dlg.setResizable(true);
         DialogUtil.applyOwner(dlg);
         DialogUtil.applyStylesheet(dlg.getDialogPane());
@@ -38,7 +39,7 @@ public final class ComparacionBienesDialog {
         dlg.getDialogPane().setPrefHeight(620);
 
         HBox header = DialogUtil.gradientHeader(
-            "mdi2c-compare", "Comparación de bienes",
+            "mdi2c-compare", "Comparación de Bienes",
             a.getNombre() + "  vs  " + b.getNombre(),
             AppColors.PRIMARY, AppColors.INDIGO);
 
@@ -91,6 +92,8 @@ public final class ComparacionBienesDialog {
         content.setPadding(new Insets(0, 18, 0, 18));
         VBox.setVgrow(table, Priority.ALWAYS);
         dlg.getDialogPane().setContent(content);
+        AnimationUtils.staggeredFadeInUp(
+            List.of(header, summaryBar, table), 260, 60);
         dlg.showAndWait();
     }
 
