@@ -5,6 +5,7 @@ import com.sibim.db.DatabaseConfig;
 import com.sibim.model.Categoria;
 import com.sibim.session.SessionManager;
 import javafx.application.Platform;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -68,11 +69,11 @@ class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
         Platform.runLater(() -> ProductoDialogFactory.show(null, List.of(muebles, computo), new HashMap<>(),
             LoggerFactory.getLogger("prueba"), List.of(),
             new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null)));
-        for (int i = 0; i < 50 && lookup(".stepper-nav-bar").tryQuery().isEmpty(); i++) sleep(100);
-
-        ComboBox<Categoria> categoria = (ComboBox<Categoria>) lookup(n -> n instanceof ComboBox<?> c
-            && "Buscar categoría…".equals(c.getPromptText())).query();
-        TextField clave = lookup(n -> n instanceof TextField t && "Ej. 1.2.4.1.1.511".equals(t.getPromptText())).query();
+        // The dialog's tabs are laid out after its button bar shows: waiting for
+        // the bar alone found no fields now and then (in CI too).
+        ComboBox<Categoria> categoria = (ComboBox<Categoria>) esperar(n -> n instanceof ComboBox<?> c
+            && "Buscar categoría…".equals(c.getPromptText()));
+        TextField clave = (TextField) esperar(n -> n instanceof TextField t && "Ej. 1.2.4.1.1.511".equals(t.getPromptText()));
         assertEquals("", clave.getText());
 
         interact(() -> categoria.setValue(muebles));
@@ -85,5 +86,15 @@ class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
         assertEquals("1.2.4.1.3.515.9", clave.getText(), "la escrita a mano se respeta");
 
         interact(() -> ((Stage) categoria.getScene().getWindow()).close());
+    }
+
+    /** The first node {@code que} matches, waiting up to 10 s for it to show. */
+    private Node esperar(java.util.function.Predicate<Node> que) {
+        for (int i = 0; i < 100; i++) {
+            java.util.Optional<Node> n = lookup(que::test).tryQuery();
+            if (n.isPresent()) return n.get();
+            sleep(100);
+        }
+        return lookup(que::test).query();   // fails with TestFX's own message
     }
 }
