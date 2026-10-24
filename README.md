@@ -333,25 +333,33 @@ Como todas las PCs reciben el mismo instalador por actualización, el instalador
 
 ## Respaldo de la base de datos
 
-Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo cifrado, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado. El respaldo incluye las solicitudes de las áreas; el registro de en qué equipos entró cada cuenta no se respalda, pero se conserva al restaurar. El respaldo cubre la base de datos: las fotos y facturas de los bienes son archivos en Supabase Storage y no van en él (el respaldo guarda sus direcciones). Se toma como una foto de un mismo instante, aunque otras PCs sigan trabajando, y se escribe cifrado directo al archivo.
+Desde **Configuración → Respaldo y restauración** (solo Admin, y solo conectado a la base de datos real — no funciona en modo offline/demo) se puede exportar toda la base a un único archivo cifrado, o restaurar la base completa desde uno: la restauración corre dentro de una sola transacción, así que si algo falla no deja la base a medias. Es una herramienta manual pensada para respaldos puntuales antes de un cambio importante, no un reemplazo de un respaldo automatizado. El respaldo incluye las solicitudes de las áreas; el registro de en qué equipos entró cada cuenta no se respalda, pero se conserva al restaurar. El respaldo cubre la base de datos: las fotos y facturas de los bienes son archivos en Supabase Storage y no van en él (el respaldo guarda sus direcciones; el respaldo automático diario de abajo sí las guarda). Se toma como una foto de un mismo instante, aunque otras PCs sigan trabajando, y se escribe cifrado directo al archivo.
 
-**Respaldo automático diario** (en la PC de administración; `pg_dump` de la misma versión mayor que el servidor o más nueva). Activo desde el 23-oct-2026 en la PC de administración, todos los días a las 14:00:
+**Respaldo automático diario** (en la PC de administración; `pg_dump` de la misma versión mayor que el servidor o más nueva). Activo desde el 23-oct-2026 en la PC de administración, todos los días a las 14:00. Guarda la base y, en la subcarpeta `fotos`, las fotos y facturas de los bienes: cada día baja de Storage solo las nuevas (una foto nunca se reemplaza) y ninguna se borra por antigüedad. Los instaladores publicados con "Publicar actualización" no se respaldan (se rehacen desde el código):
 
 ```powershell
-# pg_dump portátil en tools\pgsql\bin (sin instalar PostgreSQL; git lo ignora)
+# pg_dump, pg_restore y psql portátiles en tools\pgsql\bin (sin instalar PostgreSQL; git lo ignora)
 .\scripts\instalar_pg_dump.ps1
 
 # Respaldo ahora (lee la conexión de %APPDATA%\SIBIM\.env; guarda en %APPDATA%\SIBIM\respaldos, conserva 30 días)
 .\scripts\respaldo_diario.ps1
 
-# Registrar la tarea programada de Windows y hacer un primer respaldo para comprobarla
-.\scripts\respaldo_diario.ps1 -Registrar -Hora 14:00
-
-# Restaurar un respaldo
-pg_restore --clean --if-exists --no-owner -h <host> -p <puerto> -U <usuario> -d <base> sibim-20260926-2300.dump
+# Registrar la tarea programada de Windows y hacer un primer respaldo para comprobarla;
+# -CopiaEn copia además lo nuevo a una USB o carpeta de red cuando está conectada
+.\scripts\respaldo_diario.ps1 -Registrar -Hora 14:00 -CopiaEn E:\SIBIM-respaldos
 ```
 
-El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta periódicamente fuera de esa PC.
+**Restaurar** (`scripts\restaurar_respaldo.ps1`). Sin opciones solo revisa el respaldo más reciente: cuántos bienes, resguardos y fotos trae, sin conectarse a nada. `-Restaurar` reemplaza la base con el respaldo, en una sola transacción (si algo falla, la base queda como estaba), y al final compara los registros de cada tabla con los del respaldo; pide escribir RESTAURAR y necesita la cuenta dueña de las tablas (postgres). Antes, cierra SIBIM en todas las PCs. `-Fotos` sube a Storage las fotos del respaldo que ya no estén ahí, sin reemplazar ninguna:
+
+```powershell
+.\scripts\restaurar_respaldo.ps1                       # revisar
+.\scripts\restaurar_respaldo.ps1 -Restaurar            # el más reciente, en la base del .env de esta PC
+.\scripts\restaurar_respaldo.ps1 -Restaurar -Respaldo E:\SIBIM-respaldos\sibim-20261024-1400.dump
+.\scripts\restaurar_respaldo.ps1 -Fotos -Carpeta E:\SIBIM-respaldos
+# -Conexion <archivo .env> restaura en otra base (una de prueba, o un servidor nuevo)
+```
+
+El respaldo incluye los hashes de contraseña y todo el inventario: guárdalo en una carpeta a la que solo tenga acceso quien administra el sistema y copia la carpeta fuera de esa PC (`-CopiaEn`).
 
 El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), aplicado automáticamente en cada arranque — no hace falta correr nada a mano. Para un cambio de esquema futuro: agrega un archivo nuevo `V32__descripcion.sql` (numeración consecutiva a partir de V31) a esa carpeta con el `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` correspondiente; Flyway se encarga de aplicarlo una sola vez por base de datos y de no volver a tocarlo. No edites migraciones ya publicadas — Flyway rechaza cualquier migración aplicada si su contenido cambia. El arranque **no** ejecuta `flyway.repair()` por su cuenta (reescribiría el historial sin correr el SQL y escondería choques de numeración): si una migración aplicada cambió a propósito, agrega `FLYWAY_AUTO_REPAIR=true` al `.env` una sola vez, reinicia y quítalo (ver `.env.example`).
 

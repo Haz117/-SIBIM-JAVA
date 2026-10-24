@@ -15,6 +15,16 @@ updates:
           - "org.mockito:*"
           - "org.testfx:*"
           - "io.zonky.test:*"
+    ignore:
+      # Stay on the JavaFX 21 LTS line and take its fixes: a newer line gets
+      # fixes only until the next release, and the latest ones need a newer
+      # Java than the 21 SIBIM is built and shipped with.
+      - dependency-name: "org.openjfx:*"
+        update-types: ["version-update:semver-major"]
+      # iText 9 changes the layout API the official formats (resguardo,
+      # etiqueta, actas) are drawn with: only by hand, with those checked.
+      - dependency-name: "com.itextpdf:*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

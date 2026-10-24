@@ -12,13 +12,23 @@
     3. Saca user= y password= de DB_URL: el driver los preferia a DB_USER y
        DB_PASSWORD. Si DB_USER o DB_PASSWORD no estaban, se escriben con esos
        valores; si ya estaban, se conservan los suyos.
+    4. Si falta SUPABASE_ANON_KEY, la copia de la configuracion del instalador
+       (packaging\sibim.env, o la de SIBIM instalado): sin ella la PC no sube
+       fotos ni publica la ficha del QR. Es la llave publica que ya lleva cada
+       instalador; solo se copia si es del mismo proyecto (SUPABASE_URL) y no
+       es una clave secreta.
     Solo muestra los NOMBRES de lo que cambio.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File packaging\limpiar-env.ps1
     powershell -ExecutionPolicy Bypass -File packaging\limpiar-env.ps1 -Ruta C:\ruta\.env
+    powershell -ExecutionPolicy Bypass -File packaging\limpiar-env.ps1 -Llave E:\sibim.env
 #>
-param([string]$Ruta = "$env:APPDATA\SIBIM\.env")
+param(
+    [string]$Ruta = "$env:APPDATA\SIBIM\.env",
+    # De donde copiar SUPABASE_ANON_KEY si falta.
+    [string]$Llave
+)
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Ruta)) { throw "No existe $Ruta" }
@@ -58,6 +68,44 @@ for ($i = 0; $i -lt $lineas.Count; $i++) {
     if ($usuario -and -not (Valor 'DB_USER')) { $lineas.Insert($i + 1, "DB_USER=$usuario"); $cambios += "agregado DB_USER (venia en DB_URL)" }
     if ($clave -and -not (Valor 'DB_PASSWORD')) { $lineas.Insert($i + 1, "DB_PASSWORD=$clave"); $cambios += "agregado DB_PASSWORD (venia en DB_URL)" }
     break
+}
+
+# -- Llave publica de Storage --------------------------------------------------
+# Como SupabaseStorage.esClaveSecreta: "sb_secret_..." o un JWT de service_role.
+function Es-Secreta([string]$k) {
+    if ($k.StartsWith('sb_secret_')) { return $true }
+    $partes = $k.Split('.')
+    if ($partes.Count -ne 3) { return $false }
+    $p = $partes[1].Replace('-', '+').Replace('_', '/')
+    while ($p.Length % 4) { $p += '=' }
+    try { return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p)) -match '"role"\s*:\s*"service_role"' }
+    catch { return $false }
+}
+
+$url = Valor 'SUPABASE_URL'
+if (-not (Valor 'SUPABASE_ANON_KEY') -and $url) {
+    $fuentes = if ($Llave) { @($Llave) } else { @("$PSScriptRoot\sibim.env", "$env:ProgramFiles\SIBIM Desktop\app\sibim.env") }
+    $copiada = $false
+    foreach ($f in $fuentes) {
+        if (-not (Test-Path $f)) { continue }
+        $otra = @{}
+        foreach ($l in [IO.File]::ReadAllLines($f, $utf8)) { if ($l -match '^\s*([A-Z_]+)\s*=\s*(.*)$') { $otra[$Matches[1]] = $Matches[2].Trim() } }
+        if (-not $otra['SUPABASE_ANON_KEY']) { continue }
+        if (([string]$otra['SUPABASE_URL']).TrimEnd('/') -ne $url.TrimEnd('/')) {
+            Write-Host "  $f es de otro proyecto de Supabase: no se toma su llave." -ForegroundColor Yellow; continue
+        }
+        if (Es-Secreta $otra['SUPABASE_ANON_KEY']) {
+            Write-Host "  La SUPABASE_ANON_KEY de $f es una clave secreta: no se copia." -ForegroundColor Yellow; continue
+        }
+        $lineas.Add("SUPABASE_ANON_KEY=" + $otra['SUPABASE_ANON_KEY'])
+        $cambios += "agregada SUPABASE_ANON_KEY (de $f)"
+        $copiada = $true
+        break
+    }
+    if (-not $copiada) {
+        Write-Host "  Falta SUPABASE_ANON_KEY y no la encontre en: $($fuentes -join ', ')." -ForegroundColor Yellow
+        Write-Host "  Sin ella esta PC no sube fotos. Pasa con -Llave el sibim.env del instalador." -ForegroundColor Yellow
+    }
 }
 
 if (-not $cambios) { Write-Host "  Nada que limpiar en $Ruta." -ForegroundColor Green; exit 0 }
