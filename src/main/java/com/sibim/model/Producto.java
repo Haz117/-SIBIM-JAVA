@@ -258,7 +258,7 @@ public class Producto implements Cloneable {
     public void setNotasMantenimiento(String notasMantenimiento) { this.notasMantenimiento = notasMantenimiento; }
 
     // ── Campos patrimoniales de formatos oficiales ────────────────────────
-    private String claveArmonizada;  // clave LGCG ej. "1.2.4.4.541.3"
+    private String claveArmonizada;  // clave CONAC, la de su categoría: ej. "1.2.4.1.1.511"
     private String color;            // color/material del bien (columna COLOR en resguardo)
     private String noMotor;          // número de motor (vehículos)
     private String tipoBien;         // tipo de bien / tipo de vehículo (3/2 ton, etc.)

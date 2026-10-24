@@ -243,6 +243,16 @@ public class ProductoService {
             // bienes; the código patrimonial and the accounting values are
             // Patrimonio's (admin), so theirs stay as the database has them.
             if (!com.sibim.session.Permisos.editaFichaCompleta()) p = soloLoQueEditaUnArea(actual, p);
+            // A código corrected by hand stays in the nomenclature of the
+            // bien's área (PREFIJO/NN); one left as it was isn't checked, so a
+            // legacy código never blocks editing the rest of the bien.
+            if (!java.util.Objects.equals(sinBlancos(p.getCodigo()), sinBlancos(actual.getCodigo()))
+                    && AreaCodigos.tienePrefijo(actual.getArea())) {
+                String prefijo = AreaCodigos.prefijo(actual.getArea());
+                p.setCodigo(AreaCodigos.normalizar(actual.getArea(), p.getCodigo()).orElseThrow(() ->
+                    new ValidationException("El código de un bien de " + actual.getArea() + " es " + prefijo
+                        + "/ y un número (por ejemplo " + prefijo + "/07)")));
+            }
             // A signed resguardo says who holds the bien (ResguardoRepository
             // keeps products.resguardante in step with it); an edit — single
             // or in bulk — can't contradict the document.

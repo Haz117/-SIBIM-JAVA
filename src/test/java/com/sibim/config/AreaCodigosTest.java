@@ -47,4 +47,20 @@ class AreaCodigosTest {
     void tecnologiasDeLaInformacion_tienePrefijoTICS() {
         assertEquals("TICS", AreaCodigos.prefijo("Dirección de Tecnologías de la Información"));
     }
+
+    @Test
+    void normalizar_loEscribeComoLaApp() {
+        String tics = "Dirección de Tecnologías de la Información";
+        assertEquals("TICS/05", AreaCodigos.normalizar(tics, "TICS/05").orElseThrow());
+        assertEquals("TICS/05", AreaCodigos.normalizar(tics, " tics / 5 ").orElseThrow());
+        assertEquals("TICS/07", AreaCodigos.normalizar(tics, "TICS/007").orElseThrow());
+        assertEquals("TICS/123", AreaCodigos.normalizar(tics, "TICS/123").orElseThrow());
+    }
+
+    @Test
+    void normalizar_rechazaLoQueNoEsPrefijoYNumeroDeEsaArea() {
+        String tics = "Dirección de Tecnologías de la Información";
+        for (String codigo : new String[]{ "TICS/00", "TICS/", "TICS-05", "TICS/5A", "RMP/05", "TICSX/05", "05", "", null })
+            assertTrue(AreaCodigos.normalizar(tics, codigo).isEmpty(), "debería rechazarse: " + codigo);
+    }
 }

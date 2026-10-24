@@ -163,6 +163,49 @@ class ProductoServiceTest {
         verify(mockAuditRepo).log(eq("producto"), eq("p-alta-fallida"), any(), eq("crear"), any());
     }
 
+    // ── Código corregido a mano: sigue la nomenclatura PREFIJO/NN ────────────
+
+    /** The bien being edited as the database has it: Secretaría General
+     *  Municipal, prefix SGM. Same cost as the form, so no price change. */
+    private void enLaBase(String codigo) throws Exception {
+        Producto actual = productoExistente();
+        actual.setCodigo(codigo);
+        actual.setPrecioCompra(BigDecimal.valueOf(3000));
+        when(mockProductoRepo.findById("p-01")).thenReturn(Optional.of(actual));
+    }
+
+    private Producto edicionCon(String codigo) {
+        productoValido.setId("p-01");
+        productoValido.setCodigo(codigo);
+        return productoValido;
+    }
+
+    @Test void editar_codigoFueraDeLaNomenclatura_lanzaValidation() throws Exception {
+        enLaBase("SGM/03");
+        var e = assertThrows(ProductoService.ValidationException.class, () -> service.save(edicionCon("ABC-123")));
+        assertTrue(e.getMessage().contains("SGM/07"), e.getMessage());
+    }
+
+    @Test void editar_codigoDeOtraArea_lanzaValidation() throws Exception {
+        enLaBase("SGM/03");
+        assertThrows(ProductoService.ValidationException.class, () -> service.save(edicionCon("TICS/03")));
+    }
+
+    /** "sgm/7" and "SGM/07" are the same number: it is stored the way the app
+     *  writes it, and the duplicate check looks for that one. */
+    @Test void editar_codigoEscritoAMano_seGuardaComoLoEscribeLaApp() throws Exception {
+        enLaBase("SGM/03");
+        service.save(edicionCon(" sgm/7 "));
+        verify(mockProductoRepo).existsByCodigo("SGM/07", "p-01");
+        verify(mockProductoRepo).save(argThat(p -> "SGM/07".equals(p.getCodigo())));
+    }
+
+    @Test void editar_sinTocarElCodigo_noLoRevisa() throws Exception {
+        enLaBase("INV-2019-44");
+        service.save(edicionCon("INV-2019-44"));
+        verify(mockProductoRepo).save(argThat(p -> "INV-2019-44".equals(p.getCodigo())));
+    }
+
     // ── delete() ─────────────────────────────────────────────────────────────
 
     @Test void delete_productoConMovimientos_muestraMensajeAmigable() throws Exception {

@@ -216,6 +216,15 @@ public final class ProductoDialogFactory {
             if (b != null) { infoTab.fCat.getStyleClass().remove("field-error"); infoTab.lblCatHint.setVisible(false); infoTab.lblCatHint.setManaged(false); }
             hideFormError.run();
         });
+        // A bien's clave armonizada is its category's CONAC code: picking a
+        // category fills it in, unless it holds one typed by hand (kept).
+        infoTab.fCat.valueProperty().addListener((o, a, b) -> {
+            String nueva = b != null ? b.getCodigoConac() : null;
+            String anterior = a != null ? a.getCodigoConac() : null;
+            String clave = patrimonioTab.fClaveArm.getText().trim();
+            if (nueva != null && !nueva.isBlank() && (clave.isEmpty() || clave.equals(anterior)))
+                patrimonioTab.fClaveArm.setText(nueva.trim());
+        });
         stockTab.fPrecioC.textProperty().addListener((o, a, b) -> { stockTab.fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
         stockTab.fStockMin.valueProperty().addListener((o, a, b) -> { stockTab.fStockMin.getStyleClass().remove("field-error"); stockTab.fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
         stockTab.fStockMax.valueProperty().addListener((o, a, b) -> { stockTab.fStockMin.getStyleClass().remove("field-error"); stockTab.fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });

@@ -45,4 +45,20 @@ public final class AreaCodigos {
         while (usados.contains(numero)) numero++;
         return inicio + String.format("%02d", numero);
     }
+
+    /** {@code codigo} escrito como lo escribe {@link #siguienteCodigo}
+     *  ("tics/5 " → "TICS/05"), o vacío si no es PREFIJO/número de
+     *  {@code area}: un código corregido a mano no sale de la nomenclatura,
+     *  y "TICS/5" no convive con "TICS/05" como si fueran dos números. */
+    public static java.util.Optional<String> normalizar(String area, String codigo) {
+        if (codigo == null) return java.util.Optional.empty();
+        String prefijo = prefijo(area);
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile(java.util.regex.Pattern.quote(prefijo) + "\\s*/\\s*0*([0-9]{1,6})", java.util.regex.Pattern.CASE_INSENSITIVE)
+            .matcher(codigo.trim());
+        if (!m.matches()) return java.util.Optional.empty();
+        int numero = Integer.parseInt(m.group(1));
+        return numero < 1 ? java.util.Optional.empty()
+                          : java.util.Optional.of(prefijo + "/" + String.format("%02d", numero));
+    }
 }

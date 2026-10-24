@@ -150,7 +150,8 @@ class ProductoTabPatrimonioFields {
         // ── Campos de formatos oficiales ──────────────────────────────────────
         fClaveArm = new TextField(existing != null && existing.getClaveArmonizada() != null
                 ? existing.getClaveArmonizada() : "");
-        fClaveArm.setPromptText("Ej. 1.2.4.4.541.3");
+        // The format of the inventory and of Categorías (cuenta CONAC + partida).
+        fClaveArm.setPromptText("Ej. 1.2.4.1.1.511");
         fClaveArm.getStyleClass().add("form-input");
 
         fColor = new TextField(existing != null && existing.getColor() != null
@@ -229,7 +230,7 @@ class ProductoTabPatrimonioFields {
         grid.add(lblFormOficial, 0, rp, 2, 1); rp++;
 
         grid.add(DialogUtil.fieldLabelWithHelp("Clave Armonizada",
-            "Clave LGCG del bien (Ej. 1.2.4.4.541.3.003).\nAparece en ANEXO V.4 e Inventario de Parque Vehicular."),
+            "Clave CONAC del bien: la de su categoría (Ej. 1.2.4.1.1.511).\nSe llena al elegir la categoría. Aparece en ANEXO V.4 e Inventario de Parque Vehicular."),
             0, rp); grid.add(fClaveArm, 1, rp++);
         grid.add(DialogUtil.fieldLabel("Color / Material"), 0, rp); grid.add(fColor, 1, rp++);
         grid.add(DialogUtil.fieldLabel("Tipo de bien"), 0, rp); grid.add(fTipoBien, 1, rp++);
