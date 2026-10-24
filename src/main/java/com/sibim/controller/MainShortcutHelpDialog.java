@@ -36,6 +36,8 @@ class MainShortcutHelpDialog {
             for (int i = 0; i < rows.length; i++) {
                 Label key = new Label(rows[i][0]);
                 key.getStyleClass().add("shortcut-key");
+                // The key is never cut ("Clic en filtro guar…"); the description wraps instead.
+                key.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
                 Label desc = new Label(rows[i][1]);
                 desc.getStyleClass().add("shortcut-desc");
                 desc.setWrapText(true);

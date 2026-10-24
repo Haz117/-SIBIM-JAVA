@@ -91,9 +91,8 @@ final class ReporteFila {
         b.getStyleClass().add("btn-secondary");
         b.setContentDisplay(ContentDisplay.LEFT);
         b.setGraphicTextGap(6);
-        // Fixed width: the buttons line up in a column and never get cut to "…".
-        b.setMinWidth(118);
-        b.setPrefWidth(118);
+        // Its width (one for all, so they line up in a column) is in
+        // 05-pantallas.css: it grows with "Texto: Grande / Extra".
         return b;
     }
 

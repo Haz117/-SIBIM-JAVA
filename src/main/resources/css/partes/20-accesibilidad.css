@@ -34,10 +34,15 @@
 /* Escala de texto (botón "Texto: Normal / Grande / Extra" de la barra de
  * estado): además de los selectores de 18-…-extras.css, sube la base — que
  * heredan los controles sin tamaño propio — y los controles más usados.
- * Los botones NO: las barras de acciones no tienen ancho de sobra y su texto
- * se cortaba ("Dados de b…", "Nuevo Bi…"). */
+ * Los botones crecen menos (EscalaTexto): las barras de acciones no tienen
+ * ancho de sobra y su texto se cortaba ("Dados de b…", "Nuevo Bi…"). */
 .text-scale-lg { -fx-font-size: 15px; }
 .text-scale-xl { -fx-font-size: 17px; }
+
+/* Una ventana se ensancha lo mismo que su texto (DialogUtil.anchoSegunTexto);
+ * el tope de 600px que el tema pone a las ventanas crece con ella. */
+.dialog-pane.text-scale-lg { -fx-max-width: 690px; }
+.dialog-pane.text-scale-xl { -fx-max-width: 780px; }
 
 .text-scale-lg .nav-btn, .text-scale-lg .search-field,
 .text-scale-lg .form-input, .text-scale-lg .text-field, .text-scale-lg .text-area,

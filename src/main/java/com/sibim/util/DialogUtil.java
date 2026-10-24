@@ -147,6 +147,7 @@ public final class DialogUtil {
     public static void applyStylesheet(DialogPane pane) {
         pane.getStylesheets().addAll(EscalaTexto.hojas());
         AccessibilityUtils.applyCurrentTextScaleClass(pane);
+        anchoSegunTexto(pane, AccessibilityUtils.getTextScaleIndex());
         pane.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
         });
@@ -157,6 +158,29 @@ public final class DialogUtil {
             (javafx.collections.ListChangeListener<ButtonType>) c -> Platform.runLater(ajustar));
         pane.contentProperty().addListener((o, a, b) -> Platform.runLater(ajustar));
         Platform.runLater(ajustar);
+    }
+
+    /** At "Texto: Grande / Extra" a dialog is as much wider as its text is
+     *  bigger, so a form keeps the layout it has at "Normal" instead of
+     *  pushing labels into their fields; never wider than the screen. Covers
+     *  the width set before this call and any set after it. {@code escala} is
+     *  the index of {@link AccessibilityUtils#TEXT_SCALE_CLASSES}. */
+    static void anchoSegunTexto(DialogPane pane, int escala) {
+        if (escala == 0 || pane.getProperties().putIfAbsent("sibim.anchoSegunTexto", Boolean.TRUE) != null) return;
+        double factor = EscalaTexto.FACTORES[escala - 1];
+        double tope = Screen.getPrimary().getVisualBounds().getWidth() * 0.92;
+        // The theme's 600px cap on a dialog grows in 20-accesibilidad.css (the
+        // theme's own CSS overrides a maxWidth set here).
+        boolean[] propio = { false };
+        Runnable ensanchar = () -> {
+            double ancho = pane.getPrefWidth();
+            if (ancho <= 0) return;   // computed: it already follows its content
+            propio[0] = true;
+            pane.setPrefWidth(Math.max(ancho, Math.min(ancho * factor, tope)));
+            propio[0] = false;
+        };
+        ensanchar.run();
+        pane.prefWidthProperty().addListener((o, antes, ahora) -> { if (!propio[0]) ensanchar.run(); });
     }
 
     /** Dialog buttons and message text never shrink below their own text:
@@ -419,8 +443,16 @@ public final class DialogUtil {
         });
         g.setPadding(new Insets(18, 22, 20, 22));
         // labelColWidth is the least the label column takes; a longer label widens it
-        // instead of being cut to "Costo de adquisi…".
-        ColumnConstraints c0 = new ColumnConstraints(labelColWidth, Region.USE_COMPUTED_SIZE, Double.MAX_VALUE);
+        // instead of being cut to "Costo de adquisi…". The least lives in an empty
+        // node, not in the column: a column minimum let a wide field column squeeze
+        // the labels back to it, and the "?" of "Código CONAC" went under its field.
+        Region ancho = new Region();
+        ancho.setMinWidth(labelColWidth);
+        ancho.setPrefWidth(labelColWidth);
+        ancho.setMaxHeight(0);
+        ancho.setVisible(false);
+        g.add(ancho, 0, 0);
+        ColumnConstraints c0 = new ColumnConstraints(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Double.MAX_VALUE);
         ColumnConstraints c1 = new ColumnConstraints();
         c1.setHgrow(Priority.ALWAYS);
         g.getColumnConstraints().addAll(c0, c1);

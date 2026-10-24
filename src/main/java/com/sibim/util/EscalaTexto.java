@@ -21,8 +21,11 @@ import java.util.regex.Pattern;
  *
  * <p>Add {@link #hoja()} BEFORE styles.css: its rules outrank the base ones
  * (one class more), and the hand-tuned {@code .text-scale-*} rules of
- * styles.css, equal to them and later, still win. Buttons keep their size:
- * the action bars have no width to spare (see 20-accesibilidad.css).
+ * styles.css, equal to them and later, still win. Buttons grow less than
+ * text (the action bars have little width to spare, see 20-accesibilidad.css)
+ * but they do grow: "Hoy / Semana", "Expandir todo" or "Texto: Extra" stayed
+ * at 11px for whoever asked for larger text. The sidebar's buttons keep their
+ * size: its width is fixed.
  */
 public final class EscalaTexto {
 
@@ -31,6 +34,8 @@ public final class EscalaTexto {
     /** Same order as {@link AccessibilityUtils#TEXT_SCALE_CLASSES}, without "Normal". */
     static final String[] CLASES   = { "text-scale-lg", "text-scale-xl" };
     static final double[] FACTORES = { 1.15, 1.3 };
+    /** Buttons: about half as much, so a bar of them still fits. */
+    static final double[] FACTORES_BOTONES = { 1.08, 1.15 };
 
     private static final Pattern IMPORT = Pattern.compile("@import\\s+url\\(\"([^\"]+)\"\\)");
     private static final Pattern REGLA = Pattern.compile("([^{}]+)\\{([^{}]*)\\}");
@@ -78,31 +83,39 @@ public final class EscalaTexto {
             String px = null;
             while (t.find()) px = t.group(1);   // the last one is the one that applies
             if (px == null) continue;
-            List<String> selectores = new ArrayList<>();
+            List<String> textos = new ArrayList<>();
+            List<String> botones = new ArrayList<>();
             for (String s : r.group(1).split(",")) {
                 s = s.trim().replaceAll("\\s+", " ");
                 // .root alone is the base size, which 20-accesibilidad.css already scales.
                 if (s.isEmpty() || s.contains("text-scale") || s.equals(".root")) continue;
-                if (s.contains("btn") || s.contains("button")) continue;
-                selectores.add(s);
+                boolean boton = s.contains("btn") || s.contains("button");
+                if (!boton) textos.add(s);
+                else if (!s.contains("nav-btn") && !s.contains("sidebar")) botones.add(s);
             }
-            if (selectores.isEmpty()) continue;
             double base = Double.parseDouble(px);
-            for (int i = 0; i < CLASES.length; i++) {
-                String clase = CLASES[i];
-                List<String> escalados = new ArrayList<>();
-                for (String s : selectores) {
-                    escalados.add("." + clase + " " + s);
-                    // A dialog carries the class on its DialogPane, the root of its
-                    // scene: ".dialog-pane .x" or ".root .x" must also match there.
-                    Matcher primero = PRIMER_SELECTOR.matcher(s);
-                    if (primero.lookingAt()) escalados.add(primero.group(1) + "." + clase + s.substring(primero.end(1)));
-                }
-                out.append(String.join(", ", escalados))
-                   .append(" { -fx-font-size: ").append(redondear(base * FACTORES[i])).append("px; }\n");
-            }
+            escribir(out, textos, base, FACTORES);
+            escribir(out, botones, base, FACTORES_BOTONES);
         }
         return out.toString();
+    }
+
+    /** {@code selectores} again under each scale class, at {@code base} times its factor. */
+    private static void escribir(StringBuilder out, List<String> selectores, double base, double[] factores) {
+        if (selectores.isEmpty()) return;
+        for (int i = 0; i < CLASES.length; i++) {
+            String clase = CLASES[i];
+            List<String> escalados = new ArrayList<>();
+            for (String s : selectores) {
+                escalados.add("." + clase + " " + s);
+                // A dialog carries the class on its DialogPane, the root of its
+                // scene: ".dialog-pane .x" or ".root .x" must also match there.
+                Matcher primero = PRIMER_SELECTOR.matcher(s);
+                if (primero.lookingAt()) escalados.add(primero.group(1) + "." + clase + s.substring(primero.end(1)));
+            }
+            out.append(String.join(", ", escalados))
+               .append(" { -fx-font-size: ").append(redondear(base * factores[i])).append("px; }\n");
+        }
     }
 
     /** To the nearest half pixel, without a trailing ".0". */

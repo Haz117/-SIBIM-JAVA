@@ -31,14 +31,20 @@ class EscalaTextoTest {
     }
 
     @Test
-    void losBotonesYLasReglasAjustadasAManoNoSeTocan() {
+    void losBotonesCrecenMenos_yLosDelMenuYLasReglasAjustadasAManoNoSeTocan() {
         String r = EscalaTexto.escalar("""
-            .btn-primary { -fx-font-size: 13px; }
+            .btn-primary { -fx-font-size: 12px; }
             .nav-btn .label { -fx-font-size: 13px; }
+            .sidebar .btn-ghost { -fx-font-size: 13px; }
             .text-scale-lg .page-title { -fx-font-size: 26px; }
             .root { -fx-font-size: 13px; }
             """);
-        assertEquals("", r);
+        assertTrue(r.contains(".text-scale-lg .btn-primary { -fx-font-size: 13px; }"), r);   // 12 × 1.08
+        assertTrue(r.contains(".text-scale-xl .btn-primary { -fx-font-size: 14px; }"), r);   // 12 × 1.15 = 13.8
+        assertFalse(r.contains("nav-btn"), r);
+        assertFalse(r.contains("sidebar"), r);
+        assertFalse(r.contains("page-title"), r);
+        assertFalse(r.contains(".root"), r);
     }
 
     @Test
@@ -47,10 +53,10 @@ class EscalaTextoTest {
         assertEquals("12.5", EscalaTexto.redondear(12.65));
     }
 
-    /** In a real scene (no window): the data: stylesheet loads, a label grows
-     *  under "Grande", and a button keeps its size. */
+    /** In a real scene (no window): the data: stylesheet loads, and under
+     *  "Grande" a label grows and a button grows less. */
     @Test
-    void enUnaEscena_elTextoCreceYLosBotonesNo() throws Exception {
+    void enUnaEscena_elTextoCrece_yLosBotonesMenos() throws Exception {
         try { javafx.application.Platform.startup(() -> {}); } catch (IllegalStateException yaArrancado) { /* ok */ }
         var listo = new java.util.concurrent.CompletableFuture<double[]>();
         javafx.application.Platform.runLater(() -> {
@@ -71,7 +77,8 @@ class EscalaTextoTest {
         });
         double[] r = listo.get(10, java.util.concurrent.TimeUnit.SECONDS);
         assertTrue(r[1] > r[0], "el título debe crecer: " + r[0] + " → " + r[1]);
-        assertEquals(r[2], r[3], 0.01, "el botón conserva su tamaño");
+        assertTrue(r[3] > r[2], "el botón también crece: " + r[2] + " → " + r[3]);
+        assertTrue(r[3] / r[2] < r[1] / r[0], "pero menos que el texto");
     }
 
     /** The real stylesheet: every size is covered and the result parses with no error. */

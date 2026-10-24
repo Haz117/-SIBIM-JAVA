@@ -747,8 +747,14 @@ public final class ProductoDetailDialog {
 
     private static ColumnConstraints colConstraint(double width, boolean grow) {
         ColumnConstraints cc = new ColumnConstraints();
-        cc.setPrefWidth(width);
-        if (grow) cc.setHgrow(Priority.ALWAYS);
+        if (grow) {
+            cc.setPrefWidth(width);
+            cc.setHgrow(Priority.ALWAYS);
+        } else {
+            // The labels' column: at least this wide, wider when a label needs it
+            // ("Costo de adquisición" at "Texto: Extra" ran into its value).
+            cc.setMinWidth(width);
+        }
         return cc;
     }
 

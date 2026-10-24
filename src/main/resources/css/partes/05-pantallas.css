@@ -86,6 +86,11 @@
     -fx-border-width: 0 0 1 0;
 }
 .report-row-last { -fx-border-color: transparent; }
+/* One width for every row's button, so they line up and "Exportar" is never
+   cut to "Expor…"; it grows as much as the button's text (EscalaTexto). */
+.report-row > .btn-secondary { -fx-min-width: 118; -fx-pref-width: 118; }
+.text-scale-lg .report-row > .btn-secondary { -fx-min-width: 128; -fx-pref-width: 128; }
+.text-scale-xl .report-row > .btn-secondary { -fx-min-width: 136; -fx-pref-width: 136; }
 
 /* Circular icon badge — the color lives here now, not on the whole card */
 .report-icon-badge {
