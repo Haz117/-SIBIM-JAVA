@@ -399,11 +399,42 @@ public final class OfflineStore {
         long now = System.currentTimeMillis();
         if (now - lastCacheCategoriasAt < CACHE_THROTTLE_MS) return;
         try {
-            inTransaction(() -> { for (Categoria c : serverCategorias) cacheCategoriaSnapshot(c); });
+            inTransaction(() -> {
+                for (Categoria c : serverCategorias) cacheCategoriaSnapshot(c);
+                olvidarCategoriasAusentes(serverCategorias);
+            });
             lastCacheCategoriasAt = now;
         } catch (SQLException e) {
             log.warn("OfflineStore: no se pudo refrescar el caché local de categorías", e);
         }
+    }
+
+    /** {@code serverCategorias} is the server's whole catalogue (CategoriaRepository#findAll),
+     *  so a category missing from it was deleted there. Like the bienes (see
+     *  olvidarBienesAusentes), the copy kept offering it while working offline, and a
+     *  bien saved with it could never be sent. Left alone: a category of this PC not
+     *  sent yet, and one a bien of this copy still uses. */
+    private static void olvidarCategoriasAusentes(List<Categoria> serverCategorias) throws SQLException {
+        Set<String> enServidor = serverCategorias.stream().map(Categoria::getId).collect(Collectors.toSet());
+        List<String> sobran = new ArrayList<>();
+        try (PreparedStatement ps = conn().prepareStatement(
+                "SELECT id FROM categories WHERE id NOT IN "
+                + "(SELECT categoria_id FROM category_outbox WHERE status NOT IN ('SYNCED', 'DISCARDED')) "
+                + "AND id NOT IN (SELECT categoria_id FROM products WHERE categoria_id IS NOT NULL)");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                if (!enServidor.contains(rs.getString(1))) sobran.add(rs.getString(1));
+            }
+        }
+        if (sobran.isEmpty()) return;
+        try (PreparedStatement ps = conn().prepareStatement("DELETE FROM categories WHERE id = ?")) {
+            for (String id : sobran) {
+                ps.setString(1, id);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        loaded = false;   // the list in memory still has them: read SQLite again
     }
 
     public static synchronized void cacheMovimientos(List<Movimiento> serverMovimientos) {
