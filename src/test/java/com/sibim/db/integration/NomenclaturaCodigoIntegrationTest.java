@@ -9,10 +9,13 @@ import com.sibim.service.ProductoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -93,6 +96,45 @@ class NomenclaturaCodigoIntegrationTest extends IntegrationTestBase {
 
         Producto segundo = productoService.save(nuevoBien("Silla nueva", AREA_SGM));
         assertEquals("SGM/01", segundo.getCodigo(), "el número liberado por la baja debe reutilizarse");
+    }
+
+    /** Production had V14 in its history but the old global UNIQUE (codigo)
+     *  back on the table: the reuse above failed with a duplicate key there.
+     *  V32 removes it again. */
+    @Test
+    void conLaRestriccionGlobalDeAntes_V32LaQuitaYElNumeroSeReutiliza() throws Exception {
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE products ADD CONSTRAINT products_codigo_key UNIQUE (codigo)");
+        }
+        try {
+            Producto primero = productoService.save(nuevoBien("Silla vieja", AREA_SGM));
+            productoService.darDeBaja(primero.getId(), "Ya no sirve");
+            assertThrows(Exception.class, () -> productoService.save(nuevoBien("Silla nueva", AREA_SGM)),
+                "con la restricción global, el número del bien dado de baja choca");
+
+            String v32;
+            try (InputStream in = getClass().getResourceAsStream("/db/migration/V32__codigo_unico_solo_entre_activos.sql")) {
+                assertNotNull(in, "falta la migración V32");
+                v32 = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
+            try (Connection c = getConnection(); Statement st = c.createStatement()) {
+                st.execute(v32);
+                st.execute(v32);   // idempotente
+            }
+
+            Producto segundo = productoService.save(nuevoBien("Silla nueva", AREA_SGM));
+            assertEquals("SGM/01", segundo.getCodigo(), "tras V32 el número liberado por la baja se reutiliza");
+            Producto tercero = productoService.save(nuevoBien("Mesa", AREA_SGM));
+            try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(
+                    "UPDATE products SET codigo = 'SGM/01' WHERE id = ?")) {
+                ps.setString(1, tercero.getId());
+                assertThrows(SQLException.class, ps::executeUpdate, "entre bienes activos el código sigue siendo único");
+            }
+        } finally {
+            try (Connection c = getConnection(); Statement st = c.createStatement()) {
+                st.execute("ALTER TABLE products DROP CONSTRAINT IF EXISTS products_codigo_key");
+            }
+        }
     }
 
     @Test
