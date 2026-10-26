@@ -56,14 +56,29 @@ public class ReporteInventarioFotograficoService extends ReporteService {
     public ReporteInventarioFotograficoService() { super(); }
 
     public File exportInventarioFotografico(List<Producto> seleccion) throws Exception {
+        return exportar(seleccion, true);
+    }
+
+    /** The same format without the photo column: one row per bien, grouped by área,
+     *  light to print and to check an área against. */
+    public File exportInventarioSinFotos(List<Producto> seleccion) throws Exception {
+        return exportar(seleccion, false);
+    }
+
+    /** Most bienes one document with photos can take (each photo is a page's worth of memory). */
+    public static int maxBienesConFotos() { return MAX_BIENES; }
+
+    private File exportar(List<Producto> seleccion, boolean conFotos) throws Exception {
         if (seleccion == null || seleccion.isEmpty())
-            throw new IllegalArgumentException("Selecciona al menos un bien para el inventario fotográfico");
-        List<Producto> bienes = new ArrayList<>(seleccion.size() > MAX_BIENES ? seleccion.subList(0, MAX_BIENES) : seleccion);
+            throw new IllegalArgumentException("Selecciona al menos un bien para el inventario");
+        List<Producto> bienes = new ArrayList<>(conFotos && seleccion.size() > MAX_BIENES
+            ? seleccion.subList(0, MAX_BIENES) : seleccion);
         bienes.sort(Comparator.comparing((Producto p) -> Objects.requireNonNullElse(p.getArea(), "~"))
             .thenComparing(p -> Objects.requireNonNullElse(p.getCodigo(), "")));
-        Map<String, ImageData> fotos = FotosPdf.principales(bienes, 700);
+        Map<String, ImageData> fotos = conFotos ? FotosPdf.principales(bienes, 700) : Map.of();
+        int columnas = conFotos ? 3 : 2;
 
-        File file = tempFile("inventario_fotografico", ".pdf");
+        File file = tempFile(conFotos ? "inventario_fotografico" : "inventario_por_area", ".pdf");
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
@@ -78,13 +93,15 @@ public class ReporteInventarioFotograficoService extends ReporteService {
              Document doc = new Document(pdfDoc, PageSize.LETTER, false)) {
 
             doc.setMargins(24, 30, 30, 30);
-            Table t = new Table(UnitValue.createPercentArray(new float[]{40, 22, 38})).useAllAvailableWidth();
+            Table t = new Table(UnitValue.createPercentArray(conFotos ? new float[]{40, 22, 38} : new float[]{72, 28}))
+                .useAllAvailableWidth();
 
             // Encabezado que se repite en cada hoja
-            t.addHeaderCell(encabezado(areaTitulo, bienes.size(), bold, reg));
-            t.addHeaderCell(new Cell(1, 3).setHeight(3).setPadding(0).setBackgroundColor(DORADO).setBorder(Border.NO_BORDER));
-            t.addHeaderCell(new Cell(1, 3).setHeight(6).setPadding(0).setBorder(Border.NO_BORDER));
-            for (String h : new String[]{"DESCRIPCIÓN", "NO. DE INVENTARIO", "FOTOGRAFÍA DE BIEN MUEBLE"})
+            t.addHeaderCell(encabezado(areaTitulo, bienes.size(), bold, reg, conFotos));
+            t.addHeaderCell(new Cell(1, columnas).setHeight(3).setPadding(0).setBackgroundColor(DORADO).setBorder(Border.NO_BORDER));
+            t.addHeaderCell(new Cell(1, columnas).setHeight(6).setPadding(0).setBorder(Border.NO_BORDER));
+            for (String h : conFotos ? new String[]{"DESCRIPCIÓN", "NO. DE INVENTARIO", "FOTOGRAFÍA DE BIEN MUEBLE"}
+                                     : new String[]{"DESCRIPCIÓN", "NO. DE INVENTARIO"})
                 t.addHeaderCell(new Cell().add(new Paragraph(h).setFont(bold).setFontSize(8.5f).setFontColor(ColorConstants.WHITE))
                     .setBackgroundColor(GUINDA).setPadding(6).setTextAlignment(TextAlignment.CENTER)
                     .setBorder(new SolidBorder(GUINDA, 0.8f)));
@@ -95,14 +112,14 @@ public class ReporteInventarioFotograficoService extends ReporteService {
                 if (areas > 1 && !area.equals(areaActual)) {
                     String[] depRes = ReporteEtiquetasService.departamentoYResguardo(area);
                     String sub = depRes[0].equals(depRes[1]) ? depRes[1] : depRes[1] + "  ·  " + depRes[0];
-                    t.addCell(new Cell(1, 3).add(new Paragraph(sub).setFont(bold).setFontSize(8f).setFontColor(GUINDA))
+                    t.addCell(new Cell(1, columnas).add(new Paragraph(sub).setFont(bold).setFontSize(8f).setFontColor(GUINDA))
                         .setBackgroundColor(GUINDA_CL).setPadding(5).setPaddingLeft(8)
                         .setBorder(new SolidBorder(LINEA, 0.6f)).setKeepWithNext(true));
                     areaActual = area;
                 }
-                t.addCell(descripcion(p, bold, reg));
-                t.addCell(numero(p, bold, reg));
-                t.addCell(foto(fotos.get(p.getId()), reg));
+                t.addCell(descripcion(p, bold, reg, conFotos));
+                t.addCell(numero(p, bold, reg, conFotos));
+                if (conFotos) t.addCell(foto(fotos.get(p.getId()), reg));
             }
             doc.add(t);
             doc.add(firmas(bold, reg));
@@ -118,7 +135,7 @@ public class ReporteInventarioFotograficoService extends ReporteService {
         return file;
     }
 
-    private Cell encabezado(String area, int total, PdfFont bold, PdfFont reg) {
+    private Cell encabezado(String area, int total, PdfFont bold, PdfFont reg, boolean conFotos) {
         Table enc = new Table(UnitValue.createPercentArray(new float[]{13, 62, 25})).useAllAvailableWidth();
         Cell logo = new Cell().setBorder(Border.NO_BORDER).setPadding(7).setVerticalAlignment(VerticalAlignment.MIDDLE);
         Image img = loadHeaderLogo();
@@ -129,7 +146,8 @@ public class ReporteInventarioFotograficoService extends ReporteService {
         enc.addCell(logo);
         enc.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(8).setVerticalAlignment(VerticalAlignment.MIDDLE)
             .add(new Paragraph(orgName()).setFont(bold).setFontSize(8.5f).setFontColor(ColorConstants.WHITE).setMargin(0))
-            .add(new Paragraph("INVENTARIO FOTOGRÁFICO DE BIENES MUEBLES").setFont(bold).setFontSize(12f)
+            .add(new Paragraph(conFotos ? "INVENTARIO FOTOGRÁFICO DE BIENES MUEBLES" : "INVENTARIO DE BIENES MUEBLES")
+                .setFont(bold).setFontSize(12f)
                 .setFontColor(ColorConstants.WHITE).setMargin(0).setMarginTop(2))
             .add(new Paragraph(area).setFont(bold).setFontSize(8.5f).setFontColor(ROSA).setMargin(0).setMarginTop(2)));
         enc.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(8).setVerticalAlignment(VerticalAlignment.MIDDLE)
@@ -140,11 +158,11 @@ public class ReporteInventarioFotograficoService extends ReporteService {
                 .setFontColor(ColorConstants.WHITE).setMargin(0))
             .add(new Paragraph(total + (total == 1 ? " bien" : " bienes")).setFont(reg).setFontSize(7.5f)
                 .setFontColor(ROSA).setMargin(0)));
-        return new Cell(1, 3).add(enc).setBackgroundColor(GUINDA).setPadding(0).setBorder(Border.NO_BORDER);
+        return new Cell(1, conFotos ? 3 : 2).add(enc).setBackgroundColor(GUINDA).setPadding(0).setBorder(Border.NO_BORDER);
     }
 
-    private static Cell descripcion(Producto p, PdfFont bold, PdfFont reg) {
-        Cell c = fila().setPadding(8);
+    private static Cell descripcion(Producto p, PdfFont bold, PdfFont reg, boolean conFotos) {
+        Cell c = fila(conFotos).setPadding(conFotos ? 8 : 6);
         c.add(new Paragraph(mayus(p.getNombre(), "SIN DESCRIPCIÓN")).setFont(bold).setFontSize(9f).setFontColor(OSCURO)
             .setMultipliedLeading(1.15f).setMargin(0));
         List<String> detalles = new ArrayList<>();
@@ -164,8 +182,8 @@ public class ReporteInventarioFotograficoService extends ReporteService {
         return c;
     }
 
-    private static Cell numero(Producto p, PdfFont bold, PdfFont reg) {
-        Cell c = fila().setPadding(6).setTextAlignment(TextAlignment.CENTER);
+    private static Cell numero(Producto p, PdfFont bold, PdfFont reg, boolean conFotos) {
+        Cell c = fila(conFotos).setPadding(6).setTextAlignment(TextAlignment.CENTER);
         String codigo = hay(p.getCodigo()) ? p.getCodigo().trim() : "—";
         c.add(new Paragraph(codigo).setFont(bold).setFontSize(codigo.length() > 12 ? 10.5f : 13f)
             .setFontColor(GUINDA).setMargin(0));
@@ -176,7 +194,7 @@ public class ReporteInventarioFotograficoService extends ReporteService {
     }
 
     private static Cell foto(ImageData img, PdfFont reg) {
-        Cell c = fila().setPadding(5).setTextAlignment(TextAlignment.CENTER);
+        Cell c = fila(true).setPadding(5).setTextAlignment(TextAlignment.CENTER);
         if (img != null) {
             c.add(new Image(img).scaleToFit(190, ALTO_FILA - 4).setHorizontalAlignment(HorizontalAlignment.CENTER));
         } else {
@@ -204,8 +222,9 @@ public class ReporteInventarioFotograficoService extends ReporteService {
         return t;
     }
 
-    private static Cell fila() {
-        return new Cell().setMinHeight(ALTO_FILA).setBorder(new SolidBorder(LINEA, 0.6f))
+    /** Rows are as tall as a photo only when there is one. */
+    private static Cell fila(boolean conFotos) {
+        return new Cell().setMinHeight(conFotos ? ALTO_FILA : 0).setBorder(new SolidBorder(LINEA, 0.6f))
             .setVerticalAlignment(VerticalAlignment.MIDDLE).setKeepTogether(true);
     }
 

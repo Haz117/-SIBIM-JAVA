@@ -142,4 +142,43 @@ class ResguardoServiceTest {
         i.setProductoNombre("Escritorio ejecutivo");
         return i;
     }
+
+    // ── Quitar un bien del resguardo ──────────────────────────────────────────
+
+    private static Resguardo resguardo() {
+        Resguardo r = new Resguardo();
+        r.setId("r-01");
+        r.setNumero("RSG-2026-000010");
+        r.setResguardanteNombre("Ana García");
+        return r;
+    }
+
+    @Test
+    void quitarBien_soloElAdministrador_yConMotivo() {
+        for (com.sibim.model.enums.Rol rol : new com.sibim.model.enums.Rol[]{
+                com.sibim.model.enums.Rol.SECRETARIO, com.sibim.model.enums.Rol.DIRECCION }) {
+            entrarComo(rol);
+            assertThrows(SecurityException.class, () -> service.quitarBien(resguardo(), item(), "baja"), rol.name());
+        }
+        entrarComo(com.sibim.model.enums.Rol.ADMIN);
+        assertThrows(IllegalArgumentException.class, () -> service.quitarBien(resguardo(), item(), "  "));
+        verifyNoInteractions(mockRepo);
+    }
+
+    /** The signed paper still lists the bien: the resguardo says when it left and why. */
+    @Test
+    void quitarBien_anotaFechaBienYMotivo_yLoAudita() throws Exception {
+        ResguardoItem it = item();
+        it.setProductoCodigo("PRES/27");
+        when(mockRepo.quitarBien(eq("r-01"), eq("p-01"), any())).thenReturn(false);
+
+        assertFalse(service.quitarBien(resguardo(), it, " se dará de baja "));
+
+        org.mockito.ArgumentCaptor<String> nota = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(mockRepo).quitarBien(eq("r-01"), eq("p-01"), nota.capture());
+        String hoy = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        assertEquals(hoy + ": se quitó PRES/27 Escritorio ejecutivo (se dará de baja).", nota.getValue());
+        verify(mockAudit).log(eq("resguardo"), eq("r-01"), eq("Ana García"), eq("actualizar"),
+            org.mockito.ArgumentMatchers.contains("se quitó PRES/27"));
+    }
 }

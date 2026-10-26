@@ -66,6 +66,25 @@ class ReporteResguardoServiceTest {
         assertFileProduced(service.exportarResguardoPdf(null, null, List.of(activo)), ".pdf");
     }
 
+    /** The área's GENERAL resguardo: titled as such, its own folio series, and for each
+     *  bien who holds it individually — or that nobody does yet. */
+    @Test void resguardoGeneralArea_listaElResguardanteDeCadaBienYSuFolioPropio() throws Exception {
+        File pdf = service.exportarResguardoGeneralArea("Sala de cómputo", "Ing. Ana Ruiz", "Titular del área",
+            List.of(activo, sinExtras));
+        assertFileProduced(pdf, ".pdf");
+        String texto;
+        try (var doc = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+            texto = com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(doc.getPage(1))
+                .replaceAll("\\s+", " ");   // a cell wraps its text over several lines
+        }
+        assertTrue(texto.contains("RESGUARDO GENERAL DEL"), "Título del resguardo general");
+        assertTrue(texto.contains("RGA-"), "Folio de la serie RGA, no de los resguardos registrados");
+        assertTrue(texto.contains("RESGUARDANTE"), "Columna del resguardante individual");
+        assertTrue(texto.contains("JUAN PÉREZ") || texto.contains("JUAN PEREZ"), "Resguardante del bien");
+        assertTrue(texto.contains("SIN RESGUARDO INDIVIDUAL"), "Bien sin resguardante");
+        assertTrue(texto.toUpperCase().contains("ANA RUIZ"), "Titular que firma");
+    }
+
     private static void assertFileProduced(File file, String expectedExtension) {
         assertNotNull(file);
         assertTrue(file.exists(), "El archivo debe existir: " + file.getAbsolutePath());

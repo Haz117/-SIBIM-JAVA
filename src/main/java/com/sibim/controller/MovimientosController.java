@@ -102,6 +102,8 @@ public class MovimientosController {
     @FXML private Label helpEntradas;
     @FXML private Label helpSalidas;
     @FXML private ComboBox<String> categoriaFilter;
+    @FXML private ComboBox<String> areaFilter;
+    private static final String TODAS_LAS_AREAS = "Todas las áreas";
 
     private final MovimientoService movimientoService = new MovimientoService();
     private final ProductoService   productoService   = new ProductoService();
@@ -178,6 +180,7 @@ public class MovimientosController {
         // requested before the áreas stopped requesting them.
         boolean admin = SessionManager.isAdmin();
         btnNuevo.setVisible(admin); btnNuevo.setManaged(admin);
+        if (btnArrastrar != null) { btnArrastrar.setVisible(admin); btnArrastrar.setManaged(admin); }
         if (btnPendientes != null) {
             // Shown only while an old request is waiting (loadPendientesCount):
             // a transfer Patrimonio registers is applied at once, and an empty
@@ -357,6 +360,14 @@ public class MovimientosController {
         hastaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; loadData(); setActivePreset(null); });
         if (categoriaFilter != null)
             categoriaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
+        if (areaFilter != null) {
+            List<String> areas = new ArrayList<>();
+            areas.add(TODAS_LAS_AREAS);
+            com.sibim.config.Areas.getAllAreaNames().stream()
+                .filter(SessionManager::isAreaAccessible).forEach(areas::add);
+            DialogUtil.makeFilterable(areaFilter, areas);
+            areaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
+        }
     }
 
     private void setupPagination() {
@@ -387,7 +398,7 @@ public class MovimientosController {
         int limit  = pageSize == Integer.MAX_VALUE ? Integer.MAX_VALUE : pageSize;
         int offset = currentPage * (pageSize == Integer.MAX_VALUE ? 0 : pageSize);
 
-        dataLoader.loadData(desde, hasta, query, tipo, categoria, limit, offset,
+        dataLoader.loadData(desde, hasta, query, tipo, categoria, areaElegida(), limit, offset,
             r -> {
                 loading.set(false);
                 if (skeletonPulse != null) { skeletonPulse.stop(); skeletonPulse = null; }
@@ -439,7 +450,7 @@ public class MovimientosController {
         STICKY.put("categoria", categoria      != null ? categoria           : "");
         STICKY.put("tipo",      tipo           != null ? tipo                : "Todos");
 
-        dataLoader.loadPage(desde, hasta, query, tipo, categoria, limit, offset,
+        dataLoader.loadPage(desde, hasta, query, tipo, categoria, areaElegida(), limit, offset,
             r -> {
                 totalFiltered = r.count();
                 filteredData.setAll(r.page());
@@ -465,7 +476,14 @@ public class MovimientosController {
         LocalDate desde = desdeFilter    != null ? desdeFilter.getValue()     : null;
         LocalDate hasta = hastaFilter    != null ? hastaFilter.getValue()     : null;
         String cat      = categoriaFilter != null ? categoriaFilter.getValue() : null;
-        return !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null || cat != null;
+        return !query.isBlank() || !tipo.equals("Todos") || desde != null || hasta != null || cat != null
+            || areaElegida() != null;
+    }
+
+    /** The área picked in the filter, or null for all of them. */
+    private String areaElegida() {
+        String v = areaFilter != null ? areaFilter.getValue() : null;
+        return v == null || v.isBlank() || TODAS_LAS_AREAS.equals(v) ? null : v;
     }
 
     private void updateEmptyState(boolean hasFilters) {
@@ -669,6 +687,18 @@ public class MovimientosController {
         showMovimientoDialog(null, null);
     }
 
+    @FXML private Button btnArrastrar;
+
+    /** Board to drag bienes from one área onto another, with the new resguardante. */
+    @FXML private void onTransferirArrastrando() {
+        if (!SessionManager.isAdmin()) return;
+        javafx.scene.Scene scene = rootPane.getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
+            () -> productoService.getAll(),
+            productos -> com.sibim.controller.dialogs.TransferenciaArrastreDialog.show(productos, this::loadData),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
     @FXML
     private void onDelete() {
         Movimiento sel = table.getSelectionModel().getSelectedItem();
@@ -701,6 +731,7 @@ public class MovimientosController {
         if (desdeFilter    != null) desdeFilter.setValue(null);
         if (hastaFilter    != null) hastaFilter.setValue(null);
         if (categoriaFilter != null) categoriaFilter.setValue(null);
+        if (areaFilter != null) areaFilter.setValue(null);
         setActivePreset(null);
         if (tipoChipGroup != null)
             tipoChipGroup.getToggles().stream()

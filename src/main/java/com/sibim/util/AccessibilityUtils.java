@@ -34,14 +34,17 @@ public final class AccessibilityUtils {
 
     public static void applyAccessibleTextFromTooltips(Node root) {
         if (root == null) return;
+        // First, so the form labels below already carry the help they pass to their field.
+        forEachNode(root, n -> {
+            if (n instanceof javafx.scene.control.Label ayuda && ayuda.getStyleClass().contains("help-badge"))
+                moverAyuda(ayuda);
+        });
+        aplicar(root);
+    }
+
+    private static void aplicar(Node root) {
         makeKeyboardActivatable(root);
         if (root instanceof javafx.scene.layout.GridPane grid) etiquetarCampos(grid);
-        // Every "?" opens its help on click and with Tab + Enter, not only after
-        // hovering: six of them (Auditoría, Configuración, Reportes) were never
-        // wired by their screen and seemed not to work.
-        if (root instanceof javafx.scene.control.Label ayuda && ayuda.getStyleClass().contains("help-badge")
-                && ayuda.getTooltip() != null && ayuda.getOnMouseClicked() == null)
-            DialogUtil.enableClickToShowTooltip(ayuda);
         // Without a prompt of its own a DatePicker shows the pattern in English ("dd/mm/yyyy").
         if (root instanceof javafx.scene.control.DatePicker dp
                 && (dp.getPromptText() == null || dp.getPromptText().isBlank()) && !dp.promptTextProperty().isBound())
@@ -56,7 +59,49 @@ public final class AccessibilityUtils {
                 }
             }
         }
-        forEachChild(root, AccessibilityUtils::applyAccessibleTextFromTooltips);
+        forEachChild(root, AccessibilityUtils::aplicar);
+    }
+
+    /** A "?" badge next to a control: its help moves onto that control — shown on
+     *  hovering it, and read by a screen reader as the control's help — and the
+     *  badge goes away (the user found the badges crude). The control is the one
+     *  before it in its row, back to the previous separator (a "?" after a group
+     *  of filters explains the group); a control that already has a tooltip of
+     *  its own keeps it. */
+    private static void moverAyuda(javafx.scene.control.Label ayuda) {
+        if (!ayuda.isManaged() && !ayuda.isVisible()) return;   // already done
+        ayuda.setVisible(false);
+        ayuda.setManaged(false);
+        Tooltip tip = ayuda.getTooltip();
+        String texto = tip != null ? tip.getText() : null;
+        if (texto == null || texto.isBlank() || ayuda.getParent() == null) return;
+        java.util.List<Node> hermanos = ayuda.getParent().getChildrenUnmodifiable();
+        java.util.List<Node> destinos = new java.util.ArrayList<>();
+        for (int i = hermanos.indexOf(ayuda) - 1; i >= 0; i--) {
+            Node n = hermanos.get(i);
+            if (n instanceof javafx.scene.control.Separator) break;
+            if (n.isVisible()) destinos.add(n);
+        }
+        if (destinos.isEmpty()) destinos.add(ayuda.getParent());
+        for (Node n : destinos) ponerAyuda(n, texto);
+    }
+
+    private static void ponerAyuda(Node n, String texto) {
+        if (n instanceof javafx.scene.control.Control c) {
+            if (c.getTooltip() == null) c.setTooltip(tooltipDeAyuda(texto));
+            if (c.getAccessibleHelp() == null || c.getAccessibleHelp().isBlank()) c.setAccessibleHelp(texto);
+        } else {
+            Tooltip.install(n, tooltipDeAyuda(texto));
+        }
+    }
+
+    private static Tooltip tooltipDeAyuda(String texto) {
+        Tooltip t = new Tooltip(texto);
+        t.setWrapText(true);
+        t.setMaxWidth(280);
+        t.setShowDelay(javafx.util.Duration.millis(350));
+        t.setShowDuration(javafx.util.Duration.seconds(12));
+        return t;
     }
 
     /** Forms are GridPanes with the label in one column and its field in the
@@ -77,6 +122,9 @@ public final class AccessibilityUtils {
                 javafx.scene.control.Control campo = campoDe(otro);
                 if (campo == null) continue;
                 etiqueta.setLabelFor(campo);
+                // The help of a "?" moved onto the label (moverAyuda) shows on the field too.
+                if (campo.getTooltip() == null && etiqueta.getTooltip() != null && etiqueta.getTooltip().getText() != null)
+                    campo.setTooltip(tooltipDeAyuda(etiqueta.getTooltip().getText()));
                 if ((campo.getAccessibleText() == null || campo.getAccessibleText().isBlank())
                         && !campo.accessibleTextProperty().isBound())
                     campo.setAccessibleText(texto.replace("*", "").replace(":", "").trim());

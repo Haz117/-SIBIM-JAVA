@@ -71,6 +71,23 @@ class ReporteInventarioFotograficoServiceTest {
         assertTrue(imagenes(pdf) >= 3, "las tres fotos van en el PDF");
     }
 
+    /** Reportes › Inventario por área › Sin fotos: the same format, grouped by área,
+     *  without the photo column — and without loading a single photo. */
+    @Test void inventarioSinFotos_mismoFormatoSinLaColumnaNiLasImagenes() throws Exception {
+        String foto = FotosPdfTest.imagen(dir, "g.jpg", 800, 600).toString();
+        List<Producto> bienes = new ArrayList<>();
+        for (int i = 0; i < 4; i++)
+            bienes.add(bien("s" + i, "SGM/0" + (i + 1), i < 2 ? "Dirección de Catastro" : "Tesorería — Ingresos", foto));
+
+        File pdf = new ReporteInventarioFotograficoService().exportInventarioSinFotos(bienes);
+        String t = texto(pdf);
+        assertTrue(t.contains("INVENTARIO DE BIENES MUEBLES"));
+        assertFalse(t.contains("FOTOGRAF"), "ni el título ni la columna hablan de fotografía");
+        assertTrue(t.contains("SGM/04"));
+        assertTrue(t.contains("DIRECCIÓN DE CATASTRO") && t.contains("TESORERÍA — INGRESOS"), "subtítulo por área");
+        assertTrue(imagenes(pdf) <= 1, "a lo más el logo: ninguna foto de bien");
+    }
+
     @Test void inventarioFotografico_sinBienes_esError() {
         assertThrows(IllegalArgumentException.class,
             () -> new ReporteInventarioFotograficoService().exportInventarioFotografico(List.of()));

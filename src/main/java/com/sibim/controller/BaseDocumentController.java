@@ -185,13 +185,52 @@ public abstract class BaseDocumentController<T> {
                 && !searchField.getText().isBlank()) return true;
         if (dpDesde != null && dpDesde.getValue() != null) return true;
         if (dpHasta != null && dpHasta.getValue() != null) return true;
-        return false;
+        return areaElegida() != null;
     }
 
     protected void clearFilters() {
         if (searchField != null) searchField.clear();
         if (dpDesde != null) dpDesde.setValue(null);
         if (dpHasta != null) dpHasta.setValue(null);
+        if (cbArea != null) cbArea.setValue(null);
+    }
+
+    // ── Filtro por área ────────────────────────────────────────────────────
+
+    static final String TODAS_LAS_AREAS = "Todas las áreas";
+    private ComboBox<String> cbArea;
+
+    /** The áreas a row belongs to (a préstamo has two). A screen that returns any
+     *  gets an área filter next to the dates (see setupDateFilterBar). */
+    protected List<String> areasDe(T item) { return List.of(); }
+
+    /** Whether this screen offers the área filter. */
+    protected boolean filtraPorArea() { return false; }
+
+    /** The área picked in the filter, or null for all of them. */
+    protected String areaElegida() {
+        String v = cbArea != null ? cbArea.getValue() : null;
+        return v == null || v.isBlank() || TODAS_LAS_AREAS.equals(v) ? null : v;
+    }
+
+    /** For applyFilter: true when no área is picked or the row is of that área. */
+    protected boolean coincideArea(T item) {
+        String area = areaElegida();
+        return area == null || areasDe(item).contains(area);
+    }
+
+    private ComboBox<String> crearFiltroArea() {
+        List<String> areas = new ArrayList<>();
+        areas.add(TODAS_LAS_AREAS);
+        com.sibim.config.Areas.getAllAreaNames().stream()
+            .filter(com.sibim.session.SessionManager::isAreaAccessible).forEach(areas::add);
+        ComboBox<String> cb = new ComboBox<>();
+        cb.setPromptText(TODAS_LAS_AREAS);
+        DialogUtil.makeFilterable(cb, areas);
+        cb.setPrefWidth(200);
+        cb.setTooltip(new Tooltip("Mostrar solo los de un área"));
+        cb.valueProperty().addListener((obs, o, n) -> applyFilter());
+        return cb;
     }
 
     private void updateCountDisplay() {
@@ -375,6 +414,12 @@ public abstract class BaseDocumentController<T> {
         btnLimpiar.setTooltip(new Tooltip("Limpiar filtros de fecha"));
         btnLimpiar.setOnAction(e -> { dpDesde.setValue(null); dpHasta.setValue(null); });
         if (filterBar != null) {
+            if (filtraPorArea()) {
+                cbArea = crearFiltroArea();
+                Separator va = new Separator();
+                va.setOrientation(javafx.geometry.Orientation.VERTICAL);
+                filterBar.getChildren().addAll(va, cbArea);
+            }
             Separator vs = new Separator();
             vs.setOrientation(javafx.geometry.Orientation.VERTICAL);
             filterBar.getChildren().addAll(vs, dpDesde, dpHasta, btnLimpiar);

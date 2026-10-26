@@ -236,6 +236,76 @@ public class ResguardoRepository {
         }
     }
 
+    /** Takes one bien out of an active resguardo, so it can be dado de baja or
+     *  transferred without cancelling the document for everything else it
+     *  covers. The bien is left without resguardante, {@code nota} is added to
+     *  the resguardo's observaciones (the signed paper still lists the bien),
+     *  and a resguardo left empty is cancelled.
+     *  Online only, like the baja it usually comes before.
+     *  @return true if the resguardo was cancelled because nothing was left */
+    public boolean quitarBien(String resguardoId, String productoId, String nota) throws SQLException {
+        if (!SessionManager.isAdmin())
+            throw new SecurityException("Solo el administrador puede quitar bienes de un resguardo");
+        if (DatabaseConfig.isDemoMode())
+            throw new IllegalStateException("Resguardos no disponibles en modo demo");
+        if (OfflineDocs.activo())
+            throw new IllegalStateException("Quitar un bien de un resguardo requiere conexión con el servidor");
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                String resguardante;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT estado, resguardante_nombre FROM resguardos WHERE id = ? FOR UPDATE")) {
+                    ps.setString(1, resguardoId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("El resguardo ya no existe");
+                        if (!Resguardo.ESTADO_ACTIVO.equals(rs.getString("estado")))
+                            throw new IllegalStateException("El resguardo ya está cancelado");
+                        resguardante = rs.getString("resguardante_nombre");
+                    }
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM resguardo_items WHERE resguardo_id = ? AND producto_id = ?")) {
+                    ps.setString(1, resguardoId);
+                    ps.setString(2, productoId);
+                    if (ps.executeUpdate() == 0)
+                        throw new IllegalStateException("Ese bien ya no está en el resguardo");
+                }
+                // Same rule as cancelarOnline: only if this resguardo is what named its resguardante.
+                try (PreparedStatement ps = conn.prepareStatement("""
+                        UPDATE products p SET resguardante = NULL, updated_at = NOW()
+                        WHERE p.id = ? AND p.resguardante = ?
+                          AND NOT EXISTS (SELECT 1 FROM resguardo_items i JOIN resguardos r ON r.id = i.resguardo_id
+                                          WHERE i.producto_id = p.id AND r.estado = 'ACTIVO')
+                        """)) {
+                    ps.setString(1, productoId);
+                    ps.setString(2, resguardante);
+                    ps.executeUpdate();
+                }
+                boolean vacio;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT NOT EXISTS (SELECT 1 FROM resguardo_items WHERE resguardo_id = ?)")) {
+                    ps.setString(1, resguardoId);
+                    try (ResultSet rs = ps.executeQuery()) { rs.next(); vacio = rs.getBoolean(1); }
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE resguardos SET observaciones = CONCAT_WS(' ', NULLIF(observaciones, ''), ?)"
+                        + (vacio ? ", estado = 'CANCELADO'" : "") + " WHERE id = ?")) {
+                    ps.setString(1, nota);
+                    ps.setString(2, resguardoId);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+                return vacio;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
     /** The active resguardo that covers {@code productoId}, if any. */
     public java.util.Optional<Resguardo> findActivoByProductoId(String productoId) throws SQLException {
         return findByProductoId(productoId).stream()

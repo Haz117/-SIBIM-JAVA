@@ -898,8 +898,17 @@ public class ReporteService {
         return new ReporteInventarioFotograficoService().exportInventarioFotografico(bienes);
     }
 
+    /** The same MLA format without the photo column. */
+    public File exportInventarioSinFotos(List<Producto> bienes) throws Exception {
+        return new ReporteInventarioFotograficoService().exportInventarioSinFotos(bienes);
+    }
+
     public File exportarResguardoPdf(String resguardante, String area, List<Producto> bienes) throws Exception {
         return new ReporteResguardoService().exportarResguardoPdf(resguardante, area, bienes);
+    }
+
+    public File exportarResguardoGeneralArea(String area, String titular, String cargo, List<Producto> bienes) throws Exception {
+        return new ReporteResguardoService().exportarResguardoGeneralArea(area, titular, cargo, bienes);
     }
 
     protected Paragraph sectionTitle(String text, PdfFont bold, DeviceRgb color) {

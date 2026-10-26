@@ -51,7 +51,7 @@ class ReportesAreasSmokeTest extends ControllerSmokeTestBase {
                     m.getItems().forEach(it -> assertFalse(it.getText().matches("(?i).*(excel|csv).*"),
                         "las áreas no exportan hojas de cálculo: " + it.getText()));
             }
-        assertEquals(List.of("Inventario General", "Distribución por Área", "Alertas y pendientes",
+        assertEquals(List.of("Inventario General", "Inventario por área", "Distribución por Área", "Alertas y pendientes",
             "Solicitud de Baja", "Dictamen Técnico de Baja"), titulos);
     }
 

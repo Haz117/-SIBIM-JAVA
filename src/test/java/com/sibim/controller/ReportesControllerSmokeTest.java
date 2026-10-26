@@ -28,7 +28,7 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
 
     @Test
     void nodosClavePresentes() {
-        assertEquals(5, lookup("#listaListados").<javafx.scene.layout.VBox>query().getChildren().size(), "cinco listados");
+        assertEquals(6, lookup("#listaListados").<javafx.scene.layout.VBox>query().getChildren().size(), "seis listados");
         assertEquals(5, lookup("#listaFormatos").<javafx.scene.layout.VBox>query().getChildren().size(), "cinco formatos oficiales");
         assertNotNull(lookup("#btnPresetHoy").query(),    "btnPresetHoy debe existir");
         assertNotNull(lookup("#desdeField").query(),      "desdeField debe existir");
@@ -47,8 +47,8 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
         assertEquals("Hasta 30/09/2026", ReportesController.describirPeriodo(null, b));
     }
 
-    /** Each report offers its formats: three for the listings, PDF only for the
-     *  official forms, two variants of the dictamen. */
+    /** Each report offers its formats: three for the listings, con/sin fotos for the
+     *  inventario por área, PDF only for the official forms, two variants of the dictamen. */
     @Test
     void cadaReporte_ofreceSusFormatos() {
         java.util.List<Integer> formatos = new java.util.ArrayList<>();
@@ -57,7 +57,7 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
                 javafx.scene.Node boton = ((javafx.scene.layout.HBox) fila).getChildren().get(2);
                 formatos.add(boton instanceof javafx.scene.control.MenuButton m ? m.getItems().size() : 1);
             }
-        assertEquals(java.util.List.of(3, 3, 3, 3, 3, 1, 1, 1, 1, 2), formatos);
+        assertEquals(java.util.List.of(3, 2, 3, 3, 3, 3, 1, 1, 1, 1, 2), formatos);
     }
 
     /** Only Inventario and Movimientos follow the period, and their chip says which one. */

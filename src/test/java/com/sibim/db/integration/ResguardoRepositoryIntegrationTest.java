@@ -207,4 +207,60 @@ class ResguardoRepositoryIntegrationTest extends IntegrationTestBase {
         assertEquals(1, result.size());
         assertEquals("Con Producto1", result.get(0).getResguardanteNombre());
     }
+
+    // ── Quitar un bien del resguardo ──────────────────────────────────────────
+
+    private String resguardanteDe(String productoId) throws SQLException {
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT resguardante FROM products WHERE id = ?")) {
+            ps.setString(1, productoId);
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getString(1); }
+        }
+    }
+
+    /** A bien can leave a resguardo for a baja or a transfer while the rest stays covered. */
+    @Test
+    void quitarBien_unoDeDos_loSacaLoDejaSinResguardanteYLoAnota() throws SQLException {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        String sale = UUID.randomUUID().toString(), queda = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(sale));
+        productoRepo.saveOnline(buildProducto(queda));
+        Resguardo r = repo.save(buildResguardo("Ana López", List.of(buildItem(sale, "Silla"), buildItem(queda, "Mesa"))));
+
+        assertFalse(repo.quitarBien(r.getId(), sale, "26/10/2026: se quitó COD-001 Silla (baja)."));
+
+        Resguardo despues = repo.findById(r.getId());
+        assertEquals(Resguardo.ESTADO_ACTIVO, despues.getEstado());
+        assertEquals(List.of(queda), despues.getItems().stream().map(ResguardoItem::getProductoId).toList());
+        assertTrue(despues.getObservaciones().endsWith("se quitó COD-001 Silla (baja)."));
+        assertNull(resguardanteDe(sale), "el bien que sale queda sin resguardante");
+        assertEquals("Ana López", resguardanteDe(queda));
+        assertTrue(repo.findActivoByProductoId(sale).isEmpty(), "ya se puede dar de baja o transferir");
+    }
+
+    @Test
+    void quitarBien_elUltimo_cancelaElResguardo() throws SQLException {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        String pid = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(pid));
+        Resguardo r = repo.save(buildResguardo("Ana López", List.of(buildItem(pid, "Silla"))));
+
+        assertTrue(repo.quitarBien(r.getId(), pid, "nota"));
+        assertEquals(Resguardo.ESTADO_CANCELADO, repo.findById(r.getId()).getEstado());
+    }
+
+    @Test
+    void quitarBien_deUnResguardoCancelado_oQueNoLoTiene_noCambiaNada() throws SQLException {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        String pid = UUID.randomUUID().toString(), otro = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(pid));
+        productoRepo.saveOnline(buildProducto(otro));
+        Resguardo r = repo.save(buildResguardo("Ana López", List.of(buildItem(pid, "Silla"))));
+
+        assertThrows(IllegalStateException.class, () -> repo.quitarBien(r.getId(), otro, "nota"));
+        assertEquals(1, repo.findById(r.getId()).getItems().size());
+
+        repo.cancelar(r.getId());
+        assertThrows(IllegalStateException.class, () -> repo.quitarBien(r.getId(), pid, "nota"));
+    }
 }

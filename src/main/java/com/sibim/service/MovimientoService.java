@@ -83,6 +83,18 @@ public class MovimientoService {
         return movimientoRepo.countFiltrado(desde, hasta, query, tipo, categoriaNombre);
     }
 
+    /** {@link #getPaginated} for one área ({@code area} null = all). */
+    public List<Movimiento> getPaginated(LocalDate desde, LocalDate hasta, String query, String tipo,
+            String categoriaNombre, String area, int limit, int offset) throws SQLException {
+        return movimientoRepo.findPaginated(desde, hasta, query, tipo, categoriaNombre, area, limit, offset);
+    }
+
+    /** {@link #countFiltrado} for one área ({@code area} null = all). */
+    public int countFiltrado(LocalDate desde, LocalDate hasta, String query, String tipo,
+            String categoriaNombre, String area) throws SQLException {
+        return movimientoRepo.countFiltrado(desde, hasta, query, tipo, categoriaNombre, area);
+    }
+
     public MovimientoRepository.MovimientoStats getStats(LocalDate desde, LocalDate hasta) throws SQLException {
         return movimientoRepo.findStats(desde, hasta);
     }

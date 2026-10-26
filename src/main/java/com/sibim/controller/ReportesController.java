@@ -124,6 +124,13 @@ public class ReportesController {
                 delPeriodo(reporteService::exportInventarioPdf),
                 delPeriodo(reporteService::exportInventarioExcel),
                 delPeriodo(reporteService::exportInventarioCsv))));
+        listados.add(ReporteFila.crear("mdi2i-image-multiple-outline", "purple", "Inventario por área",
+            "Los bienes de una o varias áreas, agrupados por área, con la fotografía de cada uno o sin ella (formato MLA).",
+            null, "Generar", List.of(
+                new ReporteFila.Formato("Con fotos", "mdi2c-camera-outline", "report-export-icon-pdf",
+                    () -> inventarioPorArea(true)),
+                new ReporteFila.Formato("Sin fotos", "mdi2f-file-document-outline", "report-export-icon-pdf",
+                    () -> inventarioPorArea(false)))));
         if (control) listados.add(ReporteFila.crear("mdi2s-swap-vertical", "teal", "Registro de Movimientos",
             "Historial de entradas, salidas, ajustes y transferencias.",
             periodoTexto, "Exportar", formatos(
@@ -185,6 +192,92 @@ public class ReportesController {
             List<Node> filas = lista.getChildren();
             filas.get(filas.size() - 1).getStyleClass().add("report-row-last");
         }
+    }
+
+    // ── Inventario por área ────────────────────────────────────────────────────
+
+    /** The MLA inventory of the áreas picked in a list — one, two or more; an área
+     *  only gets to pick its own (productoService returns only those). */
+    private void inventarioPorArea(boolean conFotos) {
+        Scene scene = spinner.getScene();
+        if (scene == null) return;
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
+            () -> productoService.getAll(),
+            bienes -> elegirAreas(bienes, conFotos, scene),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    private void elegirAreas(List<Producto> bienes, boolean conFotos, Scene scene) {
+        Map<String, List<Producto>> porArea = bienes.stream()
+            .filter(p -> p.getArea() != null && p.getFechaBaja() == null)
+            .collect(java.util.stream.Collectors.groupingBy(Producto::getArea));
+        List<String> areas = com.sibim.config.Areas.getAllAreaNames().stream().filter(porArea::containsKey).toList();
+        if (areas.isEmpty()) { NotificacionUtil.advertencia(scene, "No hay bienes activos en tus áreas"); return; }
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        dlg.setTitle("Inventario por área");
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dlg.getDialogPane().setPrefWidth(560);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        javafx.scene.layout.HBox header = DialogUtil.gradientHeader(
+            conFotos ? "mdi2c-camera-outline" : "mdi2f-file-document-outline",
+            conFotos ? "Inventario por área, con fotos" : "Inventario por área, sin fotos",
+            "Elige una o varias áreas; cada una sale con su encabezado",
+            com.sibim.util.AppColors.PRIMARY, com.sibim.util.AppColors.PRIMARY_D);
+
+        TextField buscar = new TextField();
+        buscar.setPromptText("Buscar área…");
+        buscar.getStyleClass().add("form-input");
+        VBox lista = new VBox(6);
+        List<CheckBox> casillas = new ArrayList<>();
+        for (String area : areas) {
+            CheckBox cb = new CheckBox(area + "  (" + FormatUtils.plural(porArea.get(area).size(), "bien", "bienes") + ")");
+            cb.setUserData(area);
+            casillas.add(cb);
+            lista.getChildren().add(cb);
+        }
+        buscar.textProperty().addListener((o, a, q) -> {
+            String t = q == null ? "" : q.trim().toLowerCase();
+            for (CheckBox cb : casillas) {
+                boolean ve = t.isEmpty() || ((String) cb.getUserData()).toLowerCase().contains(t);
+                cb.setVisible(ve); cb.setManaged(ve);
+            }
+        });
+        ScrollPane scroll = new ScrollPane(lista);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(300);
+        Label resumen = new Label("Ninguna área elegida");
+        resumen.setWrapText(true);
+        resumen.getStyleClass().add("table-count-label");
+
+        Button ok = (Button) dlg.getDialogPane().lookupButton(ButtonType.OK);
+        ok.setText("Generar PDF");
+        ok.getStyleClass().add("dialog-ok-btn");
+        ok.setDisable(true);
+        Runnable actualizar = () -> {
+            List<String> elegidas = casillas.stream().filter(CheckBox::isSelected).map(cb -> (String) cb.getUserData()).toList();
+            int total = elegidas.stream().mapToInt(a -> porArea.get(a).size()).sum();
+            int max = com.sibim.service.ReporteInventarioFotograficoService.maxBienesConFotos();
+            boolean demasiados = conFotos && total > max;
+            resumen.setText(elegidas.isEmpty() ? "Ninguna área elegida"
+                : FormatUtils.plural(elegidas.size(), "área", "áreas") + " · " + FormatUtils.plural(total, "bien", "bienes")
+                    + (demasiados ? " — con fotos caben hasta " + max + " bienes por documento: elige menos áreas o hazlo sin fotos" : ""));
+            ok.setDisable(elegidas.isEmpty() || demasiados);
+        };
+        casillas.forEach(cb -> cb.selectedProperty().addListener((o, a, b) -> actualizar.run()));
+
+        VBox content = new VBox(10, header, buscar, scroll, resumen);
+        content.setPadding(new javafx.geometry.Insets(0, 16, 16, 16));
+        dlg.getDialogPane().setContent(content);
+        Platform.runLater(buscar::requestFocus);
+
+        dlg.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
+            List<Producto> elegidos = casillas.stream().filter(CheckBox::isSelected)
+                .flatMap(cb -> porArea.get((String) cb.getUserData()).stream()).toList();
+            exportar(() -> conFotos ? reporteService.exportInventarioFotografico(elegidos)
+                                    : reporteService.exportInventarioSinFotos(elegidos), false);
+        });
     }
 
     /** PDF, Excel and CSV for Patrimonio; PDF alone for the áreas. */

@@ -108,6 +108,9 @@
                 </HBox>
                 <Label fx:id="lblPanelSubtitulo" styleClass="muted"/>
             </VBox>
+            <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="220">
+                <tooltip><Tooltip text="Mostrar solo los bienes de un área"/></tooltip>
+            </ComboBox>
             <StackPane prefWidth="300" minWidth="200">
                 <TextField fx:id="searchField" promptText="Buscar por nombre, código o área..."
                            styleClass="search-field" maxWidth="Infinity">

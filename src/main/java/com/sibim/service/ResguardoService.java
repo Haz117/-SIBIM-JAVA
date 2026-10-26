@@ -80,7 +80,7 @@ public class ResguardoService {
             java.util.Optional<Resguardo> otro = repo.findActivoByProductoId(pid);
             if (otro != null && otro.isPresent())
                 throw new IllegalArgumentException("El bien " + nombreDe(it) + " ya está en el resguardo vigente "
-                    + otro.get().getNumero() + "; cancélalo primero para reasignarlo");
+                    + otro.get().getNumero() + "; quítalo primero de ese resguardo para reasignarlo");
         }
         Resguardo r = new Resguardo();
         r.setResguardanteNombre(resguardanteNombre.trim());
@@ -132,6 +132,30 @@ public class ResguardoService {
             auditRepo.log("resguardo", id, r.getResguardanteNombre(), "cancelar",
                 "Resguardo " + r.getNumero() + " cancelado");
         }
+    }
+
+    /** Takes one bien out of an active resguardo (Patrimonio only) so it can be
+     *  dado de baja or transferred while the rest stays covered. The resguardo
+     *  records what was taken out, when and why, since the signed paper still
+     *  lists it; one left without bienes is cancelled.
+     *  @return true if the resguardo was cancelled because nothing was left */
+    public boolean quitarBien(Resguardo r, ResguardoItem item, String motivo) throws SQLException {
+        soloAdministrador();
+        if (motivo == null || motivo.isBlank())
+            throw new IllegalArgumentException("Escribe por qué se quita el bien del resguardo");
+        if (item.getProductoId() == null)
+            throw new IllegalArgumentException("Ese renglón ya no corresponde a un bien del inventario");
+        String nota = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            + ": se quitó " + nombreDe(item)
+            + (item.getProductoCodigo() != null && item.getProductoNombre() != null ? " " + item.getProductoNombre() : "")
+            + " (" + motivo.trim() + ").";
+        boolean cancelado = repo.quitarBien(r.getId(), item.getProductoId(), nota);
+        ProductosEnMemoria.invalidar();   // products.resguardante follows the resguardo
+        actualizarFichas(List.of(item));
+        auditRepo.log("resguardo", r.getId(), r.getResguardanteNombre(), cancelado ? "cancelar" : "actualizar",
+            "Resguardo " + r.getNumero() + ": " + nota.substring(nota.indexOf(':') + 2)
+                + (cancelado ? " Era su último bien: el resguardo quedó cancelado." : ""));
+        return cancelado;
     }
 
     /** The ficha a bien's QR downloads names its resguardante. */

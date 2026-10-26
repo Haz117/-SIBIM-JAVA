@@ -37,6 +37,11 @@
             <graphic><FontIcon iconLiteral="mdi2t-timer-sand" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Solicitudes de préstamo y resguardo de las áreas" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
+        <Button fx:id="btnGeneral" text="Resguardo general" onAction="#onResguardoGeneral" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Imprime todos los bienes de un área, con el resguardante de cada uno, para firma del titular" wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
         <Button fx:id="btnNuevo" text="Nuevo Resguardo" onAction="#onNuevoResguardo" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>

@@ -161,7 +161,21 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
     @Override
     protected List<Comodato> fetchAll() throws Exception {
         service.actualizarVencidos();
+        // A comodato names the bien, not its área: the área filter looks it up here.
+        areaPorBien = new com.sibim.service.ProductoService().getAll().stream()
+            .filter(p -> p.getArea() != null)
+            .collect(java.util.stream.Collectors.toMap(com.sibim.model.Producto::getId,
+                com.sibim.model.Producto::getArea, (a, b) -> a));
         return service.getAll();
+    }
+
+    private volatile java.util.Map<String, String> areaPorBien = java.util.Map.of();
+
+    @Override protected boolean filtraPorArea() { return true; }
+
+    @Override protected List<String> areasDe(Comodato c) {
+        String area = c.getProductoId() != null ? areaPorBien.get(c.getProductoId()) : null;
+        return area != null ? List.of(area) : List.of();
     }
 
     @Override
@@ -280,6 +294,7 @@ public class ComodatosController extends BaseDocumentController<Comodato> {
                 if (hasta != null && (f == null || f.isAfter(hasta))) return false;
                 return true;
             })
+            .filter(this::coincideArea)
             .toList();
         data.setAll(filtered);
         updateCount(filtered.size(), allData.size());

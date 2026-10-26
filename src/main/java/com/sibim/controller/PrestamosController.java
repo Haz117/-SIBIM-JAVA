@@ -311,6 +311,16 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
         if (estadoFilter != null) estadoFilter.setValue("Todos");
     }
 
+    @Override protected boolean filtraPorArea() { return true; }
+
+    /** Lent from one área to another: it shows under either. */
+    @Override protected List<String> areasDe(Prestamo p) {
+        List<String> areas = new java.util.ArrayList<>();
+        if (p.getAreaOrigen() != null) areas.add(p.getAreaOrigen());
+        if (p.getAreaDestino() != null) areas.add(p.getAreaDestino());
+        return areas;
+    }
+
     @Override
     protected void applyFilter() {
         String q      = searchField != null ? searchField.getText() : "";
@@ -338,6 +348,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
                 if (hasta != null && (f == null || f.isAfter(hasta))) return false;
                 return true;
             })
+            .filter(this::coincideArea)
             .toList();
         data.setAll(filtered);
         updateCount(filtered.size(), allData.size());

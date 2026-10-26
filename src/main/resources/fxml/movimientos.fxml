@@ -51,6 +51,11 @@
             <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Transferencias pendientes de aprobación"/></tooltip>
         </Button>
+        <Button fx:id="btnArrastrar" text="Transferir arrastrando" onAction="#onTransferirArrastrando"
+                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-drag-variant" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Arrastra bienes de un área a otra y asígnales su nuevo resguardante" wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
         <Button fx:id="btnNuevo" text="Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
@@ -169,6 +174,9 @@
         <Separator orientation="VERTICAL"/>
         <ComboBox fx:id="categoriaFilter" promptText="Todas las categorías" prefWidth="170">
             <tooltip><Tooltip text="Filtrar por la categoría del bien involucrado en el movimiento"/></tooltip>
+        </ComboBox>
+        <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="220">
+            <tooltip><Tooltip text="Movimientos de los bienes de un área, o transferencias que salieron o llegaron ahí" wrapText="true" maxWidth="260"/></tooltip>
         </ComboBox>
         <Separator orientation="VERTICAL"/>
         <Label text="Desde:" styleClass="muted"/>

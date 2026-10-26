@@ -72,6 +72,8 @@ public class AlertasController implements Refreshable {
     @FXML private Label lblPanelConteo;
     @FXML private Label lblPanelSubtitulo;
     @FXML private TextField searchField;
+    @FXML private ComboBox<String> areaFilter;
+    private static final String TODAS_LAS_AREAS = "Todas las áreas";
     @FXML private Button btnClearSearch;
     @FXML private Button btnResetColumns;
     @FXML private HBox panelExtras;
@@ -259,6 +261,25 @@ public class AlertasController implements Refreshable {
         SearchUtils.debounce(searchField, 260, q -> { STICKY.put("search", q != null ? q : ""); applySearch(q); });
         String savedSearch = STICKY.get("search", "");
         if (!savedSearch.isBlank()) searchField.setText(savedSearch);
+        if (areaFilter != null) {
+            List<String> areas = new java.util.ArrayList<>();
+            areas.add(TODAS_LAS_AREAS);
+            com.sibim.config.Areas.getAllAreaNames().stream()
+                .filter(com.sibim.session.SessionManager::isAreaAccessible).forEach(areas::add);
+            DialogUtil.makeFilterable(areaFilter, areas);
+            areaFilter.valueProperty().addListener((o, a, b) -> applySearch(searchField.getText()));
+        }
+    }
+
+    /** The área picked in the filter, or null for all of them. */
+    private String areaElegida() {
+        String v = areaFilter != null ? areaFilter.getValue() : null;
+        return v == null || v.isBlank() || TODAS_LAS_AREAS.equals(v) ? null : v;
+    }
+
+    private List<Producto> delArea(List<Producto> bienes) {
+        String area = areaElegida();
+        return area == null ? bienes : bienes.stream().filter(p -> area.equals(p.getArea())).toList();
     }
 
     private void setupTableInteractions() {
@@ -340,15 +361,18 @@ public class AlertasController implements Refreshable {
     private void applySearch(String query) {
         String q = query == null ? "" : query.trim().toLowerCase();
 
-        mostrar(pGarantias, tableGarantias, allGarantias, q, "Sin garantías vencidas ni por vencer");
-        mostrar(pMantenimiento, tableMantenimiento, allMantenimiento, q, "Sin revisiones en los próximos 30 días");
+        mostrar(pGarantias, tableGarantias, delArea(allGarantias), q, "Sin garantías vencidas ni por vencer");
+        mostrar(pMantenimiento, tableMantenimiento, delArea(allMantenimiento), q, "Sin revisiones en los próximos 30 días");
         AnimationUtils.staggerTableRows(tableGarantias);
 
         pComodatos.total = allComodatosVencidos.size();
         pComodatos.mostrados = comodatos.mostrar(allComodatosVencidos, q);
 
-        pPendientes.total = allPendientes.size();
-        pPendientes.mostrados = patrimoniales.mostrar(allPendientes, q);
+        String area = areaElegida();
+        List<AlertasPatrimonialesSection.Pendiente> pendientes = area == null ? allPendientes
+            : allPendientes.stream().filter(p -> area.equals(p.producto().getArea())).toList();
+        pPendientes.total = pendientes.size();
+        pPendientes.mostrados = patrimoniales.mostrar(pendientes, q);
         if (!allPendientes.isEmpty()) pPendientes.subtitulo =
             AlertasPatrimonialesSection.contar(allPendientes, AlertasPatrimonialesSection.SIN_RESGUARDANTE)
             + " sin resguardante asignado · "

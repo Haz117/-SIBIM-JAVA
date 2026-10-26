@@ -81,17 +81,49 @@ public class ReporteResguardoService extends ReporteService {
         }
         r.setItems(items);
 
-        return generarPdf(r, bienes);
+        return generarPdf(r, bienes, false);
     }
 
     /** Export formal desde entidad Resguardo completa. */
     public File exportarResguardoPdf(Resguardo r) throws Exception {
-        return generarPdf(r, null);
+        return generarPdf(r, null, false);
+    }
+
+    /** Resguardo general del área: every active bien of {@code area}, signed by its
+     *  titular, with the person each bien is individually assigned to — what the
+     *  municipio's books keep as the GENERAL sheet next to the individual ones.
+     *  Printed from the current inventory, never saved: it doesn't hold the bienes
+     *  (each still belongs to its individual resguardo) nor add any row, so the
+     *  inventory can't count a bien twice the way the reloaded Excel did. Its own
+     *  folio series (RGA) leaves the numbering of the registered resguardos alone. */
+    public File exportarResguardoGeneralArea(String area, String titular, String cargo,
+                                             List<Producto> bienes) throws Exception {
+        Resguardo r = new Resguardo();
+        r.setNumero(generateFolio("RGA"));
+        r.setResguardanteNombre(titular);
+        r.setResguardanteCargo(cargo);
+        r.setResguardanteArea(area);
+        r.setEstado(Resguardo.ESTADO_ACTIVO);
+        r.setCreadoEn(LocalDateTime.now());
+        Usuario u = SessionManager.getCurrentUser();
+        r.setCreadoPorNombre(u != null ? u.getNombre() : "");
+        List<ResguardoItem> items = new ArrayList<>();
+        for (Producto p : bienes) {
+            ResguardoItem it = new ResguardoItem();
+            it.setProductoNombre(p.getNombre());
+            it.setProductoCodigo(p.getCodigo());
+            it.setNumeroSerie(p.getNumeroSerie());
+            it.setArea(area);
+            it.setCantidad(p.getStockActual());
+            items.add(it);
+        }
+        r.setItems(items);
+        return generarPdf(r, bienes, true);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private File generarPdf(Resguardo r, List<Producto> productosExtra) throws Exception {
+    private File generarPdf(Resguardo r, List<Producto> productosExtra, boolean general) throws Exception {
         File out = File.createTempFile("resguardo_", ".pdf");
         out.deleteOnExit();
 
@@ -110,9 +142,9 @@ public class ReporteResguardoService extends ReporteService {
             String estado      = r.getEstado() != null ? r.getEstado() : "PENDIENTE";
             boolean pendiente  = !"ACTIVO".equalsIgnoreCase(estado);
 
-            seccionHeader(doc, bold, reg, numero, fechaStr);
+            seccionHeader(doc, bold, reg, numero, fechaStr, general);
             seccionInfoGeneral(doc, bold, reg, r, fechaStr, pendiente, numero);
-            seccionBienes(doc, bold, reg, r, productosExtra, fechaStr);
+            seccionBienes(doc, bold, reg, r, productosExtra, fechaStr, general);
             seccionNota(doc, reg, r.getItems().size());
             seccionFundamento(doc, reg);
             seccionFirmas(doc, bold, reg, r, numero, fechaStr, horaStr);
@@ -122,7 +154,7 @@ public class ReporteResguardoService extends ReporteService {
 
     // ── Sección 1: Encabezado ────────────────────────────────────────────────
 
-    private void seccionHeader(Document doc, PdfFont bold, PdfFont reg, String numero, String fechaStr) {
+    private void seccionHeader(Document doc, PdfFont bold, PdfFont reg, String numero, String fechaStr, boolean general) {
         Table t = new Table(UnitValue.createPercentArray(new float[]{1.1f, 3.5f, 1.4f}))
             .useAllAvailableWidth().setMarginBottom(0);
 
@@ -152,7 +184,7 @@ public class ReporteResguardoService extends ReporteService {
         Cell mid = cell().setBackgroundColor(PURPLE).setBorder(brd(PURPLE_DARK)).setPadding(12)
             .setVerticalAlignment(VerticalAlignment.MIDDLE);
         mid.add(para(orgName(), bold, 9).setTextAlignment(TextAlignment.CENTER).setFontColor(ColorConstants.WHITE));
-        mid.add(para("RESGUARDO DE BIENES", bold, 15).setTextAlignment(TextAlignment.CENTER)
+        mid.add(para(general ? "RESGUARDO GENERAL DEL ÁREA" : "RESGUARDO DE BIENES", bold, 15).setTextAlignment(TextAlignment.CENTER)
             .setFontColor(ColorConstants.WHITE).setMarginTop(3));
         t.addCell(mid);
 
@@ -228,20 +260,23 @@ public class ReporteResguardoService extends ReporteService {
     // ── Sección 3: Lista de bienes ───────────────────────────────────────────
 
     private void seccionBienes(Document doc, PdfFont bold, PdfFont reg,
-                               Resguardo r, List<Producto> extra, String fechaResguardo) {
+                               Resguardo r, List<Producto> extra, String fechaResguardo, boolean general) {
         doc.add(new Table(UnitValue.createPercentArray(new float[]{1f})).useAllAvailableWidth()
             .setMarginTop(10).setMarginBottom(4)
             .addCell(new Cell()
-                .add(para("LISTA DE BIENES ASIGNADOS", bold, 8f).setFontColor(PURPLE).setTextAlignment(TextAlignment.CENTER))
+                .add(para(general ? "LISTA DE BIENES DEL ÁREA" : "LISTA DE BIENES ASIGNADOS", bold, 8f).setFontColor(PURPLE).setTextAlignment(TextAlignment.CENTER))
                 .setBackgroundColor(GUINDA_LIGHT)
                 .setBorder(new SolidBorder(GRAY_300, 0.5f))
                 .setPadding(6)));
 
         // TIPO BIEN wide enough for "EQUIPO AUDIOVISUAL" on one line: half the rows used to take two.
-        float[] cw = {0.45f, 1.3f, 3.2f, 1.75f, 1.05f, 1.25f};
+        // The general one's 5th column holds a full name, not a date: it takes room from CONCEPTO.
+        float[] cw = general ? new float[]{0.45f, 1.2f, 2.55f, 1.6f, 1.95f, 1.0f}
+                             : new float[]{0.45f, 1.3f, 3.2f, 1.75f, 1.05f, 1.25f};
         Table t = new Table(UnitValue.createPercentArray(cw)).useAllAvailableWidth();
 
-        String[] hdrs = {"NO.", "INVENTARIO", "CONCEPTO", "TIPO BIEN", "ASIGNACION", "COLOR"};
+        // The general one says who holds each bien (its individual resguardo) instead of the date.
+        String[] hdrs = {"NO.", "INVENTARIO", "CONCEPTO", "TIPO BIEN", general ? "RESGUARDANTE" : "ASIGNACION", "COLOR"};
         for (String h : hdrs) {
             t.addHeaderCell(cell()
                 .add(para(h, bold, 8).setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.CENTER))
@@ -260,8 +295,11 @@ public class ReporteResguardoService extends ReporteService {
                 concepto += " - " + upper(item.getDescripcion());
 
             String tipoBien   = p != null && p.getCategoriaNombre() != null ? upper(p.getCategoriaNombre()) : "MUEBLES";
-            String asignacion = p != null && p.getFechaAdquisicion() != null
-                ? p.getFechaAdquisicion().format(DATE_FMT) : fechaResguardo;
+            String asignacion = general
+                ? (p != null && p.getResguardante() != null && !p.getResguardante().isBlank()
+                    ? upper(p.getResguardante()) : "SIN RESGUARDO INDIVIDUAL")
+                : p != null && p.getFechaAdquisicion() != null
+                    ? p.getFechaAdquisicion().format(DATE_FMT) : fechaResguardo;
             String colorVal   = "—";
             if (p != null && p.getColor() != null && !p.getColor().isBlank()) {
                 colorVal = upper(p.getColor());

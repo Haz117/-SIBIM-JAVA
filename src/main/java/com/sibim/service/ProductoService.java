@@ -51,15 +51,23 @@ public class ProductoService {
      *  bien can't be transferred or written off: the document would go on
      *  saying something the inventory no longer does. */
     static Optional<String> documentoVigente(String id) throws SQLException {
-        if (new com.sibim.repository.PrestamoRepository().existsActivoForProducto(id))
-            return Optional.of("tiene un préstamo activo; registra primero su devolución");
-        if (new com.sibim.repository.ComodatoRepository().existsVigenteForProducto(id))
-            return Optional.of("tiene un comodato vigente; concluye o rescinde primero el comodato");
+        Optional<String> prestado = prestamoOComodato(id);
+        if (prestado.isPresent()) return prestado;
         Optional<com.sibim.model.Resguardo> resguardo =
             new com.sibim.repository.ResguardoRepository().findActivoByProductoId(id);
         if (resguardo.isPresent())
             return Optional.of("está en el resguardo vigente " + resguardo.get().getNumero()
-                + "; cancélalo primero en Resguardos");
+                + "; quítalo primero de ese resguardo (Resguardos › abre el resguardo › Quitar del resguardo)");
+        return Optional.empty();
+    }
+
+    /** A préstamo or comodato in force: unlike a resguardo, SIBIM can't just take
+     *  the bien out of it on the way (the bien isn't here to move). */
+    static Optional<String> prestamoOComodato(String id) throws SQLException {
+        if (new com.sibim.repository.PrestamoRepository().existsActivoForProducto(id))
+            return Optional.of("tiene un préstamo activo; registra primero su devolución");
+        if (new com.sibim.repository.ComodatoRepository().existsVigenteForProducto(id))
+            return Optional.of("tiene un comodato vigente; concluye o rescinde primero el comodato");
         return Optional.empty();
     }
 

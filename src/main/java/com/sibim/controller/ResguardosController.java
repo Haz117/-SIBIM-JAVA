@@ -277,10 +277,17 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
                 if (hasta != null && (f == null || f.isAfter(hasta))) return false;
                 return true;
             })
+            .filter(this::coincideArea)
             .toList();
         data.setAll(filtered);
         updateCount(filtered.size(), allData.size());
         saveFilterPrefs(q, desde, hasta);
+    }
+
+    @Override protected boolean filtraPorArea() { return true; }
+
+    @Override protected List<String> areasDe(Resguardo r) {
+        return r.getResguardanteArea() != null ? List.of(r.getResguardanteArea()) : List.of();
     }
 
     // ── FXML actions ─────────────────────────────────────────────────────────
@@ -295,6 +302,99 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
                 .toList(),
             productos -> mostrarDialogoNuevo(productos, scene),
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    /** Resguardo general del área: every bien of one área under its titular, with the
+     *  person each one is individually assigned to. Printed from the inventory as it
+     *  is, never saved, so no bien is counted twice. Patrimonio prints it for any
+     *  área; an área for its own (productoService only returns those). */
+    @FXML
+    private void onResguardoGeneral() {
+        javafx.scene.Scene scene = rootPane.getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
+            () -> productoService.getAll().stream().filter(p -> p.getFechaBaja() == null).toList(),
+            productos -> mostrarDialogoGeneral(productos, scene),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    private void mostrarDialogoGeneral(List<Producto> productos, javafx.scene.Scene scene) {
+        java.util.Map<String, List<Producto>> porArea = productos.stream().filter(p -> p.getArea() != null)
+            .collect(java.util.stream.Collectors.groupingBy(Producto::getArea));
+        List<String> areas = Areas.getAllAreaNames().stream().filter(porArea::containsKey).toList();
+        if (areas.isEmpty()) { NotificacionUtil.advertencia(scene, "No hay bienes activos en tus áreas"); return; }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
+        dialog.setTitle("Resguardo general del área");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setPrefWidth(560);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
+        HBox header = DialogUtil.gradientHeader("mdi2f-file-document-multiple-outline",
+            "Resguardo general del área", "Todos los bienes del área, con el resguardante de cada uno, para firma del titular",
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
+
+        GridPane form = DialogUtil.formGrid(130);
+        ComboBox<String> areaCombo = new ComboBox<>();
+        areaCombo.setPromptText("Buscar área…");
+        DialogUtil.makeFilterable(areaCombo, new ArrayList<>(areas));
+        areaCombo.setMaxWidth(Double.MAX_VALUE);
+        areaCombo.getStyleClass().add("form-input");
+        TextField fTitular = new TextField(); fTitular.setPromptText("Nombre del titular del área");
+        fTitular.getStyleClass().add("form-input");
+        TextField fCargo = new TextField("Titular del área"); fCargo.getStyleClass().add("form-input");
+        Label lblCuantos = new Label(); lblCuantos.getStyleClass().add("table-count-label");
+        areaCombo.valueProperty().addListener((o, a, area) -> {
+            List<Producto> bienes = area != null ? porArea.get(area) : null;
+            if (bienes == null) { lblCuantos.setText(""); return; }
+            lblCuantos.setText(FormatUtils.plural(bienes.size(), "bien activo", "bienes activos") + " en el área");
+            fTitular.setText(titularProbable(bienes));
+        });
+        if (areas.size() == 1) areaCombo.setValue(areas.get(0));
+        int row = 0;
+        form.add(DialogUtil.fieldLabel("Área *"), 0, row);    form.add(new VBox(2, areaCombo, lblCuantos), 1, row++);
+        form.add(DialogUtil.fieldLabel("Titular *"), 0, row); form.add(fTitular, 1, row++);
+        form.add(DialogUtil.fieldLabel("Cargo"), 0, row);     form.add(fCargo, 1, row++);
+
+        Label nota = new Label("Cada bien sigue en el resguardo individual de su resguardante; "
+            + "este documento no cambia el inventario.");
+        nota.setWrapText(true);
+        nota.getStyleClass().add("table-count-label");
+        VBox content = new VBox(12, header, form, nota);
+        content.setPadding(new Insets(0, 16, 16, 16));
+        dialog.getDialogPane().setContent(content);
+        Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okBtn.setText("Generar PDF");
+        okBtn.getStyleClass().add("dialog-ok-btn");
+        okBtn.disableProperty().bind(areaCombo.valueProperty().isNull().or(fTitular.textProperty().isEmpty()));
+
+        dialog.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
+            String area = areaCombo.getValue();
+            List<Producto> bienes = porArea.get(area).stream()
+                .sorted(java.util.Comparator.comparingInt(ResguardosController::numeroDeCodigo)
+                    .thenComparing(p -> p.getCodigo() != null ? p.getCodigo() : ""))
+                .toList();
+            DialogUtil.runAsyncWithProgress(scene, "Generando resguardo general…",
+                () -> com.sibim.service.ReporteService.getInstance().exportarResguardoGeneralArea(
+                    area, fTitular.getText().trim(), fCargo.getText().trim(), bienes),
+                file -> DialogUtil.showExportResultDialog(scene, file),
+                e -> NotificacionUtil.error(scene, "No se pudo generar el resguardo general"));
+        });
+    }
+
+    /** Whoever holds the most bienes of the área is, in practice, its titular. */
+    static String titularProbable(List<Producto> bienes) {
+        return bienes.stream().map(Producto::getResguardante).filter(r -> r != null && !r.isBlank())
+            .collect(java.util.stream.Collectors.groupingBy(r -> r, java.util.stream.Collectors.counting()))
+            .entrySet().stream().max(java.util.Map.Entry.comparingByValue()).map(java.util.Map.Entry::getKey)
+            .orElse("");
+    }
+
+    /** "SGM/07" → 7, so the list follows the área's numbering; anything else goes last. */
+    static int numeroDeCodigo(Producto p) {
+        String c = p.getCodigo();
+        int barra = c != null ? c.lastIndexOf('/') : -1;
+        try { return barra >= 0 ? Integer.parseInt(c.substring(barra + 1)) : Integer.MAX_VALUE; }
+        catch (NumberFormatException e) { return Integer.MAX_VALUE; }
     }
 
     // TableColumn<ResguardoItem,?>... varargs to addAll() triggers Java's inherent
@@ -579,11 +679,52 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             }
         });
 
-        VBox content = new VBox(12, header, meta, lblBienes, itemsTable, hintVer);
+        // One bien out (to give it de baja or transfer it) without cancelling
+        // the resguardo for everything else it covers.
+        HBox pie = new HBox(8, hintVer);
+        pie.setAlignment(Pos.CENTER_LEFT);
+        boolean[] cambio = {false};
+        if (r.isActivo() && com.sibim.session.Permisos.gestionaDocumentos()) {
+            Region espacio = new Region();
+            HBox.setHgrow(espacio, Priority.ALWAYS);
+            Button btnQuitar = new Button("Quitar del resguardo");
+            btnQuitar.setGraphic(new FontIcon("mdi2a-account-minus-outline"));
+            btnQuitar.getStyleClass().add("btn-secondary");
+            btnQuitar.disableProperty().bind(itemsTable.getSelectionModel().selectedItemProperty().isNull());
+            btnQuitar.setOnAction(e -> {
+                ResguardoItem sel = itemsTable.getSelectionModel().getSelectedItem();
+                if (sel == null) return;
+                String bien = (sel.getProductoCodigo() != null ? sel.getProductoCodigo() + " " : "")
+                    + (sel.getProductoNombre() != null ? sel.getProductoNombre() : "");
+                ConfirmacionUtil.confirmarConMotivo("mdi2a-account-minus-outline", "Quitar del resguardo",
+                        "«" + bien.trim() + "» sale del resguardo " + r.getNumero() + " y queda sin resguardante. "
+                            + "El resguardo anota qué se quitó y por qué; reimprímelo para que se firme de nuevo.",
+                        "Quitar", true, "Motivo (ej. se dará de baja, pasa a otra área)")
+                    .ifPresent(motivo -> DialogUtil.runAsync(
+                        () -> service.quitarBien(r, sel, motivo),
+                        cancelado -> {
+                            cambio[0] = true;
+                            items.remove(sel);
+                            if (cancelado) {
+                                NotificacionUtil.exito(rootPane.getScene(), "Era el último bien: el resguardo "
+                                    + r.getNumero() + " quedó cancelado");
+                                dialog.close();
+                            } else {
+                                NotificacionUtil.exito(rootPane.getScene(), "Bien quitado del resguardo " + r.getNumero());
+                            }
+                        },
+                        ex -> NotificacionUtil.error(rootPane.getScene(), "No se pudo quitar el bien: "
+                            + (ex.getMessage() != null ? ex.getMessage() : "error desconocido"))));
+            });
+            pie.getChildren().addAll(espacio, btnQuitar);
+        }
+
+        VBox content = new VBox(12, header, meta, lblBienes, itemsTable, pie);
         content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
         AnimationUtils.staggeredFadeInUp(List.of(header, meta, itemsTable), 260, 65);
         dialog.showAndWait();
+        if (cambio[0]) loadData();
     }
 
     @FXML

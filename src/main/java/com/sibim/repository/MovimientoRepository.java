@@ -283,9 +283,17 @@ public class MovimientoRepository {
      *  {@link #findPaginated} and {@link #countFiltrado}.  Conditions and
      *  their bound values are appended to {@code params} in lock-step. */
     private String buildFiltroWhere(LocalDate desde, LocalDate hasta,
-                                    String query, String tipo, String categoriaNombre,
+                                    String query, String tipo, String categoriaNombre, String area,
                                     List<Object> params, Set<String> accessible) {
         List<String> conditions = new ArrayList<>();
+
+        // An área's movements: those of its bienes, and the transfers that left or reached it.
+        if (area != null) {
+            conditions.add("(p.area = ? OR m.area_origen = ? OR m.area_destino = ?)");
+            params.add(area);
+            params.add(area);
+            params.add(area);
+        }
 
         if (accessible != null) {
             conditions.add("p.area = ANY(?)");
@@ -328,15 +336,22 @@ public class MovimientoRepository {
     public List<Movimiento> findPaginated(LocalDate desde, LocalDate hasta,
                                           String query, String tipo, String categoriaNombre,
                                           int limit, int offset) throws SQLException {
+        return findPaginated(desde, hasta, query, tipo, categoriaNombre, null, limit, offset);
+    }
+
+    /** Same, limited to one área ({@code area} null = all of the caller's). */
+    public List<Movimiento> findPaginated(LocalDate desde, LocalDate hasta,
+                                          String query, String tipo, String categoriaNombre, String area,
+                                          int limit, int offset) throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             List<Movimiento> all = local.findMovimientosByDateRange(desde, hasta, accessible);
-            return applyClientFilters(all, query, tipo, categoriaNombre)
+            return applyClientFilters(all, query, tipo, categoriaNombre, area)
                 .stream().skip(offset).limit(limit).toList();
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(desde, hasta, query, tipo, categoriaNombre, params, accessible);
+        String where = buildFiltroWhere(desde, hasta, query, tipo, categoriaNombre, area, params, accessible);
         String sql = BASE_SELECT + where + " ORDER BY m.created_at DESC LIMIT ? OFFSET ?";
         params.add(limit);
         params.add(offset);
@@ -347,14 +362,20 @@ public class MovimientoRepository {
      *  to compute the number of pages without loading the full result set. */
     public int countFiltrado(LocalDate desde, LocalDate hasta,
                               String query, String tipo, String categoriaNombre) throws SQLException {
+        return countFiltrado(desde, hasta, query, tipo, categoriaNombre, null);
+    }
+
+    /** Same, limited to one área ({@code area} null = all of the caller's). */
+    public int countFiltrado(LocalDate desde, LocalDate hasta,
+                              String query, String tipo, String categoriaNombre, String area) throws SQLException {
         Set<String> accessible = SessionManager.getAccessibleAreas();
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) {
             List<Movimiento> all = local.findMovimientosByDateRange(desde, hasta, accessible);
-            return applyClientFilters(all, query, tipo, categoriaNombre).size();
+            return applyClientFilters(all, query, tipo, categoriaNombre, area).size();
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(desde, hasta, query, tipo, categoriaNombre, params, accessible);
+        String where = buildFiltroWhere(desde, hasta, query, tipo, categoriaNombre, area, params, accessible);
         String sql = "SELECT COUNT(*) FROM movements m "
             + "JOIN products p ON p.id = m.producto_id "
             + "LEFT JOIN categories c ON c.id = p.categoria_id"
@@ -373,7 +394,7 @@ public class MovimientoRepository {
      *  store — offline mode can tolerate this. */
     private List<Movimiento> applyClientFilters(List<Movimiento> all,
                                                 String query, String tipo,
-                                                String categoriaNombre) {
+                                                String categoriaNombre, String area) {
         if (categoriaNombre != null) {
             log.warn("applyClientFilters: categoria filter not supported in offline mode, ignored");
         }
@@ -384,6 +405,8 @@ public class MovimientoRepository {
                 || (m.getReferencia() != null && m.getReferencia().toLowerCase().contains(query.toLowerCase())))
             .filter(m -> tipo == null || "Todos".equals(tipo)
                 || m.getTipo().getEtiqueta().equals(tipo))
+            // Offline a movement doesn't carry its bien's área: only a transfer's ends are known.
+            .filter(m -> area == null || area.equals(m.getAreaOrigen()) || area.equals(m.getAreaDestino()))
             .toList();
     }
 
@@ -402,7 +425,7 @@ public class MovimientoRepository {
             return new MovimientoStats(total, entradas, salidas, ajustes);
         }
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(desde, hasta, null, null, null, params, accessible);
+        String where = buildFiltroWhere(desde, hasta, null, null, null, null, params, accessible);
         String sql = """
             SELECT
                 COUNT(*) AS total,
@@ -434,7 +457,7 @@ public class MovimientoRepository {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) return List.of(); // caller prepends null for "Todas"
         List<Object> params = new ArrayList<>();
-        String where = buildFiltroWhere(desde, hasta, null, null, null, params, accessible);
+        String where = buildFiltroWhere(desde, hasta, null, null, null, null, params, accessible);
         String sql = """
             SELECT DISTINCT c.nombre
             FROM categories c
