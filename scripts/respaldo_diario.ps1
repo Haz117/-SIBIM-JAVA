@@ -44,15 +44,22 @@
     conectada, se avisa y no pasa nada más. Ahí también se borran los
     respaldos de más de -DiasRetencion días; las fotos, nunca.
 
+.PARAMETER UnoPorDia
+    Si ya hay un respaldo de hoy en -Destino, no hace nada. Lo usa la tarea
+    programada, que se dispara más de una vez al día.
+
 .PARAMETER Registrar
     Registra una tarea programada de Windows que ejecuta este script todos los
-    días a la -Hora indicada (por defecto 23:00) con la cuenta actual y los
-    mismos -Destino, -DiasRetencion, -SinFotos y -CopiaEn, y hace un primer
-    respaldo en ese momento para comprobar que funciona.
+    días a la -Hora indicada (por defecto 11:00) y también 10 minutos después
+    de iniciar sesión, con -UnoPorDia, la cuenta actual y los mismos -Destino,
+    -DiasRetencion, -SinFotos y -CopiaEn, y hace un primer respaldo en ese
+    momento para comprobar que funciona. El disparo al iniciar sesión es el que
+    cuenta en una PC que se apaga antes de la hora: Windows no siempre recupera
+    la ejecución perdida al volver a encenderla (con 14:00 nunca corrió).
 
 .EXAMPLE
     .\scripts\respaldo_diario.ps1
-    .\scripts\respaldo_diario.ps1 -Registrar -Hora 14:00 -CopiaEn E:\SIBIM-respaldos
+    .\scripts\respaldo_diario.ps1 -Registrar -Hora 11:00 -CopiaEn E:\SIBIM-respaldos
     .\scripts\restaurar_respaldo.ps1            # revisa el respaldo más reciente
 #>
 param(
@@ -60,8 +67,9 @@ param(
     [int]$DiasRetencion = 30,
     [switch]$SinFotos,
     [string]$CopiaEn,
+    [switch]$UnoPorDia,
     [switch]$Registrar,
-    [string]$Hora = "23:00"
+    [string]$Hora = "11:00"
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,16 +77,22 @@ $ProgressPreference = "SilentlyContinue"   # la barra de Invoke-WebRequest lo ha
 . (Join-Path $PSScriptRoot "comun.ps1")
 
 if ($Registrar) {
-    $argumentos = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Destino `"$Destino`" -DiasRetencion $DiasRetencion"
+    $argumentos = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Destino `"$Destino`" -DiasRetencion $DiasRetencion -UnoPorDia"
     if ($SinFotos) { $argumentos += " -SinFotos" }
     if ($CopiaEn)  { $argumentos += " -CopiaEn `"$CopiaEn`"" }
     $accion = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $argumentos
-    $disparador = New-ScheduledTaskTrigger -Daily -At $Hora
-    $ajustes = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopIfGoingOnBatteries
-    Register-ScheduledTask -TaskName "SIBIM - respaldo diario" -Action $accion -Trigger $disparador `
+    $alIniciarSesion = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
+    $alIniciarSesion.Delay = "PT10M"
+    $disparadores = @((New-ScheduledTaskTrigger -Daily -At $Hora), $alIniciarSesion)
+    $ajustes = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+    Register-ScheduledTask -TaskName "SIBIM - respaldo diario" -Action $accion -Trigger $disparadores `
         -Settings $ajustes -Description "pg_dump de la base de SIBIM y sus fotos (scripts\respaldo_diario.ps1)" -Force | Out-Null
-    Write-Host "Tarea 'SIBIM - respaldo diario' registrada: todos los días a las $Hora."
+    Write-Host "Tarea 'SIBIM - respaldo diario' registrada: todos los días a las $Hora y al iniciar sesión (una vez al día)."
     Write-Host "Primer respaldo, para comprobar que funciona..."
+} elseif ($UnoPorDia -and (Test-Path $Destino) -and
+          (Get-ChildItem $Destino -Filter ("sibim-{0}-*.dump" -f (Get-Date -Format "yyyyMMdd")))) {
+    Write-Host "Ya hay un respaldo de hoy en $Destino."
+    exit 0
 }
 
 $con = Leer-Conexion

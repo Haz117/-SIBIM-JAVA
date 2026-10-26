@@ -1,6 +1,8 @@
 # ── Credenciales y entorno ────────────────────────────────────────
 .env
 *.env.local
+# copia que deja packaging\limpiar-env.ps1: todavía trae la clave que quitó
+.env.respaldo-*
 
 # ── Build de Maven ────────────────────────────────────────────────
 target/
