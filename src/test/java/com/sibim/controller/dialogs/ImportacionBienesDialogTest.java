@@ -100,7 +100,10 @@ class ImportacionBienesDialogTest {
         assertEquals("Área requerida", rows.get(0).error());
     }
 
-    @Test void codigoDuplicadoEnElMismoArchivo_esRechazado() throws Exception {
+    /** Every área that import accepts has a prefijo, and saving gives each bien
+     *  the área's next número (PRES/01, PRES/02): the file's código is never
+     *  kept, so a repeat in it is no reason to reject the row. */
+    @Test void codigoRepetidoEnElArchivo_enAreaConPrefijo_noRechazaLaFila() throws Exception {
         Path f = csv(
             "Nombre,Codigo,Categoria,Area",
             "Bien 1,DUP-01,Mobiliario,Despacho de Presidencia",
@@ -108,8 +111,7 @@ class ImportacionBienesDialogTest {
         );
         var rows = ImportacionBienesDialog.parseCsvFile(f.toFile(), CATEGORIAS);
         assertEquals("ok", rows.get(0).status());
-        assertEquals("error", rows.get(1).status());
-        assertTrue(rows.get(1).error().contains("Código duplicado"));
+        assertEquals("ok", rows.get(1).status());
     }
 
     @Test void stockMinimoMayorQueMaximo_esRechazado() throws Exception {

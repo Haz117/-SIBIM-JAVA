@@ -133,7 +133,7 @@ public final class ComparacionBienesDialog {
         rows.add(row("Fecha vencimiento",   date(a.getFechaVencimiento()),        date(b.getFechaVencimiento())));
         rows.add(row("Vida útil (años)",    nullable(a.getVidaUtilAnios()),       nullable(b.getVidaUtilAnios())));
         rows.add(row("Valor residual",      currency(a.getValorResidual()),       currency(b.getValorResidual())));
-        rows.add(row("Valor depreciado",    currency(a.getValorDepreciado()),     currency(b.getValorDepreciado())));
+        rows.add(row("Valor depreciado",    currency(a.getValorDepreciadoTotal()), currency(b.getValorDepreciadoTotal())));
         rows.add(row("Prox. revisión",      date(a.getProximaRevision()),         date(b.getProximaRevision())));
         rows.add(row("Notas mantenimiento", str(a.getNotasMantenimiento()),       str(b.getNotasMantenimiento())));
         rows.add(row("Etiquetado",          bool(a.isEtiquetado()),               bool(b.isEtiquetado())));

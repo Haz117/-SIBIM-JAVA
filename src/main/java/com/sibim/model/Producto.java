@@ -115,6 +115,23 @@ public class Producto implements Cloneable {
         return precioCompra.subtract(depAcumulada).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /** Valor en libros de todo el renglón: {@link #getValorDepreciado()} (one
+     *  piece) × cantidad, the same way {@link #getValorTotal()} values it. A lot
+     *  of 140 chairs at $517.86 is worth $72,500, not $517.86, in the acta de
+     *  entrega-recepción and every total. Null when the piece's is. */
+    public BigDecimal getValorDepreciadoTotal() {
+        return porCantidad(getValorDepreciado());
+    }
+
+    /** {@link #getValorDepreciadoEn} for the whole renglón (× cantidad). */
+    public BigDecimal getValorDepreciadoTotalEn(LocalDate fecha) {
+        return porCantidad(getValorDepreciadoEn(fecha));
+    }
+
+    private BigDecimal porCantidad(BigDecimal porPieza) {
+        return porPieza == null ? null : porPieza.multiply(BigDecimal.valueOf(stockActual));
+    }
+
     /** 0-100 percentage already depreciated. Returns null if data incomplete. */
     public Integer getPorcentajeDepreciado() {
         BigDecimal valorDep = getValorDepreciado();

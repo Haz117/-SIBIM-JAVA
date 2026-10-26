@@ -194,9 +194,9 @@ public class DepreciacionController {
             } catch (NumberFormatException ex) { return null; }
         }));
         colValorCompra.setCellValueFactory(c ->
-            new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getPrecioCompra())));
+            new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorTotal())));
         colValorActual.setCellValueFactory(c ->
-            new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorDepreciado())));
+            new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorDepreciadoTotal())));
 
         colDepBar.setCellValueFactory(c ->
             new SimpleIntegerProperty(
@@ -501,10 +501,10 @@ public class DepreciacionController {
 
     private void updateStats(List<Producto> bienes, int sinDatos) {
         BigDecimal totalCompra = bienes.stream()
-            .map(Producto::getPrecioCompra)
+            .map(Producto::getValorTotal)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalActual = bienes.stream()
-            .map(Producto::getValorDepreciado)
+            .map(Producto::getValorDepreciadoTotal)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         int pctPromedio = bienes.isEmpty() ? 0 : bienes.stream()
             .mapToInt(Producto::getPorcentajeDepreciado)
@@ -603,7 +603,7 @@ public class DepreciacionController {
         for (int y = 0; y <= HORIZONTE_ANIOS; y++) {
             LocalDate fecha = hoy.plusYears(y);
             BigDecimal total = bienes.stream()
-                .map(p -> p.getValorDepreciadoEn(fecha))
+                .map(p -> p.getValorDepreciadoTotalEn(fecha))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
             serie.getData().add(new XYChart.Data<>(y == 0 ? "Hoy" : "+" + y + "a", total));

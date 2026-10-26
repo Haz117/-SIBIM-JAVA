@@ -127,10 +127,10 @@ public class DashboardService {
         int anioActual = LocalDate.now().getYear();
 
         for (Producto p : activos) {
-            BigDecimal valorDep = p.getValorDepreciado();
+            BigDecimal valorDep = p.getValorDepreciadoTotal();
             if (valorDep == null) continue;
             conDatosDepreciacion++;
-            valorCompraTotal = valorCompraTotal.add(p.getPrecioCompra());
+            valorCompraTotal = valorCompraTotal.add(p.getValorTotal());
             valorDepreciadoTotal = valorDepreciadoTotal.add(valorDep);
 
             LocalDate finVidaUtil = p.getFechaAdquisicion().plusYears(p.getVidaUtilAnios());

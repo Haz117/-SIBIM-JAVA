@@ -70,9 +70,12 @@ public class ReporteSolicitudBajaService extends ReporteFormatoBajaBase {
             fila(datos, "Fecha de adquisición",
                 p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : null, bold, regular, i++);
             // A dirección asks for the baja without seeing amounts: Patrimonio has them.
-            fila(datos, "Valor de adquisición", com.sibim.session.Permisos.pesos(p.getPrecioCompra()), bold, regular, i++);
-            if (p.getValorDepreciado() != null && com.sibim.session.Permisos.veValores())
-                fila(datos, "Valor actual (depreciado)", FormatUtils.formatCurrency(p.getValorDepreciado())
+            // A lot is asked for as a whole: its cantidad and what all of it is worth.
+            if (p.getStockActual() > 1)
+                fila(datos, "Cantidad", FormatUtils.plural(p.getStockActual(), "pieza", "piezas"), bold, regular, i++);
+            fila(datos, "Valor de adquisición", com.sibim.session.Permisos.pesos(p.getValorTotal()), bold, regular, i++);
+            if (p.getValorDepreciadoTotal() != null && com.sibim.session.Permisos.veValores())
+                fila(datos, "Valor actual (depreciado)", FormatUtils.formatCurrency(p.getValorDepreciadoTotal())
                     + (p.getPorcentajeDepreciado() != null ? "  (" + p.getPorcentajeDepreciado() + "%)" : ""),
                     bold, regular, i++);
             datosYFoto.addCell(new Cell().add(sectionTitle("DATOS DEL BIEN", bold, COLOR_HEADER)).add(datos)

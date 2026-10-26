@@ -1,5 +1,6 @@
 package com.sibim.controller.dialogs;
 
+import com.sibim.config.AreaCodigos;
 import com.sibim.config.Areas;
 import com.sibim.model.Categoria;
 import com.sibim.model.Producto;
@@ -560,7 +561,10 @@ public class ImportacionBienesDialog {
             p.setNombre(nombre.length() > 200 ? nombre.substring(0, 200) : nombre);
         }
 
-        // Codigo — auto-generate if blank
+        // Codigo — auto-generate if blank. Checked for repeats once the área is
+        // known (below): in an área with prefijo the save replaces it with the
+        // área's next número, and a repeat there rejected a good row for a
+        // código that was never going to be used.
         if (error == null) {
             if (codigo.isBlank()) {
                 String base = "IMP-" + String.format("%04d", rowNum);
@@ -571,12 +575,7 @@ public class ImportacionBienesDialog {
             } else if (codigo.length() > 50) {
                 codigo = codigo.substring(0, 50);
             }
-            if (usedCodes.contains(codigo)) {
-                error = "Código duplicado en el archivo: " + codigo;
-            } else {
-                usedCodes.add(codigo);
-                p.setCodigo(codigo);
-            }
+            p.setCodigo(codigo);
         }
 
         // Categoria
@@ -611,6 +610,9 @@ public class ImportacionBienesDialog {
                 }
             }
         }
+
+        if (error == null && !AreaCodigos.tienePrefijo(p.getArea()) && !usedCodes.add(p.getCodigo()))
+            error = "Código duplicado en el archivo: " + p.getCodigo();
 
         if (error == null) {
             // Optional fields — parse silently, use defaults on failure

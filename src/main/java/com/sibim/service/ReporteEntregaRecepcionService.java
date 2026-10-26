@@ -50,8 +50,10 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             int idx = 0;
             for (Producto p : bienes) {
                 boolean alt = (idx++ % 2) == 1;
-                BigDecimal valorAdq  = p.getPrecioCompra();
-                BigDecimal valorLibros = p.getValorDepreciado();
+                // The whole renglón, as the municipio's inventory writes its IMPORTE:
+                // a lot of 140 chairs is listed once, at what the 140 cost.
+                BigDecimal valorAdq  = p.getValorTotal();
+                BigDecimal valorLibros = p.getValorDepreciadoTotal();
                 BigDecimal depAcum   = (valorAdq != null && valorLibros != null)
                     ? valorAdq.subtract(valorLibros)
                     : null;
@@ -196,11 +198,13 @@ public class ReporteEntregaRecepcionService extends ReporteService {
 
     /** The bien by name and, when it has one, its description: a bare description
      *  column left most rows of the format empty. */
-    private static String descripcionFisica(Producto p) {
+    /** The format has no cantidad column: a lot says how many pieces its row is. */
+    static String descripcionFisica(Producto p) {
         String nombre = p.getNombre() != null ? p.getNombre().trim() : "";
         String desc = p.getDescripcion() != null ? p.getDescripcion().trim() : "";
-        if (desc.isEmpty() || desc.equalsIgnoreCase(nombre)) return nombre;
-        return nombre.isEmpty() ? desc : nombre + ". " + desc;
+        String texto = desc.isEmpty() || desc.equalsIgnoreCase(nombre) ? nombre
+            : nombre.isEmpty() ? desc : nombre + ". " + desc;
+        return p.getStockActual() > 1 ? p.getStockActual() + " piezas: " + texto : texto;
     }
 
     private static String oSin(String valor, String sin) {

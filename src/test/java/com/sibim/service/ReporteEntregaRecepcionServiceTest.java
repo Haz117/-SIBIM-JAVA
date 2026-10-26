@@ -58,6 +58,7 @@ class ReporteEntregaRecepcionServiceTest {
         p.setNumeroFactura("FAC-20240315");
         p.setFechaAdquisicion(LocalDate.of(2022, 3, 15));
         p.setPrecioCompra(BigDecimal.valueOf(12500));
+        p.setStockActual(1);
         p.setVidaUtilAnios(10);
         p.setValorResidual(BigDecimal.valueOf(500));
         p.setEstadoFisico("BUENO");
@@ -131,6 +132,24 @@ class ReporteEntregaRecepcionServiceTest {
         assertTrue(texto.contains("12,500.00"), "Valor de adquisición formateado como moneda");
         assertTrue(texto.contains(com.sibim.util.FormatUtils.formatCurrency(enLibros)),
             "Valor en libros = valor depreciado del bien");
+    }
+
+    /** The format has no cantidad column: a lot's row says how many pieces it is
+     *  and is valued whole (140 × $517.86), as the municipio's inventory lists it
+     *  — not at one chair's cost, which the acta's total would then miss. */
+    @Test
+    void exportEntregaRecepcionPdf_lote_valeTodoElRenglonYDiceCuantasPiezas() throws Exception {
+        Producto lote = bienSinValoresNiFechas();
+        lote.setNombre("SILLAS PLEGABLES");
+        lote.setPrecioCompra(new BigDecimal("517.86"));
+        lote.setStockActual(140);
+
+        File pdf = service.exportEntregaRecepcionPdf(List.of(lote));
+
+        String texto = textoDePagina(pdf, 1);
+        assertTrue(texto.contains("140 piezas"), "Cantidad del lote en la descripción");
+        assertTrue(texto.contains("72,500.40"), "Valor de adquisición del renglón completo");
+        assertFalse(texto.replace("72,500.40", "").contains("517.86"), "No el costo de una sola pieza");
     }
 
     @Test

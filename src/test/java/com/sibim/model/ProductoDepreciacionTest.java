@@ -176,4 +176,24 @@ class ProductoDepreciacionTest {
 
         assertNull(p.getPorcentajeDepreciado());
     }
+
+    /** A lot is worth all of its pieces: the acta and the totals used to add one
+     *  piece's book value next to the lot's purchase value. */
+    @Test
+    void lote_valorDepreciadoTotal_esElDeUnaPiezaPorLaCantidad() {
+        Producto lote = productoBase(new BigDecimal("517.86"), 10, BigDecimal.ZERO, LocalDate.now().minusDays(365));
+        lote.setStockActual(140);
+
+        BigDecimal pieza = lote.getValorDepreciado();
+        assertEquals(0, lote.getValorDepreciadoTotal().compareTo(pieza.multiply(BigDecimal.valueOf(140))));
+        assertEquals(0, lote.getValorDepreciadoTotalEn(LocalDate.now()).compareTo(lote.getValorDepreciadoTotal()));
+        assertEquals(0, lote.getValorTotal().compareTo(new BigDecimal("72500.40")));
+    }
+
+    @Test
+    void sinDatosDeDepreciacion_valorDepreciadoTotalEsNull() {
+        Producto p = productoBase(new BigDecimal("517.86"), null, null, null);
+        p.setStockActual(140);
+        assertNull(p.getValorDepreciadoTotal());
+    }
 }

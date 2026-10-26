@@ -324,7 +324,7 @@ public final class ProductoDetailDialog {
         }
 
         // ── Depreciación ──────────────────────────────────────────────
-        BigDecimal valorDep = p.getValorDepreciado();
+        BigDecimal valorDep = p.getValorDepreciadoTotal();   // all of it, like "Valor patrimonial"
         if (valorDep != null) {
             Separator sep = new Separator();
             sep.getStyleClass().add("form-separator");

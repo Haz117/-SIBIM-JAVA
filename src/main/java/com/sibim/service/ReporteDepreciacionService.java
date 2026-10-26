@@ -36,8 +36,8 @@ public class ReporteDepreciacionService extends ReporteService {
                 // A bien with no vida útil set (most of an inventory just captured) leaves the
                 // cell empty; unboxing the null used to abort the whole export.
                 if (p.getVidaUtilAnios() != null) r.createCell(3).setCellValue(p.getVidaUtilAnios());
-                r.createCell(4).setCellValue(p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0);
-                r.createCell(5).setCellValue(p.getValorDepreciado() != null ? p.getValorDepreciado().doubleValue() : 0);
+                r.createCell(4).setCellValue(p.getValorTotal().doubleValue());
+                r.createCell(5).setCellValue(p.getValorDepreciadoTotal() != null ? p.getValorDepreciadoTotal().doubleValue() : 0);
                 r.createCell(6).setCellValue(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0);
             }
             autosizeColumns(sheet, DEP_HEADERS.length);
@@ -61,14 +61,14 @@ public class ReporteDepreciacionService extends ReporteService {
             java.math.BigDecimal compra = java.math.BigDecimal.ZERO, actual = java.math.BigDecimal.ZERO;
             for (Producto p : productos) {
                 boolean alt = (idx++ % 2) == 1;
-                if (p.getPrecioCompra() != null) compra = compra.add(p.getPrecioCompra());
-                if (p.getValorDepreciado() != null) actual = actual.add(p.getValorDepreciado());
+                compra = compra.add(p.getValorTotal());
+                if (p.getValorDepreciadoTotal() != null) actual = actual.add(p.getValorDepreciadoTotal());
                 table.addCell(fila(p.getNombre(), alt));
                 table.addCell(fila(p.getCategoriaNombre(), alt));
                 table.addCell(fila(p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : "—", alt));
                 table.addCell(num(fila(p.getVidaUtilAnios() != null ? String.valueOf(p.getVidaUtilAnios()) : "—", alt)));
-                table.addCell(num(fila(FormatUtils.formatCurrency(p.getPrecioCompra()), alt)));
-                table.addCell(num(fila(FormatUtils.formatCurrency(p.getValorDepreciado()), alt)));
+                table.addCell(num(fila(FormatUtils.formatCurrency(p.getValorTotal()), alt)));
+                table.addCell(num(fila(FormatUtils.formatCurrency(p.getValorDepreciadoTotal()), alt)));
                 table.addCell(num(fila(p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() + "%" : "—", alt)));
             }
             addFilaTotal(table, 4, "TOTAL  (" + productos.size() + " bienes)",
@@ -106,8 +106,8 @@ public class ReporteDepreciacionService extends ReporteService {
                     FormatUtils.formatDate(p.getFechaAdquisicion()),
                     p.getVidaUtilAnios() != null ? p.getVidaUtilAnios() : 0,
                     restante,
-                    p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0.0,
-                    p.getValorDepreciado() != null ? p.getValorDepreciado().doubleValue() : 0.0,
+                    p.getValorTotal().doubleValue(),
+                    p.getValorDepreciadoTotal() != null ? p.getValorDepreciadoTotal().doubleValue() : 0.0,
                     p.getPorcentajeDepreciado() != null ? p.getPorcentajeDepreciado() : 0,
                     fechaTotal != null ? fechaTotal.format(FMT) : "");
             }

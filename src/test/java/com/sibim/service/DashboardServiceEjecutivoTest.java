@@ -50,6 +50,7 @@ class DashboardServiceEjecutivoTest {
     @Test
     void bienSinDatosDeDepreciacion_seExcluyeDelCalculo() throws Exception {
         Producto sinDatos = new Producto();
+        sinDatos.setStockActual(1);
         sinDatos.setPrecioCompra(BigDecimal.valueOf(1000)); // sin fechaAdquisicion/vidaUtilAnios
         when(mockProductoRepo.findAll(false)).thenReturn(List.of(sinDatos));
 
@@ -63,6 +64,7 @@ class DashboardServiceEjecutivoTest {
     @Test
     void bienTotalmenteDepreciado_suma100PorCiento() throws Exception {
         Producto p = new Producto();
+        p.setStockActual(1);
         p.setPrecioCompra(BigDecimal.valueOf(10000));
         p.setValorResidual(BigDecimal.ZERO);
         p.setFechaAdquisicion(LocalDate.now().minusYears(10));
@@ -78,6 +80,7 @@ class DashboardServiceEjecutivoTest {
     @Test
     void bienReciente_depreciacionCercanaACero() throws Exception {
         Producto p = new Producto();
+        p.setStockActual(1);
         p.setPrecioCompra(BigDecimal.valueOf(10000));
         p.setValorResidual(BigDecimal.ZERO);
         p.setFechaAdquisicion(LocalDate.now()); // recién adquirido
@@ -92,6 +95,7 @@ class DashboardServiceEjecutivoTest {
     @Test
     void bienQueCumpleVidaUtilEsteAnio_seCuentaYSeLista() throws Exception {
         Producto p = new Producto();
+        p.setStockActual(1);
         p.setNombre("Laptop vieja");
         p.setPrecioCompra(BigDecimal.valueOf(10000));
         p.setFechaAdquisicion(LocalDate.now().minusYears(3));
@@ -108,6 +112,7 @@ class DashboardServiceEjecutivoTest {
     @Test
     void bienQueCumpleVidaUtilOtroAnio_noSeCuenta() throws Exception {
         Producto p = new Producto();
+        p.setStockActual(1);
         p.setPrecioCompra(BigDecimal.valueOf(10000));
         p.setFechaAdquisicion(LocalDate.now());
         p.setVidaUtilAnios(15); // termina en 15 años, no este año
@@ -122,12 +127,14 @@ class DashboardServiceEjecutivoTest {
     @Test
     void valorCompraYDepreciadoTotal_sumanSoloBienesConDatos() throws Exception {
         Producto conDatos = new Producto();
+        conDatos.setStockActual(1);
         conDatos.setPrecioCompra(BigDecimal.valueOf(5000));
         conDatos.setValorResidual(BigDecimal.ZERO);
         conDatos.setFechaAdquisicion(LocalDate.now().minusYears(1));
         conDatos.setVidaUtilAnios(5);
 
         Producto sinDatos = new Producto();
+        sinDatos.setStockActual(1);
         sinDatos.setPrecioCompra(BigDecimal.valueOf(99999)); // no debe sumar: falta vidaUtilAnios
 
         when(mockProductoRepo.findAll(false)).thenReturn(List.of(conDatos, sinDatos));
