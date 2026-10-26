@@ -99,7 +99,9 @@ $con = Leer-Conexion
 $pgDump = Buscar-Programa "pg_dump"
 
 New-Item -ItemType Directory -Force -Path $Destino | Out-Null
-$archivo = Join-Path $Destino ("sibim-{0}.dump" -f (Get-Date -Format "yyyyMMdd-HHmm"))
+# Con segundos: dos respaldos en el mismo minuto (antes y después de una corrección)
+# se pisaban, y se perdía el de antes.
+$archivo = Join-Path $Destino ("sibim-{0}.dump" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 $temporal = "$archivo.parcial"
 
 # La contraseña solo vive en el entorno de este proceso.
