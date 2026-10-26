@@ -57,7 +57,9 @@ public class ReporteResguardoService extends ReporteService {
     /** Export rápido desde selección masiva de productos. */
     public File exportarResguardoPdf(String resguardante, String area, List<Producto> bienes) throws Exception {
         Resguardo r = new Resguardo();
-        r.setNumero(generateFolio("RSG"));
+        // Its own series: printed without registering a resguardo, it used to take the
+        // next RSG folio, and the next registered resguardo skipped that número.
+        r.setNumero(generateFolio("RSP"));
         r.setResguardanteNombre(resguardante != null ? resguardante : "—");
         r.setResguardanteCargo("");
         r.setResguardanteArea(area != null ? area : "—");

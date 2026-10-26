@@ -722,10 +722,30 @@ public final class DialogUtil {
             T selected = combo.getValue();
             if (selected != null && toText.apply(selected).equals(text)) return;
             if (selected != null) lastSelection.set(null);
-            combo.setItems(FXCollections.observableArrayList(coincidencias(allItems, toText, text)));
-            // Stays open even with no match: the "ningún resultado" note is the answer,
-            // a list that just vanishes looks like a broken search.
-            combo.show();
+            // Once the key press that changed the text is over: replacing the items in
+            // the middle of it made the combo rewrite the field while the field was
+            // still deleting over its old text — Backspace after picking an item threw
+            // "The start must be <= the end" (reported by a PC on 26-oct-2026).
+            Platform.runLater(() -> {
+                TextField editor = combo.getEditor();
+                String actual = editor.getText();
+                T elegido = combo.getValue();
+                if (elegido != null && toText.apply(elegido).equals(actual)) return;
+                if (elegido != null) {
+                    // Editing a picked item lets go of it — the new items would anyway —
+                    // but the value listener empties the field, so what was typed goes back.
+                    int caret = editor.getCaretPosition();
+                    combo.setValue(null);
+                    guard[0] = true;
+                    editor.setText(actual);
+                    editor.positionCaret(Math.min(caret, actual.length()));
+                    guard[0] = false;
+                }
+                combo.setItems(FXCollections.observableArrayList(coincidencias(allItems, toText, actual)));
+                // Stays open even with no match: the "ningún resultado" note is the answer,
+                // a list that just vanishes looks like a broken search.
+                combo.show();
+            });
         });
         // With the list open, the window redirects every key press to the popup's
         // list, and a list treats the space bar as "pick the highlighted row": typing

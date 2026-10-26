@@ -795,10 +795,54 @@ public class MovimientosController {
                                        MovimientoDialogFactory.Result retryFrom) {
         DialogUtil.runAsync(
             () -> productoService.getAll(),
-            productos -> MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r ->
+            productos -> MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r -> {
+                if (r.tipo() != TipoMovimiento.TRANSFERENCIA) { registrar(r, null, preProductoId, preTipo); return; }
+                // A bien in a resguardo used to be refused here ("cancélalo primero"), and
+                // on 26-oct a whole resguardo of 32 bienes was cancelled to move one. Now
+                // it offers to take just this one out of it.
                 DialogUtil.runAsync(
-                    () -> movimientoService.registrar(
-                        r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia(), r.areaDestino()),
+                    () -> resguardoService.getByProductoId(r.producto().getId()).stream()
+                        .filter(com.sibim.model.Resguardo::isActivo).findFirst().orElse(null),
+                    vigente -> {
+                        if (vigente == null) { registrar(r, null, preProductoId, preTipo); return; }
+                        if (ConfirmacionUtil.confirmar("Está en un resguardo",
+                                "«" + r.producto().getCodigo() + " " + r.producto().getNombre() + "» está en el resguardo "
+                                    + vigente.getNumero() + " de " + vigente.getResguardanteNombre() + ".\n\n"
+                                    + "¿Quitarlo solo a él de ese resguardo y transferirlo? Los demás bienes siguen en el resguardo."))
+                            registrar(r, vigente, preProductoId, preTipo);
+                        else
+                            showMovimientoDialog(preProductoId, preTipo, r);
+                    },
+                    e -> registrar(r, null, preProductoId, preTipo));
+            }),
+            e -> {
+                log.error("Error al abrir el formulario de movimiento", e);
+                if (table != null && table.getScene() != null)
+                    NotificacionUtil.error(table.getScene(),
+                        "Error al abrir el formulario. Verifica la conexión a la base de datos.");
+            }
+        );
+    }
+
+    private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
+
+    /** Registers what the movement dialog returned — first taking the bien out of
+     *  {@code quitarDe} (its resguardo) when the user agreed to. */
+    private void registrar(MovimientoDialogFactory.Result r, com.sibim.model.Resguardo quitarDe,
+                           String preProductoId, TipoMovimiento preTipo) {
+                DialogUtil.runAsync(
+                    () -> {
+                        if (quitarDe != null) {
+                            com.sibim.model.ResguardoItem it = new com.sibim.model.ResguardoItem();
+                            it.setProductoId(r.producto().getId());
+                            it.setProductoCodigo(r.producto().getCodigo());
+                            it.setProductoNombre(r.producto().getNombre());
+                            resguardoService.quitarBien(quitarDe, it, "transferencia a " + r.areaDestino()
+                                + (r.motivo() != null && !r.motivo().isBlank() ? ": " + r.motivo().trim() : ""));
+                        }
+                        return movimientoService.registrar(
+                            r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia(), r.areaDestino());
+                    },
                     m -> {
                         if (table != null) {
                             currentPage = 0;
@@ -828,19 +872,12 @@ public class MovimientosController {
                     e -> {
                         if (table != null && table.getScene() != null)
                             NotificacionUtil.error(table.getScene(),
-                                (e instanceof MovimientoService.ValidationException
+                                (e instanceof MovimientoService.ValidationException || e instanceof IllegalStateException || e instanceof IllegalArgumentException
                                     ? e.getMessage() : "No se pudo registrar el movimiento")
                                     + " — revisa los datos e inténtalo de nuevo");
                         Platform.runLater(() -> showMovimientoDialog(preProductoId, preTipo, r));
                     }
-                )),
-            e -> {
-                log.error("Error al abrir el formulario de movimiento", e);
-                if (table != null && table.getScene() != null)
-                    NotificacionUtil.error(table.getScene(),
-                        "Error al abrir el formulario. Verifica la conexión a la base de datos.");
-            }
-        );
+                );
     }
 
 }

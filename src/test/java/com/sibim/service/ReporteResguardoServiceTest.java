@@ -66,6 +66,18 @@ class ReporteResguardoServiceTest {
         assertFileProduced(service.exportarResguardoPdf(null, null, List.of(activo)), ".pdf");
     }
 
+    /** Printed from a selection in Bienes without registering a resguardo: its own
+     *  folio series, so the registered resguardos (RSG) keep a numbering without gaps. */
+    @Test void resguardoSinRegistrar_noTomaFolioDeLosRegistrados() throws Exception {
+        File pdf = service.exportarResguardoPdf("Juan Pérez", "Sala de cómputo", List.of(activo));
+        String texto;
+        try (var doc = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+            texto = com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(doc.getPage(1));
+        }
+        assertTrue(texto.contains("RSP-"), "folio de la serie RSP");
+        assertFalse(texto.contains("RSG-"), "no consume un folio RSG");
+    }
+
     /** The área's GENERAL resguardo: titled as such, its own folio series, and for each
      *  bien who holds it individually — or that nobody does yet. */
     @Test void resguardoGeneralArea_listaElResguardanteDeCadaBienYSuFolioPropio() throws Exception {
