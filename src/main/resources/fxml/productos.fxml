@@ -297,10 +297,11 @@
         <FontIcon iconLiteral="mdi2c-checkbox-multiple-marked-outline" styleClass="bulk-bar-icon"/>
         <Label fx:id="lblBulkCount" text="" styleClass="bulk-count-label"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnBulkArea" text="Transferir" onAction="#onBulkCambiarArea"
+        <!-- The same board as the Transferir button above (motivo, resguardo, Deshacer). -->
+        <Button fx:id="btnBulkArea" text="Transferir" onAction="#onTransferir"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2m-map-marker-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Registrar una transferencia de área para todos los bienes seleccionados"/></tooltip>
+            <graphic><FontIcon iconLiteral="mdi2d-drag-variant" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Llevar los bienes seleccionados a otra área"/></tooltip>
         </Button>
         <Button fx:id="btnBulkResguardante" text="Cambiar resguardante" onAction="#onBulkCambiarResguardante"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
@@ -343,10 +344,10 @@
         <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
         <Label fx:id="lblSeleccionados" text="" styleClass="status-bar-selection" visible="false" managed="false"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnMovimiento" text="Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-secondary"
+        <Button fx:id="btnMovimiento" text="Transferir" onAction="#onTransferir" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Registrar una entrada, salida, ajuste o transferencia para el bien seleccionado, sin tener que volver a buscarlo en Movimientos" wrapText="true" maxWidth="260"/></tooltip>
+            <graphic><FontIcon iconLiteral="mdi2d-drag-variant" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Abre «Transferir arrastrando» con los bienes seleccionados ya elegidos, para llevarlos a otra área" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnQr" text="QR" onAction="#onImprimirQr" styleClass="btn-secondary"
@@ -359,7 +360,7 @@
             <tooltip><Tooltip text="Formatos en PDF de los bienes seleccionados, con su fotografía" wrapText="true" maxWidth="260"/></tooltip>
             <items>
                 <MenuItem text="Ficha técnica (foto, datos, QR y movimientos)" onAction="#onExportSeleccionFicha"/>
-                <MenuItem text="Inventario fotográfico (formato MLA)" onAction="#onExportInventarioFotografico"/>
+                <MenuItem text="Inventario fotográfico (inventario digital)" onAction="#onExportInventarioFotografico"/>
             </items>
         </MenuButton>
         <MenuButton fx:id="btnEtiqueta" text="Etiqueta" styleClass="btn-secondary" graphicTextGap="6">

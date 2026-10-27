@@ -75,13 +75,13 @@
         </VBox>
         <VBox fx:id="cardNuevaEntrada" styleClass="quick-action-card" onMouseClicked="#onAccionNuevaEntrada"
               HBox.hgrow="ALWAYS" alignment="CENTER_LEFT"
-              accessibleRole="BUTTON" accessibleText="Registrar Movimiento — entrada, salida, ajuste o transferencia">
+              accessibleRole="BUTTON" accessibleText="Transferir bienes — arrastrarlos de un área a otra">
             <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <FontIcon iconLiteral="mdi2a-arrow-up-bold-circle-outline" styleClass="qa-card-icon-green"/>
+                <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="qa-card-icon-green"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
-                    <Label text="Registrar Movimiento" styleClass="qa-card-title"/>
-                    <Label text="Entrada, salida o transferencia" styleClass="qa-card-hint"/>
+                    <Label text="Transferir bienes" styleClass="qa-card-title"/>
+                    <Label text="De un área a otra, arrastrando" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>

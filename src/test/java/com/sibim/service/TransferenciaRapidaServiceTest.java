@@ -130,4 +130,99 @@ class TransferenciaRapidaServiceTest {
             () -> service.transferir(List.of(bien("p-1", "PARQ/01")), "Comunicación Social", "x", null, null));
         verifyNoInteractions(movimientos, resguardos);
     }
+
+    /** A bien with nothing to transfer is reported before its resguardo is touched. */
+    @Test
+    void sinExistencia_noTocaSuResguardo() throws Exception {
+        Producto p = bien("p-0", "PARQ/03");
+        p.setStockActual(0);
+        when(resguardos.getByProductoId("p-0")).thenReturn(List.of(vigente()));
+
+        var r = service.transferir(List.of(p), "Comunicación Social", "reasignación", null, null);
+
+        assertEquals(List.of("PARQ/03 Silla PARQ/03: " + MovimientoService.SIN_EXISTENCIA), r.errores());
+        verify(resguardos, never()).quitarBien(any(), any(), any());
+        verifyNoInteractions(movimientos);
+    }
+
+    /** If the transfer fails once the bien left its resguardo, the message says so. */
+    @Test
+    void siFallaDespuesDeQuitarloDelResguardo_loDice() throws Exception {
+        Producto p = bien("p-1", "PARQ/12");
+        when(resguardos.getByProductoId("p-1")).thenReturn(List.of(vigente()));
+        when(movimientos.registrar(any(), any(), anyInt(), any(), any(), any()))
+            .thenThrow(new java.sql.SQLException("Sin conexión"));
+
+        var r = service.transferir(List.of(p), "Comunicación Social", "reasignación", null, null);
+
+        assertEquals(1, r.errores().size());
+        assertTrue(r.errores().get(0).contains("ya había salido del resguardo RSG-2026-000050"), r.errores().get(0));
+        assertTrue(r.errores().get(0).contains("sigue en Parque Municipal"));
+    }
+
+    private static Movimiento hecho(String id, String productoId, String antes, String despues) {
+        Movimiento m = movidoA(despues);
+        m.setId(id); m.setProductoId(productoId); m.setProductoNombre("Silla " + antes);
+        m.setCodigoAnterior(antes); m.setAreaOrigen("Parque Municipal"); m.setAreaDestino("Comunicación Social");
+        return m;
+    }
+
+    /** Deshacer: the resguardo made for the batch goes first, then each transfer, and
+     *  each bien returns to the resguardo it had left — reopened if it had emptied it. */
+    @Test
+    void deshacer_cancelaElResguardoNuevo_regresaLosNumeros_yLosRegresaASuResguardo() throws Exception {
+        Resguardo nuevo = new Resguardo();
+        nuevo.setId("r-nuevo"); nuevo.setNumero("RSG-2026-000060");
+        ResguardoItem renglon = new ResguardoItem();
+        renglon.setProductoId("p-1"); renglon.setProductoCodigo("PARQ/12");
+        Movimiento m1 = hecho("m-1", "p-1", "PARQ/12", "COMS/07");
+        Movimiento m2 = hecho("m-2", "p-2", "PARQ/13", "COMS/08");
+        var lote = new TransferenciaRapidaService.Resultado(List.of(m1, m2), List.of(), nuevo,
+            java.util.Map.of("p-1", new TransferenciaRapidaService.Salida(vigente(), renglon, true)));
+        when(movimientos.deshacerTransferencia(m1)).thenReturn("PARQ/12");
+        when(movimientos.deshacerTransferencia(m2)).thenReturn("PARQ/13");
+
+        var d = service.deshacer(lote);
+
+        var orden = inOrder(resguardos, movimientos);
+        orden.verify(resguardos).cancelar("r-nuevo");
+        orden.verify(movimientos).deshacerTransferencia(m1);
+        orden.verify(resguardos).regresarBien(argThat(r -> "r-1".equals(r.getId())),
+            argThat(it -> "PARQ/12".equals(it.getProductoCodigo()) && "Parque Municipal".equals(it.getArea())),
+            eq("se deshizo su transferencia a Comunicación Social"), eq(true));
+        orden.verify(movimientos).deshacerTransferencia(m2);
+        verify(resguardos, times(1)).regresarBien(any(), any(), any(), anyBoolean());
+        assertEquals(List.of("COMS/07 → PARQ/12", "COMS/08 → PARQ/13"), d.regresados());
+        assertTrue(d.errores().isEmpty());
+    }
+
+    /** One of them lent since: nothing is touched, and it says why. */
+    @Test
+    void deshacer_siUnoYaNoPuedeRegresar_noSeDeshaceNada() throws Exception {
+        Movimiento m1 = hecho("m-1", "p-prestado", "PARQ/12", "COMS/07");
+        Movimiento m2 = hecho("m-2", "p-2", "PARQ/13", "COMS/08");
+        Resguardo nuevo = new Resguardo();
+        nuevo.setId("r-nuevo"); nuevo.setNumero("RSG-2026-000060");
+
+        var d = service.deshacer(new TransferenciaRapidaService.Resultado(List.of(m1, m2), List.of(), nuevo));
+
+        assertTrue(d.regresados().isEmpty());
+        assertEquals(List.of("COMS/07 Silla PARQ/12: tiene un préstamo activo", "No se deshizo nada."), d.errores());
+        verify(resguardos, never()).cancelar(any());
+        verify(movimientos, never()).deshacerTransferencia(any());
+    }
+
+    /** Moved again after this transfer: only the latest movement can be taken back. */
+    @Test
+    void deshacer_conOtroMovimientoDespues_noSeDeshace() throws Exception {
+        Movimiento m1 = hecho("m-1", "p-1", "PARQ/12", "COMS/07");
+        Movimiento despues = new Movimiento();
+        despues.setId("m-5"); despues.setEstado(Movimiento.ESTADO_APROBADO);
+        when(movimientos.getByProducto("p-1")).thenReturn(List.of(despues, m1));
+
+        var d = service.deshacer(new TransferenciaRapidaService.Resultado(List.of(m1), List.of(), null));
+
+        assertTrue(d.errores().get(0).contains("tuvo otro movimiento después"), d.errores().get(0));
+        verify(movimientos, never()).deshacerTransferencia(any());
+    }
 }

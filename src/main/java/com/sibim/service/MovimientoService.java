@@ -112,7 +112,7 @@ public class MovimientoService {
      *  the area the product is being moved TO. Ignored for other types. */
     public Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad,
                                 String motivo, String referencia, String areaDestino) throws SQLException, ValidationException {
-        return registrar(productoId, tipo, cantidad, motivo, referencia, areaDestino, null);
+        return registrar(productoId, tipo, cantidad, motivo, referencia, areaDestino, null, false);
     }
 
     /**
@@ -129,15 +129,18 @@ public class MovimientoService {
     public Movimiento registrarAjusteVerificado(String productoId, int nuevoStock, String motivo,
                                                 String referencia, int expectedStockAnterior)
             throws SQLException, ValidationException {
-        return registrar(productoId, TipoMovimiento.AJUSTE, nuevoStock, motivo, referencia, null, expectedStockAnterior);
+        return registrar(productoId, TipoMovimiento.AJUSTE, nuevoStock, motivo, referencia, null, expectedStockAnterior, false);
     }
 
     static final String SOLO_ADMIN_MOVIMIENTOS =
         "Solo el administrador (Patrimonio) registra movimientos. Tu área puede actualizar los datos "
         + "de los bienes que tiene asignados.";
 
+    /** @param esReversion undoing an entrada may take the bien back to the 0 it had,
+     *  which "Quitar" may not ({@link #QUITAR_TODO}) */
     private Movimiento registrar(String productoId, TipoMovimiento tipo, int cantidad, String motivo,
-                                 String referencia, String areaDestino, Integer expectedStockAnterior)
+                                 String referencia, String areaDestino, Integer expectedStockAnterior,
+                                 boolean esReversion)
             throws SQLException, ValidationException {
         ProductosEnMemoria.invalidar();
         // Every movement is Patrimonio's, transfers included: the áreas no longer
@@ -160,11 +163,19 @@ public class MovimientoService {
             if (cantidad == existencia)
                 throw new ValidationException("El ajuste no cambia nada: la cantidad ya es " + existencia);
         } else {
+            // A transfer moves the bien's whole existencia: with none, say so instead of
+            // asking for a quantity (Transferir arrastrando sends the bien's own, 0).
+            if (tipo == TipoMovimiento.TRANSFERENCIA && existencia <= 0)
+                throw new ValidationException(SIN_EXISTENCIA);
             if (cantidad <= 0)
                 throw new ValidationException("La cantidad debe ser mayor a cero");
         }
         if (tipo == TipoMovimiento.SALIDA && cantidad > existencia)
             throw new ValidationException("La cantidad supera la existencia disponible (" + existencia + ")");
+        // A bien left with 0 pieces stays in the inventory worth $0 and can't be
+        // transferred; taking it out entirely is a baja, with its motivo and destino.
+        if (tipo == TipoMovimiento.SALIDA && cantidad == existencia && !esReversion)
+            throw new ValidationException(QUITAR_TODO);
 
         if (tipo == TipoMovimiento.TRANSFERENCIA) {
             if (areaDestino == null || areaDestino.isBlank())
@@ -174,8 +185,6 @@ public class MovimientoService {
             if (!com.sibim.config.Areas.getAllAreaNames().contains(areaDestino))
                 throw new ValidationException("\"" + areaDestino + "\" no es un área del organigrama");
             // A transfer relocates the whole bien (área + código); there is no partial transfer.
-            if (existencia <= 0)
-                throw new ValidationException(SIN_EXISTENCIA);
             if (cantidad != existencia)
                 throw new ValidationException("La transferencia mueve el bien completo: la cantidad debe ser "
                     + existencia + " (su existencia actual)");
@@ -212,8 +221,7 @@ public class MovimientoService {
             Movimiento saved = movimientoRepo.addMovimientoAtomic(m, expectedStockAnterior);
             despuesDeCambiar(productoId);
             auditRepo.log("movimiento", saved.getId(), m.getProductoNombre(), "crear",
-                "Movimiento " + tipo.getCodigo() + ": " + cantidad
-                    + " uds (cantidad " + m.getStockAnterior() + " → " + m.getStockNuevo() + ")");
+                detalleAuditoria(m, producto.getCodigo(), producto.getArea()));
             log.info("Movimiento {} [{}] '{}' {} uds — stock {} → {}",
                 tipo, saved.getId(), m.getProductoNombre(), m.getCantidad(),
                 m.getStockAnterior(), m.getStockNuevo());
@@ -313,7 +321,7 @@ public class MovimientoService {
         String refRev = "REV-" + original.getId().substring(0, Math.min(8, original.getId().length()));
         return switch (original.getTipo()) {
             case ENTRADA -> registrar(original.getProductoId(), TipoMovimiento.SALIDA,
-                    original.getCantidad(), motivoRev, refRev);
+                    original.getCantidad(), motivoRev, refRev, null, null, true);
             case SALIDA  -> registrar(original.getProductoId(), TipoMovimiento.ENTRADA,
                     original.getCantidad(), motivoRev, refRev);
             case AJUSTE  -> registrarAjusteVerificado(original.getProductoId(),
@@ -363,11 +371,19 @@ public class MovimientoService {
                 "No se puede eliminar una transferencia pendiente. Primero apruébala o recházala.");
 
         String productoId = movimientoRepo.findProductoIdById(movimientoId).orElse("?");
+        // Read before it goes: Auditoría used to keep only the ids ("bien 3f2a…").
+        Movimiento antes = "?".equals(productoId) ? null : movimientoRepo.findByProducto(productoId).stream()
+            .filter(x -> movimientoId.equals(x.getId())).findFirst().orElse(null);
+        Producto bien = "?".equals(productoId) ? null : productoRepo.findById(productoId).orElse(null);
+        if (antes != null && antes.getTipo() == TipoMovimiento.TRANSFERENCIA) exigirSinDocumento(productoId);
         try {
             movimientoRepo.deleteMovimientoAtomic(movimientoId);
             despuesDeCambiar("?".equals(productoId) ? null : productoId);
-            auditRepo.log("movimiento", movimientoId, movimientoId, "eliminar",
-                "Movimiento eliminado (bien " + productoId + ", estado " + estado.orElse("?") + ")");
+            auditRepo.log("movimiento", movimientoId, antes != null ? antes.getProductoNombre() : movimientoId, "eliminar",
+                antes != null && antes.getTipo() != null
+                    ? "Movimiento eliminado: " + detalleAuditoria(antes, bien != null ? bien.getCodigo() : null,
+                        bien != null ? bien.getArea() : null)
+                    : "Movimiento eliminado (bien " + productoId + ", estado " + estado.orElse("?") + ")");
             log.info("Movimiento eliminado [{}]", movimientoId);
         } catch (SQLException e) {
             if (e instanceof com.sibim.db.ReglaIncumplida) throw new ValidationException(e.getMessage());
@@ -375,11 +391,70 @@ public class MovimientoService {
         }
     }
 
+    /** "Deshacer" in Transferir arrastrando: a transfer dropped on the wrong área is
+     *  taken back as if it had not happened — the bien returns to its área with its
+     *  old número if it is still free — and Auditoría keeps what was undone.
+     *  @return the código the bien has now */
+    public String deshacerTransferencia(Movimiento t) throws SQLException, ValidationException {
+        ProductosEnMemoria.invalidar();
+        if (!SessionManager.isAdmin()) throw new ValidationException(SOLO_ADMIN_MOVIMIENTOS);
+        if (t.getTipo() != TipoMovimiento.TRANSFERENCIA)
+            throw new ValidationException("Solo se deshace una transferencia");
+        exigirSinDocumento(t.getProductoId());
+        try {
+            movimientoRepo.deleteMovimientoAtomic(t.getId());
+        } catch (SQLException e) {
+            if (e instanceof com.sibim.db.ReglaIncumplida) throw new ValidationException(e.getMessage());
+            throw e;
+        }
+        despuesDeCambiar(t.getProductoId());
+        String ahora = productoRepo.findById(t.getProductoId()).map(Producto::getCodigo).orElse(t.getCodigoAnterior());
+        String antes = t.getCodigoAnterior();
+        auditRepo.log("movimiento", t.getId(), t.getProductoNombre(), "transferencia_deshecha",
+            "Se deshizo la transferencia " + t.getAreaOrigen() + " → " + t.getAreaDestino()
+                + " · número " + t.getCodigoNuevo() + " → " + ahora
+                + (antes != null && !antes.equalsIgnoreCase(ahora) ? " (su número " + antes + " ya lo tenía otro bien)" : "")
+                + (t.getMotivo() != null && !t.getMotivo().isBlank() ? " · Motivo de la transferencia: " + t.getMotivo().trim() : ""));
+        log.info("Transferencia deshecha [{}] '{}' {} → {}", t.getId(), t.getProductoNombre(), t.getCodigoNuevo(), ahora);
+        return ahora;
+    }
+
+    /** Taking a transfer back moves the bien too: not while a resguardo, préstamo or
+     *  comodato in force in the área that received it names who has it. */
+    private void exigirSinDocumento(String productoId) throws SQLException, ValidationException {
+        Optional<String> documento = documentos.de(productoId);
+        if (documento.isPresent())
+            throw new ValidationException("No se puede regresar el bien a su área: " + documento.get());
+    }
+
     /** Also raised by MovimientoRepository inside the locked transaction, as a
      *  {@link com.sibim.db.ReglaIncumplida}: the repository's business-rule
      *  rejections reach the user as a ValidationException with their own
      *  message, any other SQLException as a database error. */
     public static final String BIEN_DE_BAJA = "Este bien está dado de baja: ya no admite movimientos";
+    /** What Auditoría shows of a movement, enough to tell what happened without
+     *  opening it: a transfer used to read "1 uds (cantidad 1 → 1)", with no áreas,
+     *  número or motivo. {@code codigo}/{@code area}: the bien's before the movement. */
+    static String detalleAuditoria(Movimiento m, String codigo, String area) {
+        String antes = m.getCodigoAnterior() != null ? m.getCodigoAnterior() : codigo;
+        String cantidad = "cantidad " + m.getStockAnterior() + " → " + m.getStockNuevo();
+        String texto = switch (m.getTipo()) {
+            case TRANSFERENCIA -> "Transferencia: " + (m.getAreaOrigen() != null ? m.getAreaOrigen() : area)
+                + " → " + m.getAreaDestino() + " · número " + antes
+                + (m.getCodigoNuevo() != null && !m.getCodigoNuevo().equals(antes) ? " → " + m.getCodigoNuevo() : "");
+            case ENTRADA -> "Agregar " + com.sibim.util.FormatUtils.plural(m.getCantidad(), "pieza", "piezas")
+                + " a " + antes + " (" + cantidad + ")";
+            case SALIDA  -> "Quitar " + com.sibim.util.FormatUtils.plural(m.getCantidad(), "pieza", "piezas")
+                + " de " + antes + " (" + cantidad + ")";
+            case AJUSTE  -> "Ajuste de " + antes + " (" + cantidad + ")";
+        };
+        if (m.getMotivo() != null && !m.getMotivo().isBlank()) texto += " · Motivo: " + m.getMotivo().trim();
+        if (m.getReferencia() != null && !m.getReferencia().isBlank()) texto += " · Referencia: " + m.getReferencia().trim();
+        return texto;
+    }
+
+    public static final String QUITAR_TODO =
+        "No se pueden quitar todas las piezas: para sacar el bien del inventario dalo de baja (Bienes › Dar de baja)";
     public static final String SIN_EXISTENCIA = "No hay existencia que transferir: la cantidad del bien es 0";
     public static final String YA_ATENDIDA = "Esta transferencia ya fue aprobada o rechazada desde otro equipo";
 

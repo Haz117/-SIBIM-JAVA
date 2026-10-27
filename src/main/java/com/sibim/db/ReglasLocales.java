@@ -79,14 +79,14 @@ public final class ReglasLocales {
 
     /**
      * Stock goes back by the movement's delta; a deleted transfer sends the bien
-     * back to its origin área with the next free código there (its old número
-     * may have been handed to another bien since).
+     * back to its origin área with its old número if it is still free, or else
+     * the next free código there (it may have been handed to another bien since).
      */
     public static Deshacer deshacer(Movimiento m, Producto p, List<String> codigosActivos) {
         int stock = p.getStockActual() + (m.getStockAnterior() - m.getStockNuevo());
         String area = m.getAreaOrigen() != null ? m.getAreaOrigen() : p.getArea();
         String codigo = m.getAreaOrigen() != null && AreaCodigos.tienePrefijo(m.getAreaOrigen())
-            ? AreaCodigos.siguienteCodigo(m.getAreaOrigen(), codigosActivos)
+            ? AreaCodigos.codigoPreferido(m.getAreaOrigen(), m.getCodigoAnterior(), codigosActivos)
             : p.getCodigo();
         return new Deshacer(stock, area, codigo);
     }

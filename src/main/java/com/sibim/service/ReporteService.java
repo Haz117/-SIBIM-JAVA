@@ -149,6 +149,43 @@ public class ReporteService {
     protected static final DeviceRgb ROW_ALT_BG  = new DeviceRgb(252, 240, 241); // guinda claro tint for alternating rows
     protected static final DeviceRgb BORDER_LIGHT = new DeviceRgb(226, 228, 233); // light gray border
     protected static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    private static final java.util.regex.Pattern NUMERO_FINAL = java.util.regex.Pattern.compile("(.*?)(\\d+)\\s*");
+
+    /** "DGOB/09" before "DGOB/10" before "DGOB/100": an área can have more than 99 bienes.
+     *  Compares (prefix, número, whole código) so that it is a consistent order even for
+     *  old códigos without a número, which a sort would otherwise reject. */
+    protected static final java.util.Comparator<String> POR_CODIGO = (a, b) -> {
+        String[] ka = claveCodigo(a), kb = claveCodigo(b);
+        for (int i = 0; i < ka.length; i++) {
+            int c = i == 2 && ka[2].length() != kb[2].length() ? Integer.compare(ka[2].length(), kb[2].length())
+                : ka[i].compareTo(kb[i]);
+            if (c != 0) return c;
+        }
+        return 0;
+    };
+
+    /** {prefix, "0" with a número / "1" without, the número without leading zeros, the whole código}. */
+    private static String[] claveCodigo(String codigo) {
+        String c = codigo.trim().toLowerCase();
+        java.util.regex.Matcher m = NUMERO_FINAL.matcher(c);
+        if (!m.matches()) return new String[]{c, "1", "", c};
+        return new String[]{m.group(1), "0", m.group(2).replaceFirst("^0+(?=.)", ""), c};
+    }
+
+    /** By área in organigrama order (as the filters and the organigrama list them),
+     *  and within each área by número ({@link #POR_CODIGO}). */
+    protected static List<Producto> ordenadosPorArea(List<Producto> productos) {
+        java.util.Map<String, Integer> orden = new java.util.HashMap<>();
+        for (String a : com.sibim.config.Areas.getAllAreaNames()) orden.putIfAbsent(a, orden.size());
+        java.text.Collator alfabetico = java.text.Collator.getInstance(java.util.Locale.forLanguageTag("es-MX"));
+        List<Producto> out = new java.util.ArrayList<>(productos);
+        out.sort(java.util.Comparator
+            .comparing((Producto p) -> orden.getOrDefault(p.getArea(), Integer.MAX_VALUE))
+            .thenComparing(p -> java.util.Objects.requireNonNullElse(p.getArea(), ""), alfabetico)
+            .thenComparing(p -> java.util.Objects.requireNonNullElse(p.getCodigo(), ""), POR_CODIGO));
+        return out;
+    }
     private static final int MAX_EXPORT_ROWS = 50_000;
 
     protected String generateFolio(String prefix) {
@@ -395,23 +432,52 @@ public class ReporteService {
     // ───────────────────────────── PDF ─────────────────────────────
 
     public File exportInventarioPdf(LocalDate desde, LocalDate hasta) throws Exception {
+        return exportInventarioPdf(desde, hasta, false);
+    }
+
+    /** {@code porArea}: ordered by área and número instead of alphabetically. */
+    public File exportInventarioPdf(LocalDate desde, LocalDate hasta, boolean porArea) throws Exception {
         List<Producto> productos = guardExportSize((desde != null || hasta != null)
             ? productoRepo.findByDateRange(desde, hasta)
             : productoRepo.findAll(), "bienes");
         if (productos.isEmpty()) return null;
-        File file = tempFile("inventario", ".pdf");
+        return porArea
+            ? inventarioPdf("inventario", "Inventario General por Área", ordenadosPorArea(productos), desde, hasta, true)
+            : inventarioPdf("inventario", "Inventario General", productos, desde, hasta, false);
+    }
+
+    /** Reportes › Inventario por área › Sin fotos: the Inventario General of the
+     *  chosen áreas, ordered by área and código, each área closed by its total. */
+    public File exportInventarioSinFotos(List<Producto> bienes) throws Exception {
+        if (bienes == null || bienes.isEmpty())
+            throw new IllegalArgumentException("Selecciona al menos un bien para el inventario");
+        List<Producto> productos = ordenadosPorArea(guardExportSize(bienes, "bienes"));
+        List<String> areas = productos.stream().map(Producto::getArea).distinct().toList();
+        String titulo = areas.size() == 1 && areas.get(0) != null && !areas.get(0).isBlank()
+            ? "Inventario por Área · " + areas.get(0) : "Inventario por Área";
+        return inventarioPdf("inventario_por_area", titulo, productos, null, null, true);
+    }
+
+    /** {@code porArea}: {@code productos} come ordered by área ({@link #ordenadosPorArea})
+     *  and each área closes with its own total. */
+    private File inventarioPdf(String archivo, String titulo, List<Producto> productos,
+                               LocalDate desde, LocalDate hasta, boolean porArea) throws Exception {
+        File file = tempFile(archivo, ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("INV");
-            addPdfHeader(doc, "Inventario General", desde, hasta, folio);
+            addPdfHeader(doc, titulo, desde, hasta, folio);
             String[] headers = {"Bien", "Código", "Categoría", "Área", "Cantidad", "Valor", "Estado"};
             float[] widths = {3.2f, 1.2f, 1.7f, 2.6f, 0.9f, 1.4f, 1f};
             Table table = createPdfTable(headers, widths);
             alinearDerecha(table, 4, 5);
             int idx = 0;
             BigDecimal valorTotal = BigDecimal.ZERO;
-            for (Producto p : productos) {
+            BigDecimal valorArea = BigDecimal.ZERO;
+            int bienesArea = 0, areas = 0;
+            for (int i = 0; i < productos.size(); i++) {
+                Producto p = productos.get(i);
                 boolean alt = (idx++ % 2) == 1;
                 BigDecimal valor = p.getValorTotal() != null ? p.getValorTotal() : BigDecimal.ZERO;
                 valorTotal = valorTotal.add(valor);
@@ -422,9 +488,25 @@ public class ReporteService {
                 table.addCell(num(fila(String.valueOf(p.getStockActual()), alt)));
                 table.addCell(num(fila(com.sibim.session.Permisos.pesos(valor), alt)));
                 table.addCell(fila(p.getEstado().getEtiqueta(), alt));
+                if (!porArea) continue;
+                valorArea = valorArea.add(valor);
+                bienesArea++;
+                boolean ultimoDelArea = i + 1 == productos.size()
+                    || !java.util.Objects.equals(p.getArea(), productos.get(i + 1).getArea());
+                if (ultimoDelArea) {
+                    String area = p.getArea() != null && !p.getArea().isBlank() ? p.getArea().toUpperCase() : "SIN ÁREA";
+                    addFilaTotal(table, 5, "TOTAL " + area + "  (" + FormatUtils.plural(bienesArea, "bien", "bienes") + ")",
+                        com.sibim.session.Permisos.pesos(valorArea), "");
+                    valorArea = BigDecimal.ZERO;
+                    bienesArea = 0;
+                    areas++;
+                    idx = 0;
+                }
             }
-            addFilaTotal(table, 5, "VALOR TOTAL DEL INVENTARIO  (" + productos.size() + " bienes)",
-                com.sibim.session.Permisos.pesos(valorTotal), "");
+            // With a single área its own total already closes the list.
+            if (!porArea || areas > 1)
+                addFilaTotal(table, 5, "VALOR TOTAL DEL INVENTARIO  (" + productos.size() + " bienes)",
+                    com.sibim.session.Permisos.pesos(valorTotal), "");
             doc.add(table);
             addFirmasBlock(doc,
                 new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
@@ -896,11 +978,6 @@ public class ReporteService {
     /** Formato MLA: descripción, número de inventario y fotografía de cada bien. */
     public File exportInventarioFotografico(List<Producto> bienes) throws Exception {
         return new ReporteInventarioFotograficoService().exportInventarioFotografico(bienes);
-    }
-
-    /** The same MLA format without the photo column. */
-    public File exportInventarioSinFotos(List<Producto> bienes) throws Exception {
-        return new ReporteInventarioFotograficoService().exportInventarioSinFotos(bienes);
     }
 
     public File exportarResguardoPdf(String resguardante, String area, List<Producto> bienes) throws Exception {

@@ -85,6 +85,37 @@ class SidebarManager {
             autoCompact(before.doubleValue(), now.doubleValue()));
         javafx.application.Platform.runLater(() ->
             autoCompact(Double.MAX_VALUE, outerStack.getWidth()));
+
+        if (sidebar.lookup(".sidebar-scroll") instanceof ScrollPane navScroll) ajustarRielAlAlto(navScroll);
+    }
+
+    /** Height the rail's icons take with their usual padding (measured while it fits). */
+    private double altoRielNormal = -1;
+
+    /** On a short window (a 1366×768 laptop, or with the demo strip) the last
+     *  icons of the rail ended up behind a scroll bar, the bottom one cut in
+     *  half. Only then do its buttons get less padding ("sidebar-baja"); when
+     *  the window is tall enough the rail looks exactly as before. */
+    private void ajustarRielAlAlto(ScrollPane navScroll) {
+        Runnable revisar = () -> {
+            if (navScroll.getContent() == null) return;
+            double contenido = navScroll.getContent().getLayoutBounds().getHeight();
+            double visible = navScroll.getViewportBounds().getHeight();
+            if (visible <= 0) return;
+            boolean baja = sidebar.getStyleClass().contains("sidebar-baja");
+            if (!baja) {
+                if (sidebarCollapsed) altoRielNormal = contenido;
+                if (sidebarCollapsed && contenido > visible + 0.5) sidebar.getStyleClass().add("sidebar-baja");
+            } else if (!sidebarCollapsed || visible >= altoRielNormal) {
+                sidebar.getStyleClass().remove("sidebar-baja");
+            }
+        };
+        navScroll.viewportBoundsProperty().addListener(o -> javafx.application.Platform.runLater(revisar));
+        navScroll.contentProperty().addListener((o, a, nuevo) -> {
+            if (nuevo != null) nuevo.layoutBoundsProperty().addListener(x -> javafx.application.Platform.runLater(revisar));
+        });
+        if (navScroll.getContent() != null)
+            navScroll.getContent().layoutBoundsProperty().addListener(x -> javafx.application.Platform.runLater(revisar));
     }
 
     private void autoCompact(double before, double now) {

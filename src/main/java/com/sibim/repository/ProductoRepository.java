@@ -739,6 +739,20 @@ public class ProductoRepository {
         return AreaCodigos.siguienteCodigo(area, codigos);
     }
 
+    /** {@code preferido} if no active bien has it, else {@link #siguienteCodigo(Connection, String)}
+     *  — on the caller's connection, under the same lock of the área's numbering. */
+    public static String codigoPreferido(Connection conn, String area, String preferido) throws SQLException {
+        String siguiente = siguienteCodigo(conn, area);
+        if (preferido == null || preferido.isBlank()) return siguiente;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT 1 FROM products WHERE UPPER(TRIM(codigo)) = UPPER(?) AND fecha_baja IS NULL LIMIT 1")) {
+            ps.setString(1, preferido.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? siguiente : preferido.trim();
+            }
+        }
+    }
+
     public void delete(String id) throws SQLException {
         if (DatabaseConfig.isOfflineMode()) {
             // A hard delete isn't queueable in this version's offline scope

@@ -391,7 +391,7 @@ public class DashboardController implements Refreshable {
 
     @FXML
     private void onAccionNuevaEntrada() {
-        NavigationContext.setPendingNuevoMovimiento();
+        NavigationContext.setPendingTransferir();
         navigarA("Movimientos");
     }
 

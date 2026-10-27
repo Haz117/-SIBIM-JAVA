@@ -72,6 +72,14 @@ public final class ProductoDialogFactory {
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
                                            Map<String, Image> thumbnailCache, Logger log,
                                            List<String> existingFotos, Extras extras) {
+        return show(existing, cats, thumbnailCache, log, existingFotos, extras, null);
+    }
+
+    /** {@code areaInicial}: the área a new bien starts in (the one the list is
+     *  filtered to); null for the user's own área. */
+    public static Optional<Producto> show(Producto existing, List<Categoria> cats,
+                                           Map<String, Image> thumbnailCache, Logger log,
+                                           List<String> existingFotos, Extras extras, String areaInicial) {
         boolean isNewProduct = existing == null || existing.getId() == null;
 
         ProductoService productoService = new ProductoService();
@@ -103,7 +111,7 @@ public final class ProductoDialogFactory {
         // ── Build tab field objects ──────────────────────────────────────────
         var infoTab = new ProductoTabInfoFields(existing, isNewProduct,
             existing != null ? existing.getId() : null,
-            cats, log, dialog, markDirtyRef, checkOkRef, thumbnailCache, existingFotos, productoService);
+            cats, log, dialog, markDirtyRef, checkOkRef, thumbnailCache, existingFotos, productoService, areaInicial);
 
         var stockTab = new ProductoTabStockFields(existing);
 

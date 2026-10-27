@@ -70,6 +70,7 @@ class AuditoriaDialog {
             case "eliminar"   -> "Eliminado";
             case "baja"       -> "Dado de baja";
             case "reactivar"  -> "Reactivado";
+            case "transferencia_deshecha" -> "Transferencia deshecha";
             case "login"      -> "Inicio de sesión";
             case "logout"     -> "Cierre de sesión";
             default           -> accion;

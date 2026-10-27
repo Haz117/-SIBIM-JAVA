@@ -177,7 +177,7 @@ class ProductosTableManager {
         // Selection → enable/disable action buttons
         table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<Producto>) c -> {
             int n = table.getSelectionModel().getSelectedItems().size();
-            if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(n != 1);
+            if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(n == 0);   // Transferir: one or several
             if (btnQr        != null) btnQr.setDisable(n != 1);
             if (btnEditar   != null && canEdit) btnEditar.setDisable(n != 1);
             if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
@@ -195,7 +195,7 @@ class ProductosTableManager {
         // Tooltip.install() uses a separate mechanism that works regardless.
         if (btnEditar        != null && canEdit) Tooltip.install(btnEditar,        new Tooltip("Selecciona un bien para editarlo"));
         if (btnEliminar      != null && canEdit) Tooltip.install(btnEliminar,      new Tooltip("Selecciona un bien para darlo de baja"));
-        if (btnMovimiento    != null && canEdit) Tooltip.install(btnMovimiento,    new Tooltip("Selecciona un bien para registrar un movimiento"));
+        if (btnMovimiento    != null && canEdit) Tooltip.install(btnMovimiento,    new Tooltip("Selecciona los bienes que quieres transferir"));
 
         // Delete key on table — only when exactly one row is selected, same
         // as the "Dar de baja" button (a formal baja needs a motivo per bien,

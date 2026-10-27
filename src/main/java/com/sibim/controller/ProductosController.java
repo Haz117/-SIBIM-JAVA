@@ -642,7 +642,8 @@ public class ProductosController {
 
     @FXML
     private void onNuevoBien() {
-        showProductDialog(null);
+        // With the list filtered to one área, the new bien goes to that área.
+        showProductDialog(null, areaFilter.getValue());
     }
 
     @FXML
@@ -658,29 +659,24 @@ public class ProductosController {
             e -> NotificacionUtil.error(scene, "No se pudieron cargar las categorías"));
     }
 
-    /** Jumps to Movimientos with the selected bien pre-filled in "Nuevo
-     *  Movimiento" — lets the user skip searching for it again in that
-     *  dialog's product picker (same shortcut Alertas already uses to
-     *  register an entrada for a stock-out item). */
+    /** "Transferir arrastrando" with the selected bienes already chosen, so they
+     *  don't have to be looked for again in their área's list. */
     @FXML
-    private void onNuevoMovimiento() {
+    private void onTransferir() {
         if (!canManage) return;   // movements are Patrimonio's alone
-        Producto sel = table.getSelectionModel().getSelectedItem();
-        if (sel == null) {
-            NotificacionUtil.advertencia(table.getScene(), canManage
-                ? "Selecciona un bien para registrar un movimiento" : "Selecciona el bien que quieres transferir");
+        List<String> ids = table.getSelectionModel().getSelectedItems().stream().map(Producto::getId).toList();
+        if (ids.isEmpty()) {
+            NotificacionUtil.advertencia(table.getScene(), "Selecciona los bienes que quieres transferir");
             return;
         }
-        try {
-            MainController main = MainController.getInstance();
-            main.navigateTo("movimientos");
-            if (main.getCurrentController() instanceof MovimientosController ctrl) {
-                ctrl.showMovimientoDialog(sel.getId(), null);
-            }
-        } catch (Exception e) {
-            log.error("Error al abrir el formulario de movimiento desde Bienes", e);
-            NotificacionUtil.error(table.getScene(), "No se pudo abrir el formulario de movimiento");
-        }
+        javafx.scene.Scene scene = table.getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
+            productoService::getAll,
+            productos -> com.sibim.controller.dialogs.TransferenciaArrastreDialog.show(productos, ids, this::loadData),
+            e -> {
+                log.error("Error al abrir la transferencia desde Bienes", e);
+                NotificacionUtil.error(scene, "No se pudo cargar el inventario");
+            });
     }
 
     @FXML
@@ -821,6 +817,39 @@ public class ProductosController {
     private void onExportInventarioFotografico() {
         List<Producto> sel = getSelectedProductos();
         if (sel.isEmpty()) return;
+        // The table shows one page: a whole page selected while the filter has more
+        // (an área of 120 at 25 per page) printed just those 25 without saying so.
+        if (sel.size() == filteredData.size() && totalFiltered > sel.size()) {
+            ButtonType todos = new ButtonType("Los " + totalFiltered + " del filtro", ButtonBar.ButtonData.OK_DONE);
+            ButtonType pagina = new ButtonType("Solo estos " + sel.size(), ButtonBar.ButtonData.OTHER);
+            Alert pregunta = new Alert(Alert.AlertType.NONE,
+                "Seleccionaste los " + sel.size() + " bienes de esta página, pero el filtro tiene " + totalFiltered
+                    + ". ¿Cuáles van en el inventario fotográfico?", todos, pagina, ButtonType.CANCEL);
+            pregunta.setTitle("Inventario fotográfico");
+            DialogUtil.applyOwner(pregunta);
+            DialogUtil.conEncabezado(pregunta, "mdi2i-image-multiple-outline");
+            Optional<ButtonType> r = pregunta.showAndWait();
+            if (r.isEmpty() || r.get() == ButtonType.CANCEL) return;
+            if (r.get() == todos) {
+                int max = com.sibim.service.ReporteInventarioFotograficoService.maxBienesConFotos();
+                if (totalFiltered > max) {
+                    NotificacionUtil.advertencia(table.getScene(), "Con fotos caben hasta " + max
+                        + " bienes por documento: filtra por área o categoría, o usa Reportes › Inventario por área");
+                    return;
+                }
+                ProductosFilterState snap = snapshotFilters();
+                if (dataLoader == null) dataLoader = new ProductosDataLoader(productoService);
+                dataLoader.loadPage(snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
+                    snap.estado(), snap.soloSinEtiquetar(), totalFiltered, 0, snap.desdeReg(), snap.hastaReg(),
+                    res -> exportarInventarioFotografico(res.page()),
+                    ex -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar los bienes del filtro"));
+                return;
+            }
+        }
+        exportarInventarioFotografico(sel);
+    }
+
+    private void exportarInventarioFotografico(List<Producto> sel) {
         DialogUtil.runAsyncWithProgress(table.getScene(),
             "Generando inventario fotográfico de " + sel.size() + (sel.size() == 1 ? " bien…" : " bienes…"),
             () -> reporteService.exportInventarioFotografico(sel),
@@ -862,13 +891,6 @@ public class ProductosController {
         List<Producto> sel = getSelectedProductos();
         if (sel.size() < 2 || !canEdit) return;
         action.accept(sel);
-    }
-
-    @FXML
-    private void onBulkCambiarArea() {
-        runBulkIfValid(sel -> ProductosBulkDialog.showCambiarArea(
-            sel, table.getScene(), movimientoService, table,
-            () -> { refreshing = true; loadData(); }, this::onBulkCambiarArea));
     }
 
     @FXML
@@ -1016,6 +1038,10 @@ public class ProductosController {
     private record DatosFormulario(List<Categoria> cats, List<String> fotos, ProductoDialogFactory.Extras extras) {}
 
     private void showProductDialog(Producto existing) {
+        showProductDialog(existing, null);
+    }
+
+    private void showProductDialog(Producto existing, String areaInicial) {
         javafx.scene.Scene scene = table.getScene();
         DialogUtil.runAsyncWithProgress(scene, "Abriendo el formulario…",
             () -> {
@@ -1030,7 +1056,7 @@ public class ProductosController {
                 return new DatosFormulario(cats, existingFotos,
                     ProductoDialogFactory.cargarExtras(productoService, existing, log));
             },
-            r -> openProductDialog(existing, r.cats(), r.fotos(), r.extras()),
+            r -> openProductDialog(existing, r.cats(), r.fotos(), r.extras(), areaInicial),
             e -> {
                 log.error("Error al abrir el formulario de bien", e);
                 NotificacionUtil.error(scene, "Error al abrir el formulario. Verifica la conexión a la base de datos.");
@@ -1038,16 +1064,19 @@ public class ProductosController {
     }
 
     private void openProductDialog(Producto existing, List<Categoria> cats, List<String> existingFotos,
-                                   ProductoDialogFactory.Extras extras) {
+                                   ProductoDialogFactory.Extras extras, String areaInicial) {
         try {
-            Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos, extras);
+            Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos,
+                extras, areaInicial);
             boolean isNew = existing == null;
             String facturaAnterior = existing != null ? existing.getFacturaUrl() : null;
             result.ifPresent(p -> DialogUtil.runAsync(
                 () -> GuardarBien.enFondo(productoService, p, facturaAnterior, log),
                 saved -> {
                     if (isNew) {
-                        NotificacionUtil.exito(table.getScene(), "Bien registrado exitosamente");
+                        // The número is picked when saving: it is what goes on the label.
+                        NotificacionUtil.exito(table.getScene(), saved.getCodigo() != null && !saved.getCodigo().isBlank()
+                            ? "Bien registrado con el número " + saved.getCodigo() : "Bien registrado exitosamente");
                     } else {
                         NotificacionUtil.exito(table.getScene(), "Bien actualizado correctamente");
                     }
@@ -1078,7 +1107,7 @@ public class ProductosController {
                     NotificacionUtil.error(table.getScene(),
                         (e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo guardar el bien")
                             + " — revisa los datos e inténtalo de nuevo");
-                    Platform.runLater(() -> openProductDialog(p, cats, existingFotos, extras));
+                    Platform.runLater(() -> openProductDialog(p, cats, existingFotos, extras, null));
                 }
             ));
 

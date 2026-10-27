@@ -724,7 +724,7 @@ public final class ProductoDetailDialog {
         VBox content = new VBox(8, iv, lblCodigo, lblNombre, lblQueHace);
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(16));
-        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().setContent(new VBox(content));   // keeps its padding (the pane's content has 0)
 
         dlg.showAndWait().ifPresent(result -> {
             if (result != savePng) return;
@@ -810,7 +810,7 @@ public final class ProductoDetailDialog {
         lightboxContent.setAlignment(Pos.CENTER);
         lightboxContent.setPadding(new Insets(16));
 
-        dlg.getDialogPane().setContent(lightboxContent);
+        dlg.getDialogPane().setContent(new VBox(lightboxContent));   // keeps its padding (the pane's content has 0)
         refresh.run();
         dlg.showAndWait();
     }

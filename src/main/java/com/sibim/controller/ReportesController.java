@@ -120,12 +120,9 @@ public class ReportesController {
         List<Node> listados = new ArrayList<>();
         listados.add(ReporteFila.crear("mdi2p-package-variant", "indigo", "Inventario General",
             "Listado de los bienes patrimoniales con cantidad, valor unitario y estado actual.",
-            periodoTexto, "Exportar", formatos(
-                delPeriodo(reporteService::exportInventarioPdf),
-                delPeriodo(reporteService::exportInventarioExcel),
-                delPeriodo(reporteService::exportInventarioCsv))));
+            periodoTexto, "Exportar", inventarioGeneral()));
         listados.add(ReporteFila.crear("mdi2i-image-multiple-outline", "purple", "Inventario por área",
-            "Los bienes de una o varias áreas, agrupados por área, con la fotografía de cada uno o sin ella (formato MLA).",
+            "Los bienes de una o varias áreas: con fotos, en el formato del inventario digital; sin fotos, como el Inventario General.",
             null, "Generar", List.of(
                 new ReporteFila.Formato("Con fotos", "mdi2c-camera-outline", "report-export-icon-pdf",
                     () -> inventarioPorArea(true)),
@@ -229,24 +226,49 @@ public class ReportesController {
         TextField buscar = new TextField();
         buscar.setPromptText("Buscar área…");
         buscar.getStyleClass().add("form-input");
-        VBox lista = new VBox(6);
+        VBox lista = new VBox(2);
         List<CheckBox> casillas = new ArrayList<>();
         for (String area : areas) {
-            CheckBox cb = new CheckBox(area + "  (" + FormatUtils.plural(porArea.get(area).size(), "bien", "bienes") + ")");
+            CheckBox cb = new CheckBox(area);
+            cb.setGraphic(FiltroArea.icono(area));
+            cb.setGraphicTextGap(8);
             cb.setUserData(area);
+            cb.setMaxWidth(Double.MAX_VALUE);
+            javafx.scene.layout.HBox.setHgrow(cb, javafx.scene.layout.Priority.ALWAYS);
+            Label cuenta = new Label(FormatUtils.plural(porArea.get(area).size(), "bien", "bienes"));
+            cuenta.getStyleClass().add("org-area-count");
+            cuenta.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            javafx.scene.layout.HBox fila = new javafx.scene.layout.HBox(8, cb, cuenta);
+            fila.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            fila.getStyleClass().add("area-elegir-fila");
+            // The whole row toggles, not just the box and its text.
+            fila.setOnMouseClicked(e -> { if (e.getTarget() == fila || e.getTarget() == cuenta) cb.setSelected(!cb.isSelected()); });
+            cb.selectedProperty().addListener((o, a, si) -> {
+                fila.getStyleClass().remove("area-elegir-fila-sel");
+                if (si) fila.getStyleClass().add("area-elegir-fila-sel");
+            });
             casillas.add(cb);
-            lista.getChildren().add(cb);
+            lista.getChildren().add(fila);
         }
         buscar.textProperty().addListener((o, a, q) -> {
             String t = q == null ? "" : q.trim().toLowerCase();
             for (CheckBox cb : casillas) {
                 boolean ve = t.isEmpty() || ((String) cb.getUserData()).toLowerCase().contains(t);
-                cb.setVisible(ve); cb.setManaged(ve);
+                cb.getParent().setVisible(ve); cb.getParent().setManaged(ve);
             }
         });
+        Hyperlink todas = new Hyperlink("Todas");
+        todas.setTooltip(new Tooltip("Marcar todas las áreas de la lista (las que quedan con la búsqueda)"));
+        todas.setOnAction(e -> casillas.stream().filter(cb -> cb.getParent().isVisible()).forEach(cb -> cb.setSelected(true)));
+        Hyperlink ninguna = new Hyperlink("Ninguna");
+        ninguna.setOnAction(e -> casillas.forEach(cb -> cb.setSelected(false)));
+        javafx.scene.layout.HBox.setHgrow(buscar, javafx.scene.layout.Priority.ALWAYS);
+        javafx.scene.layout.HBox barra = new javafx.scene.layout.HBox(4, buscar, todas, new Label("·"), ninguna);
+        barra.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         ScrollPane scroll = new ScrollPane(lista);
         scroll.setFitToWidth(true);
-        scroll.setPrefViewportHeight(300);
+        scroll.setPrefViewportHeight(320);
+        scroll.getStyleClass().add("area-elegir-lista");
         Label resumen = new Label("Ninguna área elegida");
         resumen.setWrapText(true);
         resumen.getStyleClass().add("table-count-label");
@@ -267,9 +289,9 @@ public class ReportesController {
         };
         casillas.forEach(cb -> cb.selectedProperty().addListener((o, a, b) -> actualizar.run()));
 
-        VBox content = new VBox(10, header, buscar, scroll, resumen);
+        VBox content = new VBox(10, header, barra, scroll, resumen);
         content.setPadding(new javafx.geometry.Insets(0, 16, 16, 16));
-        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().setContent(DialogUtil.conEncabezadoArriba(content));
         Platform.runLater(buscar::requestFocus);
 
         dlg.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
@@ -278,6 +300,21 @@ public class ReportesController {
             exportar(() -> conFotos ? reporteService.exportInventarioFotografico(elegidos)
                                     : reporteService.exportInventarioSinFotos(elegidos), false);
         });
+    }
+
+    /** The Inventario General in PDF comes alphabetical or ordered by área; Excel
+     *  and CSV (Patrimonio's) can be sorted in the spreadsheet itself. */
+    private List<ReporteFila.Formato> inventarioGeneral() {
+        List<ReporteFila.Formato> f = new ArrayList<>(List.of(
+            new ReporteFila.Formato("PDF alfabético", "mdi2f-file-pdf-box", "report-export-icon-pdf",
+                delPeriodo((d, h) -> reporteService.exportInventarioPdf(d, h, false))),
+            new ReporteFila.Formato("PDF por áreas", "mdi2f-file-pdf-box", "report-export-icon-pdf",
+                delPeriodo((d, h) -> reporteService.exportInventarioPdf(d, h, true)))));
+        if (com.sibim.session.Permisos.exportaHojasDeCalculo()) {
+            f.add(excel(delPeriodo(reporteService::exportInventarioExcel)));
+            f.add(csv(delPeriodo(reporteService::exportInventarioCsv)));
+        }
+        return f;
     }
 
     /** PDF, Excel and CSV for Patrimonio; PDF alone for the áreas. */

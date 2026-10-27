@@ -305,7 +305,9 @@ public class ProductoService {
         log.info("Bien {} [{}] '{}'", isNew ? "registrado" : "actualizado", saved.getId(), saved.getNombre());
         auditRepo.log("producto", saved.getId(), saved.getNombre(),
             isNew ? "crear" : "actualizar",
-            isNew ? "Bien registrado" : "Datos del bien actualizados");
+            (isNew ? "Bien registrado" : "Datos del bien actualizados")
+                + (saved.getCodigo() != null ? " · número " + saved.getCodigo() : "")
+                + (saved.getArea() != null ? " · " + saved.getArea() : ""));
 
         if (!isNew) {
             Usuario u = SessionManager.getCurrentUser();
@@ -348,6 +350,12 @@ public class ProductoService {
      *  vuelve a aparecer libre automáticamente en el próximo cálculo. */
     private String asignarCodigo(String area) throws SQLException {
         return productoRepo.siguienteCodigo(area);
+    }
+
+    /** El código que recibiría hoy un bien nuevo de {@code area}: el formulario
+     *  lo enseña antes de guardar (al guardar se vuelve a calcular). */
+    public String siguienteCodigo(String area) throws SQLException {
+        return asignarCodigo(area);
     }
 
     private static String sinBlancos(String s) {

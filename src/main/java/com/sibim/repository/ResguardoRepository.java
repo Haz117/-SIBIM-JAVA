@@ -306,6 +306,66 @@ public class ResguardoRepository {
         }
     }
 
+    /** Undoes {@link #quitarBien} (Transferir arrastrando › Deshacer): the renglón
+     *  goes back in, the bien names that resguardante again, {@code nota} is added
+     *  to the observaciones and — when taking it out had left the resguardo empty
+     *  and cancelled ({@code reactivar}) — the resguardo is in force again.
+     *  Online only, like quitarBien. */
+    public void regresarBien(String resguardoId, ResguardoItem item, String nota, boolean reactivar) throws SQLException {
+        if (!SessionManager.isAdmin())
+            throw new SecurityException("Solo el administrador puede regresar bienes a un resguardo");
+        if (DatabaseConfig.isDemoMode())
+            throw new IllegalStateException("Resguardos no disponibles en modo demo");
+        if (OfflineDocs.activo())
+            throw new IllegalStateException("Regresar un bien a un resguardo requiere conexión con el servidor");
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                String resguardante;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT estado, resguardante_nombre FROM resguardos WHERE id = ? FOR UPDATE")) {
+                    ps.setString(1, resguardoId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("El resguardo ya no existe");
+                        if (!reactivar && !Resguardo.ESTADO_ACTIVO.equals(rs.getString("estado")))
+                            throw new IllegalStateException("El resguardo ya está cancelado");
+                        resguardante = rs.getString("resguardante_nombre");
+                    }
+                }
+                try (PreparedStatement ps = conn.prepareStatement("""
+                        SELECT r.numero FROM resguardo_items i JOIN resguardos r ON r.id = i.resguardo_id
+                        WHERE i.producto_id = ? AND r.estado = 'ACTIVO' AND r.id <> ? LIMIT 1
+                        """)) {
+                    ps.setString(1, item.getProductoId());
+                    ps.setString(2, resguardoId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) throw new IllegalStateException("El bien ya está en el resguardo vigente " + rs.getString(1));
+                    }
+                }
+                saveItems(resguardoId, List.of(item), conn);
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE products SET resguardante = ?, updated_at = NOW() WHERE id = ?")) {
+                    ps.setString(1, resguardante);
+                    ps.setString(2, item.getProductoId());
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE resguardos SET observaciones = CONCAT_WS(' ', NULLIF(observaciones, ''), ?), "
+                        + "estado = 'ACTIVO' WHERE id = ?")) {
+                    ps.setString(1, nota);
+                    ps.setString(2, resguardoId);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
     /** The active resguardo that covers {@code productoId}, if any. */
     public java.util.Optional<Resguardo> findActivoByProductoId(String productoId) throws SQLException {
         return findByProductoId(productoId).stream()

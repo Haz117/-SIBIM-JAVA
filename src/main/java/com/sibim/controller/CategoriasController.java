@@ -589,8 +589,10 @@ public class CategoriasController {
         warnLbl.getStyleClass().add("muted-sm");
         warnLbl.setWrapText(true);
 
+        // The form brings its own margin (22); the rest gets the same one here: in a
+        // dialog the content's own padding is 0, and setPadding on it did nothing.
+        VBox.setMargin(warnLbl, new Insets(0, 22, 16, 22));
         VBox content = new VBox(12, header, form, warnLbl);
-        content.setPadding(new Insets(0, 16, 16, 16));
         dlg.getDialogPane().setContent(content);
 
         Button okBtn = (Button) dlg.getDialogPane().lookupButton(okType);

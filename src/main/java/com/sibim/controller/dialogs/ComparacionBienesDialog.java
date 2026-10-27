@@ -91,7 +91,7 @@ public final class ComparacionBienesDialog {
         VBox content = new VBox(0, header, summaryBar, table);
         content.setPadding(new Insets(0, 18, 0, 18));
         VBox.setVgrow(table, Priority.ALWAYS);
-        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().setContent(DialogUtil.conEncabezadoArriba(content));
         AnimationUtils.staggeredFadeInUp(
             List.of(header, summaryBar, table), 260, 60);
         dlg.showAndWait();

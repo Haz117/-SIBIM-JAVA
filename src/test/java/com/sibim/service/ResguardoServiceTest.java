@@ -181,4 +181,31 @@ class ResguardoServiceTest {
         verify(mockAudit).log(eq("resguardo"), eq("r-01"), eq("Ana García"), eq("actualizar"),
             org.mockito.ArgumentMatchers.contains("se quitó PRES/27"));
     }
+
+    /** A lote is one renglón of several pieces: the printed resguardo says how many
+     *  and its total counts all of them (it added the price of one). */
+    @Test
+    void elPdfDeUnLote_diceSusPiezas_ySuTotalLasCuenta() throws Exception {
+        when(mockCfg.get(any(), any())).thenReturn("");
+        Resguardo r = new Resguardo();
+        r.setId("r-07"); r.setNumero("RSG-2026-000007"); r.setResguardanteNombre("Ana García");
+        ResguardoItem sillas = item();
+        sillas.setProductoNombre("Silla apilable"); sillas.setProductoCodigo("SGM/07");
+        sillas.setCantidad(20); sillas.setValorUnitario(new java.math.BigDecimal("1000"));
+        ResguardoItem mesa = item();
+        mesa.setProductoNombre("Mesa"); mesa.setProductoCodigo("SGM/08");
+        mesa.setValorUnitario(new java.math.BigDecimal("500"));
+        r.setItems(List.of(sillas, mesa));
+
+        java.io.File pdf;
+        com.sibim.db.DatabaseConfig.setDemoMode(true);   // the header logo reads configuracion
+        try { pdf = service.exportarPdf(r); } finally { com.sibim.db.DatabaseConfig.setDemoMode(false); }
+        String t;
+        try (var d = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+            t = com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(d.getPage(1));
+        }
+        assertTrue(t.contains("20 piezas: Silla apilable"), t);
+        assertFalse(t.contains("piezas: Mesa"), "una sola pieza no lo dice");
+        assertTrue(t.contains("20,500.00"), "20 × $1,000 + $500");
+    }
 }

@@ -78,6 +78,33 @@ class ProductosControllerSmokeTest extends ControllerSmokeTestBase {
         assertTrue(ficha.getItems().stream().anyMatch(i -> i.getText().startsWith("Inventario fotográfico")));
     }
 
+    /** The table shows one page: with all of it selected and more bienes in the filter,
+     *  the inventario fotográfico asks whether it is the whole filter or just the page. */
+    @Test
+    void inventarioFotografico_conLaPaginaCompleta_preguntaSiEsTodoElFiltro() throws Exception {
+        TableView<Producto> t = tabla();
+        @SuppressWarnings("unchecked")
+        javafx.scene.control.ComboBox<Integer> tamano = lookup("#pageSizeBox").queryAs(javafx.scene.control.ComboBox.class);
+        int total = new com.sibim.service.ProductoService().getAll().size();
+        Integer chico = tamano.getItems().stream().filter(n -> n < total).findFirst().orElse(null);
+        org.junit.jupiter.api.Assumptions.assumeTrue(chico != null, "el demo cabe en una página");
+        interact(() -> tamano.setValue(chico));
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> t.getItems().size() == chico);
+        interact(() -> t.getSelectionModel().selectAll());
+
+        MenuButton ficha = lookup("#btnFicha").queryAs(MenuButton.class);
+        javafx.scene.control.MenuItem foto = ficha.getItems().stream()
+            .filter(i -> i.getText().startsWith("Inventario fotográfico")).findFirst().orElseThrow();
+        javafx.application.Platform.runLater(foto::fire);   // showAndWait blocks the FX thread
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> lookup(n -> n instanceof javafx.scene.control.Button b
+            && b.getText() != null && b.getText().endsWith("del filtro")).tryQuery().isPresent());
+        assertTrue(lookup(n -> n instanceof javafx.scene.control.Button b && ("Solo estos " + chico).equals(b.getText()))
+            .tryQuery().isPresent());
+        javafx.stage.Window pregunta = javafx.stage.Window.getWindows().stream()
+            .filter(w -> w instanceof Stage s && "Inventario fotográfico".equals(s.getTitle())).findFirst().orElseThrow();
+        interact(pregunta::hide);
+    }
+
     /** At a narrow width with a row selected ("1 seleccionado" appears), every
      *  bottom-bar button must show its full label or just its icon — never "…". */
     @Test

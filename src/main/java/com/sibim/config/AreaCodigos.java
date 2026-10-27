@@ -46,6 +46,16 @@ public final class AreaCodigos {
         return inicio + String.format("%02d", numero);
     }
 
+    /** {@code preferido} si ningún bien activo lo tiene, si no {@link #siguienteCodigo}:
+     *  un bien cuya transferencia se deshace recupera su número mientras siga libre. */
+    public static String codigoPreferido(String area, String preferido, Iterable<String> codigosActivos) {
+        if (preferido == null || preferido.isBlank()) return siguienteCodigo(area, codigosActivos);
+        String buscado = preferido.trim();
+        for (String codigo : codigosActivos)
+            if (codigo != null && codigo.trim().equalsIgnoreCase(buscado)) return siguienteCodigo(area, codigosActivos);
+        return buscado;
+    }
+
     /** {@code codigo} escrito como lo escribe {@link #siguienteCodigo}
      *  ("tics/5 " → "TICS/05"), o vacío si no es PREFIJO/número de
      *  {@code area}: un código corregido a mano no sale de la nomenclatura,

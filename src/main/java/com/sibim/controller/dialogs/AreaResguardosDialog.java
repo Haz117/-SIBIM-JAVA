@@ -200,8 +200,12 @@ public final class AreaResguardosDialog {
         scrollList.setMaxHeight(220);
         scrollList.getStyleClass().add("dlg-tabs-scroll");
 
+        // The form brings its own margin (22); the rest gets the same one here: in a
+        // dialog the content's own padding is 0, and setPadding on it did nothing.
+        VBox.setMargin(sep, new Insets(0, 22, 0, 22));
+        VBox.setMargin(lblResguardosTitle, new Insets(0, 22, 0, 22));
+        VBox.setMargin(scrollList, new Insets(0, 22, 16, 22));
         VBox content = new VBox(10, header, uploadGrid, sep, lblResguardosTitle, scrollList);
-        content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
 
         AnimationUtils.staggeredFadeInUp(List.of(header, uploadGrid, scrollList), 270, 70);

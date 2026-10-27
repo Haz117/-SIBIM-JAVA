@@ -158,6 +158,22 @@ public class ResguardoService {
         return cancelado;
     }
 
+    /** Puts back a bien {@link #quitarBien} took out, when its transfer is undone.
+     *  @param reactivar taking it out had left the resguardo empty and cancelled */
+    public void regresarBien(Resguardo r, ResguardoItem item, String motivo, boolean reactivar) throws SQLException {
+        soloAdministrador();
+        String nota = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            + ": regresó " + nombreDe(item)
+            + (item.getProductoCodigo() != null && item.getProductoNombre() != null ? " " + item.getProductoNombre() : "")
+            + " (" + motivo.trim() + ").";
+        repo.regresarBien(r.getId(), item, nota, reactivar);
+        ProductosEnMemoria.invalidar();   // products.resguardante follows the resguardo
+        actualizarFichas(List.of(item));
+        auditRepo.log("resguardo", r.getId(), r.getResguardanteNombre(), reactivar ? "reactivar" : "actualizar",
+            "Resguardo " + r.getNumero() + ": " + nota.substring(nota.indexOf(':') + 2)
+                + (reactivar ? " El resguardo vuelve a estar vigente." : ""));
+    }
+
     /** The ficha a bien's QR downloads names its resguardante. */
     private static void actualizarFichas(List<ResguardoItem> items) {
         if (items == null) return;
@@ -280,16 +296,19 @@ public class ResguardoService {
             for (ResguardoItem item : r.getItems()) {
                 boolean alt = idx % 2 == 0;
                 DeviceRgb rowBg = alt ? COLOR_SUBHEAD : null;
+                // A lote is one renglón of several pieces: it says how many, and the
+                // total counts all of them (it used to add the price of one).
+                int piezas = Math.max(1, item.getCantidad());
                 addTableRow(bienesTable, bold, regular, rowBg,
                     String.valueOf(idx++),
                     orDash(item.getProductoCodigo()),
-                    item.getProductoNombre(),
+                    (piezas > 1 ? piezas + " piezas: " : "") + item.getProductoNombre(),
                     orDash(item.getArea()),
                     orDash(item.getNumeroSerie()),
                     item.getValorUnitario() != null
                         ? com.sibim.session.Permisos.pesos(item.getValorUnitario()) : "—");
                 if (item.getValorUnitario() != null)
-                    totalValor = totalValor.add(item.getValorUnitario());
+                    totalValor = totalValor.add(item.getValorUnitario().multiply(BigDecimal.valueOf(piezas)));
             }
             // Total row
             com.itextpdf.layout.element.Cell totalLbl = new com.itextpdf.layout.element.Cell(1, 5)

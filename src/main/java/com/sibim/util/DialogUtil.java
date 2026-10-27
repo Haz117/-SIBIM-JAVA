@@ -148,12 +148,14 @@ public final class DialogUtil {
         pane.getStylesheets().addAll(EscalaTexto.hojas());
         AccessibilityUtils.applyCurrentTextScaleClass(pane);
         anchoSegunTexto(pane, AccessibilityUtils.getTextScaleIndex());
-        pane.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene != null) AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
-        });
         // A Dialog's pane already has its scene when it is created, so hook the
-        // things callers add afterwards (buttons, content) instead.
-        Runnable ajustar = () -> sinTextosCortados(pane);
+        // things callers add afterwards (buttons, content) instead. The "?" help
+        // badges turn into tooltips here too: a scene listener never fired for a
+        // dialog, and they were still showing in "Registrar Movimiento".
+        Runnable ajustar = () -> {
+            AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
+            sinTextosCortados(pane);
+        };
         pane.getButtonTypes().addListener(
             (javafx.collections.ListChangeListener<ButtonType>) c -> Platform.runLater(ajustar));
         pane.contentProperty().addListener((o, a, b) -> Platform.runLater(ajustar));
@@ -204,9 +206,46 @@ public final class DialogUtil {
         Scene scene = pane.getScene();
         Window w = scene != null ? scene.getWindow() : null;
         if (w == null) return;
-        if (w.isShowing()) w.sizeToScene();
+        if (w.isShowing()) { w.sizeToScene(); caberEnPantalla(pane, w); }
         else if (w.getProperties().putIfAbsent("sibim.ajusteAlMostrar", Boolean.TRUE) == null)
-            w.addEventHandler(javafx.stage.WindowEvent.WINDOW_SHOWN, e -> w.sizeToScene());
+            w.addEventHandler(javafx.stage.WindowEvent.WINDOW_SHOWN, e -> { w.sizeToScene(); caberEnPantalla(pane, w); });
+    }
+
+    /** A dialog taller than the screen gets its height capped and its content
+     *  scrolls: "Registrar Movimiento" and other long forms grew past the bottom
+     *  of the screen and their buttons were out of reach. Content that can
+     *  shrink by itself (a list, a scroll pane) just shrinks; anything else is
+     *  wrapped in a scroll pane. Then the window is moved back inside the screen. */
+    static void caberEnPantalla(DialogPane pane, Window w) {
+        if (w == null || w.getHeight() <= 0) return;
+        javafx.geometry.Rectangle2D zona = pantallaDe(w).getVisualBounds();
+        double tope = Math.floor(zona.getHeight() * 0.94);
+        if (w.getHeight() > tope + 1) {
+            double marco = w.getHeight() - pane.getHeight();   // title bar and borders
+            double alto = tope - Math.max(0, marco);
+            Node content = pane.getContent();
+            if (content instanceof Parent p && !(content instanceof ScrollPane)) {
+                double resto = pane.getHeight() - content.getLayoutBounds().getHeight();
+                if (p.minHeight(pane.getWidth()) + resto > alto) {
+                    ScrollPane scroll = new ScrollPane(content);
+                    scroll.setFitToWidth(true);
+                    scroll.getStyleClass().add("dialog-scroll");
+                    pane.setContent(scroll);
+                }
+            }
+            pane.setMinHeight(Region.USE_COMPUTED_SIZE);
+            pane.setPrefHeight(alto);
+            pane.setMaxHeight(alto);
+            w.sizeToScene();
+            w.setY(zona.getMinY() + (zona.getHeight() - w.getHeight()) / 2);
+        }
+        if (w.getY() + w.getHeight() > zona.getMaxY()) w.setY(Math.max(zona.getMinY(), zona.getMaxY() - w.getHeight()));
+        if (w.getY() < zona.getMinY()) w.setY(zona.getMinY());
+    }
+
+    private static Screen pantallaDe(Window w) {
+        var hay = Screen.getScreensForRectangle(w.getX(), w.getY(), Math.max(1, w.getWidth()), Math.max(1, w.getHeight()));
+        return hay.isEmpty() ? Screen.getPrimary() : hay.get(0);
     }
 
     // ── OK button ────────────────────────────────────────────────────────
@@ -242,6 +281,20 @@ public final class DialogUtil {
     }
 
     // ── Gradient header ──────────────────────────────────────────────────
+
+    /**
+     * A dialog's content that starts with its {@link #gradientHeader}: the header
+     * edge to edge, the rest of {@code contenido} with the padding it was given.
+     * The dialog stylesheet sets the content's own padding to 0 so the header can
+     * reach the borders, and that won over setPadding: the body touched them too.
+     * {@code contenido} keeps the body (adding to it later still works).
+     */
+    public static VBox conEncabezadoArriba(VBox contenido) {
+        Node header = contenido.getChildren().remove(0);
+        VBox todo = new VBox(contenido.getSpacing(), header, contenido);
+        VBox.setVgrow(contenido, Priority.ALWAYS);
+        return todo;
+    }
 
     /** Build the standard gradient header used in all app dialogs. */
     public static HBox gradientHeader(String icon, String title, String subtitle,
@@ -719,6 +772,9 @@ public final class DialogUtil {
             new java.util.concurrent.atomic.AtomicReference<>();
         combo.getEditor().textProperty().addListener((obs, old, text) -> {
             if (guard[0]) return;
+            // The skin turns the empty field from null into "" when the dialog
+            // shows: that is not a search, and it opened the list on its own.
+            if ((old == null || old.isEmpty()) && (text == null || text.isEmpty())) return;
             T selected = combo.getValue();
             if (selected != null && toText.apply(selected).equals(text)) return;
             if (selected != null) lastSelection.set(null);
@@ -743,8 +799,10 @@ public final class DialogUtil {
                 }
                 combo.setItems(FXCollections.observableArrayList(coincidencias(allItems, toText, actual)));
                 // Stays open even with no match: the "ningún resultado" note is the answer,
-                // a list that just vanishes looks like a broken search.
-                combo.show();
+                // a list that just vanishes looks like a broken search. Only for someone
+                // typing in it: text a form puts there by itself doesn't open the list.
+                Node dueno = combo.getScene() != null ? combo.getScene().getFocusOwner() : null;
+                if (dueno == editor || dueno == combo) combo.show();
             });
         });
         // With the list open, the window redirects every key press to the popup's

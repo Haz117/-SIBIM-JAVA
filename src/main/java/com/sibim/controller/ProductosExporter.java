@@ -159,7 +159,7 @@ final class ProductosExporter {
         VBox content = new VBox(8, iv, lblCodigo, lblNombre, queHaceElQr(contenido));
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(16));
-        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().setContent(new VBox(content));   // keeps its padding (the pane's content has 0)
 
         Optional<ButtonType> result = dlg.showAndWait();
         if (result.isPresent() && result.get() == savePng) {

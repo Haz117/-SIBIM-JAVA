@@ -292,7 +292,8 @@ public class ReporteResguardoService extends ReporteService {
 
             Producto p = buscarProducto(extra, item.getProductoCodigo());
 
-            String concepto = upper(item.getProductoNombre());
+            String concepto = (item.getCantidad() > 1 ? item.getCantidad() + " PIEZAS: " : "")
+                + upper(item.getProductoNombre());
             if (item.getDescripcion() != null && !item.getDescripcion().isBlank())
                 concepto += " - " + upper(item.getDescripcion());
 

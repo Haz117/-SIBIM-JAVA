@@ -156,6 +156,17 @@
     -fx-alignment: CENTER;
     -fx-padding: 8 8;
 }
+/* A window too short for the rail (SidebarManager adds .sidebar-baja only then):
+   less padding, so every icon stays in view instead of the last ones behind a scroll bar. */
+.sidebar-collapsed.sidebar-baja .nav-btn,
+.sidebar-collapsed.sidebar-baja .nav-btn:hover,
+.sidebar-collapsed.sidebar-baja .nav-btn:focused,
+.sidebar-collapsed.sidebar-baja .nav-btn.nav-active,
+.sidebar-collapsed.sidebar-baja .nav-btn.nav-active:hover,
+.sidebar-collapsed.sidebar-baja .nav-btn.nav-active:armed,
+.sidebar-collapsed.sidebar-baja .nav-btn.nav-active:focused {
+    -fx-padding: 5 8;
+}
 .sidebar-collapsed .nav-section-items { -fx-spacing: 1; }
 .sidebar-collapsed .logout-btn {
     -fx-alignment: CENTER;

@@ -90,10 +90,10 @@ public final class TutorialOverlay {
             new Step("mdi2s-swap-vertical", "#235B4E", "#1B4A3F",
                 "Movimientos", "Ctrl + 5", "movimientos", new String[]{
                 SessionManager.isAdmin()
-                    ? "Entrada y Salida cambian la cantidad; Ajuste la corrige después de un conteo"
+                    ? "«Agregar o quitar» suma o resta piezas a un bien; el Conteo físico de Bienes corrige la cantidad"
                     : "Aquí consultas el historial de tus bienes; los movimientos los registra Patrimonio",
                 SessionManager.isAdmin()
-                    ? "Transferencia mueve el bien completo a otra área, con su nuevo código"
+                    ? "«Transferir arrastrando» lleva bienes a otra área con su nuevo número y su resguardo"
                     : "Filtra por tipo y fecha para ver qué entró, salió o cambió de área",
                 "La transferencia se aplica al instante; el área que recibe solo confirma que ya tiene el bien"
             }),
@@ -212,7 +212,7 @@ public final class TutorialOverlay {
             new Step("mdi2c-check-circle-outline", "#235B4E", "#1B4A3F",
                 "¡Listo para empezar!", null, "dashboard", new String[]{
                 SessionManager.isAdmin()
-                    ? "① Crea categorías (Ctrl+4), da de alta bienes (Ctrl+3 → Ctrl+N) y registra la primera entrada"
+                    ? "① Crea categorías (Ctrl+4) y da de alta los bienes: en Bienes (Ctrl+3) filtra el área y usa Ctrl+N"
                     : "① Revisa tus bienes (Ctrl+3) y actualiza ubicación, fotos y estado físico",
                 SessionManager.isAdmin()
                     ? "② Asigna resguardos a los responsables y documenta préstamos temporales"

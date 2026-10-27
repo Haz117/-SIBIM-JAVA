@@ -46,7 +46,7 @@ class ProductoTabStockFields {
         fStock.setMaxWidth(Double.MAX_VALUE);
         fStock.getStyleClass().add("form-input");
         DialogUtil.commitOnFocusLoss(fStock);
-        lblStockBloqueado = new Label("Para cambiar la cantidad registra una Entrada, Salida o Ajuste en Movimientos.");
+        lblStockBloqueado = new Label("Para cambiar la cantidad usa «Agregar o quitar» en Movimientos.");
         lblStockBloqueado.getStyleClass().addAll("field-hint", "muted-sm");
         lblStockBloqueado.setWrapText(true);
         lblStockBloqueado.setVisible(isEdit);

@@ -152,8 +152,8 @@ public class MovimientosController {
             case "pendientes"  -> Platform.runLater(this::onVerPendientes);
             default -> { }
         }
-        if (NavigationContext.consumePendingNuevoMovimiento())
-            Platform.runLater(this::onNuevoMovimiento);
+        if (NavigationContext.consumePendingTransferir())
+            Platform.runLater(this::onTransferirArrastrando);
 
         loadData();
         AnimationUtils.staggeredFadeInUp(
@@ -361,11 +361,7 @@ public class MovimientosController {
         if (categoriaFilter != null)
             categoriaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
         if (areaFilter != null) {
-            List<String> areas = new ArrayList<>();
-            areas.add(TODAS_LAS_AREAS);
-            com.sibim.config.Areas.getAllAreaNames().stream()
-                .filter(SessionManager::isAreaAccessible).forEach(areas::add);
-            DialogUtil.makeFilterable(areaFilter, areas);
+            FiltroArea.configurar(areaFilter);
             areaFilter.valueProperty().addListener((o, a, b) -> { currentPage = 0; applyFilters(); });
         }
     }
@@ -684,7 +680,7 @@ public class MovimientosController {
 
     @FXML private void onNuevoMovimiento() {
         if (!SessionManager.isAdmin()) return;   // movements are Patrimonio's alone
-        showMovimientoDialog(null, null);
+        showMovimientoDialog(null, null, null);
     }
 
     @FXML private Button btnArrastrar;
@@ -787,33 +783,24 @@ public class MovimientosController {
         );
     }
 
-    public void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo) {
-        showMovimientoDialog(preProductoId, preTipo, null);
-    }
-
+    /** "Agregar o quitar": pieces added to or taken from a bien. Transfers are
+     *  "Transferir arrastrando" (it also takes the bien out of its resguardo). */
     private void showMovimientoDialog(String preProductoId, TipoMovimiento preTipo,
                                        MovimientoDialogFactory.Result retryFrom) {
         DialogUtil.runAsync(
             () -> productoService.getAll(),
             productos -> MovimientoDialogFactory.show(productos, preProductoId, preTipo, retryFrom).ifPresent(r -> {
-                if (r.tipo() != TipoMovimiento.TRANSFERENCIA) { registrar(r, null, preProductoId, preTipo); return; }
-                // A bien in a resguardo used to be refused here ("cancélalo primero"), and
-                // on 26-oct a whole resguardo of 32 bienes was cancelled to move one. Now
-                // it offers to take just this one out of it.
-                DialogUtil.runAsync(
-                    () -> resguardoService.getByProductoId(r.producto().getId()).stream()
-                        .filter(com.sibim.model.Resguardo::isActivo).findFirst().orElse(null),
-                    vigente -> {
-                        if (vigente == null) { registrar(r, null, preProductoId, preTipo); return; }
-                        if (ConfirmacionUtil.confirmar("Está en un resguardo",
-                                "«" + r.producto().getCodigo() + " " + r.producto().getNombre() + "» está en el resguardo "
-                                    + vigente.getNumero() + " de " + vigente.getResguardanteNombre() + ".\n\n"
-                                    + "¿Quitarlo solo a él de ese resguardo y transferirlo? Los demás bienes siguen en el resguardo."))
-                            registrar(r, vigente, preProductoId, preTipo);
-                        else
-                            showMovimientoDialog(preProductoId, preTipo, r);
-                    },
-                    e -> registrar(r, null, preProductoId, preTipo));
+                // A bien of one piece has its own número and label: another one like it
+                // is a Nuevo bien, not a piece added to this one (that makes it a lote).
+                if (r.tipo() == TipoMovimiento.ENTRADA && r.producto().getStockActual() == 1
+                        && !ConfirmacionUtil.confirmar("Es un bien de una sola pieza",
+                            "«" + r.producto().getCodigo() + " " + r.producto().getNombre()
+                                + "» tiene su propio número de inventario.\n\n"
+                                + "Si llegó otro igual, dalo de alta con «Nuevo bien» en Bienes para que tenga "
+                                + "su número y su etiqueta.\n\n¿Agregarle piezas de todos modos? Quedará como un lote de "
+                                + (1 + r.cantidad()) + " piezas con un solo número."))
+                    return;
+                registrar(r, preProductoId, preTipo);
             }),
             e -> {
                 log.error("Error al abrir el formulario de movimiento", e);
@@ -824,25 +811,27 @@ public class MovimientosController {
         );
     }
 
-    private final com.sibim.service.ResguardoService resguardoService = new com.sibim.service.ResguardoService();
+    /** A resguardo was signed for the pieces the bien had then: after adding or
+     *  taking some, say which one still has the old number. */
+    private void avisarSiEstaEnResguardo(Movimiento m) {
+        javafx.scene.Scene scene = table.getScene();
+        DialogUtil.runAsync(
+            () -> new com.sibim.service.ResguardoService().getByProductoId(m.getProductoId()).stream()
+                .filter(com.sibim.model.Resguardo::isActivo).findFirst().orElse(null),
+            r -> {
+                if (r != null && scene != null)
+                    NotificacionUtil.advertencia(scene, "«" + m.getProductoNombre() + "» está en el resguardo "
+                        + r.getNumero() + " de " + r.getResguardanteNombre() + ", que sigue diciendo "
+                        + FormatUtils.plural(m.getStockAnterior(), "pieza", "piezas") + "; ahora son " + m.getStockNuevo());
+            },
+            e -> log.debug("No se pudo revisar el resguardo de '{}'", m.getProductoId(), e));
+    }
 
-    /** Registers what the movement dialog returned — first taking the bien out of
-     *  {@code quitarDe} (its resguardo) when the user agreed to. */
-    private void registrar(MovimientoDialogFactory.Result r, com.sibim.model.Resguardo quitarDe,
-                           String preProductoId, TipoMovimiento preTipo) {
+    /** Registers what the "Agregar o quitar" dialog returned. */
+    private void registrar(MovimientoDialogFactory.Result r, String preProductoId, TipoMovimiento preTipo) {
                 DialogUtil.runAsync(
-                    () -> {
-                        if (quitarDe != null) {
-                            com.sibim.model.ResguardoItem it = new com.sibim.model.ResguardoItem();
-                            it.setProductoId(r.producto().getId());
-                            it.setProductoCodigo(r.producto().getCodigo());
-                            it.setProductoNombre(r.producto().getNombre());
-                            resguardoService.quitarBien(quitarDe, it, "transferencia a " + r.areaDestino()
-                                + (r.motivo() != null && !r.motivo().isBlank() ? ": " + r.motivo().trim() : ""));
-                        }
-                        return movimientoService.registrar(
-                            r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia(), r.areaDestino());
-                    },
+                    () -> movimientoService.registrar(
+                        r.producto().getId(), r.tipo(), r.cantidad(), r.motivo(), r.referencia(), r.areaDestino()),
                     m -> {
                         if (table != null) {
                             currentPage = 0;
@@ -853,13 +842,10 @@ public class MovimientosController {
                                 pendingHighlightId = null;
                                 table.refresh();
                             })).play();
-                            if (table.getScene() != null) {
-                                if (m.getTipo() == TipoMovimiento.TRANSFERENCIA)
-                                    NotificacionUtil.exitoTransferencia(table.getScene(),
-                                        m.getProductoNombre(), m.getAreaOrigen(), m.getAreaDestino());
-                                else
-                                    NotificacionUtil.exito(table.getScene(), "Movimiento registrado correctamente");
-                            }
+                            if (table.getScene() != null)
+                                NotificacionUtil.exito(table.getScene(), m.getTipo() == TipoMovimiento.SALIDA
+                                    ? "Piezas quitadas del bien" : "Piezas agregadas al bien");
+                            avisarSiEstaEnResguardo(m);
                             if (statCardTotal   != null) AnimationUtils.statCardPop(statCardTotal);
                             VBox targetCard = switch (m.getTipo()) {
                                 case ENTRADA -> statCardEntrada;

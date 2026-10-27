@@ -263,4 +263,47 @@ class ResguardoRepositoryIntegrationTest extends IntegrationTestBase {
         repo.cancelar(r.getId());
         assertThrows(IllegalStateException.class, () -> repo.quitarBien(r.getId(), pid, "nota"));
     }
+
+    /** Transferir arrastrando › Deshacer: the bien goes back into the resguardo it
+     *  left, with its renglón, its resguardante and, if it had emptied it, the
+     *  resguardo in force again. */
+    @Test
+    void regresarBien_loDevuelveConSuRenglon_yReactivaElQueHabiaVaciado() throws SQLException {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        String pid = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(pid));
+        Resguardo r = repo.save(buildResguardo("Ana López", List.of(buildItem(pid, "Silla"))));
+        ResguardoItem renglon = repo.findById(r.getId()).getItems().get(0);
+        assertTrue(repo.quitarBien(r.getId(), pid, "27/10/2026: se quitó Silla (transferencia)."));
+
+        repo.regresarBien(r.getId(), renglon, "27/10/2026: regresó Silla (se deshizo su transferencia).", true);
+
+        Resguardo despues = repo.findById(r.getId());
+        assertEquals(Resguardo.ESTADO_ACTIVO, despues.getEstado());
+        assertEquals(List.of(renglon.getId()), despues.getItems().stream().map(ResguardoItem::getId).toList());
+        assertTrue(despues.getObservaciones().endsWith("regresó Silla (se deshizo su transferencia)."));
+        assertEquals("Ana López", resguardanteDe(pid));
+    }
+
+    /** Not into a resguardo cancelled for some other reason, nor if another one covers it now. */
+    @Test
+    void regresarBien_aUnCanceladoOConOtroVigente_noCambiaNada() throws SQLException {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        String pid = UUID.randomUUID().toString(), otro = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(pid));
+        productoRepo.saveOnline(buildProducto(otro));
+        Resguardo r = repo.save(buildResguardo("Ana López", List.of(buildItem(pid, "Silla"), buildItem(otro, "Mesa"))));
+        ResguardoItem renglon = repo.findById(r.getId()).getItems().stream()
+            .filter(i -> pid.equals(i.getProductoId())).findFirst().orElseThrow();
+        assertFalse(repo.quitarBien(r.getId(), pid, "nota"));
+        Resguardo nuevo = repo.save(buildResguardo("Luis Pérez", List.of(buildItem(pid, "Silla"))));
+
+        assertThrows(IllegalStateException.class, () -> repo.regresarBien(r.getId(), renglon, "nota", false));
+        assertEquals(1, repo.findById(r.getId()).getItems().size());
+
+        repo.cancelar(nuevo.getId());
+        repo.cancelar(r.getId());
+        assertThrows(IllegalStateException.class, () -> repo.regresarBien(r.getId(), renglon, "nota", false));
+        assertEquals(Resguardo.ESTADO_CANCELADO, repo.findById(r.getId()).getEstado());
+    }
 }

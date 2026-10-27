@@ -3,6 +3,7 @@ package com.sibim.config;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -55,6 +56,17 @@ class AreaCodigosTest {
         assertEquals("TICS/05", AreaCodigos.normalizar(tics, " tics / 5 ").orElseThrow());
         assertEquals("TICS/07", AreaCodigos.normalizar(tics, "TICS/007").orElseThrow());
         assertEquals("TICS/123", AreaCodigos.normalizar(tics, "TICS/123").orElseThrow());
+    }
+
+    /** Undoing a transfer: the bien gets its own número back while it is free. */
+    @Test
+    void codigoPreferido_elSuyoSiSigueLibre_siNoElSiguiente() {
+        String tics = "Dirección de Tecnologías de la Información";
+        List<String> activos = List.of("TICS/01", "TICS/02", "TICS/04");
+        assertEquals("TICS/07", AreaCodigos.codigoPreferido(tics, "TICS/07", activos));
+        assertEquals("TICS/03", AreaCodigos.codigoPreferido(tics, "tics/04", activos), "ya lo tiene otro bien");
+        assertEquals("TICS/03", AreaCodigos.codigoPreferido(tics, null, activos));
+        assertEquals("EC-002", AreaCodigos.codigoPreferido(tics, "EC-002", activos), "un código heredado también regresa");
     }
 
     @Test

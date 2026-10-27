@@ -133,6 +133,7 @@ public class AuditoriaController {
             case "transferencia_aprobada" -> "Transferencia aprobada";
             case "transferencia_rechazada" -> "Transferencia rechazada";
             case "transferencia_recibida" -> "Transferencia recibida";
+            case "transferencia_deshecha" -> "Transferencia deshecha";
             case "cancelar" -> "Cancelación";
             case "devolver" -> "Devolución";
             case "concluir" -> "Conclusión";
@@ -152,8 +153,8 @@ public class AuditoriaController {
         return switch (accion.toLowerCase()) {
             case "login", "crear", "reactivar", "operador", "transferencia_recibida", "transferencia_aprobada",
                  "aprobar", "devolver", "concluir", "restaurar" -> "audit-pill-verde";
-            case "baja", "eliminar", "login_fallido", "transferencia_rechazada", "cancelar", "rescindir",
-                 "rechazar" -> "audit-pill-guinda";
+            case "baja", "eliminar", "login_fallido", "transferencia_rechazada", "transferencia_deshecha",
+                 "cancelar", "rescindir", "rechazar" -> "audit-pill-guinda";
             case "actualizar", "cambio_precio", "codigo_reasignado" -> "audit-pill-dorado";
             default -> "audit-pill-neutro";
         };

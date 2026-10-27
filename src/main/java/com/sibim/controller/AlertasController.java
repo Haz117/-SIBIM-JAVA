@@ -262,11 +262,7 @@ public class AlertasController implements Refreshable {
         String savedSearch = STICKY.get("search", "");
         if (!savedSearch.isBlank()) searchField.setText(savedSearch);
         if (areaFilter != null) {
-            List<String> areas = new java.util.ArrayList<>();
-            areas.add(TODAS_LAS_AREAS);
-            com.sibim.config.Areas.getAllAreaNames().stream()
-                .filter(com.sibim.session.SessionManager::isAreaAccessible).forEach(areas::add);
-            DialogUtil.makeFilterable(areaFilter, areas);
+            FiltroArea.configurar(areaFilter);
             areaFilter.valueProperty().addListener((o, a, b) -> applySearch(searchField.getText()));
         }
     }

@@ -1,7 +1,7 @@
 package com.sibim.controller;
 
 import com.sibim.model.Categoria;
-import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.ListCell;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -16,34 +16,33 @@ class ProductosListCells {
                     return;
                 }
                 String icono = c.getIcono();
-                if (icono != null && !icono.isBlank()) {
-                    Label badge = new Label(icono + "  " + c.getNombre());
-                    badge.getStyleClass().add("combo-cell-label");
-                    setGraphic(badge); setText(null);
-                } else {
-                    setText(c.getNombre()); setGraphic(null);
-                }
+                setText(icono != null && !icono.isBlank() ? icono + "  " + c.getNombre() : c.getNombre());
+                setGraphic(null);
             }
         };
     }
 
+    /** The área with its icon. Text and icon go on the cell itself, not inside a
+     *  Label as its graphic: in the closed combo a long name ("Comunicación Social
+     *  y Marketing Digital") left only the icon, with no text and no "…". */
     static ListCell<String> areaListCell() {
-        return new ListCell<>() {
+        ListCell<String> celda = new ListCell<>() {
             @Override protected void updateItem(String area, boolean empty) {
                 super.updateItem(area, empty);
                 if (empty || area == null) {
                     setText("Todas las áreas"); setGraphic(null);
                     return;
                 }
-                String icon = areaIcon(area);
-                FontIcon fi = new FontIcon(icon);
+                FontIcon fi = new FontIcon(areaIcon(area));
                 fi.setIconSize(13);
                 fi.getStyleClass().add("area-filter-icon");
-                Label lbl = new Label("  " + area, fi);
-                lbl.getStyleClass().add("combo-cell-label");
-                setGraphic(lbl); setText(null);
+                setText(area);
+                setGraphic(fi);
             }
         };
+        celda.setGraphicTextGap(8);
+        celda.setTextOverrun(OverrunStyle.ELLIPSIS);
+        return celda;
     }
 
     static String areaIcon(String area) {

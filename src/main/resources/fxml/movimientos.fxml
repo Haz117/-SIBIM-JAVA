@@ -51,15 +51,17 @@
             <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Transferencias pendientes de aprobación"/></tooltip>
         </Button>
+        <!-- The primary action: the header keeps its label when the row is short
+             (secondary buttons drop to their icon first). -->
         <Button fx:id="btnArrastrar" text="Transferir arrastrando" onAction="#onTransferirArrastrando"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+                styleClass="btn-primary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-drag-variant" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Arrastra bienes de un área a otra y asígnales su nuevo resguardante" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
-        <Button fx:id="btnNuevo" text="Nuevo Movimiento" onAction="#onNuevoMovimiento" styleClass="btn-primary"
+        <Button fx:id="btnNuevo" text="Agregar o quitar" onAction="#onNuevoMovimiento" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Registrar entrada, salida, ajuste o transferencia  (Ctrl+N)"/></tooltip>
+            <graphic><FontIcon iconLiteral="mdi2p-plus-minus" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Sumar o restar piezas a la cantidad de un bien  (Ctrl+N)"/></tooltip>
         </Button>
     </HBox>
 
@@ -259,7 +261,7 @@
             <VBox alignment="CENTER" spacing="8">
                 <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>
                 <Label text="No hay movimientos que mostrar" styleClass="empty-state-msg"/>
-                <Label text="Ajusta los filtros o registra un nuevo movimiento con ＋" styleClass="empty-state-hint"/>
+                <Label text="Ajusta los filtros, o usa «Transferir arrastrando» o «Agregar o quitar»" styleClass="empty-state-hint"/>
             </VBox>
         </placeholder>
     </TableView>

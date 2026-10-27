@@ -58,7 +58,8 @@ class ProductoTabInfoFields {
             Runnable[] checkOkRef,
             Map<String, Image> thumbnailCache,
             List<String> existingFotos,
-            ProductoService productoService) {
+            ProductoService productoService,
+            String areaInicial) {
 
         grid = DialogUtil.formGrid(120);
 
@@ -161,7 +162,12 @@ class ProductoTabInfoFields {
         fArea.setMaxWidth(Double.MAX_VALUE);
         fArea.setPromptText("Área responsable");
         var sessionUser = SessionManager.getCurrentUser();
+        // A new bien starts in the área the list is filtered to, so the next
+        // bien of an área is registered from that área's own list.
+        boolean usaAreaInicial = existing == null && areaInicial != null && !SessionManager.isDireccion()
+            && areaNames.contains(areaInicial) && SessionManager.isAreaAccessible(areaInicial);
         fArea.setValue(existing != null ? existing.getArea()
+            : usaAreaInicial ? areaInicial
             : sessionUser != null ? sessionUser.getArea() : null);
         // Moving an existing bien to another área is a transferencia: it goes
         // through Movimientos (approval for non-admins, new código, history).
@@ -186,6 +192,19 @@ class ProductoTabInfoFields {
                     fCodigo.setDisable(true);
                     fCodigo.setPromptText("Se asignará automáticamente según el área");
                     fCodigo.clear();
+                    // Shows the número it will get (the lowest free one, which may
+                    // fill a gap); it is picked again when saving.
+                    AppExecutor.submit(() -> {
+                        try {
+                            String siguiente = productoService.siguienteCodigo(a);
+                            Platform.runLater(() -> {
+                                if (a.equals(fArea.getValue()))
+                                    fCodigo.setPromptText("Se asignará " + siguiente + " al guardar");
+                            });
+                        } catch (Exception e) {
+                            log.debug("No se pudo calcular el siguiente código de '{}'", a, e);
+                        }
+                    });
                 } else {
                     fCodigo.setDisable(false);
                     fCodigo.setPromptText("Código único de inventario");

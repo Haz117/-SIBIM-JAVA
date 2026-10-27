@@ -696,7 +696,7 @@ public class MovimientoRepository {
      *  Pending/rejected movements never touched the bien, so deleting one
      *  leaves stock, área and código as they are. */
     public void deleteMovimientoAtomicOnline(String movimientoId) throws SQLException {
-        String getMov = "SELECT producto_id, stock_anterior, stock_nuevo, area_origen, estado, created_at "
+        String getMov = "SELECT producto_id, stock_anterior, stock_nuevo, area_origen, codigo_anterior, estado, created_at "
             + "FROM movements WHERE id = ?";
         String lockProduct = "SELECT stock_actual FROM products WHERE id = ? FOR UPDATE";
         String newerMov = "SELECT 1 FROM movements WHERE producto_id = ? AND id <> ? AND created_at > ? "
@@ -711,6 +711,7 @@ public class MovimientoRepository {
                 String productoId;
                 int delta;
                 String areaOrigen;
+                String codigoAnterior;
                 boolean aplicado;
                 Timestamp creado;
                 try (PreparedStatement ps = conn.prepareStatement(getMov)) {
@@ -722,6 +723,7 @@ public class MovimientoRepository {
                         aplicado = estado == null || Movimiento.ESTADO_APROBADO.equals(estado);
                         delta = aplicado ? rs.getInt("stock_anterior") - rs.getInt("stock_nuevo") : 0;
                         areaOrigen = aplicado ? rs.getString("area_origen") : null;
+                        codigoAnterior = rs.getString("codigo_anterior");
                         creado = rs.getTimestamp("created_at");
                     }
                 }
@@ -749,11 +751,10 @@ public class MovimientoRepository {
                     ps.executeUpdate();
                 }
                 // areaOrigen is only set when the deleted movement was a
-                // transferencia — recompute a fresh código for that área the
-                // same way as everywhere else, since its old número there may
-                // have since been claimed by a different bien.
+                // transferencia — the bien gets its old número back if it is still
+                // free, or else the next free one there (another bien may have it).
                 String codigoRestaurado = (areaOrigen != null && AreaCodigos.tienePrefijo(areaOrigen))
-                    ? siguienteCodigo(conn, areaOrigen) : null;
+                    ? ProductoRepository.codigoPreferido(conn, areaOrigen, codigoAnterior) : null;
                 try (PreparedStatement ps = conn.prepareStatement(restoreProducto)) {
                     ps.setInt(1, currentStock + delta);
                     ps.setString(2, areaOrigen);

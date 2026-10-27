@@ -70,6 +70,7 @@ public final class AccessibilityUtils {
      *  its own keeps it. */
     private static void moverAyuda(javafx.scene.control.Label ayuda) {
         if (!ayuda.isManaged() && !ayuda.isVisible()) return;   // already done
+        if (ayuda.visibleProperty().isBound() || ayuda.managedProperty().isBound()) return;
         ayuda.setVisible(false);
         ayuda.setManaged(false);
         Tooltip tip = ayuda.getTooltip();

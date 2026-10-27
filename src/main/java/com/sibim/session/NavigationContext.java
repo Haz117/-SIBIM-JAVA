@@ -16,7 +16,7 @@ public final class NavigationContext {
     private static String  pendingCategoryFilter;
     private static String  pendingProductId;
     private static boolean pendingNuevoBien;
-    private static boolean pendingNuevoMovimiento;
+    private static boolean pendingTransferir;
     private static String  pendingAccionMovimientos;
 
     /** Set before navigating to Movimientos to open one of its panels
@@ -76,11 +76,13 @@ public final class NavigationContext {
         return v;
     }
 
-    public static void setPendingNuevoMovimiento() { pendingNuevoMovimiento = true; }
+    /** Set before navigating to Movimientos to open "Transferir arrastrando"
+     *  (the Inicio's quick action). */
+    public static void setPendingTransferir() { pendingTransferir = true; }
 
-    public static boolean consumePendingNuevoMovimiento() {
-        boolean v = pendingNuevoMovimiento;
-        pendingNuevoMovimiento = false;
+    public static boolean consumePendingTransferir() {
+        boolean v = pendingTransferir;
+        pendingTransferir = false;
         return v;
     }
 }

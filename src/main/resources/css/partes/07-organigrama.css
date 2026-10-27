@@ -331,3 +331,113 @@
     -fx-text-fill: white;
 }
 .org-acomodar-btn:selected .btn-icon { -fx-icon-color: white; }
+
+/* ── Transferir arrastrando (Movimientos) ───────────────────────── */
+.trf-paso {
+    -fx-background-color: sibim-indigo;
+    -fx-background-radius: 99;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-alignment: center;
+}
+.trf-paso-titulo { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.trf-panel {
+    -fx-background-color: #FAFAFB;
+    -fx-background-radius: 12;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 12;
+    -fx-padding: 12;
+}
+.trf-codigo {
+    -fx-background-color: sibim-indigo-50;
+    -fx-background-radius: 6;
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 7;
+}
+.trf-persona       { -fx-text-fill: sibim-slate-600; -fx-font-size: 12px; -fx-graphic-text-gap: 5; }
+.trf-sin-persona   { -fx-text-fill: sibim-slate-500; -fx-font-size: 12px; -fx-font-style: italic; -fx-graphic-text-gap: 5; }
+.trf-persona-icono { -fx-icon-size: 13; -fx-icon-color: sibim-slate-500; }
+/* Selected rows stay light with dark text, focused or not (Modena turned them
+   grey when the list lost focus to a card). */
+.trf-lista .list-cell { -fx-padding: 7 10; -fx-background-color: white; }
+.trf-lista .list-cell:filled:hover { -fx-background-color: #FDF4F5; }
+.trf-lista .list-cell:filled:selected {
+    -fx-background-color: #F9DEE0;
+    -fx-border-color: transparent transparent transparent sibim-indigo;
+    -fx-border-width: 0 0 0 3;
+}
+.trf-lista .list-cell:filled:selected .trf-codigo { -fx-background-color: white; }
+.trf-seleccion-activa { -fx-text-fill: sibim-indigo-darker; -fx-font-weight: bold; }
+.trf-tarjeta {
+    -fx-pref-width: 250;
+    -fx-min-width: 220;
+    -fx-padding: 12 14;
+    -fx-cursor: hand;
+}
+.trf-tarjeta:hover { -fx-border-color: sibim-indigo-300; -fx-background-color: #FDF7F8; }
+.trf-tarjeta:focused { -fx-border-color: sibim-indigo; }
+.trf-tarjeta-icono-fondo {
+    -fx-background-color: sibim-indigo-50;
+    -fx-background-radius: 10;
+    -fx-pref-width: 36;
+    -fx-pref-height: 36;
+}
+.trf-tarjeta-icono-fondo > .trf-tarjeta-icono { -fx-icon-size: 17; -fx-icon-color: sibim-indigo; }
+.trf-arrastre {
+    -fx-background-color: sibim-indigo;
+    -fx-background-radius: 99;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 12;
+    -fx-graphic-text-gap: 6;
+}
+.trf-arrastre .ikonli-font-icon { -fx-icon-color: white; -fx-icon-size: 14; }
+/* Nothing selected yet: the cards wait, dimmed; while dragging they all show
+   the dashed edge of a place to drop. */
+.trf-tarjeta-inactiva { -fx-opacity: 0.55; }
+.trf-arrastrando .trf-tarjeta { -fx-border-color: sibim-indigo-300; -fx-border-style: dashed; }
+.trf-grupo {
+    -fx-text-fill: sibim-indigo-darker;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 0 2;
+}
+/* Step 1 before an origen is chosen: the áreas that have bienes, one click each. */
+.trf-areas .list-cell { -fx-padding: 6 10; -fx-background-color: white; -fx-cursor: hand; }
+.trf-areas .list-cell:filled:hover { -fx-background-color: #FDF4F5; }
+.trf-areas .list-cell:filled:selected { -fx-background-color: #F9DEE0; }
+.trf-areas .trf-area-icono { -fx-pref-width: 30; -fx-pref-height: 30; -fx-background-radius: 8; }
+.trf-areas .trf-area-icono > .trf-tarjeta-icono { -fx-icon-size: 15; }
+/* The número a bien will take in the área that receives it. */
+.trf-codigo-nuevo { -fx-background-color: sibim-indigo; -fx-text-fill: white; }
+/* Transferred in this window. */
+.trf-hecho {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 8;
+    -fx-padding: 8 10;
+}
+.trf-hecho-deshecho { -fx-background-color: #FAFAFB; }
+.trf-hecho-deshecho .org-area-name { -fx-text-fill: sibim-slate-600; }
+.trf-deshecho { -fx-text-fill: sibim-slate-500; -fx-font-size: 12px; -fx-font-weight: bold; -fx-graphic-text-gap: 5; }
+.trf-deshecho .ikonli-font-icon { -fx-icon-color: sibim-slate-500; -fx-icon-size: 14; }
+
+/* ── Reportes › Inventario por área: elegir áreas ───────────────── */
+.area-elegir-lista {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 10;
+    -fx-padding: 4;
+}
+.area-elegir-lista > .viewport { -fx-background-color: white; }
+.area-elegir-fila { -fx-padding: 6 10; -fx-background-radius: 8; -fx-cursor: hand; }
+.area-elegir-fila:hover { -fx-background-color: #FDF4F5; }
+.area-elegir-fila-sel, .area-elegir-fila-sel:hover { -fx-background-color: #F9DEE0; }

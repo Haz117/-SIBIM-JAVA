@@ -175,6 +175,9 @@
     -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.20), 28, 0, 0, 10);
 }
 .dialog-pane > .content { -fx-background-color: white; -fx-padding: 0; }
+/* An Alert's text ("Algunos bienes no se movieron"…) is the content itself: with
+   the 0 above it touched the border. Same side margin as the header. */
+.dialog-pane > .content.label { -fx-padding: 14 20 10 20; }
 .dialog-pane .header-panel {
     -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #F8FAFC, #F1F5F9);
     -fx-border-color: transparent transparent sibim-slate-200 transparent;

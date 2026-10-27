@@ -131,8 +131,11 @@ public class ConfirmacionUtil {
         content.setAlignment(Pos.CENTER_LEFT);
         content.setPadding(new Insets(22, 22, 16, 22));
 
-        dialog.getDialogPane().setContent(content);
-        AnimationUtils.springIn(content);
+        // Wrapped, like confirmarConMotivo: the dialog stylesheet sets the content's
+        // own padding to 0, and the icon ended up against the left border.
+        VBox root = new VBox(content);
+        dialog.getDialogPane().setContent(root);
+        AnimationUtils.springIn(root);
 
         Node confirmBtn = dialog.getDialogPane().lookupButton(btnConfirm);
         if (confirmBtn != null) {

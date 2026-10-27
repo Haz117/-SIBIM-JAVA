@@ -500,6 +500,7 @@ public class PrestamosController extends BaseDocumentController<Prestamo> {
             .filter(com.sibim.session.Permisos::esAreaPropia)
             .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
         ComboBox<String> areaDestino = new ComboBox<>();
+        FiltroArea.conIconos(areaDestino);
         DialogUtil.makeFilterable(areaDestino, areasCatalogo);
         areaDestino.setMaxWidth(Double.MAX_VALUE);
         areaDestino.setPromptText("Área que recibe el bien…");

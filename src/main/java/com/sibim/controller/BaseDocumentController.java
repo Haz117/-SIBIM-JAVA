@@ -220,13 +220,8 @@ public abstract class BaseDocumentController<T> {
     }
 
     private ComboBox<String> crearFiltroArea() {
-        List<String> areas = new ArrayList<>();
-        areas.add(TODAS_LAS_AREAS);
-        com.sibim.config.Areas.getAllAreaNames().stream()
-            .filter(com.sibim.session.SessionManager::isAreaAccessible).forEach(areas::add);
         ComboBox<String> cb = new ComboBox<>();
-        cb.setPromptText(TODAS_LAS_AREAS);
-        DialogUtil.makeFilterable(cb, areas);
+        FiltroArea.configurar(cb);
         cb.setPrefWidth(200);
         cb.setTooltip(new Tooltip("Mostrar solo los de un área"));
         cb.valueProperty().addListener((obs, o, n) -> applyFilter());
@@ -411,15 +406,21 @@ public abstract class BaseDocumentController<T> {
         Button btnLimpiar = new Button();
         btnLimpiar.setGraphic(new FontIcon("mdi2c-close-circle-outline"));
         btnLimpiar.getStyleClass().add("btn-ghost");
-        btnLimpiar.setTooltip(new Tooltip("Limpiar filtros de fecha"));
-        btnLimpiar.setOnAction(e -> { dpDesde.setValue(null); dpHasta.setValue(null); });
+        btnLimpiar.setOnAction(e -> {
+            dpDesde.setValue(null); dpHasta.setValue(null);
+            if (cbArea != null) cbArea.setValue(null);
+        });
         if (filterBar != null) {
             if (filtraPorArea()) {
                 cbArea = crearFiltroArea();
                 Separator va = new Separator();
                 va.setOrientation(javafx.geometry.Orientation.VERTICAL);
+                va.visibleProperty().bind(cbArea.visibleProperty());
+                va.managedProperty().bind(cbArea.managedProperty());
                 filterBar.getChildren().addAll(va, cbArea);
             }
+            btnLimpiar.setTooltip(new Tooltip(cbArea != null && cbArea.isVisible()
+                ? "Quitar el filtro de área y de fechas" : "Limpiar filtros de fecha"));
             Separator vs = new Separator();
             vs.setOrientation(javafx.geometry.Orientation.VERTICAL);
             filterBar.getChildren().addAll(vs, dpDesde, dpHasta, btnLimpiar);

@@ -88,6 +88,28 @@ class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
         interact(() -> ((Stage) categoria.getScene().getWindow()).close());
     }
 
+    /** "Nuevo bien" from the list filtered to an área starts in that área and
+     *  says which número the bien will get, so the next one of an área is
+     *  registered from that área. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void nuevoBienDesdeUnArea_empiezaEnEsaAreaYDiceSuNumero() throws Exception {
+        String area = "Dirección de Gobierno";
+        String siguiente = new com.sibim.service.ProductoService().siguienteCodigo(area);
+        Categoria cat = new Categoria("cat-prueba", "Mobiliario", null, "#8B5CF6", null, null);
+        Platform.runLater(() -> ProductoDialogFactory.show(null, List.of(cat), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null), area));
+        ComboBox<String> fArea = (ComboBox<String>) esperar(n -> n instanceof ComboBox<?> c
+            && "Área responsable".equals(c.getPromptText()));
+        assertEquals(area, fArea.getValue());
+        TextField codigo = (TextField) esperar(n -> n instanceof TextField t && t.getPromptText() != null
+            && t.getPromptText().startsWith("Se asignará DGOB/"));
+        assertEquals("Se asignará " + siguiente + " al guardar", codigo.getPromptText());
+
+        interact(() -> ((Stage) fArea.getScene().getWindow()).close());
+    }
+
     /** The first node {@code que} matches, waiting up to 10 s for it to show. */
     private Node esperar(java.util.function.Predicate<Node> que) {
         for (int i = 0; i < 100; i++) {

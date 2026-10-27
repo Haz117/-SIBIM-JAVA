@@ -173,17 +173,32 @@ public interface ContratoInventario {
     }
 
     @Test
-    default void eliminarUnaTransferencia_regresaElBienASuAreaConUnCodigoDeEsaArea() throws Exception {
+    default void eliminarUnaTransferencia_regresaElBienASuAreaConSuMismoNumero() throws Exception {
         Producto p = alta(AREA_A, 1, 0);
         Movimiento t = movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B);
         assertEquals(AREA_B, releer(p.getId()).getArea());
 
-        String esperado = AreaCodigos.siguienteCodigo(AREA_A, codigosActivos());
         movimientos().eliminar(t.getId());
         Producto r = releer(p.getId());
         assertEquals(AREA_A, r.getArea());
-        assertEquals(esperado, r.getCodigo(), "vuelve con el siguiente código libre de su área");
+        assertEquals(p.getCodigo(), r.getCodigo(), "vuelve con su número, que seguía libre");
         assertEquals(1, r.getStockActual());
+    }
+
+    /** Deshacer in Transferir arrastrando: same rule, and Auditoría keeps it. */
+    @Test
+    default void deshacerUnaTransferencia_siSuNumeroYaLoTieneOtro_tomaElSiguienteLibre() throws Exception {
+        Producto p = alta(AREA_A, 1, 0);
+        Movimiento t = movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B);
+        Producto otro = alta(AREA_A, 1, 0);
+        assertEquals(p.getCodigo(), otro.getCodigo(), "el número que dejó libre lo tomó un bien nuevo");
+
+        String esperado = AreaCodigos.siguienteCodigo(AREA_A, codigosActivos());
+        assertEquals(esperado, movimientos().deshacerTransferencia(t));
+        Producto r = releer(p.getId());
+        assertEquals(AREA_A, r.getArea());
+        assertEquals(esperado, r.getCodigo());
+        assertTrue(movimientos().getByProducto(p.getId()).isEmpty(), "la transferencia ya no está en su historial");
     }
 
     @Test

@@ -336,6 +336,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         GridPane form = DialogUtil.formGrid(130);
         ComboBox<String> areaCombo = new ComboBox<>();
         areaCombo.setPromptText("Buscar área…");
+        FiltroArea.conIconos(areaCombo);
         DialogUtil.makeFilterable(areaCombo, new ArrayList<>(areas));
         areaCombo.setMaxWidth(Double.MAX_VALUE);
         areaCombo.getStyleClass().add("form-input");
@@ -359,8 +360,10 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             + "este documento no cambia el inventario.");
         nota.setWrapText(true);
         nota.getStyleClass().add("table-count-label");
+        // The form brings its own margin (22); the rest gets the same one here: in a
+        // dialog the content's own padding is 0, and setPadding on it did nothing.
+        VBox.setMargin(nota, new Insets(0, 22, 16, 22));
         VBox content = new VBox(12, header, form, nota);
-        content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
         Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
         okBtn.setText("Generar PDF");
@@ -424,6 +427,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
         ComboBox<String> areaCombo = new ComboBox<>();
         areaCombo.setPromptText("Buscar área…");
+        FiltroArea.conIconos(areaCombo);
         DialogUtil.makeFilterable(areaCombo, areasCatalogo);
         areaCombo.setMaxWidth(Double.MAX_VALUE);
         areaCombo.getStyleClass().add("form-input");
@@ -719,8 +723,12 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             pie.getChildren().addAll(espacio, btnQuitar);
         }
 
+        // The form brings its own margin (22); the rest gets the same one here: in a
+        // dialog the content's own padding is 0, and setPadding on it did nothing.
+        VBox.setMargin(lblBienes, new Insets(0, 22, 0, 22));
+        VBox.setMargin(itemsTable, new Insets(0, 22, 0, 22));
+        VBox.setMargin(pie, new Insets(0, 22, 16, 22));
         VBox content = new VBox(12, header, meta, lblBienes, itemsTable, pie);
-        content.setPadding(new Insets(0, 16, 16, 16));
         dialog.getDialogPane().setContent(content);
         AnimationUtils.staggeredFadeInUp(List.of(header, meta, itemsTable), 260, 65);
         dialog.showAndWait();

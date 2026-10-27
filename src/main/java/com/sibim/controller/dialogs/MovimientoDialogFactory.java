@@ -60,8 +60,8 @@ public final class MovimientoDialogFactory {
         DialogUtil.styleOkButton(dialog.getDialogPane(), AppColors.PURPLE);
 
         // Only Patrimonio gets here — see MovimientoService.registrar.
-        HBox header = DialogUtil.gradientHeader("mdi2s-swap-vertical", "Registrar Movimiento",
-                "Registra una nueva entrada, salida, ajuste o transferencia al inventario",
+        HBox header = DialogUtil.gradientHeader("mdi2p-plus-minus", "Agregar o quitar",
+                "Suma o resta piezas a la cantidad de un bien",
                 AppColors.PURPLE, AppColors.PURPLE_D);
 
         GridPane grid = DialogUtil.formGrid(128);
@@ -84,16 +84,20 @@ public final class MovimientoDialogFactory {
         if (initialProductoId != null)
             productos.stream().filter(p -> p.getId().equals(initialProductoId)).findFirst().ifPresent(fProducto::setValue);
 
-        ComboBox<TipoMovimiento> fTipo = new ComboBox<>(FXCollections.observableArrayList(
-            TipoMovimiento.values()));
-        fTipo.setValue(retryFrom != null ? retryFrom.tipo() : preTipo != null ? preTipo : TipoMovimiento.ENTRADA);
+        // Only adding or taking away pieces: transfers go through "Transferir
+        // arrastrando" and a count's corrections through Conteo físico.
+        List<TipoMovimiento> tipos = List.of(TipoMovimiento.ENTRADA, TipoMovimiento.SALIDA);
+        ComboBox<TipoMovimiento> fTipo = new ComboBox<>(FXCollections.observableArrayList(tipos));
+        TipoMovimiento tipoInicial = retryFrom != null ? retryFrom.tipo() : preTipo;
+        // (List.of(...).contains(null) throws: the button opens it with no tipo.)
+        fTipo.setValue(tipoInicial != null && tipos.contains(tipoInicial) ? tipoInicial : TipoMovimiento.ENTRADA);
         fTipo.setMaxWidth(Double.MAX_VALUE);
         fTipo.getStyleClass().add("form-input");
         fTipo.setConverter(new javafx.util.StringConverter<>() {
             public String toString(TipoMovimiento t) {
                 return t == null ? "" : switch (t) {
-                    case ENTRADA       -> "Entrada (suma a la cantidad)";
-                    case SALIDA        -> "Salida (resta de la cantidad)";
+                    case ENTRADA       -> "Agregar (suma a la cantidad)";
+                    case SALIDA        -> "Quitar (resta de la cantidad)";
                     case AJUSTE        -> "Ajuste manual";
                     case TRANSFERENCIA -> "Transferencia entre áreas";
                 };
@@ -329,8 +333,9 @@ public final class MovimientoDialogFactory {
         Runnable refreshMotivoOptions = () -> {
             String current = fMotivo.getEditor().getText();
             List<String> opts = switch (fTipo.getValue()) {
-                case ENTRADA       -> List.of("Compra", "Donación", "Devolución", "Conteo físico");
-                case SALIDA        -> List.of("Uso institucional", "Préstamo temporal", "Deterioro", "Baja parcial");
+                case ENTRADA       -> List.of("Compra", "Donación", "Devolución", "Conteo físico", "Corrección de captura");
+                // Pieces taken out leave the inventory for good: a préstamo goes through Préstamos.
+                case SALIDA        -> List.of("Deterioro", "Robo o extravío", "Baja parcial", "Conteo físico", "Corrección de captura");
                 case AJUSTE        -> List.of("Conteo físico", "Corrección de error", "Daño o deterioro", "Robo o extravío");
                 case TRANSFERENCIA -> List.of("Reubicación", "Préstamo entre áreas", "Reorganización");
             };
@@ -398,8 +403,10 @@ public final class MovimientoDialogFactory {
                 // after submitting.
                 boolean exceedsStock = !noProduct && fTipo.getValue() == TipoMovimiento.SALIDA
                     && fCantidad.getValue() > fProducto.getValue().getStockActual();
+                boolean quitaTodo = !noProduct && !exceedsStock && fTipo.getValue() == TipoMovimiento.SALIDA
+                    && fCantidad.getValue() == fProducto.getValue().getStockActual();
                 boolean invalid = noProduct || deBaja || badQty || sinExistencia || noDestino
-                    || exceedsStock || ajusteSinCambio;
+                    || exceedsStock || quitaTodo || ajusteSinCambio;
                 boolean wasHidden = !lblFormError.isVisible();
                 okBtn.setDisable(invalid);
                 btnRegistrar.setDisable(invalid);
@@ -408,6 +415,7 @@ public final class MovimientoDialogFactory {
                     : sinExistencia ? "Este bien tiene cantidad 0: no hay nada que transferir"
                     : noDestino ? "Selecciona el área de destino"
                     : exceedsStock ? "La cantidad supera la existencia disponible (" + existencia + ")"
+                    : quitaTodo ? "No se pueden quitar todas: para sacar el bien del inventario dalo de baja"
                     : ajusteSinCambio ? "El ajuste no cambia nada: la cantidad ya es " + existencia
                     : "La cantidad debe ser mayor a cero";
                 boolean mostrar = invalid && tocado[0];
@@ -428,16 +436,13 @@ public final class MovimientoDialogFactory {
         int row = 0;
         grid.add(DialogUtil.fieldLabel("Bien *"),    0, row); grid.add(fProducto,    1, row++);
         grid.add(DialogUtil.fieldLabelWithHelp("Tipo *",
-            "Entrada: suma unidades a la cantidad actual.\n" +
-            "Salida: resta unidades de la cantidad.\n" +
-            "Ajuste: la cantidad REEMPLAZA la cantidad actual (corrección manual).\n" +
-            "Transferencia: mueve el bien a otra área del organigrama."),
+            "Agregar: suma piezas a la cantidad actual.\n" +
+            "Quitar: resta piezas de la cantidad.\n" +
+            "Para mover un bien a otra área usa «Transferir arrastrando»."),
                                                          0, row); grid.add(fTipo,        1, row++);
         grid.add(lblAreaDestino,                         0, row); grid.add(fAreaDestino, 1, row++);
         grid.add(transferPreview,                        0, row++);
-        grid.add(DialogUtil.fieldLabelWithHelp("Cantidad *",
-            "Unidades a registrar.\n" +
-            "Para Ajuste: este valor se convierte en la nueva cantidad total\n(no se suma ni se resta)."),
+        grid.add(DialogUtil.fieldLabelWithHelp("Cantidad *", "Piezas que se suman o se restan."),
                                                          0, row); grid.add(fCantidad,    1, row++);
         grid.add(DialogUtil.fieldLabel("Cantidad del bien"),    0, row); grid.add(stockPreview, 1, row++);
         grid.add(DialogUtil.fieldLabel("Motivo"),        0, row); grid.add(fMotivo,      1, row++);

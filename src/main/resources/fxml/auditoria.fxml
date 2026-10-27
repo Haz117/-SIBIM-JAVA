@@ -10,7 +10,9 @@
 
     <!-- PAGE HEADER -->
     <HBox alignment="CENTER_LEFT" spacing="14" styleClass="page-header, page-header-indigo">
-        <padding><Insets top="18" right="22" bottom="18" left="34"/></padding>
+        <!-- Same frame as every other page (their root has this padding): this one
+             ran from the side menu to the window edge. -->
+        <VBox.margin><Insets top="20" right="22" left="34"/></VBox.margin>
         <StackPane styleClass="page-header-icon, page-header-icon-indigo">
             <FontIcon iconLiteral="mdi2s-shield-lock-outline" styleClass="page-icon-symbol"/>
         </StackPane>
@@ -187,7 +189,7 @@
 
     <!-- PAGINATION BAR -->
     <HBox fx:id="paginationBar" alignment="CENTER" spacing="8" styleClass="pagination-bar">
-        <padding><Insets top="10" right="22" bottom="10" left="22"/></padding>
+        <padding><Insets top="10" right="22" bottom="10" left="34"/></padding>
         <Button fx:id="btnPrimera"  onAction="#onPrimera"  styleClass="btn-page" contentDisplay="GRAPHIC_ONLY" accessibleText="Primera página">
             <graphic><FontIcon iconLiteral="mdi2p-page-first" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Primera página  (Ctrl+Inicio)"/></tooltip>

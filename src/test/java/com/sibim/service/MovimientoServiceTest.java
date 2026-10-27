@@ -80,11 +80,32 @@ class MovimientoServiceTest {
             () -> service.registrar("p-01", TipoMovimiento.SALIDA, 100, "Retiro", null));
     }
 
-    @Test void registrar_salidaCantidadExacta_llama_atomic() throws Exception {
+    /** Quitar every piece would leave a bien of 0 worth $0 that can't move: that is a baja. */
+    @Test void registrar_quitarTodasLasPiezas_esUnaBaja() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        assertEquals(MovimientoService.QUITAR_TODO,
+            mensaje(() -> service.registrar("p-01", TipoMovimiento.SALIDA, 18, "Retiro total", null)));
+        verify(mockMovimientoRepo, never()).addMovimientoAtomic(any(), any());
+    }
+
+    /** "Revertir" an entrada made by mistake takes the bien back to the 0 it had:
+     *  that is not "Quitar", so the rule above does not stop it. */
+    @Test void revertirUnaEntrada_puedeVolverACero() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        producto.setStockActual(3);
+        Movimiento entrada = new Movimiento();
+        entrada.setId("m-entrada-01"); entrada.setProductoId("p-01");
+        entrada.setTipo(TipoMovimiento.ENTRADA); entrada.setCantidad(3);
+        service.revertirMovimiento(entrada, "capturada por error");
+        verify(mockMovimientoRepo).addMovimientoAtomic(argThat(m -> m.getTipo() == TipoMovimiento.SALIDA
+            && m.getCantidad() == 3 && m.getStockNuevo() == 0), any());
+    }
+
+    @Test void registrar_quitarAlgunas_llama_atomic() throws Exception {
         SessionManager.setCurrentUser(admin);
         Movimiento esperado = new Movimiento();
         when(mockMovimientoRepo.addMovimientoAtomic(any(), any())).thenReturn(esperado);
-        assertSame(esperado, service.registrar("p-01", TipoMovimiento.SALIDA, 18, "Retiro total", null));
+        assertSame(esperado, service.registrar("p-01", TipoMovimiento.SALIDA, 17, "Se rompió una", null));
     }
 
     @Test void registrar_ajusteNegativo_lanzaValidation() {
@@ -247,6 +268,9 @@ class MovimientoServiceTest {
         producto.setStockActual(0);
         assertEquals(MovimientoService.SIN_EXISTENCIA,
             mensaje(() -> service.registrar("p-01", TipoMovimiento.TRANSFERENCIA, 1, "x", null, DESTINO)));
+        // Transferir arrastrando sends the bien's own existencia, 0 here.
+        assertEquals(MovimientoService.SIN_EXISTENCIA,
+            mensaje(() -> service.registrar("p-01", TipoMovimiento.TRANSFERENCIA, 0, "x", null, DESTINO)));
     }
 
     @Test void transferencia_conCantidadDistintaALaExistencia_seRechaza() {
@@ -281,5 +305,85 @@ class MovimientoServiceTest {
         SessionManager.setCurrentUser(admin);
         assertTrue(mensaje(() -> service.registrar("p-01", TipoMovimiento.AJUSTE, 18, "x", null))
             .contains("no cambia"));
+    }
+
+    /** Auditoría tells what a movement did: a transfer read "1 uds (cantidad 1 → 1)". */
+    @Test void auditoria_diceAreasNumeroYMotivo() {
+        Movimiento t = new Movimiento();
+        t.setTipo(TipoMovimiento.TRANSFERENCIA); t.setCantidad(1); t.setStockAnterior(1); t.setStockNuevo(1);
+        t.setAreaOrigen("Contraloría Municipal"); t.setAreaDestino("Instancia Municipal de la Mujer");
+        t.setCodigoAnterior("CONT/49"); t.setCodigoNuevo("IMM/41"); t.setMotivo("Reasignación ");
+        assertEquals("Transferencia: Contraloría Municipal → Instancia Municipal de la Mujer · número CONT/49 → IMM/41"
+            + " · Motivo: Reasignación", MovimientoService.detalleAuditoria(t, "CONT/49", "Contraloría Municipal"));
+
+        Movimiento q = new Movimiento();
+        q.setTipo(TipoMovimiento.SALIDA); q.setCantidad(2); q.setStockAnterior(20); q.setStockNuevo(18);
+        q.setMotivo("Se rompieron"); q.setReferencia("Oficio 12");
+        assertEquals("Quitar 2 piezas de SGM/07 (cantidad 20 → 18) · Motivo: Se rompieron · Referencia: Oficio 12",
+            MovimientoService.detalleAuditoria(q, "SGM/07", "Secretaría General Municipal"));
+
+        Movimiento a = new Movimiento();
+        a.setTipo(TipoMovimiento.ENTRADA); a.setCantidad(1); a.setStockAnterior(18); a.setStockNuevo(19);
+        assertEquals("Agregar 1 pieza a SGM/07 (cantidad 18 → 19)",
+            MovimientoService.detalleAuditoria(a, "SGM/07", "Secretaría General Municipal"));
+    }
+
+    /** Deshacer (Transferir arrastrando): the transfer goes, the bien is back with its
+     *  número, and Auditoría says what was undone. */
+    @Test void deshacerTransferencia_borraElMovimientoYLoDejaEnAuditoria() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        Movimiento t = new Movimiento();
+        t.setId("m-9"); t.setProductoId("p-01"); t.setProductoNombre("Escritorio ejecutivo");
+        t.setTipo(TipoMovimiento.TRANSFERENCIA); t.setMotivo("Reasignación");
+        t.setAreaOrigen("Secretaria General Municipal"); t.setAreaDestino("Instancia Municipal de la Mujer");
+        t.setCodigoAnterior("SGM/07"); t.setCodigoNuevo("IMM/41");
+        producto.setCodigo("SGM/07");
+
+        assertEquals("SGM/07", service.deshacerTransferencia(t));
+        verify(mockMovimientoRepo).deleteMovimientoAtomic("m-9");
+        verify(mockAuditRepo).log("movimiento", "m-9", "Escritorio ejecutivo", "transferencia_deshecha",
+            "Se deshizo la transferencia Secretaria General Municipal → Instancia Municipal de la Mujer"
+                + " · número IMM/41 → SGM/07 · Motivo de la transferencia: Reasignación");
+
+        Movimiento entrada = new Movimiento();
+        entrada.setTipo(TipoMovimiento.ENTRADA);
+        assertThrows(MovimientoService.ValidationException.class, () -> service.deshacerTransferencia(entrada));
+        SessionManager.setCurrentUser(director);
+        assertThrows(MovimientoService.ValidationException.class, () -> service.deshacerTransferencia(t));
+    }
+
+    /** Auditoría of a deleted movement says what it was, not "bien 3f2a…, estado APROBADO". */
+    @Test void eliminar_dejaEnAuditoriaQueMovimientoEra() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        producto.setCodigo("SGM/07");
+        Movimiento e = new Movimiento();
+        e.setId("m-3"); e.setProductoId("p-01"); e.setProductoNombre("Escritorio ejecutivo");
+        e.setTipo(TipoMovimiento.ENTRADA); e.setCantidad(2); e.setStockAnterior(16); e.setStockNuevo(18);
+        e.setMotivo("Compra");
+        when(mockMovimientoRepo.findEstadoById("m-3")).thenReturn(Optional.of(Movimiento.ESTADO_APROBADO));
+        when(mockMovimientoRepo.findProductoIdById("m-3")).thenReturn(Optional.of("p-01"));
+        when(mockMovimientoRepo.findByProducto("p-01")).thenReturn(java.util.List.of(e));
+
+        service.eliminar("m-3");
+
+        verify(mockAuditRepo).log("movimiento", "m-3", "Escritorio ejecutivo", "eliminar",
+            "Movimiento eliminado: Agregar 2 piezas a SGM/07 (cantidad 16 → 18) · Motivo: Compra");
+    }
+
+    /** Taking a transfer back moves the bien: not while a document in the área that
+     *  received it says who has it there. */
+    @Test void eliminarODeshacerUnaTransferencia_conResguardoVigente_seRechaza() throws Exception {
+        SessionManager.setCurrentUser(admin);
+        MovimientoService conResguardo = new MovimientoService(mockMovimientoRepo, mockProductoRepo, mockAuditRepo,
+            id -> Optional.of("está en el resguardo vigente RSG-2026-000070"));
+        Movimiento t = new Movimiento();
+        t.setId("m-4"); t.setProductoId("p-01"); t.setTipo(TipoMovimiento.TRANSFERENCIA);
+        when(mockMovimientoRepo.findEstadoById("m-4")).thenReturn(Optional.of(Movimiento.ESTADO_APROBADO));
+        when(mockMovimientoRepo.findProductoIdById("m-4")).thenReturn(Optional.of("p-01"));
+        when(mockMovimientoRepo.findByProducto("p-01")).thenReturn(java.util.List.of(t));
+
+        assertTrue(mensaje(() -> conResguardo.eliminar("m-4")).contains("RSG-2026-000070"));
+        assertTrue(mensaje(() -> conResguardo.deshacerTransferencia(t)).contains("RSG-2026-000070"));
+        verify(mockMovimientoRepo, never()).deleteMovimientoAtomic(any());
     }
 }

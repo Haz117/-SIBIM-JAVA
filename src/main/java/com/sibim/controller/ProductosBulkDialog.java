@@ -1,9 +1,6 @@
 package com.sibim.controller;
 
-import com.sibim.config.Areas;
 import com.sibim.model.Producto;
-import com.sibim.model.enums.TipoMovimiento;
-import com.sibim.service.MovimientoService;
 import com.sibim.service.ProductoService;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AnimationUtils;
@@ -11,7 +8,6 @@ import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.scene.Scene;
-import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextInputDialog;
 
@@ -31,60 +27,9 @@ final class ProductosBulkDialog {
 
     private ProductosBulkDialog() {}
 
-    // ── Transferir en lote ──────────────────────────────────────────────────
-
-    /**
-     * Shows a ChoiceDialog with all known areas and registers a TRANSFERENCIA
-     * movement for every selected bien not already there — the same path as
-     * a single transfer from Movimientos, so an admin's transfer applies at
-     * once (with a new código for the destination área) and anyone else's
-     * waits for approval. Rewriting {@code area} directly would skip the
-     * approval, the código and the movement history.
-     *
-     * @param sel        the selected products (must be >= 2)
-     * @param scene      scene used for theming, notifications, and progress
-     * @param service    MovimientoService instance from the controller
-     * @param table      table whose selected rows get a flash animation
-     * @param onSuccess  called after all transfers were registered
-     * @param onRetry    called when the user clicks "Reintentar" on error
-     */
-    static void showCambiarArea(
-            List<Producto> sel,
-            Scene scene,
-            MovimientoService service,
-            TableView<Producto> table,
-            Runnable onSuccess,
-            Runnable onRetry) {
-
-        var areaNames = new java.util.ArrayList<>(Areas.getAllAreaNames());
-        ChoiceDialog<String> dlg = new ChoiceDialog<>(areaNames.get(0), areaNames);
-        dlg.setTitle("Transferir bienes");
-        dlg.setHeaderText("Transferir " + sel.size() + " bienes seleccionados a otra área\n"
-            + "(los que tengan un resguardo, préstamo o comodato vigente no se moverán)");
-        dlg.setContentText("Área destino:");
-        DialogUtil.applyOwner(dlg);
-        DialogUtil.conEncabezado(dlg, "mdi2s-swap-horizontal");
-        dlg.showAndWait().ifPresent(area -> {
-            List<Producto> aMover = sel.stream().filter(p -> !area.equals(p.getArea())).toList();
-            if (aMover.isEmpty()) {
-                NotificacionUtil.info(scene, "Los bienes seleccionados ya están en \"" + area + "\"");
-                return;
-            }
-            table.lookupAll(".table-row-cell:selected")
-                 .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
-            DialogUtil.runAsyncWithProgress(scene, "Registrando transferencias…",
-                () -> porCadaBien(aMover, p -> service.registrar(p.getId(), TipoMovimiento.TRANSFERENCIA,
-                    Math.max(1, p.getStockActual()), "Transferencia en lote", null, area)),
-                r -> {
-                    onSuccess.run();
-                    if (r.ok() > 0) NotificacionUtil.exito(scene, FormatUtils.plural(r.ok(), "bien transferido", "bienes transferidos") + " a \"" + area + "\"");
-                    avisarFallidos(scene, r, "transferir");
-                },
-                e -> NotificacionUtil.errorConAccion(scene,
-                        "No se pudo registrar la transferencia: " + e.getMessage(), "Reintentar", onRetry)
-            );
-        });
-    }
+    // Transferir en lote is Transferir arrastrando with the selection already chosen
+    // (ProductosController#onTransferir): it takes the bienes out of their resguardo,
+    // asks the motivo and can be undone, which a plain list of áreas did not.
 
     // ── Cambiar resguardante en lote ────────────────────────────────────────
 
