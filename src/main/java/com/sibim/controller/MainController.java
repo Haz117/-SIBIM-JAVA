@@ -481,6 +481,7 @@ public class MainController {
             if (!com.sibim.session.Permisos.exportaHojasDeCalculo()) DialogUtil.quitarHojasDeCalculo(node);
             AccessibilityUtils.applyAccessibleTextFromTooltips(node);
             com.sibim.util.ResponsiveHeader.installAll(node);
+            com.sibim.util.TablaRedondeada.instalarTodas(node);
 
             if (currentController instanceof Refreshable r) r.stopAutoRefresh();
             currentController = loader.getController();

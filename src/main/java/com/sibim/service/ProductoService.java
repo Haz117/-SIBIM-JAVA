@@ -25,6 +25,9 @@ public class ProductoService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductoService.class);
 
+    /** The most a bien can cost per piece (the dearest of the inventory: $4.3 million). */
+    public static final BigDecimal PRECIO_MAXIMO = new BigDecimal("500000000");
+
     private final ProductoRepository productoRepo;
     private final AuditLogRepository auditRepo;
     private final PriceHistoryRepository priceHistoryRepo;
@@ -575,6 +578,11 @@ public class ProductoService {
             throw new ValidationException("El resguardante no puede exceder 200 caracteres");
         if (p.getFolioFiscal() != null && p.getFolioFiscal().length() > 60)
             throw new ValidationException("El folio fiscal no puede exceder 60 caracteres");
+        // A camión recolector got $2,880,280,000.00 for $2,880,280.00 on 28-oct-2026:
+        // nothing of the municipio costs that much a piece, so no path can save it.
+        if (p.getPrecioCompra() != null && p.getPrecioCompra().compareTo(PRECIO_MAXIMO) > 0)
+            throw new ValidationException("El costo de adquisición no puede pasar de "
+                + FormatUtils.formatCurrency(PRECIO_MAXIMO) + " por pieza: revisa que no le sobren ceros");
         if (productoRepo.existsByCodigo(p.getCodigo(), p.getId()))
             throw new ValidationException("Ya existe un bien con ese código");
         if (p.getCategoriaId() == null || p.getCategoriaId().isBlank())

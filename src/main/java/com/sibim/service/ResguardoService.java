@@ -71,16 +71,20 @@ public class ResguardoService {
         if (items == null || items.isEmpty())
             throw new IllegalArgumentException("Debe agregar al menos un bien al resguardo");
         // A signed resguardo says who holds the bien; two at once would contradict each other.
-        java.util.Set<String> vistos = new java.util.HashSet<>();
+        java.util.Set<String> vistos = new java.util.LinkedHashSet<>();
         for (ResguardoItem it : items) {
             String pid = it.getProductoId();
             if (pid == null) continue;
             if (!vistos.add(pid))
                 throw new IllegalArgumentException("El bien " + nombreDe(it) + " está repetido en el resguardo");
-            java.util.Optional<Resguardo> otro = repo.findActivoByProductoId(pid);
-            if (otro != null && otro.isPresent())
+        }
+        // One query for every bien (asking one by one took ~85 ms each).
+        java.util.Map<String, String> vigentes = repo.foliosActivos(vistos);
+        for (ResguardoItem it : items) {
+            String folio = it.getProductoId() != null && vigentes != null ? vigentes.get(it.getProductoId()) : null;
+            if (folio != null)
                 throw new IllegalArgumentException("El bien " + nombreDe(it) + " ya está en el resguardo vigente "
-                    + otro.get().getNumero() + "; quítalo primero de ese resguardo para reasignarlo");
+                    + folio + "; quítalo primero de ese resguardo para reasignarlo");
         }
         Resguardo r = new Resguardo();
         r.setResguardanteNombre(resguardanteNombre.trim());
@@ -107,11 +111,13 @@ public class ResguardoService {
         if (resguardanteArea != null && !resguardanteArea.isBlank()
                 && !com.sibim.session.Permisos.esAreaPropia(resguardanteArea))
             throw new SecurityException(FUERA_DE_AREA);
-        com.sibim.repository.ProductoRepository productos = new com.sibim.repository.ProductoRepository();
+        // The área's own bienes, from the list the dialog just loaded (kept in memory),
+        // instead of one query per bien; a bien of another área isn't in it.
+        java.util.Map<String, String> areaDe = new java.util.HashMap<>();
+        for (com.sibim.model.Producto p : new ProductoService().getAll()) areaDe.put(p.getId(), p.getArea());
         for (ResguardoItem it : items) {
             if (it.getProductoId() == null) continue;
-            String area = productos.findById(it.getProductoId()).map(com.sibim.model.Producto::getArea).orElse(null);
-            if (!com.sibim.session.Permisos.esAreaPropia(area)) throw new SecurityException(FUERA_DE_AREA);
+            if (!com.sibim.session.Permisos.esAreaPropia(areaDe.get(it.getProductoId()))) throw new SecurityException(FUERA_DE_AREA);
         }
     }
 
@@ -189,7 +195,30 @@ public class ResguardoService {
             Resguardo full = repo.findById(resguardo.getId());
             if (full != null) resguardo = full;
         }
+        List<com.sibim.model.Producto> vehiculos = soloVehiculos(resguardo);
+        if (!vehiculos.isEmpty()) return new ReporteResguardoVehicularService().exportar(vehiculos, resguardo);
         return generarPdf(resguardo);
+    }
+
+    /** The bienes of {@code r} when every one is a vehicle (Parque Vehicular rule):
+     *  those print on the municipio's own vehicle sheet, one each. Empty otherwise,
+     *  or when the inventory can't be read (the general sheet is printed then). */
+    private static List<com.sibim.model.Producto> soloVehiculos(Resguardo r) {
+        if (r.getItems() == null || r.getItems().isEmpty()) return List.of();
+        try {
+            java.util.Map<String, com.sibim.model.Producto> porId = new java.util.HashMap<>();
+            // The list kept in memory: a person's 33 resguardos print in one go.
+            for (com.sibim.model.Producto p : new ProductoService().getAll()) porId.put(p.getId(), p);
+            List<com.sibim.model.Producto> out = new java.util.ArrayList<>();
+            for (ResguardoItem it : r.getItems()) {
+                com.sibim.model.Producto p = it.getProductoId() != null ? porId.get(it.getProductoId()) : null;
+                if (p == null || !ReporteParqueVehicularService.esVehiculo(p)) return List.of();
+                out.add(p);
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     /** What Reportes › Resguardo de una persona prints, in one PDF: the chosen

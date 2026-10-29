@@ -206,6 +206,11 @@ public final class ProductoDialogFactory {
                 AnimationUtils.shake(lblFormError);
                 return;
             }
+            if (!precioConfirmado(new BigDecimal(pcText), existing)) {
+                tabs.getSelectionModel().select(1);
+                stockTab.fPrecioC.requestFocus();
+                return;
+            }
             savingNow[0] = true;
             if (okBtn instanceof Button b) b.fire();
         });
@@ -603,6 +608,22 @@ public final class ProductoDialogFactory {
         } else {
             p.setFacturaUrl(null);
         }
+    }
+
+    /** More than this per piece asks first: the dearest bien of the inventory cost
+     *  $4.3 million, and on 28-oct-2026 a camión recolector got $2,880,280,000.00
+     *  for $2,880,280.00 — three zeros too many, almost $2,900 million on every total. */
+    static final BigDecimal PRECIO_A_CONFIRMAR = new BigDecimal("10000000");
+
+    /** True when the price can be saved: under the limit, the one the bien already
+     *  had, or confirmed by whoever typed it. */
+    static boolean precioConfirmado(BigDecimal precio, Producto existing) {
+        if (precio.compareTo(PRECIO_A_CONFIRMAR) < 0) return true;
+        if (existing != null && existing.getPrecioCompra() != null && existing.getPrecioCompra().compareTo(precio) == 0)
+            return true;
+        return ConfirmacionUtil.confirmar("Costo muy alto",
+            "El costo de adquisición es de " + com.sibim.util.FormatUtils.formatCurrency(precio) + " por pieza, más de diez millones. "
+                + "Revisa que no le sobren ceros.\n\n¿Es correcto?");
     }
 
     private static String nombreUnico() {

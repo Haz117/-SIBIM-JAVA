@@ -46,6 +46,9 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             addEncabezadoAnexoV4(doc, folio);
 
             Table table = buildDataTable();
+            // A large table, drawn as it fills: laid out whole, the 3,138 bienes of
+            // 28-oct-2026 took 11.5 s and 370 MB, enough to fail on a PC with little memory.
+            doc.add(table);
             java.util.Map<String, String> folios = foliosDeResguardoVigente();
             BigDecimal totalAdq = BigDecimal.ZERO, totalDep = BigDecimal.ZERO, totalLibros = BigDecimal.ZERO;
             int idx = 0, sinDepreciacion = 0;
@@ -81,9 +84,10 @@ public class ReporteEntregaRecepcionService extends ReporteService {
                 addRow(table, moneda(depAcum),                                  alt, TextAlignment.RIGHT);
                 addRow(table, moneda(valorLibros),                              alt, TextAlignment.RIGHT);
                 addRow(table, p.getEstadoFisico(),                              alt, TextAlignment.CENTER);
+                if (idx % 50 == 0) table.flush();
             }
             addTotales(table, bienes.size(), totalAdq, totalDep, totalLibros);
-            doc.add(table);
+            table.complete();
             if (sinDepreciacion > 0)
                 doc.add(new Paragraph(notaSinDepreciacion(sinDepreciacion))
                     .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA)).setFontSize(6.5f)
@@ -161,7 +165,7 @@ public class ReporteEntregaRecepcionService extends ReporteService {
     private Table buildDataTable() throws Exception {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         // 17 columnas — anchos relativos pensados para A4 apaisado
-        Table t = tabla(5.6f, 6.2f, 5.4f, 6.8f, 7.2f, 11.4f, 6f, 5.2f,
+        Table t = tablaGrande(5.6f, 6.2f, 5.4f, 6.8f, 7.2f, 11.4f, 6f, 5.2f,
                         5.6f, 5.2f, 5.8f, 5.4f, 6.8f, 6.2f, 6.4f, 6f, 5.4f).setMarginTop(4);
 
         String[] headers = {

@@ -155,6 +155,7 @@ public final class DialogUtil {
         Runnable ajustar = () -> {
             AccessibilityUtils.applyAccessibleTextFromTooltips(pane);
             sinTextosCortados(pane);
+            TablaRedondeada.instalarTodas(pane);
         };
         pane.getButtonTypes().addListener(
             (javafx.collections.ListChangeListener<ButtonType>) c -> Platform.runLater(ajustar));

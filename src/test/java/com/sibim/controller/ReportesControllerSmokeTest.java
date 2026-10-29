@@ -58,7 +58,7 @@ class ReportesControllerSmokeTest extends ControllerSmokeTestBase {
                 javafx.scene.Node boton = ((javafx.scene.layout.HBox) fila).getChildren().get(2);
                 formatos.add(boton instanceof javafx.scene.control.MenuButton m ? m.getItems().size() : 1);
             }
-        assertEquals(java.util.List.of(4, 2, 3, 3, 3, 3, 1, 1, 1, 1, 1, 2), formatos);
+        assertEquals(java.util.List.of(4, 2, 3, 3, 3, 3, 1, 2, 1, 1, 1, 2), formatos);
     }
 
     /** Only Inventario and Movimientos follow the period, and their chip says which one. */

@@ -43,6 +43,16 @@ class ProductoServiceValidationTest {
         assertTrue(ex.getMessage().contains("nombre"));
     }
 
+    /** SPL/53 got $2,880,280,000.00 for $2,880,280.00 on 28-oct-2026: no path saves
+     *  more than $500 million a piece. */
+    @Test
+    void save_costoConCerosDeMas_noSeGuarda() {
+        Producto p = validProducto();
+        p.setPrecioCompra(new java.math.BigDecimal("2880280000.00"));
+        var ex = assertThrows(ProductoService.ValidationException.class, () -> service.save(p));
+        assertTrue(ex.getMessage().contains("sobren ceros"), ex.getMessage());
+    }
+
     @Test
     void save_blankNombre_throwsValidation() {
         Producto p = validProducto();

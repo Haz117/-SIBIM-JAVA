@@ -367,6 +367,39 @@ public class ResguardoRepository {
     }
 
     /** The active resguardo that covers {@code productoId}, if any. */
+    /** The folio of the resguardo in force of each of {@code productoIds} that has one,
+     *  in one query: asking bien by bien took ~85 ms each against the server, eight
+     *  seconds for a resguardo of a hundred bienes. Same scope as {@link #findByProductoId}. */
+    public java.util.Map<String, String> foliosActivos(java.util.Collection<String> productoIds) throws SQLException {
+        java.util.Map<String, String> folios = new java.util.HashMap<>();
+        if (productoIds == null || productoIds.isEmpty() || DatabaseConfig.isDemoMode()) return folios;
+        if (OfflineDocs.activo()) {
+            for (Resguardo r : locales()) {
+                if (!Resguardo.ESTADO_ACTIVO.equals(r.getEstado()) || r.getItems() == null) continue;
+                for (ResguardoItem it : r.getItems())
+                    if (productoIds.contains(it.getProductoId())) folios.putIfAbsent(it.getProductoId(), r.getNumero());
+            }
+            return folios;
+        }
+        List<Object> scopeParams = new ArrayList<>();
+        String scope = scopeCondicion(scopeParams);
+        String sql = "SELECT i.producto_id, r.numero FROM resguardos r"
+            + " JOIN resguardo_items i ON i.resguardo_id = r.id"
+            + " WHERE i.producto_id = ANY(?) AND r.estado = ?"
+            + (scope != null ? " AND " + scope : "")
+            + " ORDER BY r.created_at DESC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setArray(1, conn.createArrayOf("text", productoIds.toArray(new String[0])));
+            ps.setString(2, Resguardo.ESTADO_ACTIVO);
+            bindParams(ps, conn, scopeParams, 3);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) folios.putIfAbsent(rs.getString(1), rs.getString(2));
+            }
+        }
+        return folios;
+    }
+
     public java.util.Optional<Resguardo> findActivoByProductoId(String productoId) throws SQLException {
         return findByProductoId(productoId).stream()
             .filter(r -> Resguardo.ESTADO_ACTIVO.equals(r.getEstado()))

@@ -84,12 +84,18 @@
 }
 .data-table .column-header:hover .arrow { -fx-background-color: white; }
 .data-table .column-header:pressed { -fx-background-color: rgba(255,255,255,0.14); }
+/* Flush in a card (radius 20) it takes the card's corners, the header too: with
+   square top corners its white background covered the card's rounded ones. */
 .card > .data-table {
-    -fx-border-radius: 0 0 20 20;
-    -fx-background-radius: 0 0 20 20;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
     -fx-border-color: transparent;
     -fx-effect: none;
 }
+.card > .data-table .column-header-background { -fx-background-radius: 20 20 0 0; }
+/* The cell over the vertical scroll bar, at the header's right end: Modena
+   paints it as a grey button, a square corner on the rounded header. */
+.data-table .column-header-background .filler { -fx-background-color: transparent; }
 
 /* ── Inputs ── */
 .text-field {

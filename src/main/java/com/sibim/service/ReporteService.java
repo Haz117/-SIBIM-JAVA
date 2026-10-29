@@ -137,7 +137,7 @@ public class ReporteService {
         String lp = logoPath();
         if (lp == null) return null;
         try {
-            Image img = new Image(ImageDataFactory.create(lp));
+            Image img = new Image(logoDatos(lp));
             img.setMaxHeight(45).setMaxWidth(60).setAutoScale(false);
             img.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
             return img;
@@ -146,6 +146,19 @@ public class ReporteService {
                 .warn("No se pudo cargar el logo municipal '{}': {}", lp, e.getMessage());
             return null;
         }
+    }
+
+    private static String logoRuta;
+    private static ImageData logoImagen;
+
+    /** The logo decoded once per file: every card of the V.6 and every resguardo of
+     *  a combined PDF read and decoded it again. */
+    private static synchronized ImageData logoDatos(String ruta) throws java.net.MalformedURLException {
+        if (!ruta.equals(logoRuta)) {
+            logoImagen = ImageDataFactory.create(ruta);
+            logoRuta = ruta;
+        }
+        return logoImagen;
     }
 
     protected static final DeviceRgb COLOR_HEADER = new DeviceRgb(162, 35, 45); // guinda Pantone 1805 C
@@ -234,6 +247,14 @@ public class ReporteService {
      *  the same widths did not line up and narrow columns were crushed. */
     protected static Table tabla(float... relativos) {
         return new Table(com.itextpdf.layout.properties.UnitValue.createPercentArray(relativos))
+            .useAllAvailableWidth().setFixedLayout();
+    }
+
+    /** {@link #tabla} for thousands of rows: add it to the document first, then the
+     *  rows, {@code flush()} every few dozen and {@code complete()} at the end. It is
+     *  drawn as it fills instead of laid out whole in memory. */
+    protected static Table tablaGrande(float... relativos) {
+        return new Table(com.itextpdf.layout.properties.UnitValue.createPercentArray(relativos), true)
             .useAllAvailableWidth().setFixedLayout();
     }
 
@@ -496,8 +517,10 @@ public class ReporteService {
             addPdfHeader(doc, titulo, desde, hasta, folio);
             String[] headers = {"Bien", "Código", "Categoría", "Área", "Cantidad", "Valor", "Estado"};
             float[] widths = {3.2f, 1.2f, 1.7f, 2.6f, 0.9f, 1.4f, 1f};
-            Table table = createPdfTable(headers, widths);
+            Table table = createPdfTable(headers, widths, true);
             alinearDerecha(table, 4, 5);
+            // Drawn as it fills: the whole inventory is thousands of rows.
+            doc.add(table);
             int idx = 0;
             BigDecimal valorTotal = BigDecimal.ZERO;
             BigDecimal valorArea = BigDecimal.ZERO;
@@ -514,6 +537,7 @@ public class ReporteService {
                 table.addCell(num(fila(String.valueOf(p.getStockActual()), alt)));
                 table.addCell(num(fila(com.sibim.session.Permisos.pesos(valor), alt)));
                 table.addCell(fila(p.getEstado().getEtiqueta(), alt));
+                if (i % 50 == 49) table.flush();
                 if (!porArea) continue;
                 valorArea = valorArea.add(valor);
                 bienesArea++;
@@ -533,7 +557,7 @@ public class ReporteService {
             if (!porArea || areas > 1)
                 addFilaTotal(table, 5, "VALOR TOTAL DEL INVENTARIO  (" + productos.size() + " bienes)",
                     com.sibim.session.Permisos.pesos(valorTotal), "");
-            doc.add(table);
+            table.complete();
             addFirmasBlock(doc,
                 new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
                 new String[]{"VO.BO.", null, "Secretario General Municipal"});
@@ -870,7 +894,12 @@ public class ReporteService {
 
     /** A listing table. The header row repeats on every page. */
     protected Table createPdfTable(String[] headers, float[] widths) throws IOException {
-        Table table = tabla(widths).setMarginTop(8);
+        return createPdfTable(headers, widths, false);
+    }
+
+    /** @param grande a {@link #tablaGrande}: add it to the document before its rows */
+    protected Table createPdfTable(String[] headers, float[] widths, boolean grande) throws IOException {
+        Table table = (grande ? tablaGrande(widths) : tabla(widths)).setMarginTop(8);
         PdfFont hFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         for (String h : headers) {
             com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()

@@ -143,7 +143,23 @@
                 <Label text="CORREO DE CONTACTO" styleClass="profile-field-key"/>
                 <TextField fx:id="tfCorreoContacto" promptText="correo@municipio.gob.mx" maxWidth="Infinity"/>
             </VBox>
-            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2">
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                <Label text="RFC DEL MUNICIPIO" styleClass="profile-field-key"/>
+                <TextField fx:id="tfRfc" promptText="Ej. MIX-850101-5Q0" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                <Label text="DOMICILIO" styleClass="profile-field-key"/>
+                <TextField fx:id="tfDomicilio" promptText="Ej. Plaza Juárez S/N, Col. Centro C.P. 42300" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                <Label text="ELABORA LOS RESGUARDOS (RECURSOS MATERIALES Y PATRIMONIO)" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaElabora" promptText="Nombre de quien firma «Elaboró»" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                <Label text="VO. BO. (SECRETARÍA GENERAL MUNICIPAL)" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaVoBo" promptText="Nombre de quien firma «Vo. Bo.»" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2">
                 <Label text="LOGO DEL AYUNTAMIENTO" styleClass="profile-field-key"/>
                 <HBox spacing="8" alignment="CENTER_LEFT">
                     <TextField fx:id="tfLogoPath" promptText="Ruta al archivo de imagen (PNG, JPG)" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
@@ -154,7 +170,7 @@
                 </HBox>
                 <Label text="Se muestra en la pantalla de inicio al abrir la aplicación." styleClass="muted-sm"/>
             </VBox>
-            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2">
                 <HBox spacing="6" alignment="CENTER_LEFT">
                     <Label text="TIEMPO DE INACTIVIDAD (MINUTOS)" styleClass="profile-field-key"/>
                     <Label text="?" styleClass="help-badge">

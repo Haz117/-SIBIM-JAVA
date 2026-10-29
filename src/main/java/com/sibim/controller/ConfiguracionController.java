@@ -66,6 +66,10 @@ public class ConfiguracionController {
     @FXML private TextField                               tfMunicipio;
     @FXML private TextField                               tfResponsable;
     @FXML private TextField                               tfCorreoContacto;
+    @FXML private TextField                               tfRfc;
+    @FXML private TextField                               tfDomicilio;
+    @FXML private TextField                               tfFirmaElabora;
+    @FXML private TextField                               tfFirmaVoBo;
     @FXML private TextField                               tfLogoPath;
     @FXML private Button                                  btnLogoPath;
     @FXML private Button                                  btnGuardarConfig;
@@ -286,6 +290,10 @@ public class ConfiguracionController {
                 if (tfMunicipio         != null) tfMunicipio.setText(municipio);
                 if (tfResponsable       != null) tfResponsable.setText(cfg.getOrDefault("responsable", ""));
                 if (tfCorreoContacto    != null) tfCorreoContacto.setText(cfg.getOrDefault("correo_contacto", ""));
+                if (tfRfc               != null) tfRfc.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_RFC, ""));
+                if (tfDomicilio         != null) tfDomicilio.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_DOMICILIO, ""));
+                if (tfFirmaElabora      != null) tfFirmaElabora.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_ELABORA, ""));
+                if (tfFirmaVoBo         != null) tfFirmaVoBo.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_VOBO, ""));
                 if (tfLogoPath          != null) tfLogoPath.setText(cfg.getOrDefault("logo_path", ""));
                 if (spInactividadTimeout != null) {
                     try { spInactividadTimeout.getValueFactory().setValue(
@@ -305,6 +313,8 @@ public class ConfiguracionController {
                 if (tfResponsable       != null) tfResponsable.setEditable(isAdmin);
                 if (tfCorreoContacto    != null) tfCorreoContacto.setEditable(isAdmin);
                 if (tfLogoPath          != null) tfLogoPath.setEditable(isAdmin);
+                for (javafx.scene.control.TextField tf : new javafx.scene.control.TextField[]{tfRfc, tfDomicilio, tfFirmaElabora, tfFirmaVoBo})
+                    if (tf != null) tf.setEditable(isAdmin);
                 if (btnLogoPath         != null) btnLogoPath.setDisable(!isAdmin);
                 if (lblConfigHint != null)
                     lblConfigHint.setText(isAdmin ? "Los cambios afectan reportes y documentos" : "Solo el administrador puede guardar cambios");
@@ -312,7 +322,8 @@ public class ConfiguracionController {
                 if (isAdmin) javafx.application.Platform.runLater(() -> {
                     configDirty = false;
                     for (javafx.scene.control.TextField tf : new javafx.scene.control.TextField[]{
-                            tfNombreAyuntamiento, tfMunicipio, tfResponsable, tfCorreoContacto, tfLogoPath}) {
+                            tfNombreAyuntamiento, tfMunicipio, tfResponsable, tfCorreoContacto, tfLogoPath,
+                            tfRfc, tfDomicilio, tfFirmaElabora, tfFirmaVoBo}) {
                         if (tf != null) tf.textProperty().addListener((o, a, b) -> markConfigDirty());
                     }
                     if (spInactividadTimeout != null)
@@ -343,6 +354,10 @@ public class ConfiguracionController {
         String municipio = tfMunicipio != null ? tfMunicipio.getText().strip() : "";
         String resp      = tfResponsable != null ? tfResponsable.getText().strip() : "";
         String correo    = tfCorreoContacto != null ? tfCorreoContacto.getText().strip() : "";
+        String rfc       = tfRfc != null ? tfRfc.getText().strip() : "";
+        String domicilio = tfDomicilio != null ? tfDomicilio.getText().strip() : "";
+        String elabora   = tfFirmaElabora != null ? tfFirmaElabora.getText().strip() : "";
+        String vobo      = tfFirmaVoBo != null ? tfFirmaVoBo.getText().strip() : "";
         String logoPath  = tfLogoPath != null ? tfLogoPath.getText().strip() : "";
         int inactividadMin = spInactividadTimeout != null && spInactividadTimeout.getValue() != null
             ? Math.max(6, spInactividadTimeout.getValue()) : 30;
@@ -352,6 +367,10 @@ public class ConfiguracionController {
                 configRepo.set("municipio",                  municipio);
                 configRepo.set("responsable",                resp);
                 configRepo.set("correo_contacto",            correo);
+                configRepo.set(com.sibim.service.ReporteResguardoVehicularService.CLAVE_RFC,       rfc);
+                configRepo.set(com.sibim.service.ReporteResguardoVehicularService.CLAVE_DOMICILIO, domicilio);
+                configRepo.set(com.sibim.service.ReporteResguardoVehicularService.CLAVE_ELABORA,   elabora);
+                configRepo.set(com.sibim.service.ReporteResguardoVehicularService.CLAVE_VOBO,      vobo);
                 configRepo.set("logo_path",                  logoPath);
                 // The image itself goes to the database so every PC prints the
                 // same logo (logo_path alone only exists on this PC). A path

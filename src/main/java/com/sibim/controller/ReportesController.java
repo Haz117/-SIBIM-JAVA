@@ -160,9 +160,13 @@ public class ReportesController {
                 "Todos los bienes con resguardante, valor de adquisición, depreciación acumulada, valor en libros y condición. Para actos formales de entrega-recepción.",
                 null, null, List.of(pdf(completo(
                     () -> reporteService.exportEntregaRecepcionPdf(productoService.getAll()))))));
-            oficiales.add(ReporteFila.crear("mdi2c-car-outline", "indigo", "Parque Vehicular (V.6)",
-                "Una ficha por vehículo con identificación, condición y lista de verificación de componentes. Incluye el equipo de transporte (clave 1.2.4.4) y la maquinaria con tipo de bien.",
-                null, null, List.of(pdf(completo(this::exportarParqueVehicular)))));
+            oficiales.add(ReporteFila.crear("mdi2c-car-outline", "indigo", "Parque Vehicular",
+                "El anexo V.6 de entrega-recepción (una ficha por vehículo con su lista de verificación) o el resguardo individual de cada vehículo, con fotos, responsiva y firmas. Incluye el equipo de transporte (clave 1.2.4.4) y la maquinaria.",
+                null, "Generar", List.of(
+                    new ReporteFila.Formato("Inventario (anexo V.6)", "mdi2f-file-pdf-box", "report-export-icon-pdf",
+                        completo(this::exportarParqueVehicular)),
+                    new ReporteFila.Formato("Resguardo por vehículo", "mdi2c-car-outline", "report-export-icon-pdf",
+                        completo(this::exportarResguardosVehiculares)))));
             oficiales.add(ReporteFila.crear("mdi2s-shield-lock-outline", "purple", "Auditoría Consolidada",
                 "Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Para auditorías y cambios de administración.",
                 null, null, List.of(pdf(completo(reporteService::exportAuditoriaPdf)))));
@@ -485,6 +489,14 @@ public class ReportesController {
     /** A report that always covers the whole history. */
     private Runnable completo(ExportTask task) {
         return () -> exportar(task, false);
+    }
+
+    /** The resguardo individual of every vehicle, one sheet each, with the resguardo in force. */
+    private File exportarResguardosVehiculares() throws Exception {
+        var vehiculos = productoService.getAll().stream()
+            .filter(com.sibim.service.ReporteParqueVehicularService::esVehiculo)
+            .toList();
+        return new com.sibim.service.ReporteResguardoVehicularService().exportar(vehiculos);
     }
 
     private File exportarParqueVehicular() throws Exception {
