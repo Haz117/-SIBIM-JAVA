@@ -311,7 +311,7 @@
         <Button text="Resguardo PDF" onAction="#onBulkResguardoPdf"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Genera un PDF de resguardo con los bienes seleccionados"/></tooltip>
+            <tooltip><Tooltip text="Genera un PDF de resguardo con los bienes seleccionados: uno por cada resguardante"/></tooltip>
         </Button>
         <Button text="Etiquetas QR" onAction="#onBulkEtiquetasQr"
                 styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">

@@ -66,6 +66,30 @@ class ReporteResguardoServiceTest {
         assertFileProduced(service.exportarResguardoPdf(null, null, List.of(activo)), ".pdf");
     }
 
+    /** Bienes › selection › Resguardo PDF with bienes of two people: each signs for
+     *  their own (everything went under the first one's name). */
+    @Test void seleccionDeVariasPersonas_unResguardoPorCadaUna() throws Exception {
+        Producto deJuan = new Producto();
+        deJuan.setId("p-03"); deJuan.setNombre("Escritorio"); deJuan.setCodigo("MOB-002");
+        deJuan.setResguardante("JUAN PEREZ"); deJuan.setStockActual(1);
+        Producto deAna = new Producto();
+        deAna.setId("p-04"); deAna.setNombre("Impresora"); deAna.setCodigo("INF-002");
+        deAna.setResguardante("Ana Ruiz"); deAna.setArea("Contraloría"); deAna.setStockActual(1);
+
+        File pdf = ReporteService.getInstance().exportarResguardoPorResguardante(List.of(activo, deAna, deJuan, sinExtras));
+        List<String> paginas = new java.util.ArrayList<>();
+        try (var doc = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+            for (int i = 1; i <= doc.getNumberOfPages(); i++)
+                paginas.add(com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(doc.getPage(i)));
+        }
+        String todo = String.join("\n", paginas);
+        assertTrue(paginas.size() >= 3, "Juan (con JUAN PEREZ), Ana y los sin resguardante: " + paginas.size());
+        String deJuanPdf = paginas.stream().filter(t -> t.contains("INF-001")).findFirst().orElseThrow();
+        assertTrue(deJuanPdf.contains("MOB-002"), "«JUAN PEREZ» es Juan Pérez: un solo resguardo");
+        assertFalse(deJuanPdf.contains("INF-002"), "la impresora de Ana no va en el de Juan");
+        assertTrue(todo.toUpperCase().contains("SIN RESGUARDANTE"));
+    }
+
     /** Printed from a selection in Bienes without registering a resguardo: its own
      *  folio series, so the registered resguardos (RSG) keep a numbering without gaps. */
     @Test void resguardoSinRegistrar_noTomaFolioDeLosRegistrados() throws Exception {

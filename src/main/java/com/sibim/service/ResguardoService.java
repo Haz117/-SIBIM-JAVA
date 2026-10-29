@@ -192,6 +192,92 @@ public class ResguardoService {
         return generarPdf(resguardo);
     }
 
+    /** What Reportes › Resguardo de una persona prints, in one PDF: the chosen
+     *  resguardos as Resguardos prints them and, if asked, the bienes in the person's
+     *  name that are in no resguardo in force, from the inventory (as Bienes ›
+     *  Resguardo PDF does, with its own RSP folio). */
+    public File exportarDePersona(Resguardante persona, List<Resguardo> elegidos, boolean conSinResguardo)
+            throws Exception {
+        boolean sueltos = conSinResguardo && !persona.sinResguardo().isEmpty();
+        if (elegidos.isEmpty() && !sueltos)
+            throw new IllegalArgumentException("Elige al menos un resguardo");
+        List<File> partes = new java.util.ArrayList<>();
+        try {
+            for (Resguardo r : elegidos) partes.add(exportarPdf(r));
+            if (sueltos) {
+                String area = persona.sinResguardo().stream().map(com.sibim.model.Producto::getArea)
+                    .filter(a -> a != null && !a.isBlank()).findFirst().orElse("");
+                partes.add(reporteService.exportarResguardoPdf(persona.nombre(), area, persona.sinResguardo()));
+            }
+        } catch (Exception e) {
+            partes.forEach(File::delete);
+            throw e;
+        }
+        return partes.size() == 1 ? partes.get(0) : ReporteService.unirPdfs(partes, "resguardos");
+    }
+
+    /** One person: every resguardo in their name (newest first) and the active bienes
+     *  that name them as resguardante but are in no resguardo in force — loaded with
+     *  the inventory, most of them never had one registered. */
+    public record Resguardante(String nombre, List<Resguardo> resguardos, List<com.sibim.model.Producto> sinResguardo) {
+        public List<String> areas() {
+            return java.util.stream.Stream.concat(
+                    resguardos.stream().map(Resguardo::getResguardanteArea),
+                    sinResguardo.stream().map(com.sibim.model.Producto::getArea))
+                .filter(a -> a != null && !a.isBlank()).distinct().toList();
+        }
+        public long activos() { return resguardos.stream().filter(Resguardo::isActivo).count(); }
+        /** What the person search shows and matches: the name, and the área when there is one. */
+        public String texto() {
+            List<String> areas = areas();
+            return nombre + (areas.size() == 1 ? " · " + areas.get(0)
+                : areas.size() > 1 ? " · " + areas.size() + " áreas" : "");
+        }
+    }
+
+    /** The people, alphabetically, from the resguardos and from the inventory.
+     *  "Juan Pérez" and "JUAN  PEREZ" are the same person (the name is typed by
+     *  hand); the name shown is how their newest resguardo spells it ({@link #getAll}
+     *  comes newest first), or the inventory when they have none. */
+    public static List<Resguardante> porResguardante(List<Resguardo> resguardos, List<com.sibim.model.Producto> bienes) {
+        java.util.Map<String, String> nombres = new java.util.HashMap<>();
+        java.util.Map<String, List<Resguardo>> deResguardos = new java.util.HashMap<>();
+        java.util.Set<String> resguardados = new java.util.HashSet<>();
+        for (Resguardo r : resguardos) {
+            String nombre = r.getResguardanteNombre();
+            if (nombre == null || nombre.isBlank()) continue;
+            String clave = clavePersona(nombre);
+            nombres.putIfAbsent(clave, nombre.trim().replaceAll("\\s+", " "));
+            deResguardos.computeIfAbsent(clave, k -> new java.util.ArrayList<>()).add(r);
+            if (r.isActivo() && r.getItems() != null)
+                r.getItems().forEach(it -> resguardados.add(it.getProductoId()));
+        }
+        java.util.Map<String, List<com.sibim.model.Producto>> sueltos = new java.util.HashMap<>();
+        for (com.sibim.model.Producto p : bienes) {
+            String nombre = p.getResguardante();
+            if (nombre == null || nombre.isBlank() || p.getFechaBaja() != null || resguardados.contains(p.getId())) continue;
+            String clave = clavePersona(nombre);
+            nombres.putIfAbsent(clave, nombre.trim().replaceAll("\\s+", " "));
+            sueltos.computeIfAbsent(clave, k -> new java.util.ArrayList<>()).add(p);
+        }
+        java.text.Collator orden = java.text.Collator.getInstance(java.util.Locale.forLanguageTag("es-MX"));
+        orden.setStrength(java.text.Collator.PRIMARY);
+        return nombres.entrySet().stream()
+            .map(e -> new Resguardante(e.getValue(),
+                List.copyOf(deResguardos.getOrDefault(e.getKey(), List.of())),
+                sueltos.getOrDefault(e.getKey(), List.of()).stream()
+                    .sorted(java.util.Comparator.comparing(
+                        p -> java.util.Objects.requireNonNullElse(p.getCodigo(), ""), ReporteService.POR_CODIGO))
+                    .toList()))
+            .sorted(java.util.Comparator.comparing(Resguardante::nombre, orden))
+            .toList();
+    }
+
+    static String clavePersona(String nombre) {
+        return java.text.Normalizer.normalize(nombre.trim(), java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}+", "").replaceAll("\\s+", " ").toUpperCase(java.util.Locale.ROOT);
+    }
+
     private String orgName() {
         String org = configRepo.get("nombre_ayuntamiento", "");
         String mun = configRepo.get("municipio", "");

@@ -208,4 +208,76 @@ class ResguardoServiceTest {
         assertFalse(t.contains("piezas: Mesa"), "una sola pieza no lo dice");
         assertTrue(t.contains("20,500.00"), "20 × $1,000 + $500");
     }
+
+    private static Resguardo resguardo(String numero, String nombre, String area, String estado) {
+        Resguardo r = new Resguardo();
+        r.setId("id-" + numero); r.setNumero(numero); r.setResguardanteNombre(nombre);
+        r.setResguardanteArea(area); r.setEstado(estado);
+        r.setItems(List.of(item()));
+        return r;
+    }
+
+    private static com.sibim.model.Producto bien(String id, String codigo, String resguardante, String area) {
+        com.sibim.model.Producto p = new com.sibim.model.Producto();
+        p.setId(id); p.setCodigo(codigo); p.setNombre("Bien " + codigo);
+        p.setResguardante(resguardante); p.setArea(area); p.setStockActual(1);
+        return p;
+    }
+
+    /** Reportes › Resguardo de una persona: the name is typed by hand on each
+     *  resguardo, so case, accents and double spaces don't make two people; and the
+     *  inventory brings the people that never had a resguardo registered (90 of 316
+     *  in the backup of 28-oct-2026). */
+    @Test
+    void porResguardante_juntaLosResguardosDeLaMismaPersona_yLosBienesSinResguardo() {
+        Resguardo vigente = resguardo("RSG-3", "Juan Pérez", "Tesorería Municipal", Resguardo.ESTADO_ACTIVO);
+        com.sibim.model.Producto baja = bien("p-09", "SGM/09", "Luis Soto", "Obras Públicas");
+        baja.setFechaBaja(java.time.LocalDate.of(2026, 10, 1));
+        List<ResguardoService.Resguardante> personas = ResguardoService.porResguardante(List.of(
+                vigente,
+                resguardo("RSG-2", "Ángela Ruiz", "Contraloría", Resguardo.ESTADO_ACTIVO),
+                resguardo("RSG-1", "JUAN  PEREZ ", "Obras Públicas", Resguardo.ESTADO_CANCELADO),
+                resguardo("RSG-0", "  ", null, Resguardo.ESTADO_ACTIVO)),
+            List.of(bien("p-01", "TES/01", "Juan Pérez", "Tesorería Municipal"),   // in RSG-3 (item p-01)
+                    bien("p-10", "TES/10", "juan perez", "Tesorería Municipal"),
+                    bien("p-02", "TES/2", "JUAN PÉREZ", "Tesorería Municipal"),
+                    bien("p-05", "OP/05", "Beatriz Ortiz", "Obras Públicas"),
+                    baja,
+                    bien("p-06", "OP/06", null, "Obras Públicas")));
+        assertEquals(List.of("Ángela Ruiz", "Beatriz Ortiz", "Juan Pérez"),
+            personas.stream().map(ResguardoService.Resguardante::nombre).toList(),
+            "Á va con la A; el resguardo más nuevo da el nombre; una baja no trae a nadie");
+        ResguardoService.Resguardante juan = personas.get(2);
+        assertEquals(List.of("RSG-3", "RSG-1"), juan.resguardos().stream().map(Resguardo::getNumero).toList());
+        assertEquals(1, juan.activos());
+        assertEquals(List.of("TES/2", "TES/10"), juan.sinResguardo().stream().map(com.sibim.model.Producto::getCodigo).toList(),
+            "el que ya está en su resguardo vigente no se repite; orden por número");
+        assertEquals("Juan Pérez · 2 áreas", juan.texto());
+        assertEquals("Ángela Ruiz · Contraloría", personas.get(0).texto());
+        ResguardoService.Resguardante beatriz = personas.get(1);
+        assertTrue(beatriz.resguardos().isEmpty());
+        assertEquals("Beatriz Ortiz · Obras Públicas", beatriz.texto());
+    }
+
+    @Test
+    void lo_elegido_deUnaPersona_saleEnUnSoloPdf() throws Exception {
+        when(mockCfg.get(any(), any())).thenReturn("");
+        Resguardo r11 = resguardo("RSG-2026-000011", "Ana García", "Contraloría", Resguardo.ESTADO_ACTIVO);
+        Resguardo r12 = resguardo("RSG-2026-000012", "Ana García", "Contraloría", Resguardo.ESTADO_ACTIVO);
+        ResguardoService.Resguardante ana = new ResguardoService.Resguardante("Ana García", List.of(r12, r11),
+            List.of(bien("p-20", "CON/20", "Ana García", "Contraloría")));
+        java.io.File pdf;
+        com.sibim.db.DatabaseConfig.setDemoMode(true);   // the header logo reads configuracion
+        try {
+            pdf = service.exportarDePersona(ana, List.of(r11, r12), true);
+            assertThrows(IllegalArgumentException.class, () -> service.exportarDePersona(ana, List.of(), false));
+        } finally { com.sibim.db.DatabaseConfig.setDemoMode(false); }
+        try (var d = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+            assertEquals(3, d.getNumberOfPages());
+            assertTrue(com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(d.getPage(1)).contains("RSG-2026-000011"));
+            assertTrue(com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(d.getPage(2)).contains("RSG-2026-000012"));
+            String sueltos = com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(d.getPage(3));
+            assertTrue(sueltos.contains("CON/20") && sueltos.contains("RSP-"), sueltos);
+        }
+    }
 }

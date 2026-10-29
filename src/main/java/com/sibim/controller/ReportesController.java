@@ -3,6 +3,7 @@ package com.sibim.controller;
 import com.sibim.model.Producto;
 import com.sibim.service.ProductoService;
 import com.sibim.service.ReporteService;
+import com.sibim.service.ResguardoService;
 import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppExecutor;
@@ -166,6 +167,9 @@ public class ReportesController {
                 "Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Para auditorías y cambios de administración.",
                 null, null, List.of(pdf(completo(reporteService::exportAuditoriaPdf)))));
         }
+        oficiales.add(ReporteFila.crear("mdi2b-badge-account-outline", "teal", "Resguardo de una persona",
+            "Busca al resguardante por su nombre y genera el PDF de sus resguardos (el mismo de Resguardos) o de los bienes que tiene a su nombre sin resguardo.",
+            null, null, List.of(pdf(this::resguardoDePersona))));
         // Every área has the two formats a baja needs; only Patrimonio registers the baja itself.
         oficiales.add(ReporteFila.crear("mdi2f-file-remove-outline", "amber", "Solicitud de Baja",
             "Lo llena y firma el área que tiene el bien para pedir su baja a Patrimonio. Una página por bien.",
@@ -300,6 +304,153 @@ public class ReportesController {
             exportar(() -> conFotos ? reporteService.exportInventarioFotografico(elegidos)
                                     : reporteService.exportInventarioSinFotos(elegidos), false);
         });
+    }
+
+    // ── Resguardo de una persona ───────────────────────────────────────────────
+
+    /** The PDF Resguardos prints, found by the person instead of the folio, and the
+     *  bienes in their name that no resguardo covers; an área only finds its own
+     *  people (the repositories return only its resguardos and bienes). */
+    private void resguardoDePersona() {
+        Scene scene = spinner.getScene();
+        if (scene == null) return;
+        DialogUtil.runAsyncWithProgress(scene, "Cargando resguardantes…",
+            () -> ResguardoService.porResguardante(new ResguardoService().getAll(), productoService.getAll()),
+            personas -> elegirPersona(personas, scene),
+            e -> NotificacionUtil.error(scene, "No se pudieron cargar los resguardos"));
+    }
+
+    private void elegirPersona(List<ResguardoService.Resguardante> personas, Scene scene) {
+        if (personas.isEmpty()) { NotificacionUtil.advertencia(scene, "No hay bienes con resguardante"); return; }
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        DialogUtil.applyOwner(dlg);
+        dlg.setTitle("Resguardo de una persona");
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dlg.getDialogPane().setPrefWidth(560);
+        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        javafx.scene.layout.HBox header = DialogUtil.gradientHeader("mdi2b-badge-account-outline",
+            "Resguardo de una persona", "Busca al resguardante y elige qué imprimir",
+            com.sibim.util.AppColors.PRIMARY, com.sibim.util.AppColors.PRIMARY_D);
+
+        ComboBox<ResguardoService.Resguardante> persona = new ComboBox<>();
+        persona.setPromptText("Buscar persona por nombre o área…");
+        persona.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(ResguardoService.Resguardante p) { return p == null ? "" : p.texto(); }
+            @Override public ResguardoService.Resguardante fromString(String s) {
+                return s == null ? null : personas.stream().filter(p -> p.texto().equals(s.trim())).findFirst().orElse(null);
+            }
+        });
+        DialogUtil.makeFilterable(persona, personas, ResguardoService.Resguardante::texto);
+        persona.setMaxWidth(Double.MAX_VALUE);
+        persona.getStyleClass().add("form-input");
+
+        VBox lista = new VBox(2);
+        ScrollPane scroll = new ScrollPane(lista);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(220);
+        scroll.getStyleClass().add("area-elegir-lista");
+        Label resumen = new Label("Busca a la persona para ver sus resguardos");
+        resumen.setWrapText(true);
+        resumen.getStyleClass().add("table-count-label");
+
+        Button ok = (Button) dlg.getDialogPane().lookupButton(ButtonType.OK);
+        ok.setText("Generar PDF");
+        ok.getStyleClass().add("dialog-ok-btn");
+        ok.setDisable(true);
+        List<CheckBox> casillas = new ArrayList<>();
+        CheckBox[] sinResguardo = { null };
+        Runnable actualizar = () -> {
+            List<com.sibim.model.Resguardo> elegidos = elegidos(casillas);
+            ResguardoService.Resguardante p = persona.getValue();
+            boolean sueltos = sinResguardo[0] != null && sinResguardo[0].isSelected();
+            int documentos = elegidos.size() + (sueltos ? 1 : 0);
+            int bienes = elegidos.stream().mapToInt(r -> r.getItems().size()).sum()
+                + (sueltos ? p.sinResguardo().size() : 0);
+            if (p != null) resumen.setText(documentos == 0 ? "Nada elegido"
+                : FormatUtils.plural(documentos, "resguardo", "resguardos") + " · "
+                    + FormatUtils.plural(bienes, "bien", "bienes")
+                    + (documentos > 1 ? " — salen juntos en un solo PDF" : ""));
+            ok.setDisable(documentos == 0);
+        };
+        persona.valueProperty().addListener((o, a, p) -> {
+            casillas.clear();
+            sinResguardo[0] = null;
+            lista.getChildren().clear();
+            if (p == null) { resumen.setText("Busca a la persona para ver sus resguardos"); actualizar.run(); return; }
+            for (com.sibim.model.Resguardo r : p.resguardos()) {
+                CheckBox cb = new CheckBox(r.getNumero() + " · " + FormatUtils.plural(r.getItems().size(), "bien", "bienes")
+                    + (r.getCreadoEn() != null ? " · " + FormatUtils.formatDate(r.getCreadoEn().toLocalDate()) : ""));
+                cb.setUserData(r);
+                // What is in force is what gets signed; a cancelled one can still be marked.
+                cb.setSelected(r.isActivo());
+                casillas.add(cb);
+                lista.getChildren().add(filaElegible(cb, r.getResguardanteArea(),
+                    r.isActivo() ? "Vigente" : "Cancelado", r.isActivo() ? "cell-badge-success" : "cell-badge-blue", actualizar));
+            }
+            if (!p.sinResguardo().isEmpty()) {
+                CheckBox cb = new CheckBox("Sin resguardo registrado · " + FormatUtils.plural(p.sinResguardo().size(), "bien", "bienes"));
+                cb.setTooltip(new Tooltip("Bienes que el inventario tiene a su nombre y no están en ningún resguardo vigente. "
+                    + "Salen del inventario, como en Bienes › Resguardo PDF, con folio RSP."));
+                // Ticked when it is all the person has; next to registered ones it is an extra.
+                cb.setSelected(p.activos() == 0);
+                sinResguardo[0] = cb;
+                List<String> areas = p.sinResguardo().stream().map(Producto::getArea)
+                    .filter(x -> x != null && !x.isBlank()).distinct().toList();
+                lista.getChildren().add(filaElegible(cb, areas.size() == 1 ? areas.get(0) : null,
+                    "Del inventario", "cell-badge-warning", actualizar));
+            }
+            actualizar.run();
+        });
+
+        VBox content = new VBox(10, header, persona, scroll, resumen);
+        content.setPadding(new javafx.geometry.Insets(0, 16, 16, 16));
+        dlg.getDialogPane().setContent(DialogUtil.conEncabezadoArriba(content));
+        Platform.runLater(persona.getEditor()::requestFocus);
+
+        dlg.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
+            ResguardoService.Resguardante p = persona.getValue();
+            List<com.sibim.model.Resguardo> elegidos = elegidos(casillas);
+            boolean sueltos = sinResguardo[0] != null && sinResguardo[0].isSelected();
+            exportar(() -> new ResguardoService().exportarDePersona(p, elegidos, sueltos), false);
+        });
+    }
+
+    /** One row of what a person can print: the box, the área and a badge; a click
+     *  anywhere on it toggles the box. */
+    private static javafx.scene.layout.HBox filaElegible(CheckBox cb, String area, String insignia,
+                                                         String claseInsignia, Runnable alCambiar) {
+        cb.setMaxWidth(Double.MAX_VALUE);
+        javafx.scene.layout.HBox.setHgrow(cb, javafx.scene.layout.Priority.ALWAYS);
+        Label lblArea = new Label(area != null ? area : "");
+        lblArea.getStyleClass().add("muted-sm");
+        lblArea.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        Label badge = new Label(insignia);
+        badge.getStyleClass().addAll("cell-badge", claseInsignia);
+        badge.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        javafx.scene.layout.HBox fila = new javafx.scene.layout.HBox(8, cb, lblArea, badge);
+        fila.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        fila.getStyleClass().add("area-elegir-fila");
+        // The box and its text toggle themselves; the rest of the row does it here.
+        fila.setOnMouseClicked(e -> { if (!dentroDe(e.getTarget(), cb)) cb.setSelected(!cb.isSelected()); });
+        cb.selectedProperty().addListener((obs, antes, si) -> {
+            fila.getStyleClass().remove("area-elegir-fila-sel");
+            if (si) fila.getStyleClass().add("area-elegir-fila-sel");
+            alCambiar.run();
+        });
+        if (cb.isSelected()) fila.getStyleClass().add("area-elegir-fila-sel");
+        return fila;
+    }
+
+    private static List<com.sibim.model.Resguardo> elegidos(List<CheckBox> casillas) {
+        return casillas.stream().filter(CheckBox::isSelected)
+            .map(cb -> (com.sibim.model.Resguardo) cb.getUserData()).toList();
+    }
+
+    private static boolean dentroDe(Object objetivo, Node nodo) {
+        for (Node n = objetivo instanceof Node o ? o : null; n != null; n = n.getParent())
+            if (n == nodo) return true;
+        return false;
     }
 
     /** The Inventario General in PDF comes alphabetical or ordered by área; Excel

@@ -815,38 +815,47 @@ public class ProductosController {
     /** Formato MLA: descripción, número de inventario y fotografía de los bienes seleccionados. */
     @FXML
     private void onExportInventarioFotografico() {
-        List<Producto> sel = getSelectedProductos();
+        int max = com.sibim.service.ReporteInventarioFotograficoService.maxBienesConFotos();
+        conLosDelFiltro(getSelectedProductos(), "Inventario fotográfico", "mdi2i-image-multiple-outline",
+            "en el inventario fotográfico", max, "Con fotos caben hasta " + max
+                + " bienes por documento: filtra por área o categoría, o usa Reportes › Inventario por área",
+            this::exportarInventarioFotografico);
+    }
+
+    /** The table shows one page: a whole page selected while the filter has more
+     *  (an área of 120 at 25 per page) printed just those 25 without saying so.
+     *  Then it asks whether it is all of the filter or just these and hands that
+     *  to {@code accion}; any other selection goes as it is.
+     *  @param max the most bienes "all of the filter" may be; {@code demasiados} says so */
+    private void conLosDelFiltro(List<Producto> sel, String titulo, String icono, String enQue,
+                                 int max, String demasiados, java.util.function.Consumer<List<Producto>> accion) {
         if (sel.isEmpty()) return;
-        // The table shows one page: a whole page selected while the filter has more
-        // (an área of 120 at 25 per page) printed just those 25 without saying so.
         if (sel.size() == filteredData.size() && totalFiltered > sel.size()) {
             ButtonType todos = new ButtonType("Los " + totalFiltered + " del filtro", ButtonBar.ButtonData.OK_DONE);
             ButtonType pagina = new ButtonType("Solo estos " + sel.size(), ButtonBar.ButtonData.OTHER);
             Alert pregunta = new Alert(Alert.AlertType.NONE,
                 "Seleccionaste los " + sel.size() + " bienes de esta página, pero el filtro tiene " + totalFiltered
-                    + ". ¿Cuáles van en el inventario fotográfico?", todos, pagina, ButtonType.CANCEL);
-            pregunta.setTitle("Inventario fotográfico");
+                    + ". ¿Cuáles van " + enQue + "?", todos, pagina, ButtonType.CANCEL);
+            pregunta.setTitle(titulo);
             DialogUtil.applyOwner(pregunta);
-            DialogUtil.conEncabezado(pregunta, "mdi2i-image-multiple-outline");
+            DialogUtil.conEncabezado(pregunta, icono);
             Optional<ButtonType> r = pregunta.showAndWait();
             if (r.isEmpty() || r.get() == ButtonType.CANCEL) return;
             if (r.get() == todos) {
-                int max = com.sibim.service.ReporteInventarioFotograficoService.maxBienesConFotos();
                 if (totalFiltered > max) {
-                    NotificacionUtil.advertencia(table.getScene(), "Con fotos caben hasta " + max
-                        + " bienes por documento: filtra por área o categoría, o usa Reportes › Inventario por área");
+                    NotificacionUtil.advertencia(table.getScene(), demasiados);
                     return;
                 }
                 ProductosFilterState snap = snapshotFilters();
                 if (dataLoader == null) dataLoader = new ProductosDataLoader(productoService);
                 dataLoader.loadPage(snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
                     snap.estado(), snap.soloSinEtiquetar(), totalFiltered, 0, snap.desdeReg(), snap.hastaReg(),
-                    res -> exportarInventarioFotografico(res.page()),
+                    res -> accion.accept(res.page()),
                     ex -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar los bienes del filtro"));
                 return;
             }
         }
-        exportarInventarioFotografico(sel);
+        accion.accept(sel);
     }
 
     private void exportarInventarioFotografico(List<Producto> sel) {
@@ -929,8 +938,9 @@ public class ProductosController {
 
     @FXML
     private void onBulkResguardoPdf() {
-        ProductosExporter.exportResguardoPdf(table.getScene(),
-            new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems()), reporteService);
+        conLosDelFiltro(new java.util.ArrayList<>(table.getSelectionModel().getSelectedItems()),
+            "Resguardo PDF", "mdi2f-file-pdf-box", "en el resguardo", Integer.MAX_VALUE, null,
+            bienes -> ProductosExporter.exportResguardoPdf(table.getScene(), bienes, reporteService));
     }
 
     @FXML
@@ -947,9 +957,8 @@ public class ProductosController {
 
     @FXML
     private void onBulkEtiquetasQr() {
-        List<Producto> sel = getSelectedProductos();
-        if (sel.isEmpty()) return;
-        exportarEtiquetasQr(sel);
+        conLosDelFiltro(getSelectedProductos(), "Etiquetas QR", "mdi2q-qrcode", "en las etiquetas",
+            Integer.MAX_VALUE, null, this::exportarEtiquetasQr);
     }
 
     private void exportarEtiquetasQr(List<Producto> productos) {
@@ -960,21 +969,23 @@ public class ProductosController {
     @FXML
     private void onBulkEtiquetaFisica() {
         List<Producto> sel = getSelectedProductos();
+        // Nothing selected = the page on screen, which is a whole page too.
         if (sel.isEmpty()) sel = List.copyOf(table.getItems());
-        exportarEtiquetaFisica(sel);
+        conLosDelFiltro(sel, "Etiquetas", "mdi2t-tag-outline", "en las etiquetas",
+            Integer.MAX_VALUE, null, this::exportarEtiquetaFisica);
     }
 
-    /** Etiqueta button in the bottom bar: labels for exactly what is selected. */
+    /** Etiqueta button in the bottom bar: labels for what is selected (or all of the filter). */
     @FXML
     private void onEtiquetaFisicaSeleccion() {
-        List<Producto> sel = getSelectedProductos();
-        if (!sel.isEmpty()) exportarEtiquetaFisica(sel);
+        conLosDelFiltro(getSelectedProductos(), "Etiquetas", "mdi2t-tag-outline", "en las etiquetas",
+            Integer.MAX_VALUE, null, this::exportarEtiquetaFisica);
     }
 
     @FXML
     private void onEtiquetaQrSeleccion() {
-        List<Producto> sel = getSelectedProductos();
-        if (!sel.isEmpty()) exportarEtiquetasQr(sel);
+        conLosDelFiltro(getSelectedProductos(), "Etiquetas QR", "mdi2q-qrcode", "en las etiquetas",
+            Integer.MAX_VALUE, null, this::exportarEtiquetasQr);
     }
 
     private void exportarEtiquetaFisica(List<Producto> productos) {

@@ -196,16 +196,8 @@ final class ProductosExporter {
     static void exportResguardoPdf(
             Scene scene, List<Producto> seleccionados, ReporteService reporteService) {
         if (seleccionados.isEmpty()) return;
-        String resguardante = seleccionados.stream()
-            .map(Producto::getResguardante)
-            .filter(r -> r != null && !r.isBlank())
-            .findFirst().orElse("Sin resguardante");
-        String area = seleccionados.stream()
-            .map(Producto::getArea)
-            .filter(a -> a != null && !a.isBlank())
-            .findFirst().orElse("");
         DialogUtil.runAsync(
-            () -> reporteService.exportarResguardoPdf(resguardante, area, seleccionados),
+            () -> reporteService.exportarResguardoPorResguardante(seleccionados),
             file -> DialogUtil.showExportResultDialog(scene, file),
             e -> NotificacionUtil.error(scene, "Error al generar el resguardo PDF")
         );

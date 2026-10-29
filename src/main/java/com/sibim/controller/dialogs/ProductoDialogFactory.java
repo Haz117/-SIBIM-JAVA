@@ -451,15 +451,15 @@ public final class ProductoDialogFactory {
             p.setStockMinimo(stockTab.fStockMin.getValue());
             p.setStockMaximo(stockTab.fStockMax.getValue());
             p.setUnidad(stockTab.fUnidad.getValue());
-            p.setProveedor(patrimonioTab.fProveedor.getText().trim());
+            p.setProveedor(patrimonioTab.fProveedor.getText().trim().isEmpty() ? null : patrimonioTab.fProveedor.getText().trim());
             p.setMarca(patrimonioTab.fMarca.getText().trim().isEmpty() ? null : patrimonioTab.fMarca.getText().trim());
             p.setModelo(patrimonioTab.fModelo.getText().trim().isEmpty() ? null : patrimonioTab.fModelo.getText().trim());
             p.setNumeroSerie(patrimonioTab.fNumeroSerie.getText().trim().isEmpty() ? null : patrimonioTab.fNumeroSerie.getText().trim());
-            p.setUbicacion(patrimonioTab.fUbicacion.getText().trim());
-            p.setResguardante(patrimonioTab.fResguardante.getText().trim());
+            p.setUbicacion(patrimonioTab.fUbicacion.getText().trim().isEmpty() ? null : patrimonioTab.fUbicacion.getText().trim());
+            p.setResguardante(patrimonioTab.fResguardante.getText().trim().isEmpty() ? null : patrimonioTab.fResguardante.getText().trim());
             p.setFechaVencimiento(stockTab.fVenc.getValue());
             p.setFechaAdquisicion(patrimonioTab.fFechaAdq.getValue());
-            p.setVidaUtilAnios(patrimonioTab.fVidaUtil.getValue());
+            p.setVidaUtilAnios(patrimonioTab.vidaUtil());
             try {
                 String vrText = patrimonioTab.fValorResidual.getText().trim().replace(",", ".");
                 p.setValorResidual(vrText.isEmpty() ? BigDecimal.ZERO : new BigDecimal(vrText));

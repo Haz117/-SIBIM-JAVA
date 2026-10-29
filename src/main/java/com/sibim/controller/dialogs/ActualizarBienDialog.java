@@ -83,7 +83,7 @@ public final class ActualizarBienDialog {
         dialog.setResultConverter(btn -> {
             if (btn != ButtonType.OK) return null;
             Producto p = bien.copia();
-            p.setUbicacion(fUbicacion.getText().trim());
+            p.setUbicacion(fUbicacion.getText().trim().isEmpty() ? null : fUbicacion.getText().trim());
             String estado = fEstado.getValue();
             p.setEstadoFisico(estado == null || estado.isBlank() ? null : estado);
             p.setDescripcion(fDesc.getText().trim());

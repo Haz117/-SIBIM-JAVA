@@ -341,4 +341,25 @@ class ProductoServiceTest {
         p.setArea("Secretaría General Municipal");
         return p;
     }
+
+    /** An edit used to be audited as "Datos del bien actualizados" alone: the
+     *  vehicles edited on 28-oct-2026 got a photo, a vida útil and an estado
+     *  físico, and the Auditoría could not say so. */
+    @Test void cambios_diceQueCambioYDeQueAQue() {
+        Producto antes = new Producto(); antes.setNombre("Camioneta NP300"); antes.setCodigo("SOP/236");
+        antes.setProveedor(null); antes.setDescripcion("Doble cabina");
+        Producto despues = antes.copia();
+        despues.setProveedor("");                          // empty = no data, as before
+        despues.setVidaUtilAnios(5);
+        despues.setEstadoFisico("DEFICIENTE");
+        despues.setFotoUrl("https://x/foto.jpg");
+        despues.setDescripcion("Doble cabina, 4x4");
+        assertEquals("descripción, estado físico (sin dato → DEFICIENTE), vida útil (sin dato → 5), foto agregada",
+            ProductoService.cambios(antes, despues));
+        assertEquals("", ProductoService.cambios(antes, antes.copia()), "sin cambios no dice nada");
+        despues = antes.copia();
+        despues.setNumeroFactura("A1B2C3D4-0000-4000-8000-000000000001-0001-EXTRA");
+        assertTrue(ProductoService.cambios(antes, despues).equals("factura (sin dato → A1B2C3D4-0000-4000-8000-000000000001-00…)"),
+            ProductoService.cambios(antes, despues));
+    }
 }

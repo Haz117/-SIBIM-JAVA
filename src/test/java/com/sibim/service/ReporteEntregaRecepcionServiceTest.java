@@ -171,4 +171,33 @@ class ReporteEntregaRecepcionServiceTest {
         assertNotNull(pdf);
         assertTrue(paginas(pdf) > 1, "120 bienes no caben en una sola hoja apaisada");
     }
+
+    /** The "No. resguardo" column was always printed empty: it says the folio of
+     *  the resguardo in force of each bien (a cancelled one doesn't count). */
+    @Test
+    void foliosVigentes_soloDeLosResguardosVigentes() {
+        com.sibim.model.Resguardo vigente = new com.sibim.model.Resguardo();
+        vigente.setNumero("RSG-2026-000150"); vigente.setEstado(com.sibim.model.Resguardo.ESTADO_ACTIVO);
+        com.sibim.model.ResguardoItem it = new com.sibim.model.ResguardoItem(); it.setProductoId("er-MOB-0021");
+        vigente.setItems(List.of(it));
+        com.sibim.model.Resguardo cancelado = new com.sibim.model.Resguardo();
+        cancelado.setNumero("RSG-2026-000061"); cancelado.setEstado(com.sibim.model.Resguardo.ESTADO_CANCELADO);
+        com.sibim.model.ResguardoItem otro = new com.sibim.model.ResguardoItem(); otro.setProductoId("er-MOB-0022");
+        cancelado.setItems(List.of(otro));
+        assertEquals(java.util.Map.of("er-MOB-0021", "RSG-2026-000150"),
+            ReporteEntregaRecepcionService.foliosVigentes(List.of(vigente, cancelado)));
+    }
+
+    /** Totals of depreciación and valor en libros cover only the bienes with a
+     *  vida útil (about 100 of 3,138 on 28-oct-2026): the acta says how many are left out. */
+    @Test
+    void sinVidaUtil_elActaDiceCuantosQuedanFueraDeLosTotalesDeLibros() throws Exception {
+        Producto sinVida = bienCompleto("MOB-0023");
+        sinVida.setVidaUtilAnios(null);
+        String texto = textoDePagina(service.exportEntregaRecepcionPdf(
+            List.of(bienCompleto("MOB-0021"), sinVida, bienSinValoresNiFechas())), 1);
+        assertTrue(texto.contains("1 bien no tiene fecha de adquisición o vida útil registrada"), texto);
+        String completo = textoDePagina(service.exportEntregaRecepcionPdf(List.of(bienCompleto("MOB-0021"))), 1);
+        assertFalse(completo.contains("vida útil registrada"), "con todos depreciados no hay nota");
+    }
 }

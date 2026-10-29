@@ -46,8 +46,9 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             addEncabezadoAnexoV4(doc, folio);
 
             Table table = buildDataTable();
+            java.util.Map<String, String> folios = foliosVigentes();
             BigDecimal totalAdq = BigDecimal.ZERO, totalDep = BigDecimal.ZERO, totalLibros = BigDecimal.ZERO;
-            int idx = 0;
+            int idx = 0, sinDepreciacion = 0;
             for (Producto p : bienes) {
                 boolean alt = (idx++ % 2) == 1;
                 // The whole renglón, as the municipio's inventory writes its IMPORTE:
@@ -60,10 +61,11 @@ public class ReporteEntregaRecepcionService extends ReporteService {
                 if (valorAdq != null)    totalAdq = totalAdq.add(valorAdq);
                 if (depAcum != null)     totalDep = totalDep.add(depAcum);
                 if (valorLibros != null) totalLibros = totalLibros.add(valorLibros);
+                if (valorAdq != null && valorAdq.signum() > 0 && valorLibros == null) sinDepreciacion++;
 
                 addRow(table, p.getCodigo(),                                    alt, TextAlignment.CENTER);
                 addRow(table, p.getClaveArmonizada(),                           alt, TextAlignment.CENTER);
-                addRow(table, "",                                                alt, TextAlignment.CENTER); // No. resguardo — no está en modelo
+                addRow(table, folios.getOrDefault(p.getId(), ""),               alt, TextAlignment.CENTER);
                 addRow(table, p.getResguardante(),                              alt, TextAlignment.LEFT);
                 addRow(table, p.getArea(),                                      alt, TextAlignment.LEFT);
                 addRow(table, descripcionFisica(p),                             alt, TextAlignment.LEFT);
@@ -82,6 +84,10 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             }
             addTotales(table, bienes.size(), totalAdq, totalDep, totalLibros);
             doc.add(table);
+            if (sinDepreciacion > 0)
+                doc.add(new Paragraph(notaSinDepreciacion(sinDepreciacion))
+                    .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA)).setFontSize(6.5f)
+                    .setFontColor(ColorConstants.DARK_GRAY).setMarginTop(3).setMarginBottom(0));
 
             addFirmasBlock(doc,
                 new String[]{"ENTREGÓ", null, "Titular saliente / Responsable"},
@@ -91,6 +97,39 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             addPdfFooter(doc, bienes.size(), folio);
         }
         return numerarPaginas(file);
+    }
+
+    /** The totals of depreciación and valor en libros only add up the bienes that
+     *  have fecha de adquisición, precio and vida útil — on 28-oct-2026 about 100
+     *  of 3,138 —, which next to the valor de adquisición of all of them reads as
+     *  if the rest were worth nothing. The acta says so under the totals. */
+    static String notaSinDepreciacion(int bienes) {
+        return "Depreciación acumulada y valor en libros: " + (bienes == 1
+            ? "1 bien no tiene fecha de adquisición o vida útil registrada; queda sin depreciación y fuera de esos dos totales."
+            : bienes + " bienes no tienen fecha de adquisición o vida útil registrada; quedan sin depreciación y fuera de esos dos totales.");
+    }
+
+    /** The folio of the resguardo in force of each bien, for the format's "No.
+     *  resguardo" column, which was always printed empty. Without it the acta is
+     *  still printed, with that column empty as before. */
+    private static java.util.Map<String, String> foliosVigentes() {
+        try {
+            return foliosVigentes(new com.sibim.repository.ResguardoRepository().findAll());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(ReporteEntregaRecepcionService.class)
+                .warn("Sin folios de resguardo para el acta: {}", e.getMessage());
+            return java.util.Map.of();
+        }
+    }
+
+    static java.util.Map<String, String> foliosVigentes(List<com.sibim.model.Resguardo> resguardos) {
+        java.util.Map<String, String> folios = new java.util.HashMap<>();
+        for (com.sibim.model.Resguardo r : resguardos) {
+            if (!r.isActivo() || r.getItems() == null) continue;
+            for (com.sibim.model.ResguardoItem it : r.getItems())
+                if (it.getProductoId() != null) folios.putIfAbsent(it.getProductoId(), r.getNumero());
+        }
+        return folios;
     }
 
     // ── Encabezado estilo ANEXO V.4 ─────────────────────────────────

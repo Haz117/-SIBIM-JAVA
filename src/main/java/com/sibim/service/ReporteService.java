@@ -39,7 +39,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -982,6 +985,51 @@ public class ReporteService {
 
     public File exportarResguardoPdf(String resguardante, String area, List<Producto> bienes) throws Exception {
         return new ReporteResguardoService().exportarResguardoPdf(resguardante, area, bienes);
+    }
+
+    /** Bienes chosen in Bienes: one resguardo per resguardante, each with its own folio,
+     *  in a single PDF. All of them used to go under the first one's name, a paper to
+     *  sign for bienes that person doesn't hold. */
+    public File exportarResguardoPorResguardante(List<Producto> bienes) throws Exception {
+        Map<String, List<Producto>> porPersona = new LinkedHashMap<>();
+        Map<String, String> nombres = new HashMap<>();
+        for (Producto p : bienes) {
+            String nombre = p.getResguardante() != null && !p.getResguardante().isBlank()
+                ? p.getResguardante().trim() : "Sin resguardante";
+            String clave = ResguardoService.clavePersona(nombre);
+            nombres.putIfAbsent(clave, nombre);
+            porPersona.computeIfAbsent(clave, k -> new ArrayList<>()).add(p);
+        }
+        List<File> partes = new ArrayList<>();
+        try {
+            for (Map.Entry<String, List<Producto>> e : porPersona.entrySet()) {
+                String area = e.getValue().stream().map(Producto::getArea)
+                    .filter(a -> a != null && !a.isBlank()).findFirst().orElse("");
+                partes.add(exportarResguardoPdf(nombres.get(e.getKey()), area, e.getValue()));
+            }
+        } catch (Exception ex) {
+            partes.forEach(File::delete);
+            throw ex;
+        }
+        return partes.size() == 1 ? partes.get(0) : unirPdfs(partes, "resguardos");
+    }
+
+    /** The parts one after the other in one PDF, which prints in one go; the parts are deleted. */
+    public static File unirPdfs(List<File> partes, String prefijo) throws IOException {
+        File out = File.createTempFile("sibim_" + prefijo + "_", ".pdf");
+        out.deleteOnExit();
+        try (PdfWriter writer = new PdfWriter(out.getAbsolutePath());
+             PdfDocument unido = new PdfDocument(writer)) {
+            com.itextpdf.kernel.utils.PdfMerger merger = new com.itextpdf.kernel.utils.PdfMerger(unido);
+            for (File parte : partes) {
+                try (PdfDocument src = new PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(parte.getAbsolutePath()))) {
+                    merger.merge(src, 1, src.getNumberOfPages());
+                }
+            }
+        } finally {
+            partes.forEach(File::delete);
+        }
+        return out;
     }
 
     public File exportarResguardoGeneralArea(String area, String titular, String cargo, List<Producto> bienes) throws Exception {

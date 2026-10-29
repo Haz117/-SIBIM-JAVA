@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.time.LocalDate;
 import java.util.List;
@@ -232,6 +233,7 @@ public class ProductoService {
         p.setPrecioVenta(p.getPrecioCompra());
 
         BigDecimal prevCompra = null;
+        Producto antes = null;
         if (!isNew) {
             // findById is already scoped to the caller's áreas, so a bien from
             // another área comes back empty — checking the área the object
@@ -247,6 +249,7 @@ public class ProductoService {
             p.setStockActual(actual.getStockActual());
             p.setArea(actual.getArea());
             prevCompra = actual.getPrecioCompra();
+            antes = actual;
             // Secretarías and direcciones update the descriptive data of their
             // bienes; the código patrimonial and the accounting values are
             // Patrimonio's (admin), so theirs stay as the database has them.
@@ -275,6 +278,7 @@ public class ProductoService {
             }
         }
         validate(p);
+        String queCambio = antes != null ? cambios(antes, p) : "";
 
         boolean codigoPorArea = isNew && AreaCodigos.tienePrefijo(p.getArea());
         Producto saved;
@@ -307,7 +311,8 @@ public class ProductoService {
             isNew ? "crear" : "actualizar",
             (isNew ? "Bien registrado" : "Datos del bien actualizados")
                 + (saved.getCodigo() != null ? " · número " + saved.getCodigo() : "")
-                + (saved.getArea() != null ? " · " + saved.getArea() : ""));
+                + (saved.getArea() != null ? " · " + saved.getArea() : "")
+                + (queCambio.isEmpty() ? "" : " · Cambió: " + queCambio));
 
         if (!isNew) {
             Usuario u = SessionManager.getCurrentUser();
@@ -361,6 +366,68 @@ public class ProductoService {
     private static String sinBlancos(String s) {
         return s == null || s.isBlank() ? null : s.trim();
     }
+
+    /** What an edit changed, for the Auditoría: "vida útil (sin dato → 5), foto".
+     *  Short data says from what to what; long text (descripción, notas) and files
+     *  just say that they changed. The price has its own entry (cambio_precio);
+     *  cantidad and área only change through movimientos. Empty when nothing did. */
+    static String cambios(Producto antes, Producto despues) {
+        List<String> c = new ArrayList<>();
+        valor(c, "nombre", antes.getNombre(), despues.getNombre());
+        valor(c, "número", antes.getCodigo(), despues.getCodigo());
+        if (!java.util.Objects.equals(sinBlancos(antes.getDescripcion()), sinBlancos(despues.getDescripcion())))
+            c.add("descripción");
+        if (!java.util.Objects.equals(antes.getCategoriaId(), despues.getCategoriaId()))
+            valor(c, "categoría", Optional.ofNullable(antes.getCategoriaNombre()).orElse("otra"),
+                Optional.ofNullable(despues.getCategoriaNombre()).orElse("otra"));
+        valor(c, "unidad", antes.getUnidad() != null ? antes.getUnidad().name() : null,
+            despues.getUnidad() != null ? despues.getUnidad().name() : null);
+        valor(c, "proveedor", antes.getProveedor(), despues.getProveedor());
+        valor(c, "marca", antes.getMarca(), despues.getMarca());
+        valor(c, "modelo", antes.getModelo(), despues.getModelo());
+        valor(c, "serie", antes.getNumeroSerie(), despues.getNumeroSerie());
+        valor(c, "ubicación", antes.getUbicacion(), despues.getUbicacion());
+        valor(c, "resguardante", antes.getResguardante(), despues.getResguardante());
+        valor(c, "estado físico", antes.getEstadoFisico(), despues.getEstadoFisico());
+        valor(c, "factura", antes.getNumeroFactura(), despues.getNumeroFactura());
+        valor(c, "fecha de adquisición", fecha(antes.getFechaAdquisicion()), fecha(despues.getFechaAdquisicion()));
+        valor(c, "vida útil", antes.getVidaUtilAnios() != null ? String.valueOf(antes.getVidaUtilAnios()) : null,
+            despues.getVidaUtilAnios() != null ? String.valueOf(despues.getVidaUtilAnios()) : null);
+        BigDecimal resA = Optional.ofNullable(antes.getValorResidual()).orElse(BigDecimal.ZERO);
+        BigDecimal resB = Optional.ofNullable(despues.getValorResidual()).orElse(BigDecimal.ZERO);
+        if (resA.compareTo(resB) != 0)
+            valor(c, "valor residual", FormatUtils.formatCurrency(resA), FormatUtils.formatCurrency(resB));
+        valor(c, "garantía", fecha(antes.getFechaVencimiento()), fecha(despues.getFechaVencimiento()));
+        valor(c, "próxima revisión", fecha(antes.getProximaRevision()), fecha(despues.getProximaRevision()));
+        if (antes.isEtiquetado() != despues.isEtiquetado())
+            c.add(despues.isEtiquetado() ? "marcado como etiquetado" : "marcado sin etiqueta");
+        valor(c, "clave armonizada", antes.getClaveArmonizada(), despues.getClaveArmonizada());
+        valor(c, "color", antes.getColor(), despues.getColor());
+        valor(c, "tipo de bien", antes.getTipoBien(), despues.getTipoBien());
+        valor(c, "no. de motor", antes.getNoMotor(), despues.getNoMotor());
+        valor(c, "tarjeta de circulación", antes.getNoTarjetaCirculacion(), despues.getNoTarjetaCirculacion());
+        valor(c, "póliza de seguro", antes.getNoPolizaSeguro(), despues.getNoPolizaSeguro());
+        if (!java.util.Objects.equals(sinBlancos(antes.getNotasMantenimiento()), sinBlancos(despues.getNotasMantenimiento())))
+            c.add("notas de mantenimiento");
+        if (!java.util.Objects.equals(sinBlancos(antes.getFotoUrl()), sinBlancos(despues.getFotoUrl())))
+            c.add(sinBlancos(antes.getFotoUrl()) == null ? "foto agregada" : sinBlancos(despues.getFotoUrl()) == null ? "foto quitada" : "foto");
+        if (!java.util.Objects.equals(sinBlancos(antes.getFacturaUrl()), sinBlancos(despues.getFacturaUrl())))
+            c.add("archivo de factura");
+        return String.join(", ", c);
+    }
+
+    private static void valor(List<String> cambios, String campo, String antes, String despues) {
+        String a = sinBlancos(antes), b = sinBlancos(despues);
+        if (java.util.Objects.equals(a, b)) return;
+        cambios.add(campo + " (" + corto(a) + " → " + corto(b) + ")");
+    }
+
+    private static String corto(String s) {
+        if (s == null) return "sin dato";
+        return s.length() > 40 ? s.substring(0, 39) + "…" : s;
+    }
+
+    private static String fecha(LocalDate d) { return d != null ? FormatUtils.formatDate(d) : null; }
 
     private static boolean priceChanged(BigDecimal a, BigDecimal b) {
         if (a == null && b == null) return false;

@@ -104,7 +104,7 @@ class ProductoTabPatrimonioFields {
 
         fNumeroFactura = new TextField(existing != null && existing.getNumeroFactura() != null
                 ? existing.getNumeroFactura() : "");
-        fNumeroFactura.setPromptText("Ej. B3623, F-MR-003343");
+        fNumeroFactura.setPromptText("Ej. B1234, F-XX-000001");
         fNumeroFactura.getStyleClass().add("form-input");
 
         fEtiquetado = new CheckBox("Bien etiquetado (tiene etiqueta física/QR)");
@@ -118,13 +118,12 @@ class ProductoTabPatrimonioFields {
         fFechaAdq.setMaxWidth(Double.MAX_VALUE);
         fFechaAdq.getStyleClass().add("form-input");
 
-        fVidaUtil = new Spinner<>(1, 100,
-            existing != null && existing.getVidaUtilAnios() != null
-                ? existing.getVidaUtilAnios() : 5);
+        fVidaUtil = new Spinner<>(new VidaUtilFactory(existing != null ? existing.getVidaUtilAnios() : null));
         fVidaUtil.setEditable(true);
+        fVidaUtil.getEditor().setPromptText("Sin definir");
         fVidaUtil.setMaxWidth(Double.MAX_VALUE);
         fVidaUtil.getStyleClass().add("form-input");
-        DialogUtil.commitOnFocusLoss(fVidaUtil);
+        fVidaUtil.focusedProperty().addListener((o, antes, ahora) -> { if (!ahora) vidaUtil(); });
 
         fValorResidual = new TextField(
             existing != null && existing.getValorResidual() != null
@@ -208,7 +207,7 @@ class ProductoTabPatrimonioFields {
             "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
                                                          0, rp); grid.add(fFechaAdq,      1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
-            "Número de años en que el bien se deprecia completamente\n(SAT México: equipos de cómputo 3 años, vehículos 4, mobiliario 10)."),
+            "Número de años en que el bien se deprecia completamente\n(CONAC: equipo de cómputo 3 años, vehículos 5, mobiliario y maquinaria 10).\nVacío: el bien no se deprecia."),
                                                          0, rp); grid.add(fVidaUtil,      1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Valor residual",
             "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
@@ -263,5 +262,39 @@ class ProductoTabPatrimonioFields {
         fNoMotor.textProperty().addListener((o, a, b)          -> markDirty.run());
         fNoTarjeta.textProperty().addListener((o, a, b)        -> markDirty.run());
         fNoPoliza.textProperty().addListener((o, a, b)         -> markDirty.run());
+    }
+
+    /** What the vida útil field says now, text being typed included; emptied = none
+     *  (the common spinner commit ignores an empty field). */
+    Integer vidaUtil() {
+        String texto = fVidaUtil.getEditor().getText();
+        if (texto == null || texto.isBlank()) fVidaUtil.getValueFactory().setValue(null);
+        else DialogUtil.commitSpinner(fVidaUtil);
+        return fVidaUtil.getValue();
+    }
+
+    /** Years of vida útil, or none: a bien without one stays without one (it is not
+     *  depreciated) until someone types it. The spinner used to start at 5 and every
+     *  edit saved it — 107 bienes got 5 years that way by 28-oct-2026, among them a
+     *  laptop (CONAC: 3) and a frigobar (10). From empty, the arrows start at 5. */
+    static final class VidaUtilFactory extends SpinnerValueFactory<Integer> {
+        static final int MIN = 1, MAX = 100, AL_EMPEZAR = 5;
+
+        VidaUtilFactory(Integer inicial) {
+            setConverter(new javafx.util.converter.IntegerStringConverter());
+            valueProperty().addListener((o, antes, v) -> {
+                if (v != null && v < MIN) setValue(MIN);
+                else if (v != null && v > MAX) setValue(MAX);
+            });
+            setValue(inicial);
+        }
+
+        @Override public void decrement(int pasos) {
+            setValue(getValue() == null ? AL_EMPEZAR : Math.max(MIN, getValue() - pasos));
+        }
+
+        @Override public void increment(int pasos) {
+            setValue(getValue() == null ? AL_EMPEZAR : Math.min(MAX, getValue() + pasos));
+        }
     }
 }
