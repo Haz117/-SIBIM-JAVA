@@ -242,6 +242,7 @@ public class ReporteFichaTecnicaService extends ReporteService {
         List<String[]> l = new ArrayList<>();
         l.add(par("Fecha de adquisición", p.getFechaAdquisicion() != null ? FormatUtils.formatDate(p.getFechaAdquisicion()) : null));
         l.add(par("No. de factura", p.getNumeroFactura()));
+        l.add(par("Folio fiscal (UUID)", p.getFolioFiscal()));
         l.add(par("Proveedor", p.getProveedor()));
         boolean conMontos = enlacePublico == null;
         // A lot: the piece's cost, how many, and the book value of all of them —

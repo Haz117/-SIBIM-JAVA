@@ -40,6 +40,7 @@ final class ProductoExtras {
         new Campo("notas_mantenimiento", Producto::getNotasMantenimiento, Producto::setNotasMantenimiento),
         new Campo("estado_fisico", Producto::getEstadoFisico, Producto::setEstadoFisico),
         new Campo("numero_factura", Producto::getNumeroFactura, Producto::setNumeroFactura),
+        new Campo("folio_fiscal", Producto::getFolioFiscal, Producto::setFolioFiscal),
         new Campo("clave_armonizada", Producto::getClaveArmonizada, Producto::setClaveArmonizada),
         new Campo("color", Producto::getColor, Producto::setColor),
         new Campo("no_motor", Producto::getNoMotor, Producto::setNoMotor),

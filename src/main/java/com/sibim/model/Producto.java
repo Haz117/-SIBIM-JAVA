@@ -257,12 +257,35 @@ public class Producto implements Cloneable {
     // ── Inventario físico MLA ─────────────────────────────────────────
     private String estadoFisico;   // BUENO / REGULAR / MALO / DEFICIENTE
     private String numeroFactura;  // número del documento de compra (no la URL)
+    private String folioFiscal;    // UUID del CFDI de esa factura (V33)
 
     public String getEstadoFisico() { return estadoFisico; }
     public void setEstadoFisico(String estadoFisico) { this.estadoFisico = estadoFisico; }
 
     public String getNumeroFactura() { return numeroFactura; }
     public void setNumeroFactura(String numeroFactura) { this.numeroFactura = numeroFactura; }
+
+    public String getFolioFiscal() { return folioFiscal; }
+    public void setFolioFiscal(String folioFiscal) { this.folioFiscal = folioFiscal; }
+
+    /** The invoice as the formats print it: its número and, below, the folio
+     *  fiscal; either alone when the other is missing. Null when there is neither. */
+    public String getFacturaParaFormato() {
+        boolean n = numeroFactura != null && !numeroFactura.isBlank();
+        boolean f = folioFiscal != null && !folioFiscal.isBlank()
+            && !(n && folioFiscal.trim().equalsIgnoreCase(numeroFactura.trim()));   // the same UUID twice
+        if (n && f) return numeroFactura.trim() + "\n" + folioFiscal.trim();
+        return n ? numeroFactura.trim() : f ? folioFiscal.trim() : null;
+    }
+
+    /** "A1B2C3D4-0000-4000-8000-000000000001", or the same 32 hex digits without the
+     *  dashes: a CFDI's folio fiscal, which is what got typed as número de factura. */
+    public static boolean pareceFolioFiscal(String s) {
+        if (s == null) return false;
+        String t = s.trim();
+        return t.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+            || t.matches("(?i)[0-9a-f]{32}");
+    }
 
     // ── Mantenimiento ─────────────────────────────────────────────────
     private LocalDate proximaRevision;

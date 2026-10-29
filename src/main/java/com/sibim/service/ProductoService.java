@@ -390,6 +390,7 @@ public class ProductoService {
         valor(c, "resguardante", antes.getResguardante(), despues.getResguardante());
         valor(c, "estado físico", antes.getEstadoFisico(), despues.getEstadoFisico());
         valor(c, "factura", antes.getNumeroFactura(), despues.getNumeroFactura());
+        valor(c, "folio fiscal", antes.getFolioFiscal(), despues.getFolioFiscal());
         valor(c, "fecha de adquisición", fecha(antes.getFechaAdquisicion()), fecha(despues.getFechaAdquisicion()));
         valor(c, "vida útil", antes.getVidaUtilAnios() != null ? String.valueOf(antes.getVidaUtilAnios()) : null,
             despues.getVidaUtilAnios() != null ? String.valueOf(despues.getVidaUtilAnios()) : null);
@@ -572,6 +573,8 @@ public class ProductoService {
             throw new ValidationException("La ubicación no puede exceder 200 caracteres");
         if (p.getResguardante() != null && p.getResguardante().length() > 200)
             throw new ValidationException("El resguardante no puede exceder 200 caracteres");
+        if (p.getFolioFiscal() != null && p.getFolioFiscal().length() > 60)
+            throw new ValidationException("El folio fiscal no puede exceder 60 caracteres");
         if (productoRepo.existsByCodigo(p.getCodigo(), p.getId()))
             throw new ValidationException("Ya existe un bien con ese código");
         if (p.getCategoriaId() == null || p.getCategoriaId().isBlank())

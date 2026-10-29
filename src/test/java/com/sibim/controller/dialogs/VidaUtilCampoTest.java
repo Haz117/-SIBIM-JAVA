@@ -52,6 +52,40 @@ class VidaUtilCampoTest extends ApplicationTest {
         assertNull(f.vidaUtil(), "borrarla la quita");
     }
 
+    /** A UUID typed as número de factura goes to Folio fiscal and the número the
+     *  bien had comes back (51 vehicles lost theirs on 28/29-oct-2026). */
+    @Test
+    void unUuidEnNumeroDeFactura_pasaAlFolioFiscal() {
+        Producto p = new Producto();
+        p.setId("p-22"); p.setNombre("Camioneta Ford F150"); p.setCodigo("DGOB/22");
+        p.setNumeroFactura("1234");
+        ProductoTabPatrimonioFields[] f = new ProductoTabPatrimonioFields[1];
+        interact(() -> f[0] = new ProductoTabPatrimonioFields(p, List.of(), List.of(), List.of(), List.of(), null));
+        interact(() -> f[0].fNumeroFactura.setText(" a1b2c3d4-0000-4000-8000-000000000001 "));
+        interact(() -> f[0].pasarFolioFiscal());
+        assertEquals("A1B2C3D4-0000-4000-8000-000000000001", f[0].fFolioFiscal.getText());
+        assertEquals("1234", f[0].fNumeroFactura.getText(), "regresa el número que tenía");
+
+        // With the folio fiscal already captured, what is typed stays where it is.
+        interact(() -> f[0].fNumeroFactura.setText("A1B2C3D4000040008000000000000002"));
+        interact(() -> f[0].pasarFolioFiscal());
+        assertEquals("A1B2C3D4000040008000000000000002", f[0].fNumeroFactura.getText());
+    }
+
+    /** The UUIDs the carga put in número de factura (700-odd) are not moved by an
+     *  edit that doesn't touch that field: no edit rewrites data by itself. */
+    @Test
+    void unUuidQueYaTenia_noSeMueveSolo() {
+        Producto p = new Producto();
+        p.setId("p-111"); p.setNombre("Silla"); p.setCodigo("ARCH/111");
+        p.setNumeroFactura("8F1BFC7B-12D9-4B1E-9A0C-1234567890AB");
+        ProductoTabPatrimonioFields[] f = new ProductoTabPatrimonioFields[1];
+        interact(() -> f[0] = new ProductoTabPatrimonioFields(p, List.of(), List.of(), List.of(), List.of(), null));
+        interact(() -> f[0].pasarFolioFiscal());
+        assertEquals("8F1BFC7B-12D9-4B1E-9A0C-1234567890AB", f[0].fNumeroFactura.getText());
+        assertEquals("", f[0].fFolioFiscal.getText());
+    }
+
     @Test
     void lasFlechas_empiezanEn5_yNoSalenDe1a100() {
         ProductoTabPatrimonioFields f = campos(null);

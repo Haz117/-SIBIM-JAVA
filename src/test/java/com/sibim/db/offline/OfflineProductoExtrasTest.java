@@ -43,6 +43,7 @@ class OfflineProductoExtrasTest {
         assertEquals(0, new BigDecimal("250.50").compareTo(leido.getValorResidual()));
         assertEquals("MTR-1", leido.getNoMotor());
         assertEquals("REGULAR", leido.getEstadoFisico());
+        assertEquals("A1B2C3D4-0000-4000-8000-000000000001", leido.getFolioFiscal(), "V33 también sin conexión");
         assertNotNull(leido.getValorDepreciado(), "con estos datos Depreciación ya puede calcular sin conexión");
     }
 
@@ -79,6 +80,7 @@ class OfflineProductoExtrasTest {
         p.setNoMotor("MTR-1");
         p.setColor("Rojo");
         p.setEstadoFisico("REGULAR");
+        p.setFolioFiscal("A1B2C3D4-0000-4000-8000-000000000001");
         p.setCreadoEn(LocalDateTime.now());
         p.setActualizadoEn(LocalDateTime.now());
         return p;

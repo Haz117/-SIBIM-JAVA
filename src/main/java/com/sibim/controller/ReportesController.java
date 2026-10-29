@@ -161,7 +161,7 @@ public class ReportesController {
                 null, null, List.of(pdf(completo(
                     () -> reporteService.exportEntregaRecepcionPdf(productoService.getAll()))))));
             oficiales.add(ReporteFila.crear("mdi2c-car-outline", "indigo", "Parque Vehicular (V.6)",
-                "Una ficha por vehículo con identificación, condición y lista de verificación de componentes. Solo incluye bienes con marca registrada.",
+                "Una ficha por vehículo con identificación, condición y lista de verificación de componentes. Incluye el equipo de transporte (clave 1.2.4.4) y la maquinaria con tipo de bien.",
                 null, null, List.of(pdf(completo(this::exportarParqueVehicular)))));
             oficiales.add(ReporteFila.crear("mdi2s-shield-lock-outline", "purple", "Auditoría Consolidada",
                 "Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Para auditorías y cambios de administración.",
@@ -489,7 +489,7 @@ public class ReportesController {
 
     private File exportarParqueVehicular() throws Exception {
         var vehiculos = productoService.getAll().stream()
-            .filter(p -> p.getMarca() != null && !p.getMarca().isBlank())
+            .filter(com.sibim.service.ReporteParqueVehicularService::esVehiculo)
             .toList();
         return reporteService.exportParqueVehicularPdf(vehiculos);
     }

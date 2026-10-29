@@ -188,4 +188,29 @@ class ProductoTest {
         assertEquals(3, p.getStockActual());
         assertEquals(1, p.getFotosUrls().size());
     }
+
+    /** The UUID of a CFDI, with or without dashes, is told apart from a número de factura. */
+    @org.junit.jupiter.api.Test
+    void pareceFolioFiscal() {
+        org.junit.jupiter.api.Assertions.assertTrue(Producto.pareceFolioFiscal("A1B2C3D4-0000-4000-8000-000000000001"));
+        org.junit.jupiter.api.Assertions.assertTrue(Producto.pareceFolioFiscal(" a1b2c3d4000040008000000000000002 "));
+        for (String folio : new String[]{"1234", "ABCD123", "A - 01", "F-XX-000001", "", null})
+            org.junit.jupiter.api.Assertions.assertFalse(Producto.pareceFolioFiscal(folio), String.valueOf(folio));
+    }
+
+    /** V.4, V.6 and Bienes muebles print the factura's número and, below, its folio fiscal. */
+    @org.junit.jupiter.api.Test
+    void facturaParaFormato() {
+        Producto p = new Producto();
+        org.junit.jupiter.api.Assertions.assertNull(p.getFacturaParaFormato());
+        p.setNumeroFactura("1234");
+        org.junit.jupiter.api.Assertions.assertEquals("1234", p.getFacturaParaFormato());
+        p.setFolioFiscal("A1B2C3D4-0000-4000-8000-000000000001");
+        org.junit.jupiter.api.Assertions.assertEquals("1234\nA1B2C3D4-0000-4000-8000-000000000001", p.getFacturaParaFormato());
+        p.setNumeroFactura(" ");
+        org.junit.jupiter.api.Assertions.assertEquals("A1B2C3D4-0000-4000-8000-000000000001", p.getFacturaParaFormato());
+        p.setNumeroFactura("a1b2c3d4-0000-4000-8000-000000000001");
+        org.junit.jupiter.api.Assertions.assertEquals("a1b2c3d4-0000-4000-8000-000000000001", p.getFacturaParaFormato(),
+            "el mismo UUID en los dos campos sale una vez");
+    }
 }

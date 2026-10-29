@@ -85,7 +85,38 @@ class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
         interact(() -> categoria.setValue(muebles));
         assertEquals("1.2.4.1.3.515.9", clave.getText(), "la escrita a mano se respeta");
 
+        // The vida útil follows the category's CONAC parameter the same way.
+        javafx.scene.control.Spinner<Integer> vida = (javafx.scene.control.Spinner<Integer>) esperar(n ->
+            n instanceof javafx.scene.control.Spinner<?> s && "Sin definir".equals(s.getEditor().getPromptText()));
+        assertEquals(10, vida.getValue(), "muebles: 10 años");
+        interact(() -> categoria.setValue(computo));
+        assertEquals(3, vida.getValue(), "cómputo: 3 años");
+        interact(() -> vida.getValueFactory().setValue(4));
+        interact(() -> categoria.setValue(muebles));
+        assertEquals(4, vida.getValue(), "la escrita a mano se respeta");
+
         interact(() -> ((Stage) categoria.getScene().getWindow()).close());
+    }
+
+    /** Opening a bien without vida útil leaves it without one: the CONAC suggestion
+     *  is for someone picking a category, or every edit would change it again. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void editarUnBienSinVidaUtil_noLeSugiereNinguna() {
+        Categoria computo = new Categoria("cat-515", "Equipo de Cómputo", null, "#8B5CF6", null, null);
+        computo.setCodigoConac("1.2.4.1.3.515");
+        com.sibim.model.Producto laptop = new com.sibim.model.Producto();
+        laptop.setId("p-laptop"); laptop.setNombre("Laptop Dell"); laptop.setCodigo("SGM/34");
+        laptop.setCategoriaId("cat-515"); laptop.setCategoriaNombre("Equipo de Cómputo");
+        laptop.setClaveArmonizada("1.2.4.1.3.515"); laptop.setArea("Secretaría General Municipal");
+        Platform.runLater(() -> ProductoDialogFactory.show(laptop, List.of(computo), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null)));
+        javafx.scene.control.Spinner<Integer> vida = (javafx.scene.control.Spinner<Integer>) esperar(n ->
+            n instanceof javafx.scene.control.Spinner<?> s && "Sin definir".equals(s.getEditor().getPromptText()));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertNull(vida.getValue(), "sin vida útil sigue sin vida útil");
+        interact(() -> ((Stage) vida.getScene().getWindow()).close());
     }
 
     /** "Nuevo bien" from the list filtered to an área starts in that área and

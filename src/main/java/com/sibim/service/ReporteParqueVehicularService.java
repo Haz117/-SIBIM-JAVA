@@ -36,22 +36,44 @@ public class ReporteParqueVehicularService extends ReporteService {
 
     public ReporteParqueVehicularService() { super(); }
 
+    /** A vehicle for the V.6: its clave armonizada is Equipo de Transporte (1.2.4.4),
+     *  or it has the vehicle data the heavy machinery of the vehicle list came with —
+     *  a motor number, or a vehicle or machinery tipo de bien (the field also takes
+     *  "Oficina" for furniture). "Has a marca" took 1,666 bienes on 28-oct-2026
+     *  (desks, computers, cameras…) for 124 vehicles, and left out the 10 without one. */
+    public static boolean esVehiculo(Producto p) {
+        String clave = p.getClaveArmonizada();
+        if (clave != null && clave.trim().startsWith("1.2.4.4")) return true;
+        if (p.getNoMotor() != null && !p.getNoMotor().isBlank()) return true;
+        String tipo = p.getTipoBien() == null ? "" : java.text.Normalizer
+            .normalize(p.getTipoBien().trim(), java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}+", "").toUpperCase(java.util.Locale.ROOT);
+        return TIPOS_DE_VEHICULO.contains(tipo);
+    }
+
+    /** The tipos de bien the vehicle list uses (28-oct-2026), without accents. */
+    private static final java.util.Set<String> TIPOS_DE_VEHICULO = java.util.Set.of(
+        "CAMIONETA", "MOTOCICLETA", "CAMION", "AUTO", "AUTOMOVIL", "CUATRIMOTO", "MAQUINARIA");
+
+    /** One card per vehicle, by área and número. */
     public File exportParqueVehicularPdf(List<Producto> vehiculos) throws Exception {
         if (vehiculos.isEmpty()) return null;
+        List<Producto> ordenados = ordenadosPorArea(vehiculos);
+        java.util.Map<String, String> folios = foliosDeResguardoVigente();
         File file = tempFile("parque_vehicular", ".pdf");
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4)) {
             doc.setMargins(32, 36, 32, 36);
-            for (int i = 0; i < vehiculos.size(); i++) {
+            for (int i = 0; i < ordenados.size(); i++) {
                 if (i > 0) doc.add(new com.itextpdf.layout.element.AreaBreak());
-                addVehicleCard(doc, vehiculos.get(i), pdfDoc);
+                addVehicleCard(doc, ordenados.get(i), folios.get(ordenados.get(i).getId()), pdfDoc);
             }
         }
         return numerarPaginas(file);
     }
 
-    private void addVehicleCard(Document doc, Producto p, PdfDocument pdfDoc) throws Exception {
+    private void addVehicleCard(Document doc, Producto p, String folioResguardo, PdfDocument pdfDoc) throws Exception {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         DeviceRgb muted   = new DeviceRgb(107, 114, 128);
@@ -93,11 +115,11 @@ public class ReporteParqueVehicularService extends ReporteService {
         Table dataTable = tabla(1.25f, 1.75f, 1.55f, 1.45f).setMarginBottom(10);
 
         addVRow(dataTable, "Marca:",               v(p.getMarca()),               "Unidad Administrativa:", v(p.getArea()),                  bold, reg, muted, labelBg);
-        addVRow(dataTable, "Tipo:",                v(p.getTipoBien()),             "Factura:",               v(p.getNumeroFactura()),          bold, reg, muted, labelBg);
+        addVRow(dataTable, "Tipo:",                v(p.getTipoBien()),             "Factura:",               v(p.getFacturaParaFormato()),          bold, reg, muted, labelBg);
         addVRow(dataTable, "Modelo:",              v(p.getModelo()),               "No. Tarjeta Circulación:", v(p.getNoTarjetaCirculacion()), bold, reg, muted, labelBg);
         addVRow(dataTable, "No. De Serie:",        v(p.getNumeroSerie()),          "No. Póliza de Seguro:", v(p.getNoPolizaSeguro()),          bold, reg, muted, labelBg);
         addVRow(dataTable, "No. De Motor:",        v(p.getNoMotor()),              "Condiciones del Bien:", v(p.getEstadoFisico()),            bold, reg, muted, labelBg);
-        addVRow(dataTable, "Color:",               v(p.getColor()),                "No. De Resguardo:",     "_______________",                 bold, reg, muted, labelBg);
+        addVRow(dataTable, "Color:",               v(p.getColor()),                "No. De Resguardo:",     folioResguardo != null ? folioResguardo : "_______________",                 bold, reg, muted, labelBg);
         addVRow(dataTable, "No. De Inventario:",   v(p.getCodigo()),               "", "",                                                    bold, reg, muted, labelBg);
         addVRow(dataTable, "Clave Armonizada:",    v(p.getClaveArmonizada()),      "", "",                                                    bold, reg, muted, labelBg);
         doc.add(dataTable);

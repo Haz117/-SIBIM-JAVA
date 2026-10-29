@@ -195,7 +195,7 @@ public class ReporteBienesMueblesService extends ReporteService {
                 table.addCell(dataCell(nvl(p.getModelo()), reg, bg, linea, TextAlignment.LEFT));
                 table.addCell(dataCell(nvl(p.getNumeroSerie()), reg, bg, linea, TextAlignment.CENTER));
                 table.addCell(dataCell(p.getFechaAdquisicion() != null ? p.getFechaAdquisicion().format(FMT) : "", reg, bg, linea, TextAlignment.CENTER));
-                table.addCell(dataCell(nvl(p.getNumeroFactura()), reg, bg, linea, TextAlignment.CENTER));
+                table.addCell(dataCell(nvl(p.getFacturaParaFormato()), reg, bg, linea, TextAlignment.CENTER));
                 table.addCell(dataCell(com.sibim.session.Permisos.pesos(importe), reg, bg, linea, TextAlignment.RIGHT));
                 table.addCell(dataCell(nvl(p.getEstadoFisico()), reg, bg, linea, TextAlignment.CENTER));
                 table.addCell(dataCell("", reg, bg, linea, TextAlignment.LEFT)); // observaciones en blanco

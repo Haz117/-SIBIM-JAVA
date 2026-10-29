@@ -446,8 +446,8 @@ public class ProductoRepository {
                 fecha_adquisicion, vida_util_anios, valor_residual, etiquetado,
                 proxima_revision, notas_mantenimiento, estado_fisico, numero_factura,
                 clave_armonizada, color, no_motor, tipo_bien, no_tarjeta_circulacion, no_poliza_seguro,
-                created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,COALESCE(?, NOW()),NOW())
+                folio_fiscal, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,COALESCE(?, NOW()),NOW())
             ON CONFLICT (id) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 codigo = EXCLUDED.codigo,
@@ -481,6 +481,7 @@ public class ProductoRepository {
                 tipo_bien = EXCLUDED.tipo_bien,
                 no_tarjeta_circulacion = EXCLUDED.no_tarjeta_circulacion,
                 no_poliza_seguro = EXCLUDED.no_poliza_seguro,
+                folio_fiscal = EXCLUDED.folio_fiscal,
                 updated_at = NOW()
             RETURNING stock_actual, area, created_at, updated_at
             """;
@@ -521,12 +522,13 @@ public class ProductoRepository {
             ps.setString(33, p.getTipoBien());
             ps.setString(34, p.getNoTarjetaCirculacion());
             ps.setString(35, p.getNoPolizaSeguro());
+            ps.setString(36, p.getFolioFiscal());
             // Dates come from the server's clock, not this PC's: the "someone else
             // changed it" check compares updated_at values, and a PC with the
             // wrong time would make an edit look older or newer than it is. A
             // bien that already has its created_at (made offline, restored) keeps it.
-            if (p.getCreadoEn() != null) ps.setTimestamp(36, Timestamp.valueOf(p.getCreadoEn()));
-            else ps.setNull(36, Types.TIMESTAMP);
+            if (p.getCreadoEn() != null) ps.setTimestamp(37, Timestamp.valueOf(p.getCreadoEn()));
+            else ps.setNull(37, Types.TIMESTAMP);
             // Reflect what the row actually holds now (stock/área may differ
             // from the object's on an update), and the new updated_at so a
             // second edit of this same object isn't rejected as stale.
@@ -1162,6 +1164,11 @@ public class ProductoRepository {
             p.setNoPolizaSeguro(rs.getString("no_poliza_seguro"));
         } catch (SQLException ignored) {
             // Columns added in V19 — ignore gracefully on older schemas
+        }
+        try {
+            p.setFolioFiscal(rs.getString("folio_fiscal"));
+        } catch (SQLException ignored) {
+            // Column added in V33 — ignore gracefully on older schemas
         }
         return p;
     }

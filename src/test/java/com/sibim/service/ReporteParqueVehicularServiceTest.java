@@ -155,4 +155,42 @@ class ReporteParqueVehicularServiceTest {
             return null;
         }
     }
+
+    /** "Has a marca" put 1,666 bienes in the V.6 on 28-oct-2026 (desks, computers,
+     *  cameras) for 124 vehicles and left out the 10 without one: a vehicle is its
+     *  clave of Equipo de Transporte, or the tipo de bien the machinery came with. */
+    @Test
+    void esVehiculo_porSuClaveDeTransporte_oSuTipoDeBien() {
+        Producto camioneta = new Producto(); camioneta.setClaveArmonizada("1.2.4.4.1.541");
+        Producto triciclo = new Producto(); triciclo.setClaveArmonizada("1.2.4.4.9.549");   // sin marca
+        Producto retro = new Producto(); retro.setClaveArmonizada("1.2.4.6.3.563"); retro.setTipoBien("Maquinaria");
+        Producto laptop = new Producto(); laptop.setClaveArmonizada("1.2.4.1.3.515"); laptop.setMarca("Dell");
+        Producto sinClave = new Producto(); sinClave.setMarca("Steelcase");
+        Producto escritorio = new Producto(); escritorio.setClaveArmonizada("1.2.4.1.1.511"); escritorio.setTipoBien("Oficina");
+        Producto tractor = new Producto(); tractor.setClaveArmonizada("1.2.4.6.3.563"); tractor.setTipoBien("maquinaria");
+        Producto motobomba = new Producto(); motobomba.setClaveArmonizada("1.2.4.6.2.562"); motobomba.setNoMotor("E1-99812");
+        assertFalse(ReporteParqueVehicularService.esVehiculo(escritorio), "«Oficina» no es tipo de vehículo");
+        assertTrue(ReporteParqueVehicularService.esVehiculo(tractor));
+        assertTrue(ReporteParqueVehicularService.esVehiculo(motobomba), "con número de motor");
+        assertTrue(ReporteParqueVehicularService.esVehiculo(camioneta));
+        assertTrue(ReporteParqueVehicularService.esVehiculo(triciclo));
+        assertTrue(ReporteParqueVehicularService.esVehiculo(retro));
+        assertFalse(ReporteParqueVehicularService.esVehiculo(laptop), "una marca no lo hace vehículo");
+        assertFalse(ReporteParqueVehicularService.esVehiculo(sinClave));
+    }
+
+    /** The demo's bienes carry their category's CONAC clave, so its V.6 has the
+     *  four vehicles and nothing else. */
+    @Test
+    void enElDemo_elV6TieneSusVehiculos() throws Exception {
+        com.sibim.model.Usuario admin = new com.sibim.model.Usuario();
+        admin.setId("v6-admin"); admin.setNombre("Administrador"); admin.setRol(com.sibim.model.enums.Rol.ADMIN);
+        com.sibim.session.SessionManager.setCurrentUser(admin);
+        List<String> codigos;
+        try {
+            codigos = new ProductoService().getAll().stream()
+                .filter(ReporteParqueVehicularService::esVehiculo).map(Producto::getCodigo).sorted().toList();
+        } finally { com.sibim.session.SessionManager.logout(); }
+        assertEquals(List.of("VH-001", "VH-002", "VH-003", "VH-004"), codigos);
+    }
 }

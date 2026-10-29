@@ -46,7 +46,7 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             addEncabezadoAnexoV4(doc, folio);
 
             Table table = buildDataTable();
-            java.util.Map<String, String> folios = foliosVigentes();
+            java.util.Map<String, String> folios = foliosDeResguardoVigente();
             BigDecimal totalAdq = BigDecimal.ZERO, totalDep = BigDecimal.ZERO, totalLibros = BigDecimal.ZERO;
             int idx = 0, sinDepreciacion = 0;
             for (Producto p : bienes) {
@@ -73,7 +73,7 @@ public class ReporteEntregaRecepcionService extends ReporteService {
                 addRow(table, oSin(p.getMarca(), "Sin marca"),                  alt, TextAlignment.LEFT);
                 addRow(table, oSin(p.getModelo(), "Sin modelo"),                alt, TextAlignment.LEFT);
                 addRow(table, oSin(p.getNumeroSerie(), "Sin serie"),            alt, TextAlignment.CENTER);
-                addRow(table, p.getNumeroFactura(),                             alt, TextAlignment.CENTER);
+                addRow(table, p.getFacturaParaFormato(),                        alt, TextAlignment.CENTER);
                 addRow(table, p.getFechaAdquisicion() != null
                     ? p.getFechaAdquisicion().format(FMT) : "",                 alt, TextAlignment.CENTER);
                 addRow(table, p.getResguardante(),                              alt, TextAlignment.LEFT); // Nombre responsable resguardo
@@ -107,29 +107,6 @@ public class ReporteEntregaRecepcionService extends ReporteService {
         return "Depreciación acumulada y valor en libros: " + (bienes == 1
             ? "1 bien no tiene fecha de adquisición o vida útil registrada; queda sin depreciación y fuera de esos dos totales."
             : bienes + " bienes no tienen fecha de adquisición o vida útil registrada; quedan sin depreciación y fuera de esos dos totales.");
-    }
-
-    /** The folio of the resguardo in force of each bien, for the format's "No.
-     *  resguardo" column, which was always printed empty. Without it the acta is
-     *  still printed, with that column empty as before. */
-    private static java.util.Map<String, String> foliosVigentes() {
-        try {
-            return foliosVigentes(new com.sibim.repository.ResguardoRepository().findAll());
-        } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ReporteEntregaRecepcionService.class)
-                .warn("Sin folios de resguardo para el acta: {}", e.getMessage());
-            return java.util.Map.of();
-        }
-    }
-
-    static java.util.Map<String, String> foliosVigentes(List<com.sibim.model.Resguardo> resguardos) {
-        java.util.Map<String, String> folios = new java.util.HashMap<>();
-        for (com.sibim.model.Resguardo r : resguardos) {
-            if (!r.isActivo() || r.getItems() == null) continue;
-            for (com.sibim.model.ResguardoItem it : r.getItems())
-                if (it.getProductoId() != null) folios.putIfAbsent(it.getProductoId(), r.getNumero());
-        }
-        return folios;
     }
 
     // ── Encabezado estilo ANEXO V.4 ─────────────────────────────────

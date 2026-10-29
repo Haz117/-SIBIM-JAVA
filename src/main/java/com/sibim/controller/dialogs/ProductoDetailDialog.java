@@ -254,6 +254,8 @@ public final class ProductoDetailDialog {
         if (estadoFisico != null && !estadoFisico.isBlank()) rowList.add(new Row("Estado físico", estadoFisico, null));
         String numeroFactura = p.getNumeroFactura();
         if (numeroFactura != null && !numeroFactura.isBlank()) rowList.add(new Row("N° factura", numeroFactura, null));
+        String folioFiscal = p.getFolioFiscal();
+        if (folioFiscal != null && !folioFiscal.isBlank()) rowList.add(new Row("Folio fiscal", folioFiscal, null));
         rowList.add(new Row("Cantidad",        String.valueOf(p.getStockActual()), stockClass));
         rowList.add(new Row("Unidad",          p.getUnidad() != null ? p.getUnidad().getEtiqueta() : "—", null));
         rowList.add(new Row("Costo de adquisición", com.sibim.session.Permisos.pesos(p.getPrecioCompra()), null));

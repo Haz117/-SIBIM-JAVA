@@ -189,6 +189,29 @@ public class ReporteService {
             .thenComparing(p -> java.util.Objects.requireNonNullElse(p.getCodigo(), ""), POR_CODIGO));
         return out;
     }
+    /** The folio of the resguardo in force of each bien (id → RSG-…), for the "No.
+     *  de resguardo" of the official formats (V.4, V.6), which was printed empty or
+     *  as a blank line. Without it the format still prints, that column empty. */
+    protected static Map<String, String> foliosDeResguardoVigente() {
+        try {
+            return foliosVigentes(new com.sibim.repository.ResguardoRepository().findAll());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(ReporteService.class)
+                .warn("Sin folios de resguardo para el formato: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    static Map<String, String> foliosVigentes(List<Resguardo> resguardos) {
+        Map<String, String> folios = new HashMap<>();
+        for (Resguardo r : resguardos) {
+            if (!r.isActivo() || r.getItems() == null) continue;
+            for (com.sibim.model.ResguardoItem it : r.getItems())
+                if (it.getProductoId() != null) folios.putIfAbsent(it.getProductoId(), r.getNumero());
+        }
+        return folios;
+    }
+
     private static final int MAX_EXPORT_ROWS = 50_000;
 
     protected String generateFolio(String prefix) {

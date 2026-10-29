@@ -10,6 +10,7 @@ import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
+import com.sibim.util.AutocompleteUtil;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -392,6 +393,16 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             .orElse("");
     }
 
+    /** The active bienes the inventory has in {@code nombre}'s name (accents, case and
+     *  double spaces ignored) that no resguardo in force covers, by número. */
+    static List<Producto> aNombreDe(String nombre, List<Producto> productos, List<Resguardo> resguardos) {
+        if (nombre == null || nombre.isBlank()) return List.of();
+        String clave = ResguardoService.clavePersona(nombre);
+        return ResguardoService.porResguardante(resguardos, productos).stream()
+            .filter(r -> ResguardoService.clavePersona(r.nombre()).equals(clave))
+            .findFirst().map(ResguardoService.Resguardante::sinResguardo).orElse(List.of());
+    }
+
     /** "SGM/07" → 7, so the list follows the área's numbering; anything else goes last. */
     static int numeroDeCodigo(Producto p) {
         String c = p.getCodigo();
@@ -419,6 +430,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         int row = 0;
         TextField fNombre = new TextField(); fNombre.setPromptText("Nombre completo");
         fNombre.getStyleClass().add("form-input");
+        // Written as the inventory has it, "Cargar los que tiene a su nombre" finds the bienes.
+        AutocompleteUtil.attach(fNombre, productos.stream().map(Producto::getResguardante)
+            .filter(r -> r != null && !r.isBlank()).map(String::trim).distinct().sorted().toList());
         TextField fCargo  = new TextField(); fCargo.setPromptText("Cargo o puesto");
         fCargo.getStyleClass().add("form-input");
         // An área assigns resguardos to its own people: the list offers only its áreas.
@@ -552,6 +566,36 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
                 NotificacionUtil.advertencia(scene, "No hay bienes en esa área");
         });
 
+        // What the inventory has in this person's name and no resguardo in force covers:
+        // 90 of 316 people held bienes without a registered resguardo (28-oct-2026).
+        Button btnCargarPersona = new Button("Cargar los que tiene a su nombre");
+        btnCargarPersona.setGraphic(new FontIcon("mdi2a-account-outline"));
+        btnCargarPersona.getStyleClass().add("btn-secondary");
+        btnCargarPersona.setOnAction(e -> {
+            if (fNombre.getText().isBlank()) {
+                NotificacionUtil.advertencia(scene, "Escribe primero el nombre del resguardante"); return;
+            }
+            List<Producto> suyos = aNombreDe(fNombre.getText(), productos, allData);
+            if (suyos.isEmpty()) {
+                NotificacionUtil.advertencia(scene, "No hay bienes a nombre de «" + fNombre.getText().trim()
+                    + "» fuera de un resguardo vigente"); return;
+            }
+            int antes = itemsAgregados.size();
+            for (Producto p : suyos) {
+                if (itemsAgregados.stream().anyMatch(i -> p.getId().equals(i.getProductoId()))) continue;
+                ResguardoItem item = new ResguardoItem();
+                item.setProductoId(p.getId()); item.setProductoNombre(p.getNombre());
+                item.setProductoCodigo(p.getCodigo()); item.setArea(p.getArea());
+                item.setValorUnitario(p.getValorUnitario()); item.setNumeroSerie(p.getNumeroSerie());
+                itemsAgregados.add(item);
+            }
+            List<String> areas = suyos.stream().map(Producto::getArea).filter(a -> a != null && !a.isBlank())
+                .distinct().toList();
+            if (areaCombo.getValue() == null && areas.size() == 1 && areasCatalogo.contains(areas.get(0)))
+                areaCombo.setValue(areas.get(0));
+            NotificacionUtil.exito(scene, FormatUtils.plural(itemsAgregados.size() - antes, "bien agregado", "bienes agregados"));
+        });
+
         TextField fObs = new TextField(); fObs.setPromptText("Observaciones (opcional)");
         fObs.getStyleClass().add("form-input");
 
@@ -563,8 +607,10 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         HBox.setHgrow(productoCombo, Priority.ALWAYS);
         selectorRow.setAlignment(Pos.CENTER_LEFT);
 
+        HBox cargarRow = new HBox(8, btnCargarArea, btnCargarPersona);
+        cargarRow.setAlignment(Pos.CENTER_LEFT);
         VBox content = new VBox(10, header, form,
-            lblBienes, selectorRow, btnCargarArea, itemsTable,
+            lblBienes, selectorRow, cargarRow, itemsTable,
             DialogUtil.fieldLabel("Observaciones"), fObs, lblError);
         content.setPadding(new Insets(0, 16, 16, 16));
         DialogUtil.setScrollableContent(dialog.getDialogPane(), content);

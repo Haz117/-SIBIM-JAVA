@@ -273,7 +273,7 @@ public class ResguardoService {
             .toList();
     }
 
-    static String clavePersona(String nombre) {
+    public static String clavePersona(String nombre) {
         return java.text.Normalizer.normalize(nombre.trim(), java.text.Normalizer.Form.NFD)
             .replaceAll("\\p{M}+", "").replaceAll("\\s+", " ").toUpperCase(java.util.Locale.ROOT);
     }
@@ -293,6 +293,8 @@ public class ResguardoService {
         PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         DeviceRgb dark  = new DeviceRgb(15, 23, 42);
         DeviceRgb muted = COLOR_MUTED;
+        // Read once: header and footer both say it, and each read is a query.
+        String org = orgName();
 
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
@@ -317,7 +319,7 @@ public class ResguardoService {
             com.itextpdf.layout.element.Cell hCell = new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("RESGUARDO DE BIENES").setFont(bold).setFontSize(16)
                     .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.CENTER))
-                .add(new Paragraph(orgName()).setFont(regular).setFontSize(9)
+                .add(new Paragraph(org).setFont(regular).setFontSize(9)
                     .setFontColor(new DeviceRgb(240, 195, 195)).setTextAlignment(TextAlignment.CENTER))
                 .setBackgroundColor(COLOR_HEADER).setPadding(14).setBorder(null);
             headerTable.addCell(hCell);
@@ -430,7 +432,7 @@ public class ResguardoService {
 
             // ── Footer ──
             doc.add(new Paragraph(
-                "Generado por SIBIM · " + orgName() + " · " + LocalDate.now().format(FMT))
+                "Generado por SIBIM · " + org + " · " + LocalDate.now().format(FMT))
                 .setFont(regular).setFontSize(7).setFontColor(muted)
                 .setTextAlignment(TextAlignment.CENTER).setMarginTop(20));
         }

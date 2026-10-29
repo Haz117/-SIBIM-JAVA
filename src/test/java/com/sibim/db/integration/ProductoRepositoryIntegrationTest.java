@@ -107,6 +107,25 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
             "precioVenta debe coincidir");
     }
 
+    /** V33: the folio fiscal (UUID of the CFDI) is saved and read apart from the
+     *  número de factura; an edit that leaves it empty clears it. */
+    @Test
+    void folioFiscal_seGuardaAparteDelNumeroDeFactura() throws SQLException {
+        String id = UUID.randomUUID().toString();
+        Producto p = buildProducto(id, "Camioneta Ford F150", "VEH-022");
+        p.setNumeroFactura("1234");
+        p.setFolioFiscal("A1B2C3D4-0000-4000-8000-000000000001");
+        repo.saveOnline(p);
+
+        Producto leido = repo.findById(id).orElseThrow();
+        assertEquals("1234", leido.getNumeroFactura());
+        assertEquals("A1B2C3D4-0000-4000-8000-000000000001", leido.getFolioFiscal());
+
+        leido.setFolioFiscal(null);
+        repo.saveOnline(leido);
+        assertNull(repo.findById(id).orElseThrow().getFolioFiscal());
+    }
+
     /**
      * Saving a product a second time with the same id (ON CONFLICT DO UPDATE)
      * must update the mutable fields — specifically nombre — without creating

@@ -25,6 +25,8 @@ class ProductoTabPatrimonioFields {
     final Label     lblResguardoActivo;
     final ComboBox<String> fEstadoFisico;
     final TextField fNumeroFactura;
+    final TextField fFolioFiscal;
+    private final String facturaOriginal;
     final CheckBox  fEtiquetado;
     final DatePicker fFechaAdq;
     final DatePicker fProximaRevision;
@@ -106,6 +108,13 @@ class ProductoTabPatrimonioFields {
                 ? existing.getNumeroFactura() : "");
         fNumeroFactura.setPromptText("Ej. B1234, F-XX-000001");
         fNumeroFactura.getStyleClass().add("form-input");
+
+        fFolioFiscal = new TextField(existing != null && existing.getFolioFiscal() != null
+                ? existing.getFolioFiscal() : "");
+        fFolioFiscal.setPromptText("UUID del CFDI, ej. A1B2C3D4-0000-4000-8000-000000000001");
+        fFolioFiscal.getStyleClass().add("form-input");
+        facturaOriginal = existing != null ? existing.getNumeroFactura() : null;
+        fNumeroFactura.focusedProperty().addListener((o, antes, ahora) -> { if (!ahora) pasarFolioFiscal(); });
 
         fEtiquetado = new CheckBox("Bien etiquetado (tiene etiqueta física/QR)");
         fEtiquetado.setSelected(existing != null && existing.isEtiquetado());
@@ -194,6 +203,9 @@ class ProductoTabPatrimonioFields {
         grid.add(DialogUtil.fieldLabelWithHelp("N° Factura",
             "Número del documento de compra o factura.\nDistinto de la foto de factura — este es el folio para cruce contable."),
                                                          0, rp); grid.add(fNumeroFactura, 1, rp++);
+        grid.add(DialogUtil.fieldLabelWithHelp("Folio fiscal (UUID)",
+            "El UUID del CFDI de la factura (36 caracteres, viene en su PDF o XML).\nUn UUID escrito en N° Factura se pasa aquí solo."),
+                                                         0, rp); grid.add(fFolioFiscal, 1, rp++);
         grid.add(new javafx.scene.control.Separator(), 0, rp, 2, 1); rp++;
         grid.add(DialogUtil.fieldLabel("Etiquetado"), 0, rp);
         grid.add(fEtiquetado, 1, rp++);
@@ -207,7 +219,7 @@ class ProductoTabPatrimonioFields {
             "Fecha en que se adquirió el bien.\nBase para el cálculo de depreciación."),
                                                          0, rp); grid.add(fFechaAdq,      1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Vida útil (años)",
-            "Número de años en que el bien se deprecia completamente\n(CONAC: equipo de cómputo 3 años, vehículos 5, mobiliario y maquinaria 10).\nVacío: el bien no se deprecia."),
+            "Número de años en que el bien se deprecia completamente\n(CONAC: equipo de cómputo 3 años, vehículos 5, mobiliario y maquinaria 10;\nse sugiere al elegir la categoría). Vacío: el bien no se deprecia."),
                                                          0, rp); grid.add(fVidaUtil,      1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Valor residual",
             "Valor de rescate o residual al final de la vida útil (puede ser $0)."),
@@ -250,6 +262,7 @@ class ProductoTabPatrimonioFields {
         fResguardante.textProperty().addListener((o, a, b)     -> markDirty.run());
         fEstadoFisico.valueProperty().addListener((o, a, b)    -> markDirty.run());
         fNumeroFactura.textProperty().addListener((o, a, b)    -> markDirty.run());
+        fFolioFiscal.textProperty().addListener((o, a, b)      -> markDirty.run());
         fEtiquetado.selectedProperty().addListener((o, a, b)   -> markDirty.run());
         fFechaAdq.valueProperty().addListener((o, a, b)        -> markDirty.run());
         fProximaRevision.valueProperty().addListener((o, a, b) -> markDirty.run());
@@ -262,6 +275,19 @@ class ProductoTabPatrimonioFields {
         fNoMotor.textProperty().addListener((o, a, b)          -> markDirty.run());
         fNoTarjeta.textProperty().addListener((o, a, b)        -> markDirty.run());
         fNoPoliza.textProperty().addListener((o, a, b)         -> markDirty.run());
+    }
+
+    /** A UUID typed as número de factura (51 vehicles on 28/29-oct-2026, losing the
+     *  folio they had) goes to Folio fiscal, if that one is empty, and the número the
+     *  bien had comes back. Only one typed now: the 700-odd UUIDs the carga put there
+     *  stay until someone moves them, or every edit would rewrite the factura. */
+    void pasarFolioFiscal() {
+        String texto = fNumeroFactura.getText().trim();
+        if (texto.equals(facturaOriginal == null ? "" : facturaOriginal.trim())) return;
+        if (!Producto.pareceFolioFiscal(texto) || !fFolioFiscal.getText().isBlank()) return;
+        fFolioFiscal.setText(texto.toUpperCase());
+        fNumeroFactura.setText(facturaOriginal != null && !Producto.pareceFolioFiscal(facturaOriginal)
+            ? facturaOriginal : "");
     }
 
     /** What the vida útil field says now, text being typed included; emptied = none

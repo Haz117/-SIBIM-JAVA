@@ -78,6 +78,7 @@ final class DemoSemilla {
             new Categoria("cat-maq",  "Herramientas y Maquinaria", "Maquinaria pesada, herramientas, extintores","#EF4444", "🔧",  LocalDateTime.now()),
             new Categoria("cat-av",   "Equipo Audiovisual",        "Cámaras, proyectores, pantallas, audio",    "#EC4899", "📷",  LocalDateTime.now())
         )));
+        CATEGORIAS.forEach(c -> c.setCodigoConac(CLAVES_CONAC.get(c.getId())));
 
         // ── Productos ─────────────────────────────────────────────────────────
         // Formato: id, nombre, código, catId, catNombre, catColor,
@@ -491,6 +492,16 @@ final class DemoSemilla {
 
     // ── Factory helpers ───────────────────────────────────────────────────────
 
+    /** The CONAC account of each demo category, as production's categories have
+     *  it: the bienes carry it as clave armonizada (V.4, V.6 and its vehicles). */
+    private static final java.util.Map<String, String> CLAVES_CONAC = java.util.Map.of(
+        "cat-mob",  "1.2.4.1.1.511",
+        "cat-veh",  "1.2.4.4.1.541",
+        "cat-comp", "1.2.4.1.3.515",
+        "cat-ofi",  "1.2.4.1.9.519",
+        "cat-maq",  "1.2.4.6.7.567",
+        "cat-av",   "1.2.4.2.1.521");
+
     private static Producto prod(String id, String nombre, String codigo,
                                   String catId, String catNombre, String catColor,
                                   int precioCompra, int precioVenta,
@@ -499,6 +510,7 @@ final class DemoSemilla {
         Producto p = new Producto();
         p.setId(id); p.setNombre(nombre); p.setCodigo(codigo);
         p.setCategoriaId(catId); p.setCategoriaNombre(catNombre); p.setCategoriaColor(catColor);
+        p.setClaveArmonizada(CLAVES_CONAC.get(catId));
         p.setPrecioCompra(BigDecimal.valueOf(precioCompra));
         p.setPrecioVenta(BigDecimal.valueOf(precioVenta));
         p.setStockActual(stockActual); p.setStockMinimo(stockMinimo); p.setStockMaximo(stockMaximo);

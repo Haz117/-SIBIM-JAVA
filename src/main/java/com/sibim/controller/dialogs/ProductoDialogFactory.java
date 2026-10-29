@@ -232,6 +232,16 @@ public final class ProductoDialogFactory {
             String clave = patrimonioTab.fClaveArm.getText().trim();
             if (nueva != null && !nueva.isBlank() && (clave.isEmpty() || clave.equals(anterior)))
                 patrimonioTab.fClaveArm.setText(nueva.trim());
+            // The vida útil follows it the same way (CONAC parameters), but only when
+            // someone picks the category: opening a bien that has none must not give
+            // it one, or every edit would change its depreciation again.
+            if (isNewProduct || a != null) {
+                Integer sugerida = com.sibim.config.VidaUtilConac.anios(nueva);
+                Integer previa = com.sibim.config.VidaUtilConac.anios(anterior);
+                Integer actual = patrimonioTab.vidaUtil();
+                if (sugerida != null && (actual == null || actual.equals(previa)))
+                    patrimonioTab.fVidaUtil.getValueFactory().setValue(sugerida);
+            }
         });
         stockTab.fPrecioC.textProperty().addListener((o, a, b) -> { stockTab.fPrecioC.getStyleClass().remove("field-error"); hideFormError.run(); });
         stockTab.fStockMin.valueProperty().addListener((o, a, b) -> { stockTab.fStockMin.getStyleClass().remove("field-error"); stockTab.fStockMax.getStyleClass().remove("field-error"); hideFormError.run(); });
@@ -376,7 +386,7 @@ public final class ProductoDialogFactory {
                     infoTab.fNombre, infoTab.fCodigo, infoTab.fCat, infoTab.fArea,
                     stockTab.fUnidad, stockTab.fPrecioC, stockTab.fVenc,
                     patrimonioTab.fProveedor, patrimonioTab.fMarca, patrimonioTab.fModelo, patrimonioTab.fNumeroSerie,
-                    patrimonioTab.fResguardante, patrimonioTab.fNumeroFactura, patrimonioTab.fEtiquetado,
+                    patrimonioTab.fResguardante, patrimonioTab.fNumeroFactura, patrimonioTab.fFolioFiscal, patrimonioTab.fEtiquetado,
                     patrimonioTab.fFechaAdq, patrimonioTab.fProximaRevision, patrimonioTab.fVidaUtil,
                     patrimonioTab.fValorResidual, patrimonioTab.fNotasMant, patrimonioTab.fClaveArm,
                     patrimonioTab.fColor, patrimonioTab.fTipoBien, patrimonioTab.fNoMotor, patrimonioTab.fNoTarjeta,
@@ -473,8 +483,11 @@ public final class ProductoDialogFactory {
             p.setNotasMantenimiento(notasMantTxt.isEmpty() ? null : notasMantTxt);
             String estadoFisicoVal = patrimonioTab.fEstadoFisico.getValue();
             p.setEstadoFisico(estadoFisicoVal == null || estadoFisicoVal.isBlank() ? null : estadoFisicoVal);
+            patrimonioTab.pasarFolioFiscal();   // saved with Enter, the field never lost focus
             String numFactTxt = patrimonioTab.fNumeroFactura.getText().trim();
             p.setNumeroFactura(numFactTxt.isEmpty() ? null : numFactTxt);
+            String folioTxt = patrimonioTab.fFolioFiscal.getText().trim();
+            p.setFolioFiscal(folioTxt.isEmpty() ? null : folioTxt);
             p.setClaveArmonizada(patrimonioTab.fClaveArm.getText().trim().isEmpty() ? null : patrimonioTab.fClaveArm.getText().trim());
             p.setColor(patrimonioTab.fColor.getText().trim().isEmpty() ? null : patrimonioTab.fColor.getText().trim());
             p.setTipoBien(patrimonioTab.fTipoBien.getText().trim().isEmpty() ? null : patrimonioTab.fTipoBien.getText().trim());
