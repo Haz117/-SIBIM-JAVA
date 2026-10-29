@@ -43,28 +43,29 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             doc.setMargins(28, 28, 28, 28);
 
             String folio = generateFolio("ERV");
-            addEncabezadoAnexoV4(doc, folio);
+            // As the official sheet: its name at the top right and the grid, nothing else
+            // above it; folio, date and total go in the footer.
+            doc.add(new Paragraph("ANEXO V.4").setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD))
+                .setFontSize(15f).setTextAlignment(TextAlignment.RIGHT).setMargin(0).setMarginBottom(10));
 
             Table table = buildDataTable();
             // A large table, drawn as it fills: laid out whole, the 3,138 bienes of
             // 28-oct-2026 took 11.5 s and 370 MB, enough to fail on a PC with little memory.
             doc.add(table);
             java.util.Map<String, String> folios = foliosDeResguardoVigente();
+            java.util.Map<String, String> titulares = TitularesArea.todos(configRepo);
             BigDecimal totalAdq = BigDecimal.ZERO, totalDep = BigDecimal.ZERO, totalLibros = BigDecimal.ZERO;
-            int idx = 0, sinDepreciacion = 0;
+            int idx = 0;
             for (Producto p : bienes) {
-                boolean alt = (idx++ % 2) == 1;
+                boolean alt = false;
+                idx++;
                 // The whole renglón, as the municipio's inventory writes its IMPORTE:
                 // a lot of 140 chairs is listed once, at what the 140 cost.
-                BigDecimal valorAdq  = p.getValorTotal();
-                BigDecimal valorLibros = p.getValorDepreciadoTotal();
-                BigDecimal depAcum   = (valorAdq != null && valorLibros != null)
-                    ? valorAdq.subtract(valorLibros)
-                    : null;
+                BigDecimal[] v = valores(p);
+                BigDecimal valorAdq = v[0], depAcum = v[1], valorLibros = v[2];
                 if (valorAdq != null)    totalAdq = totalAdq.add(valorAdq);
                 if (depAcum != null)     totalDep = totalDep.add(depAcum);
                 if (valorLibros != null) totalLibros = totalLibros.add(valorLibros);
-                if (valorAdq != null && valorAdq.signum() > 0 && valorLibros == null) sinDepreciacion++;
 
                 addRow(table, p.getCodigo(),                                    alt, TextAlignment.CENTER);
                 addRow(table, p.getClaveArmonizada(),                           alt, TextAlignment.CENTER);
@@ -79,7 +80,8 @@ public class ReporteEntregaRecepcionService extends ReporteService {
                 addRow(table, p.getFacturaParaFormato(),                        alt, TextAlignment.CENTER);
                 addRow(table, p.getFechaAdquisicion() != null
                     ? p.getFechaAdquisicion().format(FMT) : "",                 alt, TextAlignment.CENTER);
-                addRow(table, p.getResguardante(),                              alt, TextAlignment.LEFT); // Nombre responsable resguardo
+                // The área's titular, who answers for its resguardos (Configuración › Áreas).
+                addRow(table, titulares.get(p.getArea()),                       alt, TextAlignment.LEFT);
                 addRow(table, moneda(valorAdq),                                 alt, TextAlignment.RIGHT);
                 addRow(table, moneda(depAcum),                                  alt, TextAlignment.RIGHT);
                 addRow(table, moneda(valorLibros),                              alt, TextAlignment.RIGHT);
@@ -88,10 +90,6 @@ public class ReporteEntregaRecepcionService extends ReporteService {
             }
             addTotales(table, bienes.size(), totalAdq, totalDep, totalLibros);
             table.complete();
-            if (sinDepreciacion > 0)
-                doc.add(new Paragraph(notaSinDepreciacion(sinDepreciacion))
-                    .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA)).setFontSize(6.5f)
-                    .setFontColor(ColorConstants.DARK_GRAY).setMarginTop(3).setMarginBottom(0));
 
             addFirmasBlock(doc,
                 new String[]{"ENTREGÓ", null, "Titular saliente / Responsable"},
@@ -103,70 +101,26 @@ public class ReporteEntregaRecepcionService extends ReporteService {
         return numerarPaginas(file);
     }
 
-    /** The totals of depreciación and valor en libros only add up the bienes that
-     *  have fecha de adquisición, precio and vida útil — on 28-oct-2026 about 100
-     *  of 3,138 —, which next to the valor de adquisición of all of them reads as
-     *  if the rest were worth nothing. The acta says so under the totals. */
-    static String notaSinDepreciacion(int bienes) {
-        return "Depreciación acumulada y valor en libros: " + (bienes == 1
-            ? "1 bien no tiene fecha de adquisición o vida útil registrada; queda sin depreciación y fuera de esos dos totales."
-            : bienes + " bienes no tienen fecha de adquisición o vida útil registrada; quedan sin depreciación y fuera de esos dos totales.");
-    }
-
-    // ── Encabezado estilo ANEXO V.4 ─────────────────────────────────
-
-    private void addEncabezadoAnexoV4(Document doc, String folio) throws Exception {
-        PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-        PdfFont reg  = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        DeviceRgb muted = new DeviceRgb(107, 114, 128);
-
-        Table header = tabla(3.2f, 1.3f, 1.2f);
-        com.itextpdf.layout.properties.VerticalAlignment medio = com.itextpdf.layout.properties.VerticalAlignment.MIDDLE;
-
-        header.addCell(new Cell()
-            .add(new Paragraph(orgName()).setFont(bold).setFontSize(9f).setFontColor(ColorConstants.WHITE).setMargin(0))
-            .add(new Paragraph("INVENTARIO DE BIENES MUEBLES PARA ENTREGA-RECEPCIÓN")
-                .setFont(bold).setFontSize(12f).setFontColor(ColorConstants.WHITE).setMargin(0).setMarginTop(2))
-            .setBackgroundColor(COLOR_HEADER).setPadding(10).setBorder(null).setVerticalAlignment(medio));
-
-        header.addCell(new Cell()
-            .add(new Paragraph("FOLIO").setFont(bold).setFontSize(7f)
-                .setFontColor(new DeviceRgb(220, 165, 168)).setTextAlignment(TextAlignment.CENTER).setMargin(0))
-            .add(new Paragraph(folio != null ? folio : "").setFont(bold).setFontSize(9f)
-                .setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.CENTER).setMargin(0))
-            .add(new Paragraph(LocalDate.now().format(FMT)).setFont(reg).setFontSize(7f)
-                .setFontColor(new DeviceRgb(220, 165, 168)).setTextAlignment(TextAlignment.CENTER).setMargin(0))
-            .setBackgroundColor(new DeviceRgb(120, 25, 33))
-            .setPadding(8).setBorder(null).setVerticalAlignment(medio));
-
-        // The format's own name, where the printed one carries it: top right.
-        header.addCell(new Cell()
-            .add(new Paragraph("ANEXO V.4").setFont(bold).setFontSize(17f).setFontColor(COLOR_HEADER)
-                .setTextAlignment(TextAlignment.RIGHT).setMargin(0))
-            .setPadding(8).setBorder(null).setVerticalAlignment(medio));
-        doc.add(header);
-
-        // Barra dorada
-        doc.add(new Table(new float[]{1f}).useAllAvailableWidth()
-            .addCell(new Cell().setHeight(3f)
-                .setBackgroundColor(new DeviceRgb(196, 165, 93)).setBorder(Border.NO_BORDER)));
-
-        com.sibim.model.Usuario u = com.sibim.session.SessionManager.getCurrentUser();
-        String gen = "Generado " + LocalDate.now().format(FMT)
-            + (u != null ? " por " + u.getNombre() : "");
-        doc.add(new Paragraph(gen)
-            .setFont(reg).setFontSize(8f).setFontColor(ColorConstants.DARK_GRAY).setMarginTop(4).setMarginBottom(6));
+    /** Valor de adquisición, depreciación acumulada and valor en libros of the
+     *  renglón. A bien without fecha de adquisición or vida útil is not depreciated:
+     *  $0.00, and its book value is what it cost, as the official sheet fills it. */
+    static BigDecimal[] valores(Producto p) {
+        BigDecimal adq = p.getValorTotal();
+        BigDecimal libros = p.getValorDepreciadoTotal();
+        if (adq == null) return new BigDecimal[]{null, null, null};
+        if (libros == null) return new BigDecimal[]{adq, BigDecimal.ZERO, adq};
+        return new BigDecimal[]{adq, adq.subtract(libros), libros};
     }
 
     // ── Estructura de la tabla ───────────────────────────────────────
 
-    private static final DeviceRgb LINEA = new DeviceRgb(120, 120, 120);
+    private static final DeviceRgb LINEA = new DeviceRgb(0, 0, 0);
 
     private Table buildDataTable() throws Exception {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         // 17 columnas — anchos relativos pensados para A4 apaisado
-        Table t = tablaGrande(5.6f, 6.2f, 5.4f, 6.8f, 7.2f, 11.4f, 6f, 5.2f,
-                        5.6f, 5.2f, 5.8f, 5.4f, 6.8f, 6.2f, 6.4f, 6f, 5.4f).setMarginTop(4);
+        Table t = tablaGrande(5.6f, 6.2f, 5.4f, 6.8f, 7.2f, 10.8f, 6f, 5.2f,
+                        5.6f, 5.2f, 5.8f, 6.0f, 6.8f, 6.2f, 6.4f, 6f, 5.4f).setMarginTop(4);
 
         String[] headers = {
             "No. de\ninventario", "Clave\nArmonizada", "No. de\nresguardo",
@@ -180,40 +134,41 @@ public class ReporteEntregaRecepcionService extends ReporteService {
         };
         // Repeats on every page: the official format is a full grid, as here.
         for (String h : headers) {
+            // White with black bold text and a heavier line under it, as on paper.
             t.addHeaderCell(new Cell()
-                .add(new Paragraph(h).setFont(bold).setFontSize(5.6f).setFontColor(ColorConstants.WHITE)
+                .add(new Paragraph(h).setFont(bold).setFontSize(6.4f).setFontColor(ColorConstants.BLACK)
                     .setTextAlignment(TextAlignment.CENTER).setMultipliedLeading(1.1f).setMargin(0))
-                .setBackgroundColor(COLOR_HEADER).setPadding(2.5f)
+                .setPadding(3)
                 .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setBorder(new SolidBorder(new DeviceRgb(120, 25, 33), 0.5f)));
+                .setBorder(new SolidBorder(LINEA, 0.8f)).setBorderBottom(new SolidBorder(LINEA, 1.6f)));
         }
         return t;
     }
 
     private void addRow(Table t, String value, boolean alt, TextAlignment alineacion) {
-        DeviceRgb bg = alt ? ROW_ALT_BG : new DeviceRgb(255, 255, 255);
         t.addCell(new Cell()
             .add(new Paragraph(value != null ? value : "")
-                .setFontSize(6.3f).setTextAlignment(alineacion).setMultipliedLeading(1.1f).setMargin(0))
-            .setBackgroundColor(bg).setPadding(3)
-            .setBorder(new SolidBorder(LINEA, 0.4f)));
+                .setFontSize(6.6f).setTextAlignment(alineacion).setMultipliedLeading(1.1f).setMargin(0))
+            .setPadding(2.5f)
+            .setBorder(new SolidBorder(LINEA, 0.6f)));
     }
 
     private void addTotales(Table t, int bienes, BigDecimal adq, BigDecimal dep, BigDecimal libros) throws Exception {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-        SolidBorder linea = new SolidBorder(LINEA, 0.4f);
+        SolidBorder linea = new SolidBorder(LINEA, 0.8f);
+        SolidBorder arriba = new SolidBorder(LINEA, 1.6f);
         t.addCell(new Cell(1, 13)
-            .add(new Paragraph("TOTAL  (" + bienes + (bienes == 1 ? " bien)" : " bienes)")).setFont(bold).setFontSize(6.8f)
-                .setFontColor(COLOR_HEADER).setTextAlignment(TextAlignment.RIGHT).setMargin(0))
-            .setBackgroundColor(ROW_ALT_BG).setPadding(4).setBorder(linea));
+            .add(new Paragraph("TOTAL  (" + bienes + (bienes == 1 ? " bien)" : " bienes)")).setFont(bold).setFontSize(7f)
+                .setTextAlignment(TextAlignment.RIGHT).setMargin(0))
+            .setPadding(4).setBorder(linea).setBorderTop(arriba));
         for (BigDecimal v : new BigDecimal[]{adq, dep, libros})
             t.addCell(new Cell()
                 // Totals run to millions: a size down so they stay on one line of the column.
-                .add(new Paragraph(moneda(v)).setFont(bold).setFontSize(5.6f).setFontColor(COLOR_HEADER)
+                .add(new Paragraph(moneda(v)).setFont(bold).setFontSize(5.8f)
                     .setTextAlignment(TextAlignment.RIGHT).setMargin(0))
-                .setBackgroundColor(ROW_ALT_BG).setPadding(2).setBorder(linea)
+                .setPadding(2).setBorder(linea).setBorderTop(arriba)
                 .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE));
-        t.addCell(new Cell().setBackgroundColor(ROW_ALT_BG).setBorder(linea));
+        t.addCell(new Cell().setBorder(linea).setBorderTop(arriba));
     }
 
     /** The bien by name and, when it has one, its description: a bare description

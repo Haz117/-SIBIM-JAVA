@@ -27,6 +27,9 @@ class ConfigAreasSectionBuilder {
     private final VBox anchorSection;
     private final AreaService areaService = new AreaService();
     private TableView<AreaCatalog.Entrada> table;
+    /** Who answers for each área's resguardos (ANEXO V.4), typed here. */
+    private java.util.Map<String, String> titulares = new java.util.HashMap<>();
+    private final com.sibim.repository.ConfiguracionRepository config = new com.sibim.repository.ConfiguracionRepository();
 
     ConfigAreasSectionBuilder(VBox anchorSection) {
         this.anchorSection = anchorSection;
@@ -69,7 +72,10 @@ class ConfigAreasSectionBuilder {
         TableColumn<AreaCatalog.Entrada, String> colPrefijo = new TableColumn<>("Prefijo");
         colPrefijo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().prefijo()));
         colPrefijo.setPrefWidth(90);
-        table.getColumns().addAll(List.of(colNombre, colTipo, colPadre, colPrefijo));
+        TableColumn<AreaCatalog.Entrada, String> colTitular = new TableColumn<>("Titular");
+        colTitular.setCellValueFactory(c -> new SimpleStringProperty(titulares.getOrDefault(c.getValue().nombre(), "—")));
+        colTitular.setPrefWidth(220);
+        table.getColumns().addAll(List.of(colNombre, colTipo, colPadre, colPrefijo, colTitular));
         refrescar();
 
         boolean editable = !DatabaseConfig.isDemoMode() && !DatabaseConfig.isOfflineMode();
@@ -115,6 +121,9 @@ class ConfigAreasSectionBuilder {
 
     private void refrescar() {
         table.getItems().setAll(Areas.catalogo().entradas());
+        DialogUtil.runAsync(() -> com.sibim.service.TitularesArea.todos(config),
+            t -> { titulares = t; table.refresh(); },
+            e -> { });
     }
 
     /** {@code actual} null = new area. */
@@ -150,6 +159,9 @@ class ConfigAreasSectionBuilder {
         tfPrefijo.textProperty().addListener((o, a, b) -> {
             if (b != null && !b.equals(b.toUpperCase())) tfPrefijo.setText(b.toUpperCase());
         });
+        TextField tfTitular = new TextField(actual == null ? "" : titulares.getOrDefault(actual.nombre(), ""));
+        tfTitular.setPromptText("Nombre de quien responde por los resguardos del área");
+        tfTitular.setTooltip(new Tooltip("Sale en el ANEXO V.4 como «Nombre del responsable del resguardo»"));
         Label lblError = new Label();
         lblError.getStyleClass().add("field-hint-error");
         lblError.setWrapText(true);
@@ -161,7 +173,8 @@ class ConfigAreasSectionBuilder {
         g.addRow(1, new Label("Tipo"), cbGrupo);
         g.addRow(2, new Label("Depende de"), cbPadre);
         g.addRow(3, new Label("Prefijo"), tfPrefijo);
-        g.add(lblError, 0, 4, 2, 1);
+        g.addRow(4, new Label("Titular"), tfTitular);
+        g.add(lblError, 0, 5, 2, 1);
         ColumnConstraints c1 = new ColumnConstraints(); c1.setMinWidth(90);
         ColumnConstraints c2 = new ColumnConstraints(320); c2.setHgrow(Priority.ALWAYS);
         g.getColumnConstraints().addAll(c1, c2);
@@ -189,6 +202,13 @@ class ConfigAreasSectionBuilder {
         Optional<AreaCatalog.Entrada> res = dlg.showAndWait();
         res.ifPresent(e -> {
             javafx.scene.Scene scene = table.getScene();
+            String titular = tfTitular.getText().trim();
+            if (!titular.equals(titulares.getOrDefault(e.nombre(), "")))
+                DialogUtil.runAsync(() -> { com.sibim.service.TitularesArea.guardar(config, e.nombre(), titular); return null; },
+                    v -> refrescar(),
+                    ex -> NotificacionUtil.error(scene, "No se pudo guardar el titular: " + ex.getMessage()));
+            boolean sinCambiosDeArea = actual != null && actual.equals(e);
+            if (sinCambiosDeArea) return;
             boolean cambioPrefijo = actual != null && !actual.prefijo().equals(e.prefijo());
             if (!cambioPrefijo) { guardar(scene, e, false); return; }
             DialogUtil.runAsync(() -> areaService.bienesConPrefijoActual(e.nombre()),

@@ -109,7 +109,8 @@ class ReporteEntregaRecepcionServiceTest {
 
         String texto = textoDePagina(pdf, 1);
         assertTrue(texto.contains("ANEXO V.4"), "Título del anexo");
-        assertTrue(texto.contains("ENTREGA-RECEPCI"), "Subtítulo del inventario");
+        // The official sheet carries only its name above the grid, no banner.
+        assertFalse(texto.contains("INVENTARIO DE BIENES MUEBLES PARA ENTREGA"), "sin la banda que el formato no trae");
         assertTrue(texto.contains("ERV-"), "Folio con prefijo ERV");
         assertTrue(texto.contains("MOB-0021"), "Número de inventario del bien");
         assertTrue(texto.contains("Steelcase"), "Marca del bien");
@@ -188,16 +189,40 @@ class ReporteEntregaRecepcionServiceTest {
             ReporteEntregaRecepcionService.foliosVigentes(List.of(vigente, cancelado)));
     }
 
-    /** Totals of depreciación and valor en libros cover only the bienes with a
-     *  vida útil (about 100 of 3,138 on 28-oct-2026): the acta says how many are left out. */
+    /** As the official sheet fills it: a bien without fecha de adquisición or vida
+     *  útil is not depreciated — $0.00 and its book value is what it cost. */
     @Test
-    void sinVidaUtil_elActaDiceCuantosQuedanFueraDeLosTotalesDeLibros() throws Exception {
+    void sinVidaUtil_depreciacionCeroYLibrosIgualAdquisicion() throws Exception {
         Producto sinVida = bienCompleto("MOB-0023");
         sinVida.setVidaUtilAnios(null);
-        String texto = textoDePagina(service.exportEntregaRecepcionPdf(
-            List.of(bienCompleto("MOB-0021"), sinVida, bienSinValoresNiFechas())), 1);
-        assertTrue(texto.contains("1 bien no tiene fecha de adquisición o vida útil registrada"), texto);
-        String completo = textoDePagina(service.exportEntregaRecepcionPdf(List.of(bienCompleto("MOB-0021"))), 1);
-        assertFalse(completo.contains("vida útil registrada"), "con todos depreciados no hay nota");
+        BigDecimal[] v = ReporteEntregaRecepcionService.valores(sinVida);
+        assertEquals(0, new BigDecimal("12500").compareTo(v[0]));
+        assertEquals(0, BigDecimal.ZERO.compareTo(v[1]), "depreciación acumulada $0.00");
+        assertEquals(0, v[0].compareTo(v[2]), "valor en libros = valor de adquisición");
+        String texto = textoDePagina(service.exportEntregaRecepcionPdf(List.of(sinVida)), 1);
+        assertTrue(texto.contains("$0.00"), texto);
+        assertFalse(texto.contains("vida útil registrada"), "ya no lleva la nota de los que quedaban fuera");
+        BigDecimal[] sinCosto = ReporteEntregaRecepcionService.valores(bienSinValoresNiFechas());
+        assertEquals(0, BigDecimal.ZERO.compareTo(sinCosto[0]), "sin costo: $0.00 en las tres");
+        assertEquals(0, BigDecimal.ZERO.compareTo(sinCosto[2]));
+    }
+
+    /** "Nombre del responsable del resguardo" is the área's titular (Configuración ›
+     *  Áreas), not the resguardante again; an área without one leaves it blank. */
+    @Test
+    void responsableDelResguardo_esElTitularDelArea() throws Exception {
+        com.sibim.model.Usuario admin = new com.sibim.model.Usuario();
+        admin.setId("v4-admin"); admin.setNombre("Administrador"); admin.setRol(com.sibim.model.enums.Rol.ADMIN);
+        com.sibim.session.SessionManager.setCurrentUser(admin);
+        var config = new com.sibim.repository.ConfiguracionRepository();
+        try {
+            TitularesArea.guardar(config, "Dirección General", "Juan Ejemplo Prueba Ficticio");
+            String texto = textoDePagina(service.exportEntregaRecepcionPdf(List.of(bienCompleto("MOB-0021"))), 1);
+            assertTrue(texto.contains("Ficticio"), texto);   // the name wraps in its column
+            assertEquals(1, texto.split("María López", -1).length - 1, "el resguardante sale una vez, no también como responsable");
+        } finally {
+            TitularesArea.guardar(config, "Dirección General", "");
+            com.sibim.session.SessionManager.logout();
+        }
     }
 }

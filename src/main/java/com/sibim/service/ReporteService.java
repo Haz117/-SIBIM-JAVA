@@ -62,7 +62,7 @@ public class ReporteService {
 
     protected final ProductoRepository   productoRepo;
     protected final MovimientoRepository movimientoRepo;
-    private final ConfiguracionRepository configRepo;
+    protected final ConfiguracionRepository configRepo;
     private final FolioRepository folioRepo;
 
     public ReporteService() { this(new ProductoRepository(), new MovimientoRepository(), new ConfiguracionRepository(), new FolioRepository()); }
