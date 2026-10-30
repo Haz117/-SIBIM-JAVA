@@ -24,6 +24,8 @@
     </HBox>
 
     <!-- ══ PROFILE CARD ═════════════════════════════════════════════ -->
+    <VBox fx:id="avisoFormatos" visible="false" managed="false" spacing="4" styleClass="cnt-aviso"/>
+
     <VBox fx:id="profileCard" styleClass="card" spacing="0">
 
         <!-- Gradient header con avatar -->
@@ -265,7 +267,7 @@
                            promptText="Buscar por nombre, usuario, cargo o área..."
                            maxWidth="Infinity" styleClass="search-field"/>
                 <Button fx:id="btnClearUserSearch" text="" styleClass="search-clear-btn"
-                        StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                        StackPane.alignment="CENTER_RIGHT" visible="false"
                         accessibleText="Limpiar búsqueda">
                     <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                     <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>

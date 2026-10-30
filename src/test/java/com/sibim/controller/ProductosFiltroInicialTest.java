@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Bienes opened with an área already chosen — coming from Organigrama, Reportes
- * or Alertas, or a filter remembered from the last session. The filtered load
+ * or Alertas. The filtered load
  * used to win the race against the first load, which was then dropped: the
  * summary cards stayed on "—" for good.
  */

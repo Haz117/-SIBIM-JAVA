@@ -124,4 +124,18 @@ class ProductosControllerSmokeTest extends ControllerSmokeTestBase {
             assertEquals(b.getText(), mostrado, "botón recortado en la barra inferior: " + b.getText());
         }
     }
+
+    /** The ✕ used to sit outside the box, on its top-left corner. */
+    @Test
+    void laXDeLimpiar_quedaDentroDeLaCajaDeBusqueda() {
+        javafx.scene.control.TextField buscar = lookup("#searchField").query();
+        javafx.scene.Node limpiar = lookup("#btnClearSearch").query();
+        interact(() -> buscar.setText("silla"));
+        org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+        var caja = buscar.localToScene(buscar.getBoundsInLocal());
+        var x = limpiar.localToScene(limpiar.getBoundsInLocal());
+        org.junit.jupiter.api.Assertions.assertTrue(limpiar.isVisible());
+        org.junit.jupiter.api.Assertions.assertTrue(x.getMinX() > caja.getMinX() + caja.getWidth() / 2 && x.getMaxX() <= caja.getMaxX() + 1,
+            "a la derecha, dentro de la caja: " + x + " en " + caja);
+    }
 }

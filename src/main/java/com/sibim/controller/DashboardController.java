@@ -100,6 +100,7 @@ public class DashboardController implements Refreshable {
     private boolean chartsVisible = true;
     /** "Pendientes de tu área": only for an área account (null for Patrimonio). */
     private MiAreaPanel miArea;
+    @FXML private VBox porHacerSection;
 
     private final DashboardService dashboardService = new DashboardService();
     private final ConfiguracionRepository configRepo = new ConfiguracionRepository();
@@ -127,6 +128,8 @@ public class DashboardController implements Refreshable {
         setupPermissions();
         if (!SessionManager.isAdmin() && miAreaSection != null)
             miArea = new MiAreaPanel(miAreaSection, productoService, movimientoService, log);
+        if (com.sibim.session.Permisos.editaFichaCompleta() && porHacerSection != null)
+            new PorHacerPanel(porHacerSection);
         setupSceneReadyListener();
         if (btnToggleAnalisis != null) btnToggleAnalisis.setText("Ocultar");
     }

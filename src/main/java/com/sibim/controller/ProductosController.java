@@ -53,8 +53,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ProductosController {
 
     private static final Logger log = LoggerFactory.getLogger(ProductosController.class);
-    private static final java.util.prefs.Preferences STICKY =
-        java.util.prefs.Preferences.userRoot().node("sibim/filters/productos");
 
     /** Bounded LRU (max 200 thumbnails) so long-running sessions browsing many
      *  different photos don't grow this cache unbounded — evicts the least
@@ -181,7 +179,8 @@ public class ProductosController {
         canEdit = SessionManager.isAdmin() || SessionManager.isSecretario() || SessionManager.isDireccion();
         canManage = SessionManager.isAdmin();
         if (btnToggleFiltros != null && filterBar != null)
-            DialogUtil.makeCollapsible("bienes.filtros.colapsado", btnToggleFiltros, filterBar);
+            // Folded on a low screen, where they left the table few rows; the chips say what is active.
+            DialogUtil.makeCollapsible("bienes.filtros.colapsado", btnToggleFiltros, filterBar, true);
         if (btnToggleResumen != null && resumenBox != null)
             DialogUtil.makeCollapsible("bienes.resumen.colapsado", btnToggleResumen, resumenBox,
                 "Mostrar resumen", "Ocultar resumen");
@@ -233,6 +232,10 @@ public class ProductosController {
         // count that silently adjusts stock.
         if (btnNuevoBien    != null) { btnNuevoBien.setVisible(canManage);    btnNuevoBien.setManaged(canManage); }
         if (btnConteoFisico != null) btnConteoFisico.setVisible(canManage);
+        if (lblPistaAcciones != null) {
+            lblPistaAcciones.visibleProperty().bind(table.getSelectionModel().selectedItemProperty().isNull());
+            lblPistaAcciones.managedProperty().bind(lblPistaAcciones.visibleProperty());
+        }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
         for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnSeriesRepetidas, btnEtiquetasArea, sepRevisarDatos})
@@ -269,16 +272,10 @@ public class ProductosController {
         searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
         btnClearSearch.setOnAction(e -> { searchField.clear(); searchField.requestFocus(); });
         SearchUtils.setupSearchHistory("sibim/search-history/productos", searchField, this::applyFilters);
-        // Restore sticky filters from previous session (skip area if a pending navigation filter was applied)
-        String savedSearch = STICKY.get("search", "");
-        if (!savedSearch.isBlank()) searchField.setText(savedSearch);
-        String savedArea = STICKY.get("area", "");
-        // The filter is remembered per PC, not per account: an área the person now
-        // signed in cannot see would leave the table empty with no way to tell why.
-        if (!savedArea.isBlank() && areaFilter.getValue() == null
-                && SessionManager.isAreaAccessible(savedArea)
-                && areaFilter.getItems().contains(savedArea))
-            areaFilter.setValue(savedArea);
+        // Opens on the whole inventory: a search or an área remembered from last time, with
+        // the filters folded away, read as bienes missing. "Guardar filtro" is for keeping one.
+        String busquedaPedida = NavigationContext.consumePendingBusqueda();
+        if (busquedaPedida != null) searchField.setText(busquedaPedida);
         listo = true;
         loadData();
         AnimationUtils.staggeredFadeInUp(
@@ -404,12 +401,19 @@ public class ProductosController {
         if (NavigationContext.consumePendingNuevoBien()) {
             Platform.runLater(this::onNuevoBien);
         }
-        switch (NavigationContext.consumePendingAbrir()) {
+        String abrir = NavigationContext.consumePendingAbrir();
+        switch (abrir) {
             case "completar" -> Platform.runLater(this::onCompletarDatos);
             case "unir"      -> Platform.runLater(this::onUnirPersonas);
             case "series"    -> Platform.runLater(this::onSeriesRepetidas);
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
-            default -> { }
+            default -> {
+                // Inicio › Por hacer: "completar:PRECIO" opens on that dato.
+                if (abrir.startsWith("completar:")) {
+                    var dato = com.sibim.service.CalidadDatosService.Dato.valueOf(abrir.substring("completar:".length()));
+                    Platform.runLater(() -> conInventario(bienes -> com.sibim.controller.dialogs.CompletarDatosDialog.show(bienes, dato, this::alCorregirDatos)));
+                }
+            }
         }
     }
 
@@ -475,8 +479,6 @@ public class ProductosController {
         spinner.setVisible(true); spinner.setManaged(true);
 
         ProductosFilterState snap = snapshotFilters();
-        STICKY.put("search", searchField.getText() != null ? searchField.getText() : "");
-        STICKY.put("area", snap.area() != null ? snap.area() : "");
 
         dataLoader.loadPage(
             snap.busqueda(), snap.catId(), snap.area(), snap.resguardante(),
@@ -562,6 +564,7 @@ public class ProductosController {
     @FXML private void onNext() { currentPage++; loadPage(); }
     @FXML private void onRefresh() { refreshing = true; loadData(); }
 
+    @FXML private Label lblPistaAcciones;
     @FXML private MenuItem btnCompletarDatos;
     @FXML private MenuItem btnUnirPersonas;
     @FXML private MenuItem btnSeriesRepetidas;

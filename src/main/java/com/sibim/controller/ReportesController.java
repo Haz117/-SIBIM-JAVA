@@ -318,25 +318,11 @@ public class ReportesController {
      *  bienes in their name that no resguardo covers; an área only finds its own
      *  people (the repositories return only its resguardos and bienes). */
     private void resguardoDePersona() {
-        Scene scene = spinner.getScene();
-        if (scene == null) return;
-        DialogUtil.runAsyncWithProgress(scene, "Cargando resguardantes…",
-            () -> Map.entry(new ResguardoService().getAll(), productoService.getAll()),
-            datos -> elegirPersona(datos.getKey(), datos.getValue(), scene),
-            e -> NotificacionUtil.error(scene, "No se pudieron cargar los resguardos"));
+        FichaPersona.abrir(null, spinner.getScene());
     }
 
     void elegirPersona(List<com.sibim.model.Resguardo> resguardos, List<Producto> bienes, Scene scene) {
-        List<ResguardoService.Resguardante> personas = ResguardoService.porResguardante(resguardos, bienes);
-        if (personas.isEmpty()) { NotificacionUtil.advertencia(scene, "No hay bienes con resguardante"); return; }
-        com.sibim.controller.dialogs.ResguardantePdfDialog.show(personas,
-            (persona, elegidos, sueltos) ->
-                exportar(() -> new ResguardoService().exportarDePersona(persona, elegidos, sueltos), false),
-            !com.sibim.session.Permisos.creaResguardos() ? null : persona ->
-                com.sibim.controller.dialogs.NuevoResguardoDialog.show(bienes, resguardos, persona.nombre(), scene, resguardo -> {
-                    if (com.sibim.util.ConfirmacionUtil.confirmar("Exportar PDF", "¿Deseas abrir el PDF del resguardo ahora?"))
-                        exportar(() -> new ResguardoService().exportarPdf(resguardo), false);
-                }));
+        FichaPersona.mostrar(resguardos, bienes, null, scene);
     }
 
     /** The Inventario General in PDF comes alphabetical or ordered by área; Excel

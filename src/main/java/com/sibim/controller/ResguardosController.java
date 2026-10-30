@@ -65,6 +65,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     protected void setupColumns() {
         colNumero.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNumero()));
         colResguardante.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getResguardanteNombre()));
+        FichaPersona.columnaDeNombre(colResguardante);
         colArea.setCellValueFactory(c -> new SimpleStringProperty(
             c.getValue().getResguardanteArea() != null ? c.getValue().getResguardanteArea() : "—"));
         colFecha.setCellValueFactory(c -> new SimpleStringProperty(
@@ -256,7 +257,13 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         MenuItem miCancelar = new MenuItem("Dar de baja");
         miCancelar.setGraphic(new FontIcon("mdi2d-delete-circle-outline"));
         miCancelar.setOnAction(e -> onCancelar());
-        cm.getItems().addAll(miDetalle, miPdf);
+        MenuItem miPersona = new MenuItem("Ver a esta persona");
+        miPersona.setGraphic(new FontIcon("mdi2a-account-outline"));
+        miPersona.setOnAction(e -> {
+            Resguardo sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) FichaPersona.abrir(sel.getResguardanteNombre(), table.getScene());
+        });
+        cm.getItems().addAll(miDetalle, miPersona, miPdf);
         if (com.sibim.session.Permisos.gestionaDocumentos()) cm.getItems().addAll(new SeparatorMenuItem(), miCancelar);
         addLoteExportItem(cm);
         return cm;

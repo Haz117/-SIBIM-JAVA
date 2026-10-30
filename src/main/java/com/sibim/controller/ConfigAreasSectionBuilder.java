@@ -29,16 +29,25 @@ class ConfigAreasSectionBuilder {
     private TableView<AreaCatalog.Entrada> table;
     /** Who answers for each área's resguardos (ANEXO V.4), typed here. */
     private java.util.Map<String, String> titulares = new java.util.HashMap<>();
-    private final com.sibim.repository.ConfiguracionRepository config = new com.sibim.repository.ConfiguracionRepository();
+    private final com.sibim.repository.ConfiguracionRepository config;
+    private final Runnable alGuardarTitular;
 
-    ConfigAreasSectionBuilder(VBox anchorSection) {
+    /** @param alGuardarTitular run after a titular is saved */
+    ConfigAreasSectionBuilder(VBox anchorSection, Runnable alGuardarTitular) {
+        this(anchorSection, alGuardarTitular, new com.sibim.repository.ConfiguracionRepository());
+    }
+
+    ConfigAreasSectionBuilder(VBox anchorSection, Runnable alGuardarTitular, com.sibim.repository.ConfiguracionRepository config) {
         this.anchorSection = anchorSection;
+        this.alGuardarTitular = alGuardarTitular;
+        this.config = config;
     }
 
     void build() {
         if (anchorSection == null || !(anchorSection.getParent() instanceof VBox rootVBox)) return;
 
         VBox card = new VBox(12);
+        card.setId("cardAreas");
         card.getStyleClass().add("card");
         card.setPadding(new Insets(18));
 
@@ -51,7 +60,8 @@ class ConfigAreasSectionBuilder {
 
         Label hint = new Label("El organigrama y el prefijo con el que se numeran los bienes nuevos de cada área "
             + "(p. ej. TICS/01). Al cambiar un prefijo puedes renumerar los bienes activos del área o dejarlo solo para los nuevos; "
-            + "el nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan.");
+            + "el nombre de un área no se puede cambiar porque los bienes y resguardos lo guardan. "
+            + "Para capturar el titular, doble clic en su celda: escríbelo y Enter.");
         hint.setWrapText(true);
         hint.getStyleClass().add("muted-sm");
 
@@ -73,12 +83,31 @@ class ConfigAreasSectionBuilder {
         colPrefijo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().prefijo()));
         colPrefijo.setPrefWidth(90);
         TableColumn<AreaCatalog.Entrada, String> colTitular = new TableColumn<>("Titular");
-        colTitular.setCellValueFactory(c -> new SimpleStringProperty(titulares.getOrDefault(c.getValue().nombre(), "—")));
+        colTitular.setCellValueFactory(c -> new SimpleStringProperty(titulares.getOrDefault(c.getValue().nombre(), "")));
         colTitular.setPrefWidth(220);
         table.getColumns().addAll(List.of(colNombre, colTipo, colPadre, colPrefijo, colTitular));
         refrescar();
 
         boolean editable = !DatabaseConfig.isDemoMode() && !DatabaseConfig.isOfflineMode();
+        // Written in the list: 55 áreas opening a form each is why nobody had typed them.
+        table.setEditable(editable);
+        colTitular.setEditable(editable);
+        colTitular.setCellFactory(c -> new CeldaTitular());
+        colTitular.setOnEditCommit(ev -> {
+            String area = ev.getRowValue().nombre();
+            String titular = ev.getNewValue() == null ? "" : ev.getNewValue().trim();
+            if (titular.equals(titulares.getOrDefault(area, ""))) { table.refresh(); return; }
+            DialogUtil.runAsync(() -> { com.sibim.service.TitularesArea.guardar(config, area, titular); },
+                () -> {
+                    if (titular.isEmpty()) titulares.remove(area); else titulares.put(area, titular);
+                    table.refresh();
+                    alGuardarTitular.run();
+                },
+                e -> {
+                    NotificacionUtil.error(table.getScene(), "No se pudo guardar el titular: " + e.getMessage());
+                    table.refresh();
+                });
+        });
         Button btnNueva = new Button("Nueva área");
         btnNueva.getStyleClass().add("btn-primary");
         btnNueva.setGraphic(new FontIcon("mdi2p-plus"));
@@ -91,13 +120,14 @@ class ConfigAreasSectionBuilder {
         table.setRowFactory(tv -> {
             TableRow<AreaCatalog.Entrada> row = new TableRow<>();
             row.setOnMouseClicked(ev -> {
-                if (editable && ev.getClickCount() == 2 && !row.isEmpty()) editar(row.getItem());
+                // Double click on Titular edits it right there; on the rest, the form.
+                if (editable && ev.getClickCount() == 2 && !row.isEmpty() && table.getEditingCell() == null) editar(row.getItem());
             });
             return row;
         });
         // Enter edits the selected área, as the double click does.
         table.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
-            if (editable && ev.getCode() == javafx.scene.input.KeyCode.ENTER
+            if (editable && ev.getCode() == javafx.scene.input.KeyCode.ENTER && table.getEditingCell() == null
                     && table.getSelectionModel().getSelectedItem() != null) {
                 editar(table.getSelectionModel().getSelectedItem());
                 ev.consume();
@@ -117,6 +147,47 @@ class ConfigAreasSectionBuilder {
         card.getChildren().addAll(titleRow, hint, table, actions);
         rootVBox.getChildren().add(rootVBox.getChildren().indexOf(anchorSection), card);
         AnimationUtils.fadeInUp(card, 320, 280);
+    }
+
+    /** Shows "—" when nobody is captured, but starts editing empty: that dash would end up
+     *  saved as a name. Only Esc discards: a table cancels the edit when another row is
+     *  clicked, and with 55 áreas the next row is where the mouse goes. */
+    private static final class CeldaTitular extends javafx.scene.control.cell.TextFieldTableCell<AreaCatalog.Entrada, String> {
+        private TextField campo;
+        private boolean porEscape;
+
+        CeldaTitular() { super(new javafx.util.converter.DefaultStringConverter()); }
+
+        @Override public void startEdit() {
+            super.startEdit();
+            if (!isEditing()) return;
+            porEscape = false;
+            if (getGraphic() instanceof TextField t && t != campo) {
+                campo = t;
+                t.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+                    if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) porEscape = true;
+                });
+                t.focusedProperty().addListener((o, antes, ahora) -> { if (!ahora && isEditing()) commitEdit(t.getText()); });
+            }
+        }
+
+        @Override public void cancelEdit() {
+            if (isEditing() && !porEscape && campo != null) {
+                commitEdit(campo.getText());
+                return;
+            }
+            super.cancelEdit();
+            guion();
+        }
+
+        @Override public void updateItem(String titular, boolean empty) {
+            super.updateItem(titular, empty);
+            guion();
+        }
+
+        private void guion() {
+            if (!isEmpty() && !isEditing() && (getItem() == null || getItem().isBlank())) setText("—");
+        }
     }
 
     private void refrescar() {

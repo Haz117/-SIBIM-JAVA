@@ -19,6 +19,18 @@ public final class NavigationContext {
     private static boolean pendingTransferir;
     private static String  pendingAccionMovimientos;
 
+    private static String pendingBusqueda;
+
+    /** Set before navigating to Bienes to open on this search (a person's bienes). */
+    public static void setPendingBusqueda(String texto) { pendingBusqueda = texto; }
+
+    /** Reads and clears it; null when none. */
+    public static String consumePendingBusqueda() {
+        String v = pendingBusqueda;
+        pendingBusqueda = null;
+        return v;
+    }
+
     private static String pendingAbrir;
 
     /** Set before navigating to a screen to open one of its windows on arriving

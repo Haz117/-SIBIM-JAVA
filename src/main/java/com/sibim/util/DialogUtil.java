@@ -682,6 +682,18 @@ public final class DialogUtil {
         makeCollapsible(prefKey, toggle, content, "Mostrar filtros", "Ocultar filtros");
     }
 
+    /** @param plegadoEnPantallaBaja a filter bar that also starts folded on a low screen,
+     *                               until the user chooses */
+    public static void makeCollapsible(String prefKey, Button toggle, Region content, boolean plegadoEnPantallaBaja) {
+        boolean collapsed = UI_PREFS.getBoolean(prefKey, plegadoEnPantallaBaja && pantallaBaja());
+        applyCollapsed(toggle, content, collapsed, "Mostrar filtros", "Ocultar filtros");
+        toggle.setOnAction(e -> {
+            boolean wasExpanded = content.isVisible();
+            applyCollapsed(toggle, content, wasExpanded, "Mostrar filtros", "Ocultar filtros");
+            UI_PREFS.putBoolean(prefKey, wasExpanded);
+        });
+    }
+
     /** Same as {@link #makeCollapsible(String, Button, Region)} but with
      *  custom show/hide labels — for sections that aren't a filter bar
      *  (e.g. a summary/stats block on a dashboard-like page). */

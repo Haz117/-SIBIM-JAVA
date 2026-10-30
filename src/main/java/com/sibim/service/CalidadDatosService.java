@@ -89,22 +89,31 @@ public class CalidadDatosService {
             .thenComparing(p -> -p.nombre().length())).map(Resguardante::nombre).orElse("");
     }
 
+    /** What a union changed, by the name each thing had: enough to put it back. */
+    public record Union(String nombre, Map<String, List<String>> bienes, Map<String, List<String>> resguardos) {
+        public int cuantosBienes() { return bienes.values().stream().mapToInt(List::size).sum(); }
+    }
+
     /** Leaves {@code nombre} on the active bienes and the resguardos in force of these
      *  spellings. A cancelled resguardo stays as it was signed.
      *  @param inventario the active bienes, to find those of a resguardo in force too
-     *  @return how many bienes changed name */
-    public int unirPersonas(String nombre, List<Resguardante> variantes, List<Producto> inventario) throws SQLException {
+     *  @return what changed, for {@link #deshacer} */
+    public Union unirPersonas(String nombre, List<Resguardante> variantes, List<Producto> inventario) throws SQLException {
         soloPatrimonio();
         conConexion();
         Set<String> claves = variantes.stream().map(v -> ResguardoService.clavePersona(v.nombre())).collect(Collectors.toSet());
-        List<String> bienes = inventario.stream()
+        Map<String, List<String>> bienesAntes = inventario.stream()
             .filter(p -> p.getResguardante() != null && !p.getResguardante().isBlank())
             .filter(p -> claves.contains(ResguardoService.clavePersona(p.getResguardante())))
             .filter(p -> !nombre.equals(p.getResguardante()))
-            .map(Producto::getId).toList();
-        List<String> resguardos = variantes.stream().flatMap(v -> v.resguardos().stream())
+            .collect(Collectors.groupingBy(Producto::getResguardante, LinkedHashMap::new,
+                Collectors.mapping(Producto::getId, Collectors.toList())));
+        Map<String, List<String>> resguardosAntes = variantes.stream().flatMap(v -> v.resguardos().stream())
             .filter(Resguardo::isActivo).filter(r -> !nombre.equals(r.getResguardanteNombre()))
-            .map(Resguardo::getId).toList();
+            .collect(Collectors.groupingBy(Resguardo::getResguardanteNombre, LinkedHashMap::new,
+                Collectors.mapping(Resguardo::getId, Collectors.toList())));
+        List<String> bienes = bienesAntes.values().stream().flatMap(List::stream).toList();
+        List<String> resguardos = resguardosAntes.values().stream().flatMap(List::stream).toList();
         repo.unirPersona(nombre, bienes, resguardos);
         ProductosEnMemoria.invalidar();
         bienes.forEach(FichaPublica::actualizarLuego);   // the ficha of the QR names the resguardante
@@ -113,7 +122,23 @@ public class CalidadDatosService {
         audit.log("persona", ResguardoService.clavePersona(nombre), nombre, "actualizar",
             "Se unió «" + otros + "» en «" + nombre + "»: " + bienes.size() + " bienes y "
                 + resguardos.size() + " resguardos vigentes cambiaron de nombre");
-        return bienes.size();
+        return new Union(nombre, bienesAntes, resguardosAntes);
+    }
+
+    /** Puts back the name each thing had before {@link #unirPersonas}. */
+    public void deshacer(Union u) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        Set<String> nombres = new LinkedHashSet<>(u.bienes().keySet());
+        nombres.addAll(u.resguardos().keySet());
+        for (String antes : nombres) {
+            List<String> bienes = u.bienes().getOrDefault(antes, List.of());
+            repo.unirPersona(antes, bienes, u.resguardos().getOrDefault(antes, List.of()));
+            bienes.forEach(FichaPublica::actualizarLuego);
+        }
+        ProductosEnMemoria.invalidar();
+        audit.log("persona", ResguardoService.clavePersona(u.nombre()), u.nombre(), "actualizar",
+            "Se deshizo la unión: regresan los nombres «" + String.join(", ", nombres) + "»");
     }
 
     private static final String DISTINTAS = "personas_distintas:";
@@ -215,5 +240,56 @@ public class CalidadDatosService {
         int n = 0;
         for (Dato d : Dato.values()) if (falta(p, d)) n++;
         return n;
+    }
+
+    // ── Por hacer ─────────────────────────────────────────────────────────────
+
+    /** Something the inventory still needs and where to fix it.
+     *  @param vista the screen
+     *  @param abrir the window to open on arriving, or null */
+    public record PorHacer(long cantidad, String titulo, String accion, String vista, String abrir) {}
+
+    /** What is left to do, with its count; what is done doesn't appear. */
+    public static List<PorHacer> porHacer(List<Producto> bienes, List<Resguardo> resguardos, Set<String> distintas, Map<String, String> config) {
+        List<PorHacer> out = new ArrayList<>();
+        agregar(out, personasRepetidas(resguardos, bienes, distintas).size(), "personas con el nombre repetido", "Unir personas", "productos", "unir");
+        agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
+        agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");
+        agregar(out, cuantos(bienes, Dato.FECHA), "bienes sin fecha", "Completar datos", "productos", "completar:FECHA");
+        agregar(out, cuantos(bienes, Dato.VIDA_UTIL), "bienes sin vida útil", "Completar datos", "productos", "completar:VIDA_UTIL");
+        agregar(out, cuantos(bienes, Dato.FOTO), "bienes sin foto", "Completar datos", "productos", "completar:FOTO");
+        agregar(out, ResguardoService.porResguardante(resguardos, bienes).stream().filter(p -> !p.sinResguardo().isEmpty()).count(),
+            "personas con bienes sin resguardo", "Registrar en lote", "resguardos", "lote");
+        agregar(out, bienes.stream().filter(p -> p.getFechaBaja() == null && !p.isEtiquetado()).count(),
+            "bienes sin etiquetar", "Etiquetas por área", "productos", "etiquetas");
+        agregar(out, faltanEnConfiguracion(config, com.sibim.config.Areas.getAllAreaNames().size()).size(),
+            "datos faltan para los formatos", "Ir a Configuración", "configuracion", null);
+        return out;
+    }
+
+    private static void agregar(List<PorHacer> out, long n, String titulo, String accion, String vista, String abrir) {
+        if (n > 0) out.add(new PorHacer(n, titulo, accion, vista, abrir));
+    }
+
+    private static long cuantos(List<Producto> bienes, Dato d) {
+        return bienes.stream().filter(p -> p.getFechaBaja() == null && falta(p, d)).count();
+    }
+
+    /** What the official formats print and nobody has typed, in the screen's words. */
+    public static List<String> faltanEnConfiguracion(Map<String, String> config, int areas) {
+        List<String> faltan = new ArrayList<>();
+        if (vacio(config, ReporteResguardoVehicularService.CLAVE_RFC)) faltan.add("RFC");
+        if (vacio(config, ReporteResguardoVehicularService.CLAVE_DOMICILIO)) faltan.add("Domicilio");
+        if (vacio(config, ReporteResguardoVehicularService.CLAVE_ELABORA)) faltan.add("Elabora");
+        if (vacio(config, ReporteResguardoVehicularService.CLAVE_VOBO)) faltan.add("Vo. Bo.");
+        long titulares = config.entrySet().stream()
+            .filter(e -> e.getKey().startsWith(TitularesArea.PREFIJO) && e.getValue() != null && !e.getValue().isBlank()).count();
+        if (titulares < areas) faltan.add("Titular de " + (areas - titulares) + (areas - titulares == 1 ? " área" : " áreas"));
+        return faltan;
+    }
+
+    private static boolean vacio(Map<String, String> config, String clave) {
+        String v = config.get(clave);
+        return v == null || v.isBlank();
     }
 }

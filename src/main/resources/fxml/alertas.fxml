@@ -117,7 +117,7 @@
                     <tooltip><Tooltip text="Filtra todas las categorías por nombre, código o área del bien  (Ctrl+F)"/></tooltip>
                 </TextField>
                 <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                        StackPane.alignment="CENTER_RIGHT" visible="false" managed="false" onAction="#onClearSearch"
+                        StackPane.alignment="CENTER_RIGHT" visible="false" onAction="#onClearSearch"
                         accessibleText="Limpiar búsqueda">
                     <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                     <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>

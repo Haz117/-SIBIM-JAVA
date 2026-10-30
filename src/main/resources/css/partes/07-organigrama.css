@@ -460,6 +460,10 @@
     -fx-padding: 8 12;
 }
 
+/* A person's name in a table: a click opens that person. */
+.celda-persona { -fx-cursor: hand; -fx-text-overrun: ellipsis; }
+.celda-persona:hover { -fx-underline: true; -fx-text-fill: sibim-indigo-darker; }
+
 /* ── Nuevo Resguardo: los bienes que recibe ──────────────────────── */
 .rsg-fila-sel, .rsg-fila-sel:hover { -fx-border-color: sibim-indigo; -fx-background-color: #FDF4F5; }
 .rsg-fila-sel .trf-codigo { -fx-background-color: white; }

@@ -72,6 +72,7 @@ public final class CompletarDatosDialog {
     private final VBox vacio = new VBox(8);
     private final VBox panel = new VBox(8);
     private Fila pedirFoco;
+    private Dato inicial = Dato.PRECIO;
 
     private CompletarDatosDialog(List<Producto> bienes, Runnable alCambiar) {
         bienes.stream().filter(p -> p.getFechaBaja() == null)
@@ -82,7 +83,14 @@ public final class CompletarDatosDialog {
 
     /** @param alCambiar run on closing when something was saved */
     public static void show(List<Producto> bienes, Runnable alCambiar) {
-        new CompletarDatosDialog(bienes, alCambiar).abrir();
+        show(bienes, Dato.PRECIO, alCambiar);
+    }
+
+    /** @param inicial the dato it opens on: the one somebody came from Inicio to fill */
+    public static void show(List<Producto> bienes, Dato inicial, Runnable alCambiar) {
+        CompletarDatosDialog d = new CompletarDatosDialog(bienes, alCambiar);
+        d.inicial = inicial;
+        d.abrir();
     }
 
     private void abrir() {
@@ -106,7 +114,7 @@ public final class CompletarDatosDialog {
         dialog.getDialogPane().setContent(new VBox(12, header, debajo));
 
         dialog.setOnHidden(e -> { if (cambio && alCambiar != null) alCambiar.run(); });
-        pestanas.get(Dato.PRECIO).setSelected(true);
+        pestanas.get(inicial).setSelected(true);
         cargarAreas();
         mostrarArea();
         Platform.runLater(areas::requestFocus);

@@ -197,7 +197,7 @@ public class ConfiguracionController {
             if (backupSection != null) AnimationUtils.fadeInUp(backupSection, 320, 315);
         }
 
-        if (isAdmin) new ConfigAreasSectionBuilder(backupSection).build();
+        if (isAdmin) new ConfigAreasSectionBuilder(backupSection, this::refrescarAvisoFormatos).build();
 
         if (isAdmin) {
             AppExecutor.submit(() -> {
@@ -280,12 +280,56 @@ public class ConfiguracionController {
         backupManager = new ConfiguracionBackupManager(backupService, backupSection);
     }
 
+    @FXML private VBox avisoFormatos;
+
+    /** What the official formats print and nobody has typed. It wasn't said anywhere:
+     *  the PDFs just came out with those blanks. */
+    private void pintarAvisoFormatos(java.util.Map<String, String> cfg) {
+        if (avisoFormatos == null) return;
+        java.util.List<String> faltan = com.sibim.service.CalidadDatosService.faltanEnConfiguracion(
+            cfg, com.sibim.config.Areas.getAllAreaNames().size());
+        boolean hay = !faltan.isEmpty();
+        avisoFormatos.setVisible(hay);
+        avisoFormatos.setManaged(hay);
+        avisoFormatos.getChildren().clear();
+        if (!hay) return;
+        Label que = new Label("Para los formatos oficiales falta: " + String.join(", ", faltan));
+        que.setWrapText(true);
+        que.getStyleClass().add("rsg-tarjeta-titulo");
+        Label porque = new Label("Sin estos datos, la hoja de resguardo de vehículos y el Anexo V.4 salen con esos espacios en blanco.");
+        porque.setWrapText(true);
+        porque.getStyleClass().add("muted-sm");
+        Hyperlink irDatos = new Hyperlink("Ir a los datos");
+        irDatos.setOnAction(e -> irA(configCard));
+        Hyperlink irAreas = new Hyperlink("Ir a los titulares");
+        irAreas.setOnAction(e -> {
+            javafx.scene.Node areas = avisoFormatos.getScene() != null ? avisoFormatos.getScene().lookup("#cardAreas") : null;
+            if (areas != null) irA(areas);
+        });
+        avisoFormatos.getChildren().addAll(que, porque, new javafx.scene.layout.HBox(8, irDatos, irAreas));
+    }
+
+    /** Once something was saved: the warning has to stop asking for it right away. */
+    private void refrescarAvisoFormatos() {
+        DialogUtil.runAsync(() -> configRepo.findAll(), this::pintarAvisoFormatos, e -> { });
+    }
+
+    private void irA(javafx.scene.Node destino) {
+        for (javafx.scene.Node n = destino.getParent(); n != null; n = n.getParent()) {
+            if (!(n instanceof javafx.scene.control.ScrollPane sp)) continue;
+            double total = sp.getContent().getBoundsInLocal().getHeight() - sp.getViewportBounds().getHeight();
+            if (total > 0) sp.setVvalue(Math.min(1, destino.getBoundsInParent().getMinY() / total));
+            return;
+        }
+    }
+
     private void loadConfigCard(boolean isAdmin) {
         DialogUtil.runAsync(
             () -> configRepo.findAll(),
             cfg -> {
                 String nombre = cfg.getOrDefault("nombre_ayuntamiento", "H. Ayuntamiento");
                 String municipio = cfg.getOrDefault("municipio", "");
+                if (isAdmin) pintarAvisoFormatos(cfg);
                 if (tfNombreAyuntamiento != null) tfNombreAyuntamiento.setText(nombre);
                 if (tfMunicipio         != null) tfMunicipio.setText(municipio);
                 if (tfResponsable       != null) tfResponsable.setText(cfg.getOrDefault("responsable", ""));
@@ -389,6 +433,7 @@ public class ConfiguracionController {
             v -> {
                 clearConfigDirty();
                 NotificacionUtil.exito(configCard != null ? configCard.getScene() : null, "Configuración guardada");
+                refrescarAvisoFormatos();
                 // refresh decorative badge
                 if (lblDecoNombre != null) {
                     String[] parts = nombre.split("\\s+de\\s+", 2);

@@ -335,3 +335,9 @@
 
 /* Small secondary button variant */
 .btn-sm { -fx-font-size: 12px; -fx-padding: 4 12; }
+
+/* ── Inicio › Por hacer ─────────────────────────────────────────── */
+.por-hacer-tarjeta { -fx-padding: 10 14; -fx-pref-width: 205; -fx-min-width: 205; -fx-max-width: 205; }
+.por-hacer-numero { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.por-hacer-titulo { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
+.por-hacer-accion { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-darker; }

@@ -156,7 +156,7 @@
                        promptText="Buscar por nombre, código, serie, marca, resguardante…"
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                    StackPane.alignment="CENTER_RIGHT" visible="false"
                     accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>
@@ -236,6 +236,7 @@
     <HBox alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="TABLA DE BIENES" styleClass="dash-section-label"/>
+        <Label fx:id="lblPistaAcciones" text="Selecciona un bien: abajo se activa lo que puedes hacer con él" styleClass="muted-sm"/>
         <Label fx:id="helpColumnas" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="▸ Columnas: usa el botón ⋮ (arriba a la derecha de la tabla) o clic derecho en el encabezado para mostrar u ocultar columnas. Con 'Restaurar columnas' vuelven a como venían." wrapText="true" maxWidth="310"/></tooltip>
         </Label>

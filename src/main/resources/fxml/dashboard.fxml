@@ -52,6 +52,7 @@
 
     <!-- PENDIENTES DE TU ÁREA (solo cuentas de área; lo llena MiAreaPanel) -->
     <VBox fx:id="miAreaSection" visible="false" managed="false"/>
+    <VBox fx:id="porHacerSection" visible="false" managed="false" spacing="10"/>
 
     <!-- ══════════════════════════════════════════════════════════
          SECCIÓN: ACCIONES RÁPIDAS

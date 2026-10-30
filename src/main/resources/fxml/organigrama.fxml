@@ -143,7 +143,7 @@
                        promptText="Buscar área, secretaría o departamento..."
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
-                    StackPane.alignment="CENTER_RIGHT" visible="false" managed="false"
+                    StackPane.alignment="CENTER_RIGHT" visible="false"
                     accessibleText="Limpiar búsqueda">
                 <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
                 <tooltip><Tooltip text="Limpiar búsqueda"/></tooltip>

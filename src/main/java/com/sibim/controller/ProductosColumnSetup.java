@@ -165,6 +165,7 @@ class ProductosColumnSetup {
     static void configureResguardante(TableColumn<Producto, String> col) {
         if (col == null) return;
         configureTextWithTooltip(col, Producto::getResguardante, "—");
+        FichaPersona.columnaDeNombre(col);
     }
 
     private static void configureTextWithTooltip(TableColumn<Producto, String> col,

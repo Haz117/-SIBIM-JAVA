@@ -55,6 +55,10 @@ public final class ResguardantePdfDialog {
     private CheckBox sinResguardo;
     private Button generar;
     private java.util.function.Consumer<Resguardante> alRegistrar;
+    private java.util.function.Consumer<Resguardante> alVerBienes;
+    private String inicial;
+    /** Who "Ver sus bienes" was pressed for: it runs once this window closes. */
+    private Resguardante aVerBienes;
     private Dialog<ButtonType> dialog;
     /** Who "Registrar como resguardo" was pressed for: it runs once this window closes. */
     private Resguardante aRegistrar;
@@ -74,9 +78,13 @@ public final class ResguardantePdfDialog {
 
     /** @param alRegistrar turn the bienes without a resguardo into a registered one:
      *                     null for whoever can't create resguardos */
-    public static void show(List<Resguardante> personas, AlGenerar alGenerar, java.util.function.Consumer<Resguardante> alRegistrar) {
+    public static void show(List<Resguardante> personas, String inicial, AlGenerar alGenerar,
+                            java.util.function.Consumer<Resguardante> alRegistrar,
+                            java.util.function.Consumer<Resguardante> alVerBienes) {
         ResguardantePdfDialog d = new ResguardantePdfDialog(personas);
         d.alRegistrar = alRegistrar;
+        d.alVerBienes = alVerBienes;
+        d.inicial = inicial;
         d.abrir(alGenerar);
     }
 
@@ -110,11 +118,17 @@ public final class ResguardantePdfDialog {
 
         filtrar();
         mostrar(null);   // nobody picked yet: the selection never "changes" to that
+        if (inicial != null) {
+            String clave = com.sibim.service.ResguardoService.clavePersona(inicial);
+            personas.stream().filter(p -> com.sibim.service.ResguardoService.clavePersona(p.nombre()).equals(clave)).findFirst()
+                .ifPresent(p -> { lista.getSelectionModel().select(p); lista.scrollTo(p); });
+        }
         Platform.runLater(buscar::requestFocus);
         dialog.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt ->
             alGenerar.generar(lista.getSelectionModel().getSelectedItem(), elegidos(),
                 sinResguardo != null && sinResguardo.isSelected()));
         if (aRegistrar != null) alRegistrar.accept(aRegistrar);
+        if (aVerBienes != null) alVerBienes.accept(aVerBienes);
     }
 
     // ── Paso 1: la persona ─────────────────────────────────────────────────────
@@ -216,6 +230,16 @@ public final class ResguardantePdfDialog {
             datos.getStyleClass().add("org-table-sub");
             datos.setWrapText(true);
             persona.getChildren().addAll(nombre, datos);
+            if (alVerBienes != null) {
+                Hyperlink verBienes = new Hyperlink("Ver sus bienes");
+                verBienes.setPadding(Insets.EMPTY);
+                verBienes.setOnAction(e -> {
+                    aVerBienes = p;
+                    dialog.setResult(ButtonType.CANCEL);
+                    dialog.close();
+                });
+                persona.getChildren().add(verBienes);
+            }
 
             // What is in force first: it is what gets signed. Newest first within each.
             p.resguardos().stream().sorted(Comparator.comparing(r -> !r.isActivo())).forEach(r -> {

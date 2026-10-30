@@ -90,9 +90,13 @@ final class TutorialGuias {
                 "Hay pantallas nuevas para corregir los datos del inventario y varias se rediseñaron",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+            p.add(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "«Por hacer» en Inicio", "dashboard", "#porHacerSection",
+                "Lo que le falta al inventario, con su número real",
+                "Un clic te lleva a la pantalla que lo resuelve; lo que ya quedó deja de aparecer"));
             p.add(probar(paso("mdi2b-badge-account-outline", VERDE, VERDE_D, "Resguardos de una persona", "reportes", "#listaListados .report-row",
                 "Es la primera fila de Reportes: busca a la persona sin entrar a Resguardos",
                 "Escribe parte del nombre y Enter genera el PDF",
+                "También da clic en un nombre en Bienes o Resguardos, o búscalo con Ctrl+K: abre lo mismo",
                 "Si tiene bienes sin resguardo, el botón «Registrar como resguardo» los deja vigentes"),
                 "Abrir el reporte", abrir("reportes", "resguardante")));
             p.add(probar(paso("mdi2c-clipboard-account-outline", DORADO, DORADO_D, "Nuevo Resguardo, rediseñado", "resguardos", "#btnNuevo",
@@ -279,7 +283,7 @@ final class TutorialGuias {
             probar(paso("mdi2a-account-multiple-check-outline", GUINDA, GUINDA_D, "Personas repetidas", "productos", "#btnMasBienes",
                 "Bienes › Más › Unir personas repetidas: el mismo nombre en otro orden o con título",
                 "Si son la misma persona, marca cómo queda su nombre: se sugiere el que tiene más bienes, o escríbelo",
-                "«Son la misma persona» cambia sus bienes y resguardos vigentes; no se deshace sola",
+                "«Son la misma persona» cambia sus bienes y resguardos vigentes; mientras la ventana siga abierta, «Deshacer» lo regresa",
                 "«Son personas distintas» las deja igual y no vuelve a preguntar"),
                 "Abrir Unir personas", abrir("productos", "unir")),
             probar(paso("mdi2b-barcode-scan", GUINDA, GUINDA_D, "Series repetidas", "productos", "#btnMasBienes",
@@ -344,7 +348,7 @@ final class TutorialGuias {
                 "En Configuración captura RFC, domicilio, Elabora y Vo. Bo.",
                 "Se usan en la hoja de resguardo de cada vehículo"),
             paso("mdi2o-office-building-outline", GRIS, GRIS_D, "2. Titular de cada área", "configuracion", null,
-                "En Configuración › Áreas, la columna Titular",
+                "En Configuración › Áreas y prefijos, doble clic en la celda Titular: escríbelo y Enter",
                 "Es el responsable en el Anexo V.4: sin él, esa columna sale vacía",
                 "También lo propone el Resguardo general del área")));
     }

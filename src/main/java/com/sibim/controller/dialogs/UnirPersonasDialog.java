@@ -41,6 +41,13 @@ public final class UnirPersonasDialog {
     /** The name typed by hand, when neither spelling is the right one. */
     private final TextField otroNombre = new TextField();
     private final List<Runnable> pintarTarjetas = new ArrayList<>();
+    private final HBox barraDeshacer = new HBox(10);
+    private final Label textoDeshacer = new Label();
+    private final Button deshacer = new Button("Deshacer");
+    /** The last union, while this window is open: there is one way back, right after. */
+    private CalidadDatosService.Union ultima;
+    private List<Resguardante> ultimoGrupo;
+    private int ultimaPosicion;
     private final Button unir = new Button("Son la misma persona: unir");
     private final Button distintas = new Button("Son personas distintas");
     private final ToggleGroup nombres = new ToggleGroup();
@@ -121,7 +128,19 @@ public final class UnirPersonasDialog {
         paso2.setPadding(Insets.EMPTY);
         pregunta.getStyleClass().add("org-table-sub");
         pregunta.setWrapText(true);
-        VBox derecha = new VBox(8, paso2, pregunta, aviso, vacio, scroll, new Separator(), pie);
+        textoDeshacer.getStyleClass().add("rsg-tarjeta-titulo");
+        textoDeshacer.setWrapText(true);
+        textoDeshacer.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(textoDeshacer, Priority.ALWAYS);
+        deshacer.setGraphic(new FontIcon("mdi2u-undo"));
+        deshacer.getStyleClass().add("btn-secondary");
+        deshacer.setMinWidth(Region.USE_PREF_SIZE);
+        deshacer.setOnAction(e -> deshacerUltima());
+        barraDeshacer.getChildren().setAll(textoDeshacer, deshacer);
+        barraDeshacer.setAlignment(Pos.CENTER_LEFT);
+        barraDeshacer.getStyleClass().add("cnt-aviso");
+        ver(barraDeshacer, false);
+        VBox derecha = new VBox(8, paso2, pregunta, aviso, vacio, scroll, barraDeshacer, new Separator(), pie);
         HBox.setHgrow(derecha, Priority.ALWAYS);
 
         HBox cuerpo = new HBox(16, izquierda, derecha);
@@ -297,19 +316,44 @@ public final class UnirPersonasDialog {
         if (!ConfirmacionUtil.confirmar("Unir personas",
                 "Va a quedar todo a nombre de:\n" + nombre + "\n\nSe reemplaza:\n" + otros
                     + "\n\nCambia en sus bienes y en sus resguardos vigentes; los PDF nuevos saldrán con este nombre. "
-                    + "No se deshace sola.")) return;
+                    + "Mientras esta ventana siga abierta puedes deshacerlo.")) return;
         unir.setDisable(true);
         distintas.setDisable(true);
         DialogUtil.runAsync(() -> service.unirPersonas(nombre, grupo, bienes),
-            n -> {
+            union -> {
                 unidas++;
-                NotificacionUtil.exito(dialog.getDialogPane().getScene(), "Listo: quedó «" + nombre + "»");
+                ultima = union;
+                ultimoGrupo = grupo;
+                ultimaPosicion = grupos.indexOf(grupo);
+                textoDeshacer.setText("Listo: quedó «" + nombre + "» (" + FormatUtils.plural(union.cuantosBienes(), "bien cambió", "bienes cambiaron") + ")");
+                ver(barraDeshacer, true);
                 quitar(grupo);
             },
             e -> {
                 NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo unir: " + e.getMessage());
                 unir.setDisable(false);
                 distintas.setDisable(false);
+            });
+    }
+
+    /** Puts the names back and the case back on the list, to answer it again. */
+    private void deshacerUltima() {
+        if (ultima == null) return;
+        CalidadDatosService.Union union = ultima;
+        deshacer.setDisable(true);
+        DialogUtil.runAsync(() -> { service.deshacer(union); },
+            () -> {
+                ultima = null;
+                ver(barraDeshacer, false);
+                deshacer.setDisable(false);
+                grupos.add(Math.min(ultimaPosicion, grupos.size()), ultimoGrupo);
+                actualizarCuenta();
+                lista.getSelectionModel().select(ultimoGrupo);
+                NotificacionUtil.exito(dialog.getDialogPane().getScene(), "Se regresaron los nombres de antes");
+            },
+            e -> {
+                deshacer.setDisable(false);
+                NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo deshacer: " + e.getMessage());
             });
     }
 

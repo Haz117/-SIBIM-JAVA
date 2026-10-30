@@ -29,6 +29,29 @@ public final class SearchPaletteDialog {
 
     private SearchPaletteDialog() {}
 
+    /** A resguardante found by name: opens everything about them. */
+    record Persona(String nombre, String detalle) {}
+
+    /** Whoever matches, by their spelling on the newest resguardo, up to five. */
+    static List<Persona> personas(List<Producto> productos, List<com.sibim.model.Resguardo> resguardos, String q) {
+        java.util.Map<String, String> nombres = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Integer> bienes = new java.util.HashMap<>();
+        for (com.sibim.model.Resguardo r : resguardos)
+            if (r.getResguardanteNombre() != null && !r.getResguardanteNombre().isBlank())
+                nombres.putIfAbsent(com.sibim.service.ResguardoService.clavePersona(r.getResguardanteNombre()), r.getResguardanteNombre().trim());
+        for (Producto p : productos) {
+            if (p.getResguardante() == null || p.getResguardante().isBlank()) continue;
+            String clave = com.sibim.service.ResguardoService.clavePersona(p.getResguardante());
+            nombres.putIfAbsent(clave, p.getResguardante().trim());
+            bienes.merge(clave, 1, Integer::sum);
+        }
+        // The words in any order: half the inventory is written surname first.
+        List<String> palabras = List.of(com.sibim.service.ResguardoService.clavePersona(q).split(" "));
+        return nombres.entrySet().stream().filter(e -> palabras.stream().allMatch(e.getKey()::contains)).limit(5)
+            .map(e -> new Persona(e.getValue(), "Persona  ·  " + com.sibim.util.FormatUtils.plural(bienes.getOrDefault(e.getKey(), 0), "bien", "bienes")))
+            .toList();
+    }
+
     public static void show(Stage owner,
                             List<Producto> productos,
                             Consumer<Producto> onSelectProducto,
@@ -49,7 +72,7 @@ public final class SearchPaletteDialog {
 
         // ── Search field ──────────────────────────────────────────────
         TextField searchField = new TextField();
-        searchField.setPromptText("Navegar o buscar bienes, resguardos, préstamos…");
+        searchField.setPromptText("Navegar o buscar bienes, personas, resguardos, préstamos…");
         searchField.getStyleClass().add("search-palette-field");
         FontIcon searchIcon = new FontIcon("mdi2m-magnify");
         searchIcon.getStyleClass().add("search-palette-icon");
@@ -101,6 +124,15 @@ public final class SearchPaletteDialog {
                             + (p.getArea() != null && !p.getArea().isBlank()
                             ? "  ·  " + p.getArea() : "");
                     Label meta = new Label(metaText.strip());
+                    meta.getStyleClass().add("palette-item-meta");
+                    VBox box = new VBox(2, nombre, meta);
+                    box.getStyleClass().add("palette-item-box");
+                    setGraphic(box);
+
+                } else if (item instanceof Persona per) {
+                    Label nombre = new Label(per.nombre());
+                    nombre.getStyleClass().add("palette-item-nombre");
+                    Label meta = new Label(per.detalle());
                     meta.getStyleClass().add("palette-item-meta");
                     VBox box = new VBox(2, nombre, meta);
                     box.getStyleClass().add("palette-item-box");
@@ -161,6 +193,11 @@ public final class SearchPaletteDialog {
                 dialog.setResult(p);
                 dialog.close();
                 onSelectProducto.accept(p);
+            } else if (sel instanceof Persona per) {
+                javafx.scene.Scene escena = owner.getScene();
+                dialog.close();
+                // After this window is really gone: opening another while it unwinds freezes the app.
+                Platform.runLater(() -> FichaPersona.abrir(per.nombre(), escena));
             } else if (sel instanceof com.sibim.model.Resguardo rsg) {
                 dialog.close();
                 onSelectResguardo.accept(rsg);
@@ -189,6 +226,11 @@ public final class SearchPaletteDialog {
                 if (!matchedNav.isEmpty()) {
                     allItems.add("NAVEGAR A");
                     allItems.addAll(matchedNav);
+                }
+                List<Persona> matchedPer = personas(productos, resguardos, q);
+                if (!matchedPer.isEmpty()) {
+                    allItems.add("PERSONAS");
+                    allItems.addAll(matchedPer);
                 }
                 List<Producto> matchedProd = productos.stream()
                     .filter(p -> p.getNombre().toLowerCase().contains(q)

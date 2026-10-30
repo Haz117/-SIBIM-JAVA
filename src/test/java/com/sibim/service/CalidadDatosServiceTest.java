@@ -105,10 +105,58 @@ class CalidadDatosServiceTest {
             resguardo("bien", "ANA RUIZ", Resguardo.ESTADO_ACTIVO, "ya-bien"));
         List<Resguardante> variantes = CalidadDatosService.personasRepetidas(resguardos, inventario, Set.of()).get(0);
 
-        assertEquals(2, service.unirPersonas("ANA RUIZ", variantes, inventario));
+        assertEquals(2, service.unirPersonas("ANA RUIZ", variantes, inventario).cuantosBienes());
 
         verify(repo).unirPersona("ANA RUIZ", List.of("en-vigente", "suelto"), List.of("vig"));
         verify(audit).log(eq("persona"), anyString(), eq("ANA RUIZ"), eq("actualizar"), contains("RUIZ ANA"));
+    }
+
+    /** Each thing goes back to the very name it had, spelled as it was. */
+    @Test
+    void deshacer_regresaCadaNombre_comoEstaba() throws Exception {
+        List<Producto> inventario = List.of(bien("a", "A/1", "RUIZ ANA"), bien("b", "A/2", "ruiz  ana"), bien("c", "A/3", "ANA RUIZ"));
+        List<Resguardo> resguardos = List.of(resguardo("vig", "RUIZ ANA", Resguardo.ESTADO_ACTIVO, "a"));
+        List<Resguardante> variantes = CalidadDatosService.personasRepetidas(resguardos, inventario, Set.of()).get(0);
+
+        var union = service.unirPersonas("ANA RUIZ", variantes, inventario);
+        service.deshacer(union);
+
+        verify(repo).unirPersona("RUIZ ANA", List.of("a"), List.of("vig"));
+        verify(repo).unirPersona("ruiz  ana", List.of("b"), List.of());
+        verify(audit).log(eq("persona"), anyString(), eq("ANA RUIZ"), eq("actualizar"), contains("deshizo"));
+    }
+
+    /** What is done doesn't appear; what isn't says how many and where it is fixed. */
+    @Test
+    void porHacer_cuentaLoQueFalta_yLoHechoNoAparece() {
+        Producto completo = bien("1", "A/1", "ANA RUIZ");
+        completo.setPrecioCompra(new BigDecimal("10")); completo.setFechaAdquisicion(LocalDate.of(2024, 1, 1));
+        completo.setVidaUtilAnios(5); completo.setFotoUrl("foto.jpg"); completo.setEtiquetado(true);
+        Producto sinPrecio = bien("2", "A/2", "ANA RUIZ");
+        sinPrecio.setFechaAdquisicion(LocalDate.of(2024, 1, 1)); sinPrecio.setVidaUtilAnios(5); sinPrecio.setFotoUrl("f.jpg");
+        Producto repetida = bien("3", "A/3", "RUIZ ANA");
+        repetida.setPrecioCompra(new BigDecimal("10")); repetida.setFechaAdquisicion(LocalDate.of(2024, 1, 1));
+        repetida.setVidaUtilAnios(5); repetida.setFotoUrl("f.jpg"); repetida.setEtiquetado(true);
+
+        var lista = CalidadDatosService.porHacer(List.of(completo, sinPrecio, repetida), List.of(), Set.of(),
+            Map.of("rfc_municipio", "X", "domicilio_municipio", "X", "firma_elabora", "X", "firma_vobo", "X"));
+        var porTitulo = lista.stream().collect(java.util.stream.Collectors.toMap(CalidadDatosService.PorHacer::titulo, x -> x));
+
+        assertEquals(1, porTitulo.get("personas con el nombre repetido").cantidad());
+        assertEquals("unir", porTitulo.get("personas con el nombre repetido").abrir());
+        assertEquals(1, porTitulo.get("bienes sin precio").cantidad());
+        assertEquals("completar:PRECIO", porTitulo.get("bienes sin precio").abrir());
+        assertEquals(1, porTitulo.get("bienes sin etiquetar").cantidad());
+        assertFalse(porTitulo.containsKey("bienes sin fecha"), "lo que ya está no aparece");
+        assertFalse(porTitulo.containsKey("series repetidas"));
+    }
+
+    @Test
+    void faltanEnConfiguracion_diceQue_conSusPalabras() {
+        var faltan = CalidadDatosService.faltanEnConfiguracion(Map.of("rfc_municipio", "X", "firma_vobo", "  ", "titular_area:Tesorería", "ANA"), 3);
+        assertEquals(List.of("Domicilio", "Elabora", "Vo. Bo.", "Titular de 2 áreas"), faltan);
+        assertTrue(CalidadDatosService.faltanEnConfiguracion(Map.of("rfc_municipio", "X", "domicilio_municipio", "X", "firma_elabora", "X",
+            "firma_vobo", "X", "titular_area:Tesorería", "ANA"), 1).isEmpty());
     }
 
     @Test

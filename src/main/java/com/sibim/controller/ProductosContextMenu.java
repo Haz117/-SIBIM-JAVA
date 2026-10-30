@@ -56,6 +56,19 @@ final class ProductosContextMenu {
         cmCopiar.setOnAction(e -> copiarCodigos(table));
         cm.getItems().add(cmCopiar);
 
+        MenuItem cmPersona = new MenuItem("Ver a su resguardante");
+        cmPersona.setGraphic(new FontIcon("mdi2a-account-outline"));
+        cmPersona.setOnAction(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) FichaPersona.abrir(sel.getResguardante(), table.getScene());
+        });
+        cm.getItems().add(cmPersona);
+        cm.setOnShowing(e -> {
+            Producto sel = table.getSelectionModel().getSelectedItem();
+            boolean tiene = sel != null && sel.getResguardante() != null && !sel.getResguardante().isBlank();
+            cmPersona.setVisible(tiene);
+        });
+
         MenuItem cmFicha = new MenuItem("Imprimir ficha técnica");
         cmFicha.setGraphic(new FontIcon("mdi2f-file-document-outline"));
         cmFicha.setOnAction(e -> {

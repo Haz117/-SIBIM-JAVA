@@ -176,6 +176,57 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         assertFalse(unir.isDisabled());
     }
 
+    /** Answered wrong: "Deshacer" is right there, and the case goes back on the list. */
+    @Test
+    void unir_seDeshace_yElCasoRegresaALaLista() throws Exception {
+        List<Producto> bienes = List.of(bien("1", "A/1", "RUIZ ANA", "Tesorería Municipal"),
+            bien("2", "A/2", "ANA RUIZ", "Tesorería Municipal"), bien("3", "A/3", "ANA RUIZ", "Tesorería Municipal"));
+        Platform.runLater(() -> UnirPersonasDialog.show(bienes, List.of(), null));
+        DialogPane panel = abierto();
+        // Its two spellings and "Ninguno de estos".
+        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> visibles(panel, ".rsg-tarjeta") == 3);
+        @SuppressWarnings("unchecked")
+        ListView<Object> lista = (ListView<Object>) panel.lookup(".trf-areas");
+        assertEquals(1, lista.getItems().size());
+        Button deshacer = (Button) panel.lookupAll(".button").stream()
+            .filter(n -> n instanceof Button b && "Deshacer".equals(b.getText())).findFirst().orElseThrow();
+        assertFalse(deshacer.getParent().isVisible(), "todavía no hay qué deshacer");
+
+        Button unir = (Button) panel.lookupAll(".btn-primary").stream()
+            .filter(n -> n instanceof Button x && x.getText().startsWith("Son la misma")).findFirst().orElseThrow();
+        Platform.runLater(unir::fire);
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> Window.getWindows().stream()
+            .anyMatch(w -> w.getScene().getRoot() instanceof DialogPane d && d != panel));
+        WaitForAsyncUtils.waitForFxEvents();
+        DialogPane confirmar = (DialogPane) Window.getWindows().stream()
+            .filter(w -> w.getScene().getRoot() instanceof DialogPane d && d != panel)
+            .findFirst().orElseThrow().getScene().getRoot();
+        ButtonType si = confirmar.getButtonTypes().stream()
+            .filter(t -> t.getButtonData().isDefaultButton()).findFirst().orElseThrow();
+        Platform.runLater(() -> ((Button) confirmar.lookupButton(si)).fire());
+
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> deshacer.getParent().isVisible());
+        assertEquals(0, lista.getItems().size(), "ese caso ya quedó");
+
+        interact(deshacer::fire);
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> !deshacer.getParent().isVisible());
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(1, lista.getItems().size(), "regresa para contestarlo otra vez");
+        assertSame(lista.getItems().get(0), lista.getSelectionModel().getSelectedItem());
+        assertEquals(3, visibles(panel, ".rsg-tarjeta"));
+    }
+
+    /** From Inicio it opens on the dato somebody came to fill. */
+    @Test
+    void completar_abreEnElDatoPedido() throws Exception {
+        List<Producto> bienes = List.of(bien("1", "A/1", "ANA RUIZ", "Tesorería Municipal"));
+        Platform.runLater(() -> CompletarDatosDialog.show(bienes, com.sibim.service.CalidadDatosService.Dato.FECHA, null));
+        DialogPane panel = abierto();
+        ToggleButton fecha = (ToggleButton) panel.lookupAll(".filter-chip").stream()
+            .filter(n -> n instanceof ToggleButton t && t.getText().toLowerCase().contains("fecha")).findFirst().orElseThrow();
+        assertTrue(fecha.isSelected());
+    }
+
     @Test
     void unir_sinCasos_loDice() throws Exception {
         Platform.runLater(() -> UnirPersonasDialog.show(List.of(bien("1", "A/1", "ANA RUIZ", "Tesorería Municipal")), List.of(), null));

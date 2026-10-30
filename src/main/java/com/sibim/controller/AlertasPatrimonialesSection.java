@@ -88,6 +88,11 @@ class AlertasPatrimonialesSection {
         ayuda.getStyleClass().add("muted-sm");
         barraVistas = new HBox(8, porAreaBtn, porBienBtn, ayuda);
         barraVistas.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        // From saying how many to fixing them, without looking for where.
+        if (com.sibim.session.Permisos.editaFichaCompleta())
+            barraVistas.getChildren().addAll(
+                resolver("Etiquetas por área", "mdi2t-tag-multiple-outline", "productos", "etiquetas"),
+                resolver("Resguardos en lote", "mdi2c-clipboard-multiple-outline", "resguardos", "lote"));
         contenido = new StackPane(tablaAreas, tabla);
         vistas.selectedToggleProperty().addListener((obs, antes, ahora) -> {
             if (ahora == null) { vistas.selectToggle(antes); return; }   // one stays selected
@@ -98,6 +103,18 @@ class AlertasPatrimonialesSection {
                                 : "Doble clic en un bien para ver su detalle");
         });
         vistas.selectToggle(porBienBtn);
+    }
+
+    private static javafx.scene.control.Button resolver(String texto, String icono, String vista, String abrir) {
+        javafx.scene.control.Button b = new javafx.scene.control.Button(texto, new org.kordamp.ikonli.javafx.FontIcon(icono));
+        b.getStyleClass().add("btn-secondary");
+        b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        b.setOnAction(e -> {
+            com.sibim.session.NavigationContext.setPendingAbrir(abrir);
+            MainController mc = MainController.getInstance();
+            if (mc != null) mc.navigateToView(vista);
+        });
+        return b;
     }
 
     /** The two tables, one on top of the other; the chosen view is the visible one. */

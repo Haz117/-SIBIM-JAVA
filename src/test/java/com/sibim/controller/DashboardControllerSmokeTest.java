@@ -25,6 +25,16 @@ class DashboardControllerSmokeTest extends ControllerSmokeTestBase {
     @Test
     void fxmlCarga_sinExcepcion() { /* llegar aquí = pass */ }
 
+    /** Patrimonio sees what is left, each card with its count; DashboardMiAreaSmokeTest
+     *  covers that an área doesn't. */
+    @Test
+    void porHacer_muestraTarjetas() throws Exception {
+        javafx.scene.Node seccion = lookup("#porHacerSection").query();
+        org.testfx.util.WaitForAsyncUtils.waitFor(20, java.util.concurrent.TimeUnit.SECONDS, seccion::isVisible);
+        org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+        org.junit.jupiter.api.Assertions.assertFalse(lookup(".por-hacer-tarjeta").queryAll().isEmpty());
+    }
+
     @Test
     void nodosClavePresentes() {
         assertNotNull(lookup("#lblTotalBienes").query(),    "lblTotalBienes debe existir");
