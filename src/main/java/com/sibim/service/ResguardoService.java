@@ -191,13 +191,20 @@ public class ResguardoService {
     }
 
     public File exportarPdf(Resguardo resguardo) throws Exception {
+        return exportarPdf(resguardo, orgName());
+    }
+
+    /** @param org the name in the header, read once by whoever prints several in a row */
+    private File exportarPdf(Resguardo resguardo, String org) throws Exception {
         if (resguardo.getItems() == null || resguardo.getItems().isEmpty()) {
             Resguardo full = repo.findById(resguardo.getId());
             if (full != null) resguardo = full;
         }
-        List<com.sibim.model.Producto> vehiculos = soloVehiculos(resguardo);
+        // The vehicle sheet names who holds the vehicle today and has no room for an
+        // Estado: a cancelled resguardo goes on the general one, which says CANCELADO.
+        List<com.sibim.model.Producto> vehiculos = resguardo.isActivo() ? soloVehiculos(resguardo) : List.of();
         if (!vehiculos.isEmpty()) return new ReporteResguardoVehicularService().exportar(vehiculos, resguardo);
-        return generarPdf(resguardo);
+        return generarPdf(resguardo, org);
     }
 
     /** The bienes of {@code r} when every one is a vehicle (Parque Vehicular rule):
@@ -221,7 +228,7 @@ public class ResguardoService {
         }
     }
 
-    /** What Reportes › Resguardo de una persona prints, in one PDF: the chosen
+    /** What Reportes › Resguardos por resguardante prints, in one PDF: the chosen
      *  resguardos as Resguardos prints them and, if asked, the bienes in the person's
      *  name that are in no resguardo in force, from the inventory (as Bienes ›
      *  Resguardo PDF does, with its own RSP folio). */
@@ -232,7 +239,9 @@ public class ResguardoService {
             throw new IllegalArgumentException("Elige al menos un resguardo");
         List<File> partes = new java.util.ArrayList<>();
         try {
-            for (Resguardo r : elegidos) partes.add(exportarPdf(r));
+            // Two queries each time: 5 s of the 33 resguardos one person has.
+            String org = orgName();
+            for (Resguardo r : elegidos) partes.add(exportarPdf(r, org));
             if (sueltos) {
                 String area = persona.sinResguardo().stream().map(com.sibim.model.Producto::getArea)
                     .filter(a -> a != null && !a.isBlank()).findFirst().orElse("");
@@ -307,6 +316,16 @@ public class ResguardoService {
             .replaceAll("\\p{M}+", "").replaceAll("\\s+", " ").toUpperCase(java.util.Locale.ROOT);
     }
 
+    /** The same words in another order: "ANA RUIZ SOTO" and "RUIZ SOTO ANA".
+     *  Probably one person under two spellings; only someone who knows them can tell. */
+    public static boolean mismasPalabras(String a, String b) {
+        List<String> pa = new java.util.ArrayList<>(List.of(clavePersona(a).split(" ")));
+        List<String> pb = new java.util.ArrayList<>(List.of(clavePersona(b).split(" ")));
+        java.util.Collections.sort(pa);
+        java.util.Collections.sort(pb);
+        return pa.equals(pb);
+    }
+
     private String orgName() {
         String org = configRepo.get("nombre_ayuntamiento", "");
         String mun = configRepo.get("municipio", "");
@@ -314,7 +333,7 @@ public class ResguardoService {
         return mun.isBlank() ? org : org + " · " + mun;
     }
 
-    private File generarPdf(Resguardo r) throws IOException {
+    private File generarPdf(Resguardo r, String org) throws IOException {
         File file = File.createTempFile("sibim_resguardo_", ".pdf");
         file.deleteOnExit();
 
@@ -322,8 +341,6 @@ public class ResguardoService {
         PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         DeviceRgb dark  = new DeviceRgb(15, 23, 42);
         DeviceRgb muted = COLOR_MUTED;
-        // Read once: header and footer both say it, and each read is a query.
-        String org = orgName();
 
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);

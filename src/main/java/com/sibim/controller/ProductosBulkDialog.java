@@ -9,7 +9,6 @@ import com.sibim.util.DialogUtil;
 import com.sibim.util.NotificacionUtil;
 import javafx.scene.Scene;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextInputDialog;
 
 import java.util.List;
 import com.sibim.util.FormatUtils;
@@ -34,7 +33,7 @@ final class ProductosBulkDialog {
     // ── Cambiar resguardante en lote ────────────────────────────────────────
 
     /**
-     * Shows a TextInputDialog for a new resguardante name.  On confirmation
+     * Asks who, from the people in the inventory.  On confirmation
      * saves every product and calls {@code onSuccess}.
      */
     static void showCambiarResguardante(
@@ -44,27 +43,22 @@ final class ProductosBulkDialog {
             TableView<Producto> table,
             Runnable onSuccess,
             Runnable onRetry) {
-
-        TextInputDialog dlg = new TextInputDialog();
-        dlg.setTitle("Cambiar resguardante");
-        dlg.setHeaderText("Nuevo resguardante para " + sel.size() + " bienes seleccionados");
-        dlg.setContentText("Nombre:");
-        DialogUtil.applyOwner(dlg);
-        DialogUtil.conEncabezado(dlg, "mdi2b-badge-account-outline");
-        dlg.showAndWait().map(String::trim).filter(s -> !s.isBlank()).ifPresent(nombre -> {
-            table.lookupAll(".table-row-cell:selected")
-                 .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
-            DialogUtil.runAsyncWithProgress(scene, "Actualizando resguardante…",
-                () -> porCadaBien(sel, p -> { p.setResguardante(nombre); service.save(p); }),
-                r -> {
-                    onSuccess.run();
-                    if (r.ok() > 0) NotificacionUtil.exito(scene, FormatUtils.plural(r.ok(), "bien asignado", "bienes asignados") + " a \"" + nombre + "\"");
-                    avisarFallidos(scene, r, "actualizar");
-                },
-                e -> NotificacionUtil.errorConAccion(scene,
-                        "No se pudo cambiar el resguardante", "Reintentar", onRetry)
-            );
-        });
+        DialogUtil.runAsyncWithProgress(scene, "Cargando personas…", service::getAll,
+            inventario -> com.sibim.controller.dialogs.ElegirPersonaDialog.show(inventario, sel.size()).ifPresent(nombre -> {
+                table.lookupAll(".table-row-cell:selected")
+                     .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
+                DialogUtil.runAsyncWithProgress(scene, "Actualizando resguardante…",
+                    () -> porCadaBien(sel, p -> { p.setResguardante(nombre); service.save(p); }),
+                    r -> {
+                        onSuccess.run();
+                        if (r.ok() > 0) NotificacionUtil.exito(scene, FormatUtils.plural(r.ok(), "bien asignado", "bienes asignados") + " a \"" + nombre + "\"");
+                        avisarFallidos(scene, r, "actualizar");
+                    },
+                    e -> NotificacionUtil.errorConAccion(scene,
+                            "No se pudo cambiar el resguardante", "Reintentar", onRetry)
+                );
+            }),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }
 
     /** Outcome of a bulk action applied bien by bien. */

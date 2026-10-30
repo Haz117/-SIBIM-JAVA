@@ -61,6 +61,7 @@ class MainShortcutHelpDialog {
             {"Ctrl+Alt + G",  "Resguardos"},
             {"Ctrl+Alt + P",  "Préstamos"},
             {"Ctrl+Alt + A",  "Actas E/R"},
+            {"Ctrl+Alt + C",  "Conteo físico"},
         });
 
         GridPane accGrid = makeSection.apply("ACCIONES EN TABLA", new String[][]{
@@ -86,7 +87,7 @@ class MainShortcutHelpDialog {
         GridPane sysGrid = makeSection.apply("SISTEMA", new String[][]{
             {"Ctrl+K",      "Buscar en todo SIBIM"},
             {"F1",          "Mostrar esta ayuda de atajos"},
-            {"F2",          "Tutorial interactivo del sistema"},
+            {"F2",          "Guías paso a paso: te llevan a cada pantalla"},
             {"F5 / Ctrl+R", "Actualizar vista actual"},
             {"Ctrl+F",      "Enfocar campo de búsqueda"},
             {"Ctrl+0",      "Auditoría del sistema  (solo administrador)"},

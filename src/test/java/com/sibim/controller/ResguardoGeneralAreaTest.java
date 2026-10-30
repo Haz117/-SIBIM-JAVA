@@ -26,6 +26,16 @@ class ResguardoGeneralAreaTest {
         assertEquals("", ResguardosController.titularProbable(List.of(bien("SGM/01", " "))));
     }
 
+    /** The titular typed in Configuración › Áreas wins over who holds the most bienes. */
+    @Test
+    void titularDe_prefiereElCapturado() {
+        List<Producto> bienes = List.of(bien("SGM/01", "ANA LÓPEZ"));
+        assertEquals("LIC. JAIME ROSALES", ResguardosController.titularDe("Secretaría General Municipal",
+            java.util.Map.of("Secretaría General Municipal", "LIC. JAIME ROSALES"), bienes));
+        assertEquals("ANA LÓPEZ", ResguardosController.titularDe("Tesorería Municipal",
+            java.util.Map.of("Secretaría General Municipal", "LIC. JAIME ROSALES"), bienes));
+    }
+
     @Test
     void numeroDeCodigo_ordenaPorElNumeroDelArea() {
         assertEquals(7, ResguardosController.numeroDeCodigo(bien("SGM/07", null)));

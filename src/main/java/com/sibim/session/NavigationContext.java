@@ -19,6 +19,19 @@ public final class NavigationContext {
     private static boolean pendingTransferir;
     private static String  pendingAccionMovimientos;
 
+    private static String pendingAbrir;
+
+    /** Set before navigating to a screen to open one of its windows on arriving
+     *  (a guide's "Probarlo ahora"). */
+    public static void setPendingAbrir(String accion) { pendingAbrir = accion; }
+
+    /** Reads and clears it; "" when none. */
+    public static String consumePendingAbrir() {
+        String v = pendingAbrir;
+        pendingAbrir = null;
+        return v != null ? v : "";
+    }
+
     /** Set before navigating to Movimientos to open one of its panels
      *  ("por-recibir" or "pendientes") — used by the notification bell. */
     public static void setPendingAccionMovimientos(String accion) { pendingAccionMovimientos = accion; }

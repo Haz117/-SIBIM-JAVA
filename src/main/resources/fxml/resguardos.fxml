@@ -37,11 +37,19 @@
             <graphic><FontIcon iconLiteral="mdi2t-timer-sand" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Solicitudes de préstamo y resguardo de las áreas" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
-        <Button fx:id="btnGeneral" text="Resguardo general" onAction="#onResguardoGeneral" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Imprime todos los bienes de un área, con el resguardante de cada uno, para firma del titular" wrapText="true" maxWidth="260"/></tooltip>
-        </Button>
+        <!-- What is used now and then lives here: at 1366 px the header cut every button short. -->
+        <MenuButton fx:id="btnMasResguardos" text="Más" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-dots-horizontal" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Resguardo general del área y resguardos en lote"/></tooltip>
+            <items>
+                <MenuItem text="Resguardo general" onAction="#onResguardoGeneral">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-document-multiple-outline"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnLote" text="Resguardos en lote" onAction="#onResguardosEnLote">
+                    <graphic><FontIcon iconLiteral="mdi2c-clipboard-multiple-outline"/></graphic>
+                </MenuItem>
+            </items>
+        </MenuButton>
         <Button fx:id="btnNuevo" text="Nuevo Resguardo" onAction="#onNuevoResguardo" styleClass="btn-primary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2p-plus" styleClass="btn-icon"/></graphic>

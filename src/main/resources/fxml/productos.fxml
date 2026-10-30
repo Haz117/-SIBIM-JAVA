@@ -26,9 +26,9 @@
             <tooltip><Tooltip text="Actualizar lista (F5)"/></tooltip>
         </Button>
         <!-- What is used now and then lives here, so the header keeps only what is used all day. -->
-        <MenuButton text="Más" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
+        <MenuButton fx:id="btnMasBienes" text="Más" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-dots-horizontal" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Bajas, conteo físico, resguardos por área e importación"/></tooltip>
+            <tooltip><Tooltip text="Bajas, conteo físico, importación y revisión de los datos"/></tooltip>
             <items>
                 <MenuItem text="Bienes dados de baja" onAction="#onVerBajas">
                     <graphic><FontIcon iconLiteral="mdi2d-delete-restore"/></graphic>
@@ -42,6 +42,19 @@
                 </MenuItem>
                 <MenuItem fx:id="btnImportar" text="Importar bienes desde CSV o Excel" onAction="#onImportarCsv">
                     <graphic><FontIcon iconLiteral="mdi2u-upload-outline"/></graphic>
+                </MenuItem>
+                <SeparatorMenuItem fx:id="sepRevisarDatos"/>
+                <MenuItem fx:id="btnCompletarDatos" text="Completar datos" onAction="#onCompletarDatos">
+                    <graphic><FontIcon iconLiteral="mdi2c-clipboard-edit-outline"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnUnirPersonas" text="Unir personas repetidas" onAction="#onUnirPersonas">
+                    <graphic><FontIcon iconLiteral="mdi2a-account-multiple-check-outline"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnSeriesRepetidas" text="Series repetidas" onAction="#onSeriesRepetidas">
+                    <graphic><FontIcon iconLiteral="mdi2b-barcode-scan"/></graphic>
+                </MenuItem>
+                <MenuItem fx:id="btnEtiquetasArea" text="Etiquetas por área" onAction="#onEtiquetasArea">
+                    <graphic><FontIcon iconLiteral="mdi2t-tag-multiple-outline"/></graphic>
                 </MenuItem>
             </items>
         </MenuButton>

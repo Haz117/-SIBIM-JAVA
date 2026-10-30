@@ -171,7 +171,7 @@ public class ReporteService {
     /** "DGOB/09" before "DGOB/10" before "DGOB/100": an área can have more than 99 bienes.
      *  Compares (prefix, número, whole código) so that it is a consistent order even for
      *  old códigos without a número, which a sort would otherwise reject. */
-    protected static final java.util.Comparator<String> POR_CODIGO = (a, b) -> {
+    public static final java.util.Comparator<String> POR_CODIGO = (a, b) -> {
         String[] ka = claveCodigo(a), kb = claveCodigo(b);
         for (int i = 0; i < ka.length; i++) {
             int c = i == 2 && ka[2].length() != kb[2].length() ? Integer.compare(ka[2].length(), kb[2].length())

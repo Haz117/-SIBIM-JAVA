@@ -885,7 +885,7 @@ public final class DialogUtil {
     /** What the user typed against every item: each word must appear (in any
      *  order), ignoring case and accents — "camara dahua" finds "Cámara
      *  videovigilancia PTZ Dahua". Items that start with the text come first. */
-    static <T> java.util.List<T> coincidencias(java.util.List<T> items, Function<T, String> toText, String texto) {
+    public static <T> java.util.List<T> coincidencias(java.util.List<T> items, Function<T, String> toText, String texto) {
         String q = sinAcentos(texto);
         if (q.isBlank()) return items;
         String[] palabras = q.trim().split("\\s+");

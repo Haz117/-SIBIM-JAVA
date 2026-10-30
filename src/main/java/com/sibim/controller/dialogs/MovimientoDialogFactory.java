@@ -360,7 +360,7 @@ public final class MovimientoDialogFactory {
 
         Button btnRegistrar = new Button("Registrar movimiento");
         btnRegistrar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
-        btnRegistrar.getStyleClass().add("form-submit-btn");
+        btnRegistrar.getStyleClass().add("dialog-ok-btn");
         btnRegistrar.setDisable(true);
         btnRegistrar.setOnAction(e -> {
             saving[0] = true;

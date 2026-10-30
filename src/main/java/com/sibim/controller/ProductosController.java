@@ -23,7 +23,6 @@ import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
-import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
@@ -234,6 +233,10 @@ public class ProductosController {
         // count that silently adjusts stock.
         if (btnNuevoBien    != null) { btnNuevoBien.setVisible(canManage);    btnNuevoBien.setManaged(canManage); }
         if (btnConteoFisico != null) btnConteoFisico.setVisible(canManage);
+        // Patrimonio's: they change the accounting values and whose name a bien is in.
+        boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnSeriesRepetidas, btnEtiquetasArea, sepRevisarDatos})
+            if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
             rootPane.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
@@ -401,6 +404,13 @@ public class ProductosController {
         if (NavigationContext.consumePendingNuevoBien()) {
             Platform.runLater(this::onNuevoBien);
         }
+        switch (NavigationContext.consumePendingAbrir()) {
+            case "completar" -> Platform.runLater(this::onCompletarDatos);
+            case "unir"      -> Platform.runLater(this::onUnirPersonas);
+            case "series"    -> Platform.runLater(this::onSeriesRepetidas);
+            case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
+            default -> { }
+        }
     }
 
     // ── Data loading ─────────────────────────────────────────────────────────
@@ -552,15 +562,51 @@ public class ProductosController {
     @FXML private void onNext() { currentPage++; loadPage(); }
     @FXML private void onRefresh() { refreshing = true; loadData(); }
 
+    @FXML private MenuItem btnCompletarDatos;
+    @FXML private MenuItem btnUnirPersonas;
+    @FXML private MenuItem btnSeriesRepetidas;
+    @FXML private MenuItem btnEtiquetasArea;
+    @FXML private SeparatorMenuItem sepRevisarDatos;
+
+    /** The inventory, off the FX thread, and then the screen that fixes something in it. */
+    private void conInventario(java.util.function.Consumer<List<Producto>> abrir) {
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Cargando bienes…",
+            () -> productoService.getAll(), abrir,
+            e -> NotificacionUtil.error(table.getScene(), "No se pudo cargar el inventario"));
+    }
+
+    private void alCorregirDatos() {
+        refreshing = true;
+        loadData();
+    }
+
+    @FXML
+    private void onCompletarDatos() {
+        conInventario(bienes -> com.sibim.controller.dialogs.CompletarDatosDialog.show(bienes, this::alCorregirDatos));
+    }
+
+    @FXML
+    private void onUnirPersonas() {
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Buscando personas repetidas…",
+            () -> java.util.Map.entry(productoService.getAll(), new com.sibim.service.ResguardoService().getAll()),
+            datos -> com.sibim.controller.dialogs.UnirPersonasDialog.show(datos.getKey(), datos.getValue(), this::alCorregirDatos),
+            e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar los datos"));
+    }
+
+    @FXML
+    private void onSeriesRepetidas() {
+        conInventario(bienes -> com.sibim.controller.dialogs.SeriesRepetidasDialog.show(bienes, this::alCorregirDatos));
+    }
+
+    @FXML
+    private void onEtiquetasArea() {
+        conInventario(bienes -> com.sibim.controller.dialogs.EtiquetasAreaDialog.show(bienes, this::alCorregirDatos));
+    }
+
     @FXML
     private void onConteoFisico() {
         // Scoped to whatever is currently filtered/visible in the table
-        // (búsqueda, categoría, área, estado) instead of always dumping the
-        // entire inventory in — the dialog builds one non-virtualized row
-        // per bien, so "todo el inventario" on a large municipio would be
-        // both slow to open and impossible to actually work through in one
-        // sitting. Filtering by área/categoría first is how you scope a
-        // conteo to a batch — see the "?" on the button.
+        // (búsqueda, categoría, área, estado); with one área it opens right on it.
         // Read filter values on the FX thread before spawning the background task
         String busqueda = searchField.getText().toLowerCase().strip();
         String catId = categoriaFilter.getValue() != null
@@ -580,11 +626,6 @@ public class ProductosController {
                         "No hay bienes que coincidan con el filtro actual — ajusta la búsqueda/filtros antes de iniciar un conteo.");
                     return;
                 }
-                if (aContar.size() > 150 && !ConfirmacionUtil.confirmar("Conteo grande",
-                        "Vas a iniciar un conteo físico de " + aContar.size() + " bienes a la vez — puede ser lento de "
-                        + "cargar y difícil de terminar en una sola sesión. Considera filtrar por área o categoría primero "
-                        + "para hacerlo en lotes más manejables.\n\n¿Continuar de todas formas con los " + aContar.size() + "?"))
-                    return;
                 ConteoFisicoDialog.show(aContar, movimientoService, () -> { refreshing = true; loadData(); });
             }
             @Override protected void failed() {

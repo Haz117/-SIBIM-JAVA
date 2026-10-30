@@ -1,5 +1,7 @@
 package com.sibim.controller.dialogs;
 
+import com.sibim.config.Areas;
+import com.sibim.controller.FiltroArea;
 import com.sibim.model.ConteoFisico;
 import com.sibim.model.ConteoItem;
 import com.sibim.model.Producto;
@@ -12,23 +14,25 @@ import com.google.zxing.common.HybridBinarizer;
 import com.sibim.service.MovimientoService;
 import com.sibim.service.ReporteConteoService;
 import com.sibim.session.SessionManager;
-import com.sibim.util.AnimationUtils;
 import com.sibim.util.AppColors;
 import com.sibim.util.AppExecutor;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
 import com.sibim.util.NotificacionUtil;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
@@ -41,18 +45,22 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
+import java.util.prefs.Preferences;
 
-/** A physical inventory count (toma de inventario): walks the user through
- *  every bien in scope, lets them enter what they actually counted, assign a
- *  condition state, and add per-item notes. On confirmation it persists the
- *  session and reconciles stock discrepancies via audited AJUSTE movements. */
+/** A physical inventory count (toma de inventario), laid out like "Transferir
+ *  arrastrando": on the left what to count, by área or category, with how far each
+ *  one has got; on the right its bienes. A click on a row says the bien is there;
+ *  what doesn't match is noted on it. On finalizing, the conteo of what is chosen is
+ *  saved and its differences reconciled through audited AJUSTE movements; whatever
+ *  was captured elsewhere stays in the draft.
+ *
+ *  The rows are data drawn by a ListView, which only builds the ones on screen: one
+ *  set of controls per bien took 456 MB for 700 bienes (the installed app has 512),
+ *  and the whole inventory ran out of memory. */
 public final class ConteoFisicoDialog {
 
     private static final Logger log = LoggerFactory.getLogger(ConteoFisicoDialog.class);
-
-    private ConteoFisicoDialog() {}
 
     enum EstadoConteo {
         ENCONTRADO("Encontrado"),
@@ -79,48 +87,110 @@ public final class ConteoFisicoDialog {
         return marcada || contado != sistema || (estado != null && estado != EstadoConteo.ENCONTRADO);
     }
 
-    private static boolean vista(Row r) {
-        return vista(r.touched().get(), r.contado().getValue(), r.producto().getStockActual(), r.estado().getValue());
+    /** A bien that is missing is not there: its count follows, and comes back if
+     *  "Faltante" was a slip.
+     *  @return the count after changing the estado */
+    static int contadoAlCambiarEstado(EstadoConteo antes, EstadoConteo ahora, int contado, int sistema) {
+        if (ahora == EstadoConteo.FALTANTE) return 0;
+        if (antes == EstadoConteo.FALTANTE && contado == 0) return sistema;
+        return contado;
     }
+
+    /** One bien of the conteo and what was captured for it. */
+    private static final class Fila {
+        final Producto producto;
+        int contado;
+        EstadoConteo estado = EstadoConteo.ENCONTRADO;
+        String nota = "";
+        boolean visto;
+        /** The note field and the count are only on screen when they are needed. */
+        boolean verNota;
+        boolean verCantidad;
+
+        Fila(Producto producto) {
+            this.producto = producto;
+            this.contado = producto.getStockActual();
+        }
+        int sistema() { return producto.getStockActual(); }
+        boolean vista() { return ConteoFisicoDialog.vista(visto, contado, sistema(), estado); }
+        boolean incidencia() { return contado != sistema() || estado != EstadoConteo.ENCONTRADO; }
+        boolean capturada() { return vista() || !nota.isBlank(); }
+        /** Almost every bien is one piece: only a lot, or a count that changed, shows a number. */
+        boolean conCantidad() { return sistema() != 1 || contado != sistema() || verCantidad; }
+        String area() { return producto.getArea() != null && !producto.getArea().isBlank() ? producto.getArea() : SIN_AREA; }
+        String categoria() {
+            return producto.getCategoriaNombre() != null && !producto.getCategoriaNombre().isBlank()
+                ? producto.getCategoriaNombre() : SIN_CATEGORIA;
+        }
+    }
+
+    private static final String SIN_AREA = "Sin área", SIN_CATEGORIA = "Sin categoría", TODO = "Todo el inventario";
+
+    /** What a row is saved as when nobody looked at it: the record of a
+     *  conteo must not say "encontrado" about a bien that was never checked. */
+    static final String SIN_REVISAR = "SIN_REVISAR";
+
+    record DraftValues(int contado, EstadoConteo estado, String nota, boolean verificado) {}
+    private record Captured(Producto producto, int contado, String estadoConteo, String nota) {}
 
     @FunctionalInterface
     private interface Exportacion { File generar() throws Exception; }
 
+    private final MovimientoService movimientoService;
+    private final Runnable onReconciled;
+    private final List<Fila> filas = new ArrayList<>();
+    private Dialog<ButtonType> dialog;
+
+    // Paso 1: qué contar
+    private final ToggleButton porArea = new ToggleButton("Áreas");
+    private final ToggleButton porCategoria = new ToggleButton("Categorías");
+    private final TextField buscarGrupo = new TextField();
+    private final ListView<String> grupos = new ListView<>();
+    /** Vistos and total of each área or category, read by the cells of the list. */
+    private final Map<String, int[]> avanceGrupos = new HashMap<>();
+
+    // Paso 2: los bienes de lo elegido
+    private List<Fila> alcance = List.of();
+    private final Label tituloAlcance = new Label();
+    private final TextField buscar = new TextField();
+    private final ToggleButton fTodos = new ToggleButton(), fPendientes = new ToggleButton(),
+                               fVistos = new ToggleButton(), fIncidencias = new ToggleButton();
+    private final ProgressBar progreso = new ProgressBar(0);
+    private final Label progresoTexto = new Label();
+    private final ObservableList<Fila> visibles = FXCollections.observableArrayList();
+    private final ListView<Fila> lista = new ListView<>(visibles);
+    private final VBox vacio = new VBox(8);
+    private final VBox panelBienes = new VBox(8);
+    private final Button btnScan = new Button("Escanear etiqueta");
+    private final Button btnFinalizar = new Button("Finalizar conteo");
+    private final MenuButton btnExportar = new MenuButton("Exportar");
+    /** Nothing to save once it is done or was saved by hand. */
+    private boolean guardado = false;
+
+    private ConteoFisicoDialog(MovimientoService movimientoService, Runnable onReconciled) {
+        this.movimientoService = movimientoService;
+        this.onReconciled = onReconciled;
+    }
+
+    public static void show(List<Producto> productos, MovimientoService movimientoService, Runnable onReconciled) {
+        new ConteoFisicoDialog(movimientoService, onReconciled).abrir(productos);
+    }
+
     private static void exportar(Dialog<?> dialog, String formato, Exportacion exportacion) {
-        javafx.scene.Scene scene = dialog.getDialogPane().getScene();
+        Scene scene = dialog.getDialogPane().getScene();
         AppExecutor.submit(() -> {
             try {
                 File f = exportacion.generar();
-                javafx.application.Platform.runLater(() -> {
+                Platform.runLater(() -> {
                     if (scene != null) DialogUtil.showExportResultDialog(scene, f);
                 });
             } catch (Exception ex) {
                 log.error("Error al exportar el conteo físico a {}", formato, ex);
-                javafx.application.Platform.runLater(() -> {
+                Platform.runLater(() -> {
                     if (scene != null) NotificacionUtil.error(scene, "No se pudo generar el " + formato);
                 });
             }
         });
-    }
-
-    // Width of each column, shared by the header and by every row so they line up.
-    private static final double ANCHO_VISTO = 58, ANCHO_SISTEMA = 78, ANCHO_CONTADO = 100,
-                                ANCHO_DIF = 52, ANCHO_ESTADO = 150, ANCHO_NOTA = 44;
-
-    /** The estado of a row nobody has marked yet reads "Pendiente", not
-     *  "Encontrado": every bien said "Encontrado" before anyone looked. */
-    private static final class CeldaEstado extends ListCell<EstadoConteo> {
-        private final BooleanProperty visto;
-        CeldaEstado(BooleanProperty visto) { this.visto = visto; }
-        @Override protected void updateItem(EstadoConteo v, boolean empty) {
-            super.updateItem(v, empty);
-            getStyleClass().remove("conteo-pendiente");
-            if (empty || v == null) { setText(null); return; }
-            boolean pendiente = !visto.get() && v == EstadoConteo.ENCONTRADO;
-            setText(pendiente ? "Pendiente" : v.toString());
-            if (pendiente) getStyleClass().add("conteo-pendiente");
-        }
-        void refrescar() { updateItem(getItem(), getItem() == null); }
     }
 
     /** True when {@code target} is {@code control} or inside it. */
@@ -129,22 +199,6 @@ public final class ConteoFisicoDialog {
             for (Node c : controles) if (n == c) return true;
         return false;
     }
-
-    private static Label encabezado(String texto, double ancho) {
-        Label l = new Label(texto);
-        l.getStyleClass().add("nav-section-label");
-        l.setMinWidth(ancho); l.setPrefWidth(ancho); l.setMaxWidth(ancho);
-        return l;
-    }
-
-    /** What a row is saved as when nobody looked at it: the record of a
-     *  conteo must not say "encontrado" about a bien that was never checked. */
-    static final String SIN_REVISAR = "SIN_REVISAR";
-
-    record DraftValues(int contado, EstadoConteo estado, String nota, boolean verificado) {}
-    private record Row(Producto producto, Spinner<Integer> contado, ComboBox<EstadoConteo> estado,
-                       TextField notaField, BooleanProperty touched) {}
-    private record Captured(Producto producto, int contado, String estadoConteo, String nota) {}
 
     /** Where drafts used to live. A registry value holds 8 192 characters at
      *  most, so "Guardar borrador" failed for any conteo of more than about a
@@ -179,20 +233,24 @@ public final class ConteoFisicoDialog {
         return filas;
     }
 
-    /** The draft keeps what was captured for each bien, whatever conteo it
-     *  came from: saving the conteo of one área leaves the rows of another
-     *  área's draft where they were. (It used to be one conteo per account —
-     *  opening a second one deleted or overwrote the first.) */
-    private static void saveDraft(List<Row> rows) throws java.io.IOException {
+    /** The draft keeps what was captured for each bien, whatever conteo it came from:
+     *  what this window has replaces what it had for those bienes (a bien unmarked here
+     *  leaves it), and the rows of bienes not in this window stay where they were. */
+    private void saveDraft() throws java.io.IOException {
         String[] previo = leerBorrador();
-        Map<String, String> filas = filasCrudas(previo != null ? previo[1] : "");
-        for (Row r : rows) {
-            String id = r.producto().getId();
-            filas.put(id, serializar(id, r.contado().getValue(),
-                r.estado().getValue() != null ? r.estado().getValue().name() : "ENCONTRADO",
-                r.notaField().getText(), vista(r)));
+        Map<String, String> guardadas = filasCrudas(previo != null ? previo[1] : "");
+        for (Fila f : filas) {
+            String id = f.producto.getId();
+            if (f.capturada()) guardadas.put(id, serializar(id, f.contado, f.estado.name(), f.nota, f.vista()));
+            else guardadas.remove(id);
         }
-        escribirBorrador(LocalDate.now().toString(), filas);
+        if (guardadas.isEmpty()) {
+            java.nio.file.Files.deleteIfExists(archivoBorrador());
+            DRAFT_PREFS.remove(draftKey());
+            DRAFT_PREFS.remove(draftKey() + ".fecha");
+        } else {
+            escribirBorrador(LocalDate.now().toString(), guardadas);
+        }
     }
 
     private static void escribirBorrador(String fecha, Map<String, String> filas) throws java.io.IOException {
@@ -265,92 +323,520 @@ public final class ConteoFisicoDialog {
         catch (Exception e) { return EstadoConteo.ENCONTRADO; }
     }
 
-    // ── Feature 1: Scope selector ─────────────────────────────────────────────
+    // ── La ventana ────────────────────────────────────────────────────────────
 
-    private static Optional<List<Producto>> seleccionarAlcance(List<Producto> todos) {
-        List<String> areas = todos.stream()
-            .map(p -> p.getArea() != null && !p.getArea().isBlank() ? p.getArea() : "Sin área")
-            .distinct().sorted().toList();
-        List<String> categorias = todos.stream()
-            .map(p -> p.getCategoriaNombre() != null && !p.getCategoriaNombre().isBlank()
-                ? p.getCategoriaNombre() : "Sin categoría")
-            .distinct().sorted().toList();
+    private void abrir(List<Producto> productos) {
+        for (Producto p : productos) filas.add(new Fila(p));
+        retomarBorrador();
 
-        ButtonType btnContinuar = new ButtonType("Continuar", ButtonBar.ButtonData.OK_DONE);
-        ButtonType btnCancelar  = new ButtonType("Cancelar",  ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog = new Dialog<>();
+        DialogUtil.applyOwner(dialog);
+        dialog.setTitle("Conteo físico");
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        // Also on a 1366×768 laptop: never bigger than the screen.
+        javafx.geometry.Rectangle2D pantalla = javafx.stage.Screen.getPrimary().getVisualBounds();
+        dialog.getDialogPane().setPrefSize(Math.min(1240, pantalla.getWidth() * 0.94),
+            Math.min(760, pantalla.getHeight() * 0.88));
+        dialog.setResizable(true);
+        DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        Dialog<ButtonType> dlg = new Dialog<>();
-        DialogUtil.applyOwner(dlg);
-        dlg.getDialogPane().getButtonTypes().addAll(btnContinuar, btnCancelar);
-        dlg.getDialogPane().setPrefWidth(420);
-        DialogUtil.applyStylesheet(dlg.getDialogPane());
+        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo físico",
+            "Elige qué contar y marca cada bien que tengas a la vista — " + FormatUtils.formatDate(LocalDate.now()),
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
 
-        HBox header = DialogUtil.gradientHeader("mdi2m-magnify-scan", "Alcance del conteo",
-            "Selecciona qué bienes incluir en este levantamiento", AppColors.CYAN, AppColors.CYAN_D);
+        HBox cuerpo = new HBox(16, panelGrupos(), panelDerecho());
+        VBox.setVgrow(cuerpo, Priority.ALWAYS);
+        // The margin goes on an inner box: the dialog stylesheet sets the content's
+        // own padding to 0 (the header runs edge to edge), and it won over setPadding.
+        VBox debajo = new VBox(cuerpo);
+        debajo.setPadding(new Insets(0, 22, 14, 22));
+        VBox.setVgrow(debajo, Priority.ALWAYS);
+        dialog.getDialogPane().setContent(new VBox(12, header, debajo));
 
-        RadioButton rbTodo = new RadioButton("Todo el inventario (" + todos.size() + " bienes)");
-        RadioButton rbArea = new RadioButton("Por área");
-        RadioButton rbCat  = new RadioButton("Por categoría");
-        ToggleGroup tg = new ToggleGroup();
-        rbTodo.setToggleGroup(tg); rbArea.setToggleGroup(tg); rbCat.setToggleGroup(tg);
-        rbTodo.setSelected(true);
+        cargarGrupos();
+        mostrarAlcance();
+        // Started from Bienes filtered to one área, that área is what gets counted.
+        List<String> areas = filas.stream().map(Fila::area).distinct().toList();
+        if (areas.size() == 1) grupos.getSelectionModel().select(areas.get(0));
 
-        ComboBox<String> areaCombo = new ComboBox<>();
-        areaCombo.getItems().addAll(areas);
-        if (!areas.isEmpty()) areaCombo.setValue(areas.get(0));
-        areaCombo.setMaxWidth(Double.MAX_VALUE);
-        areaCombo.setDisable(true);
-
-        ComboBox<String> catCombo = new ComboBox<>();
-        catCombo.getItems().addAll(categorias);
-        if (!categorias.isEmpty()) catCombo.setValue(categorias.get(0));
-        catCombo.setMaxWidth(Double.MAX_VALUE);
-        catCombo.setDisable(true);
-
-        rbArea.selectedProperty().addListener((o, a, b) -> areaCombo.setDisable(!b));
-        rbCat.selectedProperty().addListener((o, a, b)  -> catCombo.setDisable(!b));
-
-        VBox content = new VBox(10, rbTodo, rbArea, areaCombo, rbCat, catCombo);
-        content.setPadding(new Insets(16, 22, 20, 22));
-        dlg.getDialogPane().setContent(new VBox(header, content));
-
-        Node okBtn = dlg.getDialogPane().lookupButton(btnContinuar);
-        okBtn.getStyleClass().add("dialog-ok-btn");
-
-        Optional<ButtonType> result = dlg.showAndWait();
-        if (result.isEmpty() || result.get() != btnContinuar) return Optional.empty();
-
-        if (rbArea.isSelected() && areaCombo.getValue() != null) {
-            String sel = areaCombo.getValue();
-            return Optional.of(todos.stream()
-                .filter(p -> sel.equals(p.getArea() != null && !p.getArea().isBlank() ? p.getArea() : "Sin área"))
-                .toList());
-        }
-        if (rbCat.isSelected() && catCombo.getValue() != null) {
-            String sel = catCombo.getValue();
-            return Optional.of(todos.stream()
-                .filter(p -> sel.equals(p.getCategoriaNombre() != null && !p.getCategoriaNombre().isBlank()
-                    ? p.getCategoriaNombre() : "Sin categoría"))
-                .toList());
-        }
-        return Optional.of(todos);
+        // Closing never loses what was captured: it stays in the draft and is offered
+        // on opening again. (It asked "¿salir de todos modos?", and only on the window's X.)
+        dialog.setOnHidden(ev -> {
+            if (guardado || filas.stream().noneMatch(Fila::capturada)) return;
+            try {
+                saveDraft();
+                Scene principal = escenaPrincipal();
+                if (principal != null) NotificacionUtil.info(principal,
+                    "Tu avance del conteo quedó guardado en esta computadora");
+            } catch (java.io.IOException ex) {
+                log.error("No se pudo guardar el borrador del conteo al cerrar", ex);
+                Scene principal = escenaPrincipal();
+                if (principal != null) NotificacionUtil.error(principal, "No se pudo guardar el avance del conteo: " + ex.getMessage());
+            }
+        });
+        // A handheld scanner works right here, without opening "Escanear": each
+        // label read marks its bien as seen.
+        dialog.setOnShown(ev -> com.sibim.util.BarcodeScanner.attach(dialog.getDialogPane().getScene(), leido -> {
+            String code = com.sibim.util.QrUtils.codigoLeido(leido);
+            if (code.isBlank()) return;
+            String aviso = marcarVisto(code);
+            if (aviso != null) NotificacionUtil.advertencia(dialog.getDialogPane().getScene(), aviso);
+        }));
+        Platform.runLater(grupos::requestFocus);
+        dialog.showAndWait();
     }
 
-    // ── Feature 5: Resumen modal before finalizing ────────────────────────────
+    private static Scene escenaPrincipal() {
+        return com.sibim.MainApp.getPrimaryStage() != null ? com.sibim.MainApp.getPrimaryStage().getScene() : null;
+    }
 
-    private static boolean showResumen(List<Row> rows) {
-        long concordantes = rows.stream()
-            .filter(r -> r.touched().get() && r.contado().getValue() == r.producto().getStockActual()
-                      && r.estado().getValue() == EstadoConteo.ENCONTRADO).count();
-        long conDiff    = rows.stream()
-            .filter(r -> r.contado().getValue() != r.producto().getStockActual()).count();
-        long malEstado  = rows.stream()
-            .filter(r -> r.estado().getValue() == EstadoConteo.MAL_ESTADO).count();
-        long otraArea   = rows.stream()
-            .filter(r -> r.estado().getValue() == EstadoConteo.EN_OTRA_AREA).count();
-        long faltante   = rows.stream()
-            .filter(r -> r.estado().getValue() == EstadoConteo.FALTANTE).count();
-        long sinRevisar = rows.stream().filter(r -> !vista(r)).count();
+    /** Only what the draft has for the bienes of this window: the rows of another
+     *  conteo are neither offered nor thrown away. */
+    private void retomarBorrador() {
+        String[] borrador = leerBorrador();
+        if (borrador == null) return;
+        Map<String, DraftValues> guardadas = new HashMap<>(parsearBorrador(borrador[1]));
+        Set<String> ids = filas.stream().map(f -> f.producto.getId()).collect(Collectors.toSet());
+        guardadas.keySet().retainAll(ids);
+        if (guardadas.isEmpty()) return;
+        boolean retomar = ConfirmacionUtil.confirmar("Reanudar borrador",
+            "Hay un borrador guardado el " + borrador[0] + " con " + FormatUtils.plural(guardadas.size(), "bien", "bienes") + " de este conteo.\n"
+            + "¿Deseas retomarlo? (Cancelar = empezar desde cero)");
+        if (!retomar) { clearDraft(ids); return; }
+        for (Fila f : filas) {
+            DraftValues dv = guardadas.get(f.producto.getId());
+            if (dv == null) continue;
+            f.contado = dv.contado();
+            f.estado = dv.estado();
+            f.nota = dv.nota() != null ? dv.nota() : "";
+            f.visto = vista(dv.verificado(), dv.contado(), f.sistema(), dv.estado());
+            f.verNota = !f.nota.isBlank();
+        }
+    }
+
+    // ── Paso 1: qué contar ────────────────────────────────────────────────────
+
+    private VBox panelGrupos() {
+        ToggleGroup tipo = new ToggleGroup();
+        for (ToggleButton t : List.of(porArea, porCategoria)) {
+            t.setToggleGroup(tipo);
+            t.getStyleClass().add("filter-chip");
+        }
+        porArea.setSelected(true);
+        tipo.selectedToggleProperty().addListener((o, a, b) -> {
+            if (b == null) { a.setSelected(true); return; }
+            cargarGrupos();
+        });
+        HBox tipos = new HBox(6, porArea, porCategoria);
+        tipos.setAlignment(Pos.CENTER_LEFT);
+
+        buscarGrupo.setPromptText("Buscar…");
+        buscarGrupo.getStyleClass().add("form-input");
+        buscarGrupo.textProperty().addListener((o, a, b) -> cargarGrupos());
+
+        grupos.getStyleClass().add("trf-areas");
+        grupos.setCellFactory(lv -> new CeldaGrupo(lv));
+        grupos.setPlaceholder(new Label("Nada coincide con lo escrito"));
+        VBox.setVgrow(grupos, Priority.ALWAYS);
+        grupos.getSelectionModel().selectedItemProperty().addListener((o, a, g) -> { if (g != null) elegir(g); });
+
+        VBox panel = new VBox(8, paso(1, "Elige qué contar"), tipos, buscarGrupo, grupos);
+        panel.getStyleClass().add("trf-panel");
+        panel.setPrefWidth(340);
+        panel.setMinWidth(280);
+        return panel;
+    }
+
+    /** The áreas in the organigrama's order, then any other; or the categories. */
+    private void cargarGrupos() {
+        String elegido = grupos.getSelectionModel().getSelectedItem();
+        List<String> nombres;
+        if (porArea.isSelected()) {
+            Set<String> presentes = filas.stream().map(Fila::area).collect(Collectors.toCollection(LinkedHashSet::new));
+            List<String> orden = new ArrayList<>(Areas.getAllAreaNames().stream().filter(presentes::contains).toList());
+            presentes.stream().filter(a -> !orden.contains(a)).sorted().forEach(orden::add);
+            nombres = orden;
+        } else {
+            nombres = filas.stream().map(Fila::categoria).distinct().sorted().toList();
+        }
+        List<String> todos = new ArrayList<>();
+        if (filas.stream().map(porArea.isSelected() ? Fila::area : Fila::categoria).distinct().count() > 1) todos.add(TODO);
+        todos.addAll(nombres);
+        grupos.getItems().setAll(DialogUtil.coincidencias(todos, s -> s, buscarGrupo.getText()));
+        actualizarGrupos();
+        if (elegido != null && grupos.getItems().contains(elegido)) grupos.getSelectionModel().select(elegido);
+    }
+
+    private List<Fila> filasDe(String grupo) {
+        if (TODO.equals(grupo)) return filas;
+        return filas.stream().filter(f -> grupo.equals(porArea.isSelected() ? f.area() : f.categoria())).toList();
+    }
+
+    private void actualizarGrupos() {
+        avanceGrupos.clear();
+        for (Fila f : filas) {
+            sumar(TODO, f);
+            sumar(porArea.isSelected() ? f.area() : f.categoria(), f);
+        }
+        grupos.refresh();
+    }
+
+    private void sumar(String grupo, Fila f) {
+        int[] avance = avanceGrupos.computeIfAbsent(grupo, k -> new int[2]);
+        if (f.vista()) avance[0]++;
+        avance[1]++;
+    }
+
+    private void elegir(String grupo) {
+        alcance = filasDe(grupo);
+        tituloAlcance.setText(grupo);
+        buscar.clear();
+        fTodos.setSelected(true);
+        mostrarAlcance();
+        refiltrar();
+        actualizarAvance();
+        if (!visibles.isEmpty()) lista.scrollTo(0);
+    }
+
+    private void mostrarAlcance() {
+        boolean hay = !alcance.isEmpty();
+        ver(vacio, !hay);
+        ver(panelBienes, hay);
+        btnScan.setDisable(!hay);
+        btnExportar.setDisable(!hay);
+        actualizarAvance();
+    }
+
+    // ── Paso 2: los bienes ────────────────────────────────────────────────────
+
+    private VBox panelDerecho() {
+        FontIcon iconoVacio = new FontIcon("mdi2c-clipboard-check-outline");
+        iconoVacio.getStyleClass().add("empty-icon-lg");
+        Label tituloVacio = new Label("Elige qué vas a contar");
+        tituloVacio.getStyleClass().add("empty-state-msg");
+        Label pistaVacio = new Label("Un área a la vez es lo más manejable; tu avance se guarda aunque cierres la ventana");
+        pistaVacio.getStyleClass().add("empty-state-hint");
+        vacio.getChildren().setAll(iconoVacio, tituloVacio, pistaVacio);
+        vacio.setAlignment(Pos.CENTER);
+        VBox.setVgrow(vacio, Priority.ALWAYS);
+
+        tituloAlcance.getStyleClass().add("trf-paso-titulo");
+        tituloAlcance.setMinWidth(0);
+
+        buscar.setPromptText("Buscar por nombre, código, serie o resguardante…");
+        buscar.getStyleClass().add("form-input");
+        buscar.textProperty().addListener((o, a, b) -> refiltrar());
+        HBox.setHgrow(buscar, Priority.ALWAYS);
+        btnScan.setGraphic(new FontIcon("mdi2q-qrcode-scan"));
+        btnScan.getStyleClass().add("btn-secondary");
+        btnScan.setMinWidth(Region.USE_PREF_SIZE);
+        btnScan.setTooltip(new Tooltip("Con una pistola lectora ni hace falta abrirlo: basta escanear cada etiqueta"));
+        btnScan.setOnAction(e -> showScanDialog());
+        Button btnHistorial = new Button("Historial");
+        btnHistorial.setGraphic(new FontIcon("mdi2h-history"));
+        btnHistorial.getStyleClass().add("btn-ghost");
+        btnHistorial.setMinWidth(Region.USE_PREF_SIZE);
+        btnHistorial.setOnAction(e -> {
+            if (SessionManager.isAdmin()) HistorialConteosDialog.show(dialog.getDialogPane().getScene());
+            else NotificacionUtil.info(dialog.getDialogPane().getScene(), "Solo el administrador puede ver el historial de conteos");
+        });
+        HBox barra = new HBox(10, buscar, btnScan);
+        barra.setAlignment(Pos.CENTER_LEFT);
+
+        // Which rows to show, as tabs with their count.
+        ToggleGroup vista = new ToggleGroup();
+        for (ToggleButton t : List.of(fTodos, fPendientes, fVistos, fIncidencias)) {
+            t.setToggleGroup(vista);
+            t.getStyleClass().add("filter-chip");
+            t.setMinWidth(Region.USE_PREF_SIZE);
+        }
+        fTodos.setSelected(true);
+        // A tab can't be "unselected" into showing nothing.
+        vista.selectedToggleProperty().addListener((o, a, b) -> {
+            if (b == null) { a.setSelected(true); return; }
+            refiltrar();
+        });
+        fPendientes.setTooltip(new Tooltip("Los bienes que todavía nadie marcó como vistos"));
+        fIncidencias.setTooltip(new Tooltip("Cantidad distinta, mal estado, en otra área o faltante"));
+        progreso.setPrefWidth(200);
+        progresoTexto.getStyleClass().add("muted-sm");
+        progresoTexto.setMinWidth(Region.USE_PREF_SIZE);
+        Region hueco = new Region();
+        HBox.setHgrow(hueco, Priority.ALWAYS);
+        HBox pestanas = new HBox(6, fTodos, fPendientes, fVistos, fIncidencias, hueco, progreso, progresoTexto);
+        pestanas.setAlignment(Pos.CENTER_LEFT);
+
+        lista.getStyleClass().add("cnt-lista");
+        lista.setCellFactory(lv -> new CeldaBien(lv));
+        lista.setPlaceholder(new Label("Ningún bien coincide"));
+        VBox.setVgrow(lista, Priority.ALWAYS);
+        // Space says "here it is" and goes on to the next, without touching the mouse.
+        lista.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != KeyCode.SPACE || !(e.getTarget() instanceof ListView<?>)) return;
+            Fila f = lista.getSelectionModel().getSelectedItem();
+            if (f == null) return;
+            alternarVisto(f);
+            lista.getSelectionModel().selectNext();
+            e.consume();
+        });
+
+        panelBienes.getChildren().setAll(tituloAlcance, barra, pestanas, lista);
+        VBox.setVgrow(panelBienes, Priority.ALWAYS);
+
+        // Up here so the past conteos are at hand before choosing what to count.
+        Region huecoPaso = new Region();
+        HBox.setHgrow(huecoPaso, Priority.ALWAYS);
+        HBox paso2 = paso(2, "Marca lo que tengas a la vista");
+        paso2.setPadding(Insets.EMPTY);
+        paso2.getChildren().addAll(huecoPaso, btnHistorial);
+        VBox panel = new VBox(8, paso2, vacio, panelBienes, new Separator(), pie());
+        HBox.setHgrow(panel, Priority.ALWAYS);
+        return panel;
+    }
+
+    private HBox pie() {
+        Label nota = new Label("Un clic en el bien lo marca como visto. Tu avance se guarda al cerrar.");
+        nota.getStyleClass().add("muted-sm");
+        nota.setWrapText(true);
+        nota.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(nota, Priority.ALWAYS);
+
+        ReporteConteoService reporteService = new ReporteConteoService();
+        String tituloConteo = "Conteo del " + FormatUtils.formatDate(LocalDate.now());
+        Usuario userForPdf = SessionManager.getCurrentUser();
+        String userNameForPdf = userForPdf != null ? userForPdf.getNombre() : "Sistema";
+        MenuItem miPdf = new MenuItem("PDF");
+        miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
+        MenuItem miExcel = new MenuItem("Excel");
+        miExcel.setGraphic(new FontIcon("mdi2f-file-excel"));
+        btnExportar.setGraphic(new FontIcon("mdi2d-download-outline"));
+        btnExportar.getItems().setAll(miPdf, miExcel);
+        btnExportar.getStyleClass().add("btn-secondary");
+        btnExportar.setMinWidth(Region.USE_PREF_SIZE);
+        btnExportar.setTooltip(new Tooltip("Exporta lo elegido como está ahora, sin finalizar el conteo"));
+        miPdf.setOnAction(ev -> { List<ConteoItem> c = capturaActual(); exportar(dialog, "PDF",
+            () -> reporteService.exportConteoPdf(tituloConteo, userNameForPdf, c)); });
+        miExcel.setOnAction(ev -> { List<ConteoItem> c = capturaActual(); exportar(dialog, "Excel",
+            () -> reporteService.exportConteoExcel(tituloConteo, userNameForPdf, c)); });
+
+        btnFinalizar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
+        btnFinalizar.getStyleClass().add("btn-primary");
+        btnFinalizar.setMinWidth(Region.USE_PREF_SIZE);
+        btnFinalizar.setOnAction(e -> finalizar());
+
+        HBox pie = new HBox(10, nota, btnExportar, btnFinalizar);
+        pie.setAlignment(Pos.CENTER_LEFT);
+        return pie;
+    }
+
+    /** "①  Elige qué contar": the same steps as the transfer board. */
+    private static HBox paso(int numero, String texto) {
+        return TransferenciaArrastreDialog.paso(numero, texto);
+    }
+
+    private static void ver(Node n, boolean visible) {
+        n.setVisible(visible);
+        n.setManaged(visible);
+    }
+
+    private void refiltrar() {
+        String q = buscar.getText() == null ? "" : buscar.getText().trim().toLowerCase();
+        visibles.setAll(alcance.stream().filter(f -> coincide(f, q)
+            && (!fIncidencias.isSelected() || f.incidencia())
+            && (!fPendientes.isSelected() || !f.vista())
+            && (!fVistos.isSelected() || f.vista())).toList());
+    }
+
+    private static boolean coincide(Fila f, String q) {
+        if (q.isBlank()) return true;
+        Producto p = f.producto;
+        return contiene(p.getNombre(), q) || contiene(p.getCodigo(), q)
+            || contiene(p.getNumeroSerie(), q) || contiene(p.getResguardante(), q);
+    }
+
+    private static boolean contiene(String texto, String q) {
+        return texto != null && texto.toLowerCase().contains(q);
+    }
+
+    private void actualizarAvance() {
+        int total = alcance.size();
+        int n = (int) alcance.stream().filter(Fila::vista).count();
+        int inc = (int) alcance.stream().filter(Fila::incidencia).count();
+        progresoTexto.setText(n + " de " + total + " vistos" + (n < total ? " · faltan " + (total - n) : " · completo"));
+        progreso.setProgress(total > 0 ? (double) n / total : 0);
+        fTodos.setText("Todos (" + total + ")");
+        fPendientes.setText("Pendientes (" + (total - n) + ")");
+        fVistos.setText("Vistos (" + n + ")");
+        fIncidencias.setText("Con incidencia (" + inc + ")");
+        // A record of a conteo where nobody looked at anything says nothing.
+        btnFinalizar.setDisable(n == 0);
+    }
+
+    /** What was captured changed on a row: the counts, and the tab it belongs in. */
+    private void alCambiar(boolean cambiaDePestana) {
+        actualizarAvance();
+        actualizarGrupos();
+        // After the event that changed it: the list is not replaced under its own cell.
+        if (cambiaDePestana && !fTodos.isSelected()) Platform.runLater(this::refiltrar);
+    }
+
+    /** A row with a difference or an estado stays marked: its ajuste is applied on
+     *  finalizing. Put the count and the estado back first to unmark it. */
+    private void alternarVisto(Fila f) {
+        if (f.incidencia()) return;
+        f.visto = !f.visto;
+        lista.refresh();
+        alCambiar(true);
+    }
+
+    private void cambiarEstado(Fila f, EstadoConteo estado) {
+        f.contado = contadoAlCambiarEstado(f.estado, estado, f.contado, f.sistema());
+        f.estado = estado;
+        if (estado != EstadoConteo.ENCONTRADO) f.visto = true;
+        lista.refresh();
+        alCambiar(true);
+    }
+
+    private List<ConteoItem> capturaActual() {
+        return alcance.stream().map(f -> {
+            ConteoItem ci = new ConteoItem();
+            ci.setProductoId(f.producto.getId());
+            ci.setProductoNombre(f.producto.getNombre());
+            ci.setProductoCodigo(f.producto.getCodigo());
+            ci.setArea(f.producto.getArea());
+            ci.setStockSistema(f.sistema());
+            ci.setStockContado(f.contado);
+            ci.setEstadoConteo(estadoGuardado(f.vista(), f.estado.name()));
+            ci.setNota(f.nota);
+            return ci;
+        }).toList();
+    }
+
+    // ── Finalizar ─────────────────────────────────────────────────────────────
+
+    private void finalizar() {
+        btnFinalizar.setDisable(true);
+        if (!showResumen(alcance, tituloAlcance.getText())) {
+            btnFinalizar.setDisable(false);
+            return;
+        }
+        btnFinalizar.setText("Guardando...");
+        btnFinalizar.setGraphic(new FontIcon("mdi2l-loading"));
+        lista.setDisable(true);
+        grupos.setDisable(true);
+
+        // Snapshot on FX thread — the rows can't change under the background thread
+        List<Captured> snapshot = new ArrayList<>();
+        for (Fila f : alcance)
+            snapshot.add(new Captured(f.producto, f.contado, estadoGuardado(f.vista(), f.estado.name()), f.nota));
+        String motivo = "Conteo físico del " + FormatUtils.formatDate(LocalDate.now());
+        Usuario currentUser = SessionManager.getCurrentUser();
+
+        AppExecutor.submit(() -> {
+            int ok = 0;
+            List<String> fallidos = new ArrayList<>();
+            List<ConteoItem> items = new ArrayList<>();
+
+            for (Captured r : snapshot) {
+                boolean esDiscrepancia = r.contado() != r.producto().getStockActual();
+                boolean ajustado = false;
+                if (esDiscrepancia) {
+                    try {
+                        movimientoService.registrarAjusteVerificado(r.producto().getId(),
+                            r.contado(), motivo, "Conteo físico", r.producto().getStockActual());
+                        ajustado = true;
+                        ok++;
+                    } catch (Exception ex) {
+                        fallidos.add(r.producto().getNombre());
+                        log.error("No se pudo aplicar el ajuste de conteo físico para '{}' (id={})",
+                            r.producto().getNombre(), r.producto().getId(), ex);
+                    }
+                }
+                ConteoItem item = new ConteoItem();
+                item.setProductoId(r.producto().getId());
+                item.setProductoNombre(r.producto().getNombre());
+                item.setProductoCodigo(r.producto().getCodigo());
+                item.setArea(r.producto().getArea());
+                item.setStockSistema(r.producto().getStockActual());
+                item.setStockContado(r.contado());
+                item.setAjustado(ajustado);
+                item.setEstadoConteo(r.estadoConteo());
+                item.setNota(r.nota().isBlank() ? null : r.nota());
+                items.add(item);
+            }
+
+            long totalDiscrepancias = items.stream()
+                .filter(i -> i.getStockContado() != i.getStockSistema()).count();
+            long sinRevisar = items.stream().filter(i -> SIN_REVISAR.equals(i.getEstadoConteo())).count();
+
+            ConteoFisico conteo = new ConteoFisico();
+            if (currentUser != null) {
+                conteo.setUsuarioId(currentUser.getId());
+                conteo.setUsuarioNombre(currentUser.getNombre());
+            } else {
+                conteo.setUsuarioNombre("Sistema");
+            }
+            conteo.setTotalContados(items.size());
+            conteo.setTotalDiscrepancias((int) totalDiscrepancias);
+            conteo.setItems(items);
+
+            boolean saved = true;
+            try {
+                new ConteoRepository().guardar(conteo);
+            } catch (Exception ex) {
+                saved = false;
+                log.error("No se pudo guardar el registro del conteo físico", ex);
+            }
+
+            int okFinal = ok;
+            List<String> fallidosFinal = List.copyOf(fallidos);
+            boolean savedFinal = saved;
+            Platform.runLater(() -> {
+                String base;
+                if (totalDiscrepancias == 0) {
+                    base = "Conteo guardado — sin diferencias en " + (items.size() - sinRevisar)
+                        + (items.size() - sinRevisar == 1 ? " bien revisado" : " bienes revisados");
+                } else if (fallidosFinal.isEmpty()) {
+                    base = FormatUtils.plural(okFinal, "ajuste aplicado", "ajustes aplicados") + " correctamente";
+                } else {
+                    String nombres = fallidosFinal.stream().limit(3)
+                        .collect(Collectors.joining(", "))
+                        + (fallidosFinal.size() > 3 ? "…" : "");
+                    base = FormatUtils.plural(okFinal, "ajuste aplicado", "ajustes aplicados") + ", " + fallidosFinal.size()
+                        + " fallaron: " + nombres;
+                }
+                // A conteo closed halfway is not a clean inventory: say how many are left.
+                if (sinRevisar > 0) base += " — " + sinRevisar + " quedaron sin revisar";
+                if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
+                Scene scene = dialog.getDialogPane().getScene();
+                if (scene != null) {
+                    if (!fallidosFinal.isEmpty() || !savedFinal || sinRevisar > 0) NotificacionUtil.advertencia(scene, base);
+                    else if (totalDiscrepancias == 0) NotificacionUtil.exitoConteo(scene, items.size());
+                    else NotificacionUtil.exito(scene, base);
+                }
+                // What is done leaves the draft; what was captured in other áreas stays in it.
+                Set<String> hechos = alcance.stream().map(f -> f.producto.getId()).collect(Collectors.toSet());
+                filas.removeIf(f -> hechos.contains(f.producto.getId()));
+                clearDraft(hechos);
+                try {
+                    if (filas.stream().anyMatch(Fila::capturada)) saveDraft();
+                } catch (java.io.IOException ex) {
+                    log.error("No se pudo guardar lo capturado en otras áreas", ex);
+                }
+                guardado = true;
+                if (onReconciled != null) onReconciled.run();
+                dialog.close();
+            });
+        });
+    }
+
+    private static boolean showResumen(List<Fila> filas, String alcance) {
+        long concordantes = filas.stream().filter(f -> f.vista() && !f.incidencia()).count();
+        long conDiff    = filas.stream().filter(f -> f.contado != f.sistema()).count();
+        long malEstado  = filas.stream().filter(f -> f.estado == EstadoConteo.MAL_ESTADO).count();
+        long otraArea   = filas.stream().filter(f -> f.estado == EstadoConteo.EN_OTRA_AREA).count();
+        long faltante   = filas.stream().filter(f -> f.estado == EstadoConteo.FALTANTE).count();
+        long sinRevisar = filas.stream().filter(f -> !f.vista()).count();
 
         ButtonType btnConfirmar = new ButtonType("Confirmar y finalizar", ButtonBar.ButtonData.OK_DONE);
         ButtonType btnVolver    = new ButtonType("Volver",                ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -362,7 +848,7 @@ public final class ConteoFisicoDialog {
         DialogUtil.applyStylesheet(dlg.getDialogPane());
 
         HBox hdr = DialogUtil.gradientHeader("mdi2c-clipboard-check-outline", "Resumen del conteo",
-            "Revisa los resultados antes de finalizar", AppColors.CYAN, AppColors.CYAN_D);
+            alcance, AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         VBox stats = new VBox(8);
         stats.setPadding(new Insets(16, 22, 20, 22));
@@ -377,7 +863,7 @@ public final class ConteoFisicoDialog {
             stats.getChildren().add(summaryRow("Sin revisar", sinRevisar, "text-warn"));
             Label aviso = new Label((sinRevisar == 1 ? "El bien que no marcaste como visto quedará en el "
                 : "Los " + sinRevisar + " bienes que no marcaste como vistos quedarán en el ")
-                + "registro como \"sin revisar\", no como encontrados. Con \"Guardar borrador\" puedes seguir después.");
+                + "registro como \"sin revisar\", no como encontrados. Si cierras la ventana puedes seguir después.");
             aviso.getStyleClass().add("muted-sm");
             aviso.setWrapText(true);
             stats.getChildren().add(aviso);
@@ -401,559 +887,247 @@ public final class ConteoFisicoDialog {
         Label lbl = new Label(label);
         lbl.getStyleClass().add("dlg-detail-value");
         HBox.setHgrow(lbl, Priority.ALWAYS);
+        lbl.setMaxWidth(Double.MAX_VALUE);
         Label val = new Label(String.valueOf(count));
         val.getStyleClass().addAll("dlg-detail-value", countStyle);
         row.getChildren().addAll(lbl, val);
         return row;
     }
 
-    // ── Main dialog ───────────────────────────────────────────────────────────
+    // ── Celdas ────────────────────────────────────────────────────────────────
 
-    public static void show(List<Producto> productos, MovimientoService movimientoService, Runnable onReconciled) {
+    /** An área or category: its name and how far its count has got. */
+    private final class CeldaGrupo extends ListCell<String> {
+        private final FontIcon icono = new FontIcon();
+        private final StackPane fondo = new StackPane(icono);
+        private final Label nombre = new Label();
+        private final Label cuenta = new Label();
+        private final ProgressBar barra = new ProgressBar(0);
+        private final HBox caja;
 
-        // Feature 1: scope selector (skip if empty)
-        List<Producto> scope;
-        if (productos.isEmpty()) {
-            scope = productos;
-        } else {
-            Optional<List<Producto>> scopeOpt = seleccionarAlcance(productos);
-            if (scopeOpt.isEmpty()) return; // user cancelled
-            scope = scopeOpt.get();
+        CeldaGrupo(ListView<String> lv) {
+            icono.getStyleClass().add("trf-tarjeta-icono");
+            fondo.getStyleClass().addAll("trf-tarjeta-icono-fondo", "trf-area-icono");
+            fondo.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            nombre.getStyleClass().add("org-child-label");
+            nombre.setTextOverrun(OverrunStyle.ELLIPSIS);
+            nombre.setMaxWidth(Double.MAX_VALUE);
+            barra.setMaxWidth(Double.MAX_VALUE);
+            barra.getStyleClass().add("cnt-barra");
+            VBox textos = new VBox(3, nombre, barra);
+            textos.setMinWidth(0);
+            textos.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(textos, Priority.ALWAYS);
+            cuenta.getStyleClass().add("org-area-count");
+            cuenta.setMinWidth(Region.USE_PREF_SIZE);
+            caja = new HBox(10, fondo, textos, cuenta);
+            caja.setAlignment(Pos.CENTER_LEFT);
+            caja.maxWidthProperty().bind(lv.widthProperty().subtract(30));
+            caja.setMinWidth(0);
         }
 
-        // Draft check — only what the draft has for the bienes of this conteo:
-        // the rows of another conteo are neither offered nor thrown away.
-        Map<String, DraftValues> draftMap;
-        String[] borrador = leerBorrador();
-        String draftFecha = borrador != null ? borrador[0] : "";
-        Set<String> enAlcance = scope.stream().map(Producto::getId).collect(Collectors.toSet());
-        Map<String, DraftValues> rawDraft = new HashMap<>(parsearBorrador(borrador != null ? borrador[1] : ""));
-        rawDraft.keySet().retainAll(enAlcance);
-        boolean hasDraft = !rawDraft.isEmpty();
-        if (hasDraft) {
-            boolean resume = ConfirmacionUtil.confirmar("Reanudar borrador",
-                "Hay un borrador guardado el " + draftFecha + " con " + FormatUtils.plural(rawDraft.size(), "bien", "bienes") + " de este conteo.\n"
-                + "¿Deseas retomarlo? (Cancelar = empezar desde cero)");
-            draftMap = resume ? rawDraft : Collections.emptyMap();
-            if (!resume) clearDraft(enAlcance);
-        } else {
-            draftMap = Collections.emptyMap();
+        @Override protected void updateItem(String grupo, boolean empty) {
+            super.updateItem(grupo, empty);
+            setText(null);
+            if (empty || grupo == null) { setGraphic(null); return; }
+            icono.setIconLiteral(TODO.equals(grupo) ? "mdi2p-package-variant"
+                : porArea.isSelected() ? FiltroArea.icono(grupo).getIconLiteral() : "mdi2t-tag-outline");
+            nombre.setText(grupo);
+            nombre.setTooltip(new Tooltip(grupo));
+            int[] avance = avanceGrupos.getOrDefault(grupo, new int[2]);
+            cuenta.setText(avance[0] > 0 ? avance[0] + " de " + avance[1] : String.valueOf(avance[1]));
+            barra.setProgress(avance[1] > 0 ? (double) avance[0] / avance[1] : 0);
+            ver(barra, avance[0] > 0);
+            setGraphic(caja);
         }
+    }
 
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        // As wide as the screen allows (730 px cut the toolbar, the column
-        // headers and the footer buttons down to "…"), and resizable.
-        javafx.geometry.Rectangle2D pantalla = javafx.stage.Screen.getPrimary().getVisualBounds();
-        dialog.getDialogPane().setPrefWidth(Math.max(760, Math.min(1120, pantalla.getWidth() - 80)));
-        dialog.setResizable(true);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
+    /** A bien: a click says it is there; everything else only appears when it applies. */
+    private final class CeldaBien extends ListCell<Fila> {
+        private final CheckBox visto = new CheckBox();
+        private final Label codigo = new Label();
+        private final Label nombre = new Label();
+        private final Label detalle = new Label();
+        private final Label cantidadTexto = new Label();
+        private final Spinner<Integer> contado = new Spinner<>(0, Integer.MAX_VALUE, 0);
+        private final Label diferencia = new Label();
+        private final HBox cantidad = new HBox(6, cantidadTexto, contado, diferencia);
+        private final Label estado = new Label();
+        private final MenuButton incidencia = new MenuButton("Incidencia");
+        private final MenuItem miSinIncidencia = new MenuItem("Sin incidencia");
+        private final MenuItem miCantidad = new MenuItem("Cambiar la cantidad");
+        private final MenuItem miNota = new MenuItem("Agregar una nota");
+        private final TextField nota = new TextField();
+        private final HBox fila;
+        private final VBox caja;
+        /** Filling the controls for a row is not the user changing them. */
+        private boolean llenando = false;
 
-        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-list-outline", "Conteo Físico de Inventario",
-            "Marca cada bien que tengas a la vista (o escanea su etiqueta) y anota lo que no coincida — "
-                + FormatUtils.formatDate(LocalDate.now()),
-            AppColors.CYAN, AppColors.CYAN_D);
-
-        // Toolbar
-        TextField searchField = new TextField();
-        searchField.setPromptText("Buscar por nombre, código o serie…");
-        searchField.getStyleClass().add("search-field");
-        HBox.setHgrow(searchField, Priority.ALWAYS);
-        // Which rows to show, as tabs with their count (two loose check boxes
-        // could both be ticked and said nothing about how many there were).
-        ToggleGroup vista = new ToggleGroup();
-        ToggleButton fTodos = new ToggleButton(), fPendientes = new ToggleButton(),
-                     fVistos = new ToggleButton(), fIncidencias = new ToggleButton();
-        for (ToggleButton t : List.of(fTodos, fPendientes, fVistos, fIncidencias)) {
-            t.setToggleGroup(vista);
-            t.getStyleClass().add("filter-chip");
-            t.setMinWidth(Region.USE_PREF_SIZE);
-        }
-        fTodos.setSelected(true);
-        // A tab can't be "unselected" into showing nothing.
-        vista.selectedToggleProperty().addListener((o, a, b) -> { if (b == null) a.setSelected(true); });
-        fPendientes.setTooltip(new Tooltip("Los bienes que todavía nadie marcó como vistos"));
-        fIncidencias.setTooltip(new Tooltip("Cantidad distinta, mal estado, en otra área o faltante"));
-        Button btnHistorial = new Button("Historial");
-        btnHistorial.setGraphic(new FontIcon("mdi2h-history"));
-        btnHistorial.setContentDisplay(ContentDisplay.LEFT);
-        btnHistorial.getStyleClass().add("btn-ghost");
-        btnHistorial.setMinWidth(Region.USE_PREF_SIZE);
-        btnHistorial.setOnAction(e -> {
-            if (SessionManager.isAdmin()) {
-                HistorialConteosDialog.show(dialog.getDialogPane().getScene());
-            } else {
-                NotificacionUtil.info(dialog.getDialogPane().getScene(),
-                    "Solo el administrador puede ver el historial de conteos");
-            }
-        });
-        Button btnScan = new Button("Escanear etiqueta");
-        btnScan.setGraphic(new FontIcon("mdi2q-qrcode-scan"));
-        btnScan.getStyleClass().add("btn-secondary");
-        btnScan.setContentDisplay(ContentDisplay.LEFT);
-        btnScan.setMinWidth(Region.USE_PREF_SIZE);
-        btnScan.setDisable(scope.isEmpty());
-
-        HBox toolbar = new HBox(10, searchField, btnScan, btnHistorial);
-        toolbar.setAlignment(Pos.CENTER_LEFT);
-        toolbar.setPadding(new Insets(14, 14, 8, 14));
-        HBox filtros = new HBox(6, fTodos, fPendientes, fVistos, fIncidencias);
-        filtros.setAlignment(Pos.CENTER_LEFT);
-
-        // Feature 4: progress bar
-        int totalItems = scope.size();
-        SimpleIntegerProperty touchedCount = new SimpleIntegerProperty(0);
-        ProgressBar progressBar = new ProgressBar(0);
-        progressBar.setPrefWidth(220);
-        Label progressLabel = new Label(totalItems == 0 ? "" : "0 de " + totalItems + " vistos");
-        progressLabel.getStyleClass().add("muted-sm");
-        Region espacio = new Region();
-        HBox.setHgrow(espacio, Priority.ALWAYS);
-        HBox progressBox = new HBox(10, filtros, espacio, progressBar, progressLabel);
-        progressBox.setAlignment(Pos.CENTER_LEFT);
-        progressBox.setPadding(new Insets(0, 14, 10, 14));
-        progressBox.setVisible(!scope.isEmpty());
-        progressBox.setManaged(!scope.isEmpty());
-
-        // Column headers: one label per column with the width its column has in
-        // every row. (It used to be a single line of text padded with spaces,
-        // which never lined up with what was below it.)
-        Label hVisto = encabezado("VISTO", ANCHO_VISTO), hSistema = encabezado("SISTEMA", ANCHO_SISTEMA),
-              hContado = encabezado("CONTADO", ANCHO_CONTADO), hDif = encabezado("DIF.", ANCHO_DIF),
-              hEstado = encabezado("ESTADO", ANCHO_ESTADO), hNota = encabezado("NOTA", ANCHO_NOTA);
-        hSistema.setTooltip(new Tooltip("La cantidad que tiene registrada SIBIM"));
-        hContado.setTooltip(new Tooltip("La cantidad que encontraste"));
-        Label hBien = new Label("BIEN");
-        hBien.getStyleClass().add("nav-section-label");
-        HBox.setHgrow(hBien, Priority.ALWAYS);
-        hBien.setMaxWidth(Double.MAX_VALUE);
-        HBox colHeaders = new HBox(10, hVisto, hBien, hSistema, hContado, hDif, hEstado, hNota);
-        colHeaders.setAlignment(Pos.CENTER_LEFT);
-        colHeaders.setPadding(new Insets(0, 30, 0, 16));   // rows: 4 (list) + 12 (row); right adds the scrollbar
-
-        // Row list
-        VBox list = new VBox(5);
-        list.setPadding(new Insets(4));
-        List<Row> rows = new ArrayList<>();
-
-        for (Producto p : scope) {
-            DraftValues dv = draftMap.get(p.getId());
-            int initialCount    = dv != null ? dv.contado() : p.getStockActual();
-            EstadoConteo initEst = dv != null ? dv.estado()  : EstadoConteo.ENCONTRADO;
-            String initialNota  = dv != null && dv.nota() != null ? dv.nota() : "";
-
-            // Spinner
-            Spinner<Integer> contado = new Spinner<>(0, Integer.MAX_VALUE, initialCount);
-            contado.setEditable(true);
-            contado.setPrefWidth(ANCHO_CONTADO); contado.setMinWidth(ANCHO_CONTADO);
-            DialogUtil.commitOnFocusLoss(contado);
-
-            // Feature 2: estado ComboBox
-            ComboBox<EstadoConteo> estadoCb = new ComboBox<>();
-            estadoCb.getItems().addAll(EstadoConteo.values());
-            estadoCb.setValue(initEst);
-            estadoCb.setPrefWidth(ANCHO_ESTADO); estadoCb.setMinWidth(ANCHO_ESTADO);
-            estadoCb.setTooltip(new Tooltip("Cómo encontraste el bien"));
-
-            // Feature 3: note field (collapsible)
-            TextField notaField = new TextField();
-            notaField.setPromptText("Observación...");
-            notaField.getStyleClass().add("form-input");
-            VBox.setMargin(notaField, new Insets(0, 12, 4, 60));
-            if (!initialNota.isBlank()) notaField.setText(initialNota);
-            notaField.setVisible(!initialNota.isBlank());
-            notaField.setManaged(!initialNota.isBlank());
-
-            Button btnNota = new Button();
-            btnNota.setGraphic(new FontIcon("mdi2n-note-text-outline"));
-            btnNota.getStyleClass().add("btn-ghost");
-            btnNota.setTooltip(new Tooltip("Agregar observación"));
-            btnNota.setAccessibleText("Agregar observación");
-            btnNota.setOnAction(e -> {
-                boolean show = !notaField.isVisible();
-                notaField.setVisible(show);
-                notaField.setManaged(show);
-                if (show) notaField.requestFocus();
-            });
-
-            btnNota.setMinWidth(ANCHO_NOTA);
-
-            // "Visto": the bien is in front of whoever counts. Almost every bien
-            // is one piece that is simply there, and before this there was no way
-            // to say so — only changing the count or the estado counted as
-            // reviewed, so a conteo with everything in order ended "0 revisados".
-            BooleanProperty touched = new SimpleBooleanProperty(
-                vista(dv != null && dv.verificado(), initialCount, p.getStockActual(), initEst));
-            CheckBox visto = new CheckBox();
-            visto.setMinWidth(ANCHO_VISTO);
-            visto.setTooltip(new Tooltip("Márcalo cuando tengas el bien a la vista (o da clic en la fila)"));
-            visto.setAccessibleText("Visto: " + p.getNombre());
-            visto.selectedProperty().bindBidirectional(touched);
-            CeldaEstado celdaEstado = new CeldaEstado(touched);
-            estadoCb.setButtonCell(celdaEstado);
-            // A row with a difference or an estado stays marked: its ajuste is
-            // applied on finalizing, so it can't be unticked into "sin revisar".
-            // Put the count and the estado back first to unmark it.
-            visto.disableProperty().bind(javafx.beans.binding.Bindings.createBooleanBinding(
-                () -> vista(false, contado.getValue(), p.getStockActual(), estadoCb.getValue()),
-                contado.valueProperty(), estadoCb.valueProperty()));
-
-            // Delta label
-            Label delta = new Label();
-            delta.setMinWidth(ANCHO_DIF);
-
-            // Row container — defined first so updateDelta can reference it via getUserData
-            HBox rowHBox = new HBox(10);
-
-            Runnable updateDelta = () -> {
-                int diff = contado.getValue() - p.getStockActual();
-                delta.setText(diff == 0 ? "✓" : (diff > 0 ? "+" + diff : String.valueOf(diff)));
-                delta.getStyleClass().removeAll("dlg-stock-new-ok", "dlg-stock-new-warn");
-                delta.getStyleClass().add(diff == 0 ? "dlg-stock-new-ok" : "dlg-stock-new-warn");
-                // The row only takes color when it says something: seen, or
-                // with an incidencia. (Every row had the same guinda edge.)
-                boolean incidencia = diff != 0 || estadoCb.getValue() != EstadoConteo.ENCONTRADO;
-                rowHBox.getStyleClass().removeAll("conteo-row-visto", "conteo-row-incidencia");
-                if (incidencia) rowHBox.getStyleClass().add("conteo-row-incidencia");
-                else if (touched.get()) rowHBox.getStyleClass().add("conteo-row-visto");
-                celdaEstado.refrescar();
-                if (rowHBox.getUserData() instanceof Runnable r) r.run();
-            };
-            updateDelta.run();
-
-            contado.valueProperty().addListener((o, a, b) -> { touched.set(true); updateDelta.run(); });
-            estadoCb.valueProperty().addListener((o, a, b) -> {
-                if (b != EstadoConteo.ENCONTRADO) touched.set(true);
-                // A bien that is missing is not there: its count follows, and comes
-                // back if "Faltante" was a slip. (It used to stay at the system's
-                // quantity, so a missing bien produced no adjustment at all.)
-                if (b == EstadoConteo.FALTANTE) contado.getValueFactory().setValue(0);
-                else if (a == EstadoConteo.FALTANTE && contado.getValue() == 0)
-                    contado.getValueFactory().setValue(p.getStockActual());
-                updateDelta.run();
-            });
-            touched.addListener((o, a, b) -> updateDelta.run());
-
-            // Name on one line (it wrapped into four), the código as a tag, the área below.
-            VBox info = new VBox(2);
-            Label nombre = new Label(p.getNombre());
-            nombre.getStyleClass().add("conteo-nombre");
-            nombre.setTooltip(new Tooltip(p.getNombre()));
-            nombre.setMinWidth(0);
-            Label codigo = new Label(p.getCodigo());
-            codigo.getStyleClass().add("codigo-cell");
+        CeldaBien(ListView<Fila> lv) {
+            visto.setAccessibleText("Visto");
+            codigo.getStyleClass().add("trf-codigo");
             codigo.setMinWidth(Region.USE_PREF_SIZE);
-            HBox lineaNombre = new HBox(8, codigo, nombre);
-            lineaNombre.setAlignment(Pos.CENTER_LEFT);
-            Label area = new Label(p.getArea() != null ? p.getArea() : "Sin área");
-            area.getStyleClass().add("muted-sm");
-            info.getChildren().addAll(lineaNombre, area);
-            info.setMinWidth(0);
-            HBox.setHgrow(info, Priority.ALWAYS);
+            nombre.getStyleClass().add("org-child-label");
+            nombre.setTextOverrun(OverrunStyle.ELLIPSIS);
+            nombre.setMinWidth(0);
+            HBox linea = new HBox(8, codigo, nombre);
+            linea.setAlignment(Pos.CENTER_LEFT);
+            detalle.getStyleClass().add("org-table-sub");
+            detalle.setTextOverrun(OverrunStyle.ELLIPSIS);
+            detalle.setMinWidth(0);
+            VBox textos = new VBox(3, linea, detalle);
+            textos.setMinWidth(0);
+            textos.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(textos, Priority.ALWAYS);
 
-            Label sistema = new Label(String.valueOf(p.getStockActual()));
-            sistema.getStyleClass().add("dlg-stock-val");
-            sistema.setMinWidth(ANCHO_SISTEMA);
+            cantidadTexto.getStyleClass().add("org-table-sub");
+            cantidadTexto.setMinWidth(Region.USE_PREF_SIZE);
+            contado.setEditable(true);
+            contado.setPrefWidth(92);
+            contado.setMinWidth(92);
+            DialogUtil.commitOnFocusLoss(contado);
+            diferencia.getStyleClass().add("cnt-diferencia");
+            diferencia.setMinWidth(Region.USE_PREF_SIZE);
+            cantidad.setAlignment(Pos.CENTER_LEFT);
+            cantidad.setMinWidth(Region.USE_PREF_SIZE);
 
-            rowHBox.getStyleClass().add("conteo-row");
-            rowHBox.setPadding(new Insets(8, 12, 8, 12));
-            rowHBox.setAlignment(Pos.CENTER_LEFT);
-            rowHBox.getChildren().addAll(visto, info, sistema, contado, delta, estadoCb, btnNota);
-            updateDelta.run();
-            // A click anywhere on the row (not on its fields) marks it as seen,
-            // or unmarks it — the check box alone was a 16-pixel target.
-            rowHBox.setOnMouseClicked(e -> {
-                if (dentroDe(e.getTarget(), visto, contado, estadoCb, btnNota) || visto.isDisabled()) return;
-                touched.set(!touched.get());
+            estado.setMinWidth(Region.USE_PREF_SIZE);
+            incidencia.setGraphic(new FontIcon("mdi2a-alert-circle-outline"));
+            incidencia.getStyleClass().add("btn-ghost");
+            incidencia.setMinWidth(Region.USE_PREF_SIZE);
+            MenuItem miMal = new MenuItem(EstadoConteo.MAL_ESTADO.toString());
+            MenuItem miOtra = new MenuItem(EstadoConteo.EN_OTRA_AREA.toString());
+            MenuItem miFalta = new MenuItem(EstadoConteo.FALTANTE.toString());
+            miMal.setOnAction(e -> cambiarEstado(getItem(), EstadoConteo.MAL_ESTADO));
+            miOtra.setOnAction(e -> cambiarEstado(getItem(), EstadoConteo.EN_OTRA_AREA));
+            miFalta.setOnAction(e -> cambiarEstado(getItem(), EstadoConteo.FALTANTE));
+            miSinIncidencia.setOnAction(e -> {
+                Fila f = getItem();
+                f.contado = f.sistema();
+                cambiarEstado(f, EstadoConteo.ENCONTRADO);
             });
+            miCantidad.setOnAction(e -> {
+                getItem().verCantidad = true;
+                lista.refresh();
+            });
+            miNota.setOnAction(e -> {
+                getItem().verNota = true;
+                lista.refresh();
+                Platform.runLater(nota::requestFocus);
+            });
+            incidencia.getItems().addAll(miMal, miOtra, miFalta, miSinIncidencia, new SeparatorMenuItem(), miCantidad, miNota);
 
-            VBox rowWrapper = new VBox(0, rowHBox, notaField);
+            fila = new HBox(10, visto, textos, cantidad, estado, incidencia);
+            fila.setAlignment(Pos.CENTER_LEFT);
+            fila.getStyleClass().add("cnt-fila");
+            nota.setPromptText("Observación…");
+            nota.getStyleClass().add("form-input");
+            VBox.setMargin(nota, new Insets(0, 12, 8, 42));
+            caja = new VBox(fila, nota);
+            caja.maxWidthProperty().bind(lv.widthProperty().subtract(30));
+            caja.setMinWidth(0);
 
-            // Visibility filter (captures rowWrapper, contado, estadoCb — defined after rowWrapper)
-            Runnable applyVisibility = () -> {
-                String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
-                boolean matchesSearch = q.isBlank()
-                    || p.getNombre().toLowerCase().contains(q)
-                    || p.getCodigo().toLowerCase().contains(q)
-                    || (p.getNumeroSerie() != null && p.getNumeroSerie().toLowerCase().contains(q));
-                boolean hasIncidencia = contado.getValue() != p.getStockActual()
-                    || estadoCb.getValue() != EstadoConteo.ENCONTRADO;
-                boolean visible = matchesSearch
-                    && (!fIncidencias.isSelected() || hasIncidencia)
-                    && (!fPendientes.isSelected() || !touched.get())
-                    && (!fVistos.isSelected() || touched.get());
-                rowWrapper.setVisible(visible);
-                rowWrapper.setManaged(visible);
-            };
-            rowHBox.setUserData(applyVisibility);   // used by updateDelta
-            rowWrapper.setUserData(applyVisibility); // used by applyAllVisibility
-
-            list.getChildren().add(rowWrapper);
-            rows.add(new Row(p, contado, estadoCb, notaField, touched));
+            visto.setOnAction(e -> {
+                Fila f = getItem();
+                if (f == null) return;
+                alternarVisto(f);
+            });
+            // A click anywhere on the row marks it, or unmarks it: the box is a 16-pixel target.
+            fila.setOnMouseClicked(e -> {
+                Fila f = getItem();
+                if (f == null || dentroDe(e.getTarget(), visto, contado, incidencia)) return;
+                alternarVisto(f);
+            });
+            contado.valueProperty().addListener((o, a, v) -> {
+                Fila f = getItem();
+                if (llenando || f == null || v == null) return;
+                f.contado = v;
+                f.visto = true;
+                pintar(f);
+                alCambiar(true);
+            });
+            nota.textProperty().addListener((o, a, v) -> {
+                Fila f = getItem();
+                if (llenando || f == null) return;
+                f.nota = v == null ? "" : v;
+                alCambiar(false);
+            });
         }
 
-        // Wire progress bar — a bien can also be unmarked, so count instead of adding one.
-        Runnable actualizarAvance = () -> {
-            int n = (int) rows.stream().filter(r -> r.touched().get()).count();
-            int inc = (int) rows.stream().filter(r -> r.contado().getValue() != r.producto().getStockActual()
-                || r.estado().getValue() != EstadoConteo.ENCONTRADO).count();
-            touchedCount.set(n);
-            progressLabel.setText(n + " de " + totalItems + " vistos"
-                + (n < totalItems ? " · faltan " + (totalItems - n) : " · completo"));
-            progressBar.setProgress(totalItems > 0 ? (double) n / totalItems : 0);
-            fTodos.setText("Todos (" + totalItems + ")");
-            fPendientes.setText("Pendientes (" + (totalItems - n) + ")");
-            fVistos.setText("Vistos (" + n + ")");
-            fIncidencias.setText("Con incidencia (" + inc + ")");
-        };
-        for (Row r : rows) {
-            r.touched().addListener((o, a, b) -> actualizarAvance.run());
-            r.contado().valueProperty().addListener((o, a, b) -> actualizarAvance.run());
-            r.estado().valueProperty().addListener((o, a, b) -> actualizarAvance.run());
+        @Override protected void updateItem(Fila f, boolean empty) {
+            super.updateItem(f, empty);
+            setText(null);
+            if (empty || f == null) { setGraphic(null); return; }
+            llenando = true;
+            Producto p = f.producto;
+            codigo.setText(p.getCodigo());
+            nombre.setText(p.getNombre());
+            nombre.setTooltip(new Tooltip(p.getNombre()));
+            List<String> partes = new ArrayList<>();
+            partes.add(p.getResguardante() != null && !p.getResguardante().isBlank() ? p.getResguardante() : "Sin resguardante");
+            if (p.getNumeroSerie() != null && !p.getNumeroSerie().isBlank()) partes.add("Serie " + p.getNumeroSerie());
+            if (TODO.equals(tituloAlcance.getText()) || !porArea.isSelected()) partes.add(f.area());
+            detalle.setText(String.join(" · ", partes));
+            detalle.setTooltip(new Tooltip(detalle.getText()));
+            contado.getValueFactory().setValue(f.contado);
+            nota.setText(f.nota);
+            pintar(f);
+            llenando = false;
+            setGraphic(caja);
         }
-        actualizarAvance.run();   // a resumed draft already has bienes verified
 
-        // The entrance animation is per row: with a whole inventory (thousands of
-        // rows) it only made the dialog take longer to become usable.
-        if (!list.getChildren().isEmpty() && list.getChildren().size() <= 60)
-            AnimationUtils.staggeredFadeInUp(list.getChildren(), 180, 38);
+        private void pintar(Fila f) {
+            boolean v = f.vista();
+            visto.setSelected(v);
+            // Marked because of a difference or an estado: it can't be unticked, see alternarVisto.
+            visto.setDisable(f.incidencia());
+            cantidadTexto.setText("Hay " + f.sistema() + " · contados");
+            ver(cantidad, f.conCantidad());
+            int dif = f.contado - f.sistema();
+            diferencia.setText(dif == 0 ? "" : dif > 0 ? "+" + dif : String.valueOf(dif));
+            ver(diferencia, dif != 0);
+            boolean verNota = f.verNota || !f.nota.isBlank();
+            ver(nota, verNota);
+            miCantidad.setVisible(!f.conCantidad());
+            miSinIncidencia.setVisible(f.incidencia());
+            miNota.setVisible(!verNota);
 
-        Runnable applyAllVisibility = () -> list.getChildren().forEach(n -> {
-            if (n.getUserData() instanceof Runnable r) r.run();
-        });
-        searchField.textProperty().addListener((o, a, b) -> applyAllVisibility.run());
-        vista.selectedToggleProperty().addListener((o, a, b) -> applyAllVisibility.run());
+            estado.getStyleClass().setAll("cell-badge", !v ? "cell-badge-blue"
+                : f.estado == EstadoConteo.FALTANTE ? "cell-badge-danger"
+                : f.incidencia() ? "cell-badge-warning" : "cell-badge-success");
+            estado.setText(!v ? "Pendiente" : f.estado != EstadoConteo.ENCONTRADO ? f.estado.toString()
+                : dif != 0 ? "Diferencia" : "Visto");
+            fila.getStyleClass().removeAll("cnt-fila-vista", "cnt-fila-incidencia");
+            if (f.incidencia()) fila.getStyleClass().add("cnt-fila-incidencia");
+            else if (v) fila.getStyleClass().add("cnt-fila-vista");
+        }
+    }
 
-        ScrollPane scroll = new ScrollPane(list);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(Math.max(320, pantalla.getHeight() - 400));
-        VBox.setVgrow(scroll, Priority.ALWAYS);
-        scroll.getStyleClass().add("dlg-tabs-scroll");
+    // ── Escanear ──────────────────────────────────────────────────────────────
 
-        // Footer
-        Label summary = new Label(scope.isEmpty()
-            ? "No hay bienes en el alcance seleccionado."
-            : "Con una pistola lectora basta escanear cada etiqueta: el bien queda marcado como visto.");
-        summary.getStyleClass().add("muted-sm");
-        summary.setWrapText(true);
+    private Fila filaDeCodigo(String code) {
+        return filas.stream().filter(f -> code.equalsIgnoreCase(f.producto.getCodigo())).findFirst().orElse(null);
+    }
 
-        Button btnBorrador = new Button("Guardar borrador");
-        btnBorrador.setGraphic(new FontIcon("mdi2c-content-save-outline"));
-        btnBorrador.getStyleClass().add("btn-secondary");
-        btnBorrador.setDisable(scope.isEmpty());
-        btnBorrador.setTooltip(new Tooltip("Guarda lo capturado en esta computadora para seguir después"));
-        btnBorrador.setOnAction(e -> {
-            try {
-                saveDraft(rows);
-            } catch (java.io.IOException ex) {
-                log.error("No se pudo guardar el borrador del conteo", ex);
-                NotificacionUtil.error(dialog.getDialogPane().getScene(),
-                    "No se pudo guardar el borrador: " + ex.getMessage());
-                return;   // stay open: closing now would lose the capture
-            }
-            javafx.scene.Scene principal = com.sibim.MainApp.getPrimaryStage() != null
-                ? com.sibim.MainApp.getPrimaryStage().getScene() : null;
-            dialog.close();
-            if (principal != null) NotificacionUtil.exito(principal,
-                "Borrador guardado — al abrir de nuevo el conteo físico podrás retomarlo");
-        });
-
-        ReporteConteoService reporteService = new ReporteConteoService();
-        String tituloConteo = "Conteo del " + FormatUtils.formatDate(LocalDate.now());
-        Usuario userForPdf = SessionManager.getCurrentUser();
-        String userNameForPdf = userForPdf != null ? userForPdf.getNombre() : "Sistema";
-
-        // One "Exportar" menu, like every other screen (it used to be two buttons
-        // that squeezed the footer). What it exports is the capture as it is now.
-        java.util.function.Supplier<List<ConteoItem>> capturaActual = () -> rows.stream().map(r -> {
-            ConteoItem ci = new ConteoItem();
-            ci.setProductoId(r.producto().getId());
-            ci.setProductoNombre(r.producto().getNombre());
-            ci.setProductoCodigo(r.producto().getCodigo());
-            ci.setArea(r.producto().getArea());
-            ci.setStockSistema(r.producto().getStockActual());
-            ci.setStockContado(r.contado().getValue());
-            ci.setEstadoConteo(estadoGuardado(vista(r),
-                r.estado().getValue() != null ? r.estado().getValue().name() : "ENCONTRADO"));
-            ci.setNota(r.notaField().getText() != null ? r.notaField().getText() : "");
-            return ci;
-        }).toList();
-
-        MenuItem miPdf = new MenuItem("PDF");
-        miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
-        MenuItem miExcel = new MenuItem("Excel");
-        miExcel.setGraphic(new FontIcon("mdi2f-file-excel"));
-        MenuButton btnExportar = new MenuButton("Exportar", new FontIcon("mdi2d-download-outline"), miPdf, miExcel);
-        btnExportar.getStyleClass().add("btn-secondary");
-        btnExportar.setDisable(scope.isEmpty());
-        btnExportar.setTooltip(new Tooltip("Exporta la captura como está ahora, sin finalizar el conteo"));
-        miPdf.setOnAction(ev -> exportar(dialog, "PDF",
-            () -> reporteService.exportConteoPdf(tituloConteo, userNameForPdf, capturaActual.get())));
-        miExcel.setOnAction(ev -> exportar(dialog, "Excel",
-            () -> reporteService.exportConteoExcel(tituloConteo, userNameForPdf, capturaActual.get())));
-
-        // Wire scan button after scroll/list/rows are ready
-        btnScan.setOnAction(e -> showScanDialog(dialog, scroll, list, rows));
-
-        Button btnFinalizar = new Button("Finalizar conteo");
-        btnFinalizar.setGraphic(new FontIcon("mdi2c-check-circle-outline"));
-        btnFinalizar.getStyleClass().add("btn-primary");
-        btnFinalizar.setDisable(scope.isEmpty());
-
-        for (Control b : List.of(btnBorrador, btnExportar, btnFinalizar)) b.setMinWidth(Region.USE_PREF_SIZE);
-        HBox actions = new HBox(10, summary, btnBorrador, btnExportar, btnFinalizar);
-        actions.setAlignment(Pos.CENTER_LEFT);
-        actions.setPadding(new Insets(10, 4, 4, 4));
-        HBox.setHgrow(summary, Priority.ALWAYS);
-
-        btnFinalizar.setOnAction(e -> {
-            btnFinalizar.setDisable(true);
-
-            // Feature 5: resumen modal (replaces plain ConfirmacionUtil.confirmar)
-            if (!showResumen(rows)) {
-                btnFinalizar.setDisable(false);
-                return;
-            }
-
-            btnFinalizar.setText("Guardando...");
-            btnFinalizar.setGraphic(new FontIcon("mdi2l-loading"));
-
-            // Snapshot on FX thread — background thread must not touch live nodes
-            List<Captured> snapshot = new ArrayList<>();
-            for (Row r : rows) {
-                r.contado().setDisable(true);
-                r.estado().setDisable(true);
-                r.notaField().setDisable(true);
-                snapshot.add(new Captured(
-                    r.producto(),
-                    r.contado().getValue(),
-                    estadoGuardado(vista(r),
-                        r.estado().getValue() != null ? r.estado().getValue().name() : "ENCONTRADO"),
-                    r.notaField().getText()
-                ));
-            }
-
-            String motivo = "Conteo físico del " + FormatUtils.formatDate(LocalDate.now());
-            Usuario currentUser = SessionManager.getCurrentUser();
-
-            AppExecutor.submit(() -> {
-                int ok = 0;
-                List<String> fallidos = new ArrayList<>();
-                List<ConteoItem> items = new ArrayList<>();
-
-                for (Captured r : snapshot) {
-                    boolean esDiscrepancia = r.contado() != r.producto().getStockActual();
-                    boolean ajustado = false;
-                    if (esDiscrepancia) {
-                        try {
-                            movimientoService.registrarAjusteVerificado(r.producto().getId(),
-                                r.contado(), motivo, "Conteo físico", r.producto().getStockActual());
-                            ajustado = true;
-                            ok++;
-                        } catch (Exception ex) {
-                            fallidos.add(r.producto().getNombre());
-                            log.error("No se pudo aplicar el ajuste de conteo físico para '{}' (id={})",
-                                r.producto().getNombre(), r.producto().getId(), ex);
-                        }
-                    }
-                    ConteoItem item = new ConteoItem();
-                    item.setProductoId(r.producto().getId());
-                    item.setProductoNombre(r.producto().getNombre());
-                    item.setProductoCodigo(r.producto().getCodigo());
-                    item.setArea(r.producto().getArea());
-                    item.setStockSistema(r.producto().getStockActual());
-                    item.setStockContado(r.contado());
-                    item.setAjustado(ajustado);
-                    item.setEstadoConteo(r.estadoConteo());
-                    item.setNota(r.nota().isBlank() ? null : r.nota());
-                    items.add(item);
-                }
-
-                long totalDiscrepancias = items.stream()
-                    .filter(i -> i.getStockContado() != i.getStockSistema()).count();
-                long sinRevisar = items.stream().filter(i -> SIN_REVISAR.equals(i.getEstadoConteo())).count();
-
-                ConteoFisico conteo = new ConteoFisico();
-                if (currentUser != null) {
-                    conteo.setUsuarioId(currentUser.getId());
-                    conteo.setUsuarioNombre(currentUser.getNombre());
-                } else {
-                    conteo.setUsuarioNombre("Sistema");
-                }
-                conteo.setTotalContados(items.size());
-                conteo.setTotalDiscrepancias((int) totalDiscrepancias);
-                conteo.setItems(items);
-
-                boolean saved = true;
-                try {
-                    new ConteoRepository().guardar(conteo);
-                } catch (Exception ex) {
-                    saved = false;
-                    log.error("No se pudo guardar el registro del conteo físico", ex);
-                }
-
-                int okFinal = ok;
-                List<String> fallidosFinal = List.copyOf(fallidos);
-                boolean savedFinal = saved;
-                javafx.application.Platform.runLater(() -> {
-                    String base;
-                    if (totalDiscrepancias == 0) {
-                        base = "Conteo guardado — sin diferencias en " + (items.size() - sinRevisar)
-                            + (items.size() - sinRevisar == 1 ? " bien revisado" : " bienes revisados");
-                    } else if (fallidosFinal.isEmpty()) {
-                        base = FormatUtils.plural(okFinal, "ajuste aplicado", "ajustes aplicados") + " correctamente";
-                    } else {
-                        String nombres = fallidosFinal.stream().limit(3)
-                            .collect(Collectors.joining(", "))
-                            + (fallidosFinal.size() > 3 ? "…" : "");
-                        base = FormatUtils.plural(okFinal, "ajuste aplicado", "ajustes aplicados") + ", " + fallidosFinal.size()
-                            + " fallaron: " + nombres;
-                    }
-                    // A conteo closed halfway is not a clean inventory: say how many are left.
-                    if (sinRevisar > 0) base += " — " + sinRevisar + " quedaron sin revisar";
-                    if (!savedFinal) base += " (no se pudo guardar el registro del conteo)";
-                    javafx.scene.Scene scene = dialog.getDialogPane().getScene();
-                    if (scene != null) {
-                        if (!fallidosFinal.isEmpty() || !savedFinal || sinRevisar > 0) NotificacionUtil.advertencia(scene, base);
-                        else if (totalDiscrepancias == 0) NotificacionUtil.exitoConteo(scene, items.size());
-                        else NotificacionUtil.exito(scene, base);
-                    }
-                    clearDraft(items.stream().map(ConteoItem::getProductoId).toList());
-                    if (onReconciled != null) onReconciled.run();
-                    dialog.close();
-                });
-            });
-        });
-
-        AnimationUtils.staggeredFadeInUp(
-            java.util.List.of(header, toolbar, progressBox, colHeaders, scroll, actions), 260, 60);
-        dialog.getDialogPane().setContent(
-            new VBox(0, header, toolbar, progressBox, colHeaders, scroll, actions));
-
-        dialog.setOnShowing(ev -> dialog.getDialogPane().getScene().getWindow().addEventFilter(
-            javafx.stage.WindowEvent.WINDOW_CLOSE_REQUEST, we -> {
-                // Bienes marked as seen are work too, not only differences and notes.
-                long changed = rows.stream()
-                    .filter(r -> r.touched().get()
-                              || r.contado().getValue() != r.producto().getStockActual()
-                              || r.estado().getValue() != EstadoConteo.ENCONTRADO
-                              || !r.notaField().getText().isBlank()).count();
-                if (changed > 0 && !ConfirmacionUtil.confirmar("Salir sin guardar",
-                        "Lo capturado en " + FormatUtils.plural(changed, "bien", "bienes") + " se perderá.\n"
-                        + "Para conservarlo cancela y usa \"Guardar borrador\".\n¿Salir de todos modos?"))
-                    we.consume();
-            }));
-        // A handheld scanner works right here, without opening "Escanear": each
-        // label read marks its bien as seen.
-        dialog.setOnShown(ev -> com.sibim.util.BarcodeScanner.attach(dialog.getDialogPane().getScene(), leido -> {
-            String code = com.sibim.util.QrUtils.codigoLeido(leido);
-            if (!code.isBlank() && marcarVisto(code, scroll, list, rows) < 0)
-                NotificacionUtil.advertencia(dialog.getDialogPane().getScene(),
-                    "\"" + code + "\" no está en este conteo");
-        }));
-
-        dialog.showAndWait();
+    /** Marks the bien with this código as seen and brings its row into view. With
+     *  nothing chosen yet, the first label read chooses its área.
+     *  @return null when it was marked, else why it wasn't */
+    private String marcarVisto(String code) {
+        Fila f = filaDeCodigo(code);
+        if (f == null) return "\"" + code + "\" no está en este conteo: no está registrado o ya se finalizó. Anótalo aparte.";
+        if (alcance.isEmpty()) {
+            porArea.setSelected(true);
+            grupos.getSelectionModel().select(f.area());
+        }
+        if (!alcance.contains(f))
+            return "\"" + code + "\" es de " + f.area() + ", no de lo que estás contando: márcalo en " + tituloAlcance.getText() + " como «En otra área» si no le corresponde estar ahí.";
+        f.visto = true;
+        if (!visibles.contains(f)) { buscar.clear(); fTodos.setSelected(true); refiltrar(); }
+        lista.refresh();
+        alCambiar(true);
+        lista.getSelectionModel().select(f);
+        lista.scrollTo(Math.max(0, visibles.indexOf(f) - 3));
+        return null;
     }
 
     private static com.google.zxing.LuminanceSource bufferedImageToLuminance(java.awt.image.BufferedImage image) {
@@ -976,25 +1150,7 @@ public final class ConteoFisicoDialog {
         };
     }
 
-    /** Marks the bien with this código as seen and brings its row into view.
-     *  @return its position, or -1 when it is not part of this conteo */
-    private static int marcarVisto(String code, ScrollPane scroll, VBox list, List<Row> rows) {
-        for (int i = 0; i < rows.size(); i++) {
-            Row r = rows.get(i);
-            if (!code.equalsIgnoreCase(r.producto().getCodigo())) continue;
-            r.touched().set(true);
-            Node fila = list.getChildren().get(i);
-            javafx.application.Platform.runLater(() -> {
-                double alto = list.getBoundsInLocal().getHeight();
-                if (alto > 0 && fila.isManaged()) scroll.setVvalue(fila.getBoundsInParent().getMinY() / alto);
-                AnimationUtils.flashClass(fila, "row-highlight-flash", 900);
-            });
-            return i;
-        }
-        return -1;
-    }
-
-    private static void showScanDialog(Dialog<?> parent, ScrollPane scroll, VBox list, List<Row> rows) {
+    private void showScanDialog() {
         Dialog<ButtonType> scanDlg = new Dialog<>();
         DialogUtil.applyOwner(scanDlg);
         scanDlg.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
@@ -1003,7 +1159,7 @@ public final class ConteoFisicoDialog {
 
         HBox header = DialogUtil.gradientHeader("mdi2q-qrcode-scan", "Escanear código",
             "Escribe o pega el código, o carga una imagen con QR/código de barras",
-            AppColors.CYAN, AppColors.CYAN_D);
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         TextField codeField = new TextField();
         codeField.setPromptText("Código del bien (ej: BIEN-001)");
@@ -1034,7 +1190,7 @@ public final class ConteoFisicoDialog {
             );
         });
 
-        Button btnBuscar = new Button("Buscar");
+        Button btnBuscar = new Button("Marcar como visto");
         btnBuscar.getStyleClass().add("btn-primary");
         btnBuscar.setDefaultButton(true);
         // Stays open and marks each bien as seen: counting is scanning one label
@@ -1043,20 +1199,19 @@ public final class ConteoFisicoDialog {
         Label resultado = new Label("Escanea la primera etiqueta.");
         resultado.getStyleClass().add("muted-sm");
         resultado.setWrapText(true);
-        btnBuscar.setText("Marcar como visto");
         btnBuscar.setOnAction(ev -> {
             String code = com.sibim.util.QrUtils.codigoLeido(codeField.getText());
             if (code.isBlank()) return;
             resultado.getStyleClass().removeAll("text-ok", "text-warn");
-            int i = marcarVisto(code, scroll, list, rows);
-            if (i >= 0) {
-                long vistos = rows.stream().filter(r -> r.touched().get()).count();
-                resultado.setText("✓ " + rows.get(i).producto().getCodigo() + " — " + rows.get(i).producto().getNombre()
-                    + "  (" + vistos + " de " + rows.size() + ")");
+            String aviso = marcarVisto(code);
+            if (aviso == null) {
+                Fila f = filaDeCodigo(code);
+                long vistos = alcance.stream().filter(Fila::vista).count();
+                resultado.setText("✓ " + f.producto.getCodigo() + " — " + f.producto.getNombre()
+                    + "  (" + vistos + " de " + alcance.size() + ")");
                 resultado.getStyleClass().add("text-ok");
             } else {
-                resultado.setText("\"" + code + "\" no está en este conteo: es de otra área o categoría, "
-                    + "o no está registrado. Anótalo aparte.");
+                resultado.setText(aviso);
                 resultado.getStyleClass().add("text-warn");
             }
             codeField.clear();

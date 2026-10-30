@@ -191,3 +191,40 @@
     -fx-padding: 0 0 2 0;
     -fx-alignment: CENTER;
 }
+
+/* ── El menú de guías ───────────────────────────────────────────── */
+.tutorial-menu {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.35), 34, 0, 0, 10);
+}
+.tutorial-guia {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 12;
+    -fx-border-width: 1.5;
+    -fx-padding: 10 14;
+    -fx-cursor: hand;
+}
+.tutorial-guia:hover, .tutorial-guia:focused { -fx-border-color: sibim-indigo-300; -fx-background-color: #FDF7F8; }
+.tutorial-guia-destacada, .tutorial-guia-destacada:hover, .tutorial-guia-destacada:focused {
+    -fx-background-color: #FDF4F5;
+    -fx-border-color: sibim-indigo;
+}
+.tutorial-guia-icono { -fx-background-color: sibim-indigo-50; -fx-background-radius: 10; }
+.tutorial-guia-icono-destacada { -fx-background-color: sibim-indigo; -fx-background-radius: 10; }
+.tutorial-guia-titulo { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+.tutorial-guia-desc { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
+.tutorial-guia-pasos { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
+.tutorial-guia-vista { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #065F46; }
+.tutorial-btn-probar {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.5;
+    -fx-font-weight: bold;
+    -fx-padding: 9 14;
+    -fx-cursor: hand;
+}
+.tutorial-btn-probar:hover { -fx-background-color: #FDF4F5; }

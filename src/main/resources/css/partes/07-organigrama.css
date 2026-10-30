@@ -429,6 +429,62 @@
 .trf-deshecho { -fx-text-fill: sibim-slate-500; -fx-font-size: 12px; -fx-font-weight: bold; -fx-graphic-text-gap: 5; }
 .trf-deshecho .ikonli-font-icon { -fx-icon-color: sibim-slate-500; -fx-icon-size: 14; }
 
+/* ── Conteo físico: los bienes de lo elegido ─────────────────────── */
+.cnt-lista { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0; }
+.cnt-lista .list-cell { -fx-padding: 0 4 6 0; -fx-background-color: transparent; }
+.cnt-fila {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.5;
+    -fx-padding: 8 12;
+    -fx-cursor: hand;
+}
+.cnt-fila:hover { -fx-border-color: sibim-indigo-300; -fx-background-color: #FDF7F8; }
+.cnt-fila-vista, .cnt-fila-vista:hover { -fx-border-color: #6EE7B7; -fx-background-color: #F0FDF4; }
+.cnt-fila-incidencia, .cnt-fila-incidencia:hover { -fx-border-color: #FCD34D; -fx-background-color: #FFFBEB; }
+.cnt-lista .list-cell:filled:selected .cnt-fila { -fx-border-color: sibim-indigo; }
+.cnt-diferencia { -fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #78350F; }
+.cnt-fila .check-box:selected > .box { -fx-background-color: #059669; -fx-background-radius: 4; }
+.cnt-fila .check-box:selected > .box > .mark { -fx-background-color: white; }
+.cnt-barra { -fx-pref-height: 5; -fx-min-height: 5; -fx-max-height: 5; }
+.cnt-barra .bar { -fx-background-color: #059669; -fx-background-insets: 0; -fx-padding: 2; -fx-background-radius: 3; }
+.cnt-barra .track { -fx-background-color: sibim-slate-200; -fx-background-insets: 0; -fx-background-radius: 3; }
+
+.cnt-aviso {
+    -fx-background-color: #FBF6EC;
+    -fx-background-radius: 8;
+    -fx-border-color: #DCC8A6;
+    -fx-border-radius: 8;
+    -fx-padding: 8 12;
+}
+
+/* ── Nuevo Resguardo: los bienes que recibe ──────────────────────── */
+.rsg-fila-sel, .rsg-fila-sel:hover { -fx-border-color: sibim-indigo; -fx-background-color: #FDF4F5; }
+.rsg-fila-sel .trf-codigo { -fx-background-color: white; }
+.rsg-fila-ocupada, .rsg-fila-ocupada:hover { -fx-background-color: #FAFAFB; -fx-border-color: sibim-slate-200; -fx-cursor: default; -fx-opacity: 0.7; }
+.rsg-lista .check-box:selected > .box { -fx-background-color: sibim-indigo; -fx-background-radius: 4; }
+
+/* ── Reportes › Resguardos por resguardante: lo que se puede imprimir ── */
+.rsg-tarjeta {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 12;
+    -fx-border-width: 1.5;
+    -fx-padding: 10 14;
+    -fx-cursor: hand;
+}
+.rsg-tarjeta:hover { -fx-border-color: sibim-indigo-300; -fx-background-color: #FDF7F8; }
+.rsg-tarjeta-sel, .rsg-tarjeta-sel:hover { -fx-border-color: sibim-indigo; -fx-background-color: #FDF4F5; }
+.rsg-tarjeta-sel .trf-codigo { -fx-background-color: white; }
+.rsg-tarjeta .check-box:selected > .box { -fx-background-color: sibim-indigo; -fx-background-radius: 4; }
+.rsg-tarjeta .check-box:selected > .box > .mark { -fx-background-color: white; }
+.rsg-tarjeta .radio-button:selected > .radio { -fx-background-color: sibim-indigo; -fx-background-radius: 99; -fx-border-color: sibim-indigo; -fx-border-radius: 99; }
+.rsg-tarjeta .radio-button:selected > .radio > .dot { -fx-background-color: white; }
+.rsg-tarjeta-titulo { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-900; }
+
 /* ── Reportes › Inventario por área: elegir áreas ───────────────── */
 .area-elegir-lista {
     -fx-background-color: white;

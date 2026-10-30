@@ -125,6 +125,16 @@ public class ReporteResguardoService extends ReporteService {
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    /** The bien in a renglón. The name loaded from the Excel files is the description cut
+     *  with "…" (149 bienes on 30-oct-2026): printing both said everything twice. */
+    static String concepto(String nombre, String descripcion) {
+        String n = upper(nombre);
+        if (descripcion == null || descripcion.isBlank()) return n;
+        String d = upper(descripcion);
+        String raiz = n.replaceAll("(…|\\.\\.\\.)\\s*$", "").trim();
+        return d.contains(raiz) ? d : n + " - " + d;
+    }
+
     private File generarPdf(Resguardo r, List<Producto> productosExtra, boolean general) throws Exception {
         File out = File.createTempFile("resguardo_", ".pdf");
         out.deleteOnExit();
@@ -273,9 +283,10 @@ public class ReporteResguardoService extends ReporteService {
 
         // TIPO BIEN wide enough for "EQUIPO AUDIOVISUAL" on one line: half the rows used to take two.
         // The general one's 5th column holds a full name, not a date: it takes room from CONCEPTO.
-        float[] cw = general ? new float[]{0.45f, 1.2f, 2.55f, 1.6f, 1.95f, 1.0f}
-                             : new float[]{0.45f, 1.3f, 3.2f, 1.75f, 1.05f, 1.25f};
-        Table t = new Table(UnitValue.createPercentArray(cw)).useAllAvailableWidth();
+        float[] cw = general ? new float[]{0.55f, 1.35f, 2.35f, 1.6f, 1.9f, 1.0f}
+                             : new float[]{0.55f, 1.4f, 2.95f, 1.8f, 1.1f, 1.2f};
+        // Fixed: a long word in a column ("ADMINISTRACIÓN") pushed the table past the margin.
+        Table t = new Table(UnitValue.createPercentArray(cw)).useAllAvailableWidth().setFixedLayout();
 
         // The general one says who holds each bien (its individual resguardo) instead of the date.
         String[] hdrs = {"NO.", "INVENTARIO", "CONCEPTO", "TIPO BIEN", general ? "RESGUARDANTE" : "ASIGNACION", "COLOR"};
@@ -293,9 +304,7 @@ public class ReporteResguardoService extends ReporteService {
             Producto p = buscarProducto(extra, item.getProductoCodigo());
 
             String concepto = (item.getCantidad() > 1 ? item.getCantidad() + " PIEZAS: " : "")
-                + upper(item.getProductoNombre());
-            if (item.getDescripcion() != null && !item.getDescripcion().isBlank())
-                concepto += " - " + upper(item.getDescripcion());
+                + concepto(item.getProductoNombre(), item.getDescripcion());
 
             String tipoBien   = p != null && p.getCategoriaNombre() != null ? upper(p.getCategoriaNombre()) : "MUEBLES";
             String asignacion = general

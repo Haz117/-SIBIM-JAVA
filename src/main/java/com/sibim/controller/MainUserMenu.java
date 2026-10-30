@@ -24,11 +24,11 @@ class MainUserMenu {
         miPassword.setGraphic(new FontIcon("mdi2l-lock-outline"));
         miPassword.setOnAction(e -> com.sibim.controller.dialogs.CambiarPasswordDialog.mostrar(contentArea.getScene()));
 
-        MenuItem miTutorial = new MenuItem("Tutorial del sistema");
+        MenuItem miTutorial = new MenuItem("Guías y tutorial (F2)");
         miTutorial.setGraphic(new FontIcon("mdi2h-help-circle-outline"));
         miTutorial.setOnAction(e -> onTutorial.run());
 
-        MenuItem miGuia = new MenuItem("Guía rápida (PDF)");
+        MenuItem miGuia = new MenuItem("Guía para imprimir (PDF)");
         miGuia.setGraphic(new FontIcon("mdi2b-book-open-page-variant-outline"));
         miGuia.setOnAction(e -> com.sibim.util.DialogUtil.runAsyncWithProgress(contentArea.getScene(),
             "Generando la guía rápida…",

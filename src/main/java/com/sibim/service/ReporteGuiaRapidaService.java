@@ -25,42 +25,70 @@ public class ReporteGuiaRapidaService extends ReporteService {
 
     private static final DeviceRgb TEXTO = new DeviceRgb(30, 41, 59);
 
+    /** For everybody; each point says where to click, in the screen's own words. */
     private static final String[][] SECCIONES = {
         {"1. Entrar al sistema",
             "Cada área tiene una sola cuenta (usuario y contraseña) que usa todo su personal, en cualquier computadora.",
-            "La primera vez en cada computadora escribe tu nombre: así queda registrado quién hizo cada cambio. Si otra persona usa esa computadora, cámbialo en el menú de tu cuenta (\"Cambiar quién usa la cuenta\").",
+            "La primera vez en cada computadora escribe tu nombre: así queda registrado quién hizo cada cambio. Si otra persona usa esa computadora, cámbialo en el menú de tu cuenta (abajo a la izquierda) > \"Cambiar quién usa la cuenta\".",
             "La primera vez en cada computadora hay que entrar CON internet; después ya funciona sin conexión hasta por 30 días.",
-            "La contraseña del área solo la cambia Recursos Materiales y Patrimonio. Si se te olvida, pídesela a Patrimonio."},
+            "La contraseña del área solo la cambia Recursos Materiales y Patrimonio. Si se te olvida, pídesela a Patrimonio.",
+            "F2 abre las guías paso a paso dentro del sistema: te llevan a cada pantalla y marcan el botón."},
         {"2. Sin internet",
             "Si se va el internet, aparece la franja amarilla \"Sin conexión\" y puedes seguir trabajando.",
             "Todo lo que captures se guarda en la computadora y se sube solo al volver la conexión.",
             "Los documentos que Patrimonio haga sin conexión llevan un folio provisional (por ejemplo RSG-PROV-3F2A1C); el definitivo se asigna al sincronizar.",
             "Sin conexión solo ves lo que esa computadora ya había consultado con internet."},
-        {"3. Mis bienes",
-            "En el Inicio, \"Pendientes de tu área\" dice qué bienes no tienen foto, ubicación o estado físico: da clic, elige el bien y \"Actualizar datos\".",
-            "En Bienes ves los bienes de tu área; con \"Actualizar datos\" cambias su ubicación, estado físico, descripción y fotos.",
+        {"3. Mantener al día los bienes de mi área",
+            "En Inicio, \"Pendientes de tu área\" dice qué bienes no tienen foto, ubicación o estado físico: da clic en uno y elige el bien.",
+            "En Bienes, selecciona el bien y pulsa \"Actualizar datos\": cambias ubicación, estado físico, descripción y fotos.",
             "Dar de alta, dar de baja y los movimientos los hace Patrimonio.",
-            "Para pedir una baja: selecciona el bien > Exportar > \"Solicitud de baja (PDF)\" y, si el área técnica lo revisó, \"Dictamen técnico de baja (PDF)\". Firma y entrega ambos a Patrimonio.",
             "La etiqueta de cada bien tiene un código QR: al escanearlo con la cámara de cualquier celular se ve su ficha."},
-        {"4. Bienes que recibe tu área",
-            "Los movimientos (entradas, salidas, ajustes y transferencias) los registra solo Patrimonio.",
-            "Cuando Patrimonio transfiere un bien a tu área, aparece el aviso \"Bienes por recibir\" en la campana: ábrelo y confirma cuando tengas el bien físicamente.",
+        {"4. Sacar los resguardos de una persona",
+            "Reportes > primera fila, \"Resguardos por resguardante\" > botón PDF.",
+            "Escribe parte del nombre o del área, sin importar acentos. Con las flechas cambias de persona.",
+            "Las tarjetas son sus resguardos; los vigentes ya vienen marcados. Enter o \"Generar PDF\": varios salen juntos en un solo archivo.",
+            "\"Sin resguardo registrado\" son bienes a su nombre que no están en un resguardo: en el PDF salen con folio RSP y dicen PENDIENTE."},
+        {"5. Pedir la baja de un bien",
+            "Reportes > \"Solicitud de Baja\" > botón PDF.",
+            "Busca el bien: escribe el código y pulsa Enter para marcarlo; sigue con el siguiente. Con la búsqueda vacía, Enter genera el PDF (una página por bien).",
+            "Si el área técnica lo revisó, haz lo mismo con \"Dictamen Técnico de Baja\".",
+            "Fírmalo y entrégalo a Patrimonio, que es quien registra la baja."},
+        {"6. Bienes que recibe tu área",
+            "Las transferencias las registra solo Patrimonio.",
+            "Cuando te transfieren un bien, aparece el aviso \"Bienes por recibir\" en la campana: ábrelo y confirma cuando lo tengas físicamente.",
             "Lo que tu área necesite se pide a Finanzas, fuera de SIBIM."},
-        {"5. Resguardos, préstamos y comodatos",
-            "Resguardos y préstamos: solo Patrimonio los registra, los cancela y anota las devoluciones.",
-            "Comodatos: solo Patrimonio.",
-            "Si tu área necesita uno, se pide a Finanzas, fuera de SIBIM."},
-        {"6. Actualizaciones",
-            "Cuando hay una versión nueva, al abrir SIBIM aparece \"Nueva versión disponible\". Da clic en \"Instalar\": se descarga, se abre el instalador y SIBIM se cierra. Guarda antes lo que estés capturando.",
+        {"7. Actualizaciones",
+            "Cuando hay una versión nueva, al abrir SIBIM aparece \"Nueva versión disponible\". Da clic en \"Instalar\": se descarga, se abre el instalador y SIBIM se cierra solo.",
             "Si Windows muestra \"Windows protegió su PC\", da clic en \"Más información\" y luego en \"Ejecutar de todas formas\"."},
-        {"Solo para Patrimonio (administrador)",
-            "Movimientos: solo tú registras entradas, salidas, ajustes y transferencias; el área que recibe confirma la recepción.",
-            "Bajas: solo con la solicitud firmada del área; anota su folio al dar de baja.",
-            "Configuración > Usuarios > \"Cuentas por área\": crea las cuentas que falten y genera el PDF con contraseñas.",
-            "Configuración > Usuarios > \"Equipos por cuenta\": muestra qué cuentas aún no entran en ninguna computadora (sin internet no podrán entrar).",
-            "Configuración > \"Errores de equipos\": muestra los errores que SIBIM ha tenido en las computadoras de las áreas.",
-            "Configuración > \"Respaldo automático\": un respaldo cifrado diario en esta computadora; anota la contraseña.",
-            "Configuración > \"Publicar actualización\": sube el instalador de una versión nueva (primero sube la versión en pom.xml y genera el instalador en esta PC, que es la que actualiza la base)."},
+    };
+
+    /** Only printed for Patrimonio: an área can't do any of this. */
+    private static final String[][] SECCIONES_PATRIMONIO = {
+        {"Registrar un resguardo (Resguardos > Nuevo Resguardo)",
+            "Escribe el nombre: la primera coincidencia se elige sola y sus bienes sin resguardo salen marcados. Si no existe, aparece \"Persona nueva\".",
+            "Las pestañas A su nombre, De su área y Todos cambian la lista. Un bien en otro resguardo vigente dice en cuál y no se puede marcar.",
+            "\"Guardar resguardo\" le da folio RSG y queda vigente; después ofrece abrir el PDF para firmar.",
+            "Atajo: en Reportes > Resguardos por resguardante, la tarjeta \"Sin resguardo registrado\" tiene \"Registrar como resguardo\".",
+            "Varias personas: Resguardos > Más > Resguardos en lote. Quien tenga el nombre repetido se une primero."},
+        {"Conteo físico (menú, grupo Operación, o Ctrl+Alt+C)",
+            "Elige un área o categoría a la izquierda. Un clic en el bien lo marca como visto; la barra espaciadora marca y pasa al siguiente; con pistola, escanea la etiqueta.",
+            "\"Incidencia\" en cada bien: Mal estado, En otra área, Faltante, cambiar la cantidad o agregar una nota.",
+            "Si cierras la ventana el avance se guarda solo. \"Finalizar conteo\" guarda lo elegido y aplica los ajustes; lo no marcado queda \"sin revisar\"."},
+        {"Corregir los datos (Bienes > Más)",
+            "Completar datos: elige área y dato (Sin precio, Sin fecha, Sin vida útil, Sin foto); escribe el valor y Enter guarda y pasa al siguiente. En Sin vida útil, \"Revisar y aplicar\" la propone según CONAC.",
+            "Unir personas repetidas: si son la misma persona, marca cómo queda su nombre (o escríbelo); cambia en bienes y resguardos vigentes y no se deshace sola. \"Son personas distintas\" no vuelve a preguntar. Hazlo antes de los resguardos en lote.",
+            "Series repetidas: corrige la serie y Enter, o \"Sin serie\". Si está en varias áreas, revísalo en físico.",
+            "Etiquetas por área: marca los bienes, \"Imprimir etiquetas\" y, ya pegadas, \"Ya están pegadas\"."},
+        {"Transferir y dar de baja",
+            "Movimientos > \"Transferir arrastrando\": elige el área de origen y los bienes, y arrástralos a la tarjeta del área que los recibe. Abajo queda \"Deshacer\".",
+            "Bajas: solo con la solicitud firmada. En Bienes selecciona el bien y \"Dar de baja\"; anota el folio de la solicitud."},
+        {"Configuración",
+            "RFC, domicilio, Elabora y Vo. Bo.: los usa la hoja de resguardo de cada vehículo.",
+            "Áreas > columna Titular: es el responsable en el Anexo V.4 y lo propone el Resguardo general.",
+            "Usuarios > \"Cuentas por área\": crea las cuentas que falten y genera el PDF con contraseñas. \"Equipos por cuenta\": qué cuentas aún no entran en ninguna computadora.",
+            "\"Errores de equipos\": los errores que SIBIM ha tenido en las computadoras de las áreas.",
+            "\"Respaldo automático\": un respaldo cifrado diario en esta computadora; anota la contraseña.",
+            "\"Publicar actualización\": sube el instalador de una versión nueva, generado en esta PC."},
     };
 
     public File exportGuia() throws Exception {
@@ -72,16 +100,25 @@ public class ReporteGuiaRapidaService extends ReporteService {
              Document doc = new Document(pdf, PageSize.LETTER)) {
             doc.setMargins(30, 40, 30, 40);
             addPdfHeader(doc, "Guía rápida de SIBIM · v" + UpdateChecker.currentVersion(), null, null);
-            for (String[] s : SECCIONES) {
-                doc.add(sectionTitle(s[0].toUpperCase(), bold, COLOR_HEADER).setFontSize(10f).setMarginTop(8));
-                List lista = new List().setSymbolIndent(10).setListSymbol("•").setFont(reg).setFontSize(9.5f)
-                    .setFontColor(TEXTO);
-                for (int i = 1; i < s.length; i++) lista.add(new ListItem(s[i]));
-                doc.add(lista);
+            agregar(doc, SECCIONES, bold, reg);
+            if (com.sibim.session.SessionManager.isAdmin()) {
+                doc.add(new Paragraph("Solo para Patrimonio (administrador)").setFont(bold).setFontSize(12)
+                    .setFontColor(COLOR_HEADER).setMarginTop(14));
+                agregar(doc, SECCIONES_PATRIMONIO, bold, reg);
             }
             doc.add(new Paragraph("¿Dudas o algo no funciona? Comunícate con Recursos Materiales y Patrimonio.")
                 .setFont(bold).setFontSize(9.5f).setMarginTop(14));
         }
         return file;
+    }
+
+    private void agregar(Document doc, String[][] secciones, PdfFont bold, PdfFont reg) {
+        for (String[] s : secciones) {
+            doc.add(sectionTitle(s[0].toUpperCase(), bold, COLOR_HEADER).setFontSize(10f).setMarginTop(8));
+            List lista = new List().setSymbolIndent(10).setListSymbol("•").setFont(reg).setFontSize(9.5f)
+                .setFontColor(TEXTO);
+            for (int i = 1; i < s.length; i++) lista.add(new ListItem(s[i]));
+            doc.add(lista);
+        }
     }
 }

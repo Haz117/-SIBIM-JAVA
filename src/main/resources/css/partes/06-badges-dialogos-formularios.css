@@ -9,6 +9,16 @@
     -fx-alignment: CENTER;
 }
 .cell-badge-success { -fx-background-color: #D1FAE5; -fx-text-fill: #064E3B; }
+/* Used on their own, without .cell-badge: Resguardos, Préstamos and the ficha asked for
+   them and they did not exist, so the state came out as plain text. */
+.cell-badge-ok, .cell-badge-muted {
+    -fx-background-radius: 99;
+    -fx-padding: 2 10;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.cell-badge-ok    { -fx-background-color: #D1FAE5; -fx-text-fill: #064E3B; }
+.cell-badge-muted { -fx-background-color: #F1F5F9; -fx-text-fill: #334155; }
 .cell-badge-warning { -fx-background-color: #FEF3C7; -fx-text-fill: #78350F;
                       -fx-border-color: #FDE68A; -fx-border-width: 0 0 0 3; -fx-border-radius: 99; }
 .cell-badge-danger  { -fx-background-color: #FEE2E2; -fx-text-fill: #7F1D1D;
@@ -472,3 +482,5 @@
 }
 /* Diálogos de entrada estándar (TextInputDialog, ChoiceDialog) con DialogUtil.conEncabezado */
 .dialog-pane > .dialog-input-content { -fx-padding: 18 22 18 22; -fx-hgap: 12; }
+
+.field-hint-ok { -fx-text-fill: #065F46; }

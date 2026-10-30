@@ -19,11 +19,11 @@ import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.prefs.Preferences;
 
+/** Shows the guides of {@link TutorialGuias}: a menu of what can be learned, and each
+ *  guide over the real screens, marking the exact button and able to open the window. */
 public final class TutorialOverlay {
 
     private static final Preferences PREFS = Preferences.userNodeForPackage(TutorialOverlay.class);
@@ -33,239 +33,169 @@ public final class TutorialOverlay {
 
     private record Step(
         String icon, String color, String gradEnd,
-        String title, String shortcut, String navigateId, String[] bullets
-    ) {}
-
-    private static Step[] buildSteps() {
-        Usuario user = SessionManager.getCurrentUser();
-        String primerNombre = (user != null && user.getNombre() != null && !user.getNombre().isBlank())
-            ? user.getNombre().split("\\s+")[0] : null;
-        String welcomeTitle = primerNombre != null ? "¡Hola, " + primerNombre + "!" : "Bienvenido a SIBIM";
-        String rolDesc = SessionManager.isAdmin()
-            ? "Tienes acceso completo como Administrador — incluye gestión de usuarios y auditoría"
-            : SessionManager.isSecretario()
-                ? "Ves los bienes de tu secretaría y sus direcciones, y mantienes al día su ubicación, descripción, estado físico y fotos"
-                : "Ves los bienes de tu área y mantienes al día su ubicación, descripción, estado físico y fotos";
-
-        List<Step> list = new ArrayList<>(List.of(
-            // ── Bienvenida personalizada ──────────────────────────────────────────
-            new Step("mdi2b-book-open-outline", "#A2232D", "#5A141A",
-                welcomeTitle, null, null, new String[]{
-                rolDesc,
-                "Cada paso navega al módulo que describe — explóralo en vivo mientras lees",
-                "Retoma este tutorial en cualquier momento presionando F2"
-            }),
-
-            // ── Inicio ───────────────────────────────────────────────────────────
-            new Step("mdi2v-view-dashboard-outline", "#A2232D", "#5A141A",
-                "Inicio", "Ctrl + 1", "dashboard", SessionManager.isAdmin() ? new String[]{
-                "Los recuadros de estadísticas son clicables — llevan directo al módulo",
-                "Haz clic en un segmento de la gráfica para filtrar Bienes por esa categoría",
-                "El botón ↺ actualiza métricas en tiempo real tras registrar cambios"
-            } : new String[]{
-                "\"Pendientes de tu área\": los bienes sin foto, sin ubicación o sin estado físico",
-                "Da clic en un pendiente, elige el bien y \"Actualizar datos\"",
-                "Si Patrimonio te transfirió bienes, ahí mismo confirmas que los recibiste"
-            }),
-
-            // ── Categorías ANTES que Bienes: flujo correcto de onboarding ────────
-            new Step("mdi2t-tag-multiple-outline", "#A2232D", "#5A141A",
-                "Categorías", "Ctrl + 4", "categorias", new String[]{
-                "Crea las categorías PRIMERO: Mobiliario, Cómputo, Vehículos, Equipo…",
-                "Cada categoría tiene ícono y color — los bienes los heredan en todos los filtros",
-                "El contador junto a cada categoría es clicable: filtra Bienes al instante"
-            }),
-
-            // ── Bienes ───────────────────────────────────────────────────────────
-            new Step("mdi2p-package-variant", "#A2232D", "#5A141A",
-                "Bienes / Inventario", "Ctrl + 3", "productos", new String[]{
-                SessionManager.isAdmin()
-                    ? "Ctrl+N abre el formulario: llena nombre, código, área, categoría y valor"
-                    : "Selecciona un bien y \"Actualizar datos\" (Ctrl+E): ubicación, estado físico, descripción y fotos",
-                "Doble clic en cualquier fila: foto, código QR e historial de movimientos",
-                "Busca en tiempo real y combina filtros de categoría, área y estado"
-            }),
-
-            // ── Movimientos ──────────────────────────────────────────────────────
-            new Step("mdi2s-swap-vertical", "#235B4E", "#1B4A3F",
-                "Movimientos", "Ctrl + 5", "movimientos", new String[]{
-                SessionManager.isAdmin()
-                    ? "«Agregar o quitar» suma o resta piezas a un bien; el Conteo físico de Bienes corrige la cantidad"
-                    : "Aquí consultas el historial de tus bienes; los movimientos los registra Patrimonio",
-                SessionManager.isAdmin()
-                    ? "«Transferir arrastrando» lleva bienes a otra área con su nuevo número y su resguardo"
-                    : "Filtra por tipo y fecha para ver qué entró, salió o cambió de área",
-                "La transferencia se aplica al instante; el área que recibe solo confirma que ya tiene el bien"
-            }),
-
-            // ── Sin conexión ─────────────────────────────────────────────────────
-            new Step("mdi2w-wifi-off", "#9C7A3C", "#6E5118",
-                "Sin internet", null, null, new String[]{
-                "Si se va el internet aparece la franja \"Sin conexión\" y puedes seguir trabajando",
-                "Lo que captures se guarda en esta computadora y se sube solo al volver la conexión",
-                "Los documentos nuevos llevan un folio provisional; el definitivo se asigna al sincronizar"
-            }),
-
-            // ── Resguardos ───────────────────────────────────────────────────────
-            new Step("mdi2c-clipboard-account-outline", "#9C7A3C", "#6E5118",
-                "Resguardos", null, "resguardos", new String[]{
-                "Cada resguardo dice quién tiene un bien a su cargo — es el documento oficial de asignación",
-                "Consulta e imprime el PDF del resguardo para firma",
-                "Cancela el resguardo cuando el bien cambia de responsable o de área"
-            }),
-
-            // ── Préstamos ────────────────────────────────────────────────────────
-            new Step("mdi2s-swap-horizontal", "#9C7A3C", "#6E5118",
-                "Préstamos", null, "prestamos", new String[]{
-                "Registra el préstamo temporal de un bien con fecha de devolución esperada",
-                "Vista kanban: columnas Activos / Vencidos / Devueltos para control rápido",
-                "Exporta el comprobante en PDF para firma"
-            }),
-
-            // ── Actas de Entrega-Recepción ───────────────────────────────────────
-            new Step("mdi2s-swap-horizontal-bold", "#9C7A3C", "#6E5118",
-                "Actas E/R", null, "actas", new String[]{
-                "Documenta la entrega formal de bienes entre funcionarios al cambio de administración",
-                "Incluye inventario de bienes entregados, observaciones y firma de responsiva",
-                "Exporta el acta completa a PDF lista para firma y archivo oficial"
-            }),
-
-            // ── Comodatos ────────────────────────────────────────────────────────
-            new Step("mdi2h-handshake-outline", "#9C7A3C", "#6E5118",
-                "Comodatos", null, "comodatos", new String[]{
-                "Préstamo formal de un bien a otra institución, con contrato y vigencia",
-                "Mientras está vigente el bien no se puede transferir ni dar de baja",
-                "Al vencer aparece en Alertas hasta que lo concluyas o lo renueves"
-            }),
-
-            // ── Bajas ────────────────────────────────────────────────────────────
-            new Step("mdi2a-archive-arrow-down-outline", "#9C7A3C", "#6E5118",
-                "Bajas", null, "bajas", new String[]{
-                "El área entrega la solicitud de baja firmada; Patrimonio la registra aquí",
-                "El bien sale del inventario activo pero conserva su código e historial",
-                "Su número queda libre para el siguiente bien nuevo del área"
-            }),
-
-            // ── Conteo Físico ────────────────────────────────────────────────────
-            new Step("mdi2c-clipboard-check-outline", "#235B4E", "#1B4A3F",
-                "Conteo Físico", null, null, new String[]{
-                "Ábrelo desde el menú (Operación) y elige todo el inventario, un área o una categoría",
-                "Da clic en la fila del bien que tienes enfrente, o escanea su etiqueta; \"Faltante\" si no está",
-                "Las pestañas Pendientes y Con incidencia te dicen qué falta; lo que nadie marcó queda \"sin revisar\""
-            }),
-
-            // ── Alertas ──────────────────────────────────────────────────────────
-            new Step("mdi2b-bell-outline", "#A2232D", "#5A141A",
-                "Alertas", "Ctrl + 6", "alertas", new String[]{
-                "Se generan solas: garantías por vencer, mantenimientos próximos y comodatos vencidos",
-                "El badge rojo en el sidebar muestra cuántas alertas activas hay sin atender",
-                "Pendientes patrimoniales lista los bienes sin resguardante o sin etiqueta física"
-            }),
-
-            // ── Reportes ─────────────────────────────────────────────────────────
-            new Step("mdi2f-file-chart-outline", "#235B4E", "#1B4A3F",
-                "Reportes", "Ctrl + 7", "reportes", new String[]{
-                SessionManager.isAdmin()
-                    ? "Listados del inventario y formatos oficiales (resguardo, baja, dictamen) en un solo lugar"
-                    : "Listados de los bienes de tu área y los formatos para pedir una baja",
-                "Elige el período arriba: los listados que muestran las fechas solo incluyen ese período",
-                SessionManager.isAdmin()
-                    ? "Excel y CSV para análisis; PDF para un documento listo para entrega"
-                    : "Se exportan en PDF, listos para imprimir y firmar"
-            }),
-
-            // ── Depreciación ─────────────────────────────────────────────────────
-            new Step("mdi2c-chart-line", "#235B4E", "#1B4A3F",
-                "Depreciación", "Ctrl + 8", "depreciacion", new String[]{
-                "Cálculo automático: valor de compra ÷ vida útil = depreciación anual (SAT)",
-                "Bienes en rojo = 100% depreciados — candidatos prioritarios a baja o reemplazo",
-                "Exporta fichas individuales o en lote para auditorías y levantamientos INEGI"
-            }),
-
-            // ── Organigrama ──────────────────────────────────────────────────────
-            new Step("mdi2o-office-building-outline", "#A2232D", "#5A141A",
-                "Organigrama", "Ctrl + 2", "organigrama", new String[]{
-                "Vista jerárquica de áreas y bienes — ideal para auditorías y actas de entrega",
-                "Clic en el número de bienes de un área: la lista completa, con \"Ver en Inventario\" y exportar",
-                "Exporta el árbol completo a PDF desde la barra de herramientas"
-            }),
-
-            // ── Configuración (contenido distinto para admin) ─────────────────────
-            new Step("mdi2c-cog-outline", "#64748B", "#334155",
-                "Configuración", "Ctrl + 9", "configuracion", new String[]{
-                SessionManager.isAdmin()
-                    ? "Usuarios: crea las cuentas por área de un clic y guarda el PDF con sus contraseñas"
-                    : "Tamaño de letra, densidad de filas y animaciones: en la barra inferior y en Accesibilidad",
-                "Sube el logo del ayuntamiento — se muestra en la pantalla de inicio del sistema",
-                "Genera respaldos de la base de datos y revisa el estado de la conexión"
-            }),
-
-            // ── Atajos de teclado ────────────────────────────────────────────────
-            new Step("mdi2k-keyboard-outline", "#64748B", "#475569",
-                "Atajos de Teclado", "F1", null, new String[]{
-                "Ctrl+1…9 navega entre módulos; Ctrl+0 abre Auditoría (solo admin)",
-                "Ctrl+F busca en la tabla activa · F5 actualiza · Ctrl+N crea nuevo registro",
-                "En tablas: Ctrl+E edita la fila seleccionada · Supr elimina · F2 reabre el tutorial"
-            }),
-
-            // ── Primeros pasos: cierre accionable ────────────────────────────────
-            new Step("mdi2c-check-circle-outline", "#235B4E", "#1B4A3F",
-                "¡Listo para empezar!", null, "dashboard", new String[]{
-                SessionManager.isAdmin()
-                    ? "① Crea categorías (Ctrl+4) y da de alta los bienes: en Bienes (Ctrl+3) filtra el área y usa Ctrl+N"
-                    : "① Revisa tus bienes (Ctrl+3) y actualiza ubicación, fotos y estado físico",
-                SessionManager.isAdmin()
-                    ? "② Asigna resguardos a los responsables y documenta préstamos temporales"
-                    : "② La guía rápida imprimible está en el menú de tu cuenta",
-                "③ F2 en cualquier momento reabre este tutorial · F1 muestra todos los atajos"
-            })
-        ));
-
-        if (!SessionManager.isAdmin())
-            list.removeIf(paso -> "Conteo Físico".equals(paso.title()) || paso.navigateId() != null
-                && java.util.Set.of("movimientos", "comodatos", "actas", "bajas", "categorias", "depreciacion", "resguardos", "prestamos")
-                    .contains(paso.navigateId()));
-
-        // A shared área account: who is using it goes into every record.
-        if (user != null && com.sibim.service.CuentasAreaService.CARGO_COMPARTIDA.equals(user.getCargo()))
-            list.add(1, new Step("mdi2a-account-edit-outline", "#A2232D", "#5A141A",
-                "Cuenta compartida", null, null, new String[]{
-                "Esta cuenta la usa todo el personal de tu área",
-                "Al entrar escribe tu nombre, o confirma el que aparece: así tus cambios quedan a tu nombre",
-                "Si alguien más se sienta sin cerrar sesión: menú de tu cuenta › \"Cambiar quién usa la cuenta\""
-            }));
-
-        if (SessionManager.isAdmin()) {
-            // Insert Auditoría before the last two steps (Atajos + ¡Listo!)
-            list.add(list.size() - 2,
-                new Step("mdi2s-shield-lock-outline", "#475569", "#1E293B",
-                    "Auditoría del Sistema", "Ctrl + 0", "auditoria", new String[]{
-                    "Registra automáticamente todas las acciones: altas, bajas, ediciones, sesiones",
-                    "Filtra por entidad, acción, usuario y fechas; \"Limpiar filtros\" aparece cuando hay alguno",
-                    "Exporta el log completo a Excel para revisiones de cumplimiento y control"
-                })
-            );
+        String title, String shortcut, String navigateId, String foco,
+        String accionTexto, Runnable accion, String[] bullets
+    ) {
+        Step(TutorialGuias.Paso p) {
+            this(p.icon(), p.color(), p.gradEnd(), p.title(), p.shortcut(), p.navigateId(), p.foco(),
+                 p.accionTexto(), p.accion(), p.bullets());
         }
-        return list.toArray(new Step[0]);
     }
+
+    /** F2 with the tutorial already open used to stack a second one on top of it. */
+    private static boolean abierto = false;
 
     private TutorialOverlay() {}
 
+    private static String usuario() {
+        return SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getUsername() : "unknown";
+    }
+
+    private static String claveVista(String guia) {
+        return "guia.vista." + guia + "." + usuario();
+    }
+
+    /** On signing in: the guides the first time; once per version, what changed. */
     public static void showIfFirstTime(StackPane outerStack) {
-        String username = SessionManager.getCurrentUser() != null
-            ? SessionManager.getCurrentUser().getUsername() : "unknown";
-        String key = "tutorial.v6." + username;
-        if (PREFS.getBoolean(key, false)) return;
-        PREFS.putBoolean(key, true);
-        javafx.application.Platform.runLater(() -> buildAndShow(outerStack));
+        String key = "tutorial.v6." + usuario();
+        String keyVersion = "novedades." + UpdateChecker.currentVersion() + "." + usuario();
+        if (!PREFS.getBoolean(key, false)) {
+            PREFS.putBoolean(key, true);
+            // Somebody new doesn't need what changed: all of it is new.
+            PREFS.putBoolean(keyVersion, true);
+            javafx.application.Platform.runLater(() -> mostrarMenu(outerStack, true));
+            return;
+        }
+        // sibim.test is only ever set by surefire: an overlay would sit on the screens under test.
+        if (Boolean.getBoolean("sibim.test") || PREFS.getBoolean(keyVersion, false)) return;
+        PREFS.putBoolean(keyVersion, true);
+        javafx.application.Platform.runLater(() -> buildAndShow(outerStack, TutorialGuias.novedades()));
     }
 
+    /** F2 and the account menu: what can be learned. */
     public static void show(StackPane outerStack) {
-        javafx.application.Platform.runLater(() -> buildAndShow(outerStack));
+        javafx.application.Platform.runLater(() -> mostrarMenu(outerStack, false));
     }
 
-    private static void buildAndShow(StackPane outerStack) {
-        final Step[] STEPS = buildSteps();
+    // ── El menú de guías ──────────────────────────────────────────────────────
+
+    static void mostrarMenu(StackPane outerStack, boolean bienvenida) {
+        if (abierto) return;
+        abierto = true;
+
+        Region dim = new Region();
+        dim.getStyleClass().add("tutorial-dim-layer");
+        dim.setOpacity(0.55);
+        dim.setOnMousePressed(javafx.event.Event::consume);
+        dim.setOnMouseClicked(javafx.event.Event::consume);
+
+        Usuario user = SessionManager.getCurrentUser();
+        String primerNombre = user != null && user.getNombre() != null && !user.getNombre().isBlank()
+            ? user.getNombre().split("\\s+")[0] : null;
+        HBox header = DialogUtil.gradientHeader("mdi2b-book-open-outline",
+            bienvenida ? (primerNombre != null ? "¡Bienvenido, " + primerNombre + "!" : "Bienvenido a SIBIM") : "Guías de SIBIM",
+            bienvenida ? "¿Por dónde empezamos? Cada guía te lleva a la pantalla y te deja probarlo"
+                       : "Elige qué quieres hacer: te lleva a la pantalla, marca el botón y te deja probarlo",
+            AppColors.PRIMARY, AppColors.PRIMARY_D);
+
+        VBox lista = new VBox(8);
+        lista.setPadding(new Insets(2, 6, 2, 2));
+        Runnable[] cerrar = {null};
+        java.util.function.Consumer<TutorialGuias.Guia> abrirGuia = g -> {
+            cerrar[0].run();
+            javafx.application.Platform.runLater(() -> buildAndShow(outerStack, g));
+        };
+        lista.getChildren().add(filaGuia(TutorialGuias.novedades(), true, abrirGuia));
+        for (TutorialGuias.Guia g : TutorialGuias.disponibles()) lista.getChildren().add(filaGuia(g, false, abrirGuia));
+
+        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(lista);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("dialog-scroll");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        Button pdf = new Button("Guía para imprimir (PDF)");
+        pdf.setGraphic(new FontIcon("mdi2b-book-open-page-variant-outline"));
+        pdf.getStyleClass().add("btn-secondary");
+        pdf.setOnAction(e -> {
+            javafx.scene.Scene scene = outerStack.getScene();
+            cerrar[0].run();
+            DialogUtil.runAsyncWithProgress(scene, "Generando la guía…",
+                () -> new com.sibim.service.ReporteGuiaRapidaService().exportGuia(),
+                archivo -> DialogUtil.showExportResultDialog(scene, archivo),
+                ex -> NotificacionUtil.error(scene, "No se pudo generar la guía"));
+        });
+        Button salir = new Button(bienvenida ? "Ahora no" : "Cerrar");
+        salir.getStyleClass().add("btn-secondary");
+        salir.setOnAction(e -> cerrar[0].run());
+        Label nota = new Label("F2 abre estas guías cuando quieras");
+        nota.getStyleClass().add("muted-sm");
+        nota.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(nota, Priority.ALWAYS);
+        HBox pie = new HBox(10, nota, pdf, salir);
+        pie.setAlignment(Pos.CENTER_LEFT);
+        pie.setPadding(new Insets(10, 18, 14, 18));
+
+        VBox cuerpo = new VBox(scroll);
+        cuerpo.setPadding(new Insets(0, 14, 0, 18));
+        VBox.setVgrow(cuerpo, Priority.ALWAYS);
+        VBox card = new VBox(12, header, cuerpo, pie);
+        card.getStyleClass().add("tutorial-menu");
+        card.setMaxSize(640, 620);
+        card.setPrefWidth(640);
+        StackPane capa = new StackPane(card);
+        capa.setPickOnBounds(false);
+        capa.setPadding(new Insets(16));
+        StackPane.setAlignment(card, Pos.CENTER);
+
+        javafx.scene.Scene scene = outerStack.getScene();
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> teclas = e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) { cerrar[0].run(); e.consume(); }
+        };
+        if (scene != null) scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, teclas);
+        cerrar[0] = () -> {
+            if (scene != null) scene.removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, teclas);
+            outerStack.getChildren().removeAll(dim, capa);
+            abierto = false;
+        };
+        outerStack.getChildren().addAll(dim, capa);
+        if (!lista.getChildren().isEmpty()) javafx.application.Platform.runLater(lista.getChildren().get(0)::requestFocus);
+    }
+
+    private static HBox filaGuia(TutorialGuias.Guia g, boolean destacada, java.util.function.Consumer<TutorialGuias.Guia> abrir) {
+        FontIcon icono = new FontIcon(g.icon());
+        icono.setIconSize(18);
+        icono.setIconColor(destacada ? Color.WHITE : Color.web("#A2232D"));
+        StackPane fondo = new StackPane(icono);
+        fondo.getStyleClass().add(destacada ? "tutorial-guia-icono-destacada" : "tutorial-guia-icono");
+        fondo.setMinSize(38, 38); fondo.setPrefSize(38, 38); fondo.setMaxSize(38, 38);
+        Label titulo = new Label(g.titulo());
+        titulo.getStyleClass().add("tutorial-guia-titulo");
+        Label desc = new Label(g.descripcion());
+        desc.getStyleClass().add("tutorial-guia-desc");
+        desc.setWrapText(true);
+        VBox textos = new VBox(2, titulo, desc);
+        textos.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(textos, Priority.ALWAYS);
+        boolean vista = PREFS.getBoolean(claveVista(g.id()), false);
+        Label estado = new Label(vista ? "✓ Vista" : g.pasos().size() == 1 ? "1 paso" : g.pasos().size() + " pasos");
+        estado.getStyleClass().add(vista ? "tutorial-guia-vista" : "tutorial-guia-pasos");
+        estado.setMinWidth(Region.USE_PREF_SIZE);
+        HBox fila = new HBox(12, fondo, textos, estado);
+        fila.setAlignment(Pos.CENTER_LEFT);
+        fila.getStyleClass().add("tutorial-guia");
+        if (destacada) fila.getStyleClass().add("tutorial-guia-destacada");
+        fila.setOnMouseClicked(e -> abrir.accept(g));
+        AccessibilityUtils.asButton(fila, g.titulo());
+        fila.setUserData(g.id());
+        return fila;
+    }
+
+    // ── Una guía ──────────────────────────────────────────────────────────────
+
+    static void buildAndShow(StackPane outerStack, TutorialGuias.Guia guia) {
+        if (abierto) return;
+        abierto = true;
+        final Step[] STEPS = guia.pasos().stream().map(Step::new).toArray(Step[]::new);
         int[]      step      = {0};
         Timeline[] pulseAnim = {null};
         Timeline[] posAnim   = {null};
@@ -366,9 +296,9 @@ public final class TutorialOverlay {
         Button btnNext = new Button("Siguiente →");
         btnNext.getStyleClass().add("tutorial-btn-primary");
         btnNext.setAccessibleText("Siguiente paso");
-        Button btnSkip = new Button("Saltar tutorial");
+        Button btnSkip = new Button("Ver las guías");
         btnSkip.getStyleClass().add("tutorial-btn-skip");
-        btnSkip.setAccessibleText("Saltar tutorial");
+        btnSkip.setAccessibleText("Volver a la lista de guías");
         Region btnSpacer = new Region();
         HBox.setHgrow(btnSpacer, Priority.ALWAYS);
         HBox btnRow = new HBox(8, btnSkip, btnSpacer, btnPrev, btnNext);
@@ -378,8 +308,14 @@ public final class TutorialOverlay {
         Label kbHint = new Label("← → para avanzar o regresar  ·  Esc para cerrar");
         kbHint.getStyleClass().add("tutorial-kb-hint");
 
+        // ── "Probarlo ahora": opens the real window ───────────────────────────
+        Button btnProbar = new Button();
+        btnProbar.setGraphic(new FontIcon("mdi2p-play-circle-outline"));
+        btnProbar.getStyleClass().add("tutorial-btn-probar");
+        btnProbar.setMaxWidth(Double.MAX_VALUE);
+
         // ── Card body VBox ────────────────────────────────────────────────────
-        VBox contentPad = new VBox(16, slideContent, btnRow, kbHint);
+        VBox contentPad = new VBox(16, slideContent, btnProbar, btnRow, kbHint);
         contentPad.setAlignment(Pos.CENTER);
         contentPad.setPadding(new Insets(18, 22, 14, 22));
 
@@ -412,14 +348,21 @@ public final class TutorialOverlay {
             javafx.application.Platform.runLater(() -> {
                 if (posAnim[0] != null) { posAnim[0].stop(); posAnim[0] = null; }
                 positionCard(step, firstPos, posAnim, outerStack, ring, arrowPoly,
-                             cardWithArrow, card, pulseAnim, STEPS);
+                             cardWithArrow, card, header, pulseAnim, STEPS);
             });
         };
         outerStack.widthProperty().addListener(sizeListener[0]);
         outerStack.heightProperty().addListener(sizeListener[0]);
 
+        // ── Keys: on the scene, because going to a screen takes the focus off the card ──
+        // (and the arrows stopped working after the first step that changed screen).
+        javafx.scene.Scene escena = outerStack.getScene();
+        @SuppressWarnings("unchecked")
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent>[] teclas = new javafx.event.EventHandler[]{null};
+
         // ── Dismiss ───────────────────────────────────────────────────────────
-        Runnable dismiss = () -> {
+        java.util.function.Consumer<Runnable> dismiss = despues -> {
+            if (escena != null && teclas[0] != null) escena.removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, teclas[0]);
             outerStack.widthProperty().removeListener(sizeListener[0]);
             outerStack.heightProperty().removeListener(sizeListener[0]);
             if (pulseAnim[0] != null) { pulseAnim[0].stop(); pulseAnim[0] = null; }
@@ -432,7 +375,11 @@ public final class TutorialOverlay {
             shrink.setToX(0.92); shrink.setToY(0.92);
             shrink.setInterpolator(Interpolator.EASE_IN);
             ParallelTransition exit = new ParallelTransition(fadeDim, fadeCard, shrink);
-            exit.setOnFinished(e -> outerStack.getChildren().removeAll(dimLayer, ringLayer, cardContainer));
+            exit.setOnFinished(e -> {
+                outerStack.getChildren().removeAll(dimLayer, ringLayer, cardContainer);
+                abierto = false;
+                if (despues != null) despues.run();
+            });
             exit.play();
         };
 
@@ -440,24 +387,15 @@ public final class TutorialOverlay {
         Runnable[] positionOverlay = {null};
         positionOverlay[0] = () ->
             positionCard(step, firstPos, posAnim, outerStack, ring, arrowPoly,
-                         cardWithArrow, card, pulseAnim, STEPS);
+                         cardWithArrow, card, header, pulseAnim, STEPS);
 
         // ── render ────────────────────────────────────────────────────────────
         Runnable render = () -> {
             Step s = STEPS[step[0]];
             boolean hasNav = s.navigateId() != null;
+            boolean marca = hasNav || s.foco() != null;
 
-            // Header: dynamic left radius — squared when arrow is shown
-            String hRadius = hasNav ? "0 20 0 0" : "20 20 0 0";
-            header.setStyle(
-                "-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
-                + s.color() + ", " + s.gradEnd() + ");"
-                + " -fx-background-radius: " + hRadius + ";"
-            );
-
-            // Card: left corners square when arrow is shown, fully rounded when centered
-            if (hasNav) card.getStyleClass().add("tutorial-card-with-arrow");
-            else        card.getStyleClass().remove("tutorial-card-with-arrow");
+            pintarEncabezado(header, card, s, false);
 
             icon.setIconLiteral(s.icon());
             lblTitle.setText(s.title());
@@ -493,20 +431,29 @@ public final class TutorialOverlay {
             boolean isLast  = step[0] == STEPS.length - 1;
             lblCounter.setText("PASO " + (step[0] + 1) + " DE " + STEPS.length);
             btnPrev.setVisible(!isFirst); btnPrev.setManaged(!isFirst);
-            btnNext.setText(isLast ? "Comenzar  ✓" : "Siguiente →");
-            btnNext.setAccessibleText(isLast ? "Comenzar a usar SIBIM" : "Siguiente paso");
+            btnNext.setText(isLast ? "Terminar  ✓" : "Siguiente →");
+            btnNext.setAccessibleText(isLast ? "Terminar esta guía" : "Siguiente paso");
+            boolean probar = s.accion() != null;
+            btnProbar.setVisible(probar); btnProbar.setManaged(probar);
+            if (probar) {
+                btnProbar.setText("Probarlo ahora: " + s.accionTexto());
+                btnProbar.setStyle("-fx-border-color: " + s.color() + "; -fx-text-fill: " + s.color() + ";");
+                if (btnProbar.getGraphic() instanceof FontIcon fi) fi.setIconColor(Color.web(s.color()));
+            }
             btnNext.setStyle("-fx-background-color: " + s.color()
                 + "; -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.40) + ", 10, 0, 0, 2);");
-            btnSkip.setVisible(!isLast); btnSkip.setManaged(!isLast);
 
             MainController mc = MainController.getInstance();
             if (hasNav && mc != null) {
                 mc.navigateToView(s.navigateId());
-                dimLayer.setOpacity(0.22);
-            } else {
-                dimLayer.setOpacity(0.55);
             }
+            dimLayer.setOpacity(marca && mc != null ? 0.22 : 0.55);
             javafx.application.Platform.runLater(positionOverlay[0]);
+            // Once more when the screen just opened has been laid out: until then what is
+            // to be marked measures nothing.
+            javafx.animation.PauseTransition otraVez = new javafx.animation.PauseTransition(Duration.millis(320));
+            otraVez.setOnFinished(ev -> { if (abierto) positionOverlay[0].run(); });
+            otraVez.play();
         };
 
         // ── Animated step transition ──────────────────────────────────────────
@@ -586,25 +533,36 @@ public final class TutorialOverlay {
             exitAnim.play();
         };
 
-        btnClose.setOnAction(e -> dismiss.run());
+        Runnable alMenu = () -> mostrarMenu(outerStack, false);
+        btnClose.setOnAction(e -> dismiss.accept(null));
 
         btnNext.setOnAction(e -> {
             if (step[0] < STEPS.length - 1) goTo.accept(step[0] + 1, 1);
-            else dismiss.run();
+            else {
+                PREFS.putBoolean(claveVista(guia.id()), true);
+                dismiss.accept(alMenu);
+            }
+        });
+        // Seen too: whoever goes to try it has got what the guide had to say.
+        btnProbar.setOnAction(e -> {
+            Runnable accion = STEPS[step[0]].accion();
+            PREFS.putBoolean(claveVista(guia.id()), true);
+            dismiss.accept(accion);
         });
         btnPrev.setOnAction(e -> {
             if (step[0] > 0) goTo.accept(step[0] - 1, -1);
         });
-        btnSkip.setOnAction(e -> dismiss.run());
+        btnSkip.setOnAction(e -> dismiss.accept(alMenu));
 
-        cardContainer.setOnKeyPressed(e -> {
+        teclas[0] = e -> {
             switch (e.getCode()) {
-                case RIGHT -> { if (!btnNext.isDisabled()) btnNext.fire(); }
-                case LEFT  -> { if (step[0] > 0 && !btnPrev.isDisabled()) btnPrev.fire(); }
-                case ESCAPE -> dismiss.run();
+                case RIGHT -> { if (!btnNext.isDisabled()) btnNext.fire(); e.consume(); }
+                case LEFT  -> { if (step[0] > 0 && !btnPrev.isDisabled()) btnPrev.fire(); e.consume(); }
+                case ESCAPE -> { dismiss.accept(null); e.consume(); }
                 default -> {}
             }
-        });
+        };
+        if (escena != null) escena.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, teclas[0]);
 
         // ── Initial render ────────────────────────────────────────────────────
         render.run();
@@ -659,11 +617,43 @@ public final class TutorialOverlay {
         entrance.play();
     }
 
+    /** The arrow takes the card's left corners when it is showing. */
+    private static void pintarEncabezado(StackPane header, VBox card, Step s, boolean conFlecha) {
+        header.setStyle(
+            "-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
+            + s.color() + ", " + s.gradEnd() + ");"
+            + " -fx-background-radius: " + (conFlecha ? "0 20 0 0" : "20 20 0 0") + ";"
+        );
+        card.getStyleClass().remove("tutorial-card-with-arrow");
+        if (conFlecha) card.getStyleClass().add("tutorial-card-with-arrow");
+    }
+
+    /** What the step marks: its button on the screen, a button of the side menu, or the
+     *  screen's own button of the menu when that one isn't there (a narrow window hides some). */
+    private static javafx.scene.Node objetivo(Step s, StackPane outerStack) {
+        MainController mc = MainController.getInstance();
+        if (mc == null) return null;
+        javafx.scene.Node n = null;
+        if (s.foco() != null) {
+            if (s.foco().startsWith("nav:")) n = mc.getNavButton(s.foco().substring(4));
+            else if (outerStack.getScene() != null) n = outerStack.getScene().getRoot().lookup(s.foco());
+        }
+        if (!seVe(n) && s.navigateId() != null) n = mc.getNavButton(s.navigateId());
+        return seVe(n) ? n : null;
+    }
+
+    private static boolean seVe(javafx.scene.Node n) {
+        if (n == null || n.getScene() == null) return false;
+        for (javafx.scene.Node p = n; p != null; p = p.getParent()) if (!p.isVisible()) return false;
+        Bounds b = n.localToScene(n.getBoundsInLocal());
+        return b.getWidth() > 0 && b.getHeight() > 0;
+    }
+
     // ── Card + ring positioning (extracted to allow resize-listener to call it) ──
     private static void positionCard(
             int[] step, boolean[] firstPos, Timeline[] posAnim,
             StackPane outerStack, StackPane ring, Polygon arrowPoly,
-            HBox cardWithArrow, VBox card, Timeline[] pulseAnim, Step[] steps) {
+            HBox cardWithArrow, VBox card, StackPane header, Timeline[] pulseAnim, Step[] steps) {
 
         Step s = steps[step[0]];
         if (pulseAnim[0] != null) { pulseAnim[0].stop(); ring.setScaleX(1); ring.setScaleY(1); }
@@ -673,69 +663,77 @@ public final class TutorialOverlay {
         // HBox total width: ARROW_W + (-2 spacing) + CARD_W
         double totalW = ARROW_W - 2 + CARD_W;
 
-        MainController mc = MainController.getInstance();
-        if (s.navigateId() != null && mc != null) {
-            Button navBtn = mc.getNavButton(s.navigateId());
-            if (navBtn != null && navBtn.getScene() != null) {
-                Bounds bScene = navBtn.localToScene(navBtn.getBoundsInLocal());
-                Bounds bStack = outerStack.sceneToLocal(bScene);
+        javafx.scene.Node marcado = objetivo(s, outerStack);
+        if (marcado != null) {
+            Bounds bScene = marcado.localToScene(marcado.getBoundsInLocal());
+            Bounds bStack = outerStack.sceneToLocal(bScene);
 
-                // Ring
-                double pad = 5;
-                ring.setLayoutX(bStack.getMinX() - pad);
-                ring.setLayoutY(bStack.getMinY() - pad);
-                ring.setPrefWidth(bStack.getWidth()   + pad * 2);
-                ring.setPrefHeight(bStack.getHeight() + pad * 2);
-                ring.setStyle(
-                    "-fx-border-color: " + s.color() + ";"
-                    + "-fx-border-width: 3;"
-                    + "-fx-border-radius: 10;"
-                    + "-fx-background-color: " + hexToRgba(s.color(), 0.18) + ";"
-                    + "-fx-background-radius: 10;"
-                    + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.75) + ", 26, 0.12, 0, 0);"
-                );
-                ring.setVisible(true);
+            // Ring
+            double pad = 5;
+            ring.setLayoutX(bStack.getMinX() - pad);
+            ring.setLayoutY(bStack.getMinY() - pad);
+            ring.setPrefWidth(bStack.getWidth()   + pad * 2);
+            ring.setPrefHeight(bStack.getHeight() + pad * 2);
+            ring.setStyle(
+                "-fx-border-color: " + s.color() + ";"
+                + "-fx-border-width: 3;"
+                + "-fx-border-radius: 10;"
+                + "-fx-background-color: " + hexToRgba(s.color(), 0.18) + ";"
+                + "-fx-background-radius: 10;"
+                + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.75) + ", 26, 0.12, 0, 0);"
+            );
+            ring.setVisible(true);
 
-                // Card positioned to the right of nav button
-                double cardH   = cardWithArrow.getHeight() > 20 ? cardWithArrow.getHeight() : 360;
-                double btnCY   = (bStack.getMinY() + bStack.getMaxY()) / 2;
-
-                double targetX = bStack.getMaxX() + 12;
-                double targetY = btnCY - cardH / 2;
-                targetY = Math.max(12, Math.min(targetY, stackH - cardH - 12));
-                if (targetX + totalW > stackW - 12) targetX = stackW - totalW - 12;
-
-                // Arrow translateY so its tip points at nav button center
-                double arrowH      = 22;
-                double arrowCenter = cardH / 2;
-                double arrowTarget = btnCY - targetY;
-                arrowTarget = Math.max(arrowH, Math.min(arrowTarget, cardH - arrowH * 1.2));
-                arrowPoly.setTranslateY(arrowTarget - arrowCenter);
-                arrowPoly.setVisible(true);
-
-                animateCardTo(firstPos, posAnim, cardWithArrow, targetX, targetY);
-
-                // Pulsing ring
-                pulseAnim[0] = new Timeline(
-                    new KeyFrame(Duration.ZERO,
-                        new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
-                        new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH)),
-                    new KeyFrame(Duration.millis(900),
-                        new KeyValue(ring.scaleXProperty(), 1.10, Interpolator.EASE_BOTH),
-                        new KeyValue(ring.scaleYProperty(), 1.10, Interpolator.EASE_BOTH)),
-                    new KeyFrame(Duration.millis(1800),
-                        new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
-                        new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
-                );
-                pulseAnim[0].setCycleCount(Timeline.INDEFINITE);
-                pulseAnim[0].play();
-                return;
+            double cardH = cardWithArrow.getHeight() > 20 ? cardWithArrow.getHeight() : 360;
+            double btnCY = (bStack.getMinY() + bStack.getMaxY()) / 2;
+            double targetX, targetY;
+            boolean conFlecha = false;
+            if (bStack.getMaxX() + 12 + totalW <= stackW - 12) {
+                // Beside it, the arrow pointing at it: the buttons of the side menu.
+                conFlecha = true;
+                targetX = bStack.getMaxX() + 12;
+                targetY = Math.max(12, Math.min(btnCY - cardH / 2, stackH - cardH - 12));
+                double arrowH = 22;
+                double arrowTarget = Math.max(arrowH, Math.min(btnCY - targetY, cardH - arrowH * 1.2));
+                arrowPoly.setTranslateY(arrowTarget - cardH / 2);
+            } else if (bStack.getWidth() > stackW * 0.5) {
+                // A whole row: on its left, so the button at its right end stays in view.
+                targetX = bStack.getMinX() + 16;
+                targetY = Math.max(12, Math.min(bStack.getMaxY() + 12, stackH - cardH - 12));
+            } else if (bStack.getMaxY() + 12 + cardH <= stackH - 12) {
+                // Under it, its right edge lined up: a button at the top of a screen.
+                targetX = Math.max(12, Math.min(bStack.getMaxX() - totalW, stackW - totalW - 12));
+                targetY = bStack.getMaxY() + 12;
+            } else {
+                // Above it, or as near as it fits: it must not sit on what it marks.
+                targetX = Math.max(12, Math.min(bStack.getMaxX() - totalW, stackW - totalW - 12));
+                targetY = Math.max(12, bStack.getMinY() - cardH - 12);
             }
+            arrowPoly.setVisible(conFlecha);
+            pintarEncabezado(header, card, s, conFlecha);
+            animateCardTo(firstPos, posAnim, cardWithArrow, targetX, targetY);
+
+            // Pulsing ring
+            pulseAnim[0] = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                    new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                    new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH)),
+                new KeyFrame(Duration.millis(900),
+                    new KeyValue(ring.scaleXProperty(), 1.06, Interpolator.EASE_BOTH),
+                    new KeyValue(ring.scaleYProperty(), 1.06, Interpolator.EASE_BOTH)),
+                new KeyFrame(Duration.millis(1800),
+                    new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
+                    new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
+            );
+            pulseAnim[0].setCycleCount(Timeline.INDEFINITE);
+            pulseAnim[0].play();
+            return;
         }
 
-        // Intro / outro: center card body on screen, hide ring + arrow
+        // Nothing to mark: card body in the center of the screen, no ring or arrow
         ring.setVisible(false);
         arrowPoly.setVisible(false);
+        pintarEncabezado(header, card, s, false);
         double cardH   = cardWithArrow.getHeight() > 20 ? cardWithArrow.getHeight() : 360;
         double arrowOffset = ARROW_W - 2; // px before card body in HBox
         double targetX = Math.max(12, (stackW - CARD_W) / 2 - arrowOffset);

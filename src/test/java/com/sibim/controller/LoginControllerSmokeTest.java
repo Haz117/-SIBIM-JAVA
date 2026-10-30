@@ -56,6 +56,22 @@ class LoginControllerSmokeTest extends ApplicationTest {
             "errorLabel debe contener un mensaje de error");
     }
 
+    /** The warning says what the keyboard says, also right after a key is let go. */
+    @Test
+    void avisoDeBloqMayus_diceLoQueDiceElTeclado() {
+        PasswordField pwdField = lookup("#passwordField").queryAs(PasswordField.class);
+        Label aviso = lookup("#lblCapsLock").queryAs(Label.class);
+        interact(() -> {
+            aviso.setVisible(true);
+            javafx.event.Event.fireEvent(pwdField, new javafx.scene.input.KeyEvent(
+                javafx.scene.input.KeyEvent.KEY_RELEASED, "", "",
+                javafx.scene.input.KeyCode.CAPS, false, false, false, false));
+        });
+        boolean[] activo = new boolean[1];
+        interact(() -> activo[0] = javafx.application.Platform.isKeyLocked(javafx.scene.input.KeyCode.CAPS).orElse(false));
+        assertEquals(activo[0], aviso.isVisible());
+    }
+
     @Test
     void togglePassword_intercambiaVisibilidadDeCampos() {
         PasswordField pwdField = lookup("#passwordField").queryAs(PasswordField.class);

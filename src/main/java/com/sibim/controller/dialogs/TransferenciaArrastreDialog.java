@@ -309,7 +309,7 @@ public final class TransferenciaArrastreDialog {
     }
 
     /** "①  Área de origen": the three steps of the board, in order. */
-    private static HBox paso(int numero, String texto) {
+    static HBox paso(int numero, String texto) {
         Label n = new Label(String.valueOf(numero));
         n.getStyleClass().add("trf-paso");
         Label t = new Label(texto);

@@ -224,7 +224,7 @@ class ResguardoServiceTest {
         return p;
     }
 
-    /** Reportes › Resguardo de una persona: the name is typed by hand on each
+    /** Reportes › Resguardos por resguardante: the name is typed by hand on each
      *  resguardo, so case, accents and double spaces don't make two people; and the
      *  inventory brings the people that never had a resguardo registered (90 of 316
      *  in the backup of 28-oct-2026). */
@@ -278,6 +278,37 @@ class ResguardoServiceTest {
             assertTrue(com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(d.getPage(2)).contains("RSG-2026-000012"));
             String sueltos = com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(d.getPage(3));
             assertTrue(sueltos.contains("CON/20") && sueltos.contains("RSP-"), sueltos);
+        }
+        // Each read is a query over the internet: one person can have 33 resguardos.
+        org.mockito.Mockito.verify(mockCfg, org.mockito.Mockito.times(1)).get(org.mockito.ArgumentMatchers.eq("nombre_ayuntamiento"), any());
+    }
+
+    /** The vehicle sheet says who holds the vehicle today and has no Estado: a cancelled
+     *  resguardo printed on it looks in force, under the name of whoever has it now. */
+    @Test
+    void unResguardoCancelado_deVehiculos_saleEnLaHojaGeneral_queDiceCancelado() throws Exception {
+        when(mockCfg.get(any(), any())).thenReturn("");
+        java.io.File cancelado, vigente;
+        com.sibim.db.DatabaseConfig.setDemoMode(true);
+        try {
+            com.sibim.model.Producto vehiculo = new ProductoService().getAll().stream()
+                .filter(ReporteParqueVehicularService::esVehiculo).findFirst().orElseThrow();
+            ResguardoItem renglon = item();
+            renglon.setProductoId(vehiculo.getId());
+            Resguardo r = resguardo("RSG-2026-000020", "Ana García", "Contraloría", Resguardo.ESTADO_CANCELADO);
+            r.setItems(List.of(renglon));
+            cancelado = service.exportarPdf(r);
+            r.setEstado(Resguardo.ESTADO_ACTIVO);
+            vigente = service.exportarPdf(r);
+        } finally { com.sibim.db.DatabaseConfig.setDemoMode(false); }
+        assertTrue(textoDe(cancelado).contains(Resguardo.ESTADO_CANCELADO), "dice que está cancelado");
+        assertTrue(textoDe(cancelado).contains("BIENES ENTREGADOS EN RESGUARDO"), "es la hoja general");
+        assertFalse(textoDe(vigente).contains("BIENES ENTREGADOS EN RESGUARDO"), "el vigente sí va en la hoja vehicular");
+    }
+
+    private static String textoDe(java.io.File pdf) throws Exception {
+        try (var d = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+            return com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(d.getPage(1));
         }
     }
 }

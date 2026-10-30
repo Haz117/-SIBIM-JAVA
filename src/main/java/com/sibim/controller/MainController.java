@@ -311,10 +311,6 @@ public class MainController {
                     NotificacionUtil.advertencia(scene, "No hay bienes activos registrados en el inventario");
                     return;
                 }
-                if (productos.size() > 150 && !ConfirmacionUtil.confirmar("Conteo grande",
-                        "Vas a iniciar un conteo físico de " + productos.size() + " bienes.\n"
-                        + "Para conteos más manejables, inicia desde Bienes filtrado por área o categoría.\n\n"
-                        + "¿Continuar con los " + productos.size() + " bienes?")) return;
                 ConteoFisicoDialog.show(productos, new MovimientoService(), () -> refreshCurrentView());
             },
             e -> NotificacionUtil.error(scene, "No se pudo cargar los bienes para el conteo")

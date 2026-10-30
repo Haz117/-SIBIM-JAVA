@@ -98,11 +98,10 @@ public class LoginController {
         });
 
         // Caps Lock warning — checked on focus and on every key stroke in both password fields
-        java.util.function.Supplier<Boolean> isCapsOn = () -> {
-            try { return java.awt.Toolkit.getDefaultToolkit()
-                    .getLockingKeyState(java.awt.event.KeyEvent.VK_CAPS_LOCK); }
-            catch (Exception ignored) { return false; }
-        };
+        // JavaFX's own reading: with AWT's the warning showed with the key off (30-oct-2026).
+        // Not knowing is not a reason to warn.
+        java.util.function.Supplier<Boolean> isCapsOn = () ->
+            javafx.application.Platform.isKeyLocked(javafx.scene.input.KeyCode.CAPS).orElse(false);
         javafx.event.EventHandler<javafx.scene.input.KeyEvent> capsCheck = e -> {
             boolean on = isCapsOn.get();
             if (lblCapsLock != null) {
@@ -110,8 +109,12 @@ public class LoginController {
                 lblCapsLock.setManaged(on);
             }
         };
+        // On release too: while the key goes down the state is still the old one, so
+        // turning it off left the warning up until the next key.
         passwordField.setOnKeyPressed(capsCheck);
+        passwordField.setOnKeyReleased(capsCheck);
         passwordRevealField.setOnKeyPressed(capsCheck);
+        passwordRevealField.setOnKeyReleased(capsCheck);
         passwordField.focusedProperty().addListener((obs, o, focused) -> {
             if (lblCapsLock == null) return;
             if (focused) { boolean on = isCapsOn.get(); lblCapsLock.setVisible(on); lblCapsLock.setManaged(on); }

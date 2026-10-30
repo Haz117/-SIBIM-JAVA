@@ -1,4 +1,4 @@
-package com.sibim.controller;
+package com.sibim.controller.dialogs;
 
 import com.sibim.model.Producto;
 import com.sibim.model.Resguardo;
@@ -34,8 +34,8 @@ class ResguardoANombreDeTest {
             bien("p-2", "TES/2", "juan  pérez"), baja, bien("p-3", "TES/03", "Ana Ruiz"));
 
         assertEquals(List.of("TES/2", "TES/10"),
-            ResguardosController.aNombreDe("  Juan Perez ", bienes, List.of(vigente)).stream().map(Producto::getCodigo).toList());
-        assertTrue(ResguardosController.aNombreDe("Luis Soto", bienes, List.of(vigente)).isEmpty());
-        assertTrue(ResguardosController.aNombreDe(" ", bienes, List.of(vigente)).isEmpty());
+            NuevoResguardoDialog.aNombreDe("  Juan Perez ", bienes, List.of(vigente)).stream().map(Producto::getCodigo).toList());
+        assertTrue(NuevoResguardoDialog.aNombreDe("Luis Soto", bienes, List.of(vigente)).isEmpty());
+        assertTrue(NuevoResguardoDialog.aNombreDe(" ", bienes, List.of(vigente)).isEmpty());
     }
 }

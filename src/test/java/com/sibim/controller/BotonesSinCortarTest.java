@@ -103,7 +103,7 @@ class BotonesSinCortarTest extends ControllerSmokeTestBase {
      */
     @Test
     void buscadorDeBienes_filtraAlEscribir() {
-        assertEquals("ok", escribirEnElBuscador("resguardos"), "Nuevo resguardo");
+        // Nuevo resguardo no longer has this picker: NuevoResguardoVentanaTest covers its list.
         assertEquals("ok", escribirEnElBuscador("movimientos"), "Registrar movimiento");
     }
 

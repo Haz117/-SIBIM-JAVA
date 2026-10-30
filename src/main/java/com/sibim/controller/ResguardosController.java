@@ -10,7 +10,6 @@ import com.sibim.session.NavigationContext;
 import com.sibim.session.SessionManager;
 import com.sibim.util.AccessibilityUtils;
 import com.sibim.util.AnimationUtils;
-import com.sibim.util.AutocompleteUtil;
 import com.sibim.util.AppColors;
 import com.sibim.util.ConfirmacionUtil;
 import com.sibim.util.DialogUtil;
@@ -52,6 +51,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @FXML private TableColumn<Resguardo, String> colBienes;
     @FXML private TableColumn<Resguardo, String> colEstado;
     @FXML private Button     btnNuevo;
+    @FXML private MenuItem   btnLote;
     @FXML private Button     btnCancelar;
 
     private final ResguardoService service         = new ResguardoService();
@@ -94,6 +94,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         // Patrimonio and every área (secretaría or dirección), for its own bienes.
         boolean canCreate = com.sibim.session.Permisos.creaResguardos();
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
+        if (btnLote != null) btnLote.setVisible(canCreate);
         actualizarSolicitudes();
         setupDateFilterBar(
             () -> com.sibim.service.ReporteService.getInstance().exportResguardosExcel(exportTarget()),
@@ -130,6 +131,11 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
 
         restoreFilterPrefs();
         Platform.runLater(() -> { if (searchField != null) searchField.requestFocus(); });
+        switch (NavigationContext.consumePendingAbrir()) {
+            case "nuevo" -> Platform.runLater(this::onNuevoResguardo);
+            case "lote"  -> Platform.runLater(this::onResguardosEnLote);
+            default -> { }
+        }
     }
 
     @FXML private Button btnSolicitudes;
@@ -297,11 +303,21 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     private void onNuevoResguardo() {
         javafx.scene.Scene scene = rootPane.getScene();
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes activos…",
-            () -> productoService.getAll().stream()
-                .filter(p -> p.getFechaBaja() == null)
-                .sorted((a, b) -> a.getNombre().compareTo(b.getNombre()))
-                .toList(),
-            productos -> mostrarDialogoNuevo(productos, scene),
+            () -> productoService.getAll(),
+            productos -> com.sibim.controller.dialogs.NuevoResguardoDialog.show(productos, allData, null, scene, resguardo -> {
+                loadData();
+                if (ConfirmacionUtil.confirmar("Exportar PDF", "¿Deseas abrir el PDF del resguardo ahora?"))
+                    exportarPdfAsync(resguardo, scene);
+            }),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    @FXML
+    private void onResguardosEnLote() {
+        javafx.scene.Scene scene = rootPane.getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
+            () -> java.util.Map.entry(productoService.getAll(), service.getAll()),
+            datos -> com.sibim.controller.dialogs.ResguardosEnLoteDialog.show(datos.getKey(), datos.getValue(), scene, n -> loadData()),
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }
 
@@ -313,12 +329,13 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     private void onResguardoGeneral() {
         javafx.scene.Scene scene = rootPane.getScene();
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
-            () -> productoService.getAll().stream().filter(p -> p.getFechaBaja() == null).toList(),
-            productos -> mostrarDialogoGeneral(productos, scene),
+            () -> java.util.Map.entry(productoService.getAll().stream().filter(p -> p.getFechaBaja() == null).toList(),
+                com.sibim.service.TitularesArea.todos(new com.sibim.repository.ConfiguracionRepository())),
+            datos -> mostrarDialogoGeneral(datos.getKey(), datos.getValue(), scene),
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }
 
-    private void mostrarDialogoGeneral(List<Producto> productos, javafx.scene.Scene scene) {
+    private void mostrarDialogoGeneral(List<Producto> productos, java.util.Map<String, String> titulares, javafx.scene.Scene scene) {
         java.util.Map<String, List<Producto>> porArea = productos.stream().filter(p -> p.getArea() != null)
             .collect(java.util.stream.Collectors.groupingBy(Producto::getArea));
         List<String> areas = Areas.getAllAreaNames().stream().filter(porArea::containsKey).toList();
@@ -345,16 +362,21 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         fTitular.getStyleClass().add("form-input");
         TextField fCargo = new TextField("Titular del área"); fCargo.getStyleClass().add("form-input");
         Label lblCuantos = new Label(); lblCuantos.getStyleClass().add("table-count-label");
+        Label lblOrigenTitular = new Label(); lblOrigenTitular.getStyleClass().add("muted-sm");
+        lblOrigenTitular.setWrapText(true);
         areaCombo.valueProperty().addListener((o, a, area) -> {
             List<Producto> bienes = area != null ? porArea.get(area) : null;
-            if (bienes == null) { lblCuantos.setText(""); return; }
+            if (bienes == null) { lblCuantos.setText(""); lblOrigenTitular.setText(""); return; }
             lblCuantos.setText(FormatUtils.plural(bienes.size(), "bien activo", "bienes activos") + " en el área");
-            fTitular.setText(titularProbable(bienes));
+            fTitular.setText(titularDe(area, titulares, bienes));
+            // Say where it came from: a guess has to be checked before it gets signed.
+            lblOrigenTitular.setText(titulares.containsKey(area) ? "Capturado en Configuración › Áreas"
+                : "Sugerido: quien tiene más bienes del área. Revísalo, o captúralo en Configuración › Áreas");
         });
         if (areas.size() == 1) areaCombo.setValue(areas.get(0));
         int row = 0;
         form.add(DialogUtil.fieldLabel("Área *"), 0, row);    form.add(new VBox(2, areaCombo, lblCuantos), 1, row++);
-        form.add(DialogUtil.fieldLabel("Titular *"), 0, row); form.add(fTitular, 1, row++);
+        form.add(DialogUtil.fieldLabel("Titular *"), 0, row); form.add(new VBox(2, fTitular, lblOrigenTitular), 1, row++);
         form.add(DialogUtil.fieldLabel("Cargo"), 0, row);     form.add(fCargo, 1, row++);
 
         Label nota = new Label("Cada bien sigue en el resguardo individual de su resguardante; "
@@ -386,21 +408,16 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     }
 
     /** Whoever holds the most bienes of the área is, in practice, its titular. */
+    static String titularDe(String area, java.util.Map<String, String> titulares, List<Producto> bienes) {
+        String capturado = titulares.get(area);
+        return capturado != null ? capturado : titularProbable(bienes);
+    }
+
     static String titularProbable(List<Producto> bienes) {
         return bienes.stream().map(Producto::getResguardante).filter(r -> r != null && !r.isBlank())
             .collect(java.util.stream.Collectors.groupingBy(r -> r, java.util.stream.Collectors.counting()))
             .entrySet().stream().max(java.util.Map.Entry.comparingByValue()).map(java.util.Map.Entry::getKey)
             .orElse("");
-    }
-
-    /** The active bienes the inventory has in {@code nombre}'s name (accents, case and
-     *  double spaces ignored) that no resguardo in force covers, by número. */
-    static List<Producto> aNombreDe(String nombre, List<Producto> productos, List<Resguardo> resguardos) {
-        if (nombre == null || nombre.isBlank()) return List.of();
-        String clave = ResguardoService.clavePersona(nombre);
-        return ResguardoService.porResguardante(resguardos, productos).stream()
-            .filter(r -> ResguardoService.clavePersona(r.nombre()).equals(clave))
-            .findFirst().map(ResguardoService.Resguardante::sinResguardo).orElse(List.of());
     }
 
     /** "SGM/07" → 7, so the list follows the área's numbering; anything else goes last. */
@@ -409,249 +426,6 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         int barra = c != null ? c.lastIndexOf('/') : -1;
         try { return barra >= 0 ? Integer.parseInt(c.substring(barra + 1)) : Integer.MAX_VALUE; }
         catch (NumberFormatException e) { return Integer.MAX_VALUE; }
-    }
-
-    // TableColumn<ResguardoItem,?>... varargs to addAll() triggers Java's inherent
-    // generic-array-creation warning — inescapable with this API, not a real risk here.
-    @SuppressWarnings("unchecked")
-    private void mostrarDialogoNuevo(List<Producto> productos, javafx.scene.Scene scene) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Nuevo Resguardo de Bienes");
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        dialog.getDialogPane().setPrefWidth(700);
-        DialogUtil.applyStylesheet(dialog.getDialogPane());
-
-        HBox header = DialogUtil.gradientHeader("mdi2c-clipboard-account-outline",
-            "Nuevo Resguardo", "Documento oficial de resguardo patrimonial",
-            AppColors.PRIMARY, AppColors.PRIMARY_D);
-
-        GridPane form = DialogUtil.formGrid(130);
-        int row = 0;
-        TextField fNombre = new TextField(); fNombre.setPromptText("Nombre completo");
-        fNombre.getStyleClass().add("form-input");
-        // Written as the inventory has it, "Cargar los que tiene a su nombre" finds the bienes.
-        AutocompleteUtil.attach(fNombre, productos.stream().map(Producto::getResguardante)
-            .filter(r -> r != null && !r.isBlank()).map(String::trim).distinct().sorted().toList());
-        TextField fCargo  = new TextField(); fCargo.setPromptText("Cargo o puesto");
-        fCargo.getStyleClass().add("form-input");
-        // An área assigns resguardos to its own people: the list offers only its áreas.
-        java.util.List<String> areasCatalogo = Areas.getAllAreaNames().stream()
-            .filter(com.sibim.session.Permisos::esAreaPropia)
-            .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
-        ComboBox<String> areaCombo = new ComboBox<>();
-        areaCombo.setPromptText("Buscar área…");
-        FiltroArea.conIconos(areaCombo);
-        DialogUtil.makeFilterable(areaCombo, areasCatalogo);
-        areaCombo.setMaxWidth(Double.MAX_VALUE);
-        areaCombo.getStyleClass().add("form-input");
-
-        Label lblNombreHint = new Label("Campo requerido");
-        lblNombreHint.getStyleClass().addAll("field-hint", "field-hint-error");
-        lblNombreHint.setVisible(false); lblNombreHint.setManaged(false);
-        fNombre.focusedProperty().addListener((obs, was, now) -> {
-            if (!now) {
-                boolean empty = fNombre.getText().isBlank();
-                lblNombreHint.setVisible(empty); lblNombreHint.setManaged(empty);
-                if (empty) fNombre.getStyleClass().add("field-error");
-            }
-        });
-        fNombre.textProperty().addListener((o, a, b) -> {
-            if (!b.isBlank()) {
-                fNombre.getStyleClass().remove("field-error");
-                lblNombreHint.setVisible(false); lblNombreHint.setManaged(false);
-            }
-        });
-
-        form.add(DialogUtil.fieldLabel("Resguardante *"), 0, row); form.add(new VBox(2, fNombre, lblNombreHint), 1, row++);
-        form.add(DialogUtil.fieldLabel("Cargo"),          0, row); form.add(fCargo,     1, row++);
-        form.add(DialogUtil.fieldLabel("Área / Dirección"), 0, row); form.add(areaCombo, 1, row++);
-
-        Label lblBienes = new Label("Bienes a resguardar *");
-        lblBienes.getStyleClass().add("dialog-field-label");
-
-        ObservableList<Producto> productosObs = FXCollections.observableArrayList(productos);
-        ComboBox<Producto> productoCombo = new ComboBox<>(productosObs);
-        productoCombo.setMaxWidth(Double.MAX_VALUE);
-        productoCombo.getStyleClass().add("form-input");
-        productoCombo.setConverter(new javafx.util.StringConverter<>() {
-            @Override public String toString(Producto p) { return p == null ? "" : p.getNombre() + " (" + p.getCodigo() + ")"; }
-            @Override public Producto fromString(String s) { return null; }
-        });
-        productoCombo.setPromptText("Seleccionar bien…");
-        // Type-to-filter picker shared with Movimientos: the hand-rolled filter that was
-        // here swapped the item list while typing, which never opened the list and
-        // lost what was typed, so the bien could not be searched.
-        DialogUtil.makeFilterable(productoCombo, productos, p -> productoCombo.getConverter().toString(p));
-
-        Button btnAgregar = new Button("+ Agregar");
-        btnAgregar.getStyleClass().add("btn-primary");
-        btnAgregar.setMinWidth(Region.USE_PREF_SIZE);   // was squeezed to "…" by the picker
-
-        ObservableList<ResguardoItem> itemsAgregados = FXCollections.observableArrayList();
-        TableView<ResguardoItem> itemsTable = new TableView<>(itemsAgregados);
-        itemsTable.getStyleClass().add("data-table");
-        Label sinBienes = new Label("Agrega aquí los bienes que tendrá a su cargo");
-        sinBienes.getStyleClass().add("muted-sm");
-        itemsTable.setPlaceholder(sinBienes);
-        itemsTable.setPrefHeight(160);
-        itemsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-
-        TableColumn<ResguardoItem, String> colItemNombre = new TableColumn<>("Bien");
-        colItemNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
-        TableColumn<ResguardoItem, String> colItemCodigo = new TableColumn<>("Código");
-        colItemCodigo.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getProductoCodigo() != null ? c.getValue().getProductoCodigo() : "—"));
-        colItemCodigo.setMinWidth(90); colItemCodigo.setMaxWidth(120);
-        TableColumn<ResguardoItem, String> colItemArea = new TableColumn<>("Área");
-        colItemArea.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
-        TableColumn<ResguardoItem, Void> colItemDel = new TableColumn<>("");
-        // Fixed width that fits the button: at 40px the "quitar" button was cut off by the dialog edge.
-        colItemDel.setMinWidth(60); colItemDel.setMaxWidth(60);
-        colItemDel.setResizable(false); colItemDel.setSortable(false);
-        colItemDel.setCellFactory(col -> new TableCell<>() {
-            private final Button btnDel = new Button();
-            { FontIcon ico = new FontIcon("mdi2d-delete-outline");
-              ico.getStyleClass().add("btn-icon");
-              btnDel.setGraphic(ico);
-              btnDel.getStyleClass().add("btn-icon-only");
-              btnDel.setTooltip(new Tooltip("Quitar de la lista"));
-              btnDel.setAccessibleText("Quitar de la lista");
-              setAlignment(Pos.CENTER);
-              btnDel.setOnAction(e -> itemsAgregados.remove(getTableRow().getItem())); }
-            @Override protected void updateItem(Void v, boolean empty) {
-                super.updateItem(v, empty);
-                setGraphic(empty ? null : btnDel);
-            }
-        });
-        itemsTable.getColumns().addAll(colItemNombre, colItemCodigo, colItemArea, colItemDel);
-
-        btnAgregar.setOnAction(e -> {
-            Producto sel = productoCombo.getValue();
-            if (sel == null) return;
-            if (itemsAgregados.stream().anyMatch(i -> sel.getId().equals(i.getProductoId()))) {
-                NotificacionUtil.advertencia(scene, "Ese bien ya está en la lista"); return;
-            }
-            ResguardoItem item = new ResguardoItem();
-            item.setProductoId(sel.getId()); item.setProductoNombre(sel.getNombre());
-            item.setProductoCodigo(sel.getCodigo()); item.setArea(sel.getArea());
-            item.setValorUnitario(sel.getValorUnitario()); item.setNumeroSerie(sel.getNumeroSerie());
-            itemsAgregados.add(item);
-            // Editor first: the filterable picker restores a selection whose text is still shown.
-            if (productoCombo.getEditor() != null) productoCombo.getEditor().clear();
-            productoCombo.setValue(null);
-            productoCombo.hide();
-        });
-
-        Button btnCargarArea = new Button("Cargar todos del área");
-        btnCargarArea.setGraphic(new FontIcon("mdi2i-import"));
-        btnCargarArea.getStyleClass().add("btn-secondary");
-        btnCargarArea.setOnAction(e -> {
-            String area = areaCombo.getValue();
-            if (area == null || area.isBlank()) {
-                NotificacionUtil.advertencia(scene, "Selecciona un área primero"); return;
-            }
-            productos.stream()
-                .filter(p -> area.equalsIgnoreCase(p.getArea()))
-                .filter(p -> itemsAgregados.stream().noneMatch(i -> p.getId().equals(i.getProductoId())))
-                .forEach(p -> {
-                    ResguardoItem item = new ResguardoItem();
-                    item.setProductoId(p.getId()); item.setProductoNombre(p.getNombre());
-                    item.setProductoCodigo(p.getCodigo()); item.setArea(p.getArea());
-                    item.setValorUnitario(p.getValorUnitario()); item.setNumeroSerie(p.getNumeroSerie());
-                    itemsAgregados.add(item);
-                });
-            if (itemsAgregados.isEmpty())
-                NotificacionUtil.advertencia(scene, "No hay bienes en esa área");
-        });
-
-        // What the inventory has in this person's name and no resguardo in force covers:
-        // 90 of 316 people held bienes without a registered resguardo (28-oct-2026).
-        Button btnCargarPersona = new Button("Cargar los que tiene a su nombre");
-        btnCargarPersona.setGraphic(new FontIcon("mdi2a-account-outline"));
-        btnCargarPersona.getStyleClass().add("btn-secondary");
-        btnCargarPersona.setOnAction(e -> {
-            if (fNombre.getText().isBlank()) {
-                NotificacionUtil.advertencia(scene, "Escribe primero el nombre del resguardante"); return;
-            }
-            List<Producto> suyos = aNombreDe(fNombre.getText(), productos, allData);
-            if (suyos.isEmpty()) {
-                NotificacionUtil.advertencia(scene, "No hay bienes a nombre de «" + fNombre.getText().trim()
-                    + "» fuera de un resguardo vigente"); return;
-            }
-            int antes = itemsAgregados.size();
-            for (Producto p : suyos) {
-                if (itemsAgregados.stream().anyMatch(i -> p.getId().equals(i.getProductoId()))) continue;
-                ResguardoItem item = new ResguardoItem();
-                item.setProductoId(p.getId()); item.setProductoNombre(p.getNombre());
-                item.setProductoCodigo(p.getCodigo()); item.setArea(p.getArea());
-                item.setValorUnitario(p.getValorUnitario()); item.setNumeroSerie(p.getNumeroSerie());
-                itemsAgregados.add(item);
-            }
-            List<String> areas = suyos.stream().map(Producto::getArea).filter(a -> a != null && !a.isBlank())
-                .distinct().toList();
-            if (areaCombo.getValue() == null && areas.size() == 1 && areasCatalogo.contains(areas.get(0)))
-                areaCombo.setValue(areas.get(0));
-            NotificacionUtil.exito(scene, FormatUtils.plural(itemsAgregados.size() - antes, "bien agregado", "bienes agregados"));
-        });
-
-        TextField fObs = new TextField(); fObs.setPromptText("Observaciones (opcional)");
-        fObs.getStyleClass().add("form-input");
-
-        Label lblError = new Label();
-        lblError.getStyleClass().add("field-error-label");
-        lblError.setVisible(false);
-
-        HBox selectorRow = new HBox(8, productoCombo, btnAgregar);
-        HBox.setHgrow(productoCombo, Priority.ALWAYS);
-        selectorRow.setAlignment(Pos.CENTER_LEFT);
-
-        HBox cargarRow = new HBox(8, btnCargarArea, btnCargarPersona);
-        cargarRow.setAlignment(Pos.CENTER_LEFT);
-        VBox content = new VBox(10, header, form,
-            lblBienes, selectorRow, cargarRow, itemsTable,
-            DialogUtil.fieldLabel("Observaciones"), fObs, lblError);
-        content.setPadding(new Insets(0, 16, 16, 16));
-        DialogUtil.setScrollableContent(dialog.getDialogPane(), content);
-
-        Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okBtn.setText("Guardar resguardo");
-        okBtn.getStyleClass().add("dialog-ok-btn");
-
-        AnimationUtils.staggeredFadeInUp(List.of(header, form, itemsTable), 280, 70);
-        Platform.runLater(fNombre::requestFocus);
-
-        okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
-            lblError.setVisible(false);
-            if (fNombre.getText().isBlank()) {
-                fNombre.getStyleClass().add("field-error");
-                lblNombreHint.setVisible(true); lblNombreHint.setManaged(true);
-                fNombre.requestFocus();
-                lblError.setText("El nombre del resguardante es obligatorio"); lblError.setVisible(true);
-                AnimationUtils.shake(lblError); ev.consume(); return;
-            }
-            if (itemsAgregados.isEmpty()) {
-                lblError.setText("Agrega al menos un bien al resguardo"); lblError.setVisible(true);
-                AnimationUtils.shake(lblError); ev.consume(); return;
-            }
-        });
-
-        dialog.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt ->
-            DialogUtil.runAsync(
-                () -> service.crear(fNombre.getText().trim(), fCargo.getText().trim(),
-                    areaCombo.getValue(), new ArrayList<>(itemsAgregados), fObs.getText().trim()),
-                resguardo -> {
-                    NotificacionUtil.exito(scene, "Resguardo " + resguardo.getNumero() + " creado");
-                    loadData();
-                    if (ConfirmacionUtil.confirmar("Exportar PDF",
-                            "¿Deseas abrir el PDF del resguardo ahora?"))
-                        exportarPdfAsync(resguardo, scene);
-                },
-                e -> NotificacionUtil.error(scene, "No se pudo guardar el resguardo: "
-                    + (e.getMessage() != null ? e.getMessage() : "Error desconocido"))
-            )
-        );
     }
 
     private void mostrarDetalle(Resguardo r) {
