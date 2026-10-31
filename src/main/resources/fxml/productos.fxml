@@ -306,7 +306,7 @@
     </TableView>
 
     <!-- ══ BULK ACTION BAR (visible when ≥2 rows selected) ════════════ -->
-    <HBox fx:id="bulkBar" alignment="CENTER_LEFT" spacing="12"
+    <HBox fx:id="bulkBar" alignment="CENTER_LEFT" spacing="8"
           styleClass="bulk-action-bar" visible="false" managed="false">
         <FontIcon iconLiteral="mdi2c-checkbox-multiple-marked-outline" styleClass="bulk-bar-icon"/>
         <Label fx:id="lblBulkCount" text="" styleClass="bulk-count-label"/>
@@ -345,7 +345,7 @@
         </Button>
         <Separator orientation="VERTICAL"/>
         <Button text="Deseleccionar" onAction="#onDeseleccionar" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="6">
+                contentDisplay="GRAPHIC_ONLY" accessibleText="Quitar la selección">
             <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Quitar la selección de todos los bienes marcados"/></tooltip>
         </Button>
@@ -356,7 +356,6 @@
     <HBox alignment="CENTER_LEFT" spacing="8" styleClass="bottom-action-bar">
         <Label fx:id="lblTotal" text="0 resultados" styleClass="muted"/>
         <Label fx:id="lblTotalAll" text="" styleClass="muted"/>
-        <Label fx:id="lblSeleccionados" text="" styleClass="status-bar-selection" visible="false" managed="false"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="btnMovimiento" text="Transferir" onAction="#onTransferir" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">

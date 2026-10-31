@@ -141,6 +141,86 @@ class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
         interact(() -> ((Stage) fArea.getScene().getWindow()).close());
     }
 
+    private static com.sibim.model.Producto bienCompleto() {
+        com.sibim.model.Producto p = new com.sibim.model.Producto();
+        p.setId("p-serie"); p.setNombre("Escritorio"); p.setCodigo("SGM/34");
+        p.setCategoriaId("cat-prueba"); p.setCategoriaNombre("Mobiliario");
+        p.setArea(com.sibim.config.Areas.getAllAreaNames().iterator().next());
+        p.setUnidad(com.sibim.model.enums.UnidadMedida.PIEZA);
+        return p;
+    }
+
+    private Button enBarra(String texto) {
+        return lookup(".stepper-nav-bar").queryAs(HBox.class).getChildren().stream()
+            .filter(n -> n instanceof Button b && texto.equals(b.getText())).map(n -> (Button) n).findFirst().orElse(null);
+    }
+
+    /** Correcting one datum took Siguiente, Siguiente, Guardar. Editing, Guardar is there
+     *  from the start, and the series goes on in the same section. */
+    @Test
+    void editar_guardaDesdeCualquierSeccion_ySigueConElDeAbajo() throws Exception {
+        Categoria cat = new Categoria("cat-prueba", "Mobiliario", null, "#8B5CF6", null, null);
+        ProductoDialogFactory.Seguir seguir = new ProductoDialogFactory.Seguir("Guardar y abrir SGM/35", "El de abajo", 2);
+        java.util.concurrent.atomic.AtomicReference<java.util.Optional<com.sibim.model.Producto>> res = new java.util.concurrent.atomic.AtomicReference<>();
+        Platform.runLater(() -> res.set(ProductoDialogFactory.show(bienCompleto(), List.of(cat), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null), null, seguir)));
+        for (int i = 0; i < 50 && lookup(".stepper-nav-bar").tryQuery().isEmpty(); i++) sleep(100);
+        WaitForAsyncUtils.waitForFxEvents();
+
+        assertEquals(null, enBarra("Siguiente"), "editar no va por pasos");
+        Button guardar = enBarra("Guardar cambios");
+        Button otro = enBarra("Guardar y abrir SGM/35");
+        assertFalse(guardar.isDisabled());
+        assertEquals(2, lookup(".dlg-stepper").queryAs(javafx.scene.control.TabPane.class).getSelectionModel().getSelectedIndex(),
+            "abre en la sección en la que se venía trabajando");
+
+        // Something missing: neither way of saving is available.
+        TextField nombre = (TextField) esperar(n -> n instanceof TextField t && "Nombre descriptivo del bien".equals(t.getPromptText()));
+        interact(() -> nombre.setText(""));
+        assertTrue(guardar.isDisabled() && otro.isDisabled());
+        assertFalse(seguir.pedido());
+        interact(() -> nombre.setText("Escritorio grande"));
+
+        interact(() -> lookup(".dlg-stepper").queryAs(javafx.scene.control.TabPane.class).getSelectionModel().select(1));
+        interact(otro::fire);
+        WaitForAsyncUtils.waitForFxEvents();
+        assertTrue(seguir.pedido());
+        assertEquals(1, seguir.pestana(), "el siguiente abre en la sección de ahora");
+        assertEquals("Escritorio grande", res.get().orElseThrow().getNombre());
+    }
+
+    /** A new bien goes through the steps; at the last one it can go on to another,
+     *  and that one opens with what they share and without what identifies a bien. */
+    @Test
+    void nuevo_alFinalPuedeSeguirConOtro() throws Exception {
+        Categoria cat = new Categoria("cat-prueba", "Mobiliario", null, "#8B5CF6", null, null);
+        com.sibim.model.Producto plantilla = bienCompleto();
+        plantilla.setId(null); plantilla.setNombre(""); plantilla.setCodigo(""); plantilla.setUbicacion("Oficina 2");
+        ProductoDialogFactory.Seguir seguir = new ProductoDialogFactory.Seguir("Guardar y registrar otro", "Otro igual", 0);
+        Platform.runLater(() -> ProductoDialogFactory.show(plantilla, List.of(cat), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null), null, seguir));
+        for (int i = 0; i < 50 && lookup(".stepper-nav-bar").tryQuery().isEmpty(); i++) sleep(100);
+        WaitForAsyncUtils.waitForFxEvents();
+
+        assertTrue(lookup(n -> n instanceof javafx.scene.control.Label l && l.getText() != null
+            && l.getText().startsWith("Se conservaron el área")).tryQuery().isPresent(), "dice qué se conservó");
+        ComboBox<?> categoria = (ComboBox<?>) esperar(n -> n instanceof ComboBox<?> c && "Buscar categoría…".equals(c.getPromptText()));
+        assertEquals(cat, categoria.getValue());
+        TextField nombre = (TextField) esperar(n -> n instanceof TextField t && "Nombre descriptivo del bien".equals(t.getPromptText()));
+        assertEquals("", nombre.getText());
+
+        Button siguiente = enBarra("Siguiente");
+        Button otro = enBarra("Guardar y registrar otro");
+        assertFalse(otro.isVisible(), "todavía no: faltan pasos");
+        interact(siguiente::fire);
+        interact(siguiente::fire);
+        assertTrue(otro.isVisible());
+        assertTrue(otro.isDisabled(), "sin nombre no se puede guardar");
+        interact(() -> ((Stage) nombre.getScene().getWindow()).close());
+    }
+
     /** The first node {@code que} matches, waiting up to 10 s for it to show. */
     private Node esperar(java.util.function.Predicate<Node> que) {
         for (int i = 0; i < 100; i++) {

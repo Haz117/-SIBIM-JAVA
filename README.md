@@ -70,7 +70,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
 | Windows | JNA (DPAPI para sellar claves; colores de la barra de título vía DWM) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres + TestFX (1229 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres + TestFX (1302 tests en la última ejecución) |
 
 ---
 
@@ -383,7 +383,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (1229 en total; los de interfaz abren ventanas unos minutos)
+# Correr todos los tests (1302 en total; los de interfaz abren ventanas unos minutos)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

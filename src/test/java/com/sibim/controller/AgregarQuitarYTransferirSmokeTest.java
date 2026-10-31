@@ -71,8 +71,9 @@ class AgregarQuitarYTransferirSmokeTest extends ControllerSmokeTestBase {
         Platform.runLater(() -> TransferenciaArrastreDialog.show(productos, ids, () -> {}));
         ListView<Producto> lista = (ListView<Producto>) esperar(n -> n instanceof ListView<?> l
             && l.getStyleClass().contains("trf-lista") && !l.getItems().isEmpty());
-        assertEquals(ids.size(), lista.getSelectionModel().getSelectedItems().size());
-        assertTrue(lista.getSelectionModel().getSelectedItems().stream().allMatch(p -> ids.contains(p.getId())));
+        org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(ids.size(), lookup(".trf-lista .check-box").queryAll().stream()
+            .filter(c -> ((javafx.scene.control.CheckBox) c).isSelected()).count(), "ya salen marcados");
         assertTrue(lista.getItems().stream().allMatch(p -> uno.getArea().equals(p.getArea())), "su área es el origen");
         assertTrue(lookup(n -> n instanceof javafx.scene.control.Label l && l.isVisible()
             && l.getText() != null && l.getText().contains("de otra área")).tryQuery().isEmpty());
@@ -130,7 +131,11 @@ class AgregarQuitarYTransferirSmokeTest extends ControllerSmokeTestBase {
                 .noneMatch(n -> area.equals(((javafx.scene.control.Label) n).getText())), "su propia área no es destino");
 
             Producto bien = lista.getItems().stream().filter(p -> p.getStockActual() > 0).findFirst().orElseThrow();
-            interact(() -> lista.getSelectionModel().select(bien));
+            javafx.scene.control.TextField buscarBien = (javafx.scene.control.TextField) lookup(n ->
+                n instanceof javafx.scene.control.TextField t && t.getPromptText() != null
+                    && t.getPromptText().startsWith("Código y Enter")).query();
+            marcarConEnter(buscarBien, bien.getCodigo());
+            assertEquals("", buscarBien.getText(), "queda listo para el siguiente código");
             Node destino = lookup(".trf-tarjeta").queryAll().iterator().next();
             assertFalse(destino.getStyleClass().contains("trf-tarjeta-inactiva"));
 
@@ -173,6 +178,87 @@ class AgregarQuitarYTransferirSmokeTest extends ControllerSmokeTestBase {
                 .forEach(w -> ((Stage) w).close()));
             com.sibim.db.DemoDataStore.reiniciar();
         }
+    }
+
+    /** In production every transfer was one bien with its own resguardo: the list needed
+     *  Ctrl + click and a search lost what was selected. One click ticks, a search keeps
+     *  the ticks, and all of them go in one batch with one resguardo. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void transferir_lasMarcasSobrevivenALaBusqueda_yVanJuntas() throws Exception {
+        List<Producto> productos = new ProductoService().getAll();
+        String area = productos.stream().filter(p -> p.getArea() != null && p.getFechaBaja() == null && p.getStockActual() > 0)
+            .collect(java.util.stream.Collectors.groupingBy(Producto::getArea)).entrySet().stream()
+            .filter(e -> e.getValue().size() >= 3).map(java.util.Map.Entry::getKey).findFirst().orElseThrow();
+        List<Producto> delArea = productos.stream()
+            .filter(p -> area.equals(p.getArea()) && p.getFechaBaja() == null && p.getStockActual() > 0).limit(3).toList();
+        Platform.runLater(() -> TransferenciaArrastreDialog.show(productos, () -> {}));
+        try {
+            ListView<String> areas = (ListView<String>) esperar(n -> n instanceof ListView<?> l
+                && l.getStyleClass().contains("trf-areas") && l.isVisible() && !l.getItems().isEmpty());
+            interact(() -> {
+                areas.getSelectionModel().select(area);
+                areas.fireEvent(new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_PRESSED,
+                    "", "", javafx.scene.input.KeyCode.ENTER, false, false, false, false));
+            });
+            javafx.scene.control.TextField buscarBien = (javafx.scene.control.TextField) lookup(n ->
+                n instanceof javafx.scene.control.TextField t && t.getPromptText() != null
+                    && t.getPromptText().startsWith("Código y Enter")).query();
+            marcarConEnter(buscarBien, delArea.get(0).getCodigo());
+
+            // A click on the row ticks it, with no key held down.
+            ListView<Producto> lista = (ListView<Producto>) lookup(".trf-lista").query();
+            interact(() -> lista.scrollTo(delArea.get(1)));
+            org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+            Node fila = lookup(".trf-lista .cnt-fila").queryAll().stream()
+                .filter(n -> n.lookupAll(".trf-codigo").stream().anyMatch(c ->
+                    delArea.get(1).getCodigo().equals(((javafx.scene.control.Label) c).getText()))).findFirst().orElseThrow();
+            interact(() -> fila.fireEvent(new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, true, false, true, null)));
+            assertTrue(textoVisible("2 marcados"), "dos marcados");
+
+            // The third is searched: the first two aren't on the list now, and stay ticked.
+            interact(() -> buscarBien.setText(delArea.get(2).getCodigo()));
+            org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+            assertTrue(textoVisible("2 marcados · "), "dice que hay marcas fuera de la búsqueda");
+            marcarConEnter(buscarBien, delArea.get(2).getCodigo());
+            assertTrue(textoVisible("3 marcados"));
+
+            Node destino = lookup(".trf-tarjeta").queryAll().iterator().next();
+            Platform.runLater(() -> destino.fireEvent(new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, true, false, false, null)));
+            javafx.scene.control.TextField motivo = (javafx.scene.control.TextField) esperar(n ->
+                n instanceof javafx.scene.control.TextField t && "Ej. reasignación, cambio de oficina".equals(t.getPromptText()));
+            interact(() -> motivo.setText("Prueba"));
+            javafx.scene.control.Button ok = (javafx.scene.control.Button) lookup(n ->
+                n instanceof javafx.scene.control.Button b && "Transferir".equals(b.getText())).query();
+            Platform.runLater(ok::fire);
+            esperar(n -> n instanceof javafx.scene.control.Label l && "Transferidos en esta ventana: 3 bienes".equals(l.getText()));
+            org.testfx.util.WaitForAsyncUtils.waitFor(10, java.util.concurrent.TimeUnit.SECONDS, () -> !textoVisible("marcados"));
+            assertTrue(lista.getItems().stream().noneMatch(p -> delArea.stream().anyMatch(d -> d.getId().equals(p.getId()))),
+                "los tres salieron de la lista");
+        } finally {
+            interact(() -> new java.util.ArrayList<>(javafx.stage.Window.getWindows()).stream()
+                .filter(w -> w instanceof Stage s && s.getTitle() != null && s.getTitle().startsWith("Transferir"))
+                .forEach(w -> ((Stage) w).close()));
+            com.sibim.db.DemoDataStore.reiniciar();
+        }
+    }
+
+    private void marcarConEnter(javafx.scene.control.TextField buscar, String codigo) {
+        interact(() -> {
+            buscar.setText(codigo);
+            buscar.fireEvent(new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_PRESSED,
+                "", "", javafx.scene.input.KeyCode.ENTER, false, false, false, false));
+        });
+        org.testfx.util.WaitForAsyncUtils.waitForFxEvents();
+    }
+
+    private boolean textoVisible(String inicio) {
+        return lookup(n -> n instanceof javafx.scene.control.Label l && l.isVisible()
+            && l.getText() != null && l.getText().startsWith(inicio)).tryQuery().isPresent();
     }
 
     /** Looking up a secretaría on the right shows its whole group. */

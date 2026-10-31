@@ -364,14 +364,6 @@
 .trf-persona-icono { -fx-icon-size: 13; -fx-icon-color: sibim-slate-500; }
 /* Selected rows stay light with dark text, focused or not (Modena turned them
    grey when the list lost focus to a card). */
-.trf-lista .list-cell { -fx-padding: 7 10; -fx-background-color: white; }
-.trf-lista .list-cell:filled:hover { -fx-background-color: #FDF4F5; }
-.trf-lista .list-cell:filled:selected {
-    -fx-background-color: #F9DEE0;
-    -fx-border-color: transparent transparent transparent sibim-indigo;
-    -fx-border-width: 0 0 0 3;
-}
-.trf-lista .list-cell:filled:selected .trf-codigo { -fx-background-color: white; }
 .trf-seleccion-activa { -fx-text-fill: sibim-indigo-darker; -fx-font-weight: bold; }
 .trf-tarjeta {
     -fx-pref-width: 250;
@@ -501,3 +493,6 @@
 .area-elegir-fila { -fx-padding: 6 10; -fx-background-radius: 8; -fx-cursor: hand; }
 .area-elegir-fila:hover { -fx-background-color: #FDF4F5; }
 .area-elegir-fila-sel, .area-elegir-fila-sel:hover { -fx-background-color: #F9DEE0; }
+
+/* ── Movimientos: número anterior → nuevo de una transferencia ── */
+.mov-numeros { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-darker; }

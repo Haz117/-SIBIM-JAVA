@@ -65,16 +65,39 @@ class MovimientosColumnSetup {
             private final Label lblArrow   = new Label();
             private final Label lblDespues = new Label();
             private final HBox  box        = new HBox(4, lblAntes, lblArrow, lblDespues);
+            // A transfer moves the whole bien, so its quantity doesn't change ("1 · 1"):
+            // what changed is its número and where it went.
+            private final Label lblNumeros = new Label();
+            private final Label lblAdonde  = new Label();
+            private final javafx.scene.layout.VBox transferencia = new javafx.scene.layout.VBox(1, lblNumeros, lblAdonde);
+            private final Tooltip tip = new Tooltip();
             {
                 lblAntes.getStyleClass().add("stock-before");
                 box.setAlignment(Pos.CENTER_LEFT);
+                lblNumeros.getStyleClass().add("mov-numeros");
+                lblAdonde.getStyleClass().add("org-table-sub");
+                lblAdonde.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
+                transferencia.setAlignment(Pos.CENTER_LEFT);
+                transferencia.setMinWidth(0);
+                tip.setWrapText(true);
+                tip.setMaxWidth(320);
             }
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(null); setText(null);
                 if (empty || item == null || getTableRow() == null) return;
                 Movimiento m = getTableRow().getItem();
+                setTooltip(null);
                 if (m == null) return;
+                if (m.getTipo() == com.sibim.model.enums.TipoMovimiento.TRANSFERENCIA && m.getAreaDestino() != null) {
+                    boolean conNumeros = m.getCodigoAnterior() != null && m.getCodigoNuevo() != null;
+                    lblNumeros.setText(conNumeros ? m.getCodigoAnterior() + " → " + m.getCodigoNuevo() : "Pendiente de aplicar");
+                    lblAdonde.setText("a " + m.getAreaDestino());
+                    tip.setText((m.getAreaOrigen() != null ? "De " + m.getAreaOrigen() + " a " : "A ") + m.getAreaDestino());
+                    setTooltip(tip);
+                    setGraphic(transferencia);
+                    return;
+                }
                 int antes = m.getStockAnterior(), despues = m.getStockNuevo();
                 lblAntes.setText(String.valueOf(antes));
                 lblArrow.setText(antes < despues ? "↑" : (antes > despues ? "↓" : "·"));

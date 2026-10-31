@@ -70,6 +70,79 @@ class BotonesSinCortarTest extends ControllerSmokeTestBase {
         assertTrue(cortados.isEmpty(), "Botones con el texto cortado a 1366×768:\n  " + String.join("\n  ", cortados));
     }
 
+    /** At 1366 px selecting a bien left the buttons below with only their icons (a pencil,
+     *  a tag, a sheet), and several left "Transf…" and "Cambiar resguarda…" in the bar. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void bienes_conSeleccion_losBotonesConservanSuNombre() {
+        interact(() -> MainController.getInstance().navigateToView("productos"));
+        sleep(1500);
+        javafx.scene.control.TableView<Object> tabla = (javafx.scene.control.TableView<Object>) scene.getRoot().lookup("#table");
+        // 2 brings Comparar too: the fullest the bar gets.
+        for (int cuantos : new int[]{1, 2, 4}) {
+            interact(() -> {
+                tabla.getSelectionModel().clearSelection();
+                tabla.getSelectionModel().selectRange(0, cuantos);
+            });
+            sleep(500);
+            List<String> apretados = new ArrayList<>();
+            interact(() -> {
+                scene.getRoot().applyCss();
+                scene.getRoot().layout();
+                for (String barra : List.of(".bottom-action-bar", ".bulk-action-bar")) {
+                    Node caja = scene.getRoot().lookup(barra);
+                    if (caja == null || !visible(caja)) continue;
+                    for (Node n : caja.lookupAll(".button")) apretado(n, apretados);
+                    for (Node n : caja.lookupAll(".menu-button")) apretado(n, apretados);
+                }
+            });
+            assertTrue(apretados.isEmpty(), "Con " + cuantos + " seleccionados, sin espacio para su nombre: " + apretados);
+        }
+        interact(() -> tabla.getSelectionModel().clearSelection());
+
+        // Resguardos had "Exportar" and "Dar de baja" as bare icons in its filter bar.
+        interact(() -> MainController.getInstance().navigateToView("resguardos"));
+        sleep(1500);
+        List<String> enResguardos = new ArrayList<>();
+        interact(() -> {
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+            for (String barra : List.of(".filter-bar", ".bottom-action-bar")) {
+                Node caja = scene.getRoot().lookup(barra);
+                assertTrue(caja != null && visible(caja), barra);
+                for (Node n : caja.lookupAll(".button")) apretado(n, enResguardos);
+                for (Node n : caja.lookupAll(".menu-button")) apretado(n, enResguardos);
+            }
+        });
+        assertTrue(enResguardos.isEmpty(), "En Resguardos, sin espacio para su nombre: " + enResguardos);
+
+        // Movimientos' header had four bare icons, and with "Por recibir" one more button.
+        interact(() -> MainController.getInstance().navigateToView("movimientos"));
+        sleep(1500);
+        List<String> enMovimientos = new ArrayList<>();
+        interact(() -> {
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+            Node encabezado = scene.getRoot().lookup(".page-header");
+            javafx.scene.Parent caja = encabezado.getParent();
+            Node porRecibir = caja.lookup("#btnPorRecibir");
+            porRecibir.setVisible(true);
+            porRecibir.setManaged(true);
+            caja.applyCss();
+            caja.layout();
+            for (Node n : encabezado.lookupAll(".button")) apretado(n, enMovimientos);
+            porRecibir.setVisible(false);
+            porRecibir.setManaged(false);
+        });
+        assertTrue(enMovimientos.isEmpty(), "En Movimientos, sin espacio para su nombre: " + enMovimientos);
+    }
+
+    private static void apretado(Node n, List<String> apretados) {
+        if (n instanceof ButtonBase b && visible(b) && b.getContentDisplay() != javafx.scene.control.ContentDisplay.GRAPHIC_ONLY
+                && b.getWidth() < b.prefWidth(-1) - 0.5)
+            apretados.add(b.getText());
+    }
+
     /** The forms too: "+ Agregar" in Nuevo resguardo was squeezed to "…" by the picker next to it. */
     @Test
     void formulariosPrincipales_sinBotonesCortados() {

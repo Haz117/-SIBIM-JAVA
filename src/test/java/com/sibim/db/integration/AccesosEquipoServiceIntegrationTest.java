@@ -28,13 +28,14 @@ class AccesosEquipoServiceIntegrationTest extends IntegrationTestBase {
         admin.setRol(Rol.ADMIN);
         SessionManager.setCurrentUser(admin);
 
-        var antes = servicio.porCuenta();
+        // Its own account only: a splash left running by an earlier class can seed its admin too.
+        var antes = servicio.porCuenta().stream().filter(c -> "admin-test".equals(c.username())).toList();
         assertEquals(1, antes.size());
         assertTrue(antes.get(0).equipos().isEmpty(), "nadie ha entrado todavía");
 
         servicio.registrar("test-admin");
         servicio.registrar("test-admin");   // el mismo equipo no se duplica
-        var despues = servicio.porCuenta();
+        var despues = servicio.porCuenta().stream().filter(c -> "admin-test".equals(c.username())).toList();
         assertEquals(1, despues.get(0).equipos().size());
         assertEquals(AccesosEquipoService.esteEquipo(), despues.get(0).equipos().get(0).nombre());
         assertNotNull(despues.get(0).equipos().get(0).ultimoAcceso());

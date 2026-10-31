@@ -80,6 +80,32 @@ public final class ProductoDialogFactory {
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
                                            Map<String, Image> thumbnailCache, Logger log,
                                            List<String> existingFotos, Extras extras, String areaInicial) {
+        return show(existing, cats, thumbnailCache, log, existingFotos, extras, areaInicial, null);
+    }
+
+    /** A second way to save, for working through a series of bienes (on 27 and 28-oct
+     *  it was 193 edits in a row, and 33 altas of one área): says whether it was the
+     *  one used, and the section to open the next one on. */
+    public static final class Seguir {
+        private final String texto;
+        private final String ayuda;
+        private boolean pedido;
+        private int pestana;
+
+        public Seguir(String texto, String ayuda, int pestana) {
+            this.texto = texto;
+            this.ayuda = ayuda;
+            this.pestana = pestana;
+        }
+
+        public boolean pedido() { return pedido; }
+        public int pestana() { return pestana; }
+    }
+
+    /** @param seguir the second way to save, or null for just the one */
+    public static Optional<Producto> show(Producto existing, List<Categoria> cats,
+                                           Map<String, Image> thumbnailCache, Logger log,
+                                           List<String> existingFotos, Extras extras, String areaInicial, Seguir seguir) {
         boolean isNewProduct = existing == null || existing.getId() == null;
 
         ProductoService productoService = new ProductoService();
@@ -94,7 +120,9 @@ public final class ProductoDialogFactory {
         HBox dialogHeader = DialogUtil.gradientHeader(
             isNewProduct ? "mdi2p-package-variant" : "mdi2p-pencil",
             isNewProduct ? "Nuevo Bien Patrimonial" : "Editar Bien",
-            isNewProduct ? "Registra un nuevo bien en el inventario municipal"
+            isNewProduct ? (existing != null && (existing.getNombre() == null || existing.getNombre().isBlank())
+                    ? "Se conservaron el área, la categoría, la ubicación y el resguardante del anterior"
+                    : "Registra un nuevo bien en el inventario municipal")
                          : "Actualiza los datos de " + existing.getNombre(),
             isNewProduct ? AppColors.PRIMARY_D : AppColors.SUCCESS,
             isNewProduct ? AppColors.PURPLE : AppColors.SUCCESS_D);
@@ -326,7 +354,41 @@ public final class ProductoDialogFactory {
 
         Region navSpacer = new Region();
         HBox.setHgrow(navSpacer, Priority.ALWAYS);
-        HBox navBar = new HBox(10, btnPrev, navSpacer, btnCancelar, btnNextNav);
+        Button btnSeguir = new Button(seguir != null ? seguir.texto : "");
+        btnSeguir.getStyleClass().add("btn-secondary");
+        btnSeguir.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        btnSeguir.disableProperty().bind(btnGuardar.disableProperty());
+        if (seguir != null) {
+            btnSeguir.setTooltip(new Tooltip(seguir.ayuda));
+            btnSeguir.setOnAction(e -> {
+                seguir.pedido = true;
+                seguir.pestana = tabs.getSelectionModel().getSelectedIndex();
+                btnGuardar.fire();
+                if (dialog.isShowing()) seguir.pedido = false;   // something in red: it stays open
+            });
+        }
+        // Editing, everything is already there and the steps at the top are just sections:
+        // Guardar is always at hand instead of two "Siguiente" away, even for one datum.
+        // A new bien goes through the steps, and at the last one can go on to another.
+        HBox navBar = new HBox(10);
+        if (isNewProduct) {
+            navBar.getChildren().addAll(btnPrev, navSpacer, btnCancelar);
+            if (seguir != null) {
+                btnSeguir.setVisible(false);
+                btnSeguir.setManaged(false);
+                tabs.getSelectionModel().selectedIndexProperty().addListener((obs, ov, nv) -> {
+                    btnSeguir.setVisible(nv.intValue() == 2);
+                    btnSeguir.setManaged(nv.intValue() == 2);
+                });
+                navBar.getChildren().add(btnSeguir);
+            }
+            navBar.getChildren().add(btnNextNav);
+        } else {
+            navBar.getChildren().addAll(btnCancelar, navSpacer);
+            if (seguir != null) navBar.getChildren().add(btnSeguir);
+            navBar.getChildren().add(btnGuardar);
+            tabs.getSelectionModel().select(seguir != null ? seguir.pestana : 0);
+        }
         navBar.getStyleClass().add("stepper-nav-bar");
 
         VBox.setMargin(lblFormError, new Insets(4, 22, 0, 22));

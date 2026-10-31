@@ -64,6 +64,11 @@ public final class ProductoDetailDialog {
      *  freezes the whole app on every double-click of a row in Bienes/Depreciación/
      *  Organigrama for as long as those 5 queries take. */
     public static void show(Producto p, Scene scene, MovimientoService movimientoService, Logger log) {
+        show(p, scene, movimientoService, log, null);
+    }
+
+    /** @param alEditar opens the form on this bien (an "Editar" button), or null for none */
+    public static void show(Producto p, Scene scene, MovimientoService movimientoService, Logger log, Runnable alEditar) {
         DialogUtil.runAsyncWithProgress(scene, "Cargando detalle del bien…",
             () -> {
                 List<Movimiento> movimientos = List.of();
@@ -103,7 +108,7 @@ public final class ProductoDetailDialog {
 
                 return new DetalleData(movimientos, fotosGaleria, resguardoHistory, prestamoHistory, alertas, qr, precios);
             },
-            data -> buildAndShow(p, scene, log, data),
+            data -> buildAndShow(p, scene, log, data, alEditar),
             ex -> {
                 log.error("No se pudo cargar el detalle del bien '{}'", p.getCodigo(), ex);
                 NotificacionUtil.error(scene, "No se pudo cargar el detalle del bien");
@@ -114,7 +119,7 @@ public final class ProductoDetailDialog {
     // TableColumn<PriceHistoryRepository.PriceHistoryEntry,?>... varargs to addAll() triggers
     // Java's inherent generic-array-creation warning — inescapable with this API, not a real risk.
     @SuppressWarnings("unchecked")
-    private static void buildAndShow(Producto p, Scene scene, Logger log, DetalleData loaded) {
+    private static void buildAndShow(Producto p, Scene scene, Logger log, DetalleData loaded, Runnable alEditar) {
         final List<Movimiento> movs = loaded.movimientos();
         final List<String> _fotosGaleria = loaded.fotos();
         final List<Resguardo> _resguardos = loaded.resguardos();
@@ -142,6 +147,22 @@ public final class ProductoDetailDialog {
                 ex -> NotificacionUtil.error(scene, "No se pudo generar la ficha técnica")
             );
         });
+
+        // What is seen here gets corrected from here, not closing and looking for a button.
+        if (alEditar != null) {
+            ButtonType editarBtn = new ButtonType(com.sibim.session.Permisos.editaFichaCompleta() ? "Editar" : "Actualizar datos",
+                ButtonBar.ButtonData.OTHER);
+            dialog.getDialogPane().getButtonTypes().add(0, editarBtn);
+            Button btnEditar = (Button) dialog.getDialogPane().lookupButton(editarBtn);
+            btnEditar.getStyleClass().add("btn-primary");
+            btnEditar.setGraphic(new org.kordamp.ikonli.javafx.FontIcon("mdi2p-pencil"));
+            btnEditar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+                event.consume();
+                dialog.close();
+                // After this window is really gone: one opened while its event loop unwinds freezes the app.
+                javafx.application.Platform.runLater(alEditar);
+            });
+        }
 
         Button btnTimeline = (Button) dialog.getDialogPane().lookupButton(timelineBtn);
         btnTimeline.getStyleClass().add("btn-secondary");

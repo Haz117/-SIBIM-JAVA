@@ -87,7 +87,6 @@ public class ProductosController {
     @FXML private TableColumn<Producto, String> colEstado;
     @FXML private Label lblTotal;
     @FXML private Label lblTotalAll;
-    @FXML private Label lblSeleccionados;
     @FXML private ComboBox<Integer> pageSizeBox;
     @FXML private Label lblPage;
     @FXML private Button btnPrev;
@@ -146,6 +145,10 @@ public class ProductosController {
     private int totalFiltered = 0;
     private ObservableList<Producto> filteredData = FXCollections.observableArrayList();
     private int currentPage = 0;
+    /** A series that reached the end of the page goes on with the next page's first bien. */
+    private boolean abrirPrimeroDeLaPagina = false;
+    /** The section of the form to open the next bien of a series on. */
+    private int seccionDeLaSerie = 0;
     private int pageSize = 25;
     private boolean refreshing = false;
     /** A load was asked for while another was in flight (a restored filter racing
@@ -206,7 +209,13 @@ public class ProductosController {
             if (colValor != null) table.getColumns().remove(colValor);
         }
         // Movements are Patrimonio's alone; the áreas no longer request transfers here.
-        if (btnMovimiento != null) { btnMovimiento.setVisible(canManage); btnMovimiento.setManaged(canManage); }
+        if (btnMovimiento != null) {
+            // With several selected the bar above has it: not twice on screen.
+            if (canManage) btnMovimiento.visibleProperty().bind(
+                javafx.beans.binding.Bindings.size(table.getSelectionModel().getSelectedItems()).lessThan(2));
+            else btnMovimiento.setVisible(false);
+            btnMovimiento.managedProperty().bind(btnMovimiento.visibleProperty());
+        }
         if (btnEditar   != null) { btnEditar.setVisible(canEdit);   btnEditar.setManaged(canEdit); }
         if (btnEditar != null && canEdit && !com.sibim.session.Permisos.editaFichaCompleta()) {
             btnEditar.setText("Actualizar datos");
@@ -304,7 +313,7 @@ public class ProductosController {
         tableManager = new ProductosTableManager(
             table, colFoto, colNombre, colCodigo, colCategoria, colArea,
             colStock, colValor, colEstado,
-            pageSizeBox, lblTotal, lblPage, btnPrev, btnNext, lblSeleccionados,
+            pageSizeBox, lblTotal, lblPage, btnPrev, btnNext,
             btnMovimiento, btnQr, btnEditar, btnEliminar, btnExportarSeleccion,
             THUMBNAIL_CACHE, log, canEdit, () -> canEdit,
             this::onEdit, this::onDelete,
@@ -445,6 +454,13 @@ public class ProductosController {
                 spinner.setVisible(false); spinner.setManaged(false);
                 if (recargaPendiente) { recargaPendiente = false; loadData(); return; }
                 if (refreshing) { NotificacionUtil.info(table.getScene(), "Lista actualizada"); refreshing = false; }
+                if (abrirPrimeroDeLaPagina) {
+                    abrirPrimeroDeLaPagina = false;
+                    if (!filteredData.isEmpty()) Platform.runLater(() -> {
+                        table.getSelectionModel().clearAndSelect(0);
+                        showProductDialog(filteredData.get(0));
+                    });
+                }
                 String pendingId = NavigationContext.consumePendingProductId();
                 if (pendingId != null) {
                     final String id = pendingId;
@@ -730,6 +746,10 @@ public class ProductosController {
             NotificacionUtil.advertencia(table.getScene(), "Selecciona un bien para editar");
             return;
         }
+        editar(sel);
+    }
+
+    private void editar(Producto sel) {
         // The áreas keep four things current: a short form instead of the full
         // one with everything else disabled.
         if (!com.sibim.session.Permisos.editaFichaCompleta()) {
@@ -1083,7 +1103,7 @@ public class ProductosController {
     // ── Internal helpers ─────────────────────────────────────────────────────
 
     private void showProductDetail(Producto p) {
-        ProductoDetailDialog.show(p, table.getScene(), movimientoService, log);
+        ProductoDetailDialog.show(p, table.getScene(), movimientoService, log, !canEdit ? null : () -> editar(p));
     }
 
     private void showMovimientoTimeline(Producto p) {
@@ -1121,9 +1141,22 @@ public class ProductosController {
     private void openProductDialog(Producto existing, List<Categoria> cats, List<String> existingFotos,
                                    ProductoDialogFactory.Extras extras, String areaInicial) {
         try {
+            boolean isNew = existing == null || existing.getId() == null;
+            Producto siguiente = isNew ? null : siguienteDeLaLista(existing);
+            boolean hayOtraPagina = !isNew && siguiente == null && esUltimoDeLaPagina(existing)
+                && (currentPage + 1) * pageSize < totalFiltered;
+            ProductoDialogFactory.Seguir seguir = isNew
+                ? new ProductoDialogFactory.Seguir("Guardar y registrar otro",
+                    "Guarda este bien y abre otro en la misma área, con la misma categoría, ubicación y resguardante", 0)
+                : siguiente != null
+                ? new ProductoDialogFactory.Seguir("Guardar y abrir " + siguiente.getCodigo(),
+                    "Guarda y abre el siguiente de la lista, en esta misma sección: " + siguiente.getNombre(), seccionDeLaSerie)
+                : hayOtraPagina
+                ? new ProductoDialogFactory.Seguir("Guardar y abrir el siguiente",
+                    "Guarda y sigue con el primero de la página siguiente, en esta misma sección", seccionDeLaSerie)
+                : null;
             Optional<Producto> result = ProductoDialogFactory.show(existing, cats, THUMBNAIL_CACHE, log, existingFotos,
-                extras, areaInicial);
-            boolean isNew = existing == null;
+                extras, areaInicial, seguir);
             String facturaAnterior = existing != null ? existing.getFacturaUrl() : null;
             result.ifPresent(p -> DialogUtil.runAsync(
                 () -> GuardarBien.enFondo(productoService, p, facturaAnterior, log),
@@ -1137,12 +1170,29 @@ public class ProductosController {
                     }
                     GuardarBien.avisarSiFotoQuedoLocal(table.getScene(), p);
                     pendingHighlightId = saved.getId();
+                    boolean aLaOtraPagina = hayOtraPagina && seguir != null && seguir.pedido();
+                    if (aLaOtraPagina) {
+                        currentPage++;
+                        abrirPrimeroDeLaPagina = true;
+                    }
                     loadData();
                     Platform.runLater(() -> {
                         table.getSelectionModel().select(saved);
                         int idx = table.getSelectionModel().getSelectedIndex();
                         if (idx >= 0) table.scrollTo(idx);
                         table.requestFocus();
+                    });
+                    seccionDeLaSerie = seguir != null && seguir.pedido() && !isNew ? seguir.pestana() : 0;
+                    // Once this window is really gone: opening another while its event
+                    // loop unwinds freezes the app.
+                    if (seguir != null && seguir.pedido() && !aLaOtraPagina) Platform.runLater(() -> {
+                        if (isNew) {
+                            showProductDialog(plantillaDe(saved));
+                        } else {
+                            table.getSelectionModel().clearSelection();
+                            table.getSelectionModel().select(siguiente);
+                            showProductDialog(siguiente);
+                        }
                     });
                     new javafx.animation.Timeline(new javafx.animation.KeyFrame(
                         javafx.util.Duration.seconds(1.8), e2 -> {
@@ -1170,6 +1220,40 @@ public class ProductosController {
             log.error("Error al abrir el formulario de bien", e);
             NotificacionUtil.error(table.getScene(), "Error al abrir el formulario. Verifica la conexión a la base de datos.");
         }
+    }
+
+    /** The bien under this one on the page, to go on with after saving; null at the end. */
+    private Producto siguienteDeLaLista(Producto p) {
+        List<Producto> filas = table.getItems();
+        for (int i = 0; i < filas.size() - 1; i++)
+            if (java.util.Objects.equals(filas.get(i).getId(), p.getId())) return filas.get(i + 1);
+        return null;
+    }
+
+    private boolean esUltimoDeLaPagina(Producto p) {
+        List<Producto> filas = table.getItems();
+        return !filas.isEmpty() && java.util.Objects.equals(filas.get(filas.size() - 1).getId(), p.getId());
+    }
+
+    /** What the next bien of a series usually shares with this one. Nothing that
+     *  identifies the bien itself: no name, número, serie, factura or price. */
+    private static Producto plantillaDe(Producto p) {
+        Producto otro = new Producto();
+        otro.setNombre("");
+        otro.setCodigo("");
+        otro.setArea(p.getArea());
+        otro.setCategoriaId(p.getCategoriaId());
+        otro.setCategoriaNombre(p.getCategoriaNombre());
+        otro.setCategoriaColor(p.getCategoriaColor());
+        otro.setClaveArmonizada(p.getClaveArmonizada());
+        otro.setVidaUtilAnios(p.getVidaUtilAnios());
+        otro.setUbicacion(p.getUbicacion());
+        otro.setResguardante(p.getResguardante());
+        otro.setUnidad(p.getUnidad());
+        otro.setStockActual(1);
+        otro.setStockMinimo(0);
+        otro.setStockMaximo(1);
+        return otro;
     }
 
     /**

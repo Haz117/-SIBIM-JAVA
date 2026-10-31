@@ -53,6 +53,9 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @FXML private Button     btnNuevo;
     @FXML private MenuItem   btnLote;
     @FXML private Button     btnCancelar;
+    @FXML private Button     btnDetalle;
+    @FXML private Button     btnPersona;
+    @FXML private Label      lblPistaAcciones;
 
     private final ResguardoService service         = new ResguardoService();
     private final ProductoService  productoService = new ProductoService();
@@ -108,6 +111,15 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             btnCancelar.disableProperty().bind(
                 table.getSelectionModel().selectedItemProperty()
                     .map(r -> r == null || !r.isActivo()).orElse(true));
+
+        // One resguardo at a time; the PDF also takes several (a ZIP).
+        var noUno = javafx.beans.binding.Bindings.size(table.getSelectionModel().getSelectedItems()).isNotEqualTo(1);
+        if (btnDetalle != null) btnDetalle.disableProperty().bind(noUno);
+        if (btnPersona != null) btnPersona.disableProperty().bind(noUno);
+        if (lblPistaAcciones != null) {
+            lblPistaAcciones.visibleProperty().bind(table.getSelectionModel().selectedItemProperty().isNull());
+            lblPistaAcciones.managedProperty().bind(lblPistaAcciones.visibleProperty());
+        }
 
         table.setOnKeyPressed(ev -> {
             if (ev.getCode() == KeyCode.ESCAPE) {
@@ -203,6 +215,18 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         return super.isFilterActive() || statQuickFilter != null;
     }
 
+    @FXML
+    private void onVerDetalle() {
+        Resguardo sel = table.getSelectionModel().getSelectedItem();
+        if (sel != null) mostrarDetalle(sel);
+    }
+
+    @FXML
+    private void onVerPersona() {
+        Resguardo sel = table.getSelectionModel().getSelectedItem();
+        if (sel != null) FichaPersona.abrir(sel.getResguardanteNombre(), table.getScene());
+    }
+
     @Override
     protected void clearFilters() {
         super.clearFilters();
@@ -254,7 +278,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         MenuItem miPdf = new MenuItem("Exportar PDF");
         miPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
         miPdf.setOnAction(e -> onExportarPdf());
-        MenuItem miCancelar = new MenuItem("Dar de baja");
+        MenuItem miCancelar = new MenuItem("Cancelar resguardo");
         miCancelar.setGraphic(new FontIcon("mdi2d-delete-circle-outline"));
         miCancelar.setOnAction(e -> onCancelar());
         MenuItem miPersona = new MenuItem("Ver a esta persona");
@@ -276,15 +300,8 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         String q = searchField != null ? searchField.getText() : "";
         LocalDate desde = dpDesde != null ? dpDesde.getValue() : null;
         LocalDate hasta = dpHasta != null ? dpHasta.getValue() : null;
-        List<Resguardo> filtered = allData.stream()
+        List<Resguardo> filtered = DialogUtil.coincidencias(allData, ResguardosController::textoDeBusqueda, q).stream()
             .filter(r -> statQuickFilter == null || statQuickFilter.equals(r.getEstado()))
-            .filter(r -> {
-                if (q == null || q.isBlank()) return true;
-                String lq = q.toLowerCase();
-                return r.getResguardanteNombre().toLowerCase().contains(lq)
-                    || r.getNumero().toLowerCase().contains(lq)
-                    || (r.getResguardanteArea() != null && r.getResguardanteArea().toLowerCase().contains(lq));
-            })
             .filter(r -> {
                 LocalDate f = r.getCreadoEn() != null ? r.getCreadoEn().toLocalDate() : null;
                 if (desde != null && (f == null || f.isBefore(desde))) return false;
@@ -296,6 +313,17 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         data.setAll(filtered);
         updateCount(filtered.size(), allData.size());
         saveFilterPrefs(q, desde, hasta);
+    }
+
+    /** What the search looks in: "¿en qué resguardo está IMM/20?" is answered here too. */
+    static String textoDeBusqueda(Resguardo r) {
+        StringBuilder t = new StringBuilder(String.valueOf(r.getResguardanteNombre())).append(' ').append(r.getNumero())
+            .append(' ').append(java.util.Objects.requireNonNullElse(r.getResguardanteArea(), ""));
+        for (var item : r.getItems()) {
+            t.append(' ').append(java.util.Objects.requireNonNullElse(item.getProductoCodigo(), ""))
+                .append(' ').append(java.util.Objects.requireNonNullElse(item.getProductoNombre(), ""));
+        }
+        return t.toString();
     }
 
     @Override protected boolean filtraPorArea() { return true; }

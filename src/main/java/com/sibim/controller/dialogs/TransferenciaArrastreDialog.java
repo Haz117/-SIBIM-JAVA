@@ -40,7 +40,11 @@ import java.util.stream.Collectors;
  * on the left, every other área as a card on the right, grouped by secretaría —
  * the same board as Organigrama › Acomodar. Until an origen is picked the left
  * column lists the áreas that have bienes; the cards stay dimmed until there is
- * something selected to take there. Dropping bienes on a card asks for the motivo
+ * something ticked to take there. Ticks work as in Nuevo resguardo: one click each,
+ * and they survive a search, so bienes found one by one go together in one batch
+ * (in production 34 of 34 transfers were one bien, with one resguardo each, because
+ * this list needed Ctrl + click and lost the selection on every search). Dropping
+ * bienes on a card asks for the motivo
  * and, if wanted, who receives them there; TransferenciaRapidaService does the
  * rest (out of the old resguardo, transfer with the next free número, new
  * resguardo). What was moved in this window is listed at the bottom.
@@ -61,6 +65,16 @@ public final class TransferenciaArrastreDialog {
     private final TextField buscar = new TextField();
     private final ObservableList<Producto> visibles = FXCollections.observableArrayList();
     private final ListView<Producto> lista = new ListView<>(visibles);
+    /** What goes in the next batch, whatever the search is showing now. */
+    private final Set<String> marcados = new LinkedHashSet<>();
+    /** The área the ticks belong to: picking another one starts over. */
+    private String areaDeMarcas;
+    /** The row last clicked, for Mayús + clic. */
+    private Producto ultimoMarcado;
+    /** The latest cargo of each person, to fill it in when they are named. */
+    private Map<String, String> cargos = Map.of();
+    /** What the last batch said: the next one to the same área usually says the same. */
+    private String ultimoDestino, ultimoMotivo, ultimoQuien, ultimoCargo;
     private final TextField buscarArea = new TextField();
     private final VBox tablero = new VBox(14);
     private final List<HBox> tarjetas = new ArrayList<>();
@@ -102,7 +116,7 @@ public final class TransferenciaArrastreDialog {
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2d-drag-variant", "Transferir arrastrando",
-            "Elige el área de origen, selecciona bienes y arrástralos al área que los recibe",
+            "Elige el área de origen, marca los bienes y llévalos al área que los recibe",
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         origen.setPromptText("Buscar el área de origen…");
@@ -121,21 +135,43 @@ public final class TransferenciaArrastreDialog {
         cambiarOrigen.setOnAction(e -> origen.setValue(null));
         cambiarOrigen.setTooltip(new Tooltip("Volver a la lista de áreas para elegir otro origen"));
 
-        buscar.setPromptText("Filtrar por código, nombre o resguardante…");
+        buscar.setPromptText("Código y Enter, o busca por nombre o persona…");
         buscar.getStyleClass().add("form-input");
-        lista.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        lista.getStyleClass().add("trf-lista");
+        // Code + Enter, code + Enter: stays here for the next one.
+        buscar.setOnKeyPressed(e -> {
+            if (e.getCode() != KeyCode.ENTER) return;
+            e.consume();
+            String q = buscar.getText() == null ? "" : buscar.getText().trim();
+            if (q.isEmpty() || visibles.isEmpty()) return;
+            marcados.add(visibles.get(0).getId());
+            buscar.clear();
+            actualizarSeleccion();
+        });
+        lista.getStyleClass().addAll("trf-lista", "cnt-lista", "rsg-lista");
+        lista.setOnKeyPressed(e -> {
+            Producto p = lista.getSelectionModel().getSelectedItem();
+            if (e.getCode() == KeyCode.SPACE && p != null) {
+                alternar(p, false);
+                lista.getSelectionModel().selectNext();
+                e.consume();
+            } else if (e.getCode() == KeyCode.A && e.isShortcutDown()) {
+                marcarVisibles();
+                e.consume();
+            }
+        });
         lista.setPlaceholder(new Label("Ningún bien coincide con el filtro"));
         lista.setCellFactory(lv -> new CeldaBien(lv));
         VBox.setVgrow(lista, Priority.ALWAYS);
         seleccion.getStyleClass().add("table-count-label");
         seleccion.setWrapText(true);
-        lista.getSelectionModel().getSelectedItems().addListener(
-            (javafx.collections.ListChangeListener<Producto>) c -> actualizarSeleccion());
 
         lista.setOnDragDetected(e -> {
-            List<Producto> sel = new ArrayList<>(lista.getSelectionModel().getSelectedItems());
+            // Grabbing a row that wasn't ticked takes it along.
+            for (Node n = e.getPickResult().getIntersectedNode(); n != null && n != lista; n = n.getParent())
+                if (n instanceof CeldaBien c && c.getItem() != null) { marcados.add(c.getItem().getId()); break; }
+            List<Producto> sel = seleccionados();
             if (sel.isEmpty()) return;
+            actualizarSeleccion();
             Dragboard db = lista.startDragAndDrop(TransferMode.MOVE);
             ClipboardContent cc = new ClipboardContent();
             cc.put(BIENES, sel.stream().map(Producto::getId).collect(Collectors.joining("\n")));
@@ -148,17 +184,23 @@ public final class TransferenciaArrastreDialog {
         });
         lista.setOnDragDone(e -> tablero.getStyleClass().remove("trf-arrastrando"));
 
-        origen.valueProperty().addListener((o, a, b) -> { filtrar(); construirTablero(); mostrarPasos(); });
+        origen.valueProperty().addListener((o, a, b) -> {
+            if (b != null && !b.equals(areaDeMarcas)) { marcados.clear(); areaDeMarcas = b; }
+            filtrar();
+            construirTablero();
+            mostrarPasos();
+        });
         buscar.textProperty().addListener((o, a, b) -> filtrar());
         buscarArea.setPromptText("Buscar el área o la secretaría que los recibe…");
         buscarArea.getStyleClass().add("form-input");
         buscarArea.textProperty().addListener((o, a, b) -> construirTablero());
 
         Hyperlink todos = new Hyperlink("Todos");
-        todos.setOnAction(e -> lista.getSelectionModel().selectAll());
-        todos.setTooltip(new Tooltip("Seleccionar todos los bienes de la lista (los que quedan con el filtro)"));
+        todos.setOnAction(e -> marcarVisibles());
+        todos.setTooltip(new Tooltip("Marcar todos los bienes de la lista (los que quedan con la búsqueda)"));
         Hyperlink ninguno = new Hyperlink("Ninguno");
-        ninguno.setOnAction(e -> lista.getSelectionModel().clearSelection());
+        ninguno.setTooltip(new Tooltip("Quitar todas las marcas, también las que la búsqueda no está mostrando"));
+        ninguno.setOnAction(e -> { marcados.clear(); ultimoMarcado = null; actualizarSeleccion(); });
         Region hueco = new Region();
         HBox.setHgrow(hueco, Priority.ALWAYS);
         HBox barraSeleccion = new HBox(4, seleccion, hueco, todos, new Label("·"), ninguno);
@@ -173,7 +215,7 @@ public final class TransferenciaArrastreDialog {
         Region hueco1 = new Region();
         HBox.setHgrow(hueco1, Priority.ALWAYS);
         paso1.getChildren().addAll(hueco1, cambiarOrigen);
-        HBox paso2 = paso(2, "Selecciona los bienes");
+        HBox paso2 = paso(2, "Marca los bienes");
         pasoBienes.addAll(List.of(paso2, buscar, barraSeleccion, lista));
         VBox izquierda = new VBox(8, paso1, origen, areasOrigen, paso2, buscar, barraSeleccion, otraArea, lista);
         izquierda.getStyleClass().add("trf-panel");
@@ -223,8 +265,9 @@ public final class TransferenciaArrastreDialog {
         if (areaElegida != null) {
             origen.setValue(areaElegida);
             for (Producto p : visibles)
-                if (preseleccion.contains(p.getId())) lista.getSelectionModel().select(p);
-            long deOtraArea = preseleccion.size() - lista.getSelectionModel().getSelectedItems().size();
+                if (preseleccion.contains(p.getId())) marcados.add(p.getId());
+            actualizarSeleccion();
+            long deOtraArea = preseleccion.size() - marcados.size();
             if (deOtraArea > 0) {
                 otraArea.setText(FormatUtils.plural(deOtraArea, "de los bienes que elegiste es", "de los bienes que elegiste son")
                     + " de otra área: transfiérelos en otra vuelta, eligiendo su área como origen.");
@@ -233,8 +276,7 @@ public final class TransferenciaArrastreDialog {
             }
             Platform.runLater(() -> {
                 lista.requestFocus();
-                if (!lista.getSelectionModel().getSelectedIndices().isEmpty())
-                    lista.scrollTo(lista.getSelectionModel().getSelectedIndices().get(0));
+                visibles.stream().filter(p -> marcados.contains(p.getId())).findFirst().ifPresent(lista::scrollTo);
             });
         } else {
             // On the list, not on the search: that one opens its drop-down on focus,
@@ -242,6 +284,7 @@ public final class TransferenciaArrastreDialog {
             Platform.runLater(areasOrigen::requestFocus);
         }
         mostrarPasos();
+        DialogUtil.runAsync(() -> new ResguardoService().getAll(), r -> cargos = cargosDe(r), ex -> { });
         dialog.showAndWait();
     }
 
@@ -268,29 +311,62 @@ public final class TransferenciaArrastreDialog {
         DialogUtil.makeFilterable(origen, new ArrayList<>(conBienes));
         areasOrigen.getItems().setAll(conBienes);
         if (elegido != null && conBienes.contains(elegido)) origen.setValue(elegido);
+        // A bien that left the área can't stay ticked; one that failed stays, to try again.
+        Set<String> siguen = porArea.getOrDefault(origen.getValue(), List.of()).stream().map(Producto::getId).collect(Collectors.toSet());
+        marcados.retainAll(siguen);
         filtrar();
         construirTablero();
     }
 
     private void filtrar() {
         String area = origen.getValue();
-        String q = buscar.getText() == null ? "" : buscar.getText().trim().toLowerCase();
         List<Producto> bienes = area != null ? porArea.getOrDefault(area, List.of()) : List.of();
-        visibles.setAll(bienes.stream()
-            .filter(p -> q.isEmpty() || (p.getCodigo() + " " + p.getNombre() + " "
-                + Objects.requireNonNullElse(p.getResguardante(), "")).toLowerCase().contains(q))
-            .sorted(Comparator.comparingInt(TransferenciaArrastreDialog::numero))
-            .toList());
+        List<Producto> enOrden = bienes.stream().sorted(Comparator.comparingInt(TransferenciaArrastreDialog::numero)).toList();
+        visibles.setAll(DialogUtil.coincidencias(enOrden, TransferenciaArrastreDialog::textoDe, buscar.getText()));
         ((Label) lista.getPlaceholder()).setText(area != null && bienes.isEmpty()
             ? "Ya no quedan bienes en " + area : "Ningún bien coincide con el filtro");
         actualizarSeleccion();
     }
 
+    private static String textoDe(Producto p) {
+        return Objects.requireNonNullElse(p.getCodigo(), "") + " " + Objects.requireNonNullElse(p.getNombre(), "") + " "
+            + Objects.requireNonNullElse(p.getNumeroSerie(), "") + " " + Objects.requireNonNullElse(p.getResguardante(), "");
+    }
+
+    private void alternar(Producto p, boolean hastaAqui) {
+        int desde = ultimoMarcado == null ? -1 : visibles.indexOf(ultimoMarcado);
+        int hasta = visibles.indexOf(p);
+        if (hastaAqui && desde >= 0 && hasta >= 0) {
+            for (int i = Math.min(desde, hasta); i <= Math.max(desde, hasta); i++) marcados.add(visibles.get(i).getId());
+        } else if (!marcados.remove(p.getId())) {
+            marcados.add(p.getId());
+        }
+        ultimoMarcado = p;
+        actualizarSeleccion();
+    }
+
+    private void marcarVisibles() {
+        visibles.forEach(p -> marcados.add(p.getId()));
+        actualizarSeleccion();
+    }
+
+    /** By person, what their newest resguardo says their cargo is. */
+    private static Map<String, String> cargosDe(List<Resguardo> resguardos) {
+        Map<String, String> out = new HashMap<>();
+        resguardos.stream()
+            .filter(r -> r.getResguardanteNombre() != null && r.getResguardanteCargo() != null && !r.getResguardanteCargo().isBlank())
+            .sorted(Comparator.comparing(Resguardo::getCreadoEn, Comparator.nullsLast(Comparator.reverseOrder())))
+            .forEach(r -> out.putIfAbsent(ResguardoService.clavePersona(r.getResguardanteNombre()), r.getResguardanteCargo().trim()));
+        return out;
+    }
+
     private void actualizarSeleccion() {
-        int n = lista.getSelectionModel().getSelectedItems().size();
+        lista.refresh();
+        int n = marcados.size();
+        long ocultos = n - visibles.stream().filter(p -> marcados.contains(p.getId())).count();
         seleccion.setText(n == 0
-            ? (visibles.isEmpty() ? "" : "Ctrl o Mayús + clic para elegir varios")
-            : FormatUtils.plural(n, "seleccionado", "seleccionados") + " de " + visibles.size());
+            ? (visibles.isEmpty() ? "" : "Un clic en cada bien para marcarlo")
+            : FormatUtils.plural(n, "marcado", "marcados") + (ocultos > 0 ? " · " + ocultos + " fuera de esta búsqueda" : ""));
         seleccion.getStyleClass().remove("trf-seleccion-activa");
         if (n > 0) seleccion.getStyleClass().add("trf-seleccion-activa");
         actualizarDestinos();
@@ -298,14 +374,14 @@ public final class TransferenciaArrastreDialog {
 
     /** The cards light up once there is something to take to them. */
     private void actualizarDestinos() {
-        int n = lista.getSelectionModel().getSelectedItems().size();
+        int n = marcados.size();
         for (HBox t : tarjetas) {
             t.getStyleClass().remove("trf-tarjeta-inactiva");
             if (n == 0) t.getStyleClass().add("trf-tarjeta-inactiva");
         }
         ayudaDestino.setText(origen.getValue() == null ? "Primero elige a la izquierda el área de donde salen los bienes."
-            : n == 0 ? "Selecciona bienes a la izquierda: las áreas se activan para recibirlos."
-            : "Arrastra " + (n == 1 ? "el seleccionado" : "los " + n + " seleccionados") + " a una tarjeta, o haz clic en ella.");
+            : n == 0 ? "Marca bienes a la izquierda: las áreas se activan para recibirlos."
+            : "Haz clic en una tarjeta para llevar " + (n == 1 ? "el marcado" : "los " + n + " marcados") + ", o arrástralos a ella.");
     }
 
     /** "①  Área de origen": the three steps of the board, in order. */
@@ -335,8 +411,9 @@ public final class TransferenciaArrastreDialog {
         return pastilla.snapshot(sp, null);
     }
 
+    /** Everything ticked, in or out of the search. */
     private List<Producto> seleccionados() {
-        return new ArrayList<>(lista.getSelectionModel().getSelectedItems());
+        return porArea.getOrDefault(origen.getValue(), List.of()).stream().filter(p -> marcados.contains(p.getId())).toList();
     }
 
     /** The organigrama's groups: Presidencia with its direcciones, each secretaría
@@ -407,16 +484,16 @@ public final class TransferenciaArrastreDialog {
         HBox t = new HBox(10, fondoIcono, textos);
         t.getStyleClass().addAll("org-acomodo-col", "trf-tarjeta");
         t.setAlignment(Pos.CENTER_LEFT);
-        Tooltip.install(t, new Tooltip("Suelta aquí los bienes, o haz clic para llevar los seleccionados a " + area));
+        Tooltip.install(t, new Tooltip("Haz clic para llevar los bienes marcados a " + area + ", o suéltalos aquí"));
         // Click as well as drop: quicker for a whole list, and it works from the keyboard.
         t.setOnMouseClicked(e -> {
             List<Producto> sel = seleccionados();
             if (sel.isEmpty()) NotificacionUtil.info(dialog.getDialogPane().getScene(),
                 origen.getValue() == null ? "Primero elige el área de origen y sus bienes"
-                    : "Primero selecciona a la izquierda los bienes que van a " + area);
+                    : "Primero marca a la izquierda los bienes que van a " + area);
             else confirmar(sel, area);
         });
-        com.sibim.util.AccessibilityUtils.asButton(t, "Transferir los bienes seleccionados a " + area);
+        com.sibim.util.AccessibilityUtils.asButton(t, "Transferir los bienes marcados a " + area);
         t.setOnDragOver(e -> {
             if (e.getDragboard().hasContent(BIENES)) e.acceptTransferModes(TransferMode.MOVE);
             e.consume();
@@ -503,6 +580,22 @@ public final class TransferenciaArrastreDialog {
         form.add(DialogUtil.fieldLabel("Nuevo resguardante"), 0, row);    form.add(resguardante, 1, row++);
         form.add(DialogUtil.fieldLabel("Cargo"), 0, row);                 form.add(cargo, 1, row++);
 
+        // Naming someone brings their cargo, unless one was typed by hand.
+        String[] cargoPuesto = {""};
+        resguardante.getEditor().textProperty().addListener((o, a, nombre) -> {
+            String suyo = nombre == null ? null : cargos.get(ResguardoService.clavePersona(nombre));
+            if (suyo != null && (cargo.getText().isBlank() || cargo.getText().equals(cargoPuesto[0]))) {
+                cargo.setText(suyo);
+                cargoPuesto[0] = suyo;
+            }
+        });
+        // Another batch to the same área: most times the same motivo and the same person.
+        if (destino.equals(ultimoDestino)) {
+            motivo.setText(ultimoMotivo);
+            resguardante.getEditor().setText(ultimoQuien);
+            cargo.setText(ultimoCargo);
+        }
+
         Label nota = new Label("Cada bien sale de su resguardo actual y toma el número que ves arriba, el siguiente libre de "
             + destino + ". Si escribes quién los recibe, se le crea un resguardo con todos ellos.");
         nota.setWrapText(true);
@@ -518,12 +611,16 @@ public final class TransferenciaArrastreDialog {
         ok.setText("Transferir");
         ok.getStyleClass().add("dialog-ok-btn");
         ok.disableProperty().bind(motivo.textProperty().isEmpty());
-        Platform.runLater(motivo::requestFocus);
+        Platform.runLater(() -> { motivo.requestFocus(); motivo.selectAll(); });
 
         dlg.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
             String quien = resguardante.getEditor().getText();
             String desde = origen.getValue();
             Scene scene = dialog.getDialogPane().getScene();
+            ultimoDestino = destino;
+            ultimoMotivo = motivo.getText();
+            ultimoQuien = quien;
+            ultimoCargo = cargo.getText();
             DialogUtil.runAsyncWithProgress(scene, "Transfiriendo " + FormatUtils.plural(bienes.size(), "bien", "bienes") + "…",
                 () -> transferencias.transferir(bienes, destino, motivo.getText(), quien, cargo.getText()),
                 r -> terminado(r, desde, destino, scene),
@@ -533,6 +630,7 @@ public final class TransferenciaArrastreDialog {
     }
 
     private void terminado(TransferenciaRapidaService.Resultado r, String desde, String destino, Scene scene) {
+        r.hechos().forEach(m -> marcados.remove(m.getProductoId()));
         if (!r.hechos().isEmpty()) {
             NotificacionUtil.exito(scene, FormatUtils.plural(r.hechos().size(), "bien transferido", "bienes transferidos")
                 + " a " + destino + (r.resguardo() != null ? " · resguardo " + r.resguardo().getNumero() : ""));
@@ -703,25 +801,48 @@ public final class TransferenciaArrastreDialog {
         }
     }
 
-    /** A bien in the origin list: its código as a chip, the name, and who holds it. */
-    private static final class CeldaBien extends ListCell<Producto> {
+    /** A bien in the origin list: a tick, its código as a chip, the name, and who holds it. */
+    private final class CeldaBien extends ListCell<Producto> {
+        private final CheckBox casilla = new CheckBox();
         private final Label codigo = new Label();
         private final Label nombre = new Label();
         private final FontIcon persona = new FontIcon();
         private final Label quien = new Label(null, persona);
-        private final VBox caja;
+        private final HBox caja;
 
         CeldaBien(ListView<Producto> lv) {
             codigo.getStyleClass().add("trf-codigo");
             codigo.setMinWidth(Region.USE_PREF_SIZE);
             nombre.getStyleClass().add("org-child-label");
             nombre.setTextOverrun(OverrunStyle.ELLIPSIS);
+            nombre.setMinWidth(0);
             HBox fila = new HBox(8, codigo, nombre);
             fila.setAlignment(Pos.CENTER_LEFT);
             persona.getStyleClass().add("trf-persona-icono");
-            caja = new VBox(3, fila, quien);
+            quien.setTextOverrun(OverrunStyle.ELLIPSIS);
+            quien.setMinWidth(0);
+            VBox textos = new VBox(3, fila, quien);
+            textos.setMinWidth(0);
+            textos.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(textos, Priority.ALWAYS);
+            caja = new HBox(10, casilla, textos);
+            caja.setAlignment(Pos.CENTER_LEFT);
+            caja.getStyleClass().add("cnt-fila");
             caja.maxWidthProperty().bind(lv.widthProperty().subtract(30));
             caja.setMinWidth(0);
+            casilla.setFocusTraversable(false);
+            casilla.setOnAction(e -> { if (getItem() != null) alternar(getItem(), false); });
+            // Still since the press: letting go after a drag isn't a click.
+            caja.setOnMouseClicked(e -> {
+                if (getItem() == null || !e.isStillSincePress() || dentroDeCasilla(e.getTarget())) return;
+                alternar(getItem(), e.isShiftDown());
+            });
+        }
+
+        private boolean dentroDeCasilla(Object objetivo) {
+            for (Node n = objetivo instanceof Node o ? o : null; n != null; n = n.getParent())
+                if (n == casilla) return true;
+            return false;
         }
 
         @Override protected void updateItem(Producto p, boolean empty) {
@@ -730,11 +851,17 @@ public final class TransferenciaArrastreDialog {
             if (empty || p == null) { setGraphic(null); return; }
             codigo.setText(p.getCodigo());
             nombre.setText(p.getNombre());
+            nombre.setTooltip(new Tooltip(p.getNombre()));
             boolean tiene = p.getResguardante() != null && !p.getResguardante().isBlank();
             persona.setIconLiteral(tiene ? "mdi2a-account-outline" : "mdi2a-account-off-outline");
             quien.setText(tiene ? p.getResguardante() : "Sin resguardante");
             quien.getStyleClass().removeAll("trf-persona", "trf-sin-persona");
             quien.getStyleClass().add(tiene ? "trf-persona" : "trf-sin-persona");
+            boolean marcado = marcados.contains(p.getId());
+            casilla.setSelected(marcado);
+            casilla.setAccessibleText(p.getCodigo());
+            caja.getStyleClass().remove("rsg-fila-sel");
+            if (marcado) caja.getStyleClass().add("rsg-fila-sel");
             setGraphic(caja);
         }
     }

@@ -50,7 +50,7 @@ final class ProductosBulkBar {
         boolean show = n >= 2;
         boolean edit = canEdit.getAsBoolean();
         if (lblBulkCount != null && show)
-            lblBulkCount.setText(n + " bienes seleccionados");
+            lblBulkCount.setText(n + " seleccionados");
         // Changing área moves the bienes (a transfer): Patrimonio only.
         boolean mover = edit && com.sibim.session.SessionManager.isAdmin();
         if (btnBulkArea != null) { btnBulkArea.setVisible(mover); btnBulkArea.setManaged(mover); }

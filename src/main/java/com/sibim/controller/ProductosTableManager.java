@@ -45,7 +45,6 @@ class ProductosTableManager {
     private final Label lblPage;
     private final Button btnPrev;
     private final Button btnNext;
-    private final Label lblSeleccionados;
     private final Button btnMovimiento;
     private final Button btnQr;
     private final Button btnEditar;
@@ -90,7 +89,6 @@ class ProductosTableManager {
             ComboBox<Integer> pageSizeBox,
             Label lblTotal, Label lblPage,
             Button btnPrev, Button btnNext,
-            Label lblSeleccionados,
             Button btnMovimiento, Button btnQr,
             Button btnEditar, Button btnEliminar,
             MenuItem btnExportarSeleccion,
@@ -123,7 +121,6 @@ class ProductosTableManager {
         this.lblPage = lblPage;
         this.btnPrev = btnPrev;
         this.btnNext = btnNext;
-        this.lblSeleccionados = lblSeleccionados;
         this.btnMovimiento = btnMovimiento;
         this.btnQr = btnQr;
         this.btnEditar = btnEditar;
@@ -182,7 +179,6 @@ class ProductosTableManager {
             if (btnEditar   != null && canEdit) btnEditar.setDisable(n != 1);
             if (btnEliminar != null && canEdit) btnEliminar.setDisable(n != 1);
             if (btnExportarSeleccion != null) btnExportarSeleccion.setDisable(n == 0);
-            updateSelectionLabel(lblSeleccionados, n);
             bulkBarManager.update(n);
         });
         if (btnMovimiento != null && canEdit) btnMovimiento.setDisable(true);
@@ -278,15 +274,4 @@ class ProductosTableManager {
             lblTotal, lblPage, btnPrev, btnNext, "resultado", "resultados");
     }
 
-    private static void updateSelectionLabel(Label lbl, int n) {
-        if (lbl == null) return;
-        if (n > 0) {
-            lbl.setText("· " + n + (n == 1 ? " seleccionado" : " seleccionados"));
-            lbl.setVisible(true);
-            lbl.setManaged(true);
-        } else {
-            lbl.setVisible(false);
-            lbl.setManaged(false);
-        }
-    }
 }

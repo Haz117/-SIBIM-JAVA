@@ -94,7 +94,7 @@
                 <Label text="CANCELADOS" styleClass="rich-stat-label" HBox.hgrow="ALWAYS"/>
             </HBox>
             <Label fx:id="lblStatCancelados" text="—" styleClass="rich-stat-value"/>
-            <Label text="resguardos dados de baja" styleClass="rich-stat-hint"/>
+            <Label text="resguardos cancelados" styleClass="rich-stat-hint"/>
         </VBox>
         <VBox fx:id="statCardBienes" styleClass="rich-stat-card, rich-stat-slate"
               HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
@@ -113,23 +113,8 @@
 
     <!-- ══ TOOLBAR ═══════════════════════════════════════════════════ -->
     <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar, filter-bar-indigo">
-        <TextField fx:id="searchField" promptText="Buscar por resguardante, área o número…"
+        <TextField fx:id="searchField" promptText="Persona, folio, área o código de bien…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
-        <MenuButton fx:id="btnExportarPdf" text="Exportar" minWidth="-Infinity" styleClass="btn-secondary"
-                    contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el registro de resguardos visible" wrapText="true" maxWidth="240"/></tooltip>
-            <items>
-                <MenuItem text="PDF" onAction="#onExportarPdf">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
-                </MenuItem>
-            </items>
-        </MenuButton>
-        <Button fx:id="btnCancelar" text="Dar de baja" onAction="#onCancelar"
-                styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2d-delete-circle-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Cancelar el resguardo seleccionado (Delete)"/></tooltip>
-        </Button>
     </HBox>
 
     <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
@@ -147,4 +132,31 @@
                    styleClass="table-placeholder"/>
         </placeholder>
     </TableView>
+
+    <!-- ══ ACTIONS: under the table with their names, as in Bienes. In the filter bar
+         they were squeezed down to bare icons at 1366 px. ═══════════════════════ -->
+    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="bottom-action-bar">
+        <Label fx:id="lblPistaAcciones" text="Selecciona un resguardo: aquí se activa lo que puedes hacer con él" styleClass="muted-sm"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnDetalle" text="Ver detalle" onAction="#onVerDetalle" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2e-eye-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Bienes, datos e historial del resguardo (Enter o doble clic)"/></tooltip>
+        </Button>
+        <Button fx:id="btnPersona" text="Ver a la persona" onAction="#onVerPersona" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2a-account-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Todo lo que tiene esta persona: sus resguardos y sus bienes"/></tooltip>
+        </Button>
+        <Button fx:id="btnExportarPdf" text="PDF" onAction="#onExportarPdfLote" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="El PDF del resguardo para firmar; de varios, un ZIP con uno por resguardo" wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
+        <Button fx:id="btnCancelar" text="Cancelar resguardo" onAction="#onCancelar" styleClass="btn-danger"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2d-delete-circle-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Cancelar el resguardo seleccionado: sus bienes quedan sin resguardante (Delete)" wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
+    </HBox>
 </VBox>

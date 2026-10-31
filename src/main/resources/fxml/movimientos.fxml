@@ -25,12 +25,6 @@
             <graphic><FontIcon iconLiteral="mdi2r-refresh" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Actualizar desde la base de datos (F5)"/></tooltip>
         </Button>
-        <Button fx:id="btnResetColumns" styleClass="btn-icon-only" contentDisplay="GRAPHIC_ONLY"
-                accessibleText="Restaurar columnas">
-            <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Restaurar ancho y orden de columnas a su configuración original  (para visibilidad, clic derecho en el encabezado)"
-                              wrapText="true" maxWidth="270"/></tooltip>
-        </Button>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
@@ -51,17 +45,10 @@
             <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Transferencias pendientes de aprobación"/></tooltip>
         </Button>
-        <!-- The primary action: the header keeps its label when the row is short
-             (secondary buttons drop to their icon first). -->
         <Button fx:id="btnArrastrar" text="Transferir arrastrando" onAction="#onTransferirArrastrando"
                 styleClass="btn-primary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-drag-variant" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Arrastra bienes de un área a otra y asígnales su nuevo resguardante" wrapText="true" maxWidth="260"/></tooltip>
-        </Button>
-        <Button fx:id="btnNuevo" text="Agregar o quitar" onAction="#onNuevoMovimiento" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2p-plus-minus" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Sumar o restar piezas a la cantidad de un bien  (Ctrl+N)"/></tooltip>
         </Button>
     </HBox>
 
@@ -181,27 +168,33 @@
             <tooltip><Tooltip text="Movimientos de los bienes de un área, o transferencias que salieron o llegaron ahí" wrapText="true" maxWidth="260"/></tooltip>
         </ComboBox>
         <Separator orientation="VERTICAL"/>
-        <Label text="Desde:" styleClass="muted"/>
-        <DatePicker fx:id="desdeFilter" prefWidth="130" promptText="dd/mm/aaaa">
-            <tooltip><Tooltip text="Fecha inicial del rango"/></tooltip>
-        </DatePicker>
-        <Label text="Hasta:" styleClass="muted"/>
-        <DatePicker fx:id="hastaFilter" prefWidth="130" promptText="dd/mm/aaaa">
-            <tooltip><Tooltip text="Fecha final del rango"/></tooltip>
-        </DatePicker>
-        <Button fx:id="btnPresetHoy"    text="Hoy"    onAction="#onPresetHoy"    styleClass="btn-preset">
-            <tooltip><Tooltip text="Ver movimientos de hoy"/></tooltip>
-        </Button>
-        <Button fx:id="btnPresetSemana" text="Semana" onAction="#onPresetSemana" styleClass="btn-preset">
-            <tooltip><Tooltip text="Ver movimientos de los últimos 7 días"/></tooltip>
-        </Button>
-        <Button fx:id="btnPresetMes"    text="Mes"    onAction="#onPresetMes"    styleClass="btn-preset">
-            <tooltip><Tooltip text="Ver movimientos del mes actual"/></tooltip>
-        </Button>
-        <Button text="" onAction="#onLimpiarFechas" styleClass="btn-preset-clear">
-            <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
-            <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
-        </Button>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Desde:" styleClass="muted"/>
+            <DatePicker fx:id="desdeFilter" prefWidth="130" promptText="dd/mm/aaaa">
+                <tooltip><Tooltip text="Fecha inicial del rango"/></tooltip>
+            </DatePicker>
+        </HBox>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Hasta:" styleClass="muted"/>
+            <DatePicker fx:id="hastaFilter" prefWidth="130" promptText="dd/mm/aaaa">
+                <tooltip><Tooltip text="Fecha final del rango"/></tooltip>
+            </DatePicker>
+        </HBox>
+        <HBox spacing="6" alignment="CENTER_LEFT">
+            <Button fx:id="btnPresetHoy"    text="Hoy"    onAction="#onPresetHoy"    styleClass="btn-preset">
+                <tooltip><Tooltip text="Ver movimientos de hoy"/></tooltip>
+            </Button>
+            <Button fx:id="btnPresetSemana" text="Semana" onAction="#onPresetSemana" styleClass="btn-preset">
+                <tooltip><Tooltip text="Ver movimientos de los últimos 7 días"/></tooltip>
+            </Button>
+            <Button fx:id="btnPresetMes"    text="Mes"    onAction="#onPresetMes"    styleClass="btn-preset">
+                <tooltip><Tooltip text="Ver movimientos del mes actual"/></tooltip>
+            </Button>
+            <Button text="" onAction="#onLimpiarFechas" styleClass="btn-preset-clear">
+                <graphic><FontIcon iconLiteral="mdi2c-close"/></graphic>
+                <tooltip><Tooltip text="Limpiar filtros de fecha"/></tooltip>
+            </Button>
+        </HBox>
         <Label fx:id="helpFechaMov" text="?" styleClass="help-badge">
             <tooltip><Tooltip text="Filtra por la fecha en que se registró el movimiento. Usa los accesos rápidos (Hoy/Semana/Mes) o elige un rango manual con Desde/Hasta." wrapText="true" maxWidth="260"/></tooltip>
         </Label>
@@ -219,6 +212,18 @@
         <Region styleClass="dash-section-bar-purple"/>
         <Label text="TABLA DE MOVIMIENTOS" styleClass="dash-section-label"/>
         <Region HBox.hgrow="ALWAYS"/>
+        <!-- Here and not in the header, which had no room for them and left bare icons. -->
+        <Button fx:id="btnNuevo" text="Agregar o quitar" onAction="#onNuevoMovimiento" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2p-plus-minus" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Sumar o restar piezas a la cantidad de un bien  (Ctrl+N)"/></tooltip>
+        </Button>
+        <Button fx:id="btnResetColumns" text="Restaurar columnas" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2t-table-refresh" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Restaurar ancho y orden de columnas a su configuración original  (para visibilidad, clic derecho en el encabezado)"
+                              wrapText="true" maxWidth="270"/></tooltip>
+        </Button>
         <MenuButton fx:id="btnExportar" text="Exportar" styleClass="btn-secondary"
                     contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
@@ -249,9 +254,9 @@
     <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table" tableMenuButtonVisible="true">
         <columns>
             <TableColumn fx:id="colProducto"   text="Bien"    prefWidth="230" maxWidth="280" sortable="true" minWidth="140"/>
-            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="115" sortable="true" minWidth="96"/>
-            <TableColumn fx:id="colCantidad"   text="Cant."           prefWidth="86"  sortable="true" minWidth="80"/>
-            <TableColumn fx:id="colStock"      text="Cantidad ant. → nueva" prefWidth="176" sortable="false" minWidth="176"/>
+            <TableColumn fx:id="colTipo"       text="Tipo"               prefWidth="138" sortable="true" minWidth="132"/>
+            <TableColumn fx:id="colCantidad"   text="Cant."           prefWidth="66"  sortable="true" minWidth="60"/>
+            <TableColumn fx:id="colStock"      text="Qué cambió" prefWidth="176" sortable="false" minWidth="176"/>
             <TableColumn fx:id="colMotivo"     text="Motivo"             prefWidth="200" sortable="true" minWidth="110"/>
             <TableColumn fx:id="colUsuario"    text="Usuario"            prefWidth="140" sortable="true" minWidth="100"/>
             <TableColumn fx:id="colFecha"      text="Fecha"              prefWidth="140" sortable="true" minWidth="120"/>

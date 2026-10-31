@@ -109,6 +109,19 @@ final class TutorialGuias {
                 "Eliges área o categoría y ves su avance; un clic en el bien lo marca como visto",
                 "La cantidad solo aparece en los lotes; tu avance se guarda solo al cerrar"),
                 "Abrir el Conteo físico", ir("conteo")));
+            p.add(probar(paso("mdi2d-drag-variant", VERDE, VERDE_D, "Transferir varios de una vez", "movimientos", "#btnArrastrar",
+                "Un clic marca cada bien, ya no hace falta Ctrl; lo marcado sigue marcado aunque busques otro",
+                "Escribe el código y Enter lo marca: así juntas varios y salen en un solo resguardo",
+                "A la misma área, la siguiente vuelta ya trae el motivo y la persona"),
+                "Abrir Transferir", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); }));
+            p.add(paso("mdi2c-clipboard-search-outline", DORADO, DORADO_D, "Buscar en Resguardos", "resguardos", "#searchField",
+                "Busca por persona, folio, área o el código de un bien: te dice en qué resguardo está",
+                "Sin acentos también lo encuentra",
+                "Abajo, al seleccionar uno: Ver detalle, Ver a la persona, PDF y Cancelar resguardo"));
+            p.add(paso("mdi2p-pencil", GUINDA, GUINDA_D, "Editar sin pasar por los pasos", "productos", "#btnEditar",
+                "Al editar, «Guardar cambios» siempre está a la vista, en cualquier sección",
+                "«Guardar y abrir…» pasa al bien de abajo en la misma sección: para corregir muchos seguidos",
+                "El detalle del bien ya trae «Editar», y al registrar uno nuevo puedes seguir con «Guardar y registrar otro»"));
             p.add(probar(paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "Completar datos", "productos", "#btnMasBienes",
                 "Está en Bienes › Más › Completar datos",
                 "Por área: precio, fecha, vida útil y foto, en la misma lista",
@@ -322,7 +335,7 @@ final class TutorialGuias {
         return new Guia("transferir", "Transferir bienes a otra área", "Arrastrando, con número nuevo y resguardo", "mdi2d-drag-variant", List.of(
             paso("mdi2d-drag-variant", VERDE, VERDE_D, "1. Elige de dónde y qué", "movimientos", "#btnArrastrar",
                 "Movimientos › «Transferir arrastrando»",
-                "Elige el área de origen y selecciona los bienes (Ctrl o Mayús + clic para varios)"),
+                "Elige el área de origen y marca los bienes: un clic en cada uno, o su código y Enter"),
             probar(paso("mdi2s-swap-horizontal-bold", VERDE, VERDE_D, "2. Llévalos al área que recibe", "movimientos", "#btnArrastrar",
                 "Arrástralos a la tarjeta del área, o da clic en ella",
                 "Te pide el motivo y quién los recibe; salen de su resguardo anterior y se crea el nuevo",
