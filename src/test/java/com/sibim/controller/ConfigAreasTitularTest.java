@@ -65,7 +65,13 @@ class ConfigAreasTitularTest extends ApplicationTest {
         clickOn(n);
         WaitForAsyncUtils.waitForFxEvents();
         doubleClickOn(n);
-        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> celda(fila).isEditing());
+        // On a busy machine the robot's two clicks can land too far apart to be a double click.
+        try {
+            WaitForAsyncUtils.waitFor(2, TimeUnit.SECONDS, () -> celda(fila).isEditing());
+        } catch (java.util.concurrent.TimeoutException otraVez) {
+            doubleClickOn(celda(fila));
+            WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> celda(fila).isEditing());
+        }
         WaitForAsyncUtils.waitForFxEvents();
         return (TextField) celda(fila).getGraphic();
     }

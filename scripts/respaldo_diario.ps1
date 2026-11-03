@@ -53,7 +53,8 @@
     días a la -Hora indicada (por defecto 11:00) y también 10 minutos después
     de iniciar sesión, con -UnoPorDia, la cuenta actual y los mismos -Destino,
     -DiasRetencion, -SinFotos y -CopiaEn, y hace un primer respaldo en ese
-    momento para comprobar que funciona. El disparo al iniciar sesión es el que
+    momento para comprobar que funciona. Corre con la ventana oculta, para que
+    nadie la cierre a medio respaldo. El disparo al iniciar sesión es el que
     cuenta en una PC que se apaga antes de la hora: Windows no siempre recupera
     la ejecución perdida al volver a encenderla (con 14:00 nunca corrió).
 
@@ -77,7 +78,9 @@ $ProgressPreference = "SilentlyContinue"   # la barra de Invoke-WebRequest lo ha
 . (Join-Path $PSScriptRoot "comun.ps1")
 
 if ($Registrar) {
-    $argumentos = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Destino `"$Destino`" -DiasRetencion $DiasRetencion -UnoPorDia"
+    # Ventana oculta: visible, quien la veía aparecer al iniciar sesión la cerraba
+    # y el respaldo quedaba cortado (0xC000013A, dos veces el 3-nov-2026).
+    $argumentos = "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Destino `"$Destino`" -DiasRetencion $DiasRetencion -UnoPorDia"
     if ($SinFotos) { $argumentos += " -SinFotos" }
     if ($CopiaEn)  { $argumentos += " -CopiaEn `"$CopiaEn`"" }
     $accion = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $argumentos

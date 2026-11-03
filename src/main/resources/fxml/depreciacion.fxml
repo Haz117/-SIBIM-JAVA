@@ -87,7 +87,7 @@
                 </Label>
             </HBox>
             <Label fx:id="lblStatCompra" text="—" styleClass="rich-stat-value, rich-stat-value-sm"/>
-            <Label text="suma de precio de compra" styleClass="rich-stat-hint"/>
+            <Label fx:id="lblCompraHint" text="suma de precio de compra" styleClass="rich-stat-hint"/>
         </VBox>
 
         <VBox fx:id="statCardActual" styleClass="rich-stat-card, rich-stat-teal"

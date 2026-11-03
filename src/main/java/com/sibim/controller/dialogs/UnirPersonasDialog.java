@@ -78,7 +78,7 @@ public final class UnirPersonasDialog {
         dialog.setResizable(true);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
         HBox header = DialogUtil.gradientHeader("mdi2a-account-multiple-check-outline", "Unir personas repetidas",
-            "Mismas palabras en otro orden o con título: decide si son la misma persona y cómo queda su nombre",
+            "Mismas palabras en otro orden, con título o con una letra distinta: decide si son la misma persona",
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         lista.getStyleClass().add("trf-areas");
@@ -177,7 +177,9 @@ public final class UnirPersonasDialog {
         resumen.setText("");
         pintarTarjetas.clear();
         if (!hay) return;
-        pregunta.setText("Estos " + grupo.size() + " nombres tienen las mismas palabras. Si son la misma persona, marca cómo debe quedar "
+        pregunta.setText("Estos " + grupo.size() + " nombres " + (CalidadDatosService.mismasPalabras(grupo)
+                ? "tienen las mismas palabras" : "se parecen mucho, pero cambia alguna letra: revisa que no sean dos personas")
+            + ". Si son la misma persona, marca cómo debe quedar "
             + "su nombre y pulsa «Son la misma persona: unir». Si no, pulsa «Son personas distintas» y se dejan como están.");
         String propuesto = CalidadDatosService.nombrePropuesto(grupo);
         nombres.getToggles().clear();

@@ -28,6 +28,8 @@
 .default-color0.chart-line-symbol { -fx-background-color: sibim-indigo, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 .default-color1.chart-series-line { -fx-stroke: #235B4E; -fx-stroke-width: 2.5px; }
 .default-color1.chart-line-symbol { -fx-background-color: #235B4E, white; -fx-background-radius: 5px; -fx-padding: 4px; }
+.default-color2.chart-series-line { -fx-stroke: #B38E5D; -fx-stroke-width: 2.5px; }
+.default-color2.chart-line-symbol { -fx-background-color: #B38E5D, white; -fx-background-radius: 5px; -fx-padding: 4px; }
 /* Area chart trend (Entradas = indigo, Salidas = rose) */
 .default-color0.chart-series-area-line { -fx-stroke: sibim-indigo; -fx-stroke-width: 2.5px; }
 .default-color0.chart-series-area-fill { -fx-fill: rgba(162,35,45,0.14); }

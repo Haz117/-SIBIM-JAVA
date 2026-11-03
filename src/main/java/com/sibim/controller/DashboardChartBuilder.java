@@ -55,6 +55,8 @@ class DashboardChartBuilder {
         chartMovimientos.getData().clear();
         XYChart.Series<String, Number> entradas = new XYChart.Series<>(); entradas.setName("Entradas");
         XYChart.Series<String, Number> salidas  = new XYChart.Series<>(); salidas.setName("Salidas");
+        // Transfers are what the municipio really does: without them the chart was a flat zero.
+        XYChart.Series<String, Number> transferencias = new XYChart.Series<>(); transferencias.setName("Transferencias");
 
         LocalDate today = LocalDate.now();
         List<String> labels = new ArrayList<>();
@@ -64,12 +66,13 @@ class DashboardChartBuilder {
             labels.add(raw.substring(0, 1).toUpperCase() + raw.substring(1));
         }
 
-        Map<LocalDate, Integer> entMap = new HashMap<>(), salMap = new HashMap<>();
+        Map<LocalDate, Integer> entMap = new HashMap<>(), salMap = new HashMap<>(), trfMap = new HashMap<>();
         for (Movimiento m : movimientos) {
             LocalDate d = m.getCreadoEn().toLocalDate();
             switch (m.getTipo()) {
                 case ENTRADA -> entMap.merge(d, m.getCantidad(), Integer::sum);
                 case SALIDA  -> salMap.merge(d, m.getCantidad(), Integer::sum);
+                case TRANSFERENCIA -> trfMap.merge(d, m.getCantidad(), Integer::sum);
                 default -> {}
             }
         }
@@ -78,13 +81,33 @@ class DashboardChartBuilder {
             String label = labels.get(6 - i);
             entradas.getData().add(new XYChart.Data<>(label, entMap.getOrDefault(day, 0)));
             salidas.getData().add(new XYChart.Data<>(label, salMap.getOrDefault(day, 0)));
+            transferencias.getData().add(new XYChart.Data<>(label, trfMap.getOrDefault(day, 0)));
         }
-        chartMovimientos.getData().addAll(List.of(entradas, salidas));
+        escalaDeEnteros(java.util.stream.Stream.of(entMap, salMap, trfMap)
+            .flatMap(m -> m.values().stream()).mapToInt(Integer::intValue).max().orElse(0));
+        chartMovimientos.getData().addAll(List.of(entradas, salidas, transferencias));
         for (XYChart.Data<String, Number> d : entradas.getData())
             installTooltipWhenReady(d.nodeProperty(), "Entradas " + d.getXValue() + ": " + d.getYValue());
         for (XYChart.Data<String, Number> d : salidas.getData())
             installTooltipWhenReady(d.nodeProperty(), "Salidas " + d.getXValue() + ": " + d.getYValue());
+        for (XYChart.Data<String, Number> d : transferencias.getData())
+            installTooltipWhenReady(d.nodeProperty(), "Transferencias " + d.getXValue() + ": " + d.getYValue());
     }
+
+    /** Whole pieces on the axis: left to itself it counted "0.0, 0.5, 1.0". */
+    private void escalaDeEnteros(int maximo) {
+        if (!(chartMovimientos.getYAxis() instanceof javafx.scene.chart.NumberAxis eje)) return;
+        int paso = Math.max(1, (int) Math.ceil(maximo / 4.0));
+        eje.setAutoRanging(false);
+        eje.setLowerBound(0);
+        eje.setTickUnit(paso);
+        eje.setUpperBound(Math.max(4, paso * 4L));
+        eje.setMinorTickVisible(false);
+        eje.setTickLabelFormatter(new javafx.util.converter.NumberStringConverter("#,##0"));
+    }
+
+    /** Past these, one line: 17 categories made this card much taller than the chart beside it. */
+    private static final int CATEGORIAS_VISIBLES = 8;
 
     void buildCategoriaChart(List<ProductoRepository.CategoriaValor> catValores) {
         if (categoriaValorBox == null) return;
@@ -96,17 +119,27 @@ class DashboardChartBuilder {
 
         int i = 0;
         for (ProductoRepository.CategoriaValor cv : catValores) {
+            if (i == CATEGORIAS_VISIBLES) {
+                Label otras = new Label("y " + FormatUtils.plural(catValores.size() - i, "categoría más", "categorías más")
+                    + ", de menor valor");
+                otras.getStyleClass().add("area-bar-count");
+                categoriaValorBox.getChildren().add(otras);
+                break;
+            }
             double pct = total.compareTo(BigDecimal.ZERO) > 0
                 ? cv.valor().doubleValue() / total.doubleValue() : 0;
 
             Label nameLbl = new Label(cv.nombre());
             nameLbl.getStyleClass().add("area-bar-name");
+            nameLbl.setMinWidth(0);
+            nameLbl.setMaxWidth(Double.MAX_VALUE);
             javafx.scene.layout.HBox.setHgrow(nameLbl, javafx.scene.layout.Priority.ALWAYS);
 
             Label valLbl = new Label(FormatUtils.formatCurrency(cv.valor()));
             valLbl.getStyleClass().add("area-bar-count");
+            valLbl.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
 
-            javafx.scene.layout.HBox nameRow = new javafx.scene.layout.HBox(nameLbl, valLbl);
+            javafx.scene.layout.HBox nameRow = new javafx.scene.layout.HBox(8, nameLbl, valLbl);
             nameRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
             javafx.scene.control.ProgressBar pb = new javafx.scene.control.ProgressBar(0);

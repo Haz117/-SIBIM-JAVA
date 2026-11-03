@@ -345,8 +345,11 @@ public final class ResguardosEnLoteDialog {
             casilla.setDisable(repetida);
             casilla.setSelected(marcadas.contains(p.nombre()));
             casilla.setAccessibleText(p.nombre());
-            cuenta.getStyleClass().setAll(repetida ? List.of("cell-badge", "cell-badge-warning") : List.of("org-area-count"));
-            cuenta.setText(repetida ? "Nombre repetido" : FormatUtils.plural(p.sinResguardo().size(), "bien", "bienes"));
+            boolean dos = !repetida && com.sibim.service.CalidadDatosService.dosPersonas(p.nombre());
+            cuenta.getStyleClass().setAll(repetida || dos ? List.of("cell-badge", "cell-badge-warning") : List.of("org-area-count"));
+            String bienesDeEl = FormatUtils.plural(p.sinResguardo().size(), "bien", "bienes");
+            cuenta.setText(repetida ? "Nombre repetido" : dos ? "2 personas · " + bienesDeEl : bienesDeEl);
+            cuenta.setTooltip(dos ? new Tooltip("Este nombre trae a dos personas: el resguardo saldría a nombre de ambas") : null);
             setGraphic(caja);
         }
     }

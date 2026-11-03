@@ -66,6 +66,7 @@ final class TutorialGuias {
             g.add(registrarResguardo());
             g.add(resguardoDePersona());
             g.add(conteoFisico());
+            g.add(variosSeguidos());
             g.add(completarDatos());
             g.add(personasYSeries());
             g.add(etiquetas());
@@ -117,7 +118,8 @@ final class TutorialGuias {
             p.add(paso("mdi2c-clipboard-search-outline", DORADO, DORADO_D, "Buscar en Resguardos", "resguardos", "#searchField",
                 "Busca por persona, folio, área o el código de un bien: te dice en qué resguardo está",
                 "Sin acentos también lo encuentra",
-                "Abajo, al seleccionar uno: Ver detalle, Ver a la persona, PDF y Cancelar resguardo"));
+                "Abajo, al seleccionar uno: Ver detalle, Ver a la persona, PDF y Cancelar resguardo",
+                "En el detalle ya se leen el código y el valor de cada bien, y puedes reimprimir el PDF"));
             p.add(paso("mdi2p-pencil", GUINDA, GUINDA_D, "Editar sin pasar por los pasos", "productos", "#btnEditar",
                 "Al editar, «Guardar cambios» siempre está a la vista, en cualquier sección",
                 "«Guardar y abrir…» pasa al bien de abajo en la misma sección: para corregir muchos seguidos",
@@ -128,13 +130,13 @@ final class TutorialGuias {
                 "Escribe el valor y Enter guarda y pasa al siguiente; la vida útil se puede proponer según CONAC"),
                 "Abrir Completar datos", abrir("productos", "completar")));
             p.add(probar(paso("mdi2a-account-multiple-check-outline", GUINDA, GUINDA_D, "Unir personas y series repetidas", "productos", "#btnMasBienes",
-                "Bienes › Más › Unir personas repetidas: el mismo nombre en otro orden o con título",
-                "Bienes › Más › Series repetidas: una serie en varios bienes",
+                "Bienes › Más › Unir personas repetidas: el mismo nombre en otro orden, con título o con una letra distinta",
+                "Bienes › Más › Series repetidas: una serie en varios bienes; si no es serie, se quita a todos de una vez",
                 "Tú decides cada caso; «Son personas distintas» no vuelve a preguntar"),
                 "Abrir Unir personas", abrir("productos", "unir")));
             p.add(probar(paso("mdi2t-tag-multiple-outline", DORADO, DORADO_D, "Etiquetas y resguardos en lote", "productos", "#btnMasBienes",
                 "Bienes › Más › Etiquetas por área: imprime por área y ve el avance",
-                "Resguardos › Más › Resguardos en lote: varias personas a la vez, un solo PDF para firmar",
+                "Resguardos › Más › Resguardos en lote: varias personas a la vez, un solo PDF para firmar; avisa si un nombre trae a dos personas",
                 "Cambiar resguardante y los formatos de baja ahora eligen de una lista, no a mano"),
                 "Abrir Etiquetas por área", abrir("productos", "etiquetas")));
         } else {
@@ -182,17 +184,19 @@ final class TutorialGuias {
             SessionManager.isAdmin()
                 ? "Ctrl+N registra un bien nuevo, en el área que tengas filtrada; el número se asigna solo"
                 : "Selecciona un bien y «Actualizar datos»: ubicación, estado físico, descripción y fotos",
-            "Doble clic en una fila: foto, código QR e historial",
+            SessionManager.isAdmin()
+                ? "Doble clic en una fila: foto, código QR e historial; desde ahí mismo, «Editar»"
+                : "Doble clic en una fila: foto, código QR e historial; desde ahí mismo, «Actualizar datos»",
             "Busca mientras escribes y combina los filtros de categoría, área y estado"
         }));
         if (SessionManager.isAdmin()) {
             p.add(new Paso("mdi2s-swap-vertical", VERDE, VERDE_D, "Movimientos", "Ctrl + 5", "movimientos", null, null, null, new String[]{
                 "«Transferir arrastrando» lleva bienes a otra área, con su número nuevo y su resguardo",
                 "«Agregar o quitar» suma o resta piezas a un lote",
-                "Aquí queda el historial de todo lo que entró, salió o cambió de área"
+                "Aquí queda el historial: en una transferencia, el número de antes y el nuevo, y a qué área fue"
             }));
             p.add(paso("mdi2c-clipboard-account-outline", DORADO, DORADO_D, "Documentos", "resguardos", null,
-                "Resguardos: quién tiene un bien a su cargo, con PDF para firma",
+                "Resguardos: quién tiene un bien a su cargo, con PDF para firma; búscalo también por el código del bien",
                 "Préstamos, Comodatos y Actas están en el mismo grupo del menú",
                 "Bajas: los bienes que salieron del inventario; su historial se conserva"));
         }
@@ -274,6 +278,18 @@ final class TutorialGuias {
                 "Abrir el Conteo físico", ir("conteo"))));
     }
 
+    private static Guia variosSeguidos() {
+        return new Guia("varios-seguidos", "Corregir o registrar varios bienes seguidos", "Sin volver a la lista por cada uno", "mdi2p-pencil", List.of(
+            paso("mdi2p-pencil", GUINDA, GUINDA_D, "Corregir varios", "productos", "#btnEditar",
+                "Filtra la lista, selecciona el primero y «Editar» (Ctrl+E); o doble clic y «Editar» en su detalle",
+                "«Guardar cambios» está siempre a la vista, en cualquier sección",
+                "«Guardar y abrir…» guarda y abre el de abajo en la misma sección, también al cambiar de página"),
+            paso("mdi2p-plus-box-outline", GUINDA, GUINDA_D, "Registrar varios", "productos", "#btnNuevoBien",
+                "«Nuevo Bien» (Ctrl+N) en el área que tengas filtrada",
+                "En el último paso, «Guardar y registrar otro» abre el siguiente",
+                "Conserva el área, la categoría, la ubicación y el resguardante; lo demás va en blanco")));
+    }
+
     private static Guia completarDatos() {
         return new Guia("completar", "Completar los datos de los bienes", "Precio, fecha, vida útil y foto, sin abrir ficha por ficha", "mdi2c-clipboard-edit-outline", List.of(
             paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "1. Ábrelo y elige un área", "productos", "#btnMasBienes",
@@ -294,7 +310,8 @@ final class TutorialGuias {
     private static Guia personasYSeries() {
         return new Guia("personas-series", "Corregir personas y series repetidas", "Limpia los nombres y las series que vinieron del Excel", "mdi2a-account-multiple-check-outline", List.of(
             probar(paso("mdi2a-account-multiple-check-outline", GUINDA, GUINDA_D, "Personas repetidas", "productos", "#btnMasBienes",
-                "Bienes › Más › Unir personas repetidas: el mismo nombre en otro orden o con título",
+                "Bienes › Más › Unir personas repetidas: el mismo nombre en otro orden, con título o con una letra distinta",
+                "Cuando cambia una letra te avisa: revisa que no sean dos personas (MARIO y MARIA también difieren en una)",
                 "Si son la misma persona, marca cómo queda su nombre: se sugiere el que tiene más bienes, o escríbelo",
                 "«Son la misma persona» cambia sus bienes y resguardos vigentes; mientras la ventana siga abierta, «Deshacer» lo regresa",
                 "«Son personas distintas» las deja igual y no vuelve a preguntar"),
@@ -302,6 +319,7 @@ final class TutorialGuias {
             probar(paso("mdi2b-barcode-scan", GUINDA, GUINDA_D, "Series repetidas", "productos", "#btnMasBienes",
                 "Bienes › Más › Series repetidas: cada serie que está en más de un bien",
                 "Corrige la serie en su campo y Enter, o «Sin serie» si no tiene",
+                "Si no es una serie de verdad (un modelo, algo de relleno), «Dejar los N sin serie» la quita a todos de una vez",
                 "Avisa si está en varias áreas: podrían ser dos registros del mismo bien, revísalo en físico"),
                 "Abrir Series repetidas", abrir("productos", "series"))));
     }
@@ -322,7 +340,8 @@ final class TutorialGuias {
         return new Guia("lote", "Registrar resguardos en lote", "Varias personas de una vez, con un solo PDF para firmar", "mdi2c-clipboard-multiple-outline", List.of(
             paso("mdi2c-clipboard-multiple-outline", DORADO, DORADO_D, "1. Primero une los nombres repetidos", "resguardos", "#btnMasResguardos",
                 "Quien aparece como «Nombre repetido» no se puede marcar: únelo antes",
-                "Está en Bienes › Más › Unir personas repetidas"),
+                "Está en Bienes › Más › Unir personas repetidas",
+                "«2 personas» avisa que ese nombre trae a dos: el resguardo saldría a nombre de ambas"),
             probar(paso("mdi2c-clipboard-check-outline", DORADO, DORADO_D, "2. Marca y registra", "resguardos", "#btnMasResguardos",
                 "Está en Resguardos › Más › Resguardos en lote",
                 "Elige a la izquierda para ver los bienes de cada quien",
@@ -335,10 +354,12 @@ final class TutorialGuias {
         return new Guia("transferir", "Transferir bienes a otra área", "Arrastrando, con número nuevo y resguardo", "mdi2d-drag-variant", List.of(
             paso("mdi2d-drag-variant", VERDE, VERDE_D, "1. Elige de dónde y qué", "movimientos", "#btnArrastrar",
                 "Movimientos › «Transferir arrastrando»",
-                "Elige el área de origen y marca los bienes: un clic en cada uno, o su código y Enter"),
+                "Elige el área de origen y marca los bienes: un clic en cada uno, o su código y Enter",
+                "Lo marcado sigue marcado aunque busques otro: marca todos los que van a la misma persona, así salen en un solo resguardo"),
             probar(paso("mdi2s-swap-horizontal-bold", VERDE, VERDE_D, "2. Llévalos al área que recibe", "movimientos", "#btnArrastrar",
-                "Arrástralos a la tarjeta del área, o da clic en ella",
-                "Te pide el motivo y quién los recibe; salen de su resguardo anterior y se crea el nuevo",
+                "Da clic en la tarjeta del área, o arrástralos a ella",
+                "Te pide el motivo y quién los recibe (el cargo se llena solo); salen de su resguardo anterior y se crea el nuevo",
+                "Otra vuelta a la misma área ya trae el motivo y la persona",
                 "Abajo queda lo transferido, con «Deshacer» por si fue un error"),
                 "Abrir Transferir arrastrando", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); })));
     }
@@ -351,7 +372,7 @@ final class TutorialGuias {
                 "El área los firma y los entrega a Patrimonio"),
             paso("mdi2a-archive-arrow-down-outline", DORADO, DORADO_D, "2. Regístrala", "productos", "#btnMasBienes",
                 "En Bienes selecciona el bien y «Dar de baja»; anota el folio de la solicitud",
-                "Si tiene un resguardo vigente, primero hay que quitarlo del resguardo",
+                "Si tiene un resguardo vigente, primero hay que quitarlo: Resguardos › Ver detalle › «Quitar del resguardo»",
                 "Sale del inventario activo pero conserva su historial; se consulta en Bajas")));
     }
 

@@ -48,12 +48,14 @@ public class CalidadDatosService {
 
     /** Titles that come and go in the same person's name, without their dots. */
     private static final Set<String> TITULOS = Set.of("LIC", "LICDA", "LD", "ING", "INGA", "ARQ", "DR", "DRA",
-        "MTRO", "MTRA", "PROF", "PROFR", "PROFRA", "C", "CP", "COMANDANTE", "ABOG");
+        "MTRO", "MTRA", "PROF", "PROFR", "PROFRA", "C", "CP", "COMANDANTE", "ABOG",
+        "LAP", "AP", "TSU", "MVZ", "ENCARGADA", "ENCARGADO");
 
     /** What two spellings of one person share: the words, in any order, without titles. */
     static String clavePalabras(String nombre) {
         List<String> palabras = new ArrayList<>();
-        for (String p : ResguardoService.clavePersona(nombre).split(" ")) {
+        // "A/B" and "A, B" are the same two people.
+        for (String p : ResguardoService.clavePersona(nombre).replace('/', ' ').split(" ")) {
             String limpia = p.replaceAll("[.:,]", "");
             if (!limpia.isEmpty() && !TITULOS.contains(limpia)) palabras.add(limpia);
         }
@@ -69,12 +71,68 @@ public class CalidadDatosService {
             // A name of only titles or one word can't tell two people apart.
             if (clave.contains(" ")) grupos.computeIfAbsent(clave, k -> new ArrayList<>()).add(p);
         }
+        juntarParecidos(grupos, distintas);
         return grupos.entrySet().stream()
             .filter(e -> e.getValue().size() > 1 && !distintas.contains(e.getKey()))
             .sorted(Comparator.comparingInt((Map.Entry<String, List<Resguardante>> e) ->
                 -e.getValue().stream().mapToInt(CalidadDatosService::bienesDe).sum()))
             .map(Map.Entry::getValue)
             .toList();
+    }
+
+    /** TANIA and TANYA, M0ISES with a zero: a typing slip keeps the same person apart under
+     *  other words. Only asked about: MARIO and MARIA also differ in one letter. */
+    private static void juntarParecidos(Map<String, List<Resguardante>> grupos, Set<String> distintas) {
+        List<String> claves = grupos.keySet().stream().filter(c -> !distintas.contains(c)).sorted().toList();
+        for (int i = 0; i < claves.size(); i++) {
+            List<Resguardante> a = grupos.get(claves.get(i));
+            if (a == null) continue;
+            for (int j = i + 1; j < claves.size(); j++) {
+                if (grupos.containsKey(claves.get(j)) && casiIguales(claves.get(i), claves.get(j)))
+                    a.addAll(grupos.remove(claves.get(j)));
+            }
+        }
+    }
+
+    /** The same words but one, which differs by a letter (two if it is a long one). */
+    static boolean casiIguales(String claveA, String claveB) {
+        String[] a = claveA.split(" "), b = claveB.split(" ");
+        if (a.length != b.length) return false;
+        int distintas = 0, cuanto = 0, largo = 0;
+        for (int i = 0; i < a.length; i++) {
+            if (a[i].equals(b[i])) continue;
+            if (++distintas > 1) return false;
+            cuanto = letrasDistintas(a[i], b[i]);
+            largo = Math.min(a[i].length(), b[i].length());
+        }
+        return distintas == 1 && largo >= 4 && cuanto <= (largo >= 7 ? 2 : 1);
+    }
+
+    private static int letrasDistintas(String a, String b) {
+        int[] previa = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) previa[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            int[] fila = new int[b.length() + 1];
+            fila[0] = i;
+            for (int j = 1; j <= b.length(); j++)
+                fila[j] = Math.min(Math.min(previa[j] + 1, fila[j - 1] + 1), previa[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1));
+            previa = fila;
+        }
+        return previa[b.length()];
+    }
+
+    /** True when all of these spell the same words; false for ones that only look alike. */
+    public static boolean mismasPalabras(List<Resguardante> variantes) {
+        return variantes.stream().map(v -> clavePalabras(v.nombre())).distinct().count() <= 1;
+    }
+
+    /** "ANTONIO EJEMPLO ROMO/ MISAEL PRUEBA GARCIA": two people in one name, each of at
+     *  least two words ("LOPEZ, JUAN" is one). A resguardo there is signed by both or by none. */
+    public static boolean dosPersonas(String nombre) {
+        if (nombre == null) return false;
+        String[] partes = nombre.trim().split("[,/]");
+        if (partes.length < 2) return false;
+        return java.util.Arrays.stream(partes).filter(p -> p.trim().split("\\s+").length >= 2).count() >= 2;
     }
 
     /** What the person holds: the resguardos in force and what is in their name without one. */
@@ -85,7 +143,9 @@ public class CalidadDatosService {
 
     /** The spelling proposed: the one with the most bienes, without a title if tied. */
     public static String nombrePropuesto(List<Resguardante> variantes) {
-        return variantes.stream().max(Comparator.comparingInt(CalidadDatosService::bienesDe)
+        // A digit in a name is a typing slip, however many bienes it holds (M0ISES).
+        return variantes.stream().max(Comparator.comparing((Resguardante p) -> p.nombre().chars().noneMatch(Character::isDigit))
+            .thenComparingInt(CalidadDatosService::bienesDe)
             .thenComparing(p -> -p.nombre().length())).map(Resguardante::nombre).orElse("");
     }
 
@@ -155,7 +215,9 @@ public class CalidadDatosService {
 
     public void marcarDistintas(List<Resguardante> variantes) throws SQLException {
         soloPatrimonio();
-        config.set(DISTINTAS + clavePalabras(variantes.get(0).nombre()), "1");
+        // Each spelling: ones that only look alike have more than one.
+        for (String clave : variantes.stream().map(v -> clavePalabras(v.nombre())).collect(Collectors.toSet()))
+            config.set(DISTINTAS + clave, "1");
     }
 
     // ── Vida útil ─────────────────────────────────────────────────────────────
@@ -192,7 +254,7 @@ public class CalidadDatosService {
 
     /** What gets typed when a bien has no serie: it isn't one. */
     private static final Set<String> NO_ES_SERIE = Set.of("S/N", "SN", "S N", "N/A", "NA", "SIN SERIE", "SIN NUMERO",
-        "SIN NÚMERO", "NO TIENE", "NINGUNA", "-", "--", "0");
+        "SIN NÚMERO", "NO TIENE", "NINGUNA", "-", "--", "0", "S/SERIE", "S/S", "PND");
 
     public static boolean noEsSerie(String serie) {
         return serie != null && NO_ES_SERIE.contains(serie.trim().toUpperCase(Locale.ROOT));
@@ -215,6 +277,22 @@ public class CalidadDatosService {
             .map(e -> new SerieRepetida(e.getKey(), List.copyOf(e.getValue())))
             .sorted(Comparator.comparingInt((SerieRepetida s) -> -s.bienes().size()).thenComparing(SerieRepetida::serie))
             .toList();
+    }
+
+    /** Leaves all these bienes without serie at once: "1215" on 54 chairs was 54 clicks.
+     *  The audit says which ones and what they had, so it can be told apart afterwards.
+     *  @return how many changed */
+    public int quitarSerie(String serie, List<Producto> bienes) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        List<String> ids = bienes.stream().map(Producto::getId).toList();
+        int n = repo.quitarSerie(ids);
+        ProductosEnMemoria.invalidar();
+        ids.forEach(FichaPublica::actualizarLuego);   // the ficha of the QR prints the serie
+        String codigos = bienes.stream().map(Producto::getCodigo).limit(60).collect(Collectors.joining(", "));
+        audit.log("producto", ids.get(0), "Serie «" + serie + "»", "actualizar",
+            "Se quitó la serie «" + serie + "» a " + n + " bienes: " + codigos + (bienes.size() > 60 ? "…" : ""));
+        return n;
     }
 
     // ── Lo que le falta a un bien ─────────────────────────────────────────────

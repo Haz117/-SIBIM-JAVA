@@ -430,7 +430,8 @@ public class OrganigramaController {
         if (lblStatAreas == null) return;
         Map<String, List<Producto>> rollup = rollupByTopLevelArea();
         int totalBienes = productosPorArea.values().stream().mapToInt(List::size).sum();
-        AnimationUtils.animateCount(lblStatAreas,  rollup.size(), 650);
+        // The áreas themselves, not the secretarías they roll up to (it said 10 for 50).
+        AnimationUtils.animateCount(lblStatAreas, productosPorArea.values().stream().filter(l -> !l.isEmpty()).count(), 650);
         AnimationUtils.animateCount(lblStatBienes, totalBienes,   800);
 
         java.math.BigDecimal totalValor = productosPorArea.values().stream()

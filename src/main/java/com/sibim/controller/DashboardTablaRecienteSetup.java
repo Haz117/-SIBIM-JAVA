@@ -68,7 +68,7 @@ class DashboardTablaRecienteSetup {
         TableColumn<Movimiento, String> cTipo = new TableColumn<>("Tipo");
         cTipo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
             c.getValue().getTipo().getEtiqueta()));
-        cTipo.setPrefWidth(100); cTipo.setMinWidth(90); cTipo.setMaxWidth(120);
+        cTipo.setPrefWidth(138); cTipo.setMinWidth(132); cTipo.setMaxWidth(160);
         cTipo.setCellFactory(DialogUtil.badgeCellFactory(item -> switch (item) {
             case "Entrada"       -> "cell-badge-success";
             case "Salida"        -> "cell-badge-danger";

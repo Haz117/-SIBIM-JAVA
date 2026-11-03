@@ -302,7 +302,7 @@
                 <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="card-icon-indigo"/>
                 <Label text="Movimientos Semanales" styleClass="card-title" HBox.hgrow="ALWAYS"/>
             </HBox>
-            <LineChart fx:id="chartMovimientos" prefHeight="190" animated="false">
+            <LineChart fx:id="chartMovimientos" prefHeight="190" animated="false" VBox.vgrow="ALWAYS">
                 <xAxis><CategoryAxis label="Día"/></xAxis>
                 <yAxis><NumberAxis label="Unidades"/></yAxis>
             </LineChart>

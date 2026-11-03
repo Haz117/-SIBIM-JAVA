@@ -121,7 +121,11 @@ public final class ResguardantePdfDialog {
         if (inicial != null) {
             String clave = com.sibim.service.ResguardoService.clavePersona(inicial);
             personas.stream().filter(p -> com.sibim.service.ResguardoService.clavePersona(p.nombre()).equals(clave)).findFirst()
-                .ifPresent(p -> { lista.getSelectionModel().select(p); lista.scrollTo(p); });
+                .ifPresent(p -> {
+                    lista.getSelectionModel().select(p);
+                    // Once it is laid out, with some room above: it came out cut at the bottom.
+                    Platform.runLater(() -> lista.scrollTo(Math.max(0, lista.getItems().indexOf(p) - 2)));
+                });
         }
         Platform.runLater(buscar::requestFocus);
         dialog.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt ->

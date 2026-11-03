@@ -302,6 +302,12 @@ public final class NuevoResguardoDialog {
 
     /** A person who is also in the list with the same words in another order. */
     private void avisarOtroNombre(Resguardante p) {
+        if (p != null && com.sibim.service.CalidadDatosService.dosPersonas(p.nombre())) {
+            aviso.setText("Este nombre trae a dos personas: el resguardo saldría a nombre de ambas.");
+            ver(filaAviso, true);
+            ver(agregarOtros, false);
+            return;
+        }
         Optional<Resguardante> otro = p == null ? Optional.empty() : personas.stream()
             .filter(q -> !q.nombre().equals(p.nombre()) && ResguardoService.mismasPalabras(q.nombre(), p.nombre()))
             .findFirst();

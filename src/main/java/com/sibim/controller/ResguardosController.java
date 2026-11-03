@@ -463,12 +463,65 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         catch (NumberFormatException e) { return Integer.MAX_VALUE; }
     }
 
+    /** The bienes of a resguardo. The name takes what the fixed columns leave: with a
+     *  constrained table it took everything and left Código and Valor without width.
+     *  Amounts only for whoever may see them; the área only if one is another's. */
+    static TableView<ResguardoItem> tablaDeBienes(ObservableList<ResguardoItem> items, String areaDelResguardo) {
+        TableView<ResguardoItem> tabla = new TableView<>(items);
+        tabla.setPrefHeight(180);
+        tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tabla.getStyleClass().add("data-table");
+
+        TableColumn<ResguardoItem, String> cCodigo = new TableColumn<>("Código");
+        cCodigo.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getProductoCodigo() != null ? c.getValue().getProductoCodigo() : "—"));
+        cCodigo.setPrefWidth(110);
+        TableColumn<ResguardoItem, String> cNombre = new TableColumn<>("Bien");
+        cNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
+        cNombre.setCellFactory(col -> new TableCell<>() {
+            private final Tooltip completo = new Tooltip();
+            {
+                completo.setWrapText(true);
+                completo.setMaxWidth(420);
+            }
+            @Override protected void updateItem(String nombre, boolean empty) {
+                super.updateItem(nombre, empty);
+                setText(empty ? null : nombre);
+                completo.setText(nombre);
+                setTooltip(empty || nombre == null ? null : completo);
+            }
+        });
+        tabla.getColumns().add(cCodigo);
+        tabla.getColumns().add(cNombre);
+        double fijas = cCodigo.getPrefWidth();
+
+        boolean deOtraArea = items.stream().anyMatch(it -> it.getArea() != null && !it.getArea().equals(areaDelResguardo));
+        if (deOtraArea) {
+            TableColumn<ResguardoItem, String> cArea = new TableColumn<>("Área");
+            cArea.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
+            cArea.setPrefWidth(170);
+            tabla.getColumns().add(cArea);
+            fijas += cArea.getPrefWidth();
+        }
+        if (com.sibim.session.Permisos.veValores()) {
+            TableColumn<ResguardoItem, String> cValor = new TableColumn<>("Valor");
+            cValor.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getValorUnitario() != null
+                ? FormatUtils.formatCurrency(c.getValue().getValorUnitario()) : "—"));
+            cValor.setPrefWidth(120);
+            tabla.getColumns().add(cValor);
+            fijas += cValor.getPrefWidth();
+        }
+        // 20: the scroll bar, so no horizontal one comes out.
+        cNombre.prefWidthProperty().bind(tabla.widthProperty().subtract(fijas + 20));
+        return tabla;
+    }
+
     private void mostrarDetalle(Resguardo r) {
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Resguardo " + r.getNumero());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(620);
+        dialog.getDialogPane().setPrefWidth(760);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
         HBox header = DialogUtil.gradientHeader("mdi2b-badge-account-outline",
@@ -498,26 +551,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         lblBienes.getStyleClass().add("dash-section-label");
 
         ObservableList<ResguardoItem> items = FXCollections.observableArrayList(r.getItems());
-        TableView<ResguardoItem> itemsTable = new TableView<>(items);
-        itemsTable.setPrefHeight(180);
-        itemsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        itemsTable.getStyleClass().add("data-table");
-
-        TableColumn<ResguardoItem, String> cNombre = new TableColumn<>("Bien");
-        cNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProductoNombre()));
-        TableColumn<ResguardoItem, String> cCodigo = new TableColumn<>("Código");
-        cCodigo.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getProductoCodigo() != null ? c.getValue().getProductoCodigo() : "—"));
-        cCodigo.setMaxWidth(110);
-        TableColumn<ResguardoItem, String> cArea = new TableColumn<>("Área");
-        cArea.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getArea() != null ? c.getValue().getArea() : "—"));
-        TableColumn<ResguardoItem, String> cValor = new TableColumn<>("Valor");
-        cValor.setCellValueFactory(c -> new SimpleStringProperty(
-            c.getValue().getValorUnitario() != null
-                ? FormatUtils.formatCurrency(c.getValue().getValorUnitario()) : "—"));
-        cValor.setMaxWidth(110);
-        itemsTable.getColumns().addAll(cNombre, cCodigo, cArea, cValor);
+        TableView<ResguardoItem> itemsTable = tablaDeBienes(items, r.getResguardanteArea());
 
         itemsTable.setPlaceholder(EmptyStateUtil.build(
             "mdi2b-badge-account-outline",
@@ -542,10 +576,20 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         // the resguardo for everything else it covers.
         HBox pie = new HBox(8, hintVer);
         pie.setAlignment(Pos.CENTER_LEFT);
+        Region espacio = new Region();
+        HBox.setHgrow(espacio, Priority.ALWAYS);
+        // From here, read again: after taking a bien out it is what gets signed anew.
+        Button btnPdf = new Button("PDF del resguardo");
+        btnPdf.setGraphic(new FontIcon("mdi2f-file-pdf-box"));
+        btnPdf.getStyleClass().add("btn-secondary");
+        btnPdf.setMinWidth(Region.USE_PREF_SIZE);
+        btnPdf.setOnAction(e -> DialogUtil.runAsync(
+            () -> service.exportarPdf(service.findById(r.getId())),
+            file -> DialogUtil.showExportResultDialog(rootPane.getScene(), file),
+            ex -> NotificacionUtil.error(rootPane.getScene(), "No se pudo generar el PDF")));
+        pie.getChildren().addAll(espacio, btnPdf);
         boolean[] cambio = {false};
         if (r.isActivo() && com.sibim.session.Permisos.gestionaDocumentos()) {
-            Region espacio = new Region();
-            HBox.setHgrow(espacio, Priority.ALWAYS);
             Button btnQuitar = new Button("Quitar del resguardo");
             btnQuitar.setGraphic(new FontIcon("mdi2a-account-minus-outline"));
             btnQuitar.getStyleClass().add("btn-secondary");
@@ -575,7 +619,8 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
                         ex -> NotificacionUtil.error(rootPane.getScene(), "No se pudo quitar el bien: "
                             + (ex.getMessage() != null ? ex.getMessage() : "error desconocido"))));
             });
-            pie.getChildren().addAll(espacio, btnQuitar);
+            btnQuitar.setMinWidth(Region.USE_PREF_SIZE);
+            pie.getChildren().add(btnQuitar);
         }
 
         // The form brings its own margin (22); the rest gets the same one here: in a

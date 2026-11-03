@@ -327,7 +327,7 @@ public class DashboardController implements Refreshable {
             .filter(m -> m.getCreadoEn().toLocalDate().equals(yesterday)).count();
         String arrow; String cls;
         if      (todayCount > yesterdayCount) { arrow = "▲"; cls = "trend-up"; }
-        else if (todayCount < yesterdayCount) { arrow = "▼"; cls = "trend-down"; }
+        else if (todayCount < yesterdayCount) { arrow = "▼"; cls = "trend-eq"; }   // fewer isn't bad: not in red
         else                                  { arrow = "—"; cls = "trend-eq"; }
         long diff = Math.abs(todayCount - yesterdayCount);
         String diffStr = diff == 0 ? "igual que ayer"

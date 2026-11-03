@@ -7,12 +7,14 @@ import com.sibim.service.ProductoService;
 import com.sibim.util.AppColors;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.NotificacionUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
@@ -27,6 +29,8 @@ import java.util.*;
 public final class SeriesRepetidasDialog {
 
     private final ProductoService service = new ProductoService();
+    private final CalidadDatosService calidad = new CalidadDatosService();
+    private final Button sinSerieTodos = new Button();
     private final List<Producto> bienes;
     private final Runnable alCambiar;
     private final ObservableList<SerieRepetida> grupos = FXCollections.observableArrayList();
@@ -90,6 +94,16 @@ public final class SeriesRepetidasDialog {
 
         HBox paso2 = TransferenciaArrastreDialog.paso(2, "Corrige cada bien");
         paso2.setPadding(Insets.EMPTY);
+        Region hueco = new Region();
+        HBox.setHgrow(hueco, Priority.ALWAYS);
+        sinSerieTodos.setGraphic(new FontIcon("mdi2c-close"));
+        sinSerieTodos.getStyleClass().add("btn-secondary");
+        sinSerieTodos.setMinWidth(Region.USE_PREF_SIZE);
+        sinSerieTodos.setTooltip(new Tooltip("Cuando no es una serie de verdad: un modelo, una factura, algo escrito de relleno"));
+        sinSerieTodos.setOnAction(e -> quitarATodos());
+        ver(sinSerieTodos, false);
+        paso2.getChildren().addAll(hueco, sinSerieTodos);
+        paso2.setMaxWidth(Double.MAX_VALUE);
         VBox derecha = new VBox(8, paso2, aviso, vacio, scroll);
         HBox.setHgrow(derecha, Priority.ALWAYS);
 
@@ -128,9 +142,11 @@ public final class SeriesRepetidasDialog {
         ver(vacio, g == null);
         ver(scroll, g != null);
         ver(aviso, false);
+        ver(sinSerieTodos, g != null);
         if (g == null) return;
+        sinSerieTodos.setText("Dejar " + (g.bienes().size() == 1 ? "1 bien" : "los " + g.bienes().size()) + " sin serie");
         if (g.noEsSerie()) {
-            aviso.setText("«" + g.serie() + "» no parece una serie: lo escrito indica que el bien no tiene. Quítala de cada uno.");
+            aviso.setText("«" + g.serie() + "» no parece una serie: lo escrito indica que el bien no tiene. Quítala con el botón de arriba.");
             ver(aviso, true);
         } else if (g.areas() > 1) {
             aviso.setText("Está en " + g.areas() + " áreas distintas: podrían ser dos registros del mismo bien, revísalos en físico.");
@@ -189,6 +205,31 @@ public final class SeriesRepetidasDialog {
         f.getStyleClass().add("cnt-fila");
         f.setStyle("-fx-cursor: default;");
         return f;
+    }
+
+    private void quitarATodos() {
+        SerieRepetida g = lista.getSelectionModel().getSelectedItem();
+        if (g == null) return;
+        int n = g.bienes().size();
+        if (!com.sibim.util.ConfirmacionUtil.confirmar("Dejar sin serie",
+                "¿Quitar la serie «" + g.serie() + "» a " + (n == 1 ? "1 bien" : "los " + n + " bienes") + "?\n\n"
+                    + "Si alguno sí la lleva, corrígelo primero en su renglón. Lo que se quita queda anotado en Auditoría."))
+            return;
+        Scene scene = dialog.getDialogPane().getScene();
+        sinSerieTodos.setDisable(true);
+        DialogUtil.runAsync(() -> calidad.quitarSerie(g.serie(), g.bienes()),
+            cuantosCambiaron -> {
+                sinSerieTodos.setDisable(false);
+                g.bienes().forEach(p -> p.setNumeroSerie(null));
+                cambio = true;
+                recalcular(g.serie());
+                NotificacionUtil.exito(scene, "Serie «" + g.serie() + "» quitada de "
+                    + FormatUtils.plural(cuantosCambiaron, "bien", "bienes"));
+            },
+            e -> {
+                sinSerieTodos.setDisable(false);
+                NotificacionUtil.error(scene, "No se pudo quitar la serie: " + (e.getMessage() != null ? e.getMessage() : "error desconocido"));
+            });
     }
 
     private void guardar(Producto p, String nueva, String serie, Label error) {

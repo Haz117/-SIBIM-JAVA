@@ -85,6 +85,69 @@ class CalidadDatosServiceTest {
         assertTrue(CalidadDatosService.personasRepetidas(List.of(), bienes, Set.of("ANA RUIZ")).isEmpty());
     }
 
+    /** From the real list: a letter apart (TANIA, TANYA), a zero for an O, a title that
+     *  didn't count (L.A.P) and the same two people with another separator. */
+    @Test
+    void personas_conUnaLetraDistinta_oTituloOSeparadorDistinto_tambienSonUnCaso() {
+        var casos = CalidadDatosService.personasRepetidas(List.of(), List.of(
+            bien("1", "A/1", "TANIA EJEMPLO FICTICIO"), bien("2", "A/2", "TANYA EJEMPLO FICTICIO"),
+            bien("3", "A/3", "M0ISES PRUEBA RAMOS"), bien("4", "A/4", "M0ISES PRUEBA RAMOS"), bien("5", "A/5", "MOISES PRUEBA RAMOS"),
+            bien("6", "A/6", "LIC. AP. LUIS SOTO CRUZ"), bien("7", "A/7", "L.A.P LUIS SOTO CRUZ"),
+            bien("8", "A/8", "ANA RUIZ SOTO, LUIS PEREZ MATA"), bien("9", "A/9", "ANA RUIZ SOTO/LUIS PEREZ MATA")), Set.of());
+        assertEquals(4, casos.size(), casos.toString());
+        var tania = casos.stream().filter(c -> c.stream().anyMatch(p -> p.nombre().startsWith("TAN"))).findFirst().orElseThrow();
+        assertFalse(CalidadDatosService.mismasPalabras(tania), "se avisa que no son las mismas palabras");
+        var moises = casos.stream().filter(c -> c.stream().anyMatch(p -> p.nombre().startsWith("M0"))).findFirst().orElseThrow();
+        assertEquals("MOISES PRUEBA RAMOS", CalidadDatosService.nombrePropuesto(moises), "el del cero no, aunque tenga más bienes");
+        var dos = casos.stream().filter(c -> c.stream().anyMatch(p -> p.nombre().contains("/"))).findFirst().orElseThrow();
+        assertTrue(CalidadDatosService.mismasPalabras(dos));
+    }
+
+    @Test
+    void casiIguales_soloUnaPalabraYPocasLetras() {
+        assertTrue(CalidadDatosService.casiIguales("ROBLES ANSELMO", "ROBLEZ ANSELMO"));
+        assertFalse(CalidadDatosService.casiIguales("ANA RUIZ", "ANA RUIZ SOTO"), "otra cantidad de palabras");
+        assertFalse(CalidadDatosService.casiIguales("CRUZ LUIS", "CRUZ LUZ"), "palabra corta: no basta");
+        assertFalse(CalidadDatosService.casiIguales("LOPEZ MARIA SOTO", "LOPEZ MARTA SITO"), "dos palabras distintas");
+        assertFalse(CalidadDatosService.casiIguales("LUIS PEREZ", "LUIS MENDEZ"), "demasiadas letras");
+    }
+
+    /** What was answered about ones that only look alike stays answered, for both spellings. */
+    @Test
+    void personas_parecidasMarcadasComoDistintas_noVuelven() throws Exception {
+        var casos = CalidadDatosService.personasRepetidas(List.of(), List.of(
+            bien("1", "A/1", "MARIA CRUZ SOTO"), bien("2", "A/2", "MARIO CRUZ SOTO")), Set.of());
+        assertEquals(1, casos.size());
+        service.marcarDistintas(casos.get(0));
+        verify(config).set("personas_distintas:CRUZ MARIA SOTO", "1");
+        verify(config).set("personas_distintas:CRUZ MARIO SOTO", "1");
+        assertTrue(CalidadDatosService.personasRepetidas(List.of(), List.of(
+            bien("1", "A/1", "MARIA CRUZ SOTO"), bien("2", "A/2", "MARIO CRUZ SOTO")),
+            Set.of("CRUZ MARIA SOTO", "CRUZ MARIO SOTO")).isEmpty());
+    }
+
+    @Test
+    void dosPersonas_soloSiCadaParteEsUnNombre() {
+        assertTrue(CalidadDatosService.dosPersonas("ANTONIO EJEMPLO ROMO/ MISAEL PRUEBA GARCIA"));
+        assertTrue(CalidadDatosService.dosPersonas("ARQ. JUAN EJEMPLO CRUZ, LAURA PRUEBA PEREZ"));
+        assertFalse(CalidadDatosService.dosPersonas("LOPEZ, JUAN"));
+        assertFalse(CalidadDatosService.dosPersonas("ANA RUIZ SOTO"));
+        assertFalse(CalidadDatosService.dosPersonas(null));
+    }
+
+    @Test
+    void quitarSerie_aTodos_deUnaVez_yLoAudita() throws Exception {
+        when(repo.quitarSerie(anyList())).thenReturn(2);
+        Producto a = bien("1", "DCUL/1", null), b = bien("2", "DCUL/2", null);
+        assertEquals(2, service.quitarSerie("1215", List.of(a, b)));
+        verify(repo).quitarSerie(List.of("1", "2"));
+        verify(audit).log(eq("producto"), eq("1"), anyString(), eq("actualizar"),
+            argThat(d -> d.contains("«1215»") && d.contains("DCUL/1, DCUL/2")));
+
+        entrarComo(Rol.DIRECCION);
+        assertThrows(SecurityException.class, () -> service.quitarSerie("1215", List.of(a)));
+    }
+
     @Test
     void personas_seProponeElNombreConMasBienes() {
         var casos = CalidadDatosService.personasRepetidas(List.of(), List.of(

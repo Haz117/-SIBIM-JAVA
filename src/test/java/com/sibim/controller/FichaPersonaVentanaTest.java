@@ -112,14 +112,24 @@ class FichaPersonaVentanaTest extends ApplicationTest {
         Label nombre = (Label) lookup(".celda-persona").queryAll().stream()
             .filter(n -> "ANA RUIZ".equals(((Label) n).getText())).findFirst().orElseThrow();
 
-        doubleClickOn(nombre);
+        // The events themselves: on a busy machine the robot's two clicks could land further
+        // apart than the wait, and the test failed now and then in the full suite.
+        interact(() -> {
+            nombre.fireEvent(clic(nombre, 1));
+            nombre.fireEvent(clic(nombre, 2));
+        });
         Thread.sleep(500);
         WaitForAsyncUtils.waitForFxEvents();
         assertTrue(abiertos.isEmpty(), "doble clic: lo atiende la tabla");
 
-        clickOn(nombre);
+        interact(() -> nombre.fireEvent(clic(nombre, 1)));
         WaitForAsyncUtils.waitFor(3, TimeUnit.SECONDS, () -> !abiertos.isEmpty());
         assertEquals(List.of("ANA RUIZ"), abiertos);
+    }
+
+    private static javafx.scene.input.MouseEvent clic(Label donde, int veces) {
+        return new javafx.scene.input.MouseEvent(javafx.scene.input.MouseEvent.MOUSE_CLICKED, 1, 1, 1, 1,
+            javafx.scene.input.MouseButton.PRIMARY, veces, false, false, false, false, true, false, false, true, false, true, null);
     }
 
     @Test

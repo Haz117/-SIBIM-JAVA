@@ -76,6 +76,7 @@ public class DepreciacionController {
     @FXML private VBox statCardTotalmente;
     @FXML private Label lblStatCompra;
     @FXML private Label lblStatActual;
+    @FXML private Label lblCompraHint;
     @FXML private Label lblStatPct;
     @FXML private Label lblStatSinDatos;
     @FXML private Label lblStatTotalmente;
@@ -515,6 +516,9 @@ public class DepreciacionController {
 
         if (lblStatCompra != null) AnimationUtils.animateCount(lblStatCompra, AnimationUtils.centavos(totalCompra), 700,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v, 2)));
+        // $53M next to an inventory of $98M looks like an error unless it says of what.
+        if (lblCompraHint != null) lblCompraHint.setText(sinDatos == 0 ? "suma de precio de compra"
+            : "solo los " + FormatUtils.plural(bienes.size(), "bien con vida útil", "bienes con vida útil"));
         if (lblStatActual != null) AnimationUtils.animateCount(lblStatActual, AnimationUtils.centavos(totalActual), 880,
             v -> FormatUtils.formatCurrency(BigDecimal.valueOf(v, 2)));
         if (lblStatPct != null) AnimationUtils.animateCount(lblStatPct, pctPromedio, 580, v -> v + "%");

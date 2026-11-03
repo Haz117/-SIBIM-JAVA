@@ -48,6 +48,26 @@ public class CalidadDatosRepository {
         }
     }
 
+    /** These bienes without número de serie.
+     *  @return how many changed */
+    public int quitarSerie(List<String> bienes) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            int n = 0;
+            for (String id : bienes) {
+                var p = local.findProductoById(id);
+                if (p.isPresent()) { p.get().setNumeroSerie(null); local.saveProducto(p.get()); n++; }
+            }
+            return n;
+        }
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE products SET numero_serie = NULL, updated_at = NOW() WHERE id = ANY(?)")) {
+            ps.setArray(1, conn.createArrayOf("text", bienes.toArray(new String[0])));
+            return ps.executeUpdate();
+        }
+    }
+
     /** Sets the vida útil of these bienes, except one that got its own meanwhile.
      *  @return how many took it */
     public int asignarVidaUtil(int anios, List<String> bienes) throws SQLException {
