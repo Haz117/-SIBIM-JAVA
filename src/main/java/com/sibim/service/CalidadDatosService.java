@@ -361,11 +361,22 @@ public class CalidadDatosService {
         agregar(out, cuantos(bienes, Dato.FOTO), "bienes sin foto", "Completar datos", "productos", "completar:FOTO");
         agregar(out, ResguardoService.porResguardante(resguardos, bienes).stream().filter(p -> !p.sinResguardo().isEmpty()).count(),
             "personas con bienes sin resguardo", "Registrar en lote", "resguardos", "lote");
+        agregar(out, conVariosResguardos(resguardos), "personas con varios resguardos en la misma área",
+            "Juntar resguardos", "resguardos", "juntar");
         agregar(out, bienes.stream().filter(p -> p.getFechaBaja() == null && !p.isEtiquetado()).count(),
             "bienes sin etiquetar", "Etiquetas por área", "productos", "etiquetas");
         agregar(out, faltanEnConfiguracion(config, com.sibim.config.Areas.getAllAreaNames().size()).size(),
             "datos faltan para los formatos", "Ir a Configuración", "configuracion", null);
         return out;
+    }
+
+    /** People with two or more resguardos in force in the same área (Juntar resguardos). */
+    static long conVariosResguardos(List<Resguardo> resguardos) {
+        return resguardos.stream()
+            .filter(r -> r.isActivo() && r.getResguardanteNombre() != null && !r.getResguardanteNombre().isBlank())
+            .collect(Collectors.groupingBy(r -> ResguardoService.clavePersona(r.getResguardanteNombre()) + "|" + r.getResguardanteArea(),
+                Collectors.counting()))
+            .values().stream().filter(n -> n > 1).count();
     }
 
     private static void agregar(List<PorHacer> out, long n, String titulo, String accion, String vista, String abrir) {

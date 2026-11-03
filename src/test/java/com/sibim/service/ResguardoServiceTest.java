@@ -44,6 +44,71 @@ class ResguardoServiceTest {
     @org.junit.jupiter.api.AfterEach
     void salir() { com.sibim.session.SessionManager.logout(); }
 
+    private static Resguardo deAna(String id, String numero, String area, int dia, String cargo, String... productos) {
+        Resguardo r = new Resguardo();
+        r.setId(id); r.setNumero(numero); r.setResguardanteNombre(dia == 3 ? "LIC. ANA PRUEBA SOTO" : "lic. ana prueba soto");
+        r.setResguardanteArea(area); r.setResguardanteCargo(cargo); r.setEstado(Resguardo.ESTADO_ACTIVO);
+        r.setCreadoEn(java.time.LocalDateTime.of(2026, 11, dia, 10, 0));
+        List<ResguardoItem> items = new java.util.ArrayList<>();
+        for (String p : productos) {
+            ResguardoItem it = new ResguardoItem();
+            it.setId("i-" + id + "-" + p); it.setProductoId(p); it.setProductoCodigo("RMP/" + p); it.setProductoNombre("Silla " + p);
+            items.add(it);
+        }
+        r.setItems(items);
+        return r;
+    }
+
+    /** Several resguardos of one person in one área become one: all their bienes once,
+     *  with the newest spelling and cargo; the old ones are cancelled with a note. */
+    @Test
+    void juntar_hazUnoConTodosSusBienes() throws Exception {
+        Resguardo a = deAna("r-a", "RSG-2026-000301", "Recursos Materiales y Patrimonio", 1, "Auxiliar", "p1", "p2");
+        Resguardo b = deAna("r-b", "RSG-2026-000302", "Recursos Materiales y Patrimonio", 3, "Directora", "p3");
+        Resguardo c = deAna("r-c", "RSG-2026-000303", "Recursos Materiales y Patrimonio", 2, null, "p2", "p4");
+        when(mockRepo.juntar(any(), any(), any())).thenAnswer(inv -> {
+            Resguardo n = inv.getArgument(0);
+            n.setId("r-nuevo"); n.setNumero("RSG-2026-000400");
+            return n;
+        });
+
+        Resguardo nuevo = service.juntar(List.of(b, a, c));
+
+        @SuppressWarnings("unchecked") org.mockito.ArgumentCaptor<List<String>> ids = org.mockito.ArgumentCaptor.forClass(List.class);
+        org.mockito.ArgumentCaptor<String> nota = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(mockRepo).juntar(same(nuevo), ids.capture(), nota.capture());
+        assertEquals(List.of("r-a", "r-c", "r-b"), ids.getValue(), "del más viejo al más nuevo");
+        assertTrue(nota.getValue().contains("{folio}"), nota.getValue());
+        assertEquals(List.of("p1", "p2", "p4", "p3"), nuevo.getItems().stream().map(ResguardoItem::getProductoId).toList(),
+            "cada bien una vez");
+        assertTrue(nuevo.getItems().stream().noneMatch(it -> it.getId() != null && it.getId().startsWith("i-")),
+            "renglones nuevos: los viejos se quedan con su papel");
+        assertEquals("LIC. ANA PRUEBA SOTO", nuevo.getResguardanteNombre(), "como lo escribe el más nuevo");
+        assertEquals("Directora", nuevo.getResguardanteCargo());
+        assertEquals("Recursos Materiales y Patrimonio", nuevo.getResguardanteArea());
+        assertTrue(nuevo.getObservaciones().contains("RSG-2026-000301, RSG-2026-000303, RSG-2026-000302"));
+        verify(mockAudit, times(3)).log(eq("resguardo"), any(), any(), eq("cancelar"), argThat(d -> d.contains("RSG-2026-000400")));
+        verify(mockAudit).log(eq("resguardo"), eq("r-nuevo"), any(), eq("crear"), argThat(d -> d.contains("4 bienes")));
+    }
+
+    /** Only the same person in the same área, in force, and Patrimonio. */
+    @Test
+    void juntar_soloDeLaMismaPersonaYArea() throws Exception {
+        Resguardo a = deAna("r-a", "RSG-1", "Contraloría Municipal", 1, null, "p1");
+        Resguardo otraArea = deAna("r-b", "RSG-2", "Parque Municipal", 2, null, "p2");
+        Resguardo otro = deAna("r-c", "RSG-3", "Contraloría Municipal", 2, null, "p3");
+        otro.setResguardanteNombre("MARIO PEREZ SOTO");
+        Resguardo cancelado = deAna("r-d", "RSG-4", "Contraloría Municipal", 2, null, "p4");
+        cancelado.setEstado(Resguardo.ESTADO_CANCELADO);
+        assertThrows(IllegalArgumentException.class, () -> service.juntar(List.of(a, otraArea)));
+        assertThrows(IllegalArgumentException.class, () -> service.juntar(List.of(a, otro)));
+        assertThrows(IllegalArgumentException.class, () -> service.juntar(List.of(a, cancelado)));
+        assertThrows(IllegalArgumentException.class, () -> service.juntar(List.of(a)));
+        entrarComo(com.sibim.model.enums.Rol.DIRECCION);
+        assertThrows(SecurityException.class, () -> service.juntar(List.of(a, deAna("r-e", "RSG-5", "Contraloría Municipal", 2, null, "p5"))));
+        verify(mockRepo, never()).juntar(any(), any(), any());
+    }
+
     @Test
     void sinSesionNoSeCrea_ySoloElAdministradorCancela() {
         // The áreas create resguardos of their own bienes (PermisosDocumentosIntegrationTest

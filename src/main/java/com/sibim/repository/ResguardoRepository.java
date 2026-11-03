@@ -175,6 +175,60 @@ public class ResguardoRepository {
         return resguardo;
     }
 
+    /** Cancels {@code juntados} — they keep their bienes listed, as they were signed —
+     *  and creates {@code nuevo} with all of them, in one transaction: nothing changes
+     *  if one of them is no longer in force. {@code nota} goes to each cancelled one,
+     *  with "{folio}" replaced by the new folio. Online only.
+     *  @return the new resguardo with its folio */
+    public Resguardo juntar(Resguardo nuevo, List<String> juntados, String nota) throws SQLException {
+        if (!SessionManager.isAdmin())
+            throw new SecurityException("Solo el administrador puede juntar resguardos");
+        if (DatabaseConfig.isDemoMode())
+            throw new IllegalStateException("Resguardos no disponibles en modo demo");
+        if (OfflineDocs.activo())
+            throw new IllegalStateException("Juntar resguardos requiere conexión con el servidor");
+        if (nuevo.getId() == null) nuevo.setId(UUID.randomUUID().toString());
+        com.sibim.model.Usuario u = SessionManager.getCurrentUser();
+        if (u != null) {
+            nuevo.setCreadoPorId(u.getId());
+            nuevo.setCreadoPorNombre(u.getNombre());
+        }
+        String insertar = """
+            INSERT INTO resguardos
+              (id, numero, resguardante_nombre, resguardante_cargo, resguardante_area,
+               creado_por_id, creado_por_nombre, observaciones, estado, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,NOW())
+            """;
+        nuevo.setNumero(folioRepo.guardarConFolio("RSG", null, (conn, numero) -> {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE resguardos SET estado = 'CANCELADO', observaciones = CONCAT_WS(' ', NULLIF(observaciones, ''), ?) "
+                    + "WHERE id = ANY(?) AND estado = 'ACTIVO'")) {
+                ps.setString(1, nota.replace("{folio}", numero));
+                ps.setArray(2, conn.createArrayOf("text", juntados.toArray(new String[0])));
+                if (ps.executeUpdate() != juntados.size())
+                    throw new SQLException("Alguno de esos resguardos ya no estaba vigente; no se juntó nada");
+            }
+            try (PreparedStatement ps = conn.prepareStatement(insertar)) {
+                ps.setString(1, nuevo.getId());
+                ps.setString(2, numero);
+                ps.setString(3, nuevo.getResguardanteNombre());
+                ps.setString(4, nuevo.getResguardanteCargo());
+                ps.setString(5, nuevo.getResguardanteArea());
+                ps.setString(6, nuevo.getCreadoPorId());
+                ps.setString(7, nuevo.getCreadoPorNombre());
+                ps.setString(8, nuevo.getObservaciones());
+                ps.setString(9, Resguardo.ESTADO_ACTIVO);
+                ps.executeUpdate();
+            }
+            for (ResguardoItem it : nuevo.getItems()) it.setId(null);   // new renglones, the old ones stay with their paper
+            saveItems(nuevo.getId(), nuevo.getItems(), conn);
+            asignarResguardante(conn, nuevo);
+        }));
+        nuevo.setEstado(Resguardo.ESTADO_ACTIVO);
+        nuevo.setCreadoEn(LocalDateTime.now());
+        return nuevo;
+    }
+
     /** The signed resguardo is the source of truth for who holds each bien:
      *  products.resguardante follows it instead of being typed separately,
      *  so the column in Bienes and the documents can't disagree. */

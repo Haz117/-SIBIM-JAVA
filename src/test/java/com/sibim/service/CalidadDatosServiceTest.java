@@ -294,6 +294,22 @@ class CalidadDatosServiceTest {
         assertEquals(2, CalidadDatosService.faltantes(p), "vida útil y foto");
     }
 
+    /** "Por hacer" counts who has two or more resguardos in force in one área. */
+    @Test
+    void conVariosResguardos_cuentaPersonasPorArea() {
+        java.util.function.BiFunction<String, String, Resguardo> r = (quien, area) -> {
+            Resguardo x = new Resguardo();
+            x.setResguardanteNombre(quien); x.setResguardanteArea(area); x.setEstado(Resguardo.ESTADO_ACTIVO);
+            return x;
+        };
+        Resguardo cancelado = r.apply("MARIO PRUEBA SOTO", "Parque Municipal");
+        cancelado.setEstado(Resguardo.ESTADO_CANCELADO);
+        assertEquals(1, CalidadDatosService.conVariosResguardos(List.of(
+            r.apply("ANA EJEMPLO CRUZ", "Contraloría Municipal"), r.apply("ana ejemplo cruz", "Contraloría Municipal"),
+            r.apply("ANA EJEMPLO CRUZ", "Parque Municipal"),
+            r.apply("MARIO PRUEBA SOTO", "Parque Municipal"), cancelado)));
+    }
+
     /** Before a second spelling is saved: the same words with a title or a space more or
      *  less, or a letter apart, point to the one already in use. */
     @Test

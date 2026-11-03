@@ -697,12 +697,12 @@ public final class TransferenciaArrastreDialog {
             a.showAndWait();
         }
         if (alTransferir != null) alTransferir.run();
-        cargarResguardos();
         if (r.resguardo() != null && ConfirmacionUtil.confirmar("Resguardo " + r.resguardo().getNumero(),
                 r.agregado() ? "¿Abrir el PDF del resguardo, ya con los bienes agregados, para volverlo a firmar?"
                              : "¿Abrir el PDF del resguardo nuevo para firmarlo?"))
             abrirResguardo(r.resguardo(), scene);
-        DialogUtil.runAsync(productoService::getAll, this::cargar,
+        // The list first; the resguardos (who already holds one where) after it.
+        DialogUtil.runAsync(productoService::getAll, lista -> { cargar(lista); cargarResguardos(); },
             ex -> NotificacionUtil.error(scene, "No se pudo recargar el inventario"));
     }
 
@@ -778,7 +778,6 @@ public final class TransferenciaArrastreDialog {
         DialogUtil.runAsyncWithProgress(scene, "Deshaciendo la transferencia…",
             () -> transferencias.deshacer(lote),
             d -> {
-                cargarResguardos();
                 if (d.regresados().isEmpty())
                     fila.getChildren().forEach(nodo -> { if (nodo instanceof Button b) b.setDisable(false); });
                 if (!d.regresados().isEmpty()) {
@@ -806,7 +805,7 @@ public final class TransferenciaArrastreDialog {
                     a.showAndWait();
                 }
                 if (alTransferir != null) alTransferir.run();
-                DialogUtil.runAsync(productoService::getAll, this::cargar,
+                DialogUtil.runAsync(productoService::getAll, lista -> { cargar(lista); cargarResguardos(); },
                     ex -> NotificacionUtil.error(scene, "No se pudo recargar el inventario"));
             },
             ex -> {

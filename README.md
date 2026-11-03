@@ -71,7 +71,7 @@ Aplicación de escritorio desarrollada en **Java 21 + JavaFX** para la gestión 
 | Serialización backup | Jackson (JSON + módulo java.time) |
 | Build | Maven 3.9 (incluido en `/maven-dist`) |
 | Windows | JNA (DPAPI para sellar claves; colores de la barra de título vía DWM) |
-| Tests | JUnit 5 + Mockito + EmbeddedPostgres + TestFX (1318 tests en la última ejecución) |
+| Tests | JUnit 5 + Mockito + EmbeddedPostgres + TestFX (1324 tests en la última ejecución) |
 
 ---
 
@@ -282,6 +282,7 @@ SIBIM-Java/
 | Series repetidas (Bienes › Más) | Cada serie en más de un bien, con sus bienes: se corrige o se deja sin serie, uno por uno o todos de una vez (con auditoría); avisa si está en varias áreas o no parece una serie ("S/N", "PND") |
 | Etiquetas por área (Bienes › Más) | Por área, con su avance: se eligen los bienes, se imprimen y se marcan cuando ya están pegadas |
 | Resguardos en lote (Resguardos › Más) | Un resguardo por persona para quienes tienen bienes sin resguardo, y un solo PDF para firmar; quien tiene el nombre repetido se une primero; "2 personas" avisa que un nombre trae a dos; si una falla, las demás siguen |
+| Juntar resguardos (Resguardos › Más) | Quien tiene dos o más resguardos vigentes en la misma área, el que más primero; se marcan los que se juntan y en una sola operación se cancelan (quedan como se firmaron) y se hace uno nuevo con todos sus bienes, con su PDF para firmar; también sale en "Por hacer" de Inicio |
 | Nuevo resguardo | Tablero: a la izquierda la persona, a la derecha sus bienes; los que tiene a su nombre sin resguardo ya vienen marcados; pestañas A su nombre / De su área / Todos; un bien en otro resguardo vigente dice cuál y no se marca; avisa si la persona también aparece con las palabras en otro orden o si el nombre trae a dos personas; un error al guardar no cierra la ventana |
 | Bienes › Cambiar resguardante | Se elige de las personas del inventario, con su nombre como ya está escrito; "Persona nueva" solo si nadie coincide, y si se parece a alguien pregunta si es esa persona |
 | Nuevo / editar bien | Marca, modelo y serie con "No tiene" (o "SIN MARCA" escrito) se guardan vacíos y los formatos dicen "SIN MARCA"; el resguardante sugiere los nombres ya usados y avisa si el escrito es otra forma de uno de ellos |
@@ -386,7 +387,7 @@ El esquema se gestiona con **Flyway** (`src/main/resources/db/migration/`), apli
 ## Tests
 
 ```bash
-# Correr todos los tests (1318 en total; los de interfaz abren ventanas unos minutos)
+# Correr todos los tests (1324 en total; los de interfaz abren ventanas unos minutos)
 maven-dist/apache-maven-3.9.9/bin/mvn.cmd test
 
 # Solo tests de una clase

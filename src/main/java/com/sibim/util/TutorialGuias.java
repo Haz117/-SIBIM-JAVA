@@ -117,6 +117,12 @@ final class TutorialGuias {
                 "Si la persona ya tiene resguardo en esa área, se agregan a ese en lugar de hacer uno más",
                 "Si escribes un nombre casi igual a uno que ya existe, te pregunta si es esa persona"),
                 "Abrir Transferir", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); }));
+            p.add(probar(paso("mdi2c-call-merge", DORADO, DORADO_D, "Juntar resguardos de una persona", "resguardos", "#btnMasResguardos",
+                "Está en Resguardos › Más › Juntar resguardos de una persona",
+                "Quien tiene varios resguardos en la misma área aparece primero, con cuántos tiene",
+                "Marca los que se juntan: quedan cancelados como se firmaron y se hace uno nuevo con todos sus bienes",
+                "Imprime el nuevo para que lo firme"),
+                "Abrir Juntar resguardos", abrir("resguardos", "juntar")));
             p.add(paso("mdi2i-inbox-arrow-down-outline", DORADO, DORADO_D, "Por recibir, por área", "movimientos", "#btnPorRecibir",
                 "Las transferencias que el área no ha confirmado, juntas por área",
                 "Cuando te llegue su acuse firmado en papel, «Confirmar las N» las da por recibidas de una vez",

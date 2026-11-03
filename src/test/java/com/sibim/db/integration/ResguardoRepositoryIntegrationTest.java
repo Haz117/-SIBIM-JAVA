@@ -306,4 +306,44 @@ class ResguardoRepositoryIntegrationTest extends IntegrationTestBase {
         assertThrows(IllegalStateException.class, () -> repo.regresarBien(r.getId(), renglon, "nota", false));
         assertEquals(Resguardo.ESTADO_CANCELADO, repo.findById(r.getId()).getEstado());
     }
+
+    /** juntar(): the old ones are cancelled with the note (their bienes stay listed, as
+     *  signed), the new one holds the bienes and takes the next folio — all or nothing. */
+    @Test
+    void juntar_cancelaLosViejos_yHaceUnoConTodo_oNoHaceNada() throws SQLException {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        String p1 = UUID.randomUUID().toString(), p2 = UUID.randomUUID().toString(), p3 = UUID.randomUUID().toString();
+        for (String p : List.of(p1, p2, p3)) productoRepo.saveOnline(buildProducto(p));
+        Resguardo a = repo.save(buildResguardo("Ana García", List.of(buildItem(p1, "Silla"), buildItem(p2, "Mesa"))));
+        Resguardo b = repo.save(buildResguardo("Ana García", List.of(buildItem(p3, "Archivero"))));
+
+        Resguardo nuevo = buildResguardo("Ana García", List.of(buildItem(p1, "Silla"), buildItem(p2, "Mesa"), buildItem(p3, "Archivero")));
+        nuevo.setObservaciones("Junta los resguardos " + a.getNumero() + ", " + b.getNumero());
+        Resguardo hecho = repo.juntar(nuevo, List.of(a.getId(), b.getId()), "03/11/2026: se juntó en el resguardo {folio}.");
+
+        assertNotNull(hecho.getNumero());
+        assertNotEquals(a.getNumero(), hecho.getNumero());
+        Resguardo leido = repo.findById(hecho.getId());
+        assertEquals(Resguardo.ESTADO_ACTIVO, leido.getEstado());
+        assertEquals(3, leido.getItems().size());
+        for (Resguardo viejo : List.of(a, b)) {
+            Resguardo v = repo.findById(viejo.getId());
+            assertEquals(Resguardo.ESTADO_CANCELADO, v.getEstado());
+            assertTrue(v.getObservaciones().contains("se juntó en el resguardo " + hecho.getNumero()), v.getObservaciones());
+            assertFalse(v.getItems().isEmpty(), "el cancelado conserva sus bienes, como se firmó");
+        }
+        assertEquals(hecho.getNumero(), repo.findActivoByProductoId(p3).map(Resguardo::getNumero).orElseThrow());
+
+        // Again with one of them already cancelled: nothing changes, not even the folio.
+        int antes = repo.findAll().size();
+        Resguardo otraVez = buildResguardo("Ana García", List.of(buildItem(p1, "Silla")));
+        assertThrows(SQLException.class, () -> repo.juntar(otraVez, List.of(hecho.getId(), a.getId()), "{folio}"));
+        assertEquals(antes, repo.findAll().size(), "no se creó ninguno");
+        assertEquals(Resguardo.ESTADO_ACTIVO, repo.findById(hecho.getId()).getEstado(), "el vigente sigue vigente");
+        String p4 = UUID.randomUUID().toString();
+        productoRepo.saveOnline(buildProducto(p4));
+        Resguardo siguiente = repo.save(buildResguardo("Otra Persona", List.of(buildItem(p4, "Mesa"))));
+        assertEquals(Integer.parseInt(hecho.getNumero().replaceAll(".*-", "")) + 1,
+            Integer.parseInt(siguiente.getNumero().replaceAll(".*-", "")), "el folio del intento fallido no se gastó");
+    }
 }

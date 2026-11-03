@@ -52,6 +52,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @FXML private TableColumn<Resguardo, String> colEstado;
     @FXML private Button     btnNuevo;
     @FXML private MenuItem   btnLote;
+    @FXML private MenuItem   btnJuntar;
     @FXML private Button     btnCancelar;
     @FXML private Button     btnDetalle;
     @FXML private Button     btnPersona;
@@ -99,6 +100,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         boolean canCreate = com.sibim.session.Permisos.creaResguardos();
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         if (btnLote != null) btnLote.setVisible(canCreate);
+        if (btnJuntar != null) btnJuntar.setVisible(com.sibim.session.Permisos.gestionaDocumentos());
         actualizarSolicitudes();
         setupDateFilterBar(
             () -> com.sibim.service.ReporteService.getInstance().exportResguardosExcel(exportTarget()),
@@ -147,6 +149,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         switch (NavigationContext.consumePendingAbrir()) {
             case "nuevo" -> Platform.runLater(this::onNuevoResguardo);
             case "lote"  -> Platform.runLater(this::onResguardosEnLote);
+            case "juntar" -> Platform.runLater(this::onJuntarResguardos);
             default -> { }
         }
     }
@@ -354,6 +357,15 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             () -> java.util.Map.entry(productoService.getAll(), service.getAll()),
             datos -> com.sibim.controller.dialogs.ResguardosEnLoteDialog.show(datos.getKey(), datos.getValue(), scene, n -> loadData()),
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    @FXML
+    private void onJuntarResguardos() {
+        javafx.scene.Scene scene = rootPane.getScene();
+        DialogUtil.runAsyncWithProgress(scene, "Cargando resguardos…",
+            () -> service.getAll(),
+            todos -> com.sibim.controller.dialogs.JuntarResguardosDialog.show(todos, scene, nuevo -> loadData()),
+            e -> NotificacionUtil.error(scene, "No se pudieron cargar los resguardos"));
     }
 
     /** Resguardo general del área: every bien of one área under its titular, with the

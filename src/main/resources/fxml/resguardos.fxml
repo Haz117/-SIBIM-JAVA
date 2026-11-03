@@ -48,6 +48,9 @@
                 <MenuItem fx:id="btnLote" text="Resguardos en lote" onAction="#onResguardosEnLote">
                     <graphic><FontIcon iconLiteral="mdi2c-clipboard-multiple-outline"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnJuntar" text="Juntar resguardos de una persona" onAction="#onJuntarResguardos">
+                    <graphic><FontIcon iconLiteral="mdi2c-call-merge"/></graphic>
+                </MenuItem>
             </items>
         </MenuButton>
         <Button fx:id="btnNuevo" text="Nuevo Resguardo" onAction="#onNuevoResguardo" styleClass="btn-primary"

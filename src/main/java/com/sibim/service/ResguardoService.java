@@ -199,6 +199,72 @@ public class ResguardoService {
             "Resguardo " + r.getNumero() + ": " + nota.substring(nota.indexOf(':') + 2));
     }
 
+    /** One resguardo instead of several of the same person in the same área (one
+     *  person had 15 by 3-nov-2026, most of one bien each, from transfers made one at a
+     *  time). The old ones are cancelled — they keep their bienes listed, as they were
+     *  signed — and a new one holds all their bienes; its PDF is the one to sign.
+     *  The name and cargo are those of the newest. */
+    public Resguardo juntar(List<Resguardo> suyos) throws SQLException {
+        soloAdministrador();
+        if (suyos == null || suyos.size() < 2)
+            throw new IllegalArgumentException("Elige al menos dos resguardos para juntarlos");
+        Resguardo uno = suyos.get(0);
+        String clave = clavePersona(java.util.Objects.requireNonNullElse(uno.getResguardanteNombre(), ""));
+        for (Resguardo r : suyos) {
+            if (!r.isActivo())
+                throw new IllegalArgumentException("El resguardo " + r.getNumero() + " ya no está vigente");
+            if (r.getResguardanteNombre() == null || !clavePersona(r.getResguardanteNombre()).equals(clave)
+                    || !java.util.Objects.equals(r.getResguardanteArea(), uno.getResguardanteArea()))
+                throw new IllegalArgumentException("Solo se juntan resguardos de la misma persona en la misma área");
+        }
+        List<Resguardo> enOrden = new java.util.ArrayList<>(suyos);
+        enOrden.sort(java.util.Comparator.comparing(Resguardo::getCreadoEn,
+            java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())));
+        Resguardo nuevoMas = enOrden.get(enOrden.size() - 1);
+        List<ResguardoItem> items = new java.util.ArrayList<>();
+        java.util.Set<String> vistos = new java.util.HashSet<>();
+        for (Resguardo r : enOrden) {
+            Resguardo completo = r.getItems() != null ? r : repo.findById(r.getId());
+            if (completo == null || completo.getItems() == null) continue;
+            for (ResguardoItem it : completo.getItems()) {
+                if (it.getProductoId() == null || !vistos.add(it.getProductoId())) continue;
+                ResguardoItem copia = new ResguardoItem();
+                copia.setProductoId(it.getProductoId());
+                copia.setProductoNombre(it.getProductoNombre());
+                copia.setProductoCodigo(it.getProductoCodigo());
+                copia.setArea(it.getArea());
+                copia.setCantidad(it.getCantidad());
+                copia.setDescripcion(it.getDescripcion());
+                copia.setNumeroSerie(it.getNumeroSerie());
+                copia.setValorUnitario(it.getValorUnitario());
+                items.add(copia);
+            }
+        }
+        if (items.isEmpty()) throw new IllegalArgumentException("Esos resguardos no tienen bienes que juntar");
+        String folios = enOrden.stream().map(Resguardo::getNumero).collect(java.util.stream.Collectors.joining(", "));
+        String hoy = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String cargo = enOrden.stream().map(Resguardo::getResguardanteCargo)
+            .filter(c -> c != null && !c.isBlank()).reduce((a, b) -> b).orElse(null);
+        Resguardo nuevo = new Resguardo();
+        nuevo.setResguardanteNombre(nuevoMas.getResguardanteNombre().trim());
+        nuevo.setResguardanteCargo(cargo != null ? cargo.trim() : null);
+        nuevo.setResguardanteArea(uno.getResguardanteArea());
+        nuevo.setObservaciones("Junta los resguardos " + folios + " de la misma persona (" + hoy + ").");
+        nuevo.setItems(items);
+        Resguardo saved = repo.juntar(nuevo, enOrden.stream().map(Resguardo::getId).toList(),
+            hoy + ": se juntó en el resguardo {folio} con los demás de esta persona.");
+        ProductosEnMemoria.invalidar();
+        actualizarFichas(items);
+        for (Resguardo r : enOrden)
+            auditRepo.log("resguardo", r.getId(), r.getResguardanteNombre(), "cancelar",
+                "Resguardo " + r.getNumero() + " cancelado: se juntó en " + saved.getNumero());
+        auditRepo.log("resguardo", saved.getId(), saved.getResguardanteNombre(), "crear",
+            "Resguardo " + saved.getNumero() + " · " + items.size() + (items.size() == 1 ? " bien" : " bienes")
+                + (saved.getResguardanteArea() != null ? " · Área: " + saved.getResguardanteArea() : "")
+                + " · junta " + folios);
+        return saved;
+    }
+
     /** The ficha a bien's QR downloads names its resguardante. */
     private static void actualizarFichas(List<ResguardoItem> items) {
         if (items == null) return;

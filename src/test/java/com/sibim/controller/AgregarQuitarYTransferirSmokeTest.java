@@ -201,9 +201,10 @@ class AgregarQuitarYTransferirSmokeTest extends ControllerSmokeTestBase {
                 areas.fireEvent(new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_PRESSED,
                     "", "", javafx.scene.input.KeyCode.ENTER, false, false, false, false));
             });
-            javafx.scene.control.TextField buscarBien = (javafx.scene.control.TextField) lookup(n ->
+            // Step 2 shows once the área's bienes are in: waited for, not queried at once.
+            javafx.scene.control.TextField buscarBien = (javafx.scene.control.TextField) esperar(n ->
                 n instanceof javafx.scene.control.TextField t && t.getPromptText() != null
-                    && t.getPromptText().startsWith("Código y Enter")).query();
+                    && t.getPromptText().startsWith("Código y Enter") && t.isVisible());
             marcarConEnter(buscarBien, delArea.get(0).getCodigo());
 
             // A click on the row ticks it, with no key held down.
@@ -237,6 +238,11 @@ class AgregarQuitarYTransferirSmokeTest extends ControllerSmokeTestBase {
             Platform.runLater(ok::fire);
             esperar(n -> n instanceof javafx.scene.control.Label l && "Transferidos en esta ventana: 3 bienes".equals(l.getText()));
             org.testfx.util.WaitForAsyncUtils.waitFor(10, java.util.concurrent.TimeUnit.SECONDS, () -> !textoVisible("marcados"));
+            // The list is read again in the background after the transfer.
+            try {
+                org.testfx.util.WaitForAsyncUtils.waitFor(10, java.util.concurrent.TimeUnit.SECONDS, () ->
+                    lista.getItems().stream().noneMatch(p -> delArea.stream().anyMatch(d -> d.getId().equals(p.getId()))));
+            } catch (java.util.concurrent.TimeoutException noSalieron) { /* the assert below says it */ }
             assertTrue(lista.getItems().stream().noneMatch(p -> delArea.stream().anyMatch(d -> d.getId().equals(p.getId()))),
                 "los tres salieron de la lista");
         } finally {
