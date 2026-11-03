@@ -51,7 +51,12 @@ public final class ProductoDialogFactory {
      *  Read with {@link #cargarExtras} off the FX thread — five round-trips to
      *  the server froze the window for a second or two on every open. */
     public record Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
-                         List<String> ubicaciones, String folioResguardo) {}
+                         List<String> ubicaciones, String folioResguardo, List<String> resguardantes) {
+        public Extras(List<String> marcas, List<String> modelos, List<String> proveedores,
+                      List<String> ubicaciones, String folioResguardo) {
+            this(marcas, modelos, proveedores, ubicaciones, folioResguardo, List.of());
+        }
+    }
 
     /** Call it in the background (DialogUtil.runAsync…), never on the FX thread. */
     public static Extras cargarExtras(ProductoService productoService, Producto existing, Logger log) {
@@ -65,8 +70,16 @@ public final class ProductoDialogFactory {
                 log.debug("No se pudo consultar el resguardo activo de '{}'", existing.getId(), e);
             }
         }
+        List<String> resguardantes = List.of();
+        try {
+            // The names already in use, to pick one instead of typing a second spelling.
+            resguardantes = productoService.getAll().stream().map(Producto::getResguardante)
+                .filter(r -> r != null && !r.isBlank()).map(String::trim).distinct().sorted().toList();
+        } catch (Exception e) {
+            log.debug("No se pudieron leer los resguardantes para sugerirlos", e);
+        }
         return new Extras(productoService.getMarcas(), productoService.getModelos(),
-            productoService.getProveedores(), productoService.getUbicaciones(), folio);
+            productoService.getProveedores(), productoService.getUbicaciones(), folio, resguardantes);
     }
 
     public static Optional<Producto> show(Producto existing, List<Categoria> cats,
@@ -145,7 +158,8 @@ public final class ProductoDialogFactory {
 
         String folioResguardo = isNewProduct ? null : extras.folioResguardo();
         var patrimonioTab = new ProductoTabPatrimonioFields(existing,
-            sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones, folioResguardo);
+            sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones, folioResguardo,
+            extras.resguardantes() != null ? extras.resguardantes() : List.of());
 
         // ── TabPane ──────────────────────────────────────────────────────────
         TabPane tabs = new TabPane();
@@ -453,6 +467,7 @@ public final class ProductoDialogFactory {
                     infoTab.fNombre, infoTab.fCodigo, infoTab.fCat, infoTab.fArea,
                     stockTab.fUnidad, stockTab.fPrecioC, stockTab.fVenc,
                     patrimonioTab.fProveedor, patrimonioTab.fMarca, patrimonioTab.fModelo, patrimonioTab.fNumeroSerie,
+                    patrimonioTab.fSinMarca, patrimonioTab.fSinModelo, patrimonioTab.fSinSerie,
                     patrimonioTab.fResguardante, patrimonioTab.fNumeroFactura, patrimonioTab.fFolioFiscal, patrimonioTab.fEtiquetado,
                     patrimonioTab.fFechaAdq, patrimonioTab.fProximaRevision, patrimonioTab.fVidaUtil,
                     patrimonioTab.fValorResidual, patrimonioTab.fNotasMant, patrimonioTab.fClaveArm,
@@ -529,9 +544,9 @@ public final class ProductoDialogFactory {
             p.setStockMaximo(stockTab.fStockMax.getValue());
             p.setUnidad(stockTab.fUnidad.getValue());
             p.setProveedor(patrimonioTab.fProveedor.getText().trim().isEmpty() ? null : patrimonioTab.fProveedor.getText().trim());
-            p.setMarca(patrimonioTab.fMarca.getText().trim().isEmpty() ? null : patrimonioTab.fMarca.getText().trim());
-            p.setModelo(patrimonioTab.fModelo.getText().trim().isEmpty() ? null : patrimonioTab.fModelo.getText().trim());
-            p.setNumeroSerie(patrimonioTab.fNumeroSerie.getText().trim().isEmpty() ? null : patrimonioTab.fNumeroSerie.getText().trim());
+            p.setMarca(patrimonioTab.marca());
+            p.setModelo(patrimonioTab.modelo());
+            p.setNumeroSerie(patrimonioTab.serie());
             p.setUbicacion(patrimonioTab.fUbicacion.getText().trim().isEmpty() ? null : patrimonioTab.fUbicacion.getText().trim());
             p.setResguardante(patrimonioTab.fResguardante.getText().trim().isEmpty() ? null : patrimonioTab.fResguardante.getText().trim());
             p.setFechaVencimiento(stockTab.fVenc.getValue());

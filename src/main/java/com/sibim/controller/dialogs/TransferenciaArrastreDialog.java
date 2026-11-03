@@ -73,6 +73,8 @@ public final class TransferenciaArrastreDialog {
     private Producto ultimoMarcado;
     /** The latest cargo of each person, to fill it in when they are named. */
     private Map<String, String> cargos = Map.of();
+    /** The resguardos in force, to offer adding to the one the person already has. */
+    private List<Resguardo> vigentes = List.of();
     /** What the last batch said: the next one to the same área usually says the same. */
     private String ultimoDestino, ultimoMotivo, ultimoQuien, ultimoCargo;
     private final TextField buscarArea = new TextField();
@@ -284,7 +286,7 @@ public final class TransferenciaArrastreDialog {
             Platform.runLater(areasOrigen::requestFocus);
         }
         mostrarPasos();
-        DialogUtil.runAsync(() -> new ResguardoService().getAll(), r -> cargos = cargosDe(r), ex -> { });
+        cargarResguardos();
         dialog.showAndWait();
     }
 
@@ -348,6 +350,23 @@ public final class TransferenciaArrastreDialog {
     private void marcarVisibles() {
         visibles.forEach(p -> marcados.add(p.getId()));
         actualizarSeleccion();
+    }
+
+    private void cargarResguardos() {
+        DialogUtil.runAsync(() -> new ResguardoService().getAll(), r -> {
+            cargos = cargosDe(r);
+            vigentes = r.stream().filter(Resguardo::isActivo).toList();
+        }, ex -> { });
+    }
+
+    /** The newest resguardo in force of {@code persona} in {@code area}, if any. */
+    static Optional<Resguardo> suyoVigente(List<Resguardo> vigentes, String persona, String area) {
+        if (persona == null || persona.isBlank()) return Optional.empty();
+        String clave = ResguardoService.clavePersona(persona);
+        return vigentes.stream()
+            .filter(r -> r.isActivo() && Objects.equals(area, r.getResguardanteArea())
+                && r.getResguardanteNombre() != null && ResguardoService.clavePersona(r.getResguardanteNombre()).equals(clave))
+            .max(Comparator.comparing(Resguardo::getCreadoEn, Comparator.nullsFirst(Comparator.naturalOrder())));
     }
 
     /** By person, what their newest resguardo says their cargo is. */
@@ -575,18 +594,29 @@ public final class TransferenciaArrastreDialog {
         TextField cargo = new TextField();
         cargo.setPromptText("Cargo (opcional)");
         cargo.getStyleClass().add("form-input");
+        // The same person under another spelling starts a second one (a letter or a title apart).
+        List<String> conocidos = new ArrayList<>(resguardante.getItems());
+        vigentes.stream().filter(r -> destino.equals(r.getResguardanteArea()))
+            .map(Resguardo::getResguardanteNombre).filter(Objects::nonNull).forEach(conocidos::add);
+        AvisoNombreParecido parecido = new AvisoNombreParecido(resguardante.getEditor(), () -> conocidos);
+        // Whoever already holds a resguardo here gets these in it, not one more of one bien.
+        CheckBox agregar = new CheckBox();
+        agregar.setWrapText(true);
+        agregar.setSelected(true);
+        Resguardo[] suyo = {null};
         int row = 0;
         form.add(DialogUtil.fieldLabel("Motivo *"), 0, row);              form.add(motivo, 1, row++);
-        form.add(DialogUtil.fieldLabel("Nuevo resguardante"), 0, row);    form.add(resguardante, 1, row++);
+        form.add(DialogUtil.fieldLabel("Nuevo resguardante"), 0, row);    form.add(new VBox(2, resguardante, parecido), 1, row++);
         form.add(DialogUtil.fieldLabel("Cargo"), 0, row);                 form.add(cargo, 1, row++);
+        form.add(agregar, 1, row++);
 
         // Naming someone brings their cargo, unless one was typed by hand.
         String[] cargoPuesto = {""};
         resguardante.getEditor().textProperty().addListener((o, a, nombre) -> {
-            String suyo = nombre == null ? null : cargos.get(ResguardoService.clavePersona(nombre));
-            if (suyo != null && (cargo.getText().isBlank() || cargo.getText().equals(cargoPuesto[0]))) {
-                cargo.setText(suyo);
-                cargoPuesto[0] = suyo;
+            String suCargo = nombre == null ? null : cargos.get(ResguardoService.clavePersona(nombre));
+            if (suCargo != null && (cargo.getText().isBlank() || cargo.getText().equals(cargoPuesto[0]))) {
+                cargo.setText(suCargo);
+                cargoPuesto[0] = suCargo;
             }
         });
         // Another batch to the same área: most times the same motivo and the same person.
@@ -596,10 +626,28 @@ public final class TransferenciaArrastreDialog {
             cargo.setText(ultimoCargo);
         }
 
-        Label nota = new Label("Cada bien sale de su resguardo actual y toma el número que ves arriba, el siguiente libre de "
-            + destino + ". Si escribes quién los recibe, se le crea un resguardo con todos ellos.");
+        String notaBase = "Cada bien sale de su resguardo actual y toma el número que ves arriba, el siguiente libre de "
+            + destino + ". ";
+        Label nota = new Label();
         nota.setWrapText(true);
         nota.getStyleClass().add("table-count-label");
+        Runnable explicar = () -> {
+            suyo[0] = suyoVigente(vigentes, resguardante.getEditor().getText(), destino).orElse(null);
+            boolean hay = suyo[0] != null;
+            agregar.setVisible(hay);
+            agregar.setManaged(hay);
+            if (hay) {
+                List<?> ya = suyo[0].getItems();
+                agregar.setText("Agregarlos a su resguardo vigente " + suyo[0].getNumero()
+                    + (ya != null && !ya.isEmpty() ? " (ya tiene " + FormatUtils.plural(ya.size(), "bien", "bienes") + ")" : ""));
+            }
+            nota.setText(notaBase + (hay && agregar.isSelected()
+                ? "Entran al resguardo " + suyo[0].getNumero() + " de esa persona: vuelve a imprimirlo para que lo firme."
+                : "Si escribes quién los recibe, se le crea un resguardo con todos ellos."));
+        };
+        resguardante.getEditor().textProperty().addListener((o, a, b) -> explicar.run());
+        agregar.selectedProperty().addListener((o, a, b) -> explicar.run());
+        explicar.run();
 
         // Margins, not the content's padding (the dialog stylesheet sets it to 0);
         // 22 at the sides, like the form.
@@ -615,6 +663,7 @@ public final class TransferenciaArrastreDialog {
 
         dlg.showAndWait().filter(bt -> bt == ButtonType.OK).ifPresent(bt -> {
             String quien = resguardante.getEditor().getText();
+            Resguardo agregarA = agregar.isVisible() && agregar.isSelected() ? suyo[0] : null;
             String desde = origen.getValue();
             Scene scene = dialog.getDialogPane().getScene();
             ultimoDestino = destino;
@@ -622,7 +671,7 @@ public final class TransferenciaArrastreDialog {
             ultimoQuien = quien;
             ultimoCargo = cargo.getText();
             DialogUtil.runAsyncWithProgress(scene, "Transfiriendo " + FormatUtils.plural(bienes.size(), "bien", "bienes") + "…",
-                () -> transferencias.transferir(bienes, destino, motivo.getText(), quien, cargo.getText()),
+                () -> transferencias.transferir(bienes, destino, motivo.getText(), quien, cargo.getText(), agregarA),
                 r -> terminado(r, desde, destino, scene),
                 ex -> NotificacionUtil.error(scene, "No se pudo transferir: "
                     + (ex.getMessage() != null ? ex.getMessage() : "error desconocido")));
@@ -633,7 +682,9 @@ public final class TransferenciaArrastreDialog {
         r.hechos().forEach(m -> marcados.remove(m.getProductoId()));
         if (!r.hechos().isEmpty()) {
             NotificacionUtil.exito(scene, FormatUtils.plural(r.hechos().size(), "bien transferido", "bienes transferidos")
-                + " a " + destino + (r.resguardo() != null ? " · resguardo " + r.resguardo().getNumero() : ""));
+                + " a " + destino + (r.resguardo() == null ? ""
+                    : r.agregado() ? " · agregados al resguardo " + r.resguardo().getNumero()
+                    : " · resguardo " + r.resguardo().getNumero()));
             anotar(r, desde, destino, scene);
         }
         if (!r.errores().isEmpty()) {
@@ -646,8 +697,10 @@ public final class TransferenciaArrastreDialog {
             a.showAndWait();
         }
         if (alTransferir != null) alTransferir.run();
+        cargarResguardos();
         if (r.resguardo() != null && ConfirmacionUtil.confirmar("Resguardo " + r.resguardo().getNumero(),
-                "¿Abrir el PDF del resguardo nuevo para firmarlo?"))
+                r.agregado() ? "¿Abrir el PDF del resguardo, ya con los bienes agregados, para volverlo a firmar?"
+                             : "¿Abrir el PDF del resguardo nuevo para firmarlo?"))
             abrirResguardo(r.resguardo(), scene);
         DialogUtil.runAsync(productoService::getAll, this::cargar,
             ex -> NotificacionUtil.error(scene, "No se pudo recargar el inventario"));
@@ -683,7 +736,8 @@ public final class TransferenciaArrastreDialog {
         deshacer.getStyleClass().add("btn-secondary");
         deshacer.setMinWidth(Region.USE_PREF_SIZE);
         deshacer.setTooltip(new Tooltip("Regresarlos a " + desde + " con sus números de antes"
-            + (resguardo != null ? " y cancelar el resguardo " + resguardo.getNumero() : "")));
+            + (resguardo == null ? "" : lote.agregado() ? " y sacarlos del resguardo " + resguardo.getNumero()
+                : " y cancelar el resguardo " + resguardo.getNumero())));
         deshacer.setOnAction(e -> deshacer(lote, desde, destino, fila, adonde, cambios, scene));
         fila.getChildren().add(deshacer);
         historial.getChildren().add(0, fila);
@@ -714,7 +768,9 @@ public final class TransferenciaArrastreDialog {
         if (!ConfirmacionUtil.confirmar("Deshacer la transferencia",
                 "¿Regresar " + (n == 1 ? "el bien" : "los " + n + " bienes") + " de " + destino + " a " + desde
                 + " con sus números de antes?\n\n" + cambios(lote.hechos(), true)
-                + (lote.resguardo() != null ? "\n\nSe cancela el resguardo " + lote.resguardo().getNumero() + "." : "")
+                + (lote.resguardo() == null ? "" : lote.agregado()
+                    ? "\n\nSalen del resguardo " + lote.resguardo().getNumero() + "; lo demás de ese resguardo se queda."
+                    : "\n\nSe cancela el resguardo " + lote.resguardo().getNumero() + ".")
                 + (lote.salidas().isEmpty() ? "" : "\nCada bien vuelve al resguardo en el que estaba.")))
             return;
         // Not twice: a second click while the first runs would try it again.
@@ -722,6 +778,7 @@ public final class TransferenciaArrastreDialog {
         DialogUtil.runAsyncWithProgress(scene, "Deshaciendo la transferencia…",
             () -> transferencias.deshacer(lote),
             d -> {
+                cargarResguardos();
                 if (d.regresados().isEmpty())
                     fila.getChildren().forEach(nodo -> { if (nodo instanceof Button b) b.setDisable(false); });
                 if (!d.regresados().isEmpty()) {

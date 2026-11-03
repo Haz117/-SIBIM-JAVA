@@ -102,7 +102,10 @@ public final class ElegirPersonaDialog {
         resumen.getStyleClass().add("table-count-label");
         resumen.setWrapText(true);
 
-        VBox cuerpo = new VBox(8, buscar, lista, nueva, resumen);
+        // A spelling that finds nobody would start a new person: say who it may be.
+        List<String> nombres = personas.stream().map(Resguardante::nombre).toList();
+        AvisoNombreParecido parecido = new AvisoNombreParecido(buscar, () -> nombres);
+        VBox cuerpo = new VBox(8, buscar, parecido, lista, nueva, resumen);
         cuerpo.setPadding(new Insets(0, 22, 14, 22));
         VBox.setVgrow(cuerpo, Priority.ALWAYS);
         dialog.getDialogPane().setContent(new VBox(12, header, cuerpo));

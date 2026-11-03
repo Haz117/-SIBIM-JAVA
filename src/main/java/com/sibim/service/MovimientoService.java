@@ -256,15 +256,25 @@ public class MovimientoService {
     /** The destination área (or the admin, e.g. for an área without an
      *  account) confirms it physically has the bien. */
     public void confirmarRecepcion(Movimiento m) throws SQLException, ValidationException {
+        confirmarRecepcion(m, false);
+    }
+
+    /** @param acuseEnPapel Patrimonio confirms it for an área with the acuse signed on
+     *  paper — an área without an account can't do it in SIBIM (38 were waiting on
+     *  3-nov-2026); it is recorded that way */
+    public void confirmarRecepcion(Movimiento m, boolean acuseEnPapel) throws SQLException, ValidationException {
         if (com.sibim.db.DatabaseConfig.isOfflineMode()) throw new ValidationException(RECIBIR_REQUIERE_CONEXION);
         if (!SessionManager.isAreaAccessible(m.getAreaDestino()))
             throw new ValidationException("Solo el área que recibe (" + m.getAreaDestino() + ") puede confirmar la recepción");
         var yo = SessionManager.getCurrentUser();
         if (yo == null) throw new IllegalStateException("No hay sesión activa");
-        if (!movimientoRepo.confirmarRecepcion(m.getId(), yo.getNombre()))
+        boolean enPapel = acuseEnPapel && SessionManager.isAdmin();
+        String quien = yo.getNombre() + (enPapel ? " (acuse en papel)" : "");
+        if (!movimientoRepo.confirmarRecepcion(m.getId(), quien))
             throw new ValidationException("Esta transferencia ya se había confirmado como recibida");
         auditRepo.log("movimiento", m.getId(), m.getProductoNombre(), "transferencia_recibida",
-            "Recibido en " + m.getAreaDestino() + " por " + yo.getNombre());
+            "Recibido en " + m.getAreaDestino() + " por " + yo.getNombre()
+                + (enPapel ? " · con el acuse firmado en papel" : ""));
     }
 
     /** The área move and the new código are applied together inside the

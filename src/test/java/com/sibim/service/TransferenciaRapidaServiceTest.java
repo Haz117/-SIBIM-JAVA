@@ -212,6 +212,64 @@ class TransferenciaRapidaServiceTest {
         verify(movimientos, never()).deshacerTransferencia(any());
     }
 
+    private static Resguardo suyoEn(String area) {
+        Resguardo r = new Resguardo();
+        r.setId("r-suyo"); r.setNumero("RSG-2026-000070"); r.setEstado(Resguardo.ESTADO_ACTIVO);
+        r.setResguardanteNombre("Ana López"); r.setResguardanteArea(area);
+        return r;
+    }
+
+    /** Whoever already holds a resguardo in the área gets the bienes in it: no new one. */
+    @Test
+    void conSuResguardoVigente_seAgreganAEse_yNoSeCreaOtro() throws Exception {
+        when(resguardos.getByProductoId(anyString())).thenReturn(List.of());
+        when(movimientos.registrar(eq("p-1"), any(), anyInt(), anyString(), any(), anyString())).thenReturn(movidoA("COMS/07"));
+        when(movimientos.registrar(eq("p-2"), any(), anyInt(), anyString(), any(), anyString())).thenReturn(movidoA("COMS/08"));
+        Resguardo suyo = suyoEn("Comunicación Social");
+
+        var r = service.transferir(List.of(bien("p-1", "PARQ/01"), bien("p-2", "PARQ/02")),
+            "Comunicación Social", "reasignación", "Ana López", "Auxiliar", suyo);
+
+        verify(resguardos, never()).crear(any(), any(), any(), anyList(), any());
+        @SuppressWarnings("unchecked") ArgumentCaptor<ResguardoItem> items = ArgumentCaptor.forClass(ResguardoItem.class);
+        verify(resguardos, times(2)).agregarBien(same(suyo), items.capture(),
+            eq("recibido por transferencia de Parque Municipal: reasignación"));
+        assertEquals(List.of("COMS/07", "COMS/08"), items.getAllValues().stream().map(ResguardoItem::getProductoCodigo).toList());
+        assertSame(suyo, r.resguardo());
+        assertTrue(r.agregado());
+        assertTrue(r.errores().isEmpty());
+    }
+
+    /** A resguardo of another área (or cancelled) is refused before anything moves. */
+    @Test
+    void suResguardoDeOtraArea_noSeUsa() {
+        assertThrows(IllegalArgumentException.class, () -> service.transferir(List.of(bien("p-1", "PARQ/01")),
+            "Comunicación Social", "reasignación", "Ana López", "", suyoEn("Parque Municipal")));
+        verifyNoInteractions(movimientos, resguardos);
+    }
+
+    /** Deshacer of bienes added to a resguardo that was already there: they leave it, it stays. */
+    @Test
+    void deshacer_deAgregados_losSacaDeSuResguardo_sinCancelarlo() throws Exception {
+        Resguardo suyo = suyoEn("Comunicación Social");
+        ResguardoItem viejo = new ResguardoItem(); viejo.setProductoId("p-9"); viejo.setProductoCodigo("COMS/01");
+        ResguardoItem agregado = new ResguardoItem(); agregado.setProductoId("p-1"); agregado.setProductoCodigo("COMS/07");
+        Resguardo completo = suyoEn("Comunicación Social");
+        completo.setItems(List.of(viejo, agregado));
+        when(resguardos.findById("r-suyo")).thenReturn(completo);
+        Movimiento m1 = hecho("m-1", "p-1", "PARQ/12", "COMS/07");
+        when(movimientos.deshacerTransferencia(m1)).thenReturn("PARQ/12");
+
+        var d = service.deshacer(new TransferenciaRapidaService.Resultado(List.of(m1), List.of(), suyo, java.util.Map.of(), true));
+
+        var orden = inOrder(resguardos, movimientos);
+        orden.verify(resguardos).quitarBien(same(completo), same(agregado), eq("se deshizo su transferencia a Comunicación Social"));
+        orden.verify(movimientos).deshacerTransferencia(m1);
+        verify(resguardos, never()).cancelar(any());
+        verify(resguardos, never()).quitarBien(any(), same(viejo), any());
+        assertEquals(List.of("COMS/07 → PARQ/12"), d.regresados());
+    }
+
     /** Moved again after this transfer: only the latest movement can be taken back. */
     @Test
     void deshacer_conOtroMovimientoDespues_noSeDeshace() throws Exception {

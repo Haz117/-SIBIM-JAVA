@@ -113,8 +113,14 @@ final class TutorialGuias {
             p.add(probar(paso("mdi2d-drag-variant", VERDE, VERDE_D, "Transferir varios de una vez", "movimientos", "#btnArrastrar",
                 "Un clic marca cada bien, ya no hace falta Ctrl; lo marcado sigue marcado aunque busques otro",
                 "Escribe el código y Enter lo marca: así juntas varios y salen en un solo resguardo",
-                "A la misma área, la siguiente vuelta ya trae el motivo y la persona"),
+                "A la misma área, la siguiente vuelta ya trae el motivo y la persona",
+                "Si la persona ya tiene resguardo en esa área, se agregan a ese en lugar de hacer uno más",
+                "Si escribes un nombre casi igual a uno que ya existe, te pregunta si es esa persona"),
                 "Abrir Transferir", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); }));
+            p.add(paso("mdi2i-inbox-arrow-down-outline", DORADO, DORADO_D, "Por recibir, por área", "movimientos", "#btnPorRecibir",
+                "Las transferencias que el área no ha confirmado, juntas por área",
+                "Cuando te llegue su acuse firmado en papel, «Confirmar las N» las da por recibidas de una vez",
+                "Queda registrado con tu nombre y «acuse en papel»"));
             p.add(paso("mdi2c-clipboard-search-outline", DORADO, DORADO_D, "Buscar en Resguardos", "resguardos", "#searchField",
                 "Busca por persona, folio, área o el código de un bien: te dice en qué resguardo está",
                 "Sin acentos también lo encuentra",
@@ -123,7 +129,9 @@ final class TutorialGuias {
             p.add(paso("mdi2p-pencil", GUINDA, GUINDA_D, "Editar sin pasar por los pasos", "productos", "#btnEditar",
                 "Al editar, «Guardar cambios» siempre está a la vista, en cualquier sección",
                 "«Guardar y abrir…» pasa al bien de abajo en la misma sección: para corregir muchos seguidos",
-                "El detalle del bien ya trae «Editar», y al registrar uno nuevo puedes seguir con «Guardar y registrar otro»"));
+                "El detalle del bien ya trae «Editar», y al registrar uno nuevo puedes seguir con «Guardar y registrar otro»",
+                "Marca, modelo y serie tienen «No tiene»: ya no hace falta escribir «SIN MARCA»",
+                "Al escribir el resguardante te sugiere los nombres que ya existen"));
             p.add(probar(paso("mdi2c-clipboard-edit-outline", GUINDA, GUINDA_D, "Completar datos", "productos", "#btnMasBienes",
                 "Está en Bienes › Más › Completar datos",
                 "Por área: precio, fecha, vida útil y foto, en la misma lista",

@@ -116,4 +116,18 @@ class ProductoUtilsTest {
     void calcularStockNuevo_tipoDesconocido_noModificaStock() {
         assertEquals(10, ProductoUtils.calcularStockNuevo("unknown", 10, 5));
     }
+
+    /** What is typed when the bien has no marca / modelo / serie is saved empty. */
+    @Test
+    void sinDato_textoDeRelleno_seGuardaVacio() {
+        for (String relleno : new String[]{"SIN MARCA", "sin modelo", "SIN MOLDELO", "Sin serie", " S/N ", "S/M",
+                "N/A", "no tiene", "SIN NÚMERO DE SERIE", "-"})
+            assertTrue(ProductoUtils.esSinDato(relleno), relleno);
+        for (String dato : new String[]{"HP", "ENSAMBLADO", "SINGER", "SN-4421", "MXL0000XX1", "SIN MARCA X200"})
+            assertFalse(ProductoUtils.esSinDato(dato), dato);
+        assertNull(ProductoUtils.dato("  SIN SERIE "));
+        assertNull(ProductoUtils.dato("   "));
+        assertNull(ProductoUtils.dato(null));
+        assertEquals("Dell", ProductoUtils.dato(" Dell "));
+    }
 }

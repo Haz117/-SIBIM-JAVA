@@ -180,6 +180,25 @@ public class ResguardoService {
                 + (reactivar ? " El resguardo vuelve a estar vigente." : ""));
     }
 
+    /** Adds a bien to a resguardo in force, as when it reaches someone who already holds
+     *  one in that área: one resguardo per person instead of one per transfer (one person
+     *  got 7 resguardos of one bien each by 2-nov-2026). The resguardo records what was
+     *  added and why; its PDF has to be printed and signed again. */
+    public void agregarBien(Resguardo r, ResguardoItem item, String motivo) throws SQLException {
+        soloAdministrador();
+        if (item.getProductoId() == null)
+            throw new IllegalArgumentException("Ese renglón no corresponde a un bien del inventario");
+        String nota = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            + ": se agregó " + nombreDe(item)
+            + (item.getProductoCodigo() != null && item.getProductoNombre() != null ? " " + item.getProductoNombre() : "")
+            + " (" + motivo.trim() + ").";
+        repo.regresarBien(r.getId(), item, nota, false);
+        ProductosEnMemoria.invalidar();   // products.resguardante follows the resguardo
+        actualizarFichas(List.of(item));
+        auditRepo.log("resguardo", r.getId(), r.getResguardanteNombre(), "actualizar",
+            "Resguardo " + r.getNumero() + ": " + nota.substring(nota.indexOf(':') + 2));
+    }
+
     /** The ficha a bien's QR downloads names its resguardante. */
     private static void actualizarFichas(List<ResguardoItem> items) {
         if (items == null) return;

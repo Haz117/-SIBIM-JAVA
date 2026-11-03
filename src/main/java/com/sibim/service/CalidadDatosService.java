@@ -54,8 +54,10 @@ public class CalidadDatosService {
     /** What two spellings of one person share: the words, in any order, without titles. */
     static String clavePalabras(String nombre) {
         List<String> palabras = new ArrayList<>();
-        // "A/B" and "A, B" are the same two people.
-        for (String p : ResguardoService.clavePersona(nombre).replace('/', ' ').split(" ")) {
+        // "A/B" and "A, B" are the same two people; "LIC.LAURA" is "LIC. LAURA" (a title
+        // glued to the name), while "L.A.P" stays one title.
+        for (String p : ResguardoService.clavePersona(nombre).replace('/', ' ')
+                .replaceAll("\\.(?=\\p{L}{2})", ". ").trim().split(" +")) {
             String limpia = p.replaceAll("[.:,]", "");
             if (!limpia.isEmpty() && !TITULOS.contains(limpia)) palabras.add(limpia);
         }
@@ -119,6 +121,27 @@ public class CalidadDatosService {
             previa = fila;
         }
         return previa[b.length()];
+    }
+
+    /** Of {@code conocidos}, the person {@code escrito} probably is without being written
+     *  the same: the same words with a title more or less or in another order ("LIC.LAURA
+     *  PRUEBA ORTEGA" for "LIC. LAURA PRUEBA ORTEGA"), or a letter apart ("TANYA" for
+     *  "TANIA"). Empty when it is written exactly as one of them, or when none is close —
+     *  a new person. Asked before the name is saved, so no new spelling starts. */
+    public static java.util.Optional<String> parecidoA(String escrito, java.util.Collection<String> conocidos) {
+        if (escrito == null || escrito.isBlank() || conocidos == null) return java.util.Optional.empty();
+        String tal = ResguardoService.clavePersona(escrito);
+        String clave = clavePalabras(escrito);
+        if (!clave.contains(" ")) return java.util.Optional.empty();
+        String igual = null, parecido = null;
+        for (String c : conocidos) {
+            if (c == null || c.isBlank()) continue;
+            if (ResguardoService.clavePersona(c).equals(tal)) return java.util.Optional.empty();
+            String k = clavePalabras(c);
+            if (igual == null && k.equals(clave)) igual = c.trim();
+            else if (parecido == null && casiIguales(k, clave)) parecido = c.trim();
+        }
+        return java.util.Optional.ofNullable(igual != null ? igual : parecido);
     }
 
     /** True when all of these spell the same words; false for ones that only look alike. */

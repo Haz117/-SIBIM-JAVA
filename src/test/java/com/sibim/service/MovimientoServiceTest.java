@@ -386,4 +386,24 @@ class MovimientoServiceTest {
         assertTrue(mensaje(() -> conResguardo.deshacerTransferencia(t)).contains("RSG-2026-000070"));
         verify(mockMovimientoRepo, never()).deleteMovimientoAtomic(any());
     }
+
+    /** Patrimonio confirms for an área without an account, with its acuse on paper: it is
+     *  recorded that way. An área confirming its own is recorded with its name only. */
+    @Test void confirmarRecepcion_conAcuseEnPapel_loDice() throws Exception {
+        Movimiento t = new Movimiento();
+        t.setId("m-7"); t.setProductoNombre("Silla"); t.setAreaDestino("Contraloría Municipal");
+        when(mockMovimientoRepo.confirmarRecepcion(any(), any())).thenReturn(true);
+
+        SessionManager.setCurrentUser(admin);
+        service.confirmarRecepcion(t, true);
+        verify(mockMovimientoRepo).confirmarRecepcion("m-7", "Admin (acuse en papel)");
+        verify(mockAuditRepo).log(eq("movimiento"), eq("m-7"), eq("Silla"), eq("transferencia_recibida"),
+            argThat(d -> d.contains("acuse firmado en papel")));
+
+        Usuario area = new Usuario(); area.setId("u-ct"); area.setNombre("Contraloría"); area.setRol(Rol.DIRECCION);
+        area.setArea("Contraloría Municipal");
+        SessionManager.setCurrentUser(area);
+        service.confirmarRecepcion(t, true);
+        verify(mockMovimientoRepo).confirmarRecepcion("m-7", "Contraloría");
+    }
 }

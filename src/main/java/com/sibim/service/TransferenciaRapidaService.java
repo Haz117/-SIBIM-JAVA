@@ -30,11 +30,15 @@ import java.util.Set;
  */
 public class TransferenciaRapidaService {
 
-    /** @param salidas by bien id, the resguardo each moved bien left — to put it back on Deshacer */
+    /** @param salidas by bien id, the resguardo each moved bien left — to put it back on Deshacer
+     *  @param agregado {@code resguardo} was the person's resguardo in force, not a new one */
     public record Resultado(List<Movimiento> hechos, List<String> errores, Resguardo resguardo,
-                            Map<String, Salida> salidas) {
+                            Map<String, Salida> salidas, boolean agregado) {
         public Resultado(List<Movimiento> hechos, List<String> errores, Resguardo resguardo) {
-            this(hechos, errores, resguardo, Map.of());
+            this(hechos, errores, resguardo, Map.of(), false);
+        }
+        public Resultado(List<Movimiento> hechos, List<String> errores, Resguardo resguardo, Map<String, Salida> salidas) {
+            this(hechos, errores, resguardo, salidas, false);
         }
     }
 
@@ -65,10 +69,19 @@ public class TransferenciaRapidaService {
 
     public Resultado transferir(List<Producto> bienes, String destino, String motivo,
                                 String nuevoResguardante, String cargo) {
+        return transferir(bienes, destino, motivo, nuevoResguardante, cargo, null);
+    }
+
+    /** @param agregarA the resguardo in force of whoever receives them in {@code destino}:
+     *  the bienes go into it instead of into a new one; null for a new one */
+    public Resultado transferir(List<Producto> bienes, String destino, String motivo,
+                                String nuevoResguardante, String cargo, Resguardo agregarA) {
         if (!SessionManager.isAdmin())
             throw new SecurityException(MovimientoService.SOLO_ADMIN_MOVIMIENTOS);
         if (motivo == null || motivo.isBlank())
             throw new IllegalArgumentException("Escribe el motivo de la transferencia");
+        if (agregarA != null && (!agregarA.isActivo() || !Objects.equals(destino, agregarA.getResguardanteArea())))
+            throw new IllegalArgumentException("El resguardo " + agregarA.getNumero() + " no está vigente en " + destino);
         List<Movimiento> hechos = new ArrayList<>();
         List<Producto> movidos = new ArrayList<>();
         List<String> errores = new ArrayList<>();
@@ -104,7 +117,9 @@ public class TransferenciaRapidaService {
         }
 
         Resguardo nuevo = null;
-        if (nuevoResguardante != null && !nuevoResguardante.isBlank() && !movidos.isEmpty()) {
+        boolean agregado = false;
+        boolean conPersona = agregarA != null || (nuevoResguardante != null && !nuevoResguardante.isBlank());
+        if (conPersona && !movidos.isEmpty()) {
             List<ResguardoItem> items = new ArrayList<>();
             for (int i = 0; i < movidos.size(); i++) {
                 String codigo = hechos.get(i).getCodigoNuevo() != null ? hechos.get(i).getCodigoNuevo() : movidos.get(i).getCodigo();
@@ -112,16 +127,30 @@ public class TransferenciaRapidaService {
             }
             LinkedHashSet<String> origenes = new LinkedHashSet<>();
             movidos.forEach(p -> origenes.add(p.getArea()));
-            String observaciones = "Recibidos por transferencia de " + String.join(", ", origenes) + " el "
-                + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ": " + motivo.trim() + ".";
-            try {
-                nuevo = resguardos.crear(nuevoResguardante.trim(), cargo, destino, items, observaciones);
-            } catch (Exception e) {
-                errores.add("No se pudo crear el resguardo de " + nuevoResguardante.trim() + ": "
-                    + (e.getMessage() != null ? e.getMessage() : "error desconocido"));
+            if (agregarA != null) {
+                String porQue = "recibido por transferencia de " + String.join(", ", origenes) + ": " + motivo.trim();
+                for (ResguardoItem it : items) {
+                    try {
+                        resguardos.agregarBien(agregarA, it, porQue);
+                        agregado = true;
+                    } catch (Exception e) {
+                        errores.add(it.getProductoCodigo() + ": se transfirió pero no entró al resguardo " + agregarA.getNumero()
+                            + " (" + (e.getMessage() != null ? e.getMessage() : "error desconocido") + "); agrégalo en Resguardos");
+                    }
+                }
+                if (agregado) nuevo = agregarA;
+            } else {
+                String observaciones = "Recibidos por transferencia de " + String.join(", ", origenes) + " el "
+                    + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ": " + motivo.trim() + ".";
+                try {
+                    nuevo = resguardos.crear(nuevoResguardante.trim(), cargo, destino, items, observaciones);
+                } catch (Exception e) {
+                    errores.add("No se pudo crear el resguardo de " + nuevoResguardante.trim() + ": "
+                        + (e.getMessage() != null ? e.getMessage() : "error desconocido"));
+                }
             }
         }
-        return new Resultado(hechos, errores, nuevo, salidas);
+        return new Resultado(hechos, errores, nuevo, salidas, agregado);
     }
 
     /**
@@ -160,7 +189,23 @@ public class TransferenciaRapidaService {
             return new Deshecho(regresados, errores);
         }
         // First: while it is in force, that resguardo says who holds them in the other área.
-        if (lote.resguardo() != null) {
+        // One that was already there before (agregado) keeps the rest of its bienes: only
+        // these come out of it.
+        if (lote.resguardo() != null && lote.agregado()) {
+            try {
+                Resguardo suyo = resguardos.findById(lote.resguardo().getId());
+                for (Movimiento m : lote.hechos()) {
+                    ResguardoItem renglon = suyo == null || suyo.getItems() == null ? null
+                        : suyo.getItems().stream().filter(it -> m.getProductoId().equals(it.getProductoId())).findFirst().orElse(null);
+                    if (renglon != null)
+                        resguardos.quitarBien(suyo, renglon, "se deshizo su transferencia a " + m.getAreaDestino());
+                }
+            } catch (Exception e) {
+                errores.add("No se pudieron sacar del resguardo " + lote.resguardo().getNumero() + ": "
+                    + (e.getMessage() != null ? e.getMessage() : "error desconocido") + ". Quítalos en Resguardos y vuelve a deshacer.");
+                return new Deshecho(regresados, errores);
+            }
+        } else if (lote.resguardo() != null) {
             try {
                 resguardos.cancelar(lote.resguardo().getId());
             } catch (Exception e) {

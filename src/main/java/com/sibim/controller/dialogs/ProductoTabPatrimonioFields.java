@@ -4,9 +4,14 @@ import com.sibim.model.Producto;
 import com.sibim.util.AutocompleteUtil;
 import com.sibim.util.DialogUtil;
 import com.sibim.util.FormatUtils;
+import com.sibim.util.ProductoUtils;
 import javafx.collections.FXCollections;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 
 import java.util.List;
 
@@ -20,8 +25,13 @@ class ProductoTabPatrimonioFields {
     final TextField fMarca;
     final TextField fModelo;
     final TextField fNumeroSerie;
+    /** "No tiene": the bien has no marca / modelo / serie, instead of typing "SIN MARCA". */
+    final CheckBox  fSinMarca  = new CheckBox("No tiene");
+    final CheckBox  fSinModelo = new CheckBox("No tiene");
+    final CheckBox  fSinSerie  = new CheckBox("No tiene");
     final TextField fUbicacion;
     final TextField fResguardante;
+    final AvisoNombreParecido avisoResguardante;
     final Label     lblResguardoActivo;
     final ComboBox<String> fEstadoFisico;
     final TextField fNumeroFactura;
@@ -47,6 +57,18 @@ class ProductoTabPatrimonioFields {
             List<String> sugestProveedores,
             List<String> sugestUbicaciones,
             String folioResguardoActivo) {
+        this(existing, sugestMarcas, sugestModelos, sugestProveedores, sugestUbicaciones, folioResguardoActivo, List.of());
+    }
+
+    /** @param resguardantes the names already in use, offered as the name is typed */
+    ProductoTabPatrimonioFields(
+            Producto existing,
+            List<String> sugestMarcas,
+            List<String> sugestModelos,
+            List<String> sugestProveedores,
+            List<String> sugestUbicaciones,
+            String folioResguardoActivo,
+            List<String> resguardantes) {
 
         grid = DialogUtil.formGrid(140);
 
@@ -75,6 +97,9 @@ class ProductoTabPatrimonioFields {
         AutocompleteUtil.attach(fProveedor, sugestProveedores);
         AutocompleteUtil.attach(fMarca,     sugestMarcas);
         AutocompleteUtil.attach(fModelo,    sugestModelos);
+        noTiene(fMarca, fSinMarca);
+        noTiene(fModelo, fSinModelo);
+        noTiene(fNumeroSerie, fSinSerie);
 
         fUbicacion = new TextField(existing != null && existing.getUbicacion() != null
                 ? existing.getUbicacion() : "");
@@ -96,6 +121,9 @@ class ProductoTabPatrimonioFields {
         lblResguardoActivo.setVisible(folioResguardoActivo != null);
         lblResguardoActivo.setManaged(folioResguardoActivo != null);
         fResguardante.setDisable(folioResguardoActivo != null);
+        List<String> nombres = resguardantes != null ? resguardantes : List.of();
+        AutocompleteUtil.attach(fResguardante, nombres);
+        avisoResguardante = new AvisoNombreParecido(fResguardante, () -> nombres);
 
         fEstadoFisico = new ComboBox<>(FXCollections.observableArrayList(
                 "", "BUENO", "REGULAR", "MALO", "DEFICIENTE"));
@@ -190,13 +218,13 @@ class ProductoTabPatrimonioFields {
         // ── Assemble gridPatrimonio ───────────────────────────────────────────
         int rp = 0;
         grid.add(DialogUtil.fieldLabel("Proveedor"),     0, rp); grid.add(fProveedor,    1, rp++);
-        grid.add(DialogUtil.fieldLabel("Marca"),         0, rp); grid.add(fMarca,        1, rp++);
-        grid.add(DialogUtil.fieldLabel("Modelo"),        0, rp); grid.add(fModelo,       1, rp++);
-        grid.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); grid.add(fNumeroSerie,  1, rp++);
+        grid.add(DialogUtil.fieldLabel("Marca"),         0, rp); grid.add(conNoTiene(fMarca, fSinMarca),          1, rp++);
+        grid.add(DialogUtil.fieldLabel("Modelo"),        0, rp); grid.add(conNoTiene(fModelo, fSinModelo),        1, rp++);
+        grid.add(DialogUtil.fieldLabel("N° de Serie"),   0, rp); grid.add(conNoTiene(fNumeroSerie, fSinSerie),    1, rp++);
         grid.add(DialogUtil.fieldLabel("Ubicación"),     0, rp); grid.add(fUbicacion,    1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Resguardante",
             "Persona física responsable del resguardo y custodia del bien.\nNormalmente el jefe de área o el usuario directo."),
-                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fResguardante, lblResguardoActivo), 1, rp++);
+                                                         0, rp); grid.add(new javafx.scene.layout.VBox(2, fResguardante, avisoResguardante, lblResguardoActivo), 1, rp++);
         grid.add(DialogUtil.fieldLabelWithHelp("Estado físico",
             "Condición actual del bien según el último levantamiento físico.\nBUENO = sin daños; REGULAR = desgaste menor; MALO = requiere reparación; DEFICIENTE = fuera de uso."),
                                                          0, rp); grid.add(fEstadoFisico, 1, rp++);
@@ -258,6 +286,8 @@ class ProductoTabPatrimonioFields {
         fMarca.textProperty().addListener((o, a, b)            -> markDirty.run());
         fModelo.textProperty().addListener((o, a, b)           -> markDirty.run());
         fNumeroSerie.textProperty().addListener((o, a, b)      -> markDirty.run());
+        for (CheckBox c : List.of(fSinMarca, fSinModelo, fSinSerie))
+            c.selectedProperty().addListener((o, a, b)         -> markDirty.run());
         fUbicacion.textProperty().addListener((o, a, b)        -> markDirty.run());
         fResguardante.textProperty().addListener((o, a, b)     -> markDirty.run());
         fEstadoFisico.valueProperty().addListener((o, a, b)    -> markDirty.run());
@@ -275,6 +305,39 @@ class ProductoTabPatrimonioFields {
         fNoMotor.textProperty().addListener((o, a, b)          -> markDirty.run());
         fNoTarjeta.textProperty().addListener((o, a, b)        -> markDirty.run());
         fNoPoliza.textProperty().addListener((o, a, b)         -> markDirty.run());
+    }
+
+    /** What to save as marca, modelo and serie: empty ("No tiene", or "SIN MARCA" typed) is null. */
+    String marca()  { return fSinMarca.isSelected()  ? null : ProductoUtils.dato(fMarca.getText()); }
+    String modelo() { return fSinModelo.isSelected() ? null : ProductoUtils.dato(fModelo.getText()); }
+    String serie()  { return fSinSerie.isSelected()  ? null : ProductoUtils.dato(fNumeroSerie.getText()); }
+
+    /** "SIN MARCA" saved before shows as the box ticked; ticking it empties the field, and
+     *  typing "SIN MARCA" (or "S/N"…) ticks it when the field is left. */
+    private static void noTiene(TextField campo, CheckBox caja) {
+        caja.getStyleClass().add("form-input");
+        caja.setMinWidth(Region.USE_PREF_SIZE);
+        caja.setFocusTraversable(false);
+        if (ProductoUtils.esSinDato(campo.getText())) {
+            campo.setText("");
+            caja.setSelected(true);
+            campo.setDisable(true);
+        }
+        caja.selectedProperty().addListener((o, antes, si) -> {
+            if (si) campo.setText("");
+            campo.setDisable(si);
+        });
+        campo.focusedProperty().addListener((o, antes, ahora) -> {
+            if (!ahora && ProductoUtils.esSinDato(campo.getText())) caja.setSelected(true);
+        });
+    }
+
+    private static HBox conNoTiene(TextField campo, CheckBox caja) {
+        HBox fila = new HBox(8, campo, caja);
+        fila.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(campo, Priority.ALWAYS);
+        campo.setMaxWidth(Double.MAX_VALUE);
+        return fila;
     }
 
     /** A UUID typed as número de factura (51 vehicles on 28/29-oct-2026, losing the

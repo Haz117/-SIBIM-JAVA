@@ -293,4 +293,21 @@ class CalidadDatosServiceTest {
         assertFalse(CalidadDatosService.falta(p, CalidadDatosService.Dato.FECHA));
         assertEquals(2, CalidadDatosService.faltantes(p), "vida útil y foto");
     }
+
+    /** Before a second spelling is saved: the same words with a title or a space more or
+     *  less, or a letter apart, point to the one already in use. */
+    @Test
+    void parecidoA_avisaAntesDeEmpezarOtraForma() {
+        List<String> conocidos = List.of("TANIA EJEMPLO FICTICIO", "LIC. LAURA PRUEBA ORTEGA", "L.A.P JUAN EJEMPLO CRUZ");
+        assertEquals("TANIA EJEMPLO FICTICIO", CalidadDatosService.parecidoA("LIC. TANYA EJEMPLO FICTICIO", conocidos).orElseThrow());
+        assertEquals("LIC. LAURA PRUEBA ORTEGA", CalidadDatosService.parecidoA("LIC.LAURA PRUEBA ORTEGA", conocidos).orElseThrow());
+        assertEquals("L.A.P JUAN EJEMPLO CRUZ", CalidadDatosService.parecidoA("LIC. AP. JUAN EJEMPLO CRUZ", conocidos).orElseThrow());
+        assertEquals("TANIA EJEMPLO FICTICIO", CalidadDatosService.parecidoA("ficticio tania ejemplo", conocidos).orElseThrow(),
+            "otro orden, en minúsculas");
+        assertTrue(CalidadDatosService.parecidoA("tania ejemplo ficticio", conocidos).isEmpty(), "escrito igual: nada que avisar");
+        assertTrue(CalidadDatosService.parecidoA("MARIO PEREZ SOTO", conocidos).isEmpty(), "otra persona");
+        assertTrue(CalidadDatosService.parecidoA("TANIA", conocidos).isEmpty(), "una sola palabra no alcanza");
+        assertTrue(CalidadDatosService.parecidoA("", conocidos).isEmpty());
+        assertTrue(CalidadDatosService.parecidoA("LIC. TANYA EJEMPLO FICTICIO", List.of()).isEmpty());
+    }
 }

@@ -221,6 +221,60 @@ class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
         interact(() -> ((Stage) nombre.getScene().getWindow()).close());
     }
 
+    /** "SIN SERIE" saved before shows as "No tiene" ticked; "sin marca" typed ticks it on
+     *  leaving the field; both are saved empty. A resguardante typed with another spelling
+     *  of someone in the inventory gets "¿Es …?" and a link that writes that spelling. */
+    @Test
+    void noTiene_yNombreParecido() throws Exception {
+        Categoria cat = new Categoria("cat-prueba", "Mobiliario", null, "#8B5CF6", null, null);
+        com.sibim.model.Producto p = bienCompleto();
+        p.setNumeroSerie("SIN SERIE");
+        java.util.concurrent.atomic.AtomicReference<java.util.Optional<com.sibim.model.Producto>> res = new java.util.concurrent.atomic.AtomicReference<>();
+        Platform.runLater(() -> res.set(ProductoDialogFactory.show(p, List.of(cat), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null,
+                List.of("TANIA EJEMPLO FICTICIO")), null, null)));
+        TextField marca = (TextField) esperar(n -> n instanceof TextField t && "Ej. HP, Dell, Brother…".equals(t.getPromptText()));
+        TextField serie = (TextField) lookup(n -> n instanceof TextField t && "Número de serie o placa".equals(t.getPromptText())).query();
+        TextField quien = (TextField) lookup(n -> n instanceof TextField t && t.getPromptText() != null
+            && t.getPromptText().startsWith("Persona responsable")).query();
+        javafx.scene.control.CheckBox sinSerie = (javafx.scene.control.CheckBox) ((HBox) serie.getParent()).getChildren().get(1);
+        javafx.scene.control.CheckBox sinMarca = (javafx.scene.control.CheckBox) ((HBox) marca.getParent()).getChildren().get(1);
+        assertTrue(sinSerie.isSelected(), "«SIN SERIE» guardado sale como No tiene");
+        assertEquals("", serie.getText());
+        assertTrue(serie.isDisabled());
+
+        // The field takes focus only in the section on screen.
+        javafx.scene.control.TabPane pasos = lookup(".dlg-stepper").queryAs(javafx.scene.control.TabPane.class);
+        interact(() -> pasos.getTabs().stream().filter(t -> {
+                for (Node n = marca; n != null; n = n.getParent()) if (n == t.getContent()) return true;
+                return false;
+            }).findFirst().ifPresent(t -> pasos.getSelectionModel().select(t)));
+        WaitForAsyncUtils.waitForFxEvents();
+        interact(() -> { marca.requestFocus(); marca.setText("sin marca"); });
+        WaitForAsyncUtils.waitForFxEvents();
+        interact(quien::requestFocus);
+        WaitForAsyncUtils.waitForFxEvents();
+        assertTrue(sinMarca.isSelected(), "escrito a mano, se marca al salir del campo");
+
+        com.sibim.controller.dialogs.AvisoNombreParecido aviso = (com.sibim.controller.dialogs.AvisoNombreParecido)
+            lookup(n -> n instanceof com.sibim.controller.dialogs.AvisoNombreParecido).query();
+        interact(() -> quien.setText("LIC. TANYA EJEMPLO FICTICIO"));
+        assertTrue(aviso.isVisible());
+        assertEquals("TANIA EJEMPLO FICTICIO", aviso.sugerido());
+        interact(() -> aviso.getChildren().stream().filter(n -> n instanceof javafx.scene.control.Hyperlink)
+            .map(n -> (javafx.scene.control.Hyperlink) n).findFirst().orElseThrow().fire());
+        assertEquals("TANIA EJEMPLO FICTICIO", quien.getText(), "el enlace escribe el nombre que ya existe");
+        assertFalse(aviso.isVisible());
+
+        interact(() -> enBarra("Guardar cambios").fire());
+        WaitForAsyncUtils.waitForFxEvents();
+        com.sibim.model.Producto guardado = res.get().orElseThrow();
+        assertNull(guardado.getMarca());
+        assertNull(guardado.getNumeroSerie());
+        assertEquals("TANIA EJEMPLO FICTICIO", guardado.getResguardante());
+    }
+
     /** The first node {@code que} matches, waiting up to 10 s for it to show. */
     private Node esperar(java.util.function.Predicate<Node> que) {
         for (int i = 0; i < 100; i++) {
