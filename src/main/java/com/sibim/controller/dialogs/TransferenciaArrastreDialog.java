@@ -77,6 +77,8 @@ public final class TransferenciaArrastreDialog {
     private List<Resguardo> vigentes = List.of();
     /** What the last batch said: the next one to the same área usually says the same. */
     private String ultimoDestino, ultimoMotivo, ultimoQuien, ultimoCargo;
+    /** The motivos written so far in the transfers, offered as one types. */
+    static final List<String> MOTIVOS = List.of("Reasignación", "Cambio de oficina", "Comodato");
     private final TextField buscarArea = new TextField();
     private final VBox tablero = new VBox(14);
     private final List<HBox> tarjetas = new ArrayList<>();
@@ -145,7 +147,7 @@ public final class TransferenciaArrastreDialog {
             e.consume();
             String q = buscar.getText() == null ? "" : buscar.getText().trim();
             if (q.isEmpty() || visibles.isEmpty()) return;
-            marcados.add(visibles.get(0).getId());
+            marcados.add(porEnter(visibles, marcados, q).getId());
             buscar.clear();
             actualizarSeleccion();
         });
@@ -330,9 +332,20 @@ public final class TransferenciaArrastreDialog {
         actualizarSeleccion();
     }
 
+    /** The bien Enter marks: the one with that código, or with that old number read
+     *  whole (the next not marked yet: old numbers repeat), not the first that merely
+     *  contains it ("TES-12" is also in "TES-120"); else the first on the list. */
+    static Producto porEnter(List<Producto> visibles, Set<String> marcados, String q) {
+        return visibles.stream().filter(p -> q.equalsIgnoreCase(p.getCodigo())).findFirst()
+            .or(() -> visibles.stream().filter(p -> !marcados.contains(p.getId())
+                && com.sibim.util.ProductoUtils.esInventarioAnterior(p, q)).findFirst())
+            .orElse(visibles.get(0));
+    }
+
     private static String textoDe(Producto p) {
         return Objects.requireNonNullElse(p.getCodigo(), "") + " " + Objects.requireNonNullElse(p.getNombre(), "") + " "
-            + Objects.requireNonNullElse(p.getNumeroSerie(), "") + " " + Objects.requireNonNullElse(p.getResguardante(), "");
+            + Objects.requireNonNullElse(p.getNumeroSerie(), "") + " " + Objects.requireNonNullElse(p.getResguardante(), "")
+            + " " + Objects.requireNonNullElse(com.sibim.util.ProductoUtils.inventarioAnterior(p), "");
     }
 
     private void alternar(Producto p, boolean hastaAqui) {
@@ -359,14 +372,25 @@ public final class TransferenciaArrastreDialog {
         }, ex -> { });
     }
 
-    /** The newest resguardo in force of {@code persona} in {@code area}, if any. */
-    static Optional<Resguardo> suyoVigente(List<Resguardo> vigentes, String persona, String area) {
-        if (persona == null || persona.isBlank()) return Optional.empty();
-        String clave = ResguardoService.clavePersona(persona);
+    /** The resguardos in force of {@code persona} in {@code area}: written the same but for
+     *  a title, accents or the order of the words ("LIC. ANA RUIZ" holds "L.D. ANA RUIZ"'s). */
+    static List<Resguardo> suyosVigentes(List<Resguardo> vigentes, String persona, String area) {
+        if (persona == null || persona.isBlank()) return List.of();
+        String clave = com.sibim.service.CalidadDatosService.clavePalabras(persona);
+        if (clave.isBlank()) return List.of();
         return vigentes.stream()
-            .filter(r -> r.isActivo() && Objects.equals(area, r.getResguardanteArea())
-                && r.getResguardanteNombre() != null && ResguardoService.clavePersona(r.getResguardanteNombre()).equals(clave))
-            .max(Comparator.comparing(Resguardo::getCreadoEn, Comparator.nullsFirst(Comparator.naturalOrder())));
+            .filter(r -> r.isActivo() && Objects.equals(area, r.getResguardanteArea()) && r.getResguardanteNombre() != null
+                && com.sibim.service.CalidadDatosService.clavePalabras(r.getResguardanteNombre()).equals(clave))
+            .toList();
+    }
+
+    /** Of {@link #suyosVigentes}, the one the bienes go into: the one with the most bienes,
+     *  the newest of equals. One person had 15 in one área on 3-nov-2026, most of one bien
+     *  from transfers made one at a time; going into the newest kept adding to those. */
+    static Optional<Resguardo> suyoVigente(List<Resguardo> vigentes, String persona, String area) {
+        return suyosVigentes(vigentes, persona, area).stream()
+            .max(Comparator.comparingInt((Resguardo r) -> r.getItems() == null ? 0 : r.getItems().size())
+                .thenComparing(Resguardo::getCreadoEn, Comparator.nullsFirst(Comparator.naturalOrder())));
     }
 
     /** By person, what their newest resguardo says their cargo is. */
@@ -584,6 +608,8 @@ public final class TransferenciaArrastreDialog {
         TextField motivo = new TextField();
         motivo.setPromptText("Ej. reasignación, cambio de oficina");
         motivo.getStyleClass().add("form-input");
+        // Typed by hand it came "REASIGNACION" and "REASIGNACIÓN" (3-nov-2026): the ones in use.
+        com.sibim.util.AutocompleteUtil.attach(motivo, MOTIVOS);
         ComboBox<String> resguardante = new ComboBox<>(FXCollections.observableArrayList(
             porArea.getOrDefault(destino, List.of()).stream().map(Producto::getResguardante)
                 .filter(r -> r != null && !r.isBlank()).distinct().sorted().toList()));
@@ -632,18 +658,26 @@ public final class TransferenciaArrastreDialog {
         nota.setWrapText(true);
         nota.getStyleClass().add("table-count-label");
         Runnable explicar = () -> {
-            suyo[0] = suyoVigente(vigentes, resguardante.getEditor().getText(), destino).orElse(null);
+            String escrito = resguardante.getEditor().getText();
+            List<Resguardo> suyos = suyosVigentes(vigentes, escrito, destino);
+            suyo[0] = suyoVigente(vigentes, escrito, destino).orElse(null);
             boolean hay = suyo[0] != null;
             agregar.setVisible(hay);
             agregar.setManaged(hay);
             if (hay) {
                 List<?> ya = suyo[0].getItems();
+                String suNombre = suyo[0].getResguardanteNombre();
                 agregar.setText("Agregarlos a su resguardo vigente " + suyo[0].getNumero()
-                    + (ya != null && !ya.isEmpty() ? " (ya tiene " + FormatUtils.plural(ya.size(), "bien", "bienes") + ")" : ""));
+                    + (ya != null && !ya.isEmpty() ? " (ya tiene " + FormatUtils.plural(ya.size(), "bien", "bienes") + ")" : "")
+                    // Another spelling: the bienes take the resguardo's, no new one starts.
+                    + (ResguardoService.clavePersona(suNombre).equals(ResguardoService.clavePersona(escrito))
+                        ? "" : ", a nombre de " + suNombre));
             }
             nota.setText(notaBase + (hay && agregar.isSelected()
                 ? "Entran al resguardo " + suyo[0].getNumero() + " de esa persona: vuelve a imprimirlo para que lo firme."
-                : "Si escribes quién los recibe, se le crea un resguardo con todos ellos."));
+                : "Si escribes quién los recibe, se le crea un resguardo con todos ellos.")
+                + (suyos.size() > 1 ? " Tiene " + suyos.size() + " resguardos vigentes aquí: con Resguardos › Más › "
+                    + "«Juntar resguardos de una persona» quedan en uno." : ""));
         };
         resguardante.getEditor().textProperty().addListener((o, a, b) -> explicar.run());
         agregar.selectedProperty().addListener((o, a, b) -> explicar.run());

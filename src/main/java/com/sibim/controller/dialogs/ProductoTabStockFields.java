@@ -10,6 +10,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /** Builds and holds all fields for the "Valor y cantidad" tab of the
  *  "Nuevo/Editar Bien" dialog.  Package-private — only used by
@@ -31,6 +32,8 @@ class ProductoTabStockFields {
     final DatePicker          fVenc;
     final Label               lblPrecioCHint;
     final Label               lblStockBloqueado;
+    final Label               lblLote;
+    final Hyperlink           lnkDividir;
 
     ProductoTabStockFields(Producto existing) {
 
@@ -94,6 +97,44 @@ class ProductoTabStockFields {
             }
         });
 
+        // With more than one, what they add up to — the cost is that of each one. On
+        // 1-nov-2026 two lots (18 bocinas, 20 cámaras) got the invoice's total as the cost
+        // of each: $1.27 million too many in every total. The link undoes just that.
+        lblLote = new Label();
+        lblLote.getStyleClass().add("field-hint");
+        lblLote.setWrapText(true);
+        lnkDividir = new Hyperlink();
+        lnkDividir.getStyleClass().add("field-hint");
+        lnkDividir.setPadding(javafx.geometry.Insets.EMPTY);
+        VBox lote = new VBox(1, lblLote, lnkDividir);
+        String[] dividido = {null};
+        Runnable explicarLote = () -> {
+            int n = cantidadEscrita();
+            BigDecimal precio = precioEscrito();
+            boolean ver = n > 1 && precio != null && precio.signum() > 0;
+            lote.setVisible(ver);
+            lote.setManaged(ver);
+            if (!ver) return;
+            lblLote.setText("Es el costo de cada uno: los " + n + " suman "
+                + FormatUtils.formatCurrency(precio.multiply(BigDecimal.valueOf(n))) + ".");
+            lnkDividir.setText("¿Es el total? Dividirlo entre " + n);
+            boolean yaDividido = fPrecioC.getText().equals(dividido[0]);
+            lnkDividir.setVisible(!yaDividido);
+            lnkDividir.setManaged(!yaDividido);
+        };
+        lnkDividir.setOnAction(e -> {
+            int n = cantidadEscrita();
+            BigDecimal precio = precioEscrito();
+            if (n <= 1 || precio == null) return;
+            dividido[0] = precio.divide(BigDecimal.valueOf(n), 2, RoundingMode.HALF_UP).toPlainString();
+            fPrecioC.setText(dividido[0]);
+            fPrecioC.positionCaret(dividido[0].length());
+        });
+        fPrecioC.textProperty().addListener((o, a, b) -> explicarLote.run());
+        fStock.valueProperty().addListener((o, a, b) -> explicarLote.run());
+        fStock.getEditor().textProperty().addListener((o, a, b) -> explicarLote.run());
+        explicarLote.run();
+
         fVenc = new DatePicker(existing != null ? existing.getFechaVencimiento() : null);
         fVenc.setConverter(FormatUtils.datePickerConverter());
         fVenc.setMaxWidth(Double.MAX_VALUE);
@@ -104,7 +145,7 @@ class ProductoTabStockFields {
         principal.add(DialogUtil.fieldLabelWithHelp("Costo de adquisición",
             "Precio de compra por unidad, según factura.\n"
             + "Es el valor patrimonial del bien en reportes y actas."),
-                                                                  0, rs); principal.add(new VBox(2, fPrecioC, lblPrecioCHint), 1, rs++);
+                                                                  0, rs); principal.add(new VBox(2, fPrecioC, lblPrecioCHint, lote), 1, rs++);
         principal.add(DialogUtil.fieldLabel("Cantidad"),          0, rs); principal.add(new VBox(2, fStock, lblStockBloqueado), 1, rs++);
         principal.add(DialogUtil.fieldLabel("Unidad"),            0, rs); principal.add(fUnidad,   1, rs++);
         principal.add(DialogUtil.fieldLabelWithHelp("Garantía hasta",
@@ -115,6 +156,24 @@ class ProductoTabStockFields {
         // No minimum/maximum: a patrimonial bien is not restocked. The two spinners stay
         // as plain holders so an existing bien keeps whatever values it had.
         grid = new VBox(12, principal);
+    }
+
+    /** The cantidad as typed, before the spinner takes it on leaving the field. */
+    private int cantidadEscrita() {
+        try {
+            return Integer.parseInt(fStock.getEditor().getText().trim());
+        } catch (NumberFormatException e) {
+            return fStock.getValue() == null ? 1 : fStock.getValue();
+        }
+    }
+
+    /** The cost as typed, or null while it isn't a number. */
+    private BigDecimal precioEscrito() {
+        try {
+            return new BigDecimal(fPrecioC.getText().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /** Attaches dirty-tracking listeners on all editable fields. Call AFTER

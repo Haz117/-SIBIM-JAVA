@@ -9,6 +9,7 @@ import com.sibim.model.Producto;
 import com.sibim.model.enums.EstadoProducto;
 import com.sibim.model.enums.UnidadMedida;
 import com.sibim.session.SessionManager;
+import com.sibim.util.ProductoUtils;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -74,6 +75,11 @@ public class ProductoRepository {
         "CASE WHEN p.fecha_vencimiento IS NOT NULL AND p.fecha_vencimiento < CURRENT_DATE THEN 'vencido' " +
         "ELSE 'activo' END";
 
+    /** The old inventory number ({@link ProductoUtils#inventarioAnterior}), lowercase and
+     *  without spaces — the number on the labels still stuck on the bienes. */
+    private static final String ANTERIOR_SQL = "REGEXP_REPLACE(LOWER(COALESCE(SUBSTRING(p.descripcion FROM '"
+        + ProductoUtils.INVENTARIO_ANTERIOR_REGEX + "'), '')), '\\s', '', 'g')";
+
     /** Builds a WHERE clause (with leading space) and populates {@code params}
      *  for all server-side filter queries. */
     private static String buildFiltroWhere(ProductoFiltro f, List<Object> params) {
@@ -87,9 +93,11 @@ public class ProductoRepository {
         if (f.soloSinEtiquetar()) conds.add("p.etiquetado = FALSE");
         if (f.busqueda() != null && !f.busqueda().isBlank()) {
             String like = Like.contiene(f.busqueda().toLowerCase());
-            conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ? OR LOWER(COALESCE(p.marca,'')) LIKE ? OR LOWER(COALESCE(p.modelo,'')) LIKE ? OR LOWER(COALESCE(p.numero_serie,'')) LIKE ?)");
+            conds.add("(LOWER(p.nombre) LIKE ? OR LOWER(p.codigo) LIKE ? OR LOWER(p.proveedor) LIKE ? OR LOWER(p.ubicacion) LIKE ? OR LOWER(p.resguardante) LIKE ? OR LOWER(COALESCE(p.marca,'')) LIKE ? OR LOWER(COALESCE(p.modelo,'')) LIKE ? OR LOWER(COALESCE(p.numero_serie,'')) LIKE ?"
+                + " OR " + ANTERIOR_SQL + " LIKE ?)");
             params.add(like); params.add(like); params.add(like); params.add(like); params.add(like);
             params.add(like); params.add(like); params.add(like);
+            params.add(Like.contiene(ProductoUtils.sinEspacios(f.busqueda())));
         }
         if (f.categoriaId() != null) { conds.add("p.categoria_id = ?"); params.add(f.categoriaId()); }
         if (f.area() != null) { conds.add("p.area = ?"); params.add(f.area()); }
@@ -286,7 +294,8 @@ public class ProductoRepository {
                 // Same fields the SQL search covers: offline, a serie or a marca found nothing.
                 || (p.getMarca() != null && p.getMarca().toLowerCase().contains(f.busqueda().toLowerCase()))
                 || (p.getModelo() != null && p.getModelo().toLowerCase().contains(f.busqueda().toLowerCase()))
-                || (p.getNumeroSerie() != null && p.getNumeroSerie().toLowerCase().contains(f.busqueda().toLowerCase())))
+                || (p.getNumeroSerie() != null && p.getNumeroSerie().toLowerCase().contains(f.busqueda().toLowerCase()))
+                || ProductoUtils.anteriorContiene(p, f.busqueda()))
             .filter(p -> f.categoriaId() == null || f.categoriaId().equals(p.getCategoriaId()))
             .filter(p -> f.area() == null || f.area().equals(p.getArea()))
             .filter(p -> f.resguardante() == null || f.resguardante().equals(p.getResguardante()))
@@ -386,6 +395,30 @@ public class ProductoRepository {
         }
         List<Producto> results = queryDynamic(sb.toString(), params);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    /** The bienes (not dados de baja, in the caller's areas) whose old inventory number is
+     *  {@code leido}, case and spaces ignored. Old numbers were not unique: 34 were repeated
+     *  on 3-nov-2026, hence a list. */
+    public List<Producto> findByInventarioAnterior(String leido) throws SQLException {
+        String buscado = ProductoUtils.sinEspacios(leido);
+        if (buscado.isEmpty()) return List.of();
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            return local.findAllProductos(SessionManager.getAccessibleAreas()).stream()
+                .filter(p -> p.getFechaBaja() == null && ProductoUtils.esInventarioAnterior(p, leido)).toList();
+        }
+        List<Object> params = new ArrayList<>();
+        StringBuilder sb = new StringBuilder(BASE_SELECT)
+            .append(" WHERE p.fecha_baja IS NULL AND p.descripcion LIKE '%Inventario anterior:%' AND ")
+            .append(ANTERIOR_SQL).append(" = ?");
+        params.add(buscado);
+        Set<String> accessible = SessionManager.getAccessibleAreas();
+        if (accessible != null) {
+            sb.append(" AND p.area = ANY(?)");
+            params.add(accessible.toArray(new String[0]));
+        }
+        return queryDynamic(sb.append(" ORDER BY p.codigo").toString(), params);
     }
 
     public Producto save(Producto p) throws SQLException {

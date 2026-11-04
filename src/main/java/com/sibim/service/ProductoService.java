@@ -194,6 +194,11 @@ public class ProductoService {
         return productoRepo.findByCodigo(codigo);
     }
 
+    /** The bienes whose old inventory number is {@code leido} — the label still stuck on them. */
+    public List<Producto> findByInventarioAnterior(String leido) throws SQLException {
+        return productoRepo.findByInventarioAnterior(leido);
+    }
+
     public Optional<Producto> findById(String id) throws SQLException {
         return productoRepo.findById(id);
     }

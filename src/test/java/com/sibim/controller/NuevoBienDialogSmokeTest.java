@@ -98,6 +98,80 @@ class NuevoBienDialogSmokeTest extends ControllerSmokeTestBase {
         interact(() -> ((Stage) categoria.getScene().getWindow()).close());
     }
 
+    /** Backspace in the category after picking one: the list was replaced in the middle
+     *  of the key press and the field threw "The start must be <= the end" (a PC sent it,
+     *  1.0.0 on 1-oct-2026, 1.0.14 on 26-oct). It filters, and the field keeps what is typed. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void categoria_borrarDespuesDeElegir_noTruena_yFiltra() throws Exception {
+        Categoria muebles = new Categoria("cat-511", "Muebles de Oficina", null, "#8B5CF6", null, null);
+        Categoria computo = new Categoria("cat-515", "Equipo de Cómputo", null, "#8B5CF6", null, null);
+        Platform.runLater(() -> ProductoDialogFactory.show(null, List.of(muebles, computo), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null)));
+        ComboBox<Categoria> categoria = (ComboBox<Categoria>) esperar(n -> n instanceof ComboBox<?> c
+            && "Buscar categoría…".equals(c.getPromptText()));
+        interact(() -> categoria.setValue(muebles));
+        WaitForAsyncUtils.waitForFxEvents();
+        TextField editor = categoria.getEditor();
+        assertEquals("Muebles de Oficina", editor.getText());
+
+        interact(() -> { editor.requestFocus(); editor.end(); editor.deletePreviousChar(); });
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals("Muebles de Oficin", editor.getText(), "queda lo que se escribió");
+        interact(() -> { editor.selectAll(); editor.replaceSelection("cóm"); });
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals("cóm", editor.getText());
+        assertEquals(List.of(computo), List.copyOf(categoria.getItems()), "filtra por lo escrito");
+        interact(() -> categoria.setValue(computo));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(computo, categoria.getValue());
+        assertEquals("Equipo de Cómputo", editor.getText());
+
+        interact(() -> ((Stage) categoria.getScene().getWindow()).close());
+    }
+
+    /** A lot shows what it adds up to under the cost of each one, and the link divides
+     *  a total typed as the cost (1-nov-2026: 18 bocinas at the invoice's $24,924.25 each). */
+    @Test
+    @SuppressWarnings("unchecked")
+    void unLote_diceCuantoSuma_yElTotalSeDivide() {
+        Categoria cat = new Categoria("cat-prueba", "Mobiliario", null, "#8B5CF6", null, null);
+        Platform.runLater(() -> ProductoDialogFactory.show(null, List.of(cat), new HashMap<>(),
+            LoggerFactory.getLogger("prueba"), List.of(),
+            new ProductoDialogFactory.Extras(List.of(), List.of(), List.of(), List.of(), null)));
+        javafx.scene.control.Hyperlink dividir = (javafx.scene.control.Hyperlink) esperar(n ->
+            n instanceof javafx.scene.control.Hyperlink h && h.getParent() != null && h.getParent().getClass() == javafx.scene.layout.VBox.class
+                && h.getParent().getParent() instanceof javafx.scene.layout.VBox v && v.getChildren().get(0) instanceof TextField);
+        javafx.scene.layout.VBox lote = (javafx.scene.layout.VBox) dividir.getParent();
+        TextField costo = (TextField) ((javafx.scene.layout.VBox) lote.getParent()).getChildren().get(0);
+        javafx.scene.control.Spinner<Integer> cantidad = (javafx.scene.control.Spinner<Integer>) esperar(n ->
+            n instanceof javafx.scene.control.Spinner<?> s && s.getParent() instanceof javafx.scene.layout.VBox v
+                && v.getChildren().stream().anyMatch(h -> h instanceof javafx.scene.control.Label l
+                    && l.getText() != null && l.getText().contains("Agregar o quitar")));
+        javafx.scene.control.Label suma = (javafx.scene.control.Label) lote.getChildren().get(0);
+
+        interact(() -> costo.setText("24924.25"));
+        assertFalse(lote.isVisible(), "uno solo: no hay lote que sumar");
+
+        interact(() -> cantidad.getEditor().setText("18"));
+        assertTrue(lote.isVisible());
+        assertTrue(suma.getText().contains("los 18 suman") && suma.getText().contains("448,636.50"), suma.getText());
+        assertEquals("¿Es el total? Dividirlo entre 18", dividir.getText());
+
+        interact(dividir::fire);
+        assertEquals("1384.68", costo.getText());
+        assertTrue(suma.getText().contains("24,924.24"), suma.getText());
+        assertFalse(dividir.isVisible(), "ya dividido no se ofrece otra vez");
+
+        interact(() -> costo.setText("1500"));
+        assertTrue(dividir.isVisible(), "escrito a mano otra vez, sí");
+        interact(() -> costo.setText("0"));
+        assertFalse(lote.isVisible(), "sin costo no hay suma");
+
+        interact(() -> ((Stage) costo.getScene().getWindow()).close());
+    }
+
     /** Opening a bien without vida útil leaves it without one: the CONAC suggestion
      *  is for someone picking a category, or every edit would change it again. */
     @Test

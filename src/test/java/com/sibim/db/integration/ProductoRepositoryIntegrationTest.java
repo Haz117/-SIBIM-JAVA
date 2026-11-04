@@ -321,4 +321,55 @@ class ProductoRepositoryIntegrationTest extends IntegrationTestBase {
         assertNotNull(result, "findFotos nunca debe retornar null");
         assertTrue(result.isEmpty(), "producto sin fotos debe retornar lista vacía");
     }
+
+    private void conAnterior(String codigo, String nombre, String descripcion) throws SQLException {
+        Producto p = buildProducto(UUID.randomUUID().toString(), nombre, codigo);
+        p.setDescripcion(descripcion);
+        repo.saveOnline(p);
+    }
+
+    /** The search of Bienes finds a bien by the number on its old label — the same
+     *  pattern in PostgreSQL as in Java — and not by the rest of the descripción. */
+    @Test
+    void busqueda_encuentraPorNumeroAnterior() throws SQLException {
+        conAnterior("SGM/01", "Silla", "Inventario anterior: PRU-ADM-012. En el resguardo individual: OTRA PERSONA.");
+        conAnterior("SGM/02", "Mesa", "Inventario anterior: PR-A.B-07. Placas: XX0000X.");
+        conAnterior("SGM/03", "Archivero", "Inventario anterior: PR- CDE-31.");
+        conAnterior("SGM/04", "Librero", "Sin número anterior");
+
+        java.util.function.Function<String, List<String>> buscar = q -> {
+            try {
+                return repo.findPaginated(com.sibim.repository.ProductoFiltro.vacio().conBusqueda(q), 50, 0)
+                    .stream().map(Producto::getCodigo).sorted().toList();
+            } catch (SQLException e) { throw new IllegalStateException(e); }
+        };
+        assertEquals(List.of("SGM/01"), buscar.apply("pru-adm-012"));
+        assertEquals(List.of("SGM/02"), buscar.apply("PR-A.B-07"), "con el punto de en medio");
+        assertEquals(List.of("SGM/03"), buscar.apply("PR-CDE-31"), "escrito sin el espacio");
+        assertEquals(List.of(), buscar.apply("OTRA PERSONA"), "el resto de la descripción no cuenta");
+        assertEquals(List.of(), buscar.apply("XX0000X"));
+        assertEquals(1, repo.countFiltrado(com.sibim.repository.ProductoFiltro.vacio().conBusqueda("adm-012")));
+    }
+
+    /** An old number several bienes had brings them all; a partial one brings none. */
+    @Test
+    void findByInventarioAnterior_exacto_yConRepetidos() throws SQLException {
+        conAnterior("SGM/05", "Silla", "Inventario anterior: PRU-REP-01. Negra");
+        conAnterior("SGM/06", "Silla", "Inventario anterior: PRU-REP-01.");
+        conAnterior("SGM/07", "Silla", "Inventario anterior: PRU-REP-010.");
+        Producto baja = buildProducto(UUID.randomUUID().toString(), "Silla", "SGM/08");
+        baja.setDescripcion("Inventario anterior: PRU-REP-01.");
+        repo.saveOnline(baja);
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("UPDATE products SET fecha_baja = CURRENT_DATE WHERE codigo = 'SGM/08'")) {
+            ps.executeUpdate();
+        }
+
+        assertEquals(List.of("SGM/05", "SGM/06"),
+            repo.findByInventarioAnterior(" pru-rep-01 ").stream().map(Producto::getCodigo).toList(),
+            "los dos que la traían, sin el dado de baja ni el que solo lo contiene");
+        assertEquals(List.of("SGM/07"), repo.findByInventarioAnterior("PRU-REP-010").stream().map(Producto::getCodigo).toList());
+        assertTrue(repo.findByInventarioAnterior("PRU-REP").isEmpty());
+        assertTrue(repo.findByInventarioAnterior("  ").isEmpty());
+    }
 }

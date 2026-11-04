@@ -56,4 +56,39 @@ public final class ProductoUtils {
         String t = texto.trim();
         return t.isEmpty() || esSinDato(t) ? null : t;
     }
+
+    /** The number after "Inventario anterior:" up to the first dot that ends a sentence:
+     *  "AB-C.D-01" keeps its inner dot. Same pattern as {@code ProductoRepository}'s search. */
+    public static final String INVENTARIO_ANTERIOR_REGEX = "Inventario anterior:\\s*((?:[^.]|\\.(?=\\S))+)";
+    private static final java.util.regex.Pattern INVENTARIO_ANTERIOR =
+        java.util.regex.Pattern.compile(INVENTARIO_ANTERIOR_REGEX);
+
+    /** The bien's number in the inventory it was loaded from, as its descripción starts
+     *  ("Inventario anterior: TES-ADM-012. …"), or null. On 3-nov-2026 3,034 of the 3,090
+     *  bienes had one and none had a SIBIM label yet: the number stuck on the bien is this one. */
+    public static String inventarioAnterior(com.sibim.model.Producto p) {
+        if (p == null || p.getDescripcion() == null) return null;
+        java.util.regex.Matcher m = INVENTARIO_ANTERIOR.matcher(p.getDescripcion());
+        if (!m.find()) return null;
+        String n = m.group(1).trim();
+        return n.isEmpty() ? null : n;
+    }
+
+    /** Lowercase and without spaces: 28 old numbers were typed "AB- CDE-01". */
+    public static String sinEspacios(String texto) {
+        return texto == null ? "" : texto.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Whether the bien's old number contains {@code q} (case and spaces ignored). */
+    public static boolean anteriorContiene(com.sibim.model.Producto p, String q) {
+        String n = inventarioAnterior(p);
+        String b = sinEspacios(q);
+        return n != null && !b.isEmpty() && sinEspacios(n).contains(b);
+    }
+
+    /** Whether {@code leido} (a label read or typed) is exactly the bien's old number. */
+    public static boolean esInventarioAnterior(com.sibim.model.Producto p, String leido) {
+        String n = inventarioAnterior(p);
+        return n != null && !sinEspacios(leido).isEmpty() && sinEspacios(n).equals(sinEspacios(leido));
+    }
 }

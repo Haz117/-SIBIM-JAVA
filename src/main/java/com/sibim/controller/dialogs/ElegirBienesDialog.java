@@ -102,7 +102,8 @@ public final class ElegirBienesDialog {
 
     private static String textoDe(Producto p) {
         return Objects.requireNonNullElse(p.getCodigo(), "") + " " + Objects.requireNonNullElse(p.getNombre(), "") + " "
-            + Objects.requireNonNullElse(p.getNumeroSerie(), "") + " " + Objects.requireNonNullElse(p.getResguardante(), "");
+            + Objects.requireNonNullElse(p.getNumeroSerie(), "") + " " + Objects.requireNonNullElse(p.getResguardante(), "")
+            + " " + Objects.requireNonNullElse(com.sibim.util.ProductoUtils.inventarioAnterior(p), "");
     }
 
     private void actualizar() {

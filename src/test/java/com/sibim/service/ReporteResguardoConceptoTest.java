@@ -10,9 +10,9 @@ class ReporteResguardoConceptoTest {
 
     @Test
     void conUnNombreCortado_saleSoloLaDescripcionCompleta() {
-        assertEquals("INVENTARIO ANTERIOR: SSP-045. CAMARA DE VIDEO BODY CAM MODELO SCW7 CON BATERIA",
-            ReporteResguardoService.concepto("CAMARA DE VIDEO BODY CAM…",
-                "Inventario anterior: SSP-045. Camara de video body cam modelo SCW7 con bateria"));
+        assertEquals("INVENTARIO ANTERIOR: PRU-045. LAMPARA DE ESCRITORIO DE PRUEBA MODELO X100 CON FOCO",
+            ReporteResguardoService.concepto("LAMPARA DE ESCRITORIO DE…",
+                "Inventario anterior: PRU-045. Lampara de escritorio de prueba modelo X100 con foco"));
         assertEquals("SILLA TUBULAR TAPIZADA", ReporteResguardoService.concepto("Silla tubular...", "Silla tubular tapizada"));
     }
 

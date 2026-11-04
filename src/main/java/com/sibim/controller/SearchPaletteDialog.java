@@ -121,6 +121,9 @@ public final class SearchPaletteDialog {
                     nombre.getStyleClass().add("palette-item-nombre");
                     String metaText = (p.getCodigo() != null && !p.getCodigo().isBlank()
                             ? p.getCodigo() : "")
+                            // Found by the number on its old label: say so, it is not in the name.
+                            + (com.sibim.util.ProductoUtils.anteriorContiene(p, searchField.getText())
+                            ? "  ·  antes " + com.sibim.util.ProductoUtils.inventarioAnterior(p) : "")
                             + (p.getArea() != null && !p.getArea().isBlank()
                             ? "  ·  " + p.getArea() : "");
                     Label meta = new Label(metaText.strip());
@@ -236,7 +239,8 @@ public final class SearchPaletteDialog {
                     .filter(p -> p.getNombre().toLowerCase().contains(q)
                         || (p.getCodigo()       != null && p.getCodigo().toLowerCase().contains(q))
                         || (p.getArea()         != null && p.getArea().toLowerCase().contains(q))
-                        || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(q)))
+                        || (p.getResguardante() != null && p.getResguardante().toLowerCase().contains(q))
+                        || com.sibim.util.ProductoUtils.anteriorContiene(p, q))
                     .limit(8).toList();
                 if (!matchedProd.isEmpty()) {
                     allItems.add("BIENES");

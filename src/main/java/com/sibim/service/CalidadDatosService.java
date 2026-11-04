@@ -52,7 +52,7 @@ public class CalidadDatosService {
         "LAP", "AP", "TSU", "MVZ", "ENCARGADA", "ENCARGADO");
 
     /** What two spellings of one person share: the words, in any order, without titles. */
-    static String clavePalabras(String nombre) {
+    public static String clavePalabras(String nombre) {
         List<String> palabras = new ArrayList<>();
         // "A/B" and "A, B" are the same two people; "LIC.LAURA" is "LIC. LAURA" (a title
         // glued to the name), while "L.A.P" stays one title.

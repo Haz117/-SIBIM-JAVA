@@ -523,7 +523,7 @@ public final class ConteoFisicoDialog {
         tituloAlcance.getStyleClass().add("trf-paso-titulo");
         tituloAlcance.setMinWidth(0);
 
-        buscar.setPromptText("Buscar por nombre, código, serie o resguardante…");
+        buscar.setPromptText("Buscar por nombre, código, número anterior, serie o resguardante…");
         buscar.getStyleClass().add("form-input");
         buscar.textProperty().addListener((o, a, b) -> refiltrar());
         HBox.setHgrow(buscar, Priority.ALWAYS);
@@ -651,7 +651,8 @@ public final class ConteoFisicoDialog {
         if (q.isBlank()) return true;
         Producto p = f.producto;
         return contiene(p.getNombre(), q) || contiene(p.getCodigo(), q)
-            || contiene(p.getNumeroSerie(), q) || contiene(p.getResguardante(), q);
+            || contiene(p.getNumeroSerie(), q) || contiene(p.getResguardante(), q)
+            || com.sibim.util.ProductoUtils.anteriorContiene(p, q);
     }
 
     private static boolean contiene(String texto, String q) {
@@ -1105,16 +1106,28 @@ public final class ConteoFisicoDialog {
 
     // ── Escanear ──────────────────────────────────────────────────────────────
 
+    /** The row of the bien with this código or, failing that, with this old inventory
+     *  number — the label still stuck on the bienes. Old numbers repeat (34 on 3-nov-2026):
+     *  then the first of what is being counted not seen yet, as there are that many labels. */
     private Fila filaDeCodigo(String code) {
-        return filas.stream().filter(f -> code.equalsIgnoreCase(f.producto.getCodigo())).findFirst().orElse(null);
+        Fila exacta = filas.stream().filter(f -> code.equalsIgnoreCase(f.producto.getCodigo())).findFirst().orElse(null);
+        if (exacta != null) return exacta;
+        List<Fila> anteriores = filas.stream()
+            .filter(f -> com.sibim.util.ProductoUtils.esInventarioAnterior(f.producto, code)).toList();
+        return anteriores.stream().filter(f -> alcance.contains(f) && !f.visto).findFirst()
+            .or(() -> anteriores.stream().filter(alcance::contains).findFirst())
+            .orElse(anteriores.isEmpty() ? null : anteriores.get(0));
     }
 
-    /** Marks the bien with this código as seen and brings its row into view. With
-     *  nothing chosen yet, the first label read chooses its área.
+    /** The row {@link #marcarVisto} marked last. */
+    private Fila ultimaMarcada;
+
+    /** Marks the bien with this código (or old number) as seen and brings its row into
+     *  view. With nothing chosen yet, the first label read chooses its área.
      *  @return null when it was marked, else why it wasn't */
     private String marcarVisto(String code) {
         Fila f = filaDeCodigo(code);
-        if (f == null) return "\"" + code + "\" no está en este conteo: no está registrado o ya se finalizó. Anótalo aparte.";
+        if (f == null) return "\"" + code + "\" no está en este conteo: no es un código ni un número anterior registrado, o ya se finalizó. Anótalo aparte.";
         if (alcance.isEmpty()) {
             porArea.setSelected(true);
             grupos.getSelectionModel().select(f.area());
@@ -1122,6 +1135,7 @@ public final class ConteoFisicoDialog {
         if (!alcance.contains(f))
             return "\"" + code + "\" es de " + f.area() + ", no de lo que estás contando: márcalo en " + tituloAlcance.getText() + " como «En otra área» si no le corresponde estar ahí.";
         f.visto = true;
+        ultimaMarcada = f;
         if (!visibles.contains(f)) { buscar.clear(); fTodos.setSelected(true); refiltrar(); }
         lista.refresh();
         alCambiar(true);
@@ -1162,7 +1176,7 @@ public final class ConteoFisicoDialog {
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         TextField codeField = new TextField();
-        codeField.setPromptText("Código del bien (ej: BIEN-001)");
+        codeField.setPromptText("Código del bien o su número anterior");
         codeField.setMaxWidth(Double.MAX_VALUE);
 
         Button btnCargar = new Button("Cargar imagen…");
@@ -1205,9 +1219,11 @@ public final class ConteoFisicoDialog {
             resultado.getStyleClass().removeAll("text-ok", "text-warn");
             String aviso = marcarVisto(code);
             if (aviso == null) {
-                Fila f = filaDeCodigo(code);
+                Fila f = ultimaMarcada;
                 long vistos = alcance.stream().filter(Fila::vista).count();
-                resultado.setText("✓ " + f.producto.getCodigo() + " — " + f.producto.getNombre()
+                resultado.setText("✓ " + f.producto.getCodigo()
+                    + (code.equalsIgnoreCase(f.producto.getCodigo()) ? "" : " (antes " + code + ")")
+                    + " — " + f.producto.getNombre()
                     + "  (" + vistos + " de " + alcance.size() + ")");
                 resultado.getStyleClass().add("text-ok");
             } else {

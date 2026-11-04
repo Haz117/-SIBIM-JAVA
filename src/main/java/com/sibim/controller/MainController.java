@@ -882,15 +882,27 @@ public class MainController {
      * "Imprimir ficha". Anything else falls back to searching it in Bienes.
      */
     /** A scanned bien opens its ficha técnica (PDF, same as "Ficha técnica" in
-     *  Bienes); anything else is searched in Bienes. */
+     *  Bienes), by its código or by its old inventory number; anything else, or an
+     *  old number several bienes had, is searched in Bienes. */
     private void handleBarcodeScan(String codigo) {
         javafx.scene.Scene scene = contentArea.getScene();
         String leido = com.sibim.util.QrUtils.codigoLeido(codigo);
         DialogUtil.runAsync(
-            () -> alertProductoService.findByCodigo(leido),
-            encontrado -> {
-                if (encontrado.isPresent()) {
-                    Producto bien = encontrado.get();
+            // Not a SIBIM código: the old number on the labels still stuck on the bienes.
+            () -> {
+                java.util.Optional<Producto> porCodigo = alertProductoService.findByCodigo(leido);
+                return porCodigo.isPresent() ? List.of(porCodigo.get())
+                    : alertProductoService.findByInventarioAnterior(leido);
+            },
+            hallados -> {
+                if (hallados.size() > 1) {
+                    NotificacionUtil.info(scene, "Escaneado: " + leido + " — es el número anterior de "
+                        + hallados.size() + " bienes; se muestran en Bienes");
+                    buscarEnBienes(leido);
+                } else if (hallados.size() == 1) {
+                    Producto bien = hallados.get(0);
+                    if (!leido.equalsIgnoreCase(bien.getCodigo()))
+                        NotificacionUtil.info(scene, "Escaneado: " + leido + " — número anterior de " + bien.getCodigo());
                     MovimientoService movimientos = new MovimientoService();
                     DialogUtil.runAsyncWithProgress(scene, "Abriendo ficha técnica de " + bien.getCodigo() + "…",
                         () -> com.sibim.service.ReporteService.getInstance()
@@ -901,7 +913,7 @@ public class MainController {
                             com.sibim.controller.dialogs.ProductoDetailDialog.show(bien, scene, movimientos, log);
                         });
                 } else {
-                    NotificacionUtil.info(scene, "Escaneado: " + leido + " — no es el código de un bien, se busca en Bienes");
+                    NotificacionUtil.info(scene, "Escaneado: " + leido + " — no es el código ni el número anterior de un bien, se busca en Bienes");
                     buscarEnBienes(leido);
                 }
             },

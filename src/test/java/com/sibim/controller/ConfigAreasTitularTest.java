@@ -10,6 +10,9 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -60,20 +63,37 @@ class ConfigAreasTitularTest extends ApplicationTest {
             .map(n -> (TableCell<AreaCatalog.Entrada, String>) n).findFirst().orElseThrow();
     }
 
-    private TextField editar(int fila) throws Exception {
-        Node n = celda(fila);
-        clickOn(n);
+    /** A click fired at the node itself, not with the mouse: the robot clicks wherever the
+     *  pointer is, and a window on top of the screen (a full-screen one) took them. */
+    private void clic(Node n, int veces) {
+        interact(() -> {
+            javafx.geometry.Bounds b = n.getLayoutBounds();
+            javafx.geometry.Point2D escena = n.localToScene(b.getCenterX(), b.getCenterY());
+            javafx.geometry.Point2D pantalla = n.localToScreen(b.getCenterX(), b.getCenterY());
+            for (var tipo : java.util.List.of(MouseEvent.MOUSE_PRESSED, MouseEvent.MOUSE_RELEASED, MouseEvent.MOUSE_CLICKED))
+                n.fireEvent(new MouseEvent(tipo, escena.getX(), escena.getY(), pantalla.getX(), pantalla.getY(),
+                    MouseButton.PRIMARY, veces, false, false, false, false, tipo == MouseEvent.MOUSE_PRESSED,
+                    false, false, false, false, true, null));
+        });
         WaitForAsyncUtils.waitForFxEvents();
-        doubleClickOn(n);
-        // On a busy machine the robot's two clicks can land too far apart to be a double click.
-        try {
-            WaitForAsyncUtils.waitFor(2, TimeUnit.SECONDS, () -> celda(fila).isEditing());
-        } catch (java.util.concurrent.TimeoutException otraVez) {
-            doubleClickOn(celda(fila));
-            WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> celda(fila).isEditing());
-        }
+    }
+
+    /** Double click, as the mouse sends it: one click, then the second with a count of 2. */
+    private TextField editar(int fila) throws Exception {
+        clic(celda(fila), 1);
+        clic(celda(fila), 2);
+        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> celda(fila).isEditing());
         WaitForAsyncUtils.waitForFxEvents();
         return (TextField) celda(fila).getGraphic();
+    }
+
+    /** A key on the field being edited, not on whatever window has the keyboard. */
+    private void tecla(Node campo, KeyCode tecla) {
+        interact(() -> {
+            campo.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", tecla, false, false, false, false));
+            campo.fireEvent(new KeyEvent(KeyEvent.KEY_RELEASED, "", "", tecla, false, false, false, false));
+        });
+        WaitForAsyncUtils.waitForFxEvents();
     }
 
     private String area(int fila) { return tabla.getItems().get(fila).nombre(); }
@@ -90,7 +110,7 @@ class ConfigAreasTitularTest extends ApplicationTest {
         assertFalse(hayFormulario(), "doble clic en Titular no abre el formulario");
 
         interact(() -> campo.setText("  ANA RUIZ "));
-        type(KeyCode.ENTER);
+        tecla(campo, KeyCode.ENTER);
         WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> guardados == 1);
         WaitForAsyncUtils.waitForFxEvents();
         verify(config).set("titular_area:" + area(0), "ANA RUIZ");
@@ -102,7 +122,7 @@ class ConfigAreasTitularTest extends ApplicationTest {
     void clicEnOtraFila_guardaLoEscrito() throws Exception {
         TextField campo = editar(1);
         interact(() -> campo.setText("LUIS SOTO"));
-        clickOn(celda(3));
+        clic(celda(3), 1);
         WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> guardados == 1);
         verify(config).set("titular_area:" + area(1), "LUIS SOTO");
     }
@@ -116,7 +136,7 @@ class ConfigAreasTitularTest extends ApplicationTest {
         int ultima = tabla.getItems().size() - 1;
         interact(() -> tabla.scrollTo(ultima));
         WaitForAsyncUtils.waitForFxEvents();
-        clickOn(celda(ultima));
+        clic(celda(ultima), 1);
         WaitForAsyncUtils.waitForFxEvents();
         Thread.sleep(400);
         verify(config, never()).set(argThat(clave -> !editada.equals(clave)), anyString());
@@ -126,7 +146,7 @@ class ConfigAreasTitularTest extends ApplicationTest {
     void escape_noGuarda_yRegresaElGuion() throws Exception {
         TextField campo = editar(2);
         interact(() -> campo.setText("NO VA"));
-        type(KeyCode.ESCAPE);
+        tecla(campo, KeyCode.ESCAPE);
         WaitForAsyncUtils.waitForFxEvents();
         verify(config, never()).set(anyString(), anyString());
         assertEquals("—", celda(2).getText());
@@ -134,8 +154,7 @@ class ConfigAreasTitularTest extends ApplicationTest {
 
     @Test
     void sinCambios_noEscribeEnLaBase() throws Exception {
-        editar(4);
-        type(KeyCode.ENTER);
+        tecla(editar(4), KeyCode.ENTER);
         WaitForAsyncUtils.waitForFxEvents();
         Thread.sleep(300);
         verify(config, never()).set(anyString(), anyString());

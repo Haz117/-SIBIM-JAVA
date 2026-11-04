@@ -131,30 +131,16 @@ class ProductoTabInfoFields {
                     .findFirst().orElse(null);
             }
         });
+        // Type to filter, the same picker as the rest of the system. Its own filter replaced
+        // the list in the middle of the key press: Backspace after picking one wrote the name
+        // back, or threw "The start must be <= the end" (sent by a PC on 1 and 26-oct-2026).
+        DialogUtil.makeFilterable(fCat, cats, Categoria::getNombre);
         if (existing != null) {
             cats.stream()
                 .filter(c -> c.getId().equals(existing.getCategoriaId()))
                 .findFirst()
                 .ifPresent(fCat::setValue);
         }
-
-        // Autocomplete: filter dropdown as user types
-        boolean[] catSelecting = {false};
-        fCat.valueProperty().addListener((obs, old, val) -> {
-            catSelecting[0] = true;
-            if (val != null) fCat.setItems(allCats);
-            Platform.runLater(() -> catSelecting[0] = false);
-        });
-        fCat.getEditor().textProperty().addListener((obs, old, val) -> {
-            if (catSelecting[0]) return;
-            String lower = val == null ? "" : val.toLowerCase();
-            if (lower.isBlank()) { fCat.setItems(allCats); return; }
-            List<Categoria> filtered = cats.stream()
-                .filter(c -> c.getNombre().toLowerCase().contains(lower))
-                .toList();
-            fCat.setItems(FXCollections.observableArrayList(filtered));
-            if (!filtered.isEmpty() && !fCat.isShowing()) fCat.show();
-        });
 
         // ── Área ─────────────────────────────────────────────────────────────
         List<String> areaNames = new ArrayList<>(Areas.getAllAreaNames());

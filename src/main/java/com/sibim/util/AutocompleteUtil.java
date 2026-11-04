@@ -21,7 +21,9 @@ public final class AutocompleteUtil {
 
         tf.textProperty().addListener((obs, oldVal, newVal) -> {
             popup.hide();
-            if (newVal == null || newVal.isBlank()) return;
+            // Only for what is being typed: a value filled in by the program (a bien
+            // opened to edit, the motivo of the last batch) opened it out of place.
+            if (newVal == null || newVal.isBlank() || !tf.isFocused()) return;
             String q = newVal.toLowerCase();
             // Values that start with what was typed first, then the ones that
             // contain it; each group keeps the given order (most used first).

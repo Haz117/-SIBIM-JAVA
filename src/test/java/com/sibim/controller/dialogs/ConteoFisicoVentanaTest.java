@@ -184,6 +184,45 @@ class ConteoFisicoVentanaTest extends ApplicationTest {
         assertEquals(java.util.Set.of("c-1"), guardado.keySet(), "Tesorería ya salió del borrador");
     }
 
+    /** The label still stuck on the bienes carries the old number: read in "Escanear
+     *  etiqueta" it marks its bien, and an old number two bienes had marks one, then the other. */
+    @Test
+    void escanearElNumeroAnterior_marcaElBien_yLosRepetidosUnoTrasOtro() throws Exception {
+        List<Producto> bienes = bienes(6);
+        bienes.get(0).setDescripcion("Inventario anterior: PRU-TES-01. Escritorio");
+        bienes.get(2).setDescripcion("Inventario anterior: PRU-TES-01.");
+        bienes.get(4).setDescripcion("Inventario anterior: PRU- TES-02.");
+        DialogPane panel = abrir(bienes);
+        ListView<String> grupos = grupos(panel);
+        interact(() -> grupos.getSelectionModel().select("Tesorería Municipal"));
+        WaitForAsyncUtils.waitForFxEvents();
+        Button escanear = (Button) panel.lookupAll(".button").stream()
+            .filter(n -> n instanceof Button b && "Escanear etiqueta".equals(b.getText())).findFirst().orElseThrow();
+        Platform.runLater(escanear::fire);
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> Window.getWindows().stream()
+            .anyMatch(w -> w.getScene().getRoot() instanceof DialogPane d && d != panel));
+        WaitForAsyncUtils.waitForFxEvents();
+        DialogPane scan = (DialogPane) Window.getWindows().stream()
+            .filter(w -> w.getScene().getRoot() instanceof DialogPane d && d != panel)
+            .findFirst().orElseThrow().getScene().getRoot();
+        javafx.scene.control.TextField campo = (javafx.scene.control.TextField) scan.lookup(".text-field");
+        Button marcar = (Button) scan.lookupAll(".btn-primary").stream()
+            .filter(n -> n instanceof Button b && "Marcar como visto".equals(b.getText())).findFirst().orElseThrow();
+        Label resultado = (Label) scan.lookupAll(".muted-sm").stream().filter(n -> n instanceof Label).findFirst().orElseThrow();
+
+        List<String> leidos = new ArrayList<>();
+        for (String leido : List.of("pru-tes-01", "PRU-TES-01", "PRU-TES-02")) {
+            interact(() -> { campo.setText(leido); marcar.fire(); });
+            leidos.add(resultado.getText());
+        }
+        assertTrue(leidos.get(0).startsWith("✓ TES/0 (antes pru-tes-01)"), leidos.get(0));
+        assertTrue(leidos.get(1).startsWith("✓ TES/2 (antes PRU-TES-01)"), "el otro que traía el mismo: " + leidos.get(1));
+        assertTrue(leidos.get(2).startsWith("✓ TES/4"), "aunque se escribió con un espacio: " + leidos.get(2));
+        assertTrue(leidos.get(2).contains("(3 de 3)"), leidos.get(2));
+        interact(() -> { campo.setText("PRU-TES-03"); marcar.fire(); });
+        assertTrue(resultado.getText().contains("no está en este conteo"), resultado.getText());
+    }
+
     @Test
     void alMarcarFaltante_laCuentaSigue_yRegresaSiFueUnError() {
         var f = ConteoFisicoDialog.EstadoConteo.FALTANTE;

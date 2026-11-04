@@ -114,7 +114,7 @@ final class TutorialGuias {
                 "Un clic marca cada bien, ya no hace falta Ctrl; lo marcado sigue marcado aunque busques otro",
                 "Escribe el código y Enter lo marca: así juntas varios y salen en un solo resguardo",
                 "A la misma área, la siguiente vuelta ya trae el motivo y la persona",
-                "Si la persona ya tiene resguardo en esa área, se agregan a ese en lugar de hacer uno más",
+                "Si la persona ya tiene resguardo en esa área, se agregan al suyo de más bienes en lugar de hacer uno más, aunque escribas su nombre con otro título",
                 "Si escribes un nombre casi igual a uno que ya existe, te pregunta si es esa persona"),
                 "Abrir Transferir", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); }));
             p.add(probar(paso("mdi2c-call-merge", DORADO, DORADO_D, "Juntar resguardos de una persona", "resguardos", "#btnMasResguardos",
@@ -132,6 +132,11 @@ final class TutorialGuias {
                 "Sin acentos también lo encuentra",
                 "Abajo, al seleccionar uno: Ver detalle, Ver a la persona, PDF y Cancelar resguardo",
                 "En el detalle ya se leen el código y el valor de cada bien, y puedes reimprimir el PDF"));
+            p.add(paso("mdi2t-tag-text-outline", VERDE, VERDE_D, "Buscar por el número anterior", "productos", "#searchField",
+                "En Bienes y con Ctrl+K encuentras un bien por el número que trae pegado, el del inventario anterior",
+                "En el Conteo físico, escanéalo o escríbelo y queda como visto",
+                "En Transferir, el número anterior y Enter también lo marca",
+                "Con el lector, en cualquier pantalla, abre su ficha"));
             p.add(paso("mdi2p-pencil", GUINDA, GUINDA_D, "Editar sin pasar por los pasos", "productos", "#btnEditar",
                 "Al editar, «Guardar cambios» siempre está a la vista, en cualquier sección",
                 "«Guardar y abrir…» pasa al bien de abajo en la misma sección: para corregir muchos seguidos",
@@ -164,6 +169,8 @@ final class TutorialGuias {
             p.add(paso("mdi2f-file-remove-outline", DORADO, DORADO_D, "Pedir una baja es más fácil", "reportes", "#listaFormatos .report-row",
                 "En Reportes, Solicitud de Baja ya no pide escribir códigos separados por coma",
                 "Búscalo en la lista: escribe el código, Enter lo marca y sigues con el siguiente"));
+            p.add(paso("mdi2t-tag-text-outline", VERDE, VERDE_D, "Buscar por el número anterior", "productos", "#searchField",
+                "En Bienes y con Ctrl+K encuentras un bien por el número que trae pegado, el del inventario anterior"));
         }
         return new Guia("novedades", "Novedades de esta versión", "Lo que cambió, con un clic para probar cada cosa", "mdi2s-star-outline", p);
     }
@@ -312,7 +319,7 @@ final class TutorialGuias {
                 "Arriba eliges el dato: Sin precio, Sin fecha, Sin vida útil o Sin foto"),
             paso("mdi2k-keyboard-outline", GUINDA, GUINDA_D, "2. Escribe y pulsa Enter", "productos", "#btnMasBienes",
                 "Escribe el valor en la fila: Enter guarda y pasa al siguiente bien",
-                "El costo es por pieza, también en los lotes",
+                "El costo es por pieza, también en los lotes; al dar de alta un lote ves cuánto suma",
                 "La fila queda en verde si se guardó; en amarillo con el motivo si no"),
             probar(paso("mdi2c-calendar-check-outline", GUINDA, GUINDA_D, "3. La vida útil, de una vez", "productos", "#btnMasBienes",
                 "En «Sin vida útil» aparece «Revisar y aplicar»: la propone según la clave CONAC",

@@ -130,4 +130,36 @@ class ProductoUtilsTest {
         assertNull(ProductoUtils.dato(null));
         assertEquals("Dell", ProductoUtils.dato(" Dell "));
     }
+
+    private static com.sibim.model.Producto conDescripcion(String d) {
+        com.sibim.model.Producto p = new com.sibim.model.Producto();
+        p.setDescripcion(d);
+        return p;
+    }
+
+    /** The number on the old label, as the carga wrote it at the start of the descripción. */
+    @Test
+    void inventarioAnterior_seLeeDeLaDescripcion() {
+        assertEquals("PRU-ADM-012", ProductoUtils.inventarioAnterior(conDescripcion(
+            "Inventario anterior: PRU-ADM-012. Silla con brazos")));
+        assertEquals("PR-A.B-07", ProductoUtils.inventarioAnterior(conDescripcion(
+            "Inventario anterior: PR-A.B-07. Placas: XX0000X.")), "un punto dentro del número se queda");
+        assertEquals("PR- CDE-31", ProductoUtils.inventarioAnterior(conDescripcion("Inventario anterior: PR- CDE-31.")));
+        assertEquals("PRU-9", ProductoUtils.inventarioAnterior(conDescripcion("Inventario anterior: PRU-9")));
+        assertNull(ProductoUtils.inventarioAnterior(conDescripcion("Silla con brazos")));
+        assertNull(ProductoUtils.inventarioAnterior(conDescripcion(null)));
+        assertNull(ProductoUtils.inventarioAnterior(null));
+    }
+
+    @Test
+    void inventarioAnterior_seComparaSinMayusculasNiEspacios() {
+        com.sibim.model.Producto p = conDescripcion("Inventario anterior: PR- CDE-31. Mesa");
+        assertTrue(ProductoUtils.esInventarioAnterior(p, "pr-cde-31"));
+        assertTrue(ProductoUtils.esInventarioAnterior(p, " PR- CDE-31 "));
+        assertFalse(ProductoUtils.esInventarioAnterior(p, "PR-CDE-3"), "exacto, no que lo contenga");
+        assertFalse(ProductoUtils.esInventarioAnterior(p, "  "));
+        assertTrue(ProductoUtils.anteriorContiene(p, "cde-3"));
+        assertFalse(ProductoUtils.anteriorContiene(p, "mesa"), "la descripción no es el número");
+        assertFalse(ProductoUtils.anteriorContiene(conDescripcion("Mesa"), "mesa"));
+    }
 }
