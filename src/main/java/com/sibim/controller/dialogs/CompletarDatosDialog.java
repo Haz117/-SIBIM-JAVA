@@ -69,6 +69,9 @@ public final class CompletarDatosDialog {
     private final Label ayuda = new Label();
     private final HBox barraConac = new HBox(10);
     private final Label textoConac = new Label();
+    private final HBox barraTodos = new HBox(10);
+    private final Label textoTodos = new Label();
+    private final TextField aniosTodos = new TextField();
     private final VBox vacio = new VBox(8);
     private final VBox panel = new VBox(8);
     private Fila pedirFoco;
@@ -214,6 +217,27 @@ public final class CompletarDatosDialog {
         barraConac.setAlignment(Pos.CENTER_LEFT);
         barraConac.getStyleClass().add("cnt-aviso");
 
+        // What the CONAC leaves to the municipio (esposas, chalecos, cascos…) is the same
+        // for many bienes: typed once for the list as it is filtered.
+        textoTodos.getStyleClass().add("muted-sm");
+        textoTodos.setWrapText(true);
+        textoTodos.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(textoTodos, Priority.ALWAYS);
+        aniosTodos.setId("aniosTodos");
+        aniosTodos.setPromptText("Años");
+        aniosTodos.getStyleClass().add("form-input");
+        aniosTodos.setPrefWidth(70);
+        aniosTodos.setMinWidth(70);
+        Button todos = new Button("Poner a todos");
+        todos.setGraphic(new FontIcon("mdi2c-check-all"));
+        todos.getStyleClass().add("btn-secondary");
+        todos.setMinWidth(Region.USE_PREF_SIZE);
+        todos.setOnAction(e -> ponerATodos());
+        aniosTodos.setOnAction(e -> ponerATodos());
+        barraTodos.getChildren().setAll(textoTodos, aniosTodos, todos);
+        barraTodos.setAlignment(Pos.CENTER_LEFT);
+        barraTodos.getStyleClass().add("cnt-aviso");
+
         lista.getStyleClass().add("cnt-lista");
         lista.setCellFactory(lv -> new CeldaBien(lv));
         lista.setPlaceholder(new Label("A esta área no le falta este dato"));
@@ -221,7 +245,7 @@ public final class CompletarDatosDialog {
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);
 
-        panel.getChildren().setAll(tituloArea, chips, barraConac, buscar, lista, ayuda);
+        panel.getChildren().setAll(tituloArea, chips, barraConac, buscar, barraTodos, lista, ayuda);
         VBox.setVgrow(panel, Priority.ALWAYS);
 
         HBox paso2 = TransferenciaArrastreDialog.paso(2, "Captura lo que falta");
@@ -266,6 +290,64 @@ public final class CompletarDatosDialog {
             f -> Objects.requireNonNullElse(f.producto.getCodigo(), "") + " " + Objects.requireNonNullElse(f.producto.getNombre(), "")
                 + " " + Objects.requireNonNullElse(f.producto.getResguardante(), ""),
             buscar.getText()));
+        actualizarTodos();
+    }
+
+    /** The bienes of the list as it is filtered that still have no vida útil. */
+    private List<Fila> sinVidaEnLista() {
+        return visibles.stream().filter(f -> !f.guardado && !f.guardando && f.producto.getVidaUtilAnios() == null).toList();
+    }
+
+    private void actualizarTodos() {
+        List<Fila> sin = sinVidaEnLista();
+        boolean mostrar = datoElegido() == Dato.VIDA_UTIL && sin.size() > 1;
+        ver(barraTodos, mostrar);
+        if (!mostrar) return;
+        boolean sinConac = sin.stream().anyMatch(f -> VidaUtilConac.anios(f.producto.getClaveArmonizada()) == null);
+        textoTodos.setText("La misma vida útil a los " + FormatUtils.plural(sin.size(), "bien", "bienes") + " de la lista"
+            + (buscar.getText().isBlank() ? "; busca, por ejemplo, «chaleco» para tomar solo esos." : ".")
+            + (sinConac ? " El CONAC no la fija para equipo de defensa y seguridad: la decide el municipio." : ""));
+    }
+
+    private void ponerATodos() {
+        Integer anios = leerVidaUtil(aniosTodos.getText());
+        if (anios == null) {
+            NotificacionUtil.error(dialog.getDialogPane().getScene(), "Escribe los años, de 1 a 100");
+            aniosTodos.requestFocus();
+            return;
+        }
+        List<Fila> sin = sinVidaEnLista();
+        if (sin.isEmpty()) return;
+        List<Producto> bienes = sin.stream().map(f -> f.producto).toList();
+        Map<String, Long> porNombre = bienes.stream().collect(Collectors.groupingBy(
+            p -> Objects.requireNonNullElse(p.getNombre(), "Sin nombre"), Collectors.counting()));
+        String muestra = porNombre.entrySet().stream()
+            .sorted(Map.Entry.<String, Long>comparingByValue().reversed()).limit(6)
+            .map(e -> "• " + e.getKey() + (e.getValue() > 1 ? " (" + e.getValue() + ")" : ""))
+            .collect(Collectors.joining("\n")) + (porNombre.size() > 6 ? "\n…" : "");
+        long otraConac = bienes.stream().map(p -> VidaUtilConac.anios(p.getClaveArmonizada()))
+            .filter(c -> c != null && !c.equals(anios)).count();
+        String area = areas.getSelectionModel().getSelectedItem();
+        if (!ConfirmacionUtil.confirmar("Misma vida útil",
+                anios + " años a " + FormatUtils.plural(bienes.size(), "bien", "bienes") + " de " + area
+                    + (buscar.getText().isBlank() ? "" : " que coinciden con «" + buscar.getText().trim() + "»") + ":\n\n" + muestra
+                    + "\n\nCambia la depreciación y el valor en libros de esos bienes."
+                    + (otraConac > 0 ? "\n" + (otraConac == 1 ? "1 tiene" : otraConac + " tienen")
+                        + " otra según el CONAC: «Revisar y aplicar» les pone esa." : "")
+                    + "\n\n¿Aplicar?")) return;
+        DialogUtil.runAsyncWithProgress(dialog.getDialogPane().getScene(), "Aplicando vida útil…",
+            () -> calidad.asignarVidaUtil(anios, bienes),
+            n -> {
+                for (Fila f : sin) { f.producto.setVidaUtilAnios(anios); f.guardado = true; }
+                cambio = true;
+                aniosTodos.clear();
+                NotificacionUtil.exito(dialog.getDialogPane().getScene(), FormatUtils.plural(n, "bien actualizado", "bienes actualizados"));
+                cargarAreas();
+                refiltrar();
+                actualizarConteos();
+                lista.refresh();
+            },
+            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + e.getMessage()));
     }
 
     private void actualizarConteos() {
@@ -281,6 +363,7 @@ public final class CompletarDatosDialog {
         ver(barraConac, mostrar);
         if (mostrar) textoConac.setText("Según su clave CONAC, se puede proponer la vida útil de "
             + FormatUtils.plural(n, "bien", "bienes") + " de lo elegido.");
+        actualizarTodos();
     }
 
     private void aplicarConac() {
@@ -295,7 +378,7 @@ public final class CompletarDatosDialog {
         if (!ConfirmacionUtil.confirmar("Vida útil según CONAC",
                 "Se asigna a los bienes que no tienen:\n\n" + detalle
                     + "\n\nCambia la depreciación y el valor en libros de esos bienes."
-                    + (quedan > 0 ? "\nQuedan " + FormatUtils.plural(quedan, "bien", "bienes") + " sin valor en CONAC (por ejemplo, equipo de defensa): esos se capturan a mano." : "")
+                    + (quedan > 0 ? "\nQuedan " + FormatUtils.plural(quedan, "bien", "bienes") + " sin valor en CONAC (por ejemplo, equipo de defensa): los decide el municipio; varios iguales se capturan juntos con «Poner a todos»." : "")
                     + "\n\n¿Aplicar?")) return;
         DialogUtil.runAsyncWithProgress(dialog.getDialogPane().getScene(), "Aplicando vida útil…",
             () -> calidad.aplicarVidaUtil(propuesta),

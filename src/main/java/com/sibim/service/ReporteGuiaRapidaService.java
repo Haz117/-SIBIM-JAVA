@@ -81,7 +81,7 @@ public class ReporteGuiaRapidaService extends ReporteService {
             "\"Incidencia\" en cada bien: Mal estado, En otra área, Faltante, cambiar la cantidad o agregar una nota.",
             "Si cierras la ventana el avance se guarda solo. \"Finalizar conteo\" guarda lo elegido y aplica los ajustes; lo no marcado queda \"sin revisar\"."},
         {"Corregir los datos (Bienes > Más)",
-            "Completar datos: elige área y dato (Sin precio, Sin fecha, Sin vida útil, Sin foto); escribe el valor y Enter guarda y pasa al siguiente. En Sin vida útil, \"Revisar y aplicar\" la propone según CONAC.",
+            "Completar datos: elige área y dato (Sin precio, Sin fecha, Sin vida útil, Sin foto); escribe el valor y Enter guarda y pasa al siguiente. En Sin vida útil, \"Revisar y aplicar\" la propone según CONAC; a varios iguales (equipo de defensa) se les pone con \"Poner a todos\", después de buscarlos.",
             "Unir personas repetidas (mismo nombre en otro orden, con título o con una letra distinta; si cambia una letra, revisa que no sean dos personas): si son la misma, marca cómo queda su nombre (o escríbelo); cambia en bienes y resguardos vigentes; «Deshacer» lo regresa mientras la ventana siga abierta. \"Son personas distintas\" no vuelve a preguntar. Hazlo antes de los resguardos en lote.",
             "Series repetidas: corrige la serie y Enter, o \"Sin serie\". Si no es una serie de verdad, \"Dejar los N sin serie\" la quita a todos de una vez. Si está en varias áreas, revísalo en físico.",
             "Etiquetas por área: marca los bienes, \"Imprimir etiquetas\" y, ya pegadas, \"Ya están pegadas\"."},

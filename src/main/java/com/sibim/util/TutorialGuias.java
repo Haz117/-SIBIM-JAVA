@@ -324,7 +324,7 @@ final class TutorialGuias {
             probar(paso("mdi2c-calendar-check-outline", GUINDA, GUINDA_D, "3. La vida útil, de una vez", "productos", "#btnMasBienes",
                 "En «Sin vida útil» aparece «Revisar y aplicar»: la propone según la clave CONAC",
                 "Te muestra cuántos bienes por años antes de aplicar; cambia la depreciación",
-                "Conviene hacerlo por área la primera vez; equipo de defensa se captura a mano"),
+                "Equipo de defensa no tiene valor en el CONAC: busca «chaleco» y «Poner a todos» les pone los mismos años"),
                 "Abrir Completar datos", abrir("productos", "completar"))));
     }
 

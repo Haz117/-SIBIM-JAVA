@@ -143,6 +143,62 @@ class RevisarDatosVentanasTest extends ApplicationTest {
         assertTrue(panel.lookupAll(".cell-badge-danger").stream().anyMatch(Node::isVisible), "dice que no se guardó");
     }
 
+    /** Equipo de defensa: the CONAC leaves its vida útil to the municipio, and it is the
+     *  same for many bienes; typed once for the list as it is filtered. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void completar_mismaVidaUtil_aLosDeLaListaFiltrada() throws Exception {
+        Producto a = bien("1", "SSP/1", "Ana", "Tesorería Municipal");
+        Producto b = bien("2", "SSP/2", "Ana", "Tesorería Municipal");
+        Producto casco = bien("3", "SSP/3", "Ana", "Tesorería Municipal");
+        a.setNombre("CHALECO BALISTICO"); b.setNombre("CHALECO BALISTICO"); casco.setNombre("CASCO TACTICO");
+        for (Producto p : List.of(a, b, casco)) p.setClaveArmonizada("1.2.4.5.1.551");
+        Platform.runLater(() -> CompletarDatosDialog.show(List.of(a, b, casco), com.sibim.service.CalidadDatosService.Dato.VIDA_UTIL, null));
+        DialogPane panel = abierto();
+        ListView<String> areas = (ListView<String>) panel.lookup(".trf-areas");
+        interact(() -> areas.getSelectionModel().select("Tesorería Municipal"));
+        WaitForAsyncUtils.waitForFxEvents();
+
+        TextField anios = (TextField) panel.lookup("#aniosTodos");
+        javafx.scene.layout.HBox barra = (javafx.scene.layout.HBox) anios.getParent();
+        Label texto = (Label) barra.getChildren().get(0);
+        assertTrue(barra.isVisible());
+        assertTrue(texto.getText().contains("3 bienes") && texto.getText().contains("la decide el municipio"), texto.getText());
+
+        TextField buscar = (TextField) panel.lookup("#buscarBien");
+        interact(() -> buscar.setText("chaleco"));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertTrue(texto.getText().contains("2 bienes"), texto.getText());
+
+        interact(() -> anios.setText("cinco"));
+        interact(() -> anios.fireEvent(new javafx.event.ActionEvent()));
+        assertTrue(Window.getWindows().stream().noneMatch(w -> w.getScene().getRoot() instanceof DialogPane d && d != panel),
+            "sin un número de años no pregunta nada");
+
+        interact(() -> anios.setText("5"));
+        Platform.runLater(() -> anios.fireEvent(new javafx.event.ActionEvent()));
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> Window.getWindows().stream()
+            .anyMatch(w -> w.getScene().getRoot() instanceof DialogPane d && d != panel));
+        WaitForAsyncUtils.waitForFxEvents();
+        DialogPane confirmar = (DialogPane) Window.getWindows().stream()
+            .filter(w -> w.getScene().getRoot() instanceof DialogPane d && d != panel)
+            .findFirst().orElseThrow().getScene().getRoot();
+        String pregunta = confirmar.lookupAll(".label").stream().filter(n -> n instanceof Label)
+            .map(n -> ((Label) n).getText()).filter(java.util.Objects::nonNull).reduce("", String::concat);
+        assertTrue(pregunta.contains("5 años a 2 bienes") && pregunta.contains("CHALECO BALISTICO (2)"), pregunta);
+        ButtonType si = confirmar.getButtonTypes().stream()
+            .filter(t -> t.getButtonData().isDefaultButton()).findFirst().orElseThrow();
+        Platform.runLater(() -> ((Button) confirmar.lookupButton(si)).fire());
+
+        WaitForAsyncUtils.waitFor(10, TimeUnit.SECONDS, () -> a.getVidaUtilAnios() != null && b.getVidaUtilAnios() != null);
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(5, a.getVidaUtilAnios());
+        assertEquals(5, b.getVidaUtilAnios());
+        assertNull(casco.getVidaUtilAnios(), "el que no estaba en la lista no se toca");
+        assertFalse(barra.isVisible(), "en la lista ya no queda a quién ponérsela");
+        assertEquals(2, panel.lookupAll(".cell-badge-success").stream().filter(Node::isVisible).count(), "y siguen ahí, marcados");
+    }
+
     // ── Unir personas ─────────────────────────────────────────────────────────
 
     @Test

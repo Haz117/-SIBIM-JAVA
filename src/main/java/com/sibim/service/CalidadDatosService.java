@@ -273,6 +273,26 @@ public class CalidadDatosService {
         return total;
     }
 
+    /** One vida útil for several bienes at once: what the CONAC leaves to the municipio
+     *  (equipo de defensa y seguridad: 357 bienes on 4-nov-2026, esposas, chalecos,
+     *  cascos…) would otherwise be typed bien by bien. A bien that has one keeps it.
+     *  @return how many took it */
+    public int asignarVidaUtil(int anios, List<Producto> bienes) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        List<Producto> sin = bienes.stream().filter(p -> p.getVidaUtilAnios() == null).toList();
+        if (sin.isEmpty()) return 0;
+        int n = repo.asignarVidaUtil(anios, sin.stream().map(Producto::getId).toList());
+        if (n > 0) {
+            String codigos = sin.stream().limit(60).map(p -> Objects.requireNonNullElse(p.getCodigo(), p.getId()))
+                .collect(Collectors.joining(", ")) + (sin.size() > 60 ? " y " + (sin.size() - 60) + " más" : "");
+            audit.log("producto", sin.get(0).getId(), "Vida útil a varios bienes", "actualizar",
+                "Vida útil de " + anios + " años, capturada a la vez para " + n + " bienes: " + codigos);
+        }
+        ProductosEnMemoria.invalidar();
+        return n;
+    }
+
     // ── Series repetidas ──────────────────────────────────────────────────────
 
     /** What gets typed when a bien has no serie: it isn't one. */

@@ -259,6 +259,29 @@ class CalidadDatosServiceTest {
         verify(audit, times(3)).log(eq("producto"), anyString(), anyString(), eq("actualizar"), contains("según la clave CONAC"));
     }
 
+    @Test
+    void vidaUtil_aVariosALaVez_soloALosQueNoTienen_yQuedaQuienesFueron() throws Exception {
+        entrarComo(Rol.ADMIN);
+        Producto esposas = bien("1", "SSP/1", null); esposas.setClaveArmonizada("1.2.4.5.1.551");
+        Producto chaleco = bien("2", "SSP/2", null); chaleco.setClaveArmonizada("1.2.4.5.1.551");
+        Producto yaTiene = bien("3", "SSP/3", null); yaTiene.setVidaUtilAnios(8);
+        when(repo.asignarVidaUtil(anyInt(), anyList())).thenReturn(2);
+
+        assertEquals(2, service.asignarVidaUtil(5, List.of(esposas, chaleco, yaTiene)));
+        verify(repo).asignarVidaUtil(5, List.of("1", "2"));
+        verify(audit).log(eq("producto"), eq("1"), anyString(), eq("actualizar"), contains("5 años, capturada a la vez para 2 bienes: SSP/1, SSP/2"));
+
+        assertEquals(0, service.asignarVidaUtil(5, List.of(yaTiene)), "nadie sin vida útil, nada que hacer");
+        verify(repo, times(1)).asignarVidaUtil(anyInt(), anyList());
+    }
+
+    @Test
+    void vidaUtil_aVariosALaVez_soloPatrimonio() {
+        entrarComo(Rol.DIRECCION);
+        Producto p = bien("1", "SSP/1", null);
+        assertThrows(SecurityException.class, () -> service.asignarVidaUtil(5, List.of(p)));
+    }
+
     // ── Series ────────────────────────────────────────────────────────────────
 
     @Test
