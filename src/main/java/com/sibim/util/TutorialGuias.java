@@ -121,6 +121,24 @@ final class TutorialGuias {
             p.add(paso("mdi2p-paw-outline", VERDE, VERDE_D, "Activos Biológicos", "categorias", null,
                 "Categoría nueva para animales y plantas del municipio (cuenta CONAC 1.2.4.8)",
                 "En la clave armonizada de cada bien puedes poner su subcuenta: perros 1.2.4.8.7, caballos 1.2.4.8.6…"));
+            p.add(paso("mdi2d-draw", DORADO, DORADO_D, "Firmas: el nombre y abajo el cargo", "configuracion", "#tfFirmaElabora",
+                "En todos los formatos que se firman va el nombre de la persona y debajo su cargo",
+                "En Configuración del Sistema escribe quién firma: Elaboró, Vo. Bo., Síndico, Jefe de Inventarios, Tesorero, Contador y Presidente",
+                "Si un nombre queda vacío, el formato dice «Nombre y firma» para escribirlo a mano"));
+            p.add(paso("mdi2s-scale-balance", VERDE, VERDE_D, "Reportes para Tesorería y Transparencia", "reportes", "#listaFormatos .report-row",
+                "«Saldos por cuenta contable (CONAC)»: costo, depreciación y valor en libros por cuenta, para cuadrar con Tesorería",
+                "«Relación de Bienes Muebles (para publicar)»: el formato CONAC con código, descripción y valor en libros, sin datos personales",
+                "Los dos salen en PDF y en Excel"));
+            p.add(probar(paso("mdi2c-calculator-variant-outline", GUINDA, GUINDA_D, "Costo de los lotes", "productos", "#btnMasBienes",
+                "Bienes › Más › Costo de los lotes: los bienes de varias piezas, de mayor a menor total",
+                "Si el costo capturado es el total de la factura, «Es el total del lote» lo divide entre las piezas",
+                "Si te equivocas, «Deshacer» en el mismo renglón lo regresa"),
+                "Abrir Costo de los lotes", abrir("productos", "lotes")));
+            p.add(probar(paso("mdi2a-account-edit-outline", DORADO, DORADO_D, "Corregir el nombre de una persona", "reportes", "#listaListados .report-row",
+                "Busca a la persona en «Resguardos por resguardante» y pulsa «Corregir nombre»",
+                "Se corrige de una vez en sus bienes, sus resguardos vigentes y donde sea titular de área",
+                "Al terminar, «Deshacer» lo regresa"),
+                "Abrir el reporte", abrir("reportes", "resguardante")));
             p.add(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "«Por hacer» en Inicio", "dashboard", "#porHacerSection",
                 "Lo que le falta al inventario, con su número real",
                 "Un clic te lleva a la pantalla que lo resuelve; lo que ya quedó deja de aparecer"));

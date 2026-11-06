@@ -172,6 +172,17 @@ public class ReportesController {
                         completo(this::exportarParqueVehicular)),
                     new ReporteFila.Formato("Resguardo por vehículo", "mdi2c-car-outline", "report-export-icon-pdf",
                         completo(this::exportarResguardosVehiculares)))));
+            com.sibim.service.ReporteCuentasConacService conac = new com.sibim.service.ReporteCuentasConacService();
+            oficiales.add(ReporteFila.crear("mdi2s-scale-balance", "teal", "Saldos por cuenta contable (CONAC)",
+                "Costo, depreciación acumulada y valor en libros de los bienes muebles por cuenta del Plan de Cuentas (1.2.4…), para conciliar con la contabilidad de Tesorería. En Excel trae también los bienes de cada cuenta.",
+                null, "Exportar", pdfYExcel(
+                    completo(() -> conac.exportSaldosPdf(productoService.getAll())),
+                    completo(() -> conac.exportSaldosExcel(productoService.getAll())))));
+            oficiales.add(ReporteFila.crear("mdi2w-web", "green", "Relación de Bienes Muebles (para publicar)",
+                "El formato CONAC con código, descripción y valor en libros de cada bien activo, sin datos personales: para publicar el inventario en Transparencia y actualizarlo cada seis meses.",
+                null, "Exportar", pdfYExcel(
+                    completo(() -> conac.exportRelacionBienesMueblesPdf(productoService.getAll())),
+                    completo(() -> conac.exportRelacionBienesMueblesExcel(productoService.getAll())))));
             oficiales.add(ReporteFila.crear("mdi2s-shield-lock-outline", "purple", "Auditoría Consolidada",
                 "Resguardos activos por área, préstamos abiertos (vencidos primero) y resumen de operaciones. Para auditorías y cambios de administración.",
                 null, null, List.of(pdf(completo(reporteService::exportAuditoriaPdf)))));
@@ -344,6 +355,13 @@ public class ReportesController {
     private static List<ReporteFila.Formato> formatos(Runnable enPdf, Runnable enExcel, Runnable enCsv) {
         return com.sibim.session.Permisos.exportaHojasDeCalculo()
             ? List.of(pdf(enPdf), excel(enExcel), csv(enCsv))
+            : List.of(pdf(enPdf));
+    }
+
+    /** PDF, and Excel for whoever exports spreadsheets. */
+    private static List<ReporteFila.Formato> pdfYExcel(Runnable enPdf, Runnable enExcel) {
+        return com.sibim.session.Permisos.exportaHojasDeCalculo()
+            ? List.of(pdf(enPdf), excel(enExcel))
             : List.of(pdf(enPdf));
     }
 

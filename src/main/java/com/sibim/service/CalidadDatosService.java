@@ -182,6 +182,17 @@ public class CalidadDatosService {
     public Union unirPersonas(String nombre, List<Resguardante> variantes, List<Producto> inventario) throws SQLException {
         soloPatrimonio();
         conConexion();
+        Union u = aplicarNombre(nombre, variantes, inventario);
+        String otros = variantes.stream().map(Resguardante::nombre).filter(n -> !n.equals(nombre))
+            .collect(Collectors.joining(", "));
+        audit.log("persona", ResguardoService.clavePersona(nombre), nombre, "actualizar",
+            "Se unió «" + otros + "» en «" + nombre + "»: " + u.cuantosBienes() + " bienes y "
+                + u.resguardos().values().stream().mapToInt(List::size).sum() + " resguardos vigentes cambiaron de nombre");
+        return u;
+    }
+
+    /** {@code nombre} on the active bienes and resguardos in force of these spellings. */
+    private Union aplicarNombre(String nombre, List<Resguardante> variantes, List<Producto> inventario) throws SQLException {
         Set<String> claves = variantes.stream().map(v -> ResguardoService.clavePersona(v.nombre())).collect(Collectors.toSet());
         Map<String, List<String>> bienesAntes = inventario.stream()
             .filter(p -> p.getResguardante() != null && !p.getResguardante().isBlank())
@@ -198,11 +209,6 @@ public class CalidadDatosService {
         repo.unirPersona(nombre, bienes, resguardos);
         ProductosEnMemoria.invalidar();
         bienes.forEach(FichaPublica::actualizarLuego);   // the ficha of the QR names the resguardante
-        String otros = variantes.stream().map(Resguardante::nombre).filter(n -> !n.equals(nombre))
-            .collect(Collectors.joining(", "));
-        audit.log("persona", ResguardoService.clavePersona(nombre), nombre, "actualizar",
-            "Se unió «" + otros + "» en «" + nombre + "»: " + bienes.size() + " bienes y "
-                + resguardos.size() + " resguardos vigentes cambiaron de nombre");
         return new Union(nombre, bienesAntes, resguardosAntes);
     }
 
@@ -210,6 +216,13 @@ public class CalidadDatosService {
     public void deshacer(Union u) throws SQLException {
         soloPatrimonio();
         conConexion();
+        Set<String> nombres = regresarNombres(u);
+        audit.log("persona", ResguardoService.clavePersona(u.nombre()), u.nombre(), "actualizar",
+            "Se deshizo la unión: regresan los nombres «" + String.join(", ", nombres) + "»");
+    }
+
+    /** The name each bien and resguardo had before; returns those names. */
+    private Set<String> regresarNombres(Union u) throws SQLException {
         Set<String> nombres = new LinkedHashSet<>(u.bienes().keySet());
         nombres.addAll(u.resguardos().keySet());
         for (String antes : nombres) {
@@ -218,8 +231,70 @@ public class CalidadDatosService {
             bienes.forEach(FichaPublica::actualizarLuego);
         }
         ProductosEnMemoria.invalidar();
-        audit.log("persona", ResguardoService.clavePersona(u.nombre()), u.nombre(), "actualizar",
-            "Se deshizo la unión: regresan los nombres «" + String.join(", ", nombres) + "»");
+        return nombres;
+    }
+
+    // ── Costo de los lotes (6-nov-2026) ───────────────────────────────────────
+
+    /** The active bienes of several pieces with a cost, largest total first: where a
+     *  factura's total captured as the cost of one piece weighs the most. */
+    public static List<Producto> lotesPorRevisar(List<Producto> bienes) {
+        return bienes.stream()
+            .filter(p -> p.getFechaBaja() == null && p.getStockActual() > 1)
+            .filter(p -> p.getPrecioCompra() != null && p.getPrecioCompra().signum() > 0)
+            .sorted(Comparator.comparing(Producto::getValorTotal).reversed())
+            .toList();
+    }
+
+    /** The cost of one piece when {@code totalDelLote} is what the whole lote cost, to
+     *  the cent; null when there is nothing to divide. */
+    public static java.math.BigDecimal costoPorPieza(java.math.BigDecimal totalDelLote, int piezas) {
+        if (totalDelLote == null || totalDelLote.signum() <= 0 || piezas < 2) return null;
+        return totalDelLote.divide(java.math.BigDecimal.valueOf(piezas), 2, java.math.RoundingMode.HALF_UP);
+    }
+
+    // ── Corregir el nombre de una persona (6-nov-2026) ────────────────────────
+
+    /** A name fixed everywhere, and what it was in each place, to put it back. */
+    public record Correccion(Union union, Map<String, String> titularesAntes) {
+        public int cuantosResguardos() { return union.resguardos().values().stream().mapToInt(List::size).sum(); }
+    }
+
+    /** Leaves {@code nuevo} wherever this person's name is written — active bienes,
+     *  resguardos in force, titular of an área — for a typo such as "GÓNZALEZ" in all
+     *  of them at once instead of bien by bien. A cancelled resguardo and a bien de baja
+     *  stay as they were signed.
+     *  @param inventario the active bienes, to find those of a resguardo in force too */
+    public Correccion corregirNombre(Resguardante persona, String nuevo, List<Producto> inventario) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        String nombre = nuevo == null ? "" : nuevo.trim().replaceAll("\\s+", " ");
+        if (nombre.isEmpty()) throw new IllegalArgumentException("Escribe el nombre como debe quedar");
+        if (nombre.equals(persona.nombre())) throw new IllegalArgumentException("El nombre no cambió");
+        Union u = aplicarNombre(nombre, List.of(persona), inventario);
+        String clave = ResguardoService.clavePersona(persona.nombre());
+        Map<String, String> titularesAntes = new LinkedHashMap<>();
+        titularesDe(config.findAll()).forEach((area, t) -> {
+            if (ResguardoService.clavePersona(t).equals(clave) && !t.equals(nombre)) titularesAntes.put(area, t);
+        });
+        for (String area : titularesAntes.keySet()) config.set(TitularesArea.PREFIJO + area, nombre);
+        audit.log("persona", ResguardoService.clavePersona(nombre), nombre, "actualizar",
+            "Nombre corregido: «" + persona.nombre() + "» queda como «" + nombre + "» en "
+                + com.sibim.util.FormatUtils.plural(u.cuantosBienes(), "bien", "bienes") + ", "
+                + com.sibim.util.FormatUtils.plural(u.resguardos().values().stream().mapToInt(List::size).sum(),
+                    "resguardo vigente", "resguardos vigentes")
+                + (titularesAntes.isEmpty() ? "" : " y como titular de " + String.join(", ", titularesAntes.keySet())));
+        return new Correccion(u, titularesAntes);
+    }
+
+    /** Puts back what {@link #corregirNombre} changed. */
+    public void deshacerCorreccion(Correccion c) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        regresarNombres(c.union());
+        for (var t : c.titularesAntes().entrySet()) config.set(TitularesArea.PREFIJO + t.getKey(), t.getValue());
+        audit.log("persona", ResguardoService.clavePersona(c.union().nombre()), c.union().nombre(), "actualizar",
+            "Se deshizo la corrección del nombre «" + c.union().nombre() + "»");
     }
 
     private static final String DISTINTAS = "personas_distintas:";

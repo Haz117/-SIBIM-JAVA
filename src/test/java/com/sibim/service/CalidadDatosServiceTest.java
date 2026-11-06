@@ -189,6 +189,61 @@ class CalidadDatosServiceTest {
         verify(audit).log(eq("persona"), anyString(), eq("ANA RUIZ"), eq("actualizar"), contains("deshizo"));
     }
 
+    /** A typo in a person's name ("GÓNZALEZ") fixed in all of it at once: active bienes,
+     *  resguardos in force and the áreas where they are titular; Deshacer puts it all back. */
+    @Test
+    void corregirNombre_cambiaBienesResguardosYTitular_yDeshacerLoRegresa() throws Exception {
+        List<Producto> inventario = List.of(bien("a", "A/1", "PEDRO GÓNZALEZ RUIZ"), bien("b", "A/2", "PEDRO GÓNZALEZ RUIZ"),
+            bien("c", "A/3", "OTRA PERSONA"));
+        List<Resguardo> resguardos = List.of(
+            resguardo("vig", "PEDRO GÓNZALEZ RUIZ", Resguardo.ESTADO_ACTIVO, "a"),
+            resguardo("can", "PEDRO GÓNZALEZ RUIZ", Resguardo.ESTADO_CANCELADO, "viejo"));
+        when(config.findAll()).thenReturn(Map.of(TitularesArea.PREFIJO + "Tesorería Municipal", "PEDRO GÓNZALEZ RUIZ",
+            TitularesArea.PREFIJO + "Catastro", "OTRA PERSONA"));
+        Resguardante persona = ResguardoService.porResguardante(resguardos, inventario).stream()
+            .filter(p -> p.nombre().startsWith("PEDRO")).findFirst().orElseThrow();
+
+        var c = service.corregirNombre(persona, "  PEDRO  GONZÁLEZ RUIZ ", inventario);
+
+        verify(repo).unirPersona("PEDRO GONZÁLEZ RUIZ", List.of("a", "b"), List.of("vig"));
+        verify(config).set(TitularesArea.PREFIJO + "Tesorería Municipal", "PEDRO GONZÁLEZ RUIZ");
+        verify(config, never()).set(eq(TitularesArea.PREFIJO + "Catastro"), anyString());
+        verify(audit).log(eq("persona"), anyString(), eq("PEDRO GONZÁLEZ RUIZ"), eq("actualizar"), contains("Nombre corregido"));
+        assertEquals(2, c.union().cuantosBienes());
+        assertEquals(1, c.cuantosResguardos());
+
+        service.deshacerCorreccion(c);
+        verify(repo).unirPersona("PEDRO GÓNZALEZ RUIZ", List.of("a", "b"), List.of("vig"));
+        verify(config).set(TitularesArea.PREFIJO + "Tesorería Municipal", "PEDRO GÓNZALEZ RUIZ");
+    }
+
+    @Test
+    void corregirNombre_vacioOIgual_seRechaza_ySoloPatrimonio() {
+        Resguardante persona = new Resguardante("ANA RUIZ", List.of(), List.of(bien("a", "A/1", "ANA RUIZ")));
+        assertThrows(IllegalArgumentException.class, () -> service.corregirNombre(persona, "  ", List.of()));
+        assertThrows(IllegalArgumentException.class, () -> service.corregirNombre(persona, "ANA RUIZ", List.of()));
+        entrarComo(Rol.DIRECCION);
+        assertThrows(SecurityException.class, () -> service.corregirNombre(persona, "ANA RUÍZ", List.of()));
+    }
+
+    /** The lotes with the largest total first, where a factura's total captured as the cost of
+     *  one piece weighs the most; one piece or no cost has nothing to divide. */
+    @Test
+    void lotes_deMayorAMenorTotal_yElCostoPorPiezaAlCentavo() {
+        Producto grande = bien("1", "RCE/41", "X"); grande.setStockActual(18); grande.setPrecioCompra(new BigDecimal("24924.25"));
+        Producto chico = bien("2", "RCE/50", "X"); chico.setStockActual(3); chico.setPrecioCompra(new BigDecimal("100"));
+        Producto unaPieza = bien("3", "RCE/51", "X"); unaPieza.setPrecioCompra(new BigDecimal("90000"));
+        Producto sinCosto = bien("4", "RCE/52", "X"); sinCosto.setStockActual(5);
+        Producto deBaja = bien("5", "RCE/53", "X"); deBaja.setStockActual(5); deBaja.setPrecioCompra(new BigDecimal("1"));
+        deBaja.setFechaBaja(LocalDate.now());
+
+        assertEquals(List.of("RCE/41", "RCE/50"), CalidadDatosService.lotesPorRevisar(List.of(chico, unaPieza, sinCosto, deBaja, grande))
+            .stream().map(Producto::getCodigo).toList());
+        assertEquals(new BigDecimal("1384.68"), CalidadDatosService.costoPorPieza(new BigDecimal("24924.25"), 18));
+        assertNull(CalidadDatosService.costoPorPieza(new BigDecimal("100"), 1));
+        assertNull(CalidadDatosService.costoPorPieza(null, 4));
+    }
+
     /** What is done doesn't appear; what isn't says how many and where it is fixed. */
     @Test
     void porHacer_cuentaLoQueFalta_yLoHechoNoAparece() {

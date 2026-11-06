@@ -53,6 +53,9 @@
                 <MenuItem fx:id="btnQuitarTitulos" text="Quitar títulos de los nombres (Lic., Ing.…)" onAction="#onQuitarTitulos">
                     <graphic><FontIcon iconLiteral="mdi2c-card-account-details-outline"/></graphic>
                 </MenuItem>
+                <MenuItem fx:id="btnCostoLotes" text="Costo de los lotes (piezas × costo)" onAction="#onCostoLotes">
+                    <graphic><FontIcon iconLiteral="mdi2c-calculator-variant-outline"/></graphic>
+                </MenuItem>
                 <MenuItem fx:id="btnSeriesRepetidas" text="Series repetidas" onAction="#onSeriesRepetidas">
                     <graphic><FontIcon iconLiteral="mdi2b-barcode-scan"/></graphic>
                 </MenuItem>

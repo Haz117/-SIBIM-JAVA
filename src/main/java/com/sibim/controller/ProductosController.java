@@ -247,7 +247,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnSeriesRepetidas, btnEtiquetasArea, sepRevisarDatos})
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnCostoLotes, btnSeriesRepetidas, btnEtiquetasArea, sepRevisarDatos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
@@ -399,6 +399,7 @@ public class ProductosController {
             case "completar" -> Platform.runLater(this::onCompletarDatos);
             case "unir"      -> Platform.runLater(this::onUnirPersonas);
             case "titulos"   -> Platform.runLater(this::onQuitarTitulos);
+            case "lotes"     -> Platform.runLater(this::onCostoLotes);
             case "observados" -> Platform.runLater(() -> com.sibim.controller.dialogs.RevisarBienesDialog.show(null,
                 com.sibim.controller.dialogs.RevisarBienesDialog.Vista.OBSERVADOS, this::alCorregirDatos));
             case "series"    -> Platform.runLater(this::onSeriesRepetidas);
@@ -567,6 +568,7 @@ public class ProductosController {
     @FXML private MenuItem btnUnirPersonas;
     @FXML private MenuItem btnQuitarTitulos;
     @FXML private MenuItem btnSeriesRepetidas;
+    @FXML private MenuItem btnCostoLotes;
     @FXML private MenuItem btnEtiquetasArea;
     @FXML private SeparatorMenuItem sepRevisarDatos;
 
@@ -603,6 +605,11 @@ public class ProductosController {
                 com.sibim.service.TitularesArea.todos(new com.sibim.repository.ConfiguracionRepository())),
             nombres -> com.sibim.controller.dialogs.QuitarTitulosDialog.show(nombres, this::alCorregirDatos),
             e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar los datos"));
+    }
+
+    @FXML
+    private void onCostoLotes() {
+        conInventario(bienes -> com.sibim.controller.dialogs.CostoLotesDialog.show(bienes, this::alCorregirDatos));
     }
 
     @FXML

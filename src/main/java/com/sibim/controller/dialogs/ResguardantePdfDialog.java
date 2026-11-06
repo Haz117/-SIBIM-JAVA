@@ -56,6 +56,9 @@ public final class ResguardantePdfDialog {
     private Button generar;
     private java.util.function.Consumer<Resguardante> alRegistrar;
     private java.util.function.Consumer<Resguardante> alVerBienes;
+    /** "Corregir nombre": Patrimonio only, null for everyone else (6-nov-2026). */
+    private java.util.function.Consumer<Resguardante> alCorregir;
+    private Resguardante aCorregir;
     private String inicial;
     /** Who "Ver sus bienes" was pressed for: it runs once this window closes. */
     private Resguardante aVerBienes;
@@ -84,6 +87,19 @@ public final class ResguardantePdfDialog {
         ResguardantePdfDialog d = new ResguardantePdfDialog(personas);
         d.alRegistrar = alRegistrar;
         d.alVerBienes = alVerBienes;
+        d.inicial = inicial;
+        d.abrir(alGenerar);
+    }
+
+    /** The same, with "Corregir nombre" for whoever may fix a person's name everywhere. */
+    public static void show(List<Resguardante> personas, String inicial, AlGenerar alGenerar,
+                            java.util.function.Consumer<Resguardante> alRegistrar,
+                            java.util.function.Consumer<Resguardante> alVerBienes,
+                            java.util.function.Consumer<Resguardante> alCorregir) {
+        ResguardantePdfDialog d = new ResguardantePdfDialog(personas);
+        d.alRegistrar = alRegistrar;
+        d.alVerBienes = alVerBienes;
+        d.alCorregir = alCorregir;
         d.inicial = inicial;
         d.abrir(alGenerar);
     }
@@ -133,6 +149,7 @@ public final class ResguardantePdfDialog {
                 sinResguardo != null && sinResguardo.isSelected()));
         if (aRegistrar != null) alRegistrar.accept(aRegistrar);
         if (aVerBienes != null) alVerBienes.accept(aVerBienes);
+        if (aCorregir != null) alCorregir.accept(aCorregir);
     }
 
     // ── Paso 1: la persona ─────────────────────────────────────────────────────
@@ -243,6 +260,18 @@ public final class ResguardantePdfDialog {
                     dialog.close();
                 });
                 persona.getChildren().add(verBienes);
+            }
+            if (alCorregir != null) {
+                Hyperlink corregir = new Hyperlink("Corregir nombre");
+                corregir.setPadding(Insets.EMPTY);
+                corregir.setTooltip(new Tooltip("Corrige cómo está escrito el nombre en todos sus bienes, "
+                    + "resguardos vigentes y donde sea titular de área, de una vez"));
+                corregir.setOnAction(e -> {
+                    aCorregir = p;
+                    dialog.setResult(ButtonType.CANCEL);
+                    dialog.close();
+                });
+                persona.getChildren().add(corregir);
             }
 
             // What is in force first: it is what gets signed. Newest first within each.

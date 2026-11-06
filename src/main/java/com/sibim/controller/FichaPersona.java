@@ -51,7 +51,44 @@ public final class FichaPersona {
                     if (ConfirmacionUtil.confirmar("Exportar PDF", "¿Deseas abrir el PDF del resguardo ahora?"))
                         generarUno(resguardo, scene);
                 }),
-            persona -> verSusBienes(persona.nombre()));
+            persona -> verSusBienes(persona.nombre()),
+            !com.sibim.session.SessionManager.isAdmin() ? null : persona -> corregirNombre(persona, bienes, scene));
+    }
+
+    /** Patrimonio fixes how the name is written ("GÓNZALEZ"), everywhere at once, and
+     *  the ficha opens again on the new name; Deshacer puts it back. */
+    private static void corregirNombre(ResguardoService.Resguardante persona, List<Producto> bienes, Scene scene) {
+        javafx.scene.control.TextInputDialog d = new javafx.scene.control.TextInputDialog(persona.nombre());
+        DialogUtil.applyOwner(d);
+        d.setTitle("Corregir nombre");
+        d.setHeaderText("Se corrige en sus bienes, en sus resguardos vigentes y donde sea titular de área. "
+            + "Los resguardos cancelados y los bienes dados de baja se quedan como se firmaron.");
+        d.setContentText("Nombre como debe quedar:");
+        DialogUtil.conEncabezado(d, "mdi2a-account-edit-outline");
+        d.getEditor().setPrefColumnCount(32);
+        javafx.scene.Node ok = d.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK);
+        if (ok instanceof javafx.scene.control.Button b) b.setText("Corregir");
+        ok.disableProperty().bind(javafx.beans.binding.Bindings.createBooleanBinding(() -> {
+            String t = d.getEditor().getText() == null ? "" : d.getEditor().getText().trim();
+            return t.isEmpty() || t.equals(persona.nombre());
+        }, d.getEditor().textProperty()));
+        d.showAndWait().map(String::trim).filter(t -> !t.isEmpty() && !t.equals(persona.nombre())).ifPresent(nuevo -> {
+            com.sibim.service.CalidadDatosService calidad = new com.sibim.service.CalidadDatosService();
+            List<Producto> activos = bienes.stream().filter(p -> p.getFechaBaja() == null).toList();
+            DialogUtil.runAsyncWithProgress(scene, "Corrigiendo el nombre…",
+                () -> calidad.corregirNombre(persona, nuevo, activos),
+                c -> {
+                    String nombre = c.union().nombre();
+                    NotificacionUtil.exitoConAccion(scene, "Nombre corregido a «" + nombre + "» en "
+                            + com.sibim.util.FormatUtils.plural(c.union().cuantosBienes(), "bien", "bienes") + " y "
+                            + com.sibim.util.FormatUtils.plural(c.cuantosResguardos(), "resguardo", "resguardos"),
+                        "Deshacer", () -> DialogUtil.runAsync(() -> { calidad.deshacerCorreccion(c); return null; },
+                            r -> NotificacionUtil.exito(scene, "Se regresó el nombre «" + persona.nombre() + "»"),
+                            e -> NotificacionUtil.error(scene, "No se pudo deshacer: " + e.getMessage())));
+                    abrir(nombre, scene);
+                },
+                e -> NotificacionUtil.error(scene, "No se pudo corregir el nombre: " + e.getMessage()));
+        });
     }
 
     private static void generar(ResguardoService.Resguardante persona, List<Resguardo> elegidos, boolean sueltos, Scene scene) {
