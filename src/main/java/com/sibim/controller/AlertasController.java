@@ -201,7 +201,7 @@ public class AlertasController implements Refreshable {
         panelTablas.getChildren().addAll(comodatos.tabla(), patrimoniales.contenido());
 
         pGarantias = new Pestana(statCardGarantiasSum, "Garantías por vencer",
-            "Ya vencidas o que vencen en los próximos 30 días · doble clic en una fila para ver el detalle",
+            "Vencidas o por vencer en 30 días · doble clic para ver el detalle",
             "bien", "bienes", tableGarantias, null);
         pMantenimiento = new Pestana(statCardMantenimientoSum, "Mantenimiento próximo",
             "Revisiones de mantenimiento programadas en los próximos 30 días",

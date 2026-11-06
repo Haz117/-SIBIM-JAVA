@@ -60,7 +60,7 @@ class MainShortcutHelpDialog {
             {"Ctrl + 9",      "Configuración"},
             {"Ctrl+Alt + G",  "Resguardos"},
             {"Ctrl+Alt + P",  "Préstamos"},
-            {"Ctrl+Alt + A",  "Actas E/R"},
+            {"Ctrl+Alt + A",  "Entrega-recepción"},
             {"Ctrl+Alt + C",  "Conteo físico"},
         });
 

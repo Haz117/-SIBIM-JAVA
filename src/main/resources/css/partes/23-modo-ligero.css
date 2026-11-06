@@ -1,0 +1,7 @@
+/* Modo ligero (computadoras lentas, ver ModoLigero.java): sin sombras, que es lo que más
+   tarda en dibujarse sin tarjeta de video. Va al final para ganarle a cada regla de sombra;
+   !important le gana también a la que pone el código. */
+.modo-ligero,
+.modo-ligero * {
+    -fx-effect: null !important;
+}

@@ -88,7 +88,9 @@ public final class EscalaTexto {
             for (String s : r.group(1).split(",")) {
                 s = s.trim().replaceAll("\\s+", " ");
                 // .root alone is the base size, which 20-accesibilidad.css already scales.
-                if (s.isEmpty() || s.contains("text-scale") || s.equals(".root")) continue;
+                // The side menu has a fixed width: its section titles ("CONTROL PATRIMONIAL")
+                // keep their size, as its buttons do, or they come out cut.
+                if (s.isEmpty() || s.contains("text-scale") || s.equals(".root") || s.contains("nav-section-label")) continue;
                 boolean boton = s.contains("btn") || s.contains("button");
                 if (!boton) textos.add(s);
                 else if (!s.contains("nav-btn") && !s.contains("sidebar")) botones.add(s);

@@ -38,24 +38,39 @@
 /* Card: border-radius and left-side radius are overridden inline when arrow is shown */
 .tutorial-card {
     -fx-background-color: white;
-    -fx-background-radius: 20;
+    -fx-background-radius: 16;
     -fx-border-color: #E4EAF4;
-    -fx-border-radius: 20;
+    -fx-border-radius: 16;
     -fx-border-width: 1;
-    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.26), 44, 0.04, 0, 14);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.24), 32, 0.04, 0, 10);
 }
 
-/* Header radius is set inline per step (dynamic left-corner); this is a fallback */
-.tutorial-card > StackPane {
-    -fx-background-radius: 20 20 0 0;
+/* Header: the wine banner of Inicio (.dashboard-banner), whatever the step.
+   The radius is set inline: the left corners square off when the arrow shows. */
+.tutorial-header {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #4A1016, #6F1820);
+    -fx-background-radius: 16 16 0 0;
 }
 
-/* Icon of the step, on the header: a translucent white tile */
+/* Icon of the step, on the header: a translucent tile, as the date of Inicio's banner */
 .tutorial-icon-badge {
-    -fx-background-color: rgba(255,255,255,0.16);
-    -fx-background-radius: 14;
-    -fx-border-color: rgba(255,255,255,0.28);
-    -fx-border-radius: 14;
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(255,255,255,0.18);
+    -fx-border-radius: 12;
+}
+
+/* White on the wine: a general icon rule painted it dark */
+.tutorial-icon-badge .ikonli-font-icon { -fx-icon-color: white; }
+
+/* Which version a step of Novedades came in */
+.tutorial-grupo {
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-background-radius: 99;
+    -fx-padding: 1 8;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
 }
 
 /* Progress bar under the header; the fill takes the step's color (inline) */
@@ -71,7 +86,7 @@
 
 /* Step title */
 .tutorial-title {
-    -fx-font-size: 19px;
+    -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-fill: white;
     -fx-text-alignment: LEFT;
@@ -83,7 +98,7 @@
     -fx-padding: 3 0;
 }
 .tutorial-bullet-text {
-    -fx-font-size: 14px;
+    -fx-font-size: 13.5px;
     -fx-text-fill: sibim-slate-700;
     -fx-line-spacing: 1;
 }
@@ -96,8 +111,10 @@
     -fx-background-radius: 99;
     -fx-padding: 3 10;
 }
-/* Number of each point: a tinted circle in the step's color (inline) */
+/* Number of each point: a tinted guinda circle */
 .tutorial-bullet-num {
+    -fx-background-color: sibim-indigo-50;
+    -fx-text-fill: sibim-indigo;
     -fx-background-radius: 99;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
@@ -108,37 +125,39 @@
 .tutorial-dot        { -fx-fill: sibim-slate-300; }
 .tutorial-dot-active { -fx-fill: sibim-indigo; }
 
-/* Step counter */
+/* Step counter, as the greeting of Inicio's banner */
 .tutorial-counter {
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(255,255,255,0.78);
+    -fx-text-fill: sibim-indigo-200;
     -fx-font-weight: bold;
 }
 
-/* Primary action button — background set inline per step */
+/* Primary action button: the system's .btn-primary, whatever the step */
 .tutorial-btn-primary {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #6F1820);
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-background-radius: 10;
-    -fx-padding: 10 26;
+    -fx-background-radius: 12;
+    -fx-padding: 10 24;
     -fx-cursor: hand;
-    -fx-font-size: 14px;
+    -fx-font-size: 13.5px;
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.35), 8, 0, 0, 2);
 }
-.tutorial-btn-primary:hover   { -fx-opacity: 0.88; }
-.tutorial-btn-primary:pressed { -fx-opacity: 0.74; -fx-translate-y: 1; }
+.tutorial-btn-primary:hover   { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #891D26, #5A141A); }
+.tutorial-btn-primary:pressed { -fx-opacity: 0.85; -fx-translate-y: 1; }
 .tutorial-btn-primary:disabled { -fx-opacity: 0.50; }
 
-/* Secondary (Anterior) button */
+/* Secondary (Anterior) button: the system's .btn-secondary */
 .tutorial-btn-secondary {
-    -fx-background-color: transparent;
-    -fx-text-fill: sibim-slate-500;
-    -fx-background-radius: 10;
+    -fx-background-color: white;
+    -fx-text-fill: sibim-gray-700;
+    -fx-background-radius: 12;
     -fx-padding: 10 18;
     -fx-cursor: hand;
     -fx-font-size: 13px;
-    -fx-border-color: sibim-slate-200;
-    -fx-border-radius: 10;
-    -fx-border-width: 1.5;
+    -fx-border-color: #D1D9E6;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
 }
 .tutorial-btn-secondary:hover   { -fx-background-color: sibim-surface; -fx-text-fill: sibim-slate-700; }
 .tutorial-btn-secondary:pressed { -fx-background-color: sibim-slate-100; -fx-translate-y: 1; }
@@ -179,8 +198,18 @@
 
 /* When arrow-caret is shown, left corners are squared on the card */
 .tutorial-card-with-arrow {
-    -fx-background-radius: 0 20 20 0;
-    -fx-border-radius: 0 20 20 0;
+    -fx-background-radius: 0 16 16 0;
+    -fx-border-radius: 0 16 16 0;
+}
+
+/* What the step marks on the screen: a guinda frame */
+.tutorial-ring {
+    -fx-border-color: sibim-indigo;
+    -fx-border-width: 3;
+    -fx-border-radius: 10;
+    -fx-background-color: rgba(162,35,45,0.12);
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(162,35,45,0.55), 20, 0.12, 0, 0);
 }
 
 /* Keyboard navigation hint below buttons */
@@ -220,11 +249,14 @@
 .tutorial-guia-vista { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #065F46; }
 .tutorial-btn-probar {
     -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 12;
+    -fx-border-color: sibim-indigo;
+    -fx-border-radius: 12;
     -fx-border-width: 1.5;
+    -fx-text-fill: sibim-indigo;
     -fx-font-weight: bold;
     -fx-padding: 9 14;
     -fx-cursor: hand;
 }
+.tutorial-btn-probar .ikonli-font-icon { -fx-icon-color: sibim-indigo; }
 .tutorial-btn-probar:hover { -fx-background-color: #FDF4F5; }

@@ -61,14 +61,25 @@ public final class AnimationUtils {
         }
     }
 
-    public static boolean isEnabled() { return enabled; }
+    /** Whether things move: the person's choice, and never on a computer in light mode. */
+    public static boolean isEnabled() { return anima(); }
+
+    /** What the person chose in Configuración (light mode aside). */
+    public static boolean preferido() { return enabled; }
+
+    /** Light mode ({@link ModoLigero}) turns the animations off without touching the choice. */
+    private static volatile boolean ligero = false;
+
+    static void setLigero(boolean v) { ligero = v; }
+
+    private static boolean anima() { return enabled && !ligero; }
 
     /** The length of a movement: {@code ms}, or one millisecond with
      *  animations off — the node still ends where it should and onFinished
      *  still runs. For transitions only; a PauseTransition keeps its real
      *  length (a toast's reading time). */
     public static Duration duracion(double ms) {
-        return enabled ? Duration.millis(ms) : Duration.ONE;
+        return anima() ? Duration.millis(ms) : Duration.ONE;
     }
 
     /** Plays a decorative animation built elsewhere (a toast sliding in, the
@@ -77,7 +88,7 @@ public final class AnimationUtils {
      *  an animation that includes a pause someone must be able to read through,
      *  or a timer, would be cut short too. */
     public static void reproducir(Animation a) {
-        if (!enabled && a.getCycleCount() != Animation.INDEFINITE) a.setRate(a.getRate() * 1000);
+        if (!anima() && a.getCycleCount() != Animation.INDEFINITE) a.setRate(a.getRate() * 1000);
         a.play();
     }
 
@@ -88,7 +99,7 @@ public final class AnimationUtils {
 
     /** Fade from transparent to opaque. */
     public static void fadeIn(Node node, int durationMs, int delayMs) {
-        if (!enabled) { node.setOpacity(1); return; }
+        if (!anima()) { node.setOpacity(1); return; }
         node.setOpacity(0);
         FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
         ft.setFromValue(0); ft.setToValue(1);
@@ -122,7 +133,7 @@ public final class AnimationUtils {
     }
 
     private static void fadeInImpl(Node node, double tx, double ty, int durationMs, int delayMs) {
-        if (!enabled) {
+        if (!anima()) {
             node.setOpacity(1);
             if (tx != 0) node.setTranslateX(0);
             if (ty != 0) node.setTranslateY(0);
@@ -161,7 +172,7 @@ public final class AnimationUtils {
      * Horizontal shake — error feedback for form fields.
      */
     public static void shake(Node node) {
-        if (!enabled) return;
+        if (!anima()) return;
         double x = node.getTranslateX();
         Timeline tl = new Timeline(
             kf(node,   0, x),
@@ -178,7 +189,7 @@ public final class AnimationUtils {
 
     /** Quick scale-pop on a stat card after its value updates. */
     public static void statCardPop(Node card) {
-        if (!enabled) return;
+        if (!anima()) return;
         ScaleTransition grow = new ScaleTransition(Duration.millis(130), card);
         grow.setToX(1.07); grow.setToY(1.07);
         grow.setInterpolator(Interpolator.EASE_OUT);
@@ -196,7 +207,7 @@ public final class AnimationUtils {
      */
     public static void animateCount(Label label, long target, int durationMs,
                                     LongFunction<String> formatter) {
-        if (!enabled) { label.setText(formatter.apply(target)); return; }
+        if (!anima()) { label.setText(formatter.apply(target)); return; }
         label.setText(formatter.apply(0));
         if (target == 0) return;
         SimpleDoubleProperty prop = new SimpleDoubleProperty(0);
@@ -225,7 +236,7 @@ public final class AnimationUtils {
      * layoutBounds are available); use a short Timeline delay if needed.
      */
     public static void revealBarLTR(Region bar, int durationMs) {
-        if (!enabled) { bar.setClip(null); return; }
+        if (!anima()) { bar.setClip(null); return; }
         double w = bar.getWidth();
         if (w <= 0) w = bar.getPrefWidth() > 0 ? bar.getPrefWidth() : 500;
         Rectangle clip = new Rectangle(0, 0, 0, bar.getBoundsInLocal().getHeight() + 4);
@@ -251,7 +262,7 @@ public final class AnimationUtils {
         // Built either way so callers can unconditionally call .stop() on the
         // result later — just never started when animations are off, so the
         // badge stays at its normal (unscaled) size instead of pulsing.
-        if (enabled) beat.play();
+        if (anima()) beat.play();
         return beat;
     }
 
@@ -260,7 +271,7 @@ public final class AnimationUtils {
      * More satisfying than a plain fadeIn for overlays and dialog entrances.
      */
     public static void springIn(Node node) {
-        if (!enabled) { node.setOpacity(1); node.setScaleX(1); node.setScaleY(1); return; }
+        if (!anima()) { node.setOpacity(1); node.setScaleX(1); node.setScaleY(1); return; }
         node.setOpacity(0);
         node.setScaleX(0.85);
         node.setScaleY(0.85);
@@ -285,7 +296,7 @@ public final class AnimationUtils {
 
     /** Slide out to the right while fading; calls {@code after} when done. */
     public static void slideOutRight(Node node, int durationMs, Runnable after) {
-        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
+        if (!anima()) { node.setOpacity(0); if (after != null) after.run(); return; }
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setToValue(0);
         fade.setInterpolator(Interpolator.EASE_IN);
@@ -299,7 +310,7 @@ public final class AnimationUtils {
 
     /** Slide out to the left while fading; calls {@code after} when done. */
     public static void slideOutLeft(Node node, int durationMs, Runnable after) {
-        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
+        if (!anima()) { node.setOpacity(0); if (after != null) after.run(); return; }
         FadeTransition fade = new FadeTransition(Duration.millis(durationMs), node);
         fade.setToValue(0);
         fade.setInterpolator(Interpolator.EASE_IN);
@@ -313,7 +324,7 @@ public final class AnimationUtils {
 
     /** Fade a node out; calls {@code after} on the FX thread when done. */
     public static void fadeOut(Node node, int durationMs, Runnable after) {
-        if (!enabled) { node.setOpacity(0); if (after != null) after.run(); return; }
+        if (!anima()) { node.setOpacity(0); if (after != null) after.run(); return; }
         FadeTransition ft = new FadeTransition(Duration.millis(durationMs), node);
         ft.setFromValue(node.getOpacity());
         ft.setToValue(0);
@@ -327,7 +338,7 @@ public final class AnimationUtils {
      * Useful for flashing a table row green after a save, or red after a delete.
      */
     public static void flashClass(Node node, String cssClass, int holdMs) {
-        if (!enabled) return;
+        if (!anima()) return;
         node.getStyleClass().add(cssClass);
         new Timeline(new KeyFrame(Duration.millis(holdMs),
             e -> node.getStyleClass().remove(cssClass))).play();
@@ -360,7 +371,7 @@ public final class AnimationUtils {
         // An indefinitely-looping animation is exactly the kind worth
         // skipping on a low-end machine — a static skeleton at a fixed
         // opacity still reads as "loading" just fine without it.
-        if (enabled) pulse.play(); else box.setOpacity(0.55);
+        if (anima()) pulse.play(); else box.setOpacity(0.55);
         table.setPlaceholder(box);
         return pulse;
     }
@@ -380,7 +391,7 @@ public final class AnimationUtils {
             // below, it's left permanently faded. Unconditionally resetting every
             // realized row first guarantees none can ever get stuck that way.
             for (TableRow<?> row : allRowCells) { row.setOpacity(1); row.setTranslateY(0); }
-            if (!enabled) return;
+            if (!anima()) return;
             var rows = allRowCells.stream()
                 .filter(r -> !r.isEmpty())
                 .sorted(Comparator.comparingDouble(Node::getLayoutY))

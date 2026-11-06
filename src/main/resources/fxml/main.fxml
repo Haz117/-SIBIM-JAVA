@@ -166,6 +166,10 @@
                                 <graphic><FontIcon iconLiteral="mdi2b-badge-account-outline" styleClass="nav-icon"/></graphic>
                                 <tooltip><Tooltip text="Resguardos de bienes por servidor público  (Ctrl+Alt+G)"/></tooltip>
                             </Button>
+                            <Button fx:id="btnBajas" text="Bajas" onAction="#onNavItem" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                                <graphic><FontIcon iconLiteral="mdi2a-archive-arrow-down-outline" styleClass="nav-icon"/></graphic>
+                                <tooltip><Tooltip text="Bajas patrimoniales — solicitudes, dictámenes y actas  (Ctrl+Alt+B)"/></tooltip>
+                            </Button>
                             <StackPane maxWidth="Infinity" alignment="CENTER_RIGHT">
                                 <Button fx:id="btnPrestamos" text="Préstamos" onAction="#onNavItem"
                                         styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" StackPane.alignment="CENTER"
@@ -182,13 +186,9 @@
                                 <graphic><FontIcon iconLiteral="mdi2c-clipboard-list-outline" styleClass="nav-icon"/></graphic>
                                 <tooltip><Tooltip text="Comodatos — préstamos formales a entidades externas  (Ctrl+Alt+O)"/></tooltip>
                             </Button>
-                            <Button fx:id="btnActas" text="Actas E/R" onAction="#onNavItem" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
+                            <Button fx:id="btnActas" text="Entrega-recepción" onAction="#onNavItem" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
                                 <graphic><FontIcon iconLiteral="mdi2f-file-swap-outline" styleClass="nav-icon"/></graphic>
                                 <tooltip><Tooltip text="Actas de entrega-recepción  (Ctrl+Alt+A)"/></tooltip>
-                            </Button>
-                            <Button fx:id="btnBajas" text="Bajas" onAction="#onNavItem" styleClass="nav-btn, nav-ctrl" maxWidth="Infinity" contentDisplay="LEFT" graphicTextGap="10">
-                                <graphic><FontIcon iconLiteral="mdi2a-archive-arrow-down-outline" styleClass="nav-icon"/></graphic>
-                                <tooltip><Tooltip text="Bajas patrimoniales — solicitudes, dictámenes y actas  (Ctrl+Alt+B)"/></tooltip>
                             </Button>
                         </VBox>
                     </VBox>

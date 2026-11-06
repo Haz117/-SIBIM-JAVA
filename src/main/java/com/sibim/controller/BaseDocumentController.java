@@ -397,9 +397,10 @@ public abstract class BaseDocumentController<T> {
     }
 
     protected void setupDateFilterBar(ListExporter excelFn, ListExporter csvFn) {
-        dpDesde = new DatePicker(); dpDesde.setPromptText("Desde"); dpDesde.setPrefWidth(130);
+        // Never so narrow that "Desde" reads "Des": the search box gives way first.
+        dpDesde = new DatePicker(); dpDesde.setPromptText("Desde"); dpDesde.setPrefWidth(130); dpDesde.setMinWidth(112);
         dpDesde.setConverter(FormatUtils.datePickerConverter());
-        dpHasta = new DatePicker(); dpHasta.setPromptText("Hasta"); dpHasta.setPrefWidth(130);
+        dpHasta = new DatePicker(); dpHasta.setPromptText("Hasta"); dpHasta.setPrefWidth(130); dpHasta.setMinWidth(112);
         dpHasta.setConverter(FormatUtils.datePickerConverter());
         dpDesde.valueProperty().addListener((obs, o, n) -> applyFilter());
         dpHasta.valueProperty().addListener((obs, o, n) -> applyFilter());

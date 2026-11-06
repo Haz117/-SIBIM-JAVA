@@ -21,7 +21,13 @@
             <Label fx:id="lblSubtitulo" text="Listados y formatos oficiales en PDF, Excel y CSV" styleClass="page-subtitle"/>
         </VBox>
         <ProgressIndicator fx:id="spinner" prefWidth="24" prefHeight="24" visible="false" managed="false"/>
+        <!-- Twenty-odd reports, some inside a row's menu (the vehicle resguardo is in
+             Parque Vehicular): typing finds them, menus included. -->
+        <TextField fx:id="buscarReporte" promptText="Buscar un reporte: vehículos, baja, resguardo…"
+                   prefWidth="330" styleClass="search-field"/>
     </HBox>
+    <Label fx:id="lblSinReportes" text="Ningún reporte coincide. Prueba con otra palabra: inventario, vehículos, baja, CONAC…"
+           styleClass="muted" visible="false" managed="false"/>
 
     <!-- ══ SELECTOR DE PERÍODO ═══════════════════════════════════════ -->
     <VBox fx:id="periodCard" styleClass="card" spacing="12">
@@ -72,7 +78,7 @@
          Las filas de cada lista se describen una sola vez en
          ReportesController#construirReportes y las dibuja ReporteFila.
          ══════════════════════════════════════════════════════════════ -->
-    <HBox alignment="CENTER_LEFT" spacing="10">
+    <HBox fx:id="encListados" alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="LISTADOS" styleClass="dash-section-label"/>
         <Label fx:id="helpTiposReporte" text="?" styleClass="help-badge">
@@ -81,7 +87,7 @@
     </HBox>
     <VBox fx:id="listaListados" styleClass="report-list"/>
 
-    <HBox alignment="CENTER_LEFT" spacing="10">
+    <HBox fx:id="encFormatos" alignment="CENTER_LEFT" spacing="10">
         <Region styleClass="dash-section-bar"/>
         <Label text="FORMATOS OFICIALES" styleClass="dash-section-label"/>
     </HBox>

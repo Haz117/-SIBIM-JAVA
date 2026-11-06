@@ -76,7 +76,7 @@ public final class MovimientoTimelineDialog {
                 VBox content = new VBox(0);
                 content.getStyleClass().add("timeline-root");
                 HBox header = DialogUtil.gradientHeader(
-                    "mdi2h-history", "Cadena de custodia",
+                    "mdi2h-history", "Historial del bien",
                     p.getNombre() + "  ·  " + FormatUtils.plural(entradas.size(), "registro", "registros"),
                     AppColors.SLATE, AppColors.SLATE_D);
                 content.getChildren().add(header);

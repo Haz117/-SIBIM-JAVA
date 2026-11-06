@@ -564,7 +564,7 @@ public class CalidadDatosService {
         List<String> faltan = new ArrayList<>();
         if (vacio(config, ReporteResguardoVehicularService.CLAVE_RFC)) faltan.add("RFC");
         if (vacio(config, ReporteResguardoVehicularService.CLAVE_DOMICILIO)) faltan.add("Domicilio");
-        if (vacio(config, ReporteResguardoVehicularService.CLAVE_ELABORA)) faltan.add("Elabora");
+        if (vacio(config, ReporteResguardoVehicularService.CLAVE_ELABORA)) faltan.add("Elaboró");
         if (vacio(config, ReporteResguardoVehicularService.CLAVE_VOBO)) faltan.add("Vo. Bo.");
         long titulares = config.entrySet().stream()
             .filter(e -> e.getKey().startsWith(TitularesArea.PREFIJO) && e.getValue() != null && !e.getValue().isBlank()).count();

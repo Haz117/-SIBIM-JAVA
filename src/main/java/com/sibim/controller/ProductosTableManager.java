@@ -214,12 +214,20 @@ class ProductosTableManager {
         });
     }
 
+    /** The empty list without filters. An área sees only its own bienes: "none in the
+     *  system" told it the inventory was empty when it only had none assigned yet. */
+    static String sinBienes() {
+        return com.sibim.session.SessionManager.isAdmin()
+            ? "No hay bienes registrados en el sistema"
+            : "Tu área todavía no tiene bienes asignados";
+    }
+
     private void setupEmptyState() {
         // Smart empty state (set programmatically so we can update the message)
         FontIcon emptyIcon = new FontIcon("mdi2p-package-variant");
         emptyIcon.setIconSize(52);
         emptyIcon.getStyleClass().add("empty-icon-lg");
-        emptyStateMsg = new Label("No hay bienes registrados en el sistema");
+        emptyStateMsg = new Label(sinBienes());
         emptyStateMsg.getStyleClass().add("empty-state-msg");
         btnEmptyLimpiar = new Button("Limpiar filtros");
         btnEmptyLimpiar.getStyleClass().add("btn-secondary");
@@ -236,6 +244,8 @@ class ProductosTableManager {
         emptyState.setAlignment(Pos.CENTER);
         emptyState.getStyleClass().add("empty-state-pane");
         emptyState.setMaxWidth(380);
+        // A card in the middle, not a frame from the header to the bottom of the table.
+        emptyState.setMaxHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         emptyState.setPadding(new Insets(32, 24, 32, 24));
         // Spring-in when placeholder becomes visible; reset transforms when hidden
         emptyState.visibleProperty().addListener((obs, wasVisible, isVisible) -> {

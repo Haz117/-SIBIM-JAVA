@@ -46,6 +46,8 @@ final class MiAreaPanel {
     private final Logger log;
     private final FlowPane tarjetas = new FlowPane(10, 10);
     private final Label resumen = new Label();
+    /** The área's three steps, as Patrimonio sees them in «Avance de las áreas». */
+    private final HBox avance = new HBox(0);
 
     MiAreaPanel(VBox raiz, ProductoService productos, MovimientoService movimientos, Logger log) {
         this.productos = productos;
@@ -62,7 +64,10 @@ final class MiAreaPanel {
         HBox encabezado = new HBox(10, barra, titulo, espacio, resumen);
         encabezado.setAlignment(Pos.CENTER_LEFT);
 
-        raiz.getChildren().setAll(encabezado, tarjetas);
+        avance.getStyleClass().addAll("card", "mi-avance");
+        avance.setAlignment(Pos.TOP_LEFT);
+        avance.setVisible(false); avance.setManaged(false);
+        raiz.getChildren().setAll(encabezado, avance, tarjetas);
         raiz.setSpacing(8);
         raiz.setVisible(true);
         raiz.setManaged(true);
@@ -107,19 +112,14 @@ final class MiAreaPanel {
         String mia = SessionManager.getAccessibleAreas() != null && SessionManager.getAccessibleAreas().size() == 1
             ? SessionManager.getAccessibleAreas().iterator().next() : null;
         long revisados = d.bienes().stream().filter(Producto::isRevisadoPorArea).count();
-        if (!d.bienes().isEmpty() && revisados < d.bienes().size())
-            tarjetas.getChildren().add(tarjeta("mdi2c-clipboard-check-multiple-outline", "qa-card-icon-blue",
-                "Revisa tus bienes: " + revisados + " de " + d.bienes().size(),
-                "Di si cada uno sí es de tu área y llena lo que le falte",
-                () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
-                    com.sibim.controller.dialogs.RevisarBienesDialog.Vista.POR_REVISAR, this::cargar)));
         long etiquetados = d.bienes().stream().filter(Producto::isEtiquetado).count();
-        if (!d.bienes().isEmpty() && etiquetados < d.bienes().size())
-            tarjetas.getChildren().add(tarjeta("mdi2t-tag-outline", "qa-card-icon-violet",
-                "Confirma tus etiquetas: " + etiquetados + " de " + d.bienes().size(),
-                "Marca los bienes que ya tienen su etiqueta pegada",
-                () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
-                    com.sibim.controller.dialogs.RevisarBienesDialog.Vista.SIN_ETIQUETA, this::cargar)));
+        // The three steps on one line, the one to do now with its button: five cards of the
+        // same size didn't say which came first nor that it was a path of three.
+        pintarAvance(d.bienes().size(), revisados, etiquetados,
+            () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
+                com.sibim.controller.dialogs.RevisarBienesDialog.Vista.POR_REVISAR, this::cargar),
+            () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
+                com.sibim.controller.dialogs.RevisarBienesDialog.Vista.SIN_ETIQUETA, this::cargar));
         if (!d.porRecibir().isEmpty()) {
             tarjetas.getChildren().add(tarjeta("mdi2i-inbox-arrow-down-outline", "qa-card-icon-green",
                 FormatUtils.plural(d.porRecibir().size(), "bien", "bienes") + " por recibir",
@@ -144,12 +144,76 @@ final class MiAreaPanel {
                 FormatUtils.plural(faltan.size(), "bien", "bienes") + " " + p.titulo(), p.accion(),
                 () -> abrirLista(p, faltan)));
         }
-        if (tarjetas.getChildren().isEmpty()) {
-            VBox listo = tarjeta("mdi2c-check-circle-outline", "qa-card-icon-green", "Todo al día",
-                d.bienes().isEmpty() ? "Tu área todavía no tiene bienes asignados"
-                    : "Revisaste tus bienes, tienen foto, ubicación y estado físico, y ya están etiquetados", null);
-            tarjetas.getChildren().add(listo);
+        if (tarjetas.getChildren().isEmpty() && d.bienes().isEmpty()) {
+            tarjetas.getChildren().add(tarjeta("mdi2c-check-circle-outline", "qa-card-icon-green", "Todo al día",
+                "Tu área todavía no tiene bienes asignados", null));
         }
+        tarjetas.setVisible(!tarjetas.getChildren().isEmpty());
+        tarjetas.setManaged(!tarjetas.getChildren().isEmpty());
+    }
+
+    /** ① Entrar a SIBIM ─ ② Revisar tus bienes ─ ③ Confirmar etiquetas: done in green, the
+     *  current one in gold with its button, the rest in gray. */
+    private void pintarAvance(int total, long revisados, long etiquetados, Runnable revisar, Runnable etiquetar) {
+        avance.getChildren().clear();
+        boolean hay = total > 0;
+        avance.setVisible(hay); avance.setManaged(hay);
+        if (!hay) return;
+        boolean revisado = revisados >= total, etiquetado = etiquetados >= total;
+        int actual = !revisado ? 2 : !etiquetado ? 3 : 4;
+        avance.getChildren().addAll(
+            paso(1, "Entrar a SIBIM", "Hecho", 1 < actual, false, null, null),
+            linea(true),
+            paso(2, "Revisar tus bienes",
+                revisado ? "Los " + total + " revisados"
+                         : revisados + " de " + total + " · di si son de tu área y llena lo que falte",
+                revisado, actual == 2, "Revisar mis bienes", revisar),
+            linea(revisado),
+            paso(3, "Confirmar etiquetas",
+                etiquetado ? "Las " + total + " pegadas"
+                           : etiquetados + " de " + total + " · marca los que ya tienen su etiqueta",
+                etiquetado, actual == 3, "Confirmar etiquetas", etiquetar));
+        if (actual == 4) {
+            Label fin = new Label("¡Listo! Tu área terminó su revisión");
+            fin.getStyleClass().add("mi-avance-fin");
+            avance.getChildren().addAll(linea(true), fin);
+        }
+    }
+
+    private static HBox paso(int n, String titulo, String detalle, boolean hecho, boolean enCurso,
+                             String textoBoton, Runnable accion) {
+        Label num = new Label(hecho ? "✓" : String.valueOf(n));
+        num.getStyleClass().addAll("avance-paso", "mi-avance-paso",
+            hecho ? "avance-paso-hecho" : enCurso ? "avance-paso-curso" : "avance-paso-pendiente");
+        Label t = new Label(titulo);
+        t.getStyleClass().add("mi-avance-titulo");
+        Label dLbl = new Label(detalle);
+        dLbl.getStyleClass().addAll("mi-avance-detalle", hecho ? "avance-estado-hecho" : enCurso ? "avance-estado-curso" : "avance-estado");
+        dLbl.setWrapText(true);
+        VBox textos = new VBox(3, t, dLbl);
+        if (enCurso && accion != null) {
+            Button b = new Button(textoBoton + "  →");
+            b.getStyleClass().add("btn-primary");
+            b.setOnAction(e -> accion.run());
+            VBox.setMargin(b, new Insets(6, 0, 0, 0));
+            textos.getChildren().add(b);
+        }
+        HBox caja = new HBox(10, num, textos);
+        caja.setAlignment(Pos.TOP_LEFT);
+        caja.setMinWidth(Region.USE_PREF_SIZE);
+        HBox.setHgrow(caja, Priority.SOMETIMES);
+        caja.setMaxWidth(320);
+        return caja;
+    }
+
+    private static Region linea(boolean hecha) {
+        Region l = new Region();
+        l.getStyleClass().add("mi-avance-linea");
+        if (hecha) l.getStyleClass().add("avance-linea-hecha");
+        HBox.setHgrow(l, Priority.ALWAYS);
+        HBox.setMargin(l, new Insets(13, 14, 0, 14));
+        l.setMinWidth(24);
+        return l;
     }
 
     private VBox tarjeta(String icono, String estilo, String titulo, String hint, Runnable accion) {

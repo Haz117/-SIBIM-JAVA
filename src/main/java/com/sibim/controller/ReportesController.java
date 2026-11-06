@@ -42,6 +42,9 @@ public class ReportesController {
     @FXML private VBox       periodCard;
     @FXML private VBox       listaListados;
     @FXML private VBox       listaFormatos;
+    @FXML private TextField  buscarReporte;
+    @FXML private Label      lblSinReportes;
+    @FXML private javafx.scene.layout.HBox encListados, encFormatos;
     @FXML private DatePicker desdeField;
     @FXML private DatePicker hastaField;
     @FXML private ProgressIndicator spinner;
@@ -210,6 +213,28 @@ public class ReportesController {
             List<Node> filas = lista.getChildren();
             filas.get(filas.size() - 1).getStyleClass().add("report-row-last");
         }
+        if (buscarReporte != null) buscarReporte.textProperty().addListener((o, antes, q) -> filtrarReportes(q));
+    }
+
+    /** Only the rows that have every word typed; a section with none left hides too. */
+    private void filtrarReportes(String consulta) {
+        int visibles = 0;
+        for (VBox lista : List.of(listaListados, listaFormatos)) {
+            int enLista = 0;
+            Node ultima = null;
+            for (Node fila : lista.getChildren()) {
+                boolean si = ReporteFila.coincide(fila, consulta);
+                fila.setVisible(si); fila.setManaged(si);
+                fila.getStyleClass().remove("report-row-last");
+                if (si) { enLista++; ultima = fila; }
+            }
+            if (ultima != null) ultima.getStyleClass().add("report-row-last");
+            lista.setVisible(enLista > 0); lista.setManaged(enLista > 0);
+            javafx.scene.layout.HBox enc = lista == listaListados ? encListados : encFormatos;
+            if (enc != null) { enc.setVisible(enLista > 0); enc.setManaged(enLista > 0); }
+            visibles += enLista;
+        }
+        if (lblSinReportes != null) { lblSinReportes.setVisible(visibles == 0); lblSinReportes.setManaged(visibles == 0); }
     }
 
     // ── Inventario por área ────────────────────────────────────────────────────

@@ -95,19 +95,9 @@
 
     <!-- ══ TOOLBAR ════════════════════════════════════════════════════ -->
     <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar, filter-bar-purple">
-        <TextField fx:id="searchField" promptText="Buscar por bien, entidad, contacto o número…"
+        <TextField fx:id="searchField" promptText="Bien o entidad…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
-        <ComboBox fx:id="estadoFilter" prefWidth="140" promptText="Todos los estados"/>
-        <MenuButton fx:id="btnExportarPdf" text="Exportar" minWidth="-Infinity" styleClass="btn-secondary"
-                    contentDisplay="LEFT" graphicTextGap="8">
-            <graphic><FontIcon iconLiteral="mdi2d-download-outline" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Exportar el registro de comodatos visible" wrapText="true" maxWidth="240"/></tooltip>
-            <items>
-                <MenuItem text="PDF" onAction="#onExportarPdf">
-                    <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="report-export-icon-pdf"/></graphic>
-                </MenuItem>
-            </items>
-        </MenuButton>
+        <ComboBox fx:id="estadoFilter" prefWidth="140" minWidth="-Infinity" promptText="Todos los estados"/>
     </HBox>
 
     <!-- ══ TABLE ══════════════════════════════════════════════════════ -->
@@ -126,4 +116,15 @@
                    styleClass="table-placeholder"/>
         </placeholder>
     </TableView>
+
+    <!-- ══ What to do with the selected one: below, as in Resguardos ══ -->
+    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="bottom-action-bar">
+        <Label text="Selecciona un comodato: aquí se activa lo que puedes hacer con él" styleClass="muted-sm"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnExportarPdf" text="PDF" onAction="#onExportarPdf" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2f-file-pdf-box" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="El PDF del comodato seleccionado" wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
+    </HBox>
 </VBox>

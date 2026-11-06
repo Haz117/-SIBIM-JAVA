@@ -233,20 +233,29 @@ class ProductosColumnSetup {
         });
     }
 
+    /** The column is the garantía. It was "Estado: Activo" on every bien (almost none has a
+     *  garantía captured), which read as the bien's own state: now Vigente, Vencida, or
+     *  nothing when it has none. */
     static void configureEstado(TableColumn<Producto, String> col) {
         col.setCellValueFactory(c ->
-            new javafx.beans.property.SimpleStringProperty(c.getValue().getEstado().getEtiqueta()));
+            new javafx.beans.property.SimpleStringProperty(garantia(c.getValue())));
 
         col.setCellFactory(DialogUtil.iconBadgeCellFactory(
             item -> switch (item) {
-                case "Vencido"    -> "cell-badge-purple";
-                default           -> "cell-badge-success";
+                case "Vencida"    -> "cell-badge-purple";
+                case "Vigente"    -> "cell-badge-success";
+                default           -> null;
             },
             item -> switch (item) {
-                case "Vencido"    -> "mdi2c-clock-alert-outline";
+                case "Vencida"    -> "mdi2c-clock-alert-outline";
                 default           -> "mdi2c-check-circle-outline";
             }
         ));
+    }
+
+    static String garantia(Producto p) {
+        if (p.getEstado() == com.sibim.model.enums.EstadoProducto.VENCIDO) return "Vencida";
+        return p.getFechaVencimiento() != null ? "Vigente" : "—";
     }
 
     static void configureRowFactory(TableView<Producto> table,

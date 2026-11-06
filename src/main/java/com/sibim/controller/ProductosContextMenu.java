@@ -110,7 +110,7 @@ final class ProductosContextMenu {
             }
         });
 
-        MenuItem cmHistorial = new MenuItem("Ver historial de movimientos");
+        MenuItem cmHistorial = new MenuItem("Historial del bien");
         cmHistorial.setGraphic(new FontIcon("mdi2h-history"));
         cmHistorial.setOnAction(e -> {
             Producto sel = table.getSelectionModel().getSelectedItem();

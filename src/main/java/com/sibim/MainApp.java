@@ -55,6 +55,8 @@ public class MainApp extends Application {
         primaryStage = stage;
         applyAppIcon(primaryStage);
         com.sibim.util.VentanaWindows.instalar();
+        // Before the first window: a slow computer starts without shadows or animations.
+        com.sibim.util.ModoLigero.instalar();
         com.sibim.service.TrayService.install(primaryStage);
         showSplash();
     }

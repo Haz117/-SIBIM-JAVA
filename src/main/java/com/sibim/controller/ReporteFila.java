@@ -66,7 +66,28 @@ final class ReporteFila {
         HBox fila = new HBox(14, insignia, texto, boton(titulo, textoBoton, formatos));
         fila.setAlignment(Pos.CENTER_LEFT);
         fila.getStyleClass().add("report-row");
+        StringBuilder buscable = new StringBuilder(titulo).append(' ').append(descripcion);
+        for (Formato f : formatos) buscable.append(' ').append(f.texto());
+        fila.getProperties().put(BUSCABLE, sinAcentos(buscable.toString()));
         return fila;
+    }
+
+    /** What the Reportes search looks in: title, description and the formats of its menu. */
+    static final String BUSCABLE = "reporteFila.buscable";
+
+    static String sinAcentos(String s) {
+        return java.text.Normalizer.normalize(s == null ? "" : s, java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}+", "").toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Every word of {@code consulta} somewhere in the row (accents and case aside). */
+    static boolean coincide(javafx.scene.Node fila, String consulta) {
+        String q = sinAcentos(consulta).trim();
+        if (q.isEmpty()) return true;
+        Object b = fila.getProperties().get(BUSCABLE);
+        if (!(b instanceof String texto)) return true;
+        for (String palabra : q.split("\\s+")) if (!texto.contains(palabra)) return false;
+        return true;
     }
 
     private static ButtonBase boton(String titulo, String textoBoton, List<Formato> formatos) {

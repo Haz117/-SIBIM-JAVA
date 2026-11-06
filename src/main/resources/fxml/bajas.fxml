@@ -109,7 +109,7 @@
                 <tooltip><Tooltip text="Bajas definitivas: el destino final ya se ejecutó con su documento; ya no se pueden reactivar"/></tooltip>
             </ToggleButton>
         </HBox>
-        <TextField fx:id="searchField" promptText="Buscar por bien, código, motivo, folio o dictamen…"
+        <TextField fx:id="searchField" promptText="Bien, código, motivo o folio…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="260"/>
         <ComboBox fx:id="anioFilter" promptText="Todos los años" prefWidth="150"/>
@@ -119,7 +119,7 @@
     <!-- ══ TABLA ════════════════════════════════════════════════════ -->
     <TableView fx:id="table" styleClass="data-table" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn fx:id="colFecha" text="Fecha de baja" prefWidth="130" minWidth="130"/>
+            <TableColumn fx:id="colFecha" text="Fecha" prefWidth="130" minWidth="130"/>
             <TableColumn fx:id="colCodigo" text="Código" prefWidth="100" minWidth="90"/>
             <TableColumn fx:id="colNombre" text="Bien" prefWidth="220"/>
             <TableColumn fx:id="colArea" text="Área" prefWidth="200"/>
@@ -127,9 +127,9 @@
             <TableColumn fx:id="colSolicitud" text="Solicitud" prefWidth="120"/>
             <TableColumn fx:id="colDestino" text="Destino" prefWidth="120"/>
             <TableColumn fx:id="colDictamen" text="Dictamen" prefWidth="140"/>
-            <TableColumn fx:id="colActa" text="No. acta" prefWidth="100" minWidth="95"/>
+            <TableColumn fx:id="colActa" text="Acta" prefWidth="100" minWidth="95"/>
             <TableColumn fx:id="colValor" text="Valor" prefWidth="110"/>
-            <TableColumn fx:id="colDefinitiva" text="Baja definitiva" prefWidth="170"/>
+            <TableColumn fx:id="colDefinitiva" text="Definitiva" prefWidth="170"/>
         </columns>
         <placeholder><Label fx:id="lblVacio" text="No hay bienes dados de baja" styleClass="muted"/></placeholder>
     </TableView>

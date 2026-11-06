@@ -27,18 +27,18 @@ import java.util.prefs.Preferences;
 public final class TutorialOverlay {
 
     private static final Preferences PREFS = Preferences.userNodeForPackage(TutorialOverlay.class);
-    private static final double CARD_W  = 420;
+    private static final double CARD_W  = 460;
     private static final double ARROW_W = 16;
     // HBox spacing = -2, so card body starts at (ARROW_W - 2) = 14 px from HBox left
 
     private record Step(
         String icon, String color, String gradEnd,
         String title, String shortcut, String navigateId, String foco,
-        String accionTexto, Runnable accion, String[] bullets
+        String accionTexto, Runnable accion, String[] bullets, String grupo
     ) {
         Step(TutorialGuias.Paso p) {
             this(p.icon(), p.color(), p.gradEnd(), p.title(), p.shortcut(), p.navigateId(), p.foco(),
-                 p.accionTexto(), p.accion(), p.bullets());
+                 p.accionTexto(), p.accion(), p.bullets(), p.grupo());
         }
     }
 
@@ -220,11 +220,10 @@ public final class TutorialOverlay {
         ring.setVisible(false);
         ringLayer.getChildren().add(ring);
 
-        // ── Card header: icon, step, title and shortcut on the step's color ──
-        // (It was a tall band with a white circle hanging off its bottom edge,
-        // the title below it and twenty dots underneath: everything centered,
-        // the step's name far from its number.)
+        // ── Card header: the wine banner of Inicio (it used to take each step's color,
+        // red, green or gold, unlike any other header of the system) ──
         StackPane header = new StackPane();
+        header.getStyleClass().add("tutorial-header");
 
         FontIcon icon = new FontIcon();
         icon.setIconSize(24);
@@ -235,6 +234,12 @@ public final class TutorialOverlay {
 
         Label lblCounter = new Label();
         lblCounter.getStyleClass().add("tutorial-counter");
+        // Novedades: which version each step came in, so whoever updated from the
+        // previous one knows where what they haven't seen ends.
+        Label lblGrupo = new Label();
+        lblGrupo.getStyleClass().add("tutorial-grupo");
+        HBox lineaPaso = new HBox(8, lblCounter, lblGrupo);
+        lineaPaso.setAlignment(Pos.CENTER_LEFT);
         Label lblTitle = new Label();
         lblTitle.getStyleClass().add("tutorial-title");
         lblTitle.setWrapText(true);
@@ -251,12 +256,12 @@ public final class TutorialOverlay {
         StackPane shortcutWrap = new StackPane(shortcutPill);
         shortcutWrap.setAlignment(Pos.CENTER_LEFT);
 
-        VBox titulos = new VBox(3, lblCounter, lblTitle, shortcutWrap);
+        VBox titulos = new VBox(4, lineaPaso, lblTitle, shortcutWrap);
         titulos.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(titulos, Priority.ALWAYS);
         HBox headerContent = new HBox(14, iconBadge, titulos);
         headerContent.setAlignment(Pos.CENTER_LEFT);
-        headerContent.setPadding(new Insets(18, 52, 16, 20));
+        headerContent.setPadding(new Insets(18, 52, 18, 20));
 
         Button btnClose = new Button("×");
         btnClose.getStyleClass().add("tutorial-close-btn");
@@ -317,7 +322,7 @@ public final class TutorialOverlay {
         // ── Card body VBox ────────────────────────────────────────────────────
         VBox contentPad = new VBox(16, slideContent, btnProbar, btnRow, kbHint);
         contentPad.setAlignment(Pos.CENTER);
-        contentPad.setPadding(new Insets(18, 22, 14, 22));
+        contentPad.setPadding(new Insets(20, 24, 14, 24));
 
         VBox card = new VBox(0, header, progressPane, contentPad);
         card.getStyleClass().add("tutorial-card");
@@ -406,12 +411,11 @@ public final class TutorialOverlay {
             for (String b : s.bullets()) {
                 Label num = new Label(String.valueOf(n++));
                 num.getStyleClass().add("tutorial-bullet-num");
-                num.setStyle("-fx-background-color: " + hexToRgba(s.color(), 0.12) + "; -fx-text-fill: " + s.color() + ";");
                 num.setMinSize(22, 22); num.setPrefSize(22, 22); num.setMaxSize(22, 22);
                 Label lbl = new Label(b);
                 lbl.getStyleClass().add("tutorial-bullet-text");
                 lbl.setWrapText(true);
-                lbl.setMaxWidth(CARD_W - 84);
+                lbl.setMaxWidth(CARD_W - 88);
                 HBox row = new HBox(10, num, lbl);
                 row.setAlignment(Pos.TOP_LEFT);
                 row.getStyleClass().add("tutorial-bullet-row");
@@ -425,26 +429,24 @@ public final class TutorialOverlay {
                 shortcutWrap.setVisible(false); shortcutWrap.setManaged(false);
             }
 
-            progressFill.setStyle("-fx-background-color: " + s.color() + ";");
 
             boolean isFirst = step[0] == 0;
             boolean isLast  = step[0] == STEPS.length - 1;
             lblCounter.setText("PASO " + (step[0] + 1) + " DE " + STEPS.length);
+            boolean conGrupo = s.grupo() != null;
+            lblGrupo.setText(conGrupo ? s.grupo() : "");
+            lblGrupo.setVisible(conGrupo); lblGrupo.setManaged(conGrupo);
             btnPrev.setVisible(!isFirst); btnPrev.setManaged(!isFirst);
             btnNext.setText(isLast ? "Terminar  ✓" : "Siguiente →");
             btnNext.setAccessibleText(isLast ? "Terminar esta guía" : "Siguiente paso");
             boolean probar = s.accion() != null;
             btnProbar.setVisible(probar); btnProbar.setManaged(probar);
-            if (probar) {
-                btnProbar.setText("Probarlo ahora: " + s.accionTexto());
-                btnProbar.setStyle("-fx-border-color: " + s.color() + "; -fx-text-fill: " + s.color() + ";");
-                if (btnProbar.getGraphic() instanceof FontIcon fi) fi.setIconColor(Color.web(s.color()));
-            }
-            btnNext.setStyle("-fx-background-color: " + s.color()
-                + "; -fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.40) + ", 10, 0, 0, 2);");
+            if (probar) btnProbar.setText("Probarlo ahora: " + s.accionTexto());
 
             MainController mc = MainController.getInstance();
-            if (hasNav && mc != null) {
+            // The screen is already there when the step before marked something on it:
+            // loading it again was most of what a step took on a slow computer.
+            if (hasNav && mc != null && !s.navigateId().equals(mc.getVistaActual())) {
                 mc.navigateToView(s.navigateId());
             }
             dimLayer.setOpacity(marca && mc != null ? 0.22 : 0.55);
@@ -619,11 +621,7 @@ public final class TutorialOverlay {
 
     /** The arrow takes the card's left corners when it is showing. */
     private static void pintarEncabezado(StackPane header, VBox card, Step s, boolean conFlecha) {
-        header.setStyle(
-            "-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, "
-            + s.color() + ", " + s.gradEnd() + ");"
-            + " -fx-background-radius: " + (conFlecha ? "0 20 0 0" : "20 20 0 0") + ";"
-        );
+        header.setStyle("-fx-background-radius: " + (conFlecha ? "0 16 0 0" : "16 16 0 0") + ";");
         card.getStyleClass().remove("tutorial-card-with-arrow");
         if (conFlecha) card.getStyleClass().add("tutorial-card-with-arrow");
     }
@@ -674,14 +672,7 @@ public final class TutorialOverlay {
             ring.setLayoutY(bStack.getMinY() - pad);
             ring.setPrefWidth(bStack.getWidth()   + pad * 2);
             ring.setPrefHeight(bStack.getHeight() + pad * 2);
-            ring.setStyle(
-                "-fx-border-color: " + s.color() + ";"
-                + "-fx-border-width: 3;"
-                + "-fx-border-radius: 10;"
-                + "-fx-background-color: " + hexToRgba(s.color(), 0.18) + ";"
-                + "-fx-background-radius: 10;"
-                + "-fx-effect: dropshadow(gaussian, " + hexToRgba(s.color(), 0.75) + ", 26, 0.12, 0, 0);"
-            );
+            if (!ring.getStyleClass().contains("tutorial-ring")) ring.getStyleClass().add("tutorial-ring");
             ring.setVisible(true);
 
             double cardH = cardWithArrow.getHeight() > 20 ? cardWithArrow.getHeight() : 360;
@@ -725,8 +716,10 @@ public final class TutorialOverlay {
                     new KeyValue(ring.scaleXProperty(), 1.0, Interpolator.EASE_BOTH),
                     new KeyValue(ring.scaleYProperty(), 1.0, Interpolator.EASE_BOTH))
             );
-            pulseAnim[0].setCycleCount(Timeline.INDEFINITE);
-            pulseAnim[0].play();
+            // Three beats to catch the eye, then still: beating for as long as the step was
+            // open redrew the whole screen sixty times a second.
+            pulseAnim[0].setCycleCount(3);
+            if (AnimationUtils.isEnabled()) pulseAnim[0].play();
             return;
         }
 
@@ -760,13 +753,5 @@ public final class TutorialOverlay {
             );
             posAnim[0].play();
         }
-    }
-
-    private static String hexToRgba(String hex, double alpha) {
-        hex = hex.replace("#", "");
-        int r = Integer.parseInt(hex.substring(0, 2), 16);
-        int g = Integer.parseInt(hex.substring(2, 4), 16);
-        int b = Integer.parseInt(hex.substring(4, 6), 16);
-        return String.format("rgba(%d,%d,%d,%.2f)", r, g, b, alpha);
     }
 }

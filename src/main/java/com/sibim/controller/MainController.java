@@ -146,6 +146,11 @@ public class MainController {
     /** The controller for whatever view is currently loaded into contentArea. */
     public Object getCurrentController() { return currentController; }
 
+    /** The screen showing now ("productos", "dashboard"…), or null before the first one. */
+    private String vistaActual;
+
+    public String getVistaActual() { return vistaActual; }
+
     /** Used by SyncService to route toasts to the right Scene from a
      *  background poll, where it has no Node of its own to hang one off of. */
     public javafx.scene.Scene getContentAreaScene() { return contentArea.getScene(); }
@@ -478,9 +483,11 @@ public class MainController {
             AccessibilityUtils.applyAccessibleTextFromTooltips(node);
             com.sibim.util.ResponsiveHeader.installAll(node);
             com.sibim.util.TablaRedondeada.instalarTodas(node);
+            com.sibim.util.ColumnasLegibles.instalarTodas(node);
 
             if (currentController instanceof Refreshable r) r.stopAutoRefresh();
             currentController = loader.getController();
+            vistaActual = view;
 
             if (!contentArea.getChildren().isEmpty()) {
                 Node current = contentArea.getChildren().get(0);
@@ -490,11 +497,13 @@ public class MainController {
                 out.setOnFinished(ev -> {
                     contentArea.getChildren().setAll(node);
                     AnimationUtils.pageIn(node);
+                    com.sibim.util.ModoLigero.medirCambio(contentArea.getScene());
                 });
                 out.play();
             } else {
                 contentArea.getChildren().setAll(node);
                 AnimationUtils.pageIn(node);
+                com.sibim.util.ModoLigero.medirCambio(contentArea.getScene());
             }
         } catch (Exception e) {
             log.error("No se pudo cargar la vista: {}", view, e);

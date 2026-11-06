@@ -150,7 +150,7 @@
     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-bar, filter-bar-blue">
         <StackPane HBox.hgrow="ALWAYS">
             <TextField fx:id="searchField"
-                       promptText="Buscar área, secretaría o departamento..."
+                       promptText="Buscar área o secretaría…"
                        maxWidth="Infinity" styleClass="search-field"/>
             <Button fx:id="btnClearSearch" text="" styleClass="search-clear-btn"
                     StackPane.alignment="CENTER_RIGHT" visible="false"

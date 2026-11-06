@@ -22,6 +22,9 @@ public class EmptyStateUtil {
         lSub.getStyleClass().add("empty-state-subtitle");
         lSub.setWrapText(true);
         lSub.setMaxWidth(320);
+        // Without it a table's placeholder gave the text one line and cut it with "…".
+        lSub.setMinHeight(Region.USE_PREF_SIZE);
+        lSub.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         VBox box = new VBox(14, iconWrap, lTitle, lSub);
         box.getStyleClass().add("empty-state-box");
         box.setAlignment(Pos.CENTER);

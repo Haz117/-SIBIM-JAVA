@@ -157,7 +157,7 @@
         <Region styleClass="dash-section-bar"/>
         <Label text="BUSCAR Y FILTRAR" styleClass="dash-section-label"/>
         <!-- Search stays in this row so collapsing the filters never hides it. -->
-        <StackPane prefWidth="340" maxWidth="460" HBox.hgrow="SOMETIMES">
+        <StackPane prefWidth="460" maxWidth="560" HBox.hgrow="ALWAYS">
             <TextField fx:id="searchField"
                        promptText="Buscar por nombre, código, número anterior, serie, marca, resguardante…"
                        maxWidth="Infinity" styleClass="search-field"/>
@@ -183,15 +183,12 @@
             <tooltip><Tooltip text="Resguardante: persona responsable de la custodia del bien. Filtrar por encargado."/></tooltip>
         </Label>
         <Separator orientation="VERTICAL"/>
-        <!-- Each label wraps together with its field (with large text a row break
-             left "hasta:" at the end of one line and its date on the next). -->
-        <HBox spacing="10" alignment="CENTER_LEFT">
-            <Label text="Registrado desde:" styleClass="form-label"/>
-            <DatePicker fx:id="desdeRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
-        </HBox>
-        <HBox spacing="10" alignment="CENTER_LEFT">
-            <Label text="hasta:" styleClass="form-label"/>
-            <DatePicker fx:id="hastaRegFilter" prefWidth="130" onAction="#onFiltroFechaReg"/>
+        <!-- The whole range wraps as one: the row break used to leave "Registrado desde"
+             at the end of one line and "hasta" on the next. -->
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Label text="Registrado:" styleClass="form-label"/>
+            <DatePicker fx:id="desdeRegFilter" prefWidth="130" promptText="Desde" onAction="#onFiltroFechaReg"/>
+            <DatePicker fx:id="hastaRegFilter" prefWidth="130" promptText="Hasta" onAction="#onFiltroFechaReg"/>
             <Button onAction="#onLimpiarFechaReg" styleClass="btn-secondary"
                     prefWidth="28" prefHeight="28">
                 <graphic><FontIcon iconLiteral="mdi2c-close" styleClass="btn-icon"/></graphic>
@@ -205,7 +202,7 @@
         <!-- Status filter chips (populated by controller) -->
         <HBox fx:id="statusChipsBar" spacing="5" alignment="CENTER_LEFT"/>
         <Label fx:id="helpChips" text="?" styleClass="help-badge">
-            <tooltip><Tooltip text="Filtra por estado:&#10;• Activo — garantía vigente o sin garantía registrada&#10;• Vencido — garantía vencida&#10;&#10;Se combina con el resto de filtros activos." wrapText="true" maxWidth="280"/></tooltip>
+            <tooltip><Tooltip text="Filtra por la garantía del bien:&#10;• Sin vencer — garantía vigente, o sin garantía registrada&#10;• Vencida — la garantía ya venció&#10;&#10;Se combina con el resto de filtros activos." wrapText="true" maxWidth="280"/></tooltip>
         </Label>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnClearFilters" text="Limpiar filtros" onAction="#onClearFilters"
@@ -300,7 +297,7 @@
             <TableColumn fx:id="colResguardante" text="Resguardante" prefWidth="170" maxWidth="240" sortable="true" minWidth="130"/>
             <TableColumn fx:id="colStock"     text="Cantidad"           prefWidth="90"  sortable="true" minWidth="90"/>
             <TableColumn fx:id="colValor"     text="Valor Unit."     prefWidth="115" minWidth="100" sortable="true"/>
-            <TableColumn fx:id="colEstado"    text="Estado"          prefWidth="126" sortable="true" minWidth="126"/>
+            <TableColumn fx:id="colEstado"    text="Garantía"          prefWidth="126" sortable="true" minWidth="126"/>
         </columns>
         <placeholder>
             <VBox alignment="CENTER" spacing="8">
@@ -366,14 +363,9 @@
         <Button fx:id="btnMovimiento" text="Transferir" onAction="#onTransferir" styleClass="btn-secondary"
                 contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-drag-variant" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Abre «Transferir arrastrando» con los bienes seleccionados ya elegidos, para llevarlos a otra área" wrapText="true" maxWidth="260"/></tooltip>
+            <tooltip><Tooltip text="Abre «Transferir bienes» con los bienes seleccionados ya elegidos, para llevarlos a otra área" wrapText="true" maxWidth="260"/></tooltip>
         </Button>
         <Separator orientation="VERTICAL"/>
-        <Button fx:id="btnQr" text="QR" onAction="#onImprimirQr" styleClass="btn-secondary"
-                contentDisplay="LEFT" graphicTextGap="6">
-            <graphic><FontIcon iconLiteral="mdi2q-qrcode" styleClass="btn-icon"/></graphic>
-            <tooltip><Tooltip text="Ver e imprimir el código QR del bien seleccionado"/></tooltip>
-        </Button>
         <MenuButton fx:id="btnFicha" text="Ficha" styleClass="btn-secondary" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-document-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Formatos en PDF de los bienes seleccionados, con su fotografía" wrapText="true" maxWidth="260"/></tooltip>
@@ -386,6 +378,12 @@
             <graphic><FontIcon iconLiteral="mdi2t-tag-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Imprimir la etiqueta del bien seleccionado (o de todos los seleccionados)" wrapText="true" maxWidth="260"/></tooltip>
             <items>
+                <!-- "QR" was a button of its own next to this menu's "Etiqueta QR": the code of a
+                     bien and its labels, all here. -->
+                <MenuItem fx:id="miVerQr" text="Ver el código QR (de un bien)" onAction="#onImprimirQr">
+                    <graphic><FontIcon iconLiteral="mdi2q-qrcode"/></graphic>
+                </MenuItem>
+                <SeparatorMenuItem/>
                 <MenuItem text="Etiqueta de inventario (formato oficial)" onAction="#onEtiquetaFisicaSeleccion"/>
                 <MenuItem text="Etiqueta QR" onAction="#onEtiquetaQrSeleccion"/>
             </items>

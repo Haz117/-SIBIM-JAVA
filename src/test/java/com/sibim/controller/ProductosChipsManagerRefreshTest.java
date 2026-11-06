@@ -102,11 +102,29 @@ class ProductosChipsManagerRefreshTest {
         assertFalse(btnClearFilters.isManaged());
         assertFalse(btnGuardarPreset.isVisible());
         assertFalse(lblTotalAll.isVisible());
-        assertEquals("No hay bienes registrados en el sistema", emptyStateMsg.getText());
+        assertEquals(ProductosTableManager.sinBienes(), emptyStateMsg.getText());
         assertFalse(btnEmptyLimpiar.isVisible());
         assertTrue(emptyStateHint.isVisible()); // canEdit == true
         assertFalse(activeChipsBar.isVisible());
         assertTrue(activeChipsBar.getChildren().isEmpty());
+    }
+
+    /** 6-nov-2026: an área sees only its own bienes; "none in the system" was wrong for it. */
+    @Test
+    void sinBienes_patrimonioOyeQueNoHayEnElSistema_yUnAreaQueNoTieneAsignados() {
+        try {
+            com.sibim.model.Usuario admin = new com.sibim.model.Usuario();
+            admin.setId("u-adm"); admin.setNombre("Patrimonio"); admin.setRol(com.sibim.model.enums.Rol.ADMIN);
+            com.sibim.session.SessionManager.setCurrentUser(admin);
+            assertEquals("No hay bienes registrados en el sistema", ProductosTableManager.sinBienes());
+            com.sibim.model.Usuario area = new com.sibim.model.Usuario();
+            area.setId("u-dir"); area.setNombre("Contraloría"); area.setRol(com.sibim.model.enums.Rol.DIRECCION);
+            area.setArea("Contraloría Municipal");
+            com.sibim.session.SessionManager.setCurrentUser(area);
+            assertEquals("Tu área todavía no tiene bienes asignados", ProductosTableManager.sinBienes());
+        } finally {
+            com.sibim.session.SessionManager.logout();
+        }
     }
 
     @Test

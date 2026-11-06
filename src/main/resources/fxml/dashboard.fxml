@@ -82,7 +82,7 @@
                 <FontIcon iconLiteral="mdi2s-swap-horizontal" styleClass="qa-card-icon-green"/>
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label text="Transferir bienes" styleClass="qa-card-title"/>
-                    <Label text="De un área a otra, arrastrando" styleClass="qa-card-hint"/>
+                    <Label text="De un área a otra, con su resguardo" styleClass="qa-card-hint"/>
                 </VBox>
             </HBox>
         </VBox>

@@ -101,6 +101,15 @@ public final class MigrationRunner {
             log.warn("{}=true — reparando el historial de migraciones antes de migrar. "
                 + "Esto NO ejecuta el SQL de las migraciones cuyo checksum cambió.", AUTO_REPAIR_KEY);
             flyway.repair();
+            flyway.migrate();
+            return;
+        }
+        // The usual start: nothing to apply. Validating is enough (and still stops on an
+        // altered history); migrate() also took the database's lock and asked again,
+        // about three seconds more on every start against Supabase (6-nov-2026: 4 s → under 1).
+        if (flyway.info().pending().length == 0) {
+            flyway.validate();
+            return;
         }
         flyway.migrate();
     }

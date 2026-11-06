@@ -45,7 +45,7 @@
             <graphic><FontIcon iconLiteral="mdi2c-clock-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Transferencias pendientes de aprobación"/></tooltip>
         </Button>
-        <Button fx:id="btnArrastrar" text="Transferir arrastrando" onAction="#onTransferirArrastrando"
+        <Button fx:id="btnArrastrar" text="Transferir bienes" onAction="#onTransferirArrastrando"
                 styleClass="btn-primary" contentDisplay="LEFT" graphicTextGap="8">
             <graphic><FontIcon iconLiteral="mdi2d-drag-variant" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Arrastra bienes de un área a otra y asígnales su nuevo resguardante" wrapText="true" maxWidth="260"/></tooltip>
@@ -266,7 +266,7 @@
             <VBox alignment="CENTER" spacing="8">
                 <FontIcon iconLiteral="mdi2s-swap-vertical" styleClass="empty-icon-lg"/>
                 <Label text="No hay movimientos que mostrar" styleClass="empty-state-msg"/>
-                <Label text="Ajusta los filtros, o usa «Transferir arrastrando» o «Agregar o quitar»" styleClass="empty-state-hint"/>
+                <Label text="Ajusta los filtros, o usa «Transferir bienes» o «Agregar o quitar»" styleClass="empty-state-hint"/>
             </VBox>
         </placeholder>
     </TableView>

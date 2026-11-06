@@ -103,7 +103,7 @@ public class AuditoriaController {
             case "area_resguardo" -> "Resguardos de área";
             case "prestamo" -> "Préstamos";
             case "comodato" -> "Comodatos";
-            case "acta" -> "Actas E/R";
+            case "acta" -> "Actas de entrega-recepción";
             case "area" -> "Áreas";
             case "mantenimiento" -> "Mantenimiento";
             case "configuracion" -> "Configuración";

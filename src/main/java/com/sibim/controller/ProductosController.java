@@ -107,6 +107,7 @@ public class ProductosController {
     @FXML private Button btnComparar;
     @FXML private Button btnMovimiento;
     @FXML private Button btnQr;
+    @FXML private MenuItem miVerQr;
     @FXML private MenuButton btnFicha;
     @FXML private MenuButton btnEtiqueta;
     @FXML private Button btnEditar;
@@ -286,6 +287,12 @@ public class ProductosController {
         String busquedaPedida = NavigationContext.consumePendingBusqueda();
         if (busquedaPedida != null) searchField.setText(busquedaPedida);
         listo = true;
+        // «Ver el código QR» is of one bien: grayed out unless exactly one is selected.
+        if (miVerQr != null) {
+            miVerQr.setDisable(true);
+            table.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<Producto>) c ->
+                miVerQr.setDisable(table.getSelectionModel().getSelectedItems().size() != 1));
+        }
         loadData();
         AnimationUtils.staggeredFadeInUp(
             java.util.List.of(statCardTotal, statCardValor, cardAlertas, cardSinEtiquetar), 300, 55);
@@ -341,16 +348,22 @@ public class ProductosController {
 
     private void setupStatusChips() {
         estadoChipGroup = new ToggleGroup();
+        // What these filter is the garantía: "Activo / Vencido" read as the bien's own state.
+        // The filter (and the saved filters) still say Activo / Vencido underneath.
+        Label titulo = new Label("Garantía:");
+        titulo.getStyleClass().add("form-label");
+        statusChipsBar.getChildren().add(titulo);
         String[][] chips = {
-            {"Todos",      null},
-            {"Activo",     "filter-chip-green"},
-            {"Vencido",    "filter-chip-purple"}
+            {"Todos",      "Todos",   null},
+            {"Sin vencer", "Activo",  "filter-chip-green"},
+            {"Vencida",    "Vencido", "filter-chip-purple"}
         };
         for (String[] entry : chips) {
             ToggleButton chip = new ToggleButton(entry[0]);
+            chip.setUserData(entry[1]);
             chip.setToggleGroup(estadoChipGroup);
             chip.getStyleClass().add("filter-chip");
-            if (entry[1] != null) chip.getStyleClass().add(entry[1]);
+            if (entry[2] != null) chip.getStyleClass().add(entry[2]);
             if ("Todos".equals(entry[0])) chip.setSelected(true);
             chip.setOnAction(e -> { currentPage = 0; applyFilters(); });
             statusChipsBar.getChildren().add(chip);
@@ -532,7 +545,7 @@ public class ProductosController {
     private String getSelectedEstado() {
         if (estadoChipGroup == null) return "Todos";
         Toggle t = estadoChipGroup.getSelectedToggle();
-        return t == null ? "Todos" : ((ToggleButton) t).getText();
+        return t == null ? "Todos" : ProductosChipsManager.estadoDe(t);
     }
 
     /** Snapshots all filter form values on the FX thread — safe to pass to a background Task. */
@@ -1008,6 +1021,10 @@ public class ProductosController {
 
     @FXML
     private void onImprimirQr() {
+        if (table.getSelectionModel().getSelectedItems().size() != 1) {
+            NotificacionUtil.info(table.getScene(), "Selecciona un solo bien para ver su código QR");
+            return;
+        }
         Producto sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) return;
         ProductosExporter.showQrDialog(table.getScene(), sel, log);

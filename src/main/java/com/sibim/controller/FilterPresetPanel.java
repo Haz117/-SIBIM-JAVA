@@ -112,7 +112,7 @@ class FilterPresetPanel {
         if (resguardanteFilter != null) resguardanteFilter.setValue(fp.resguardante());
         if (estadoChipGroup != null && fp.estado() != null) {
             estadoChipGroup.getToggles().stream()
-                .filter(t -> fp.estado().equals(((ToggleButton) t).getText()))
+                .filter(t -> fp.estado().equals(ProductosChipsManager.estadoDe(t)))
                 .findFirst().ifPresent(estadoChipGroup::selectToggle);
         }
         onApply.run();
@@ -124,7 +124,7 @@ class FilterPresetPanel {
         String area   = areaFilter.getValue();
         String res    = resguardanteFilter != null ? resguardanteFilter.getValue() : null;
         String estado = estadoChipGroup != null
-            ? ((ToggleButton) estadoChipGroup.getSelectedToggle()).getText() : "Todos";
+            ? ProductosChipsManager.estadoDe(estadoChipGroup.getSelectedToggle()) : "Todos";
         if (presets.size() >= 10 && presets.stream().noneMatch(p -> p.name().equalsIgnoreCase(name))) {
             NotificacionUtil.advertencia(scene, "Máximo 10 presets — elimina uno antes de guardar otro");
             return;

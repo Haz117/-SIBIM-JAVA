@@ -25,20 +25,38 @@ final class TutorialGuias {
      *  @param navigateId the screen it takes you to, or null to stay where you are
      *  @param foco       what to mark: a CSS selector on that screen, or "nav:<vista>" for a
      *                    button of the side menu; null marks the screen's own menu button
-     *  @param accion     what "Probarlo ahora" does, or null when there is nothing to open */
+     *  @param accion     what "Probarlo ahora" does, or null when there is nothing to open
+     *  @param grupo      in Novedades, which version it came in ("Nuevo en esta versión"), or null */
     record Paso(String icon, String color, String gradEnd, String title, String shortcut,
-                String navigateId, String foco, String accionTexto, Runnable accion, String[] bullets) {}
+                String navigateId, String foco, String accionTexto, Runnable accion, String[] bullets,
+                String grupo) {
+        Paso(String icon, String color, String gradEnd, String title, String shortcut,
+             String navigateId, String foco, String accionTexto, Runnable accion, String[] bullets) {
+            this(icon, color, gradEnd, title, shortcut, navigateId, foco, accionTexto, accion, bullets, null);
+        }
+    }
 
     /** @param id what remembers that it was seen */
     record Guia(String id, String titulo, String descripcion, String icon, List<Paso> pasos) {}
 
     private static Paso paso(String icon, String color, String gradEnd, String title, String navigateId, String foco, String... bullets) {
-        return new Paso(icon, color, gradEnd, title, null, navigateId, foco, null, null, bullets);
+        return new Paso(icon, color, gradEnd, title, null, navigateId, foco, null, null, bullets, null);
     }
 
     private static Paso probar(Paso p, String texto, Runnable accion) {
-        return new Paso(p.icon(), p.color(), p.gradEnd(), p.title(), p.shortcut(), p.navigateId(), p.foco(), texto, accion, p.bullets());
+        return new Paso(p.icon(), p.color(), p.gradEnd(), p.title(), p.shortcut(), p.navigateId(), p.foco(), texto, accion, p.bullets(), p.grupo());
     }
+
+    /** Steps {@code desde} (inclusive) to {@code hasta} (exclusive) of {@code p}, marked as come in {@code grupo}. */
+    private static void enGrupo(List<Paso> p, int desde, int hasta, String grupo) {
+        for (int i = desde; i < Math.min(hasta, p.size()); i++) {
+            Paso x = p.get(i);
+            p.set(i, new Paso(x.icon(), x.color(), x.gradEnd(), x.title(), x.shortcut(), x.navigateId(), x.foco(),
+                x.accionTexto(), x.accion(), x.bullets(), grupo));
+        }
+    }
+
+    static final String NUEVO = "Nuevo en esta versión", ANTERIOR = "De la versión anterior", ANTES = "De versiones anteriores";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -101,6 +119,18 @@ final class TutorialGuias {
                 "Sale la hoja oficial del vehículo: sus datos, fotos, la responsiva y las tres firmas",
                 "Antes solo salían los de todos los vehículos juntos, en Reportes › Parque Vehicular",
                 "En Configuración del Sistema escribe el RFC, el domicilio y quién firma Elaboró y Vo. Bo.; el color se escribe a mano"));
+            p.add(paso("mdi2m-magnify", GUINDA, GUINDA_D, "Busca un reporte", "reportes", "#buscarReporte",
+                "Arriba en Reportes escribe lo que necesitas: vehículos, baja, resguardo, CONAC…",
+                "Encuentra también lo que está dentro de un menú, como el resguardo de cada vehículo",
+                "Sin acentos también lo encuentra"));
+            p.add(paso("mdi2c-calendar-clock", VERDE, VERDE_D, "La columna Garantía", "productos", "#statusChipsBar",
+                "En Bienes, la que decía «Estado: Activo» en todos era la garantía: ahora se llama así",
+                "Dice «Vencida» si ya venció y «—» si el bien no tiene garantía",
+                "El filtro de abajo es «Garantía: Todos · Sin vencer · Vencida»"));
+            p.add(paso("mdi2s-speedometer", DORADO, DORADO_D, "Modo ligero para computadoras lentas", "configuracion", "#chkModoLigero",
+                "En una computadora sin buena tarjeta de video quita sombras y animaciones: las pantallas y el tutorial ya no se traban",
+                "SIBIM lo enciende solo si nota que la computadora va lenta",
+                "Está en Configuración › Accesibilidad y rendimiento, por si lo quieres encender o apagar"));
             p.add(paso("mdi2d-draw", DORADO, DORADO_D, "Firmas: el nombre y abajo el cargo", "configuracion", "#tfFirmaElabora",
                 "En todos los formatos que se firman va el nombre de la persona y debajo su cargo",
                 "En Configuración del Sistema escribe quién firma: Elaboró, Vo. Bo., Síndico, Jefe de Inventarios, Tesorero, Contador y Presidente",
@@ -217,15 +247,20 @@ final class TutorialGuias {
                 "Resguardos › Más › Resguardos en lote: varias personas a la vez, un solo PDF para firmar; avisa si un nombre trae a dos personas",
                 "Cambiar resguardante y los formatos de baja ahora eligen de una lista, no a mano"),
                 "Abrir Etiquetas por área", abrir("productos", "etiquetas")));
+            // After the intro: 1.0.22 (resguardo … corregir nombre), then 1.0.21 (avance … activos biológicos).
+            int anterior = indice(p, "Avance de las áreas"), antes = indice(p, "«Por hacer» en Inicio");
+            enGrupo(p, 1, anterior, NUEVO);
+            enGrupo(p, anterior, antes, ANTERIOR);
+            enGrupo(p, antes, p.size(), ANTES);
         } else {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
                 "Cada paso te lleva a la pantalla y marca dónde está",
                 "Con «Probarlo ahora» abres la ventana de verdad"));
-            p.add(paso("mdi2c-clipboard-check-multiple-outline", VERDE, VERDE_D, "Revisa tus bienes", "dashboard", "#miAreaSection",
-                "En tu Inicio, «Revisa tus bienes» te muestra los bienes a cargo de tu área",
-                "Selecciona los que sí tienes y da «Sí son de mi área»; los que no, «No son de mi área» y escribe por qué",
+            p.add(paso("mdi2c-clipboard-check-multiple-outline", VERDE, VERDE_D, "Tu avance, en tres pasos", "dashboard", "#miAreaSection",
+                "En tu Inicio ves tus tres pasos: entrar a SIBIM, revisar tus bienes y confirmar sus etiquetas",
+                "El paso que toca tiene su botón: «Revisar mis bienes» y después «Confirmar etiquetas»",
+                "Al revisar, selecciona los que sí tienes y da «Sí son de mi área»; los que no, «No son de mi área» y escribe por qué",
                 "Ahí mismo «Actualizar datos» les pone foto, ubicación y estado físico",
-                "«Confirma tus etiquetas»: marca los que ya tienen su etiqueta pegada",
                 "Patrimonio ve en el organigrama cómo va tu área"));
             p.add(paso("mdi2f-file-remove-outline", GUINDA, GUINDA_D, "Pide una baja", "productos", "#btnEliminar",
                 "En Bienes selecciona el bien y pulsa «Solicitar baja»: escoge el motivo y di cómo está",
@@ -244,6 +279,11 @@ final class TutorialGuias {
                 "En Bienes y con Ctrl+K encuentras un bien por el número que trae pegado, el del inventario anterior"));
         }
         return new Guia("novedades", "Novedades de esta versión", "Lo que cambió, con un clic para probar cada cosa", "mdi2s-star-outline", p);
+    }
+
+    private static int indice(List<Paso> p, String titulo) {
+        for (int i = 0; i < p.size(); i++) if (p.get(i).title().equals(titulo)) return i;
+        throw new IllegalStateException("No hay paso «" + titulo + "» en Novedades");
     }
 
     private static Guia conoceElSistema() {
@@ -283,7 +323,7 @@ final class TutorialGuias {
         }));
         if (SessionManager.isAdmin()) {
             p.add(new Paso("mdi2s-swap-vertical", VERDE, VERDE_D, "Movimientos", "Ctrl + 5", "movimientos", null, null, null, new String[]{
-                "«Transferir arrastrando» lleva bienes a otra área, con su número nuevo y su resguardo",
+                "«Transferir bienes» los lleva a otra área, con su número nuevo y su resguardo",
                 "«Agregar o quitar» suma o resta piezas a un lote",
                 "Aquí queda el historial: en una transferencia, el número de antes y el nuevo, y a qué área fue"
             }));
@@ -443,9 +483,9 @@ final class TutorialGuias {
     }
 
     private static Guia transferir() {
-        return new Guia("transferir", "Transferir bienes a otra área", "Arrastrando, con número nuevo y resguardo", "mdi2d-drag-variant", List.of(
+        return new Guia("transferir", "Transferir bienes a otra área", "Con un clic, con número nuevo y resguardo", "mdi2d-drag-variant", List.of(
             paso("mdi2d-drag-variant", VERDE, VERDE_D, "1. Elige de dónde y qué", "movimientos", "#btnArrastrar",
-                "Movimientos › «Transferir arrastrando»",
+                "Movimientos › «Transferir bienes»",
                 "Elige el área de origen y marca los bienes: un clic en cada uno, o su código y Enter",
                 "Lo marcado sigue marcado aunque busques otro: marca todos los que van a la misma persona, así salen en un solo resguardo"),
             probar(paso("mdi2s-swap-horizontal-bold", VERDE, VERDE_D, "2. Llévalos al área que recibe", "movimientos", "#btnArrastrar",
@@ -453,7 +493,7 @@ final class TutorialGuias {
                 "Te pide el motivo y quién los recibe (el cargo se llena solo); salen de su resguardo anterior y se crea el nuevo",
                 "Otra vuelta a la misma área ya trae el motivo y la persona",
                 "Abajo queda lo transferido, con «Deshacer» por si fue un error"),
-                "Abrir Transferir arrastrando", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); })));
+                "Abrir Transferir bienes", () -> { NavigationContext.setPendingTransferir(); ir("movimientos").run(); })));
     }
 
     private static Guia darDeBaja() {
@@ -471,7 +511,7 @@ final class TutorialGuias {
     private static Guia prepararFormatos() {
         return new Guia("formatos", "Preparar los formatos oficiales", "Los datos que los PDF necesitan y aún no se han capturado", "mdi2f-file-certificate-outline", List.of(
             paso("mdi2c-cog-outline", GRIS, GRIS_D, "1. Datos del municipio", "configuracion", null,
-                "En Configuración captura RFC, domicilio, Elabora y Vo. Bo.",
+                "En Configuración captura RFC, domicilio, Elaboró y Vo. Bo.",
                 "Se usan en la hoja de resguardo de cada vehículo"),
             paso("mdi2o-office-building-outline", GRIS, GRIS_D, "2. Titular de cada área", "configuracion", null,
                 "En Configuración › Áreas y prefijos, doble clic en la celda Titular: escríbelo y Enter",

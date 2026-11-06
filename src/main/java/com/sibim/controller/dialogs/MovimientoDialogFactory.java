@@ -438,7 +438,7 @@ public final class MovimientoDialogFactory {
         grid.add(DialogUtil.fieldLabelWithHelp("Tipo *",
             "Agregar: suma piezas a la cantidad actual.\n" +
             "Quitar: resta piezas de la cantidad.\n" +
-            "Para mover un bien a otra área usa «Transferir arrastrando»."),
+            "Para mover un bien a otra área usa «Transferir bienes»."),
                                                          0, row); grid.add(fTipo,        1, row++);
         grid.add(lblAreaDestino,                         0, row); grid.add(fAreaDestino, 1, row++);
         grid.add(transferPreview,                        0, row++);

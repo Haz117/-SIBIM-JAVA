@@ -116,7 +116,7 @@
 
     <!-- ══ TOOLBAR ═══════════════════════════════════════════════════ -->
     <HBox fx:id="filterBar" alignment="CENTER_LEFT" spacing="10" styleClass="filter-bar, filter-bar-indigo">
-        <TextField fx:id="searchField" promptText="Persona, folio, área o código de bien…"
+        <TextField fx:id="searchField" promptText="Persona, folio, área o código…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
     </HBox>
 

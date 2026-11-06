@@ -88,3 +88,19 @@
 }
 /* En la tabla la pista vacía va más clara: con casi todo en cero no debe pesar. */
 .avance-tabla .avance-pista { -fx-background-color: sibim-slate-100; }
+
+/* ── «Tu avance» at the top of an área's Inicio (MiAreaPanel) ─────────────────────── */
+.mi-avance { -fx-padding: 16 20 16 20; }
+.mi-avance-paso {
+    -fx-min-width: 28; -fx-pref-width: 28; -fx-max-width: 28;
+    -fx-min-height: 28; -fx-pref-height: 28; -fx-max-height: 28;
+    -fx-font-size: 13px;
+}
+.mi-avance-titulo { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
+.mi-avance-detalle { -fx-font-size: 12px; }
+.mi-avance-linea {
+    -fx-min-height: 2; -fx-pref-height: 2; -fx-max-height: 2;
+    -fx-background-color: sibim-slate-200;
+}
+.mi-avance-linea.avance-linea-hecha { -fx-background-color: #235B4E; }
+.mi-avance-fin { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #235B4E; -fx-padding: 4 0 0 0; }

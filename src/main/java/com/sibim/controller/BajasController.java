@@ -143,9 +143,19 @@ public class BajasController {
         colValor.setCellValueFactory(c -> new SimpleStringProperty(FormatUtils.formatCurrency(c.getValue().getValorTotal())));
         colDefinitiva.setCellValueFactory(c -> new SimpleStringProperty(definitiva(c.getValue())));
 
-        // Ten columns on a laptop screen: the long texts get cut, so the whole text is one hover away.
+        // Eleven columns on a laptop screen: the long texts take two lines (the row has room
+        // for them) and are cut after that, so the whole text is one hover away.
+        List<TableColumn<Producto, String>> dosLineas = List.of(colNombre, colArea, colMotivo);
         for (TableColumn<Producto, String> col : List.of(colNombre, colArea, colMotivo, colDictamen, colDefinitiva))
             col.setCellFactory(c -> new TableCell<>() {
+                { if (dosLineas.contains(col)) setWrapText(true); }
+                /** Two lines at most: a long motivo doesn't make its row taller than the rest. */
+                @Override protected double computePrefHeight(double ancho) {
+                    double alto = super.computePrefHeight(ancho);
+                    if (!isWrapText()) return alto;
+                    double dos = Math.ceil(getFont().getSize() * 1.4 * 2) + snappedTopInset() + snappedBottomInset();
+                    return Math.min(alto, dos);
+                }
                 @Override protected void updateItem(String texto, boolean empty) {
                     super.updateItem(texto, empty);
                     boolean hay = !empty && texto != null && !texto.isBlank();

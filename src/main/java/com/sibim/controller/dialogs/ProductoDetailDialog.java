@@ -130,7 +130,7 @@ public final class ProductoDetailDialog {
         dialog.setTitle("Detalle del Bien");
 
         ButtonType fichaBtn    = new ButtonType("Imprimir ficha",        ButtonBar.ButtonData.LEFT);
-        ButtonType timelineBtn = new ButtonType("Cadena de custodia",    ButtonBar.ButtonData.LEFT);
+        ButtonType timelineBtn = new ButtonType("Historial del bien",    ButtonBar.ButtonData.LEFT);
         dialog.getDialogPane().getButtonTypes().addAll(fichaBtn, timelineBtn, ButtonType.CLOSE);
         dialog.getDialogPane().setPrefWidth(560);
         DialogUtil.applyStylesheet(dialog.getDialogPane());

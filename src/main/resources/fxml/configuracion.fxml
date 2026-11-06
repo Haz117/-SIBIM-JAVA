@@ -244,6 +244,16 @@
                     wrapText="true" maxWidth="280"/></tooltip>
             </Label>
         </HBox>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <CheckBox fx:id="chkModoLigero" text="Modo ligero para computadoras lentas" onAction="#onToggleModoLigero"/>
+            <Label text="?" styleClass="help-badge">
+                <tooltip><Tooltip
+                    text="Quita las sombras y las animaciones, que es lo que más tarda en dibujarse en una computadora sin buena tarjeta de video. Se ve más plano, pero las pantallas y el tutorial ya no se traban. SIBIM lo enciende solo si nota que esta computadora va lenta."
+                    wrapText="true" maxWidth="280"/></tooltip>
+            </Label>
+            <Label fx:id="lblModoLigeroAuto" text="Se encendió solo en esta computadora" styleClass="muted-sm"
+                   visible="false" managed="false"/>
+        </HBox>
         <Label text="El tamaño de texto y la densidad de filas de las tablas se ajustan desde la barra inferior de la ventana."
                styleClass="muted-sm" wrapText="true"/>
     </VBox>

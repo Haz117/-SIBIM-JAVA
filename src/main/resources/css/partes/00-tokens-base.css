@@ -68,3 +68,10 @@
 .scroll-bar .decrement-button        { -fx-background-color: transparent; -fx-padding: 0; }
 .scroll-bar .increment-arrow,
 .scroll-bar .decrement-arrow         { -fx-shape: ""; -fx-padding: 0; }
+
+/* Links ("Ver sus bienes", "Corregir nombre", "Ir a los datos", "Marcar todos"…) in the
+   system's guinda, as its other text actions ("Completar datos →"): the theme painted
+   them blue. Here, at the start, so a link with a color of its own keeps it. */
+.hyperlink,
+.hyperlink:visited         { -fx-text-fill: sibim-indigo-dark; }
+.hyperlink:hover           { -fx-text-fill: sibim-indigo; }

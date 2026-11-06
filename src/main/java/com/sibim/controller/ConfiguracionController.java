@@ -88,6 +88,8 @@ public class ConfiguracionController {
     @FXML private VBox auditSection;
     @FXML private VBox backupSection;
     @FXML private CheckBox chkAnimaciones;
+    @FXML private CheckBox chkModoLigero;
+    @FXML private Label lblModoLigeroAuto;
     @FXML private Button btnGenerarRespaldo;
     @FXML private Button btnRestaurar;
     @FXML private Button btnEditUser;
@@ -113,7 +115,13 @@ public class ConfiguracionController {
             if (badge != null) DialogUtil.enableClickToShowTooltip(badge);
         }
 
-        if (chkAnimaciones != null) chkAnimaciones.setSelected(AnimationUtils.isEnabled());
+        if (chkAnimaciones != null) chkAnimaciones.setSelected(AnimationUtils.preferido());
+        if (chkModoLigero != null) chkModoLigero.setSelected(com.sibim.util.ModoLigero.activo());
+        if (lblModoLigeroAuto != null) {
+            boolean solo = com.sibim.util.ModoLigero.automatico();
+            lblModoLigeroAuto.setVisible(solo);
+            lblModoLigeroAuto.setManaged(solo);
+        }
 
         Usuario me = SessionManager.getCurrentUser();
         if (me == null) return;
@@ -840,6 +848,12 @@ public class ConfiguracionController {
     @FXML
     private void onToggleAnimaciones() {
         AnimationUtils.setEnabled(chkAnimaciones.isSelected());
+    }
+
+    @FXML
+    private void onToggleModoLigero() {
+        com.sibim.util.ModoLigero.elegir(chkModoLigero.isSelected());
+        if (lblModoLigeroAuto != null) { lblModoLigeroAuto.setVisible(false); lblModoLigeroAuto.setManaged(false); }
     }
 
     // ── Respaldo y restauración ──────────────────────────────────────────

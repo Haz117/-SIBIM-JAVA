@@ -154,7 +154,7 @@ class TutorialGuiasTest extends ApplicationTest {
         entrarComo(Rol.ADMIN);
         boolean[] abierta = {false};
         TutorialGuias.Paso paso = new TutorialGuias.Paso("mdi2b-book-open-outline", "#A2232D", "#5A141A", "Prueba", null, null, null,
-            "Abrir la prueba", () -> abierta[0] = true, new String[]{"Algo que hacer"});
+            "Abrir la prueba", () -> abierta[0] = true, new String[]{"Algo que hacer"}, null);
         TutorialGuias.Guia guia = new TutorialGuias.Guia("prueba-" + System.nanoTime(), "Prueba", "Prueba", "mdi2b-book-open-outline", List.of(paso));
         Platform.runLater(() -> TutorialOverlay.buildAndShow(raiz, guia));
         WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, () -> raiz.lookup(".tutorial-btn-probar") != null);

@@ -53,6 +53,13 @@ public class LoginController {
         errorLabel.setVisible(false);
         spinner.setVisible(false);
 
+        // The form no wider than a form: maximized at 1366 px its fields were 840 px wide.
+        // The panel keeps its background; the margins grow and the fields stay centered.
+        if (formPanel != null) formPanel.widthProperty().addListener((o, antes, ancho) -> {
+            double lado = Math.max(64, (ancho.doubleValue() - 460) / 2);
+            formPanel.setPadding(new javafx.geometry.Insets(64, lado, 64, lado));
+        });
+
         // Show/hide password — PasswordField itself can't reveal its text,
         // so passwordRevealField is a plain TextField kept in sync and
         // swapped in visually; passwordField.getText() (what handleLogin

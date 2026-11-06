@@ -112,7 +112,7 @@ public final class TransferenciaArrastreDialog {
     private void abrir(List<Producto> productos, List<String> preseleccion) {
         dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
-        dialog.setTitle("Transferir arrastrando");
+        dialog.setTitle("Transferir bienes");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         // Also on a 1366×768 laptop: never bigger than the screen.
         javafx.geometry.Rectangle2D pantalla = javafx.stage.Screen.getPrimary().getVisualBounds();
@@ -121,8 +121,8 @@ public final class TransferenciaArrastreDialog {
         dialog.setResizable(true);
         DialogUtil.applyStylesheet(dialog.getDialogPane());
 
-        HBox header = DialogUtil.gradientHeader("mdi2d-drag-variant", "Transferir arrastrando",
-            "Elige el área de origen, marca los bienes y llévalos al área que los recibe",
+        HBox header = DialogUtil.gradientHeader("mdi2d-drag-variant", "Transferir bienes",
+            "Elige el área de origen, marca los bienes y da clic en el área que los recibe",
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         origen.setPromptText("Buscar el área de origen…");

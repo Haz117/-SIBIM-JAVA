@@ -108,14 +108,14 @@ class ProductosChipsManager {
                     activeFilters.add("categoría «" + categoriaFilter.getValue().getNombre() + "»");
                 if (area != null) activeFilters.add("área «" + area + "»");
                 if (resguardante != null) activeFilters.add("resguardante «" + resguardante + "»");
-                if (estado != null) activeFilters.add("estado «" + estado.getEtiqueta() + "»");
+                if (estado != null) activeFilters.add("garantía «" + garantia(estado) + "»");
                 if (desdeReg != null) activeFilters.add("desde " + desdeReg.format(DateTimeFormatter.ofPattern("dd/MM/yy")));
                 if (hastaReg != null) activeFilters.add("hasta " + hastaReg.format(DateTimeFormatter.ofPattern("dd/MM/yy")));
                 if (sinEtiquetar) activeFilters.add("sin etiquetar");
                 String filterDesc = activeFilters.isEmpty() ? "" : " (" + String.join(", ", activeFilters) + ")";
                 emptyStateMsg.setText("No se encontraron bienes" + filterDesc);
             } else {
-                emptyStateMsg.setText("No hay bienes registrados en el sistema");
+                emptyStateMsg.setText(ProductosTableManager.sinBienes());
             }
         }
         if (btnEmptyLimpiar != null) {
@@ -146,7 +146,7 @@ class ProductosChipsManager {
         if (resguardante != null)
             chips.add(buildChip("Resguardante: " + resguardante, () -> { resguardanteFilter.setValue(null); applyFilters.run(); }));
         if (estado != null)
-            chips.add(buildChip("Estado: " + estado.getEtiqueta(), () -> {
+            chips.add(buildChip("Garantía: " + garantia(estado), () -> {
                 if (estadoChipGroup != null)
                     estadoChipGroup.getToggles().stream()
                         .filter(t -> "Todos".equals(((ToggleButton) t).getText()))
@@ -181,6 +181,17 @@ class ProductosChipsManager {
         chip.getStyleClass().add("active-chip");
         chip.setAlignment(Pos.CENTER_LEFT);
         return chip;
+    }
+
+    /** The filter's value under a chip: "Activo" / "Vencido" (what the saved filters keep),
+     *  whatever the chip says on screen. */
+    static String estadoDe(javafx.scene.control.Toggle t) {
+        if (t == null) return "Todos";
+        return t.getUserData() instanceof String s ? s : ((ToggleButton) t).getText();
+    }
+
+    static String garantia(EstadoProducto e) {
+        return e == EstadoProducto.VENCIDO ? "vencida" : "sin vencer";
     }
 
     static EstadoProducto parseEstado(String etiqueta) {

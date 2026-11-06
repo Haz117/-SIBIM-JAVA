@@ -328,7 +328,7 @@ class CalidadDatosServiceTest {
     @Test
     void faltanEnConfiguracion_diceQue_conSusPalabras() {
         var faltan = CalidadDatosService.faltanEnConfiguracion(Map.of("rfc_municipio", "X", "firma_vobo", "  ", "titular_area:Tesorería", "ANA"), 3);
-        assertEquals(List.of("Domicilio", "Elabora", "Vo. Bo.", "Titular de 2 áreas"), faltan);
+        assertEquals(List.of("Domicilio", "Elaboró", "Vo. Bo.", "Titular de 2 áreas"), faltan);
         assertTrue(CalidadDatosService.faltanEnConfiguracion(Map.of("rfc_municipio", "X", "domicilio_municipio", "X", "firma_elabora", "X",
             "firma_vobo", "X", "titular_area:Tesorería", "ANA"), 1).isEmpty());
     }
