@@ -281,14 +281,16 @@ public class ReporteResguardoService extends ReporteService {
                 .setBorder(new SolidBorder(GRAY_300, 0.5f))
                 .setPadding(6)));
 
-        // 6-nov-2026: no TIPO BIEN, ASIGNACIÓN or COLOR; the PRECIO instead. The áreas
-        // (direcciones) don't see amounts, so for them the column isn't there at all.
+        // 6-nov-2026: no TIPO BIEN, ASIGNACIÓN or COLOR; MARCA, SERIE and PRECIO instead.
+        // The áreas (direcciones) don't see amounts, so for them PRECIO isn't there at all.
         // The general one keeps who holds each bien (its individual resguardo).
         boolean conPrecio = com.sibim.session.Permisos.veValores();
         List<String> hdrs = new ArrayList<>(List.of("NO.", "INVENTARIO", "CONCEPTO"));
-        List<Float> anchos = new ArrayList<>(List.of(0.55f, 1.4f, general ? 3.6f : 5.2f));
-        if (general) { hdrs.add("RESGUARDANTE"); anchos.add(2.3f); }
-        if (conPrecio) { hdrs.add("PRECIO"); anchos.add(1.6f); }
+        List<Float> anchos = new ArrayList<>(List.of(0.55f, 1.35f, general ? 2.6f : 3.6f));
+        if (general) { hdrs.add("RESGUARDANTE"); anchos.add(1.9f); }
+        hdrs.add("MARCA"); anchos.add(1.3f);
+        hdrs.add("SERIE"); anchos.add(1.5f);
+        if (conPrecio) { hdrs.add("PRECIO"); anchos.add(1.5f); }
         float[] cw = new float[anchos.size()];
         for (int k = 0; k < cw.length; k++) cw[k] = anchos.get(k);
         // Fixed: a long word in a column ("ADMINISTRACIÓN") pushed the table past the margin.
@@ -315,6 +317,10 @@ public class ReporteResguardoService extends ReporteService {
             if (general)
                 vals.add(p != null && p.getResguardante() != null && !p.getResguardante().isBlank()
                     ? upper(p.getResguardante()) : "SIN RESGUARDO INDIVIDUAL");
+            vals.add(p != null && p.getMarca() != null && !p.getMarca().isBlank() ? upper(p.getMarca().trim()) : "—");
+            String serie = p != null && p.getNumeroSerie() != null && !p.getNumeroSerie().isBlank()
+                ? p.getNumeroSerie() : item.getNumeroSerie();
+            vals.add(serie != null && !serie.isBlank() ? upper(serie.trim()) : "—");
             if (conPrecio) {
                 // The bien's cost as it is now (a lote's cost may have been corrected since).
                 java.math.BigDecimal pieza = p != null && p.getPrecioCompra() != null ? p.getPrecioCompra() : item.getValorUnitario();

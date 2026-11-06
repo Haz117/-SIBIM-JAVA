@@ -41,7 +41,7 @@ class ReporteResguardoServiceTest {
     void setUp() {
         activo = new Producto();
         activo.setId("p-01"); activo.setNombre("Laptop HP Elite"); activo.setCodigo("INF-001");
-        activo.setDescripcion("15 pulgadas, 16GB RAM"); activo.setNumeroSerie("SN-12345");
+        activo.setDescripcion("15 pulgadas, 16GB RAM"); activo.setNumeroSerie("SN-12345"); activo.setMarca("Hewlett Packard");
         activo.setArea("Sala de cómputo"); activo.setUbicacion("Edificio A, Piso 2");
         activo.setResguardante("Juan Pérez");
         activo.setPrecioCompra(BigDecimal.valueOf(15000)); activo.setPrecioVenta(BigDecimal.valueOf(18000));
@@ -90,6 +90,23 @@ class ReporteResguardoServiceTest {
         assertTrue(todo.toUpperCase().contains("SIN RESGUARDANTE"));
     }
 
+    /** 6-nov-2026: only a vehicle chosen in Bienes › Resguardo PDF prints the municipio's
+     *  vehicle sheet (one vehicle without printing all of them from Reportes). */
+    @Test void soloVehiculosElegidos_salenEnLaHojaDeVehiculo() throws Exception {
+        Producto camioneta = new Producto();
+        camioneta.setId("p-05"); camioneta.setNombre("Camioneta Ford Ranger"); camioneta.setCodigo("DDU/99");
+        camioneta.setClaveArmonizada("1.2.4.4.1"); camioneta.setMarca("FORD"); camioneta.setNumeroSerie("1FTDR10C0YPB00000");
+        camioneta.setResguardante("Juan Pérez"); camioneta.setStockActual(1);
+        File pdf = ReporteService.getInstance().exportarResguardoPorResguardante(List.of(camioneta));
+        String texto;
+        try (var doc = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+            texto = com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(doc.getPage(1));
+        }
+        assertTrue(texto.contains("PARQUE VEHICULAR"), "la hoja del vehículo");
+        assertTrue(texto.contains("1FTDR10C0YPB00000"), "su número de serie");
+        assertFalse(texto.contains("RSP-"), "no el resguardo de bienes muebles");
+    }
+
     /** Printed from a selection in Bienes without registering a resguardo: its own
      *  folio series, so the registered resguardos (RSG) keep a numbering without gaps. */
     @Test void resguardoSinRegistrar_noTomaFolioDeLosRegistrados() throws Exception {
@@ -102,8 +119,8 @@ class ReporteResguardoServiceTest {
         assertFalse(texto.contains("RSG-"), "no consume un folio RSG");
     }
 
-    /** 6-nov-2026: the list of bienes is NO., INVENTARIO, CONCEPTO and PRECIO (a lote's
-     *  total with its pieces × cost) with the TOTAL; no TIPO BIEN, ASIGNACION or COLOR.
+    /** 6-nov-2026: the list of bienes is NO., INVENTARIO, CONCEPTO, MARCA, SERIE and PRECIO
+     *  (a lote's total with its pieces × cost) with the TOTAL; no TIPO BIEN, ASIGNACION or COLOR.
      *  An área (dirección) doesn't see amounts: no PRECIO column for it. */
     @Test void listaDeBienes_conPrecioYTotal_sinTipoNiColor_yUnAreaNoVeElPrecio() throws Exception {
         java.util.function.Supplier<String> texto = () -> {
@@ -121,6 +138,8 @@ class ReporteResguardoServiceTest {
             com.sibim.session.SessionManager.setCurrentUser(admin);
             String t = texto.get();
             assertTrue(t.contains("PRECIO"), t);
+            for (String va : List.of("MARCA", "SERIE", "HEWLETT", "PACKARD", "SN-12345"))
+                assertTrue(t.contains(va), va + " en: " + t);
             assertTrue(t.contains("$75,000.00"), "el lote: 5 piezas × $15,000");
             assertTrue(t.contains("5 × $15,000.00"), t);
             assertTrue(t.contains("TOTAL"), t);
@@ -134,6 +153,7 @@ class ReporteResguardoServiceTest {
             String deArea = texto.get();
             assertFalse(deArea.contains("PRECIO"), "un área no ve importes");
             assertFalse(deArea.contains("15,000"), "un área no ve importes");
+            assertTrue(deArea.contains("HEWLETT") && deArea.contains("SN-12345"), "marca y serie sí");
         } finally {
             com.sibim.session.SessionManager.logout();
         }
@@ -154,7 +174,7 @@ class ReporteResguardoServiceTest {
         assertTrue(texto.contains("RGA-"), "Folio de la serie RGA, no de los resguardos registrados");
         assertTrue(texto.contains("RESGUARDANTE"), "Columna del resguardante individual");
         assertTrue(texto.contains("JUAN PÉREZ") || texto.contains("JUAN PEREZ"), "Resguardante del bien");
-        assertTrue(texto.contains("SIN RESGUARDO INDIVIDUAL"), "Bien sin resguardante");
+        assertTrue(texto.contains("SIN RESGUARDO"), "Bien sin resguardante");   // wraps in its column
         assertTrue(texto.toUpperCase().contains("ANA RUIZ"), "Titular que firma");
     }
 

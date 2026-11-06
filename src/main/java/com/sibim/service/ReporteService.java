@@ -1083,6 +1083,10 @@ public class ReporteService {
      *  in a single PDF. All of them used to go under the first one's name, a paper to
      *  sign for bienes that person doesn't hold. */
     public File exportarResguardoPorResguardante(List<Producto> bienes) throws Exception {
+        // Only vehicles chosen: the municipio's own vehicle sheet, one each (as Resguardos
+        // prints a resguardo of vehicles) — one vehicle's resguardo without printing all 130.
+        if (!bienes.isEmpty() && bienes.stream().allMatch(ReporteParqueVehicularService::esVehiculo))
+            return new ReporteResguardoVehicularService().exportar(bienes);
         Map<String, List<Producto>> porPersona = new LinkedHashMap<>();
         Map<String, String> nombres = new HashMap<>();
         for (Producto p : bienes) {
