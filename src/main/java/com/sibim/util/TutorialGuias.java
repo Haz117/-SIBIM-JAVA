@@ -88,13 +88,42 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Hay pantallas nuevas para corregir los datos del inventario y varias se rediseñaron",
+                "Primero lo más nuevo: el resguardo con marca, serie y precio, el resguardo de un vehículo y las firmas con nombre y cargo",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+            p.add(paso("mdi2f-file-document-outline", GUINDA, GUINDA_D, "Resguardo con marca, serie y precio", "productos", "#searchField",
+                "La lista de bienes del resguardo trae Marca, Serie y Precio, con el Total al final",
+                "Ya no lleva Tipo de bien, Asignación ni Color",
+                "En un lote, el precio es el total y abajo dice cuántas piezas por cuánto",
+                "Las áreas ven la marca y la serie, pero no el precio"));
+            p.add(paso("mdi2c-car-outline", VERDE, VERDE_D, "El resguardo de un vehículo", "productos", "#searchField",
+                "Busca el vehículo en Bienes, márcalo y pulsa «Resguardo PDF» en la barra de abajo",
+                "Sale la hoja oficial del vehículo: sus datos, fotos, la responsiva y las tres firmas",
+                "Antes solo salían los de todos los vehículos juntos, en Reportes › Parque Vehicular",
+                "En Configuración del Sistema escribe el RFC, el domicilio y quién firma Elaboró y Vo. Bo.; el color se escribe a mano"));
+            p.add(paso("mdi2d-draw", DORADO, DORADO_D, "Firmas: el nombre y abajo el cargo", "configuracion", "#tfFirmaElabora",
+                "En todos los formatos que se firman va el nombre de la persona y debajo su cargo",
+                "En Configuración del Sistema escribe quién firma: Elaboró, Vo. Bo., Síndico, Jefe de Inventarios, Tesorero, Contador y Presidente",
+                "Si un nombre queda vacío, el formato dice «Nombre y firma» para escribirlo a mano"));
+            p.add(paso("mdi2s-scale-balance", VERDE, VERDE_D, "Reportes para Tesorería y Transparencia", "reportes", "#listaFormatos .report-row",
+                "«Saldos por cuenta contable (CONAC)»: costo, depreciación y valor en libros por cuenta, para cuadrar con Tesorería",
+                "«Relación de Bienes Muebles (para publicar)»: el formato CONAC con código, descripción y valor en libros, sin datos personales",
+                "Los dos salen en PDF y en Excel"));
+            p.add(probar(paso("mdi2c-calculator-variant-outline", GUINDA, GUINDA_D, "Costo de los lotes", "productos", "#btnMasBienes",
+                "Bienes › Más › Costo de los lotes: los bienes de varias piezas, de mayor a menor total",
+                "Si el costo capturado es el total de la factura, «Es el total del lote» lo divide entre las piezas",
+                "Si te equivocas, «Deshacer» en el mismo renglón lo regresa"),
+                "Abrir Costo de los lotes", abrir("productos", "lotes")));
+            p.add(probar(paso("mdi2a-account-edit-outline", DORADO, DORADO_D, "Corregir el nombre de una persona", "reportes", "#listaListados .report-row",
+                "Busca a la persona en «Resguardos por resguardante» y pulsa «Corregir nombre»",
+                "Se corrige de una vez en sus bienes, sus resguardos vigentes y donde sea titular de área",
+                "Al terminar, «Deshacer» lo regresa"),
+                "Abrir el reporte", abrir("reportes", "resguardante")));
             p.add(paso("mdi2s-stairs-up", VERDE, VERDE_D, "Avance de las áreas", "organigrama", "#btnAvanceAreas",
                 "Cada área tiene tres fases: 1 entrar a SIBIM, 2 revisar sus bienes y llenar lo que falte, 3 confirmar sus etiquetas",
                 "En el organigrama cada área lleva sus pasos 1·2·3; verde es hecho, dorado es a medias",
                 "Un clic en los pasos de un área abre su detalle; «Avance de las áreas» las muestra todas en una tabla",
+                "En esa tabla filtras por fase, buscas un área y ves cuáles todavía no entran",
                 "Si un área dice que un bien no es suyo, aparece en «Por hacer» para que lo revises"));
             p.add(paso("mdi2n-numeric", GUINDA, GUINDA_D, "Los números ya no se repiten", "productos", "#searchField",
                 "El número de un bien dado de baja, transferido o borrado ya no se le da a otro bien",
@@ -121,24 +150,6 @@ final class TutorialGuias {
             p.add(paso("mdi2p-paw-outline", VERDE, VERDE_D, "Activos Biológicos", "categorias", null,
                 "Categoría nueva para animales y plantas del municipio (cuenta CONAC 1.2.4.8)",
                 "En la clave armonizada de cada bien puedes poner su subcuenta: perros 1.2.4.8.7, caballos 1.2.4.8.6…"));
-            p.add(paso("mdi2d-draw", DORADO, DORADO_D, "Firmas: el nombre y abajo el cargo", "configuracion", "#tfFirmaElabora",
-                "En todos los formatos que se firman va el nombre de la persona y debajo su cargo",
-                "En Configuración del Sistema escribe quién firma: Elaboró, Vo. Bo., Síndico, Jefe de Inventarios, Tesorero, Contador y Presidente",
-                "Si un nombre queda vacío, el formato dice «Nombre y firma» para escribirlo a mano"));
-            p.add(paso("mdi2s-scale-balance", VERDE, VERDE_D, "Reportes para Tesorería y Transparencia", "reportes", "#listaFormatos .report-row",
-                "«Saldos por cuenta contable (CONAC)»: costo, depreciación y valor en libros por cuenta, para cuadrar con Tesorería",
-                "«Relación de Bienes Muebles (para publicar)»: el formato CONAC con código, descripción y valor en libros, sin datos personales",
-                "Los dos salen en PDF y en Excel"));
-            p.add(probar(paso("mdi2c-calculator-variant-outline", GUINDA, GUINDA_D, "Costo de los lotes", "productos", "#btnMasBienes",
-                "Bienes › Más › Costo de los lotes: los bienes de varias piezas, de mayor a menor total",
-                "Si el costo capturado es el total de la factura, «Es el total del lote» lo divide entre las piezas",
-                "Si te equivocas, «Deshacer» en el mismo renglón lo regresa"),
-                "Abrir Costo de los lotes", abrir("productos", "lotes")));
-            p.add(probar(paso("mdi2a-account-edit-outline", DORADO, DORADO_D, "Corregir el nombre de una persona", "reportes", "#listaListados .report-row",
-                "Busca a la persona en «Resguardos por resguardante» y pulsa «Corregir nombre»",
-                "Se corrige de una vez en sus bienes, sus resguardos vigentes y donde sea titular de área",
-                "Al terminar, «Deshacer» lo regresa"),
-                "Abrir el reporte", abrir("reportes", "resguardante")));
             p.add(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "«Por hacer» en Inicio", "dashboard", "#porHacerSection",
                 "Lo que le falta al inventario, con su número real",
                 "Un clic te lleva a la pantalla que lo resuelve; lo que ya quedó deja de aparecer"));
