@@ -92,6 +92,8 @@ public final class UsuarioDialogFactory {
 
         List<String> areaNames = new java.util.ArrayList<>(Areas.getAllAreaNames());
         ComboBox<String> fArea = new ComboBox<>(FXCollections.observableArrayList(areaNames));
+        com.sibim.controller.FiltroArea.conIconos(fArea);
+        DialogUtil.makeFilterable(fArea, areaNames);
         fArea.setValue(existing != null ? existing.getArea() : null);
         fArea.setPromptText("Selecciona el área asignada");
         fArea.setMaxWidth(Double.MAX_VALUE);

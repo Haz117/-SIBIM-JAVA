@@ -828,11 +828,18 @@ public final class OfflineStore {
     public static synchronized void updateProductoArea(String id, String newArea) throws SQLException {
         ensureLoaded();
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> {
+            // In another área the bien is reviewed again (V34's trigger online).
+            if (!java.util.Objects.equals(p.getArea(), newArea)) {
+                p.setRevisadoAreaEn(null);
+                p.setRevisadoAreaPor(null);
+                p.setRevisionAreaNota(null);
+            }
             p.setArea(newArea);
             p.setActualizadoEn(LocalDateTime.now());
         });
         try (PreparedStatement ps = conn().prepareStatement(
-                "UPDATE products SET area = ?, updated_at = ? WHERE id = ?")) {
+                "UPDATE products SET area = ?, updated_at = ?, revisado_area_en = NULL, revisado_area_por = NULL, "
+                + "revision_area_nota = NULL WHERE id = ?")) {
             ps.setString(1, newArea);
             ps.setString(2, str(LocalDateTime.now()));
             ps.setString(3, id);
@@ -1002,7 +1009,7 @@ public final class OfflineStore {
             if (p == null) throw new SQLException("Bien no encontrado: " + m.getProductoId());
             // Same rules as online; a transfer's código is re-assigned by the
             // server when this movement syncs.
-            com.sibim.db.ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosActivos());
+            com.sibim.db.ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosUsados());
             int stockNuevo = m.getStockNuevo();
             if (m.getCreadoEn() == null) m.setCreadoEn(LocalDateTime.now());
             boolean transferencia = m.getAreaOrigen() != null;
@@ -1032,6 +1039,15 @@ public final class OfflineStore {
         return PRODUCTOS.stream().filter(x -> !x.isDadoDeBaja()).map(Producto::getCodigo).toList();
     }
 
+    /** Every código this PC knows was used: its bienes' (active or de baja) and
+     *  those of its transfers. The server picks the final one when it syncs. */
+    public static synchronized List<String> codigosUsados() {
+        List<String> todos = new ArrayList<>();
+        PRODUCTOS.forEach(p -> todos.add(p.getCodigo()));
+        MOVIMIENTOS.forEach(m -> { todos.add(m.getCodigoAnterior()); todos.add(m.getCodigoNuevo()); });
+        return todos;
+    }
+
     /** Only the most recent movement for a product may be deleted — same
      *  rule as DemoDataStore/MovimientoRepository (MOVIMIENTOS is
      *  newest-first). */
@@ -1051,7 +1067,7 @@ public final class OfflineStore {
                 }
                 if (com.sibim.db.ReglasLocales.aplicado(m) && p != null) {
                     com.sibim.db.ReglasLocales.Deshacer r =
-                        com.sibim.db.ReglasLocales.deshacer(m, p, codigosActivos());
+                        com.sibim.db.ReglasLocales.deshacer(m, p, codigosActivos(), codigosUsados());
                     updateProductoStock(m.getProductoId(), r.stock());
                     updateProductoArea(m.getProductoId(), r.area());
                     updateProductoCodigo(m.getProductoId(), r.codigo());

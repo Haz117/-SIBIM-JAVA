@@ -80,14 +80,15 @@ class DemoDataStoreTest {
     // ── findAllCategorias ─────────────────────────────────────────────────────
 
     @Test
-    void findAllCategorias_retorna6Categorias() {
+    void findAllCategorias_retorna7Categorias() {
         List<Categoria> cats = DemoDataStore.findAllCategorias();
-        assertEquals(6, cats.size());
+        assertEquals(7, cats.size(), "las 6 de siempre y Activos Biológicos (1.0.21)");
     }
 
     @Test
     void findAllCategorias_totalProductosMayorACero() {
-        DemoDataStore.findAllCategorias().forEach(c ->
+        // Activos Biológicos (1.0.21) llegó sin bienes de ejemplo en la demo.
+        DemoDataStore.findAllCategorias().stream().filter(c -> !"cat-activos-biologicos".equals(c.getId())).forEach(c ->
             assertTrue(c.getTotalProductos() > 0,
                 "Categoría " + c.getNombre() + " debe tener al menos 1 producto"));
     }

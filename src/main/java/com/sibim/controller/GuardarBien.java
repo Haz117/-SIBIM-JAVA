@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 /** Saving a bien edited in a form, the same from every screen: the photos
  *  resized and uploaded (or kept on this PC until Storage is reachable), the
  *  record, its photo list, and the ficha its QR downloads. */
-final class GuardarBien {
+public final class GuardarBien {
 
     private GuardarBien() {}
 
@@ -28,7 +28,7 @@ final class GuardarBien {
     /** The áreas' short form (ActualizarBienDialog): opens it with the bien's
      *  photos and the known ubicaciones, saves, and hands the saved bien to
      *  {@code alGuardar}. */
-    static void actualizarDatos(Scene scene, ProductoService servicio, Producto bien, Logger log,
+    public static void actualizarDatos(Scene scene, ProductoService servicio, Producto bien, Logger log,
                                 java.util.function.Consumer<Producto> alGuardar) {
         record Datos(java.util.List<String> fotos, java.util.List<String> ubicaciones) {}
         com.sibim.util.DialogUtil.runAsyncWithProgress(scene, "Abriendo el bien…",

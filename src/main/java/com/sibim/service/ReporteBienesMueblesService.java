@@ -63,8 +63,8 @@ public class ReporteBienesMueblesService extends ReporteService {
             addTextoResponsiva(doc, reg, resguardante, area);
             addFirmasBlock(doc,
                 new String[]{"RECIBÍ DE CONFORMIDAD", nvl(resguardante), nvl(cargo)},
-                new String[]{"SUPERVISÓ", null, "Director de Recursos Materiales"},
-                new String[]{"VO.BO.", null, "Secretario General Municipal"});
+                new String[]{"SUPERVISÓ", nombreDirectorPatrimonio(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", firmaVoBo(), "Secretario General Municipal"});
         }
         return numerarPaginas(file);
     }

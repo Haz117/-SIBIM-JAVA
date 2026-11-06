@@ -362,8 +362,9 @@ public class ReporteResguardoService extends ReporteService {
         Table t = new Table(UnitValue.createPercentArray(new float[]{1f, 1f, 1f, 1f}))
             .useAllAvailableWidth().setFixedLayout().setMarginTop(16).setKeepTogether(true);
 
-        String elaboro = r.getCreadoPorNombre() != null && !r.getCreadoPorNombre().isBlank()
-            ? r.getCreadoPorNombre() : null;
+        // «Elaboró»: the name typed in Configuración (as the vehicle resguardo), else who made it.
+        String elaboro = nombreDirectorPatrimonio() != null ? nombreDirectorPatrimonio()
+            : r.getCreadoPorNombre() != null && !r.getCreadoPorNombre().isBlank() ? r.getCreadoPorNombre() : null;
         String resguardante = r.getResguardanteNombre() != null && !r.getResguardanteNombre().isBlank()
             && !"—".equals(r.getResguardanteNombre()) ? r.getResguardanteNombre() : null;
         String cargo        = r.getResguardanteCargo()  != null && !r.getResguardanteCargo().isBlank()
@@ -372,8 +373,8 @@ public class ReporteResguardoService extends ReporteService {
         String[][] firmas = {
             {"RECIBÍ DE CONFORMIDAD", resguardante, cargo},
             {"ELABORÓ",               elaboro,      "Director de Recursos Materiales"},
-            {"VO.BO.",                null,         "Secretario General Municipal"},
-            {"SUPERVISÓ",             null,         "Síndico Hacendario"},
+            {"VO.BO.",                firmaVoBo(),  "Secretario General Municipal"},
+            {"SUPERVISÓ",             firma(FIRMA_SINDICO), "Síndico Hacendario"},
         };
 
         for (String[] f : firmas) {

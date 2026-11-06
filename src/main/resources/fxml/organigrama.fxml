@@ -38,6 +38,11 @@
                 </MenuItem>
             </items>
         </MenuButton>
+        <Button fx:id="btnAvanceAreas" text="Avance de las áreas" onAction="#onAvanceAreas" styleClass="btn-secondary"
+                contentDisplay="LEFT" graphicTextGap="8">
+            <graphic><FontIcon iconLiteral="mdi2s-stairs-up" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Cómo va cada área: 1 iniciar sesión, 2 revisar sus bienes y llenar lo que falte, 3 confirmar etiquetas" wrapText="true" maxWidth="260"/></tooltip>
+        </Button>
         <Separator orientation="VERTICAL"/>
         <Button fx:id="btnToggleResumen" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2c-chevron-up" styleClass="btn-icon"/></graphic>
@@ -121,6 +126,11 @@
             <Label text="valor total del inventario" styleClass="rich-stat-hint"/>
         </VBox>
     </HBox>
+
+    <!-- ══ AVANCE DE LAS ÁREAS (1 sesión · 2 revisión · 3 etiquetas) ═══ -->
+    <VBox fx:id="avanceCard" styleClass="card" spacing="12" visible="false" managed="false">
+        <padding><Insets top="14" right="18" bottom="14" left="18"/></padding>
+    </VBox>
 
     <!-- ══ DISTRIBUCIÓN POR ÁREA (Top 5) ═══════════════════════════ -->
     <VBox fx:id="areaDistribCard" styleClass="card" spacing="12" visible="false" managed="false">

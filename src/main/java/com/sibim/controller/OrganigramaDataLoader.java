@@ -24,7 +24,8 @@ class OrganigramaDataLoader {
         Map<String, List<Producto>> productosPorArea,
         Map<String, List<Resguardo>> resguardosPorArea,
         Map<String, List<Prestamo>> prestamosPorArea,
-        Map<String, List<Comodato>> comodatosPorArea
+        Map<String, List<Comodato>> comodatosPorArea,
+        Map<String, com.sibim.service.AvanceAreasService.Avance> avance
     ) {}
 
     private final ProductoService  productoService;
@@ -52,12 +53,16 @@ class OrganigramaDataLoader {
                 java.util.concurrent.CompletableFuture<List<Resguardo>> resguardos;
                 java.util.concurrent.CompletableFuture<List<Prestamo>> prestamos;
                 java.util.concurrent.CompletableFuture<List<Comodato>> comodatos;
+                java.util.concurrent.CompletableFuture<Map<String, java.time.LocalDateTime>> accesos;
                 Map<String, List<Producto>> porArea;
-                try (var paralelo = java.util.concurrent.Executors.newFixedThreadPool(3)) {
+                List<Producto> todos;
+                try (var paralelo = java.util.concurrent.Executors.newFixedThreadPool(4)) {
                     resguardos = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(resguardoService::getAll, "resguardos"), paralelo);
                     prestamos  = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(prestamoService::getActivos, "préstamos"), paralelo);
                     comodatos  = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(comodatoService::getVigentes, "comodatos"), paralelo);
-                    porArea = productoService.getAll().stream()
+                    accesos    = java.util.concurrent.CompletableFuture.supplyAsync(this::accesos, paralelo);
+                    todos = productoService.getAll();
+                    porArea = todos.stream()
                         .filter(p -> p.getArea() != null && !p.getArea().isBlank())
                         .collect(Collectors.groupingBy(Producto::getArea));
                 }
@@ -98,11 +103,23 @@ class OrganigramaDataLoader {
                 // deciding whether it must load by área instead of everything at once.
                 log.info("Organigrama cargado: {} bienes en {} áreas, {} ms",
                     productoIdToArea.size(), porArea.size(), (System.nanoTime() - inicio) / 1_000_000);
-                return new OrganigramaData(porArea, rsgPorArea, prestPorArea, comodPorArea);
+                var avance = com.sibim.service.AvanceAreasService.calcular(todos, accesos.join(),
+                    com.sibim.config.Areas.getAllAreaNames());
+                return new OrganigramaData(porArea, rsgPorArea, prestPorArea, comodPorArea, avance);
             },
             onSuccess,
             onError
         );
+    }
+
+    /** Who entered SIBIM, for phase 1; without it the avance still shows phases 2 and 3. */
+    private Map<String, java.time.LocalDateTime> accesos() {
+        try {
+            return new com.sibim.service.AvanceAreasService().accesosPorArea();
+        } catch (Exception e) {
+            log.debug("No se pudieron leer los accesos por área para el organigrama", e);
+            return Map.of();
+        }
     }
 
     @FunctionalInterface

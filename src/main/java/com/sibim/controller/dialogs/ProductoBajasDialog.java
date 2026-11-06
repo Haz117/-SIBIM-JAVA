@@ -50,6 +50,17 @@ public final class ProductoBajasDialog {
      *  "solicitud de baja" (the formato can be generated right here), so its
      *  oficio/folio is required. */
     public static Optional<BajaResult> showBajaInputDialog(Producto bien, javafx.scene.Scene scene) {
+        return showBajaInputDialog(bien, scene, null);
+    }
+
+    /** The same, with the motivo the área gave in its solicitud de baja already written. */
+    public static Optional<BajaResult> showBajaInputDialog(Producto bien, javafx.scene.Scene scene, String motivoInicial) {
+        return showBajaInputDialog(bien, scene, motivoInicial, null);
+    }
+
+    /** …and the folio of its signed formato, when Recursos Materiales y Patrimonio already received it. */
+    public static Optional<BajaResult> showBajaInputDialog(Producto bien, javafx.scene.Scene scene, String motivoInicial,
+                                                           String oficioInicial) {
         String nombreBien = bien.getNombre();
         Dialog<BajaResult> dlg = new Dialog<>();
         dlg.setTitle("Dar de baja");
@@ -67,6 +78,7 @@ public final class ProductoBajasDialog {
         TextField tfMotivo = new TextField();
         tfMotivo.setPromptText("Motivo de la baja (obligatorio)");
         tfMotivo.setPrefWidth(360);
+        if (motivoInicial != null) tfMotivo.setText(motivoInicial);
 
         ComboBox<String> cbDestino = new ComboBox<>();
         cbDestino.getItems().addAll("", "Destrucción", "Donación", "Subasta",
@@ -90,6 +102,7 @@ public final class ProductoBajasDialog {
         TextField tfOficio = new TextField();
         tfOficio.setPromptText("Oficio o folio de la solicitud firmada (obligatorio)");
         tfOficio.setPrefWidth(360);
+        if (oficioInicial != null) tfOficio.setText(oficioInicial);
         Button btnFormato = new Button("Generar formato de solicitud");
         btnFormato.setGraphic(new FontIcon("mdi2f-file-document-edit-outline"));
         btnFormato.getStyleClass().add("btn-secondary");
@@ -108,6 +121,8 @@ public final class ProductoBajasDialog {
             || tfOficio.getText() == null || tfOficio.getText().isBlank());
         tfMotivo.textProperty().addListener((obs, o, n) -> validar.run());
         tfOficio.textProperty().addListener((obs, o, n) -> validar.run());
+        validar.run();
+        if (motivoInicial != null && oficioInicial == null) javafx.application.Platform.runLater(tfOficio::requestFocus);
 
         VBox form = new VBox(10);
         form.setPadding(new Insets(20, 24, 8, 24));

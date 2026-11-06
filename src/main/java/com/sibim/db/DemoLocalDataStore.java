@@ -42,6 +42,11 @@ public final class DemoLocalDataStore implements LocalDataStore {
     }
 
     @Override
+    public List<String> codigosUsados() {
+        return DemoDataStore.codigosUsados();
+    }
+
+    @Override
     public void reactivarProducto(String id) throws SQLException {
         DemoDataStore.reactivarProducto(id);
     }

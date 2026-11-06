@@ -47,9 +47,7 @@ public class CalidadDatosService {
     // ── Personas repetidas ────────────────────────────────────────────────────
 
     /** Titles that come and go in the same person's name, without their dots. */
-    private static final Set<String> TITULOS = Set.of("LIC", "LICDA", "LD", "ING", "INGA", "ARQ", "DR", "DRA",
-        "MTRO", "MTRA", "PROF", "PROFR", "PROFRA", "C", "CP", "COMANDANTE", "ABOG",
-        "LAP", "AP", "TSU", "MVZ", "ENCARGADA", "ENCARGADO");
+    private static final Set<String> TITULOS = com.sibim.util.NombrePersona.TITULOS;
 
     /** What two spellings of one person share: the words, in any order, without titles. */
     public static String clavePalabras(String nombre) {
@@ -243,6 +241,81 @@ public class CalidadDatosService {
             config.set(DISTINTAS + clave, "1");
     }
 
+    // ── Títulos en los nombres ────────────────────────────────────────────────
+
+    /** A name written with a title in front, the name without it, and where it is
+     *  written like that: active bienes, resguardos in force, titular of áreas. */
+    public record ConTitulo(String antes, String despues, List<String> bienes, List<String> resguardos,
+                            List<String> titularDe) {
+        public String donde() {
+            List<String> partes = new ArrayList<>();
+            if (!bienes.isEmpty()) partes.add(com.sibim.util.FormatUtils.plural(bienes.size(), "bien", "bienes"));
+            if (!resguardos.isEmpty()) partes.add(com.sibim.util.FormatUtils.plural(resguardos.size(), "resguardo", "resguardos"));
+            if (!titularDe.isEmpty()) partes.add("titular de " + String.join(", ", titularDe));
+            return String.join(" · ", partes);
+        }
+    }
+
+    /** The names of people with "LIC.", "ING.", "ARQ."… in front. A cancelled
+     *  resguardo and a bien de baja stay as they were signed. */
+    public static List<ConTitulo> nombresConTitulo(List<Producto> bienes, List<Resguardo> resguardos,
+                                                   Map<String, String> titulares) {
+        Map<String, ConTitulo> por = new java.util.TreeMap<>();
+        java.util.function.Function<String, ConTitulo> de = n -> por.computeIfAbsent(n, k ->
+            new ConTitulo(k, com.sibim.util.NombrePersona.sinTitulos(k), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+        for (Producto p : bienes)
+            if (p.getFechaBaja() == null && com.sibim.util.NombrePersona.tieneTitulo(p.getResguardante()))
+                de.apply(p.getResguardante()).bienes().add(p.getId());
+        for (Resguardo r : resguardos)
+            if (r.isActivo() && com.sibim.util.NombrePersona.tieneTitulo(r.getResguardanteNombre()))
+                de.apply(r.getResguardanteNombre()).resguardos().add(r.getId());
+        titulares.forEach((area, t) -> {
+            if (com.sibim.util.NombrePersona.tieneTitulo(t)) de.apply(t).titularDe().add(area);
+        });
+        return new ArrayList<>(por.values());
+    }
+
+    /** The titulares out of the whole configuration (key → value). */
+    static Map<String, String> titularesDe(Map<String, String> config) {
+        Map<String, String> out = new LinkedHashMap<>();
+        config.forEach((k, v) -> {
+            if (k.startsWith(TitularesArea.PREFIJO) && v != null && !v.isBlank())
+                out.put(k.substring(TitularesArea.PREFIJO.length()), v.trim());
+        });
+        return out;
+    }
+
+    /** Leaves only the name in each of these places, all at once.
+     *  @return what to give {@link #ponerTitulos} to put them back */
+    public List<ConTitulo> quitarTitulos(List<ConTitulo> nombres) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        repo.renombrar(nombres.stream().map(c -> new CalidadDatosRepository.Renombre(c.despues(), c.bienes(), c.resguardos())).toList());
+        for (ConTitulo c : nombres)
+            for (String area : c.titularDe()) config.set(TitularesArea.PREFIJO + area, c.despues());
+        ProductosEnMemoria.invalidar();
+        nombres.forEach(c -> c.bienes().forEach(FichaPublica::actualizarLuego));
+        audit.log("persona", null, "Títulos en los nombres", "actualizar",
+            "Se quitaron los títulos (Lic., Ing., Arq.…) de " + com.sibim.util.FormatUtils.plural(nombres.size(), "nombre", "nombres")
+                + ": " + nombres.stream().mapToInt(c -> c.bienes().size()).sum() + " bienes, "
+                + nombres.stream().mapToInt(c -> c.resguardos().size()).sum() + " resguardos vigentes y "
+                + nombres.stream().mapToInt(c -> c.titularDe().size()).sum() + " titulares de área");
+        return nombres;
+    }
+
+    /** Puts back the names {@link #quitarTitulos} changed. */
+    public void ponerTitulos(List<ConTitulo> nombres) throws SQLException {
+        soloPatrimonio();
+        conConexion();
+        repo.renombrar(nombres.stream().map(c -> new CalidadDatosRepository.Renombre(c.antes(), c.bienes(), c.resguardos())).toList());
+        for (ConTitulo c : nombres)
+            for (String area : c.titularDe()) config.set(TitularesArea.PREFIJO + area, c.antes());
+        ProductosEnMemoria.invalidar();
+        nombres.forEach(c -> c.bienes().forEach(FichaPublica::actualizarLuego));
+        audit.log("persona", null, "Títulos en los nombres", "actualizar",
+            "Se deshizo quitar los títulos: regresan " + com.sibim.util.FormatUtils.plural(nombres.size(), "nombre", "nombres"));
+    }
+
     // ── Vida útil ─────────────────────────────────────────────────────────────
 
     /** The bienes without vida útil whose CONAC account has one, by years. Equipo de
@@ -373,6 +446,8 @@ public class CalidadDatosService {
     /** What is left to do, with its count; what is done doesn't appear. */
     public static List<PorHacer> porHacer(List<Producto> bienes, List<Resguardo> resguardos, Set<String> distintas, Map<String, String> config) {
         List<PorHacer> out = new ArrayList<>();
+        agregar(out, nombresConTitulo(bienes, resguardos, titularesDe(config)).size(), "nombres con título (Lic., Ing., Arq.…)",
+            "Quitar títulos", "productos", "titulos");
         agregar(out, personasRepetidas(resguardos, bienes, distintas).size(), "personas con el nombre repetido", "Unir personas", "productos", "unir");
         agregar(out, seriesRepetidas(bienes).size(), "series repetidas", "Revisar series", "productos", "series");
         agregar(out, cuantos(bienes, Dato.PRECIO), "bienes sin precio", "Completar datos", "productos", "completar:PRECIO");
@@ -383,6 +458,8 @@ public class CalidadDatosService {
             "personas con bienes sin resguardo", "Registrar en lote", "resguardos", "lote");
         agregar(out, conVariosResguardos(resguardos), "personas con varios resguardos en la misma área",
             "Juntar resguardos", "resguardos", "juntar");
+        agregar(out, bienes.stream().filter(p -> p.getFechaBaja() == null && p.isObservadoPorArea()).count(),
+            "bienes que su área dice que no son suyos", "Revisar avisos", "productos", "observados");
         agregar(out, bienes.stream().filter(p -> p.getFechaBaja() == null && !p.isEtiquetado()).count(),
             "bienes sin etiquetar", "Etiquetas por área", "productos", "etiquetas");
         agregar(out, faltanEnConfiguracion(config, com.sibim.config.Areas.getAllAreaNames().size()).size(),

@@ -57,6 +57,8 @@ public final class AreaResguardosDialog {
         List<String> areaNames = new ArrayList<>(
             accessible != null ? accessible : Areas.getAllAreaNames());
         ComboBox<String> areaCombo = new ComboBox<>(FXCollections.observableArrayList(areaNames));
+        com.sibim.controller.FiltroArea.conIconos(areaCombo);
+        DialogUtil.makeFilterable(areaCombo, areaNames);
         areaCombo.setPromptText("Selecciona un área…");
         areaCombo.setMaxWidth(Double.MAX_VALUE);
         areaCombo.getStyleClass().add("form-input");

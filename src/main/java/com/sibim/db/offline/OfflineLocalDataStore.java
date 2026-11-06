@@ -43,6 +43,11 @@ public final class OfflineLocalDataStore implements LocalDataStore {
     }
 
     @Override
+    public List<String> codigosUsados() {
+        return OfflineStore.codigosUsados();
+    }
+
+    @Override
     public void reactivarProducto(String id) throws SQLException {
         OfflineStore.reactivarProducto(id);
     }

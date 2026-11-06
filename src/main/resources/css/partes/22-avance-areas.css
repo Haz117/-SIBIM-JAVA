@@ -1,0 +1,90 @@
+/* ═══════════════════════════════════════════════════════════════════
+   AVANCE DE LAS ÁREAS (Organigrama, 5-nov-2026)
+   Tres pasos por área: 1 iniciar sesión, 2 revisar sus bienes, 3 etiquetas.
+   Hecho = verde institucional, en curso = dorado, sin empezar = gris.
+   ═══════════════════════════════════════════════════════════════════ */
+.avance-chip {
+    -fx-background-color: white;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 99;
+    -fx-background-radius: 99;
+    -fx-padding: 2 8 2 4;
+    -fx-cursor: hand;
+}
+.avance-chip:hover {
+    -fx-border-color: sibim-indigo-200;
+    -fx-background-color: sibim-surface;
+}
+.avance-paso {
+    -fx-min-width: 18;
+    -fx-min-height: 18;
+    -fx-pref-width: 18;
+    -fx-pref-height: 18;
+    -fx-max-width: 18;
+    -fx-max-height: 18;
+    -fx-background-radius: 99;
+    -fx-alignment: center;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+.avance-paso-hecho     { -fx-background-color: #235B4E; -fx-text-fill: white; }
+.avance-paso-curso     { -fx-background-color: #FDF3DC; -fx-text-fill: #8A5A12; -fx-border-color: #D9A441; -fx-border-radius: 99; }
+.avance-paso-pendiente { -fx-background-color: sibim-slate-100; -fx-text-fill: sibim-slate-500; }
+.avance-texto {
+    -fx-font-size: 11px;
+    -fx-text-fill: sibim-gray-700;
+    -fx-font-weight: bold;
+}
+.avance-texto-hecho { -fx-text-fill: #235B4E; }
+
+/* Tarjeta de resumen y ventanas de avance */
+.avance-fila-titulo {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: sibim-slate-950;
+}
+/* util.BarraAvance */
+.avance-pista {
+    -fx-min-height: 8;
+    -fx-pref-height: 8;
+    -fx-max-height: 8;
+    -fx-background-color: sibim-slate-200;
+    -fx-background-radius: 99;
+}
+.avance-relleno {
+    -fx-min-height: 8;
+    -fx-pref-height: 8;
+    -fx-max-height: 8;
+    -fx-background-color: #235B4E;
+    -fx-background-radius: 99;
+}
+
+/* Tabla «Avance de las áreas» (6-nov-2026): los tres pasos unidos por una
+   línea, dónde va el área en palabras y conteos cortos. */
+.avance-paso-grande {
+    -fx-min-width: 22; -fx-pref-width: 22; -fx-max-width: 22;
+    -fx-min-height: 22; -fx-pref-height: 22; -fx-max-height: 22;
+    -fx-font-size: 11px;
+}
+.avance-linea {
+    -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12;
+    -fx-min-height: 2; -fx-pref-height: 2; -fx-max-height: 2;
+    -fx-background-color: sibim-slate-200;
+}
+.avance-linea-hecha { -fx-background-color: #235B4E; }
+.avance-estado { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
+.avance-estado-curso { -fx-text-fill: #8A5A12; -fx-font-weight: bold; }
+.avance-estado-hecho { -fx-text-fill: #235B4E; -fx-font-weight: bold; }
+.avance-area-nombre { -fx-font-size: 13px; -fx-text-fill: sibim-slate-950; }
+.avance-cuenta { -fx-font-size: 12px; -fx-text-fill: sibim-gray-700; }
+.avance-cuenta-cero { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
+.avance-observados {
+    -fx-background-color: #FDF3DC;
+    -fx-text-fill: #8A5A12;
+    -fx-background-radius: 99;
+    -fx-padding: 1 7;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+/* En la tabla la pista vacía va más clara: con casi todo en cero no debe pesar. */
+.avance-tabla .avance-pista { -fx-background-color: sibim-slate-100; }

@@ -29,6 +29,7 @@ public final class CategoriaIcons {
         rule("mdi2f-fridge-outline",           "electrodomestic"),
         rule("mdi2a-air-conditioner",          "aire acondicionado", "calefaccion"),
         rule("mdi2f-flash-outline",            "generacion", "electric"),
+        rule("mdi2p-paw-outline",              "biologic", "animal", "semoviente", "canin"),
         rule("mdi2t-tractor",                  "agropecuari"),
         rule("mdi2c-crane",                    "construccion"),
         rule("mdi2f-factory",                  "industrial"),

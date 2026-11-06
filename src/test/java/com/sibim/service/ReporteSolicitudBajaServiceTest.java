@@ -76,6 +76,28 @@ class ReporteSolicitudBajaServiceTest {
         }
     }
 
+    /** Sent through SIBIM (5-nov-2026): the paper says the same as the request in Patrimonio's inbox. */
+    @Test
+    void enviadaPorSibim_motivoMarcadoYDescripcionEscrita() throws Exception {
+        File pdf = service.exportSolicitudBaja(List.of(bien("TICS/09", "Proyector", null)), "Obsoleto",
+            "La lámpara ya no prende");
+        try (PdfDocument doc = new PdfDocument(new PdfReader(pdf))) {
+            String texto = PdfTextExtractor.getTextFromPage(doc.getPage(1));
+            assertTrue(texto.contains("[ X ]  Obsoleto"), texto);
+            assertTrue(texto.contains("[   ]  Extravío"));
+            assertTrue(texto.contains("La lámpara ya no prende"));
+            assertTrue(texto.contains("Enviada por SIBIM el"));
+        } finally {
+            pdf.delete();
+        }
+        File otro = service.exportSolicitudBaja(List.of(bien("TICS/10", "Silla", null)), "Otro", "Lo mordió el perro");
+        try (PdfDocument doc = new PdfDocument(new PdfReader(otro))) {
+            assertTrue(PdfTextExtractor.getTextFromPage(doc.getPage(1)).contains("[ X ]  Otro: Lo mordió el perro"));
+        } finally {
+            otro.delete();
+        }
+    }
+
     @Test
     void sinBienes_seRechaza() {
         assertThrows(IllegalArgumentException.class, () -> service.exportSolicitudBaja(List.of()));

@@ -90,9 +90,9 @@ class ProductoTabInfoFields {
             codigoDebounce[0] = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
                 javafx.util.Duration.millis(280), e -> AppExecutor.submit(() -> {
                     try {
-                        boolean exists = productoService.existsByCodigo(val.trim(), existingId);
+                        boolean exists = productoService.codigoNoDisponible(val.trim(), existingId);
                         Platform.runLater(() -> {
-                            lblCodigoHint.setText(exists ? "✕  Este código ya existe" : "✓  Disponible");
+                            lblCodigoHint.setText(exists ? "✕  Este número ya lo usa o lo usó otro bien" : "✓  Disponible");
                             lblCodigoHint.getStyleClass().removeAll("field-hint-ok", "field-hint-error");
                             lblCodigoHint.getStyleClass().add(exists ? "field-hint-error" : "field-hint-ok");
                             lblCodigoHint.setVisible(true);
@@ -146,6 +146,8 @@ class ProductoTabInfoFields {
         List<String> areaNames = new ArrayList<>(Areas.getAllAreaNames());
         fArea = new ComboBox<>(FXCollections.observableArrayList(areaNames));
         fArea.setMaxWidth(Double.MAX_VALUE);
+        com.sibim.controller.FiltroArea.conIconos(fArea);
+        DialogUtil.makeFilterable(fArea, areaNames);
         fArea.setPromptText("Área responsable");
         var sessionUser = SessionManager.getCurrentUser();
         // A new bien starts in the área the list is filtered to, so the next

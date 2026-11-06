@@ -11,25 +11,18 @@ import java.util.Set;
 
 /**
  * The área filter the way Bienes has it, for every screen that filters by área:
- * "Todas las áreas" first (the null value), then the caller's áreas in
- * organigrama order, each with its icon; hidden for an account that sees only
- * one área. The filters added later used an editable picker without icons and
- * looked out of place next to the other combos.
+ * the caller's áreas in organigrama order, each with its icon in the list;
+ * hidden for an account that sees only one área. Since 5-nov-2026 one can type
+ * in it to find an área (FiltroEscribible); empty is "Todas las áreas" (null).
  */
 public final class FiltroArea {
 
     private FiltroArea() {}
 
     public static void configurar(ComboBox<String> combo) {
-        combo.getItems().setAll((String) null);
-        Areas.getAllAreaNames().stream().filter(SessionManager::isAreaAccessible).forEach(combo.getItems()::add);
-        combo.setConverter(new javafx.util.StringConverter<>() {
-            public String toString(String a) { return a == null ? "Todas las áreas" : a; }
-            public String fromString(String s) { return null; }
-        });
-        combo.setCellFactory(lv -> ProductosListCells.areaListCell());
-        combo.setButtonCell(ProductosListCells.areaListCell());
-        combo.setPromptText("Todas las áreas");
+        combo.getItems().setAll(Areas.getAllAreaNames().stream().filter(SessionManager::isAreaAccessible).toList());
+        conIconos(combo);
+        com.sibim.util.FiltroEscribible.instalar(combo, "Todas las áreas");
         combo.setVisibleRowCount(12);
         Set<String> mias = SessionManager.getAccessibleAreas();
         if (mias != null && mias.size() <= 1) { combo.setVisible(false); combo.setManaged(false); }

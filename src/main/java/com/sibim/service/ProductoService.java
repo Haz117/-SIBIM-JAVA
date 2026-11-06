@@ -43,11 +43,19 @@ public class ProductoService {
     @FunctionalInterface
     interface Compromiso { Optional<String> de(String productoId) throws SQLException; }
 
+    /** Run after a baja: closes the área's solicitud de baja in wait, if the
+     *  bien had one ({@link SolicitudService#bajaRegistrada}). Nothing in the
+     *  constructors the tests use. */
+    @FunctionalInterface
+    interface AlDarDeBaja { void hecho(String productoId, String motivo, String numeroActa); }
+    private AlDarDeBaja alDarDeBaja = (id, motivo, acta) -> { };
+
     public ProductoService() {
         this(new ProductoRepository(), new AuditLogRepository(), new PriceHistoryRepository(),
             id -> new com.sibim.repository.ResguardoRepository().findActivoByProductoId(id)
                 .map(com.sibim.model.Resguardo::getNumero),
             ProductoService::compromisoEnBase);
+        this.alDarDeBaja = SolicitudService::bajaRegistrada;
     }
 
     /** The signed document that says where a bien is or who holds it — a
@@ -147,6 +155,61 @@ public class ProductoService {
     }
 
     /** The physical label is put on, and checked, by Patrimonio. */
+    /** The área's answer for its bienes — phase 2 of its avance (Organigrama):
+     *  "sí es nuestro" ({@code nota} null) or "no es nuestro / no lo tenemos"
+     *  with why, which Patrimonio then looks into (Por hacer). An área answers
+     *  for its own bienes; Patrimonio can answer for any (an área that replied
+     *  on paper). */
+    public void revisarComoArea(List<Producto> bienes, String nota) throws SQLException, ValidationException {
+        if (bienes.isEmpty()) return;
+        exigirPropios(bienes, "revisar");
+        if (com.sibim.db.DatabaseConfig.isOfflineMode())
+            throw new ValidationException("La revisión necesita conexión: Patrimonio tiene que verla al momento");
+        String n = nota == null || nota.isBlank() ? null : nota.trim();
+        if (n != null && n.length() > 300) throw new ValidationException("La nota no puede exceder 300 caracteres");
+        String por = SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getNombre() : null;
+        productoRepo.marcarRevision(bienes.stream().map(Producto::getId).toList(), java.time.LocalDateTime.now(), por, n);
+        ProductosEnMemoria.invalidar();
+        String area = bienes.get(0).getArea();
+        auditRepo.log("producto", null, area, "revision_area", n == null
+            ? FormatUtils.plural(bienes.size(), "bien revisado: sí es del área", "bienes revisados: sí son del área") + " (" + codigos(bienes) + ")"
+            : FormatUtils.plural(bienes.size(), "bien que el área dice que no es suyo", "bienes que el área dice que no son suyos")
+                + ": «" + n + "» (" + codigos(bienes) + ")");
+    }
+
+    /** Takes back the área's review, so it is reviewed again (Patrimonio, once it looked into an aviso). */
+    public void quitarRevision(List<Producto> bienes) throws SQLException, ValidationException {
+        if (bienes.isEmpty()) return;
+        exigirPropios(bienes, "corregir la revisión de");
+        productoRepo.marcarRevision(bienes.stream().map(Producto::getId).toList(), null, null, null);
+        ProductosEnMemoria.invalidar();
+        auditRepo.log("producto", null, bienes.get(0).getArea(), "revision_area",
+            "Se quitó la revisión del área de " + FormatUtils.plural(bienes.size(), "bien", "bienes") + " (" + codigos(bienes) + ")");
+    }
+
+    /** Phase 3: the área says the label is stuck on these bienes (or, with false, that it isn't). */
+    public void confirmarEtiquetas(List<Producto> bienes, boolean pegada) throws SQLException, ValidationException {
+        if (bienes.isEmpty()) return;
+        exigirPropios(bienes, "confirmar las etiquetas de");
+        productoRepo.marcarEtiquetado(bienes.stream().map(Producto::getId).toList(), pegada);
+        ProductosEnMemoria.invalidar();
+        auditRepo.log("producto", null, bienes.get(0).getArea(), "actualizar",
+            (pegada ? "Etiqueta pegada en " : "Sin etiqueta: ") + FormatUtils.plural(bienes.size(), "bien", "bienes")
+                + " (" + codigos(bienes) + ")");
+    }
+
+    private static void exigirPropios(List<Producto> bienes, String que) throws ValidationException {
+        for (Producto p : bienes)
+            if (!SessionManager.isAreaAccessible(p.getArea()))
+                throw new ValidationException("Solo puedes " + que + " los bienes de tu área");
+    }
+
+    /** "TICS/01, TICS/02 y 3 más" for the Auditoría. */
+    private static String codigos(List<Producto> bienes) {
+        List<String> c = bienes.stream().map(Producto::getCodigo).filter(java.util.Objects::nonNull).toList();
+        return c.size() <= 6 ? String.join(", ", c) : String.join(", ", c.subList(0, 6)) + " y " + (c.size() - 6) + " más";
+    }
+
     public void marcarEtiquetado(List<String> ids, boolean valor) throws SQLException {
         if (!com.sibim.session.Permisos.editaFichaCompleta())
             throw new SecurityException("Solo Patrimonio (administrador) marca los bienes como etiquetados.");
@@ -171,6 +234,11 @@ public class ProductoService {
 
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         return productoRepo.existsByCodigo(codigo, excludeId);
+    }
+
+    /** Taken by an active bien, or used before by another one (números are not reused). */
+    public boolean codigoNoDisponible(String codigo, String excludeId) throws SQLException {
+        return productoRepo.existsByCodigo(codigo, excludeId) || productoRepo.codigoUsadoPorOtro(codigo, excludeId);
     }
 
     public long countNuevosEnAnio(int anio) throws SQLException {
@@ -234,6 +302,8 @@ public class ProductoService {
         // (útil para corregir datos heredados que no siguen este formato).
         if (isNew && p.getArea() != null && AreaCodigos.tienePrefijo(p.getArea()))
             p.setCodigo(asignarCodigo(p.getArea()));
+        // Only the name, without "LIC.", "ING."…: from 5-nov-2026.
+        if (isNew) p.setResguardante(com.sibim.util.NombrePersona.sinTitulos(p.getResguardante()));
 
         // A municipal bien has no sale price. The column stays (older clients,
         // imports and reports still read it) but always mirrors the purchase
@@ -271,7 +341,15 @@ public class ProductoService {
                 p.setCodigo(AreaCodigos.normalizar(actual.getArea(), p.getCodigo()).orElseThrow(() ->
                     new ValidationException("El código de un bien de " + actual.getArea() + " es " + prefijo
                         + "/ y un número (por ejemplo " + prefijo + "/07)")));
+                // 5-nov-2026: a número that another bien had is not given again, not even by hand.
+                if (productoRepo.codigoUsadoPorOtro(p.getCodigo(), p.getId()))
+                    throw new ValidationException("El número " + p.getCodigo() + " ya lo usó otro bien y los números no se repiten; "
+                        + "el siguiente de " + actual.getArea() + " es " + asignarCodigo(actual.getArea()));
             }
+            // A name typed now goes without its title ("LIC. ANA" → "ANA"); one left
+            // as it was isn't touched, so it keeps matching its resguardo.
+            if (!java.util.Objects.equals(sinBlancos(p.getResguardante()), sinBlancos(actual.getResguardante())))
+                p.setResguardante(com.sibim.util.NombrePersona.sinTitulos(p.getResguardante()));
             // A signed resguardo says who holds the bien (ResguardoRepository
             // keeps products.resguardante in step with it); an edit — single
             // or in bulk — can't contradict the document.
@@ -357,10 +435,9 @@ public class ProductoService {
         return r;
     }
 
-    /** Menor número positivo no usado por ningún bien activo con el prefijo
-     *  de {@code area} — no hay un contador persistido: dado que un bien
-     *  dado de baja o transferido deja de contar como activo, su número
-     *  vuelve a aparecer libre automáticamente en el próximo cálculo. */
+    /** El número siguiente al más alto que se haya usado con el prefijo de
+     *  {@code area} (AreaCodigos#siguienteCodigo): el de un bien dado de baja,
+     *  transferido o borrado no se vuelve a dar. */
     private String asignarCodigo(String area) throws SQLException {
         return productoRepo.siguienteCodigo(area);
     }
@@ -369,6 +446,11 @@ public class ProductoService {
      *  lo enseña antes de guardar (al guardar se vuelve a calcular). */
     public String siguienteCodigo(String area) throws SQLException {
         return asignarCodigo(area);
+    }
+
+    /** Every código ever used, for the transfer board's preview of the new números. */
+    public List<String> codigosUsados() throws SQLException {
+        return productoRepo.codigosUsados();
     }
 
     private static String sinBlancos(String s) {
@@ -515,6 +597,47 @@ public class ProductoService {
             + (tipoDestino != null ? " | Destino: " + tipoDestino : "")
             + (numeroActa  != null ? " | Acta: " + numeroActa     : "");
         auditRepo.log("producto", id, p.getNombre(), "baja", auditDetail);
+        alDarDeBaja.hecho(id, motivo.trim(), numeroActa);
+    }
+
+    /** Baja definitiva: the destino final of these bienes de baja was carried
+     *  out (destroyed, donated, sold…) with {@code documento}. They can no
+     *  longer be reactivated. Patrimonio only.
+     *  @return how many changed (the ones already definitivas are skipped) */
+    public int bajaDefinitiva(List<Producto> bienes, LocalDate fecha, String documento, String tipoDestino)
+            throws SQLException, ValidationException {
+        if (!SessionManager.isAdmin()) throw new ValidationException("Solo Patrimonio (administrador) registra la baja definitiva");
+        if (documento == null || documento.isBlank())
+            throw new ValidationException("Anota el documento que autoriza la baja definitiva (acta de destrucción, contrato de donación, acuerdo de cabildo…)");
+        if (documento.trim().length() > 300) throw new ValidationException("El documento no puede exceder 300 caracteres");
+        if (fecha == null) throw new ValidationException("La fecha de la baja definitiva es obligatoria");
+        if (fecha.isAfter(LocalDate.now())) throw new ValidationException("La fecha de la baja definitiva no puede ser futura");
+        for (Producto p : bienes) {
+            if (!p.isDadoDeBaja()) throw new ValidationException("«" + p.getNombre() + "» no está dado de baja");
+            if (p.getFechaBaja() != null && fecha.isBefore(p.getFechaBaja()))
+                throw new ValidationException("«" + p.getNombre() + "» se dio de baja el "
+                    + p.getFechaBaja().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    + ": la baja definitiva no puede ser antes");
+        }
+        List<Producto> pendientes = bienes.stream().filter(p -> !p.isBajaDefinitiva()).toList();
+        if (pendientes.isEmpty()) return 0;
+        int n = productoRepo.marcarBajaDefinitiva(pendientes.stream().map(Producto::getId).toList(),
+            fecha, documento.trim(), tipoDestino);
+        ProductosEnMemoria.invalidar();
+        for (Producto p : pendientes)
+            auditRepo.log("producto", p.getId(), p.getNombre(), "baja_definitiva",
+                "Baja definitiva " + fecha.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    + " · " + documento.trim() + (tipoDestino != null ? " · Destino: " + tipoDestino : ""));
+        return n;
+    }
+
+    /** Takes back a baja definitiva registered by mistake (the bien stays de baja). */
+    public void quitarBajaDefinitiva(List<Producto> bienes) throws SQLException, ValidationException {
+        if (!SessionManager.isAdmin()) throw new ValidationException("Solo Patrimonio (administrador) corrige la baja definitiva");
+        productoRepo.marcarBajaDefinitiva(bienes.stream().map(Producto::getId).toList(), null, null, null);
+        ProductosEnMemoria.invalidar();
+        for (Producto p : bienes)
+            auditRepo.log("producto", p.getId(), p.getNombre(), "actualizar", "Se quitó la baja definitiva (sigue dado de baja)");
     }
 
     /** Reverses a baja patrimonial, restoring the bien to active inventory.
@@ -530,8 +653,11 @@ public class ProductoService {
         Producto p = opt.get();
         if (!SessionManager.isAreaAccessible(p.getArea()))
             throw new ValidationException("No tienes acceso a esa área");
+        if (p.isBajaDefinitiva())
+            throw new ValidationException("«" + p.getNombre() + "» tiene baja definitiva (" + p.getBajaDefinitivaDocumento()
+                + "): ya no se puede reactivar");
         if (AreaCodigos.tienePrefijo(p.getArea())) {
-            productoRepo.reactivarConCodigo(id, asignarCodigo(p.getArea()));
+            productoRepo.reactivarConCodigo(id, productoRepo.codigoAlReactivar(p));
         } else {
             productoRepo.reactivar(id);
         }

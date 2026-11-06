@@ -51,7 +51,7 @@ public class BackupService {
      *  that is in neither this list nor {@link #TABLAS_EXCLUIDAS}. */
     public static final List<String> TABLAS = List.of(
         "areas", "users", "categories", "configuracion", "folios", "filtros_guardados",
-        "products", "product_fotos", "price_history", "producto_mantenimiento",
+        "codigos_usados", "products", "product_fotos", "price_history", "producto_mantenimiento",
         "movements", "audit_log", "conteos_fisicos", "conteo_items",
         "resguardos", "resguardo_items", "prestamos", "comodatos",
         "actas_entrega_recepcion", "area_resguardos", "solicitudes");
@@ -68,6 +68,11 @@ public class BackupService {
      *  adds back the entries the backup has that the database lost — so the
      *  restore itself (and whatever happened before it) stays on record. */
     private static final String TABLA_AUDITORIA = "audit_log";
+
+    /** Tables a restore only adds to, never empties: the audit trail, and the
+     *  códigos ever used (V34) — a número handed out after the backup was taken
+     *  stays used, so going back to an older backup can't give it to another bien. */
+    private static final Set<String> SOLO_SE_AGREGAN = Set.of(TABLA_AUDITORIA, "codigos_usados");
 
     /** 2 = every table in {@link #TABLAS}; 1 = the first 11 only. */
     private static final int BACKUP_VERSION = 2;
@@ -176,11 +181,11 @@ public class BackupService {
                 // is only added to.
                 for (int i = TABLAS.size() - 1; i >= 0; i--) {
                     String tabla = TABLAS.get(i);
-                    if (tablas.containsKey(tabla) && !TABLA_AUDITORIA.equals(tabla)) borrarTabla(conn, tabla);
+                    if (tablas.containsKey(tabla) && !SOLO_SE_AGREGAN.contains(tabla)) borrarTabla(conn, tabla);
                 }
                 for (String tabla : TABLAS) {
                     List<Map<String, Object>> filas = tablas.get(tabla);
-                    if (filas != null) insertarFilas(conn, tabla, filas, TABLA_AUDITORIA.equals(tabla));
+                    if (filas != null) insertarFilas(conn, tabla, filas, SOLO_SE_AGREGAN.contains(tabla));
                 }
                 reponerLoApartado(conn, tablas.keySet());
                 conn.commit();
@@ -262,7 +267,7 @@ public class BackupService {
             Map<String, List<Map<String, Object>>> tablas) throws SQLException, IOException {
         List<String> seBorrarian = new ArrayList<>();
         for (String tabla : TABLAS) {
-            if (tablas.containsKey(tabla) || TABLA_AUDITORIA.equals(tabla)
+            if (tablas.containsKey(tabla) || SOLO_SE_AGREGAN.contains(tabla)
                     || DEPENDIENTES_EXCLUIDAS.containsKey(tabla)) continue;
             if (tablasReferenciadas(conn, tabla).stream().noneMatch(tablas::containsKey)) continue;
             try (Statement st = conn.createStatement();

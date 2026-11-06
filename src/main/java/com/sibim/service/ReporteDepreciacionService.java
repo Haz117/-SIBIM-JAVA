@@ -75,9 +75,9 @@ public class ReporteDepreciacionService extends ReporteService {
                 FormatUtils.formatCurrency(compra), FormatUtils.formatCurrency(actual), "");
             doc.add(table);
             addFirmasBlock(doc,
-                new String[]{"ELABORÓ",           getCurrentUserName(),    "Director de Recursos Materiales"},
-                new String[]{"CONTADOR MUNICIPAL", null, "Contador / Contralor Municipal"},
-                new String[]{"VO.BO.",             null, "Tesorero Municipal"});
+                new String[]{"ELABORÓ",           firmaElabora(),    "Director de Recursos Materiales"},
+                new String[]{"CONTADOR MUNICIPAL", firma(FIRMA_CONTADOR), "Contador / Contralor Municipal"},
+                new String[]{"VO.BO.",             firma(FIRMA_TESORERO), "Tesorero Municipal"});
             addPdfFooter(doc, productos.size(), folio);
         }
         return numerarPaginas(file);

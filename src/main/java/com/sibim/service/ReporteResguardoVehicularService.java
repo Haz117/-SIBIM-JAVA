@@ -354,14 +354,23 @@ public class ReporteResguardoVehicularService extends ReporteService {
         return new Paragraph(texto).setFont(bold).setFontSize(tam).setMargin(0).setMultipliedLeading(1.0f);
     }
 
+    /** One signature as on the paper format: the title over the space to sign, the
+     *  line, the NAME and the CARGO under it, in a serif face like the original. */
     private static void firma(Table t, String titulo, String nombre, String cargo, PdfFont bold) {
+        PdfFont f = serif(bold);
         Cell c = new Cell().setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.CENTER).setPaddingTop(4).setPaddingBottom(4);
-        c.add(new Paragraph(titulo).setFont(bold).setFontSize(9f).setMargin(0).setMarginBottom(34));
+        c.add(new Paragraph(titulo).setFont(f).setFontSize(10f).setMargin(0).setMarginBottom(34));
         c.add(new Paragraph(" ").setMargin(0).setFontSize(4)
             .setBorderBottom(new SolidBorder(LINEA, 0.6f)).setMarginLeft(18).setMarginRight(18));
-        c.add(new Paragraph(nombre.isBlank() ? " " : nombre).setFont(bold).setFontSize(7.8f).setMargin(0).setMarginTop(2));
-        c.add(new Paragraph(cargo).setFont(bold).setFontSize(6.2f).setMargin(0));
+        c.add(new Paragraph(nombre.isBlank() ? " " : nombre).setFont(f).setFontSize(8.5f).setMargin(0).setMarginTop(2));
+        c.add(new Paragraph(cargo).setFont(f).setFontSize(6.6f).setMargin(0));
         t.addCell(c);
+    }
+
+    /** Times bold, as the signatures of the paper format; the given font if it can't load. */
+    private static PdfFont serif(PdfFont siFalla) {
+        try { return PdfFontFactory.createFont(StandardFonts.TIMES_BOLD); }
+        catch (java.io.IOException e) { return siFalla; }
     }
 
     private static Cell imagenCelda(String recurso, float ancho, float alto) {

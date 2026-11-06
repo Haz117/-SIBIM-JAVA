@@ -214,6 +214,62 @@ class CalidadDatosServiceTest {
         assertFalse(porTitulo.containsKey("series repetidas"));
     }
 
+    // ── Títulos en los nombres (5-nov-2026) ──────────────────────────────────
+
+    @Test
+    void nombresConTitulo_enBienesActivosResguardosVigentesYTitulares() {
+        Producto deBaja = bien("9", "A/9", "LIC. ANA RUIZ");
+        deBaja.setFechaBaja(LocalDate.now());
+        var nombres = CalidadDatosService.nombresConTitulo(
+            List.of(bien("1", "A/1", "LIC. ANA RUIZ"), bien("2", "A/2", "LIC. ANA RUIZ"), bien("3", "A/3", "JUAN PÉREZ"),
+                bien("4", "A/4", "ING.ROSA LUNA"), deBaja),
+            List.of(resguardo("r1", "LIC. ANA RUIZ", Resguardo.ESTADO_ACTIVO, "1", "2"),
+                resguardo("r2", "LIC. ANA RUIZ", Resguardo.ESTADO_CANCELADO, "9")),
+            Map.of("Catastro", "ARQ. PEDRO SOL", "DIF", "MARTA GIL"));
+        assertEquals(3, nombres.size(), nombres.toString());
+        var ana = nombres.stream().filter(n -> n.antes().equals("LIC. ANA RUIZ")).findFirst().orElseThrow();
+        assertEquals("ANA RUIZ", ana.despues());
+        assertEquals(List.of("1", "2"), ana.bienes(), "el bien de baja se queda como se firmó");
+        assertEquals(List.of("r1"), ana.resguardos(), "el resguardo cancelado también");
+        assertEquals("2 bienes · 1 resguardo", ana.donde());
+        var pedro = nombres.stream().filter(n -> n.antes().equals("ARQ. PEDRO SOL")).findFirst().orElseThrow();
+        assertEquals(List.of("Catastro"), pedro.titularDe());
+        assertEquals("ROSA LUNA", nombres.stream().filter(n -> n.antes().startsWith("ING")).findFirst().orElseThrow().despues());
+    }
+
+    @Test
+    void quitarTitulos_cambiaTodoJunto_yDeshacerLoRegresa() throws Exception {
+        var nombres = CalidadDatosService.nombresConTitulo(List.of(bien("1", "A/1", "LIC. ANA RUIZ")),
+            List.of(resguardo("r1", "LIC. ANA RUIZ", Resguardo.ESTADO_ACTIVO, "1")), Map.of("Catastro", "LIC. ANA RUIZ"));
+        service.quitarTitulos(nombres);
+        verify(repo).renombrar(List.of(new CalidadDatosRepository.Renombre("ANA RUIZ", List.of("1"), List.of("r1"))));
+        verify(config).set("titular_area:Catastro", "ANA RUIZ");
+        verify(audit).log(eq("persona"), isNull(), eq("Títulos en los nombres"), eq("actualizar"), contains("1 nombre"));
+
+        service.ponerTitulos(nombres);
+        verify(repo).renombrar(List.of(new CalidadDatosRepository.Renombre("LIC. ANA RUIZ", List.of("1"), List.of("r1"))));
+        verify(config).set("titular_area:Catastro", "LIC. ANA RUIZ");
+    }
+
+    @Test
+    void quitarTitulos_soloPatrimonio() {
+        entrarComo(Rol.DIRECCION);
+        assertThrows(SecurityException.class, () -> service.quitarTitulos(List.of()));
+    }
+
+    @Test
+    void porHacer_avisaNombresConTitulo_yBienesQueElAreaDiceQueNoSonSuyos() {
+        Producto conTitulo = bien("1", "A/1", "LIC. ANA RUIZ");
+        Producto observado = bien("2", "A/2", "JUAN PÉREZ");
+        observado.setRevisadoAreaEn(java.time.LocalDateTime.now());
+        observado.setRevisionAreaNota("Lo tiene Obras");
+        var lista = CalidadDatosService.porHacer(List.of(conTitulo, observado), List.of(), Set.of(), Map.of());
+        var porTitulo = lista.stream().collect(java.util.stream.Collectors.toMap(CalidadDatosService.PorHacer::titulo, x -> x));
+        assertEquals("titulos", porTitulo.get("nombres con título (Lic., Ing., Arq.…)").abrir());
+        assertEquals(1, porTitulo.get("nombres con título (Lic., Ing., Arq.…)").cantidad());
+        assertEquals("observados", porTitulo.get("bienes que su área dice que no son suyos").abrir());
+    }
+
     @Test
     void faltanEnConfiguracion_diceQue_conSusPalabras() {
         var faltan = CalidadDatosService.faltanEnConfiguracion(Map.of("rfc_municipio", "X", "firma_vobo", "  ", "titular_area:Tesorería", "ANA"), 3);

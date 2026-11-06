@@ -228,8 +228,8 @@ public class ProductosController {
             if (!SessionManager.isAdmin()) {
                 btnEliminar.setText("Solicitar baja");
                 btnEliminar.getStyleClass().setAll("button", "btn-secondary");
-                btnEliminar.setTooltip(new Tooltip("Genera el formato de solicitud de baja del bien seleccionado "
-                    + "para que el área lo firme y lo entregue a Patrimonio"));
+                btnEliminar.setTooltip(new Tooltip("Pide a Patrimonio la baja de los bienes seleccionados: le llega "
+                    + "el aviso y sale el formato para firmar y entregar"));
             }
         }
         // "Nuevo Bien" and "Conteo físico" both write real inventory data
@@ -247,7 +247,7 @@ public class ProductosController {
         }
         // Patrimonio's: they change the accounting values and whose name a bien is in.
         boolean revisa = com.sibim.session.Permisos.editaFichaCompleta();
-        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnSeriesRepetidas, btnEtiquetasArea, sepRevisarDatos})
+        for (MenuItem m : new MenuItem[]{btnCompletarDatos, btnUnirPersonas, btnQuitarTitulos, btnSeriesRepetidas, btnEtiquetasArea, sepRevisarDatos})
             if (m != null) m.setVisible(revisa);
         if (btnImportar     != null) btnImportar.setVisible(canManage);
         if (rootPane != null && canEdit) {
@@ -361,14 +361,9 @@ public class ProductosController {
         DialogUtil.runAsync(
             () -> categoriaService.findAll(),
             cats -> {
-                categoriaFilter.getItems().add(null);
-                categoriaFilter.getItems().addAll(cats);
-                categoriaFilter.setConverter(new javafx.util.StringConverter<>() {
-                    public String toString(Categoria c) { return c == null ? "Todas" : c.getNombre(); }
-                    public Categoria fromString(String s) { return null; }
-                });
+                categoriaFilter.getItems().setAll(cats);
                 categoriaFilter.setCellFactory(lv -> ProductosListCells.categoriaListCell());
-                categoriaFilter.setButtonCell(ProductosListCells.categoriaListCell());
+                com.sibim.util.FiltroEscribible.instalar(categoriaFilter, Categoria::getNombre, "Categoría…");
                 // Consume category pre-filter set by Dashboard pie chart click
                 String pendingCat = NavigationContext.consumePendingCategoryFilter();
                 if (pendingCat != null) {
@@ -384,27 +379,16 @@ public class ProductosController {
         SearchUtils.debounce(searchField, 280, q -> { currentPage = 0; applyFilters(); });
         categoriaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
 
-        areaFilter.getItems().add(null);
-        areaFilter.getItems().addAll(Areas.getAllAreaNames());
-        areaFilter.setConverter(new javafx.util.StringConverter<>() {
-            public String toString(String a) { return a == null ? "Todas las áreas" : a; }
-            public String fromString(String s) { return null; }
-        });
-        areaFilter.setCellFactory(lv -> ProductosListCells.areaListCell());
-        areaFilter.setButtonCell(ProductosListCells.areaListCell());
+        // Type to find the área or the person (5-nov-2026); empty is "all".
+        FiltroArea.configurar(areaFilter);
         areaFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
-        // An account that only sees one área has nothing to choose here.
-        java.util.Set<String> misAreas = SessionManager.getAccessibleAreas();
-        if (misAreas != null && misAreas.size() <= 1) { areaFilter.setVisible(false); areaFilter.setManaged(false); }
 
-        resguardanteFilter.setConverter(new javafx.util.StringConverter<>() {
-            public String toString(String r) { return r == null ? "Todos los resguardantes" : r; }
-            public String fromString(String s) { return null; }
-        });
+        resguardanteFilter.getItems().clear();
+        com.sibim.util.FiltroEscribible.instalar(resguardanteFilter, "Resguardante…");
         resguardanteFilter.valueProperty().addListener((obs, o, n) -> { currentPage = 0; applyFilters(); });
 
         String pendingArea = NavigationContext.consumePendingAreaFilter();
-        if (pendingArea != null && areaFilter.getItems().contains(pendingArea)) {
+        if (pendingArea != null && com.sibim.util.FiltroEscribible.opciones(areaFilter).contains(pendingArea)) {
             areaFilter.setValue(pendingArea);
         }
         if (NavigationContext.consumePendingNuevoBien()) {
@@ -414,6 +398,9 @@ public class ProductosController {
         switch (abrir) {
             case "completar" -> Platform.runLater(this::onCompletarDatos);
             case "unir"      -> Platform.runLater(this::onUnirPersonas);
+            case "titulos"   -> Platform.runLater(this::onQuitarTitulos);
+            case "observados" -> Platform.runLater(() -> com.sibim.controller.dialogs.RevisarBienesDialog.show(null,
+                com.sibim.controller.dialogs.RevisarBienesDialog.Vista.OBSERVADOS, this::alCorregirDatos));
             case "series"    -> Platform.runLater(this::onSeriesRepetidas);
             case "etiquetas" -> Platform.runLater(this::onEtiquetasArea);
             default -> {
@@ -522,12 +509,7 @@ public class ProductosController {
     }
 
     private void refreshResguardanteOptions(List<String> options) {
-        String current = resguardanteFilter.getValue();
-        resguardanteFilter.getItems().setAll(new java.util.ArrayList<>());
-        resguardanteFilter.getItems().add(null);
-        resguardanteFilter.getItems().addAll(options);
-        if (current != null && resguardanteFilter.getItems().contains(current))
-            resguardanteFilter.setValue(current);
+        com.sibim.util.FiltroEscribible.opciones(resguardanteFilter, options);
     }
 
     private void updateStats(ProductoRepository.InventarioStats stats) {
@@ -583,6 +565,7 @@ public class ProductosController {
     @FXML private Label lblPistaAcciones;
     @FXML private MenuItem btnCompletarDatos;
     @FXML private MenuItem btnUnirPersonas;
+    @FXML private MenuItem btnQuitarTitulos;
     @FXML private MenuItem btnSeriesRepetidas;
     @FXML private MenuItem btnEtiquetasArea;
     @FXML private SeparatorMenuItem sepRevisarDatos;
@@ -609,6 +592,16 @@ public class ProductosController {
         DialogUtil.runAsyncWithProgress(table.getScene(), "Buscando personas repetidas…",
             () -> java.util.Map.entry(productoService.getAll(), new com.sibim.service.ResguardoService().getAll()),
             datos -> com.sibim.controller.dialogs.UnirPersonasDialog.show(datos.getKey(), datos.getValue(), this::alCorregirDatos),
+            e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar los datos"));
+    }
+
+    @FXML
+    private void onQuitarTitulos() {
+        DialogUtil.runAsyncWithProgress(table.getScene(), "Buscando nombres con título…",
+            () -> com.sibim.service.CalidadDatosService.nombresConTitulo(productoService.getAll(),
+                new com.sibim.service.ResguardoService().getAll(),
+                com.sibim.service.TitularesArea.todos(new com.sibim.repository.ConfiguracionRepository())),
+            nombres -> com.sibim.controller.dialogs.QuitarTitulosDialog.show(nombres, this::alCorregirDatos),
             e -> NotificacionUtil.error(table.getScene(), "No se pudieron cargar los datos"));
     }
 
@@ -770,9 +763,8 @@ public class ProductosController {
             return;
         }
         if (!SessionManager.isAdmin()) {
-            NotificacionUtil.info(table.getScene(), "Solo Patrimonio registra bajas: se generó la solicitud "
-                + "de baja para que el área la firme y la entregue.");
-            onExportSolicitudBaja();
+            // The request goes to Patrimonio's inbox and the formato to sign comes out with it.
+            com.sibim.controller.dialogs.SolicitarBajaDialog.mostrar(table.getScene(), getSelectedProductos(), null);
             return;
         }
         // Baja patrimonial (soft-delete): record + audit trail stay in DB,

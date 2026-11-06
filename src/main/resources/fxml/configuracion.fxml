@@ -154,14 +154,39 @@
                 <TextField fx:id="tfDomicilio" promptText="Ej. Plaza Juárez S/N, Col. Centro C.P. 42300" maxWidth="Infinity"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="3">
-                <Label text="ELABORA LOS RESGUARDOS (RECURSOS MATERIALES Y PATRIMONIO)" styleClass="profile-field-key"/>
-                <TextField fx:id="tfFirmaElabora" promptText="Nombre de quien firma «Elaboró»" maxWidth="Infinity"/>
+                <Label text="ELABORÓ (DIRECTOR DE RECURSOS MATERIALES Y PATRIMONIO)" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaElabora" promptText="Nombre de quien firma «Elaboró» en resguardos, reportes y formatos" maxWidth="Infinity"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="3">
                 <Label text="VO. BO. (SECRETARÍA GENERAL MUNICIPAL)" styleClass="profile-field-key"/>
-                <TextField fx:id="tfFirmaVoBo" promptText="Nombre de quien firma «Vo. Bo.»" maxWidth="Infinity"/>
+                <TextField fx:id="tfFirmaVoBo" promptText="Nombre de quien firma «Vo. Bo.» en resguardos, reportes y formatos" maxWidth="Infinity"/>
             </VBox>
-            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2">
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="4">
+                <Label text="SUPERVISÓ (SÍNDICO HACENDARIO)" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaSindico" promptText="Nombre de quien firma «Supervisó» en los resguardos" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                <Label text="JEFE DE INVENTARIOS" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaJefeInventarios" promptText="Nombre de quien firma «Revisó» en las bajas" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="5">
+                <Label text="TESORERO MUNICIPAL" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaTesorero" promptText="Nombre de quien firma «Vo. Bo.» en la depreciación" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="5">
+                <Label text="CONTADOR / CONTRALOR MUNICIPAL" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaContador" promptText="Nombre de quien firma en la depreciación" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="6">
+                <Label text="PRESIDENTE MUNICIPAL" styleClass="profile-field-key"/>
+                <TextField fx:id="tfFirmaPresidente" promptText="Nombre de quien firma «Autorizó» en el acta de baja" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="6">
+                <Label text="EN CADA FIRMA" styleClass="profile-field-key"/>
+                <Label text="Va el nombre y abajo su cargo. Si un nombre queda vacío, el formato dice «Nombre y firma» para escribirlo a mano."
+                       styleClass="muted-sm" wrapText="true"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="7" GridPane.columnSpan="2">
                 <Label text="LOGO DEL AYUNTAMIENTO" styleClass="profile-field-key"/>
                 <HBox spacing="8" alignment="CENTER_LEFT">
                     <TextField fx:id="tfLogoPath" promptText="Ruta al archivo de imagen (PNG, JPG)" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
@@ -172,7 +197,7 @@
                 </HBox>
                 <Label text="Se muestra en la pantalla de inicio al abrir la aplicación." styleClass="muted-sm"/>
             </VBox>
-            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2">
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="8" GridPane.columnSpan="2">
                 <HBox spacing="6" alignment="CENTER_LEFT">
                     <Label text="TIEMPO DE INACTIVIDAD (MINUTOS)" styleClass="profile-field-key"/>
                     <Label text="?" styleClass="help-badge">

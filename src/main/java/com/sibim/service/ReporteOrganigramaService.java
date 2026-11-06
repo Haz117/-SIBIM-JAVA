@@ -146,8 +146,8 @@ public class ReporteOrganigramaService extends ReporteService {
             // ── Footer ──────────────────────────────────────────────────
             doc.add(spacer(8));
             addFirmasBlock(doc,
-                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"VO.BO.", "_______________", "Secretario General Municipal"});
+                new String[]{"ELABORÓ", firmaElabora(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", firmaVoBo(), "Secretario General Municipal"});
             addPdfFooter(doc, totalBienes, folio);
         }
         return file;

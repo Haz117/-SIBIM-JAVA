@@ -127,10 +127,16 @@ class NotificationCenter {
                 log.warn("No se pudo calcular el aviso de transferencias", e);
             }
             if (admin) try {
-                int s = new com.sibim.service.SolicitudService().countPendientes();
+                var solicitudes = new com.sibim.service.SolicitudService();
+                int bajas = solicitudes.countPendientes(com.sibim.model.Solicitud.TIPO_BAJA);
+                int s = solicitudes.countPendientes() - bajas;
                 if (s > 0) items.add(0, new Item("mdi2t-timer-sand", "warning",
                     s == 1 ? "1 solicitud de préstamo o resguardo" : s + " solicitudes de préstamo o resguardo",
                     "prestamos", s));
+                // An área asks for a baja (5-nov-2026): Patrimonio looks at the bien and decides.
+                if (bajas > 0) items.add(0, new Item("mdi2f-file-remove-outline", "danger",
+                    bajas == 1 ? "1 solicitud de baja por revisar" : bajas + " solicitudes de baja por revisar",
+                    "bajas:solicitudes", bajas));
             } catch (Exception e) {
                 log.warn("No se pudo calcular el aviso de solicitudes", e);
             }
@@ -172,7 +178,11 @@ class NotificationCenter {
                         ex -> { });
                     return;
                 }
-                if (destino.length == 2) com.sibim.session.NavigationContext.setPendingAccionMovimientos(destino[1]);
+                if (destino.length == 2) {
+                    if ("movimientos".equals(destino[0]))
+                        com.sibim.session.NavigationContext.setPendingAccionMovimientos(destino[1]);
+                    else com.sibim.session.NavigationContext.setPendingAbrir(destino[1]);
+                }
                 navigate.accept(destino[0]);
             });
             menuItems.add(mi);

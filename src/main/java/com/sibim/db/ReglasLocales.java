@@ -28,11 +28,11 @@ public final class ReglasLocales {
     /**
      * Checks {@code m} against the bien as it is now and fills in what the
      * movement records: stock before/after, and for a transfer the origin área
-     * and old/new código (next free número in the destination).
-     * @param codigosActivos códigos of every active bien, to pick the new one
+     * and old/new código (the next número never used in the destination).
+     * @param codigosUsados every código ever used, to pick the new one
      */
     public static void aplicar(Movimiento m, Producto p, Integer expectedStockAnterior,
-                               List<String> codigosActivos) throws SQLException {
+                               List<String> codigosUsados) throws SQLException {
         int stockActual = p.getStockActual();
         if (p.isDadoDeBaja()) throw new ReglaIncumplida(MovimientoService.BIEN_DE_BAJA);
         if (expectedStockAnterior != null && stockActual != expectedStockAnterior)
@@ -50,7 +50,7 @@ public final class ReglasLocales {
             m.setAreaOrigen(p.getArea());
             m.setCodigoAnterior(p.getCodigo());
             m.setCodigoNuevo(AreaCodigos.tienePrefijo(m.getAreaDestino())
-                ? AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosActivos)
+                ? AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosUsados)
                 : p.getCodigo());
         }
     }
@@ -79,14 +79,14 @@ public final class ReglasLocales {
 
     /**
      * Stock goes back by the movement's delta; a deleted transfer sends the bien
-     * back to its origin área with its old número if it is still free, or else
-     * the next free código there (it may have been handed to another bien since).
+     * back to its origin área with its old número unless an active bien has it
+     * (only legacy data could), or else the next número never used there.
      */
-    public static Deshacer deshacer(Movimiento m, Producto p, List<String> codigosActivos) {
+    public static Deshacer deshacer(Movimiento m, Producto p, List<String> codigosActivos, List<String> codigosUsados) {
         int stock = p.getStockActual() + (m.getStockAnterior() - m.getStockNuevo());
         String area = m.getAreaOrigen() != null ? m.getAreaOrigen() : p.getArea();
         String codigo = m.getAreaOrigen() != null && AreaCodigos.tienePrefijo(m.getAreaOrigen())
-            ? AreaCodigos.codigoPreferido(m.getAreaOrigen(), m.getCodigoAnterior(), codigosActivos)
+            ? AreaCodigos.codigoPreferido(m.getAreaOrigen(), m.getCodigoAnterior(), codigosActivos, codigosUsados)
             : p.getCodigo();
         return new Deshacer(stock, area, codigo);
     }

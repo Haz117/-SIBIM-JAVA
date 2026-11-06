@@ -242,6 +242,40 @@ public class ReporteService {
         return u != null ? u.getNombre() : "_______________";
     }
 
+    /** Who signs «Elaboró» for Recursos Materiales y Patrimonio: the name typed in
+     *  Configuración (the same the vehicle resguardo uses), else whoever generates it.
+     *  Every signature carries the name first and the cargo under it (6-nov-2026). */
+    protected String firmaElabora() {
+        String n = config(ReporteResguardoVehicularService.CLAVE_ELABORA, "");
+        return n.isBlank() ? getCurrentUserName() : n.trim();
+    }
+
+    /** The «Vo. Bo.» (Secretaría General Municipal) typed in Configuración, or null
+     *  to write it by hand. */
+    protected String firmaVoBo() {
+        return firma(ReporteResguardoVehicularService.CLAVE_VOBO);
+    }
+
+    /** The other signers typed in Configuración › Configuración del Sistema (6-nov-2026). */
+    public static final String FIRMA_SINDICO          = "firma_sindico";
+    public static final String FIRMA_JEFE_INVENTARIOS = "firma_jefe_inventarios";
+    public static final String FIRMA_TESORERO         = "firma_tesorero";
+    public static final String FIRMA_CONTADOR         = "firma_contador";
+    public static final String FIRMA_PRESIDENTE       = "firma_presidente";
+
+    /** The name stored under {@code clave}, or null to write it by hand. */
+    protected String firma(String clave) {
+        String n = config(clave, "");
+        return n.isBlank() ? null : n.trim();
+    }
+
+    /** The titular of Recursos Materiales y Patrimonio as typed in Configuración, or
+     *  null — for a «Recibe» of that office, where whoever generates it may be an área. */
+    protected String nombreDirectorPatrimonio() {
+        String n = config(ReporteResguardoVehicularService.CLAVE_ELABORA, "");
+        return n.isBlank() ? null : n.trim();
+    }
+
     /** Relative column widths that hold. iText reads a plain {@code float[]} as
      *  points and then sizes the columns by their content, so two tables given
      *  the same widths did not line up and narrow columns were crushed. */
@@ -258,7 +292,8 @@ public class ReporteService {
             .useAllAvailableWidth().setFixedLayout();
     }
 
-    /** Signature block: {title, name or null, role} per signer. Kept in one piece,
+    /** Signature block: {title, name or null, cargo} per signer — the title over the
+     *  space to sign, then the line, the name and the cargo under it. Kept in one piece,
      *  so a page never ends with the titles and starts with the lines. */
     protected void addFirmasBlock(Document doc, String[]... firmas) throws IOException {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
@@ -559,8 +594,8 @@ public class ReporteService {
                     com.sibim.session.Permisos.pesos(valorTotal), "");
             table.complete();
             addFirmasBlock(doc,
-                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"VO.BO.", null, "Secretario General Municipal"});
+                new String[]{"ELABORÓ", firmaElabora(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", firmaVoBo(), "Secretario General Municipal"});
             addPdfFooter(doc, productos.size(), folio);
         }
         return numerarPaginas(file);
@@ -593,8 +628,8 @@ public class ReporteService {
             }
             doc.add(table);
             addFirmasBlock(doc,
-                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"VO.BO.", null, "Secretario General Municipal"});
+                new String[]{"ELABORÓ", firmaElabora(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.", firmaVoBo(), "Secretario General Municipal"});
             addPdfFooter(doc, movimientos.size(), folio);
         }
         return numerarPaginas(file);
@@ -1013,6 +1048,11 @@ public class ReporteService {
     /** Formato para que un área pida la baja de uno o varios bienes (una página por bien). */
     public File exportSolicitudBaja(List<Producto> bienes) throws Exception {
         return new ReporteSolicitudBajaService().exportSolicitudBaja(bienes);
+    }
+
+    /** The same, with the motivo marked and the description written (sent through SIBIM). */
+    public File exportSolicitudBaja(List<Producto> bienes, String motivo, String detalle) throws Exception {
+        return new ReporteSolicitudBajaService().exportSolicitudBaja(bienes, motivo, detalle);
     }
 
     /** Dictamen técnico que el área técnica anexa a la solicitud de baja (una página por bien). */

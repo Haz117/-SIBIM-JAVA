@@ -91,6 +91,36 @@ final class TutorialGuias {
                 "Hay pantallas nuevas para corregir los datos del inventario y varias se rediseñaron",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+            p.add(paso("mdi2s-stairs-up", VERDE, VERDE_D, "Avance de las áreas", "organigrama", "#btnAvanceAreas",
+                "Cada área tiene tres fases: 1 entrar a SIBIM, 2 revisar sus bienes y llenar lo que falte, 3 confirmar sus etiquetas",
+                "En el organigrama cada área lleva sus pasos 1·2·3; verde es hecho, dorado es a medias",
+                "Un clic en los pasos de un área abre su detalle; «Avance de las áreas» las muestra todas en una tabla",
+                "Si un área dice que un bien no es suyo, aparece en «Por hacer» para que lo revises"));
+            p.add(paso("mdi2n-numeric", GUINDA, GUINDA_D, "Los números ya no se repiten", "productos", "#searchField",
+                "El número de un bien dado de baja, transferido o borrado ya no se le da a otro bien",
+                "El siguiente bien de un área toma el número que sigue al más alto que se ha usado",
+                "Si deshaces una transferencia o reactivas un bien, vuelve con su mismo número"));
+            p.add(paso("mdi2l-lock-check-outline", DORADO, DORADO_D, "Bajas definitivas", "bajas", "#chipDefinitivas",
+                "En Bajas: «En proceso» son las dadas de baja; «Definitivas», las que ya se destruyeron, donaron o subastaron",
+                "Selecciona una o varias y «Baja definitiva» pide la fecha y el documento que la autoriza",
+                "Una baja definitiva ya no se puede reactivar"));
+            p.add(paso("mdi2f-file-remove-outline", GUINDA, GUINDA_D, "Las áreas piden la baja por SIBIM", "bajas", null,
+                "Cuando un área pide la baja de un bien te llega el aviso en la campana, en «Por hacer» y aquí en Bajas",
+                "El área entrega el formato firmado en Recursos Materiales y Patrimonio: «Recibí el formato» anota su folio",
+                "«Revisar» abre cada solicitud: «Ver el bien», «Dar de baja» (con su motivo y el folio ya escritos) o «No procede» con el porqué",
+                "El área ve tu respuesta en su Inicio, y si le falta entregar el formato"));
+            p.add(probar(paso("mdi2c-card-account-details-outline", GUINDA, GUINDA_D, "Solo el nombre, sin Lic. ni Ing.", "productos", "#btnMasBienes",
+                "Bienes › Más › Quitar títulos de los nombres: ves cómo queda cada uno antes de cambiarlo",
+                "Desde ahora los nombres se guardan sin título al escribirlos",
+                "Los resguardos cancelados y los bienes dados de baja se quedan como se firmaron"),
+                "Abrir Quitar títulos", abrir("productos", "titulos")));
+            p.add(paso("mdi2m-magnify", VERDE, VERDE_D, "Escribe en los filtros", "productos", "#resguardanteFilter",
+                "En los filtros de área, persona y categoría ya puedes escribir para encontrarla rápido",
+                "Cada palabra cuenta, sin acentos; Enter toma la primera",
+                "Borra lo escrito para volver a ver todos"));
+            p.add(paso("mdi2p-paw-outline", VERDE, VERDE_D, "Activos Biológicos", "categorias", null,
+                "Categoría nueva para animales y plantas del municipio (cuenta CONAC 1.2.4.8)",
+                "En la clave armonizada de cada bien puedes poner su subcuenta: perros 1.2.4.8.7, caballos 1.2.4.8.6…"));
             p.add(paso("mdi2f-format-list-checks", GUINDA, GUINDA_D, "«Por hacer» en Inicio", "dashboard", "#porHacerSection",
                 "Lo que le falta al inventario, con su número real",
                 "Un clic te lleva a la pantalla que lo resuelve; lo que ya quedó deja de aparecer"));
@@ -162,6 +192,18 @@ final class TutorialGuias {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
                 "Cada paso te lleva a la pantalla y marca dónde está",
                 "Con «Probarlo ahora» abres la ventana de verdad"));
+            p.add(paso("mdi2c-clipboard-check-multiple-outline", VERDE, VERDE_D, "Revisa tus bienes", "dashboard", "#miAreaSection",
+                "En tu Inicio, «Revisa tus bienes» te muestra los bienes a cargo de tu área",
+                "Selecciona los que sí tienes y da «Sí son de mi área»; los que no, «No son de mi área» y escribe por qué",
+                "Ahí mismo «Actualizar datos» les pone foto, ubicación y estado físico",
+                "«Confirma tus etiquetas»: marca los que ya tienen su etiqueta pegada",
+                "Patrimonio ve en el organigrama cómo va tu área"));
+            p.add(paso("mdi2f-file-remove-outline", GUINDA, GUINDA_D, "Pide una baja", "productos", "#btnEliminar",
+                "En Bienes selecciona el bien y pulsa «Solicitar baja»: escoge el motivo y di cómo está",
+                "A Patrimonio le llega el aviso y sale el formato: fírmalo y entrégalo en Recursos Materiales y Patrimonio; sin él no se da de baja",
+                "La respuesta la ves en tu Inicio, en «Tus solicitudes de baja»"));
+            p.add(paso("mdi2m-magnify", VERDE, VERDE_D, "Escribe en los filtros", "productos", "#searchField",
+                "En los filtros de área, persona y categoría ya puedes escribir para encontrarla rápido"));
             p.add(probar(paso("mdi2b-badge-account-outline", VERDE, VERDE_D, "Resguardos de una persona", "reportes", "#listaListados .report-row",
                 "Es la primera fila de Reportes: busca a la persona y genera su PDF",
                 "Escribe parte del nombre y Enter genera el PDF"),

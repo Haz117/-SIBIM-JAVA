@@ -303,9 +303,12 @@ public class AuditoriaController {
                     items.add(todas);
                     items.addAll(lista);
                     combo.getItems().setAll(items);
+                    // People: type to find one (5-nov-2026); "Todos…" stays the first option.
+                    if (combo == usuarioFilter && combo.getProperties().putIfAbsent("sibim.escribible", items) == null)
+                        DialogUtil.makeFilterable(combo, items);
                     String elegido = FILTROS.get(clave);
-                    if (elegido != null && items.contains(elegido)) combo.getSelectionModel().select(elegido);
-                    else combo.getSelectionModel().selectFirst();
+                    if (elegido != null && items.contains(elegido)) combo.setValue(elegido);
+                    else combo.setValue(todas);
                     ajustando = antes;
                     // A filter of this session that the first read didn't have yet.
                     if (elegido != null && items.contains(elegido)) { currentPage = 0; loadData(); }
@@ -396,7 +399,7 @@ public class AuditoriaController {
 
     private static String valor(ComboBox<String> combo, String todas) {
         if (combo == null) return null;
-        String sel = combo.getSelectionModel().getSelectedItem();
+        String sel = combo.getValue();
         return (sel == null || sel.equals(todas)) ? null : sel;
     }
 
@@ -474,7 +477,7 @@ public class AuditoriaController {
     @FXML private void onLimpiar() {
         ajustando = true;
         if (searchField   != null) searchField.clear();
-        if (usuarioFilter != null) usuarioFilter.getSelectionModel().selectFirst();
+        if (usuarioFilter != null) usuarioFilter.setValue(TODOS_USUARIOS);
         if (accionFilter  != null) accionFilter.getSelectionModel().selectFirst();
         if (desdeField    != null) desdeField.setValue(null);
         if (hastaField    != null) hastaField.setValue(null);

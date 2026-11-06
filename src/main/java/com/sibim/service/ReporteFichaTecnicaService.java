@@ -318,18 +318,22 @@ public class ReporteFichaTecnicaService extends ReporteService {
     private Table firmas(Producto p, PdfFont bold, PdfFont reg) {
         Table t = new Table(UnitValue.createPercentArray(new float[]{1, 1, 1})).useAllAvailableWidth()
             .setMarginTop(14).setKeepTogether(true);
+        // {title, name or null, cargo}: the name first and the cargo under it.
         String[][] firmas = {
-            {"RECIBÍ DE CONFORMIDAD", hay(p.getResguardante()) ? p.getResguardante().toUpperCase() : "Resguardante"},
-            {"ELABORÓ", "Recursos Materiales y Patrimonio"},
-            {"VO. BO.", "Nombre y firma"}};
+            {"RECIBÍ DE CONFORMIDAD", hay(p.getResguardante()) ? p.getResguardante().toUpperCase() : null, "Resguardante"},
+            {"ELABORÓ", firmaElabora(), "Recursos Materiales y Patrimonio"},
+            {"VO. BO.", firmaVoBo(), "Secretario General Municipal"}};
         for (String[] f : firmas) {
+            boolean conNombre = f[1] != null && !f[1].isBlank() && !f[1].startsWith("___");
             t.addCell(celda().setPaddingLeft(12).setPaddingRight(12)
                 .add(new Paragraph(f[0]).setFont(bold).setFontSize(7.5f).setFontColor(TEXTO)
                     .setTextAlignment(TextAlignment.CENTER).setMarginBottom(20))
                 .add(new Table(1).useAllAvailableWidth().addCell(new Cell().setHeight(1)
                     .setBorder(Border.NO_BORDER).setBorderTop(new SolidBorder(TEXTO, 0.7f))))
-                .add(new Paragraph(f[1]).setFont(reg).setFontSize(7.5f).setFontColor(TENUE)
-                    .setTextAlignment(TextAlignment.CENTER).setMarginTop(2)));
+                .add(new Paragraph(conNombre ? f[1] : "Nombre y firma").setFont(conNombre ? bold : reg).setFontSize(7.5f)
+                    .setFontColor(conNombre ? TEXTO : TENUE).setTextAlignment(TextAlignment.CENTER).setMarginTop(2))
+                .add(new Paragraph(f[2]).setFont(reg).setFontSize(7f).setFontColor(TENUE)
+                    .setTextAlignment(TextAlignment.CENTER).setMargin(0)));
         }
         return t;
     }

@@ -61,7 +61,7 @@ public class ReporteDictamenBajaService extends ReporteFormatoBajaBase {
         try (PdfWriter writer = new PdfWriter(file.getAbsolutePath());
              PdfDocument pdfDoc = new PdfDocument(writer);
              Document doc = new Document(pdfDoc, PageSize.A4)) {
-            doc.setMargins(24, 36, 22, 36);
+            doc.setMargins(22, 36, 14, 36);
 
             encabezado(doc, "DICTAMEN TÉCNICO DE BAJA",
                 "Lo emite el área técnica que revisó el bien · se anexa a la solicitud de baja",
@@ -106,8 +106,8 @@ public class ReporteDictamenBajaService extends ReporteFormatoBajaBase {
             doc.add(casillas(4, regular, List.of("Bueno", "Regular", "Malo", "Inservible"), null));
             doc.add(spacer(3));
             doc.add(sectionTitle("DIAGNÓSTICO TÉCNICO  (fallas o daños encontrados)", bold, COLOR_HEADER));
-            doc.add(renglones(3, 17));
-            doc.add(spacer(5));
+            doc.add(renglones(3, 14));
+            doc.add(spacer(4));
 
             doc.add(sectionTitle("CAUSA DE LA BAJA  (marque una)", bold, COLOR_HEADER));
             doc.add(casillas(3, regular, List.of("Daño irreparable", "Obsolescencia tecnológica", "Desgaste por uso",
@@ -137,18 +137,17 @@ public class ReporteDictamenBajaService extends ReporteFormatoBajaBase {
                 doc.add(new Paragraph(resolucion).setFont(regular).setFontSize(9f).setFontColor(DARK).setMarginBottom(2));
                 doc.add(renglones(1, 16));
             } else {
-                doc.add(renglones(2, 16));
+                doc.add(renglones(2, 15));
             }
-            doc.add(spacer(22));
 
             doc.add(firmas(bold, regular,
-                new String[]{"Elaboró", "Técnico que revisó el bien"},
-                new String[]{"Vo. Bo.", "Titular del área técnica"},
-                new String[]{"Enterado", "Titular del área usuaria"}));
+                new String[]{"Elaboró", null, "Técnico que revisó el bien"},
+                new String[]{"Vo. Bo.", null, "Titular del área técnica"},
+                new String[]{"Enterado", enBlanco ? null : titularDe(p.getArea()), "Titular del área usuaria"}));
 
-            doc.add(spacer(6));
-            pie(doc, "Este dictamen no da de baja el bien por sí mismo: se anexa a la solicitud de baja y "
-                + "Patrimonio registra la baja en SIBIM, que emite el Acta de baja patrimonial.", regular);
+            doc.add(spacer(2));
+            pie(doc, "Se anexa a la solicitud de baja; no da de baja el bien por sí mismo: Patrimonio registra la baja "
+                + "en SIBIM y emite el Acta.", regular);
         }
         return file;
     }

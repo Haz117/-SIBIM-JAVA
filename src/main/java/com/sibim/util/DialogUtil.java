@@ -759,11 +759,15 @@ public final class DialogUtil {
                 return celda;
             });
         }
-        Label vacio = new Label(allItems.isEmpty()
-            ? "No hay registros cargados (¿sin conexión?)" : "Ningún resultado coincide con lo escrito");
+        Label vacio = new Label();
         vacio.getStyleClass().add("muted-sm");
         vacio.setPadding(new Insets(10));
         combo.setPlaceholder(vacio);
+        // Said when the list opens: a filter's options often arrive after it is set up.
+        Runnable textoVacio = () -> vacio.setText(allItems.isEmpty()
+            ? "No hay registros cargados (¿sin conexión?)" : "Ningún resultado coincide con lo escrito");
+        textoVacio.run();
+        combo.showingProperty().addListener((o, antes, ahora) -> { if (ahora) textoVacio.run(); });
         // A click in the field always opens the list. Opening only when the field
         // GAINED focus meant that, in a dialog where it already had focus, clicking
         // it did nothing — it looked like an empty, dead picker.
@@ -933,7 +937,7 @@ public final class DialogUtil {
         makeFilterable(combo, nombres, s -> s == null ? "" : s);
     }
 
-    // ── Spinner ──────────────────────────────────────────────────────────
+    // ── Spinner ──────────────────────────────────────────────────────────por areas
 
     /**
      * Works around a known JavaFX bug (JDK-8150946): an editable Spinner does not

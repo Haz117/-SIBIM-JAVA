@@ -122,7 +122,7 @@ public class ReporteConteoService extends ReporteService {
                 .setFont(bold).setFontSize(10).setMarginTop(12));
             addFirmasBlock(doc,
                 new String[]{"RESPONSABLE DEL CONTEO", c.getUsuarioNombre() != null ? c.getUsuarioNombre() : "_______________", "Responsable de Inventario"},
-                new String[]{"VO.BO. ADMINISTRADOR", "_______________", "Director de Recursos Materiales"});
+                new String[]{"VO.BO. ADMINISTRADOR", nombreDirectorPatrimonio(), "Director de Recursos Materiales"});
             addPdfFooter(doc, items.size(), folio);
         }
         return out;
@@ -177,7 +177,7 @@ public class ReporteConteoService extends ReporteService {
             doc.add(table);
             addFirmasBlock(doc,
                 new String[]{"RESPONSABLE DEL CONTEO", usuario != null ? usuario : "_______________", "Responsable de Inventario"},
-                new String[]{"VO.BO. ADMINISTRADOR",   "_______________", "Director de Recursos Materiales"});
+                new String[]{"VO.BO. ADMINISTRADOR",   nombreDirectorPatrimonio(), "Director de Recursos Materiales"});
             addPdfFooter(doc, items.size(), folio);
         }
         return file;

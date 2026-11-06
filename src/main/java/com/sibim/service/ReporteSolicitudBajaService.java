@@ -24,6 +24,10 @@ import java.util.List;
  * the área completes by hand: motivo, estado físico, documentos anexos, firmas.
  * It records nothing and burns no folio — Patrimonio assigns one on receipt and
  * the baja itself is still registered in SIBIM (which issues the Acta de baja).
+ *
+ * <p>When the área sent the request through SIBIM (5-nov-2026) the formato
+ * comes with that motivo marked, its description written and the date it was
+ * sent, so the paper and the request in Patrimonio's inbox match.
  */
 public class ReporteSolicitudBajaService extends ReporteFormatoBajaBase {
 
@@ -31,10 +35,19 @@ public class ReporteSolicitudBajaService extends ReporteFormatoBajaBase {
 
     /** One bien → one page; several → one PDF with a page per bien. */
     public File exportSolicitudBaja(List<Producto> bienes) throws Exception {
-        return unaPaginaPorBien("solicitudes_baja", bienes, this::exportUna);
+        return exportSolicitudBaja(bienes, null, null);
     }
 
-    private File exportUna(Producto p) throws Exception {
+    /** The same, for a request sent through SIBIM: {@code motivo} (one of
+     *  {@link SolicitudService#MOTIVOS_BAJA}) comes marked and {@code detalle}
+     *  written; both null for the blank formato. */
+    public File exportSolicitudBaja(List<Producto> bienes, String motivo, String detalle) throws Exception {
+        return unaPaginaPorBien("solicitudes_baja", bienes, p -> exportUna(p, motivo, detalle));
+    }
+
+    private File exportUna(Producto p, String motivo, String detalle) throws Exception {
+        boolean enviada = motivo != null;
+        String escrito = detalle == null || detalle.isBlank() ? null : detalle.trim();
         File file = tempFile("solicitud_baja_" + nombreArchivo(p), ".pdf");
 
         PdfFont bold    = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
@@ -46,7 +59,9 @@ public class ReporteSolicitudBajaService extends ReporteFormatoBajaBase {
             doc.setMargins(26, 36, 26, 36);
 
             encabezado(doc, "SOLICITUD DE BAJA DE BIEN PATRIMONIAL",
-                "Para entregar a Recursos Materiales y Patrimonio", "(folio lo asigna Patrimonio)", bold, regular);
+                "Para entregar a Recursos Materiales y Patrimonio",
+                enviada ? "Enviada por SIBIM el " + FormatUtils.formatDate(java.time.LocalDate.now())
+                        : "(folio lo asigna Patrimonio)", bold, regular);
             doc.add(spacer(5));
 
             // ── Código + área solicitante ──
@@ -86,27 +101,34 @@ public class ReporteSolicitudBajaService extends ReporteFormatoBajaBase {
 
             // ── Motivo ──
             doc.add(sectionTitle("MOTIVO DE LA SOLICITUD  (marque uno)", bold, COLOR_HEADER));
-            doc.add(casillas(3, regular, List.of("Inservible / descompuesto", "Obsoleto", "Desgaste por uso",
-                                                 "Extravío", "Robo (anexar denuncia)", "Siniestro"), null));
-            doc.add(new Paragraph("Otro: ________________________________________________________________________")
+            List<String> casillas = SolicitudService.MOTIVOS_BAJA.stream().filter(m -> !"Otro".equals(m)).toList();
+            doc.add(casillas(3, regular, casillas, motivo));
+            boolean otro = "Otro".equals(motivo);
+            doc.add(new Paragraph(otro && escrito != null ? "[ X ]  Otro: " + escrito
+                    : "Otro: ________________________________________________________________________")
                 .setFont(regular).setFontSize(9f).setMarginTop(2));
             doc.add(spacer(6));
 
             // ── Estado actual (to be written by hand) ──
             doc.add(sectionTitle("DESCRIPCIÓN DEL ESTADO ACTUAL DEL BIEN", bold, COLOR_HEADER));
-            doc.add(renglones(3, 18));
+            if (escrito != null && !otro) {
+                doc.add(new Paragraph(escrito).setFont(regular).setFontSize(9.5f).setMarginTop(4));
+                doc.add(renglones(1, 18));
+            } else {
+                doc.add(renglones(3, 18));
+            }
             doc.add(spacer(8));
 
             // ── Documentos anexos ──
             doc.add(sectionTitle("DOCUMENTOS QUE SE ANEXAN", bold, COLOR_HEADER));
             doc.add(casillas(2, regular, List.of("Dictamen técnico del bien", "Fotografías del estado actual",
                                                  "Copia del resguardo", "Acta circunstanciada / denuncia (robo o extravío)"), null));
-            doc.add(spacer(26));
+            doc.add(spacer(10));
 
             doc.add(firmas(bold, regular,
-                new String[]{"Solicita", "Titular del área"},
-                new String[]{"Entrega", "Resguardante del bien"},
-                new String[]{"Recibe", "Recursos Materiales y Patrimonio"}));
+                new String[]{"Solicita", titularDe(p.getArea()), "Titular del área"},
+                new String[]{"Entrega", p.getResguardante(), "Resguardante del bien"},
+                new String[]{"Recibe", nombreDirectorPatrimonio(), "Recursos Materiales y Patrimonio"}));
 
             doc.add(spacer(8));
             pie(doc, "Esta solicitud no da de baja el bien por sí misma: Patrimonio la revisa y, "

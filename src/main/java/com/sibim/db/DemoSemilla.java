@@ -76,7 +76,8 @@ final class DemoSemilla {
             new Categoria("cat-comp", "Equipo de Cómputo",         "Laptops, computadoras, periféricos",        "#10B981", "💻",  LocalDateTime.now()),
             new Categoria("cat-ofi",  "Equipo de Oficina",         "Impresoras, copiadoras, teléfonos",         "#F59E0B", "🖨",  LocalDateTime.now()),
             new Categoria("cat-maq",  "Herramientas y Maquinaria", "Maquinaria pesada, herramientas, extintores","#EF4444", "🔧",  LocalDateTime.now()),
-            new Categoria("cat-av",   "Equipo Audiovisual",        "Cámaras, proyectores, pantallas, audio",    "#EC4899", "📷",  LocalDateTime.now())
+            new Categoria("cat-av",   "Equipo Audiovisual",        "Cámaras, proyectores, pantallas, audio",    "#EC4899", "📷",  LocalDateTime.now()),
+            new Categoria("cat-activos-biologicos", "Activos Biológicos", "Animales y plantas del municipio (unidad canina, caballos…)", "#4D7C0F", "🐾", LocalDateTime.now())
         )));
         CATEGORIAS.forEach(c -> c.setCodigoConac(CLAVES_CONAC.get(c.getId())));
 
@@ -500,7 +501,8 @@ final class DemoSemilla {
         "cat-comp", "1.2.4.1.3.515",
         "cat-ofi",  "1.2.4.1.9.519",
         "cat-maq",  "1.2.4.6.7.567",
-        "cat-av",   "1.2.4.2.1.521");
+        "cat-av",   "1.2.4.2.1.521",
+        "cat-activos-biologicos", "1.2.4.8");
 
     private static Producto prod(String id, String nombre, String codigo,
                                   String catId, String catNombre, String catColor,

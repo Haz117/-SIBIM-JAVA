@@ -13,6 +13,44 @@ import java.util.List;
  *  ProductoRepository bien by bien is several queries each, minutes for the inventory. */
 public class CalidadDatosRepository {
 
+    /** A name for some bienes and resguardos (see {@link #renombrar}). */
+    public record Renombre(String nombre, List<String> bienes, List<String> resguardos) {}
+
+    /** Every one of these names, all or none (one transaction online). */
+    public void renombrar(List<Renombre> cambios) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            for (Renombre c : cambios) unirPersona(c.nombre(), c.bienes(), c.resguardos());
+            return;
+        }
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement bienes = conn.prepareStatement(
+                     "UPDATE products SET resguardante = ?, updated_at = NOW() WHERE id = ANY(?)");
+                 PreparedStatement resguardos = conn.prepareStatement(
+                     "UPDATE resguardos SET resguardante_nombre = ? WHERE id = ANY(?)")) {
+                for (Renombre c : cambios) {
+                    if (!c.bienes().isEmpty()) {
+                        bienes.setString(1, c.nombre());
+                        bienes.setArray(2, conn.createArrayOf("text", c.bienes().toArray(new String[0])));
+                        bienes.executeUpdate();
+                    }
+                    if (!c.resguardos().isEmpty()) {
+                        resguardos.setString(1, c.nombre());
+                        resguardos.setArray(2, conn.createArrayOf("text", c.resguardos().toArray(new String[0])));
+                        resguardos.executeUpdate();
+                    }
+                }
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
     /** One person under one name, in the bienes and in the resguardos given, or in neither. */
     public void unirPersona(String nombre, List<String> bienes, List<String> resguardos) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();

@@ -155,10 +155,8 @@ public class DepreciacionController {
             aplicarFiltro();
         });
 
-        areaFilter.setConverter(new javafx.util.StringConverter<>() {
-            @Override public String toString(String a) { return a == null ? "Todas las áreas" : a; }
-            @Override public String fromString(String s) { return null; }
-        });
+        FiltroArea.conIconos(areaFilter);
+        com.sibim.util.FiltroEscribible.instalar(areaFilter, "Todas las áreas");
         areaFilter.valueProperty().addListener((obs, o, n) -> {
             STICKY.put("area", n != null ? n : "");
             aplicarFiltro();
@@ -483,8 +481,7 @@ public class DepreciacionController {
                     : STICKY.get("area", "");
                 var areas = new TreeSet<String>();
                 for (Producto p : conDepreciacion) if (p.getArea() != null) areas.add(p.getArea());
-                areaFilter.getItems().setAll(areas);
-                areaFilter.getItems().add(0, null);
+                com.sibim.util.FiltroEscribible.opciones(areaFilter, new ArrayList<>(areas));
                 areaFilter.setValue(!areaPrevia.isBlank() && areas.contains(areaPrevia) ? areaPrevia : null);
                 aplicarFiltro();
                 if (spinner != null) { spinner.setVisible(false); spinner.setManaged(false); }

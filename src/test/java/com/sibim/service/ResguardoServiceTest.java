@@ -83,7 +83,7 @@ class ResguardoServiceTest {
             "cada bien una vez");
         assertTrue(nuevo.getItems().stream().noneMatch(it -> it.getId() != null && it.getId().startsWith("i-")),
             "renglones nuevos: los viejos se quedan con su papel");
-        assertEquals("LIC. ANA PRUEBA SOTO", nuevo.getResguardanteNombre(), "como lo escribe el más nuevo");
+        assertEquals("ANA PRUEBA SOTO", nuevo.getResguardanteNombre(), "como lo escribe el más nuevo, sin el título (5-nov-2026)");
         assertEquals("Directora", nuevo.getResguardanteCargo());
         assertEquals("Recursos Materiales y Patrimonio", nuevo.getResguardanteArea());
         assertTrue(nuevo.getObservaciones().contains("RSG-2026-000301, RSG-2026-000303, RSG-2026-000302"));

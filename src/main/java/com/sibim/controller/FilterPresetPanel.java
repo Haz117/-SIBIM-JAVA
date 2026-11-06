@@ -85,7 +85,7 @@ class FilterPresetPanel {
         if (fp.search() != null && !fp.search().isBlank())
             sb.append("  Búsqueda: ").append(fp.search()).append("\n");
         if (fp.categoriaId() != null) {
-            String catName = categoriaFilter.getItems().stream()
+            String catName = com.sibim.util.FiltroEscribible.opciones(categoriaFilter).stream()
                 .filter(c -> c != null && c.getId().equals(fp.categoriaId()))
                 .map(Categoria::getNombre).findFirst().orElse(fp.categoriaId());
             sb.append("  Categoría: ").append(catName).append("\n");
@@ -102,7 +102,7 @@ class FilterPresetPanel {
     void apply(FilterPreset fp) {
         searchField.setText(fp.search() != null ? fp.search() : "");
         if (fp.categoriaId() != null) {
-            categoriaFilter.getItems().stream()
+            com.sibim.util.FiltroEscribible.opciones(categoriaFilter).stream()
                 .filter(c -> c != null && c.getId().equals(fp.categoriaId()))
                 .findFirst().ifPresent(categoriaFilter::setValue);
         } else {

@@ -254,6 +254,39 @@ public class Producto implements Cloneable {
     public LocalDate getFechaDictamen()     { return fechaDictamen; }
     public void      setFechaDictamen(LocalDate fechaDictamen)    { this.fechaDictamen = fechaDictamen; }
 
+    // ── Baja definitiva (V34) ─────────────────────────────────────────
+    /** When the destino final of a bien de baja was carried out and with what
+     *  document (acta de destrucción, contrato de donación, acuerdo de cabildo…). */
+    private LocalDate bajaDefinitivaFecha;
+    private String    bajaDefinitivaDocumento;
+
+    public LocalDate getBajaDefinitivaFecha() { return bajaDefinitivaFecha; }
+    public void setBajaDefinitivaFecha(LocalDate f) { this.bajaDefinitivaFecha = f; }
+    public String getBajaDefinitivaDocumento() { return bajaDefinitivaDocumento; }
+    public void setBajaDefinitivaDocumento(String d) { this.bajaDefinitivaDocumento = d; }
+
+    /** Dado de baja and its destino final carried out: it can't come back. */
+    public boolean isBajaDefinitiva() { return fechaBaja != null && bajaDefinitivaFecha != null; }
+
+    // ── Revisión del área (V34) ───────────────────────────────────────
+    /** The área said the bien is theirs (nota empty) or that it isn't / they
+     *  can't find it (nota says why). Cleared when the bien changes área. */
+    private LocalDateTime revisadoAreaEn;
+    private String revisadoAreaPor;
+    private String revisionAreaNota;
+
+    public LocalDateTime getRevisadoAreaEn() { return revisadoAreaEn; }
+    public void setRevisadoAreaEn(LocalDateTime t) { this.revisadoAreaEn = t; }
+    public String getRevisadoAreaPor() { return revisadoAreaPor; }
+    public void setRevisadoAreaPor(String s) { this.revisadoAreaPor = s; }
+    public String getRevisionAreaNota() { return revisionAreaNota; }
+    public void setRevisionAreaNota(String s) { this.revisionAreaNota = s; }
+
+    /** The área already looked at it, either answer. */
+    public boolean isRevisadoPorArea() { return revisadoAreaEn != null; }
+    /** The área said it isn't theirs or they don't have it: Patrimonio has to look. */
+    public boolean isObservadoPorArea() { return revisadoAreaEn != null && revisionAreaNota != null && !revisionAreaNota.isBlank(); }
+
     // ── Inventario físico MLA ─────────────────────────────────────────
     private String estadoFisico;   // BUENO / REGULAR / MALO / DEFICIENTE
     private String numeroFactura;  // número del documento de compra (no la URL)

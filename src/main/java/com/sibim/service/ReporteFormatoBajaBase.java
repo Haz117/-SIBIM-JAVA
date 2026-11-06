@@ -140,22 +140,34 @@ abstract class ReporteFormatoBajaBase extends ReporteService {
         return lineas;
     }
 
-    /** {rol, cargo} per column: a line to sign on, the rol and "cargo · Nombre y firma". */
+    /** {rol, name or null, cargo} per column: the rol over the space to sign, the
+     *  line, the name ("Nombre y firma" to write it by hand) and the cargo under it —
+     *  the name always first and the cargo below (6-nov-2026). */
     protected static Table firmas(PdfFont bold, PdfFont regular, String[]... firmas) {
         float[] w = new float[firmas.length];
         java.util.Arrays.fill(w, 1f);
-        Table t = new Table(w).useAllAvailableWidth().setFixedLayout();
+        Table t = new Table(w).useAllAvailableWidth().setFixedLayout().setKeepTogether(true);
         for (String[] f : firmas) {
+            boolean conNombre = f[1] != null && !f[1].isBlank();
             t.addCell(new Cell()
+                .add(new Paragraph(f[0].toUpperCase(java.util.Locale.forLanguageTag("es-MX"))).setFont(bold).setFontSize(8.5f)
+                    .setFontColor(DARK).setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(16))
                 .add(new Paragraph("___________________________").setFont(regular).setFontSize(10f)
-                    .setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER))
-                .add(new Paragraph(f[0]).setFont(bold).setFontSize(9f).setFontColor(DARK)
-                    .setTextAlignment(TextAlignment.CENTER))
-                .add(new Paragraph(f[1] + " · Nombre y firma").setFont(regular).setFontSize(7.5f)
-                    .setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER))
-                .setBorder(Border.NO_BORDER).setPadding(4));
+                    .setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER).setMargin(0))
+                .add(new Paragraph(conNombre ? f[1].trim() : "Nombre y firma").setFont(conNombre ? bold : regular)
+                    .setFontSize(conNombre ? 8.5f : 7.5f).setFontColor(conNombre ? DARK : MUTED)
+                    .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginTop(2))
+                .add(new Paragraph(f[2]).setFont(regular).setFontSize(7.5f)
+                    .setFontColor(MUTED).setTextAlignment(TextAlignment.CENTER).setMargin(0))
+                .setBorder(Border.NO_BORDER).setPadding(2).setPaddingLeft(4).setPaddingRight(4));
         }
         return t;
+    }
+
+    /** The titular of {@code area} typed in Configuración › Áreas, or null. */
+    protected String titularDe(String area) {
+        if (area == null || area.isBlank()) return null;
+        return TitularesArea.todos(configRepo).get(area);
     }
 
     protected void pie(Document doc, String nota, PdfFont regular) {

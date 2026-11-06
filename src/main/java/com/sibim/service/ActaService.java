@@ -268,15 +268,9 @@ public class ActaService {
             doc.add(new Paragraph("\n\n"));
             Table firmas = new Table(UnitValue.createPercentArray(new float[]{1, 0.4f, 1}))
                 .useAllAvailableWidth().setMarginTop(16);
-            addFirmaCol(firmas, bold, regular,
-                "ENTREGA",
-                acta.getAdminSaliente() + (acta.getCargoSaliente() != null
-                    ? "\n" + acta.getCargoSaliente() : ""));
+            addFirmaCol(firmas, bold, regular, "ENTREGA", acta.getAdminSaliente(), acta.getCargoSaliente());
             firmas.addCell(new com.itextpdf.layout.element.Cell().setBorder(null));
-            addFirmaCol(firmas, bold, regular,
-                "RECIBE",
-                acta.getAdminEntrante() + (acta.getCargoEntrante() != null
-                    ? "\n" + acta.getCargoEntrante() : ""));
+            addFirmaCol(firmas, bold, regular, "RECIBE", acta.getAdminEntrante(), acta.getCargoEntrante());
             doc.add(firmas);
 
             // Footer
@@ -316,14 +310,21 @@ public class ActaService {
         addResumenRow(t, regular, bg, vals);
     }
 
-    private void addFirmaCol(Table t, PdfFont bold, PdfFont regular, String titulo, String nombre) {
+    /** One signature: the rol over the space to sign, the line, the name and the cargo
+     *  under it — always the name first and the cargo below (6-nov-2026). Without a
+     *  name it says "Nombre y firma", to write it by hand. */
+    private void addFirmaCol(Table t, PdfFont bold, PdfFont regular, String rol, String nombre, String cargo) {
+        boolean conNombre = nombre != null && !nombre.isBlank();
         com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
-            .add(new Paragraph("\n\n\n")
+            .add(new Paragraph(rol).setFont(bold).setFontSize(8)
+                .setTextAlignment(TextAlignment.CENTER).setMargin(0))
+            .add(new Paragraph("\n\n")
                 .setBorderBottom(new SolidBorder(new DeviceRgb(15, 23, 42), 1)))
-            .add(new Paragraph(titulo).setFont(bold).setFontSize(8)
-                .setTextAlignment(TextAlignment.CENTER).setMarginTop(4))
-            .add(new Paragraph(nombre).setFont(regular).setFontSize(7)
-                .setFontColor(COLOR_MUTED).setTextAlignment(TextAlignment.CENTER))
+            .add(new Paragraph(conNombre ? nombre.trim() : "Nombre y firma").setFont(conNombre ? bold : regular)
+                .setFontSize(conNombre ? 8 : 7).setFontColor(conNombre ? new DeviceRgb(15, 23, 42) : COLOR_MUTED)
+                .setTextAlignment(TextAlignment.CENTER).setMarginTop(4).setMarginBottom(0))
+            .add(new Paragraph(cargo != null ? cargo : "").setFont(regular).setFontSize(7)
+                .setFontColor(COLOR_MUTED).setTextAlignment(TextAlignment.CENTER).setMargin(0))
             .setBorder(null);
         t.addCell(c);
     }

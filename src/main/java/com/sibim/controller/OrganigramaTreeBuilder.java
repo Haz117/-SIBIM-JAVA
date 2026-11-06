@@ -39,6 +39,20 @@ class OrganigramaTreeBuilder {
     private final BiConsumer<String, List<Resguardo>> onRsgClick;
     private final BiConsumer<String, List<Prestamo>>  onPrestClick;
     private final BiConsumer<String, List<Comodato>>  onComodClick;
+    private Map<String, com.sibim.service.AvanceAreasService.Avance> avance = Map.of();
+    private Runnable alCambiarAvance = () -> { };
+
+    /** Each área's 1·2·3 avance chip; {@code alCambiar} reloads after a review. */
+    OrganigramaTreeBuilder conAvance(Map<String, com.sibim.service.AvanceAreasService.Avance> avance, Runnable alCambiar) {
+        this.avance = avance != null ? avance : Map.of();
+        this.alCambiarAvance = alCambiar;
+        return this;
+    }
+
+    private void agregarAvance(HBox header, String area) {
+        var a = avance.get(area);
+        if (a != null) header.getChildren().add(AvanceAreaView.chip(a, alCambiarAvance));
+    }
 
     OrganigramaTreeBuilder(Map<String, List<Producto>> productosPorArea,
                            Map<String, List<Resguardo>> resguardosPorArea,
@@ -170,7 +184,9 @@ class OrganigramaTreeBuilder {
         valorLabel.getStyleClass().add("org-area-valor");
         soloSiVeValores(valorLabel);
 
-        header.getChildren().addAll(iconBadge, nameLabel, valorLabel, countLabel);
+        header.getChildren().addAll(iconBadge, nameLabel);
+        agregarAvance(header, parentName);
+        header.getChildren().addAll(valorLabel, countLabel);
 
         long alertasArea = allAreaProds.stream()
             .filter(p -> p.getEstado() == EstadoProducto.VENCIDO)
@@ -295,7 +311,9 @@ class OrganigramaTreeBuilder {
             childCount.getStyleClass().add("org-area-count");
             if (isMyArea) childCount.getStyleClass().add("org-area-count-myarea");
 
-            childHeader.getChildren().addAll(dirIcon, childName, childValor, childCount);
+            childHeader.getChildren().addAll(dirIcon, childName);
+            agregarAvance(childHeader, child);
+            childHeader.getChildren().addAll(childValor, childCount);
 
             long alertasChild = childProds.stream()
                 .filter(p -> p.getEstado() == EstadoProducto.VENCIDO)

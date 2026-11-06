@@ -81,11 +81,16 @@ final class ProductosContextMenu {
             }
         });
 
-        MenuItem cmSolicitudBaja = new MenuItem("Solicitud de baja (PDF)");
+        // An área asks for the baja (Patrimonio gets the notice); Patrimonio only prints the blank formato.
+        boolean pideBaja = !com.sibim.session.SessionManager.isAdmin();
+        MenuItem cmSolicitudBaja = new MenuItem(pideBaja ? "Solicitar baja…" : "Solicitud de baja (PDF)");
         cmSolicitudBaja.setGraphic(new FontIcon("mdi2f-file-remove-outline"));
         cmSolicitudBaja.setOnAction(e -> {
             Producto sel = table.getSelectionModel().getSelectedItem();
-            if (sel != null) {
+            if (sel != null && pideBaja) {
+                com.sibim.controller.dialogs.SolicitarBajaDialog.mostrar(table.getScene(),
+                    table.getSelectionModel().getSelectedItems().stream().filter(java.util.Objects::nonNull).toList(), null);
+            } else if (sel != null) {
                 DialogUtil.runAsyncWithProgress(table.getScene(), "Generando solicitud de baja…",
                     () -> reporteService.exportSolicitudBaja(List.of(sel)),
                     file -> DialogUtil.showExportResultDialog(table.getScene(), file),

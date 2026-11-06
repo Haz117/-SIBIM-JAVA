@@ -44,8 +44,8 @@ public class ReporteAuditoriaService extends ReporteService {
             }
             doc.add(table);
             addFirmasBlock(doc,
-                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"VO.BO.",  "_______________",    "Secretario General Municipal"});
+                new String[]{"ELABORÓ", firmaElabora(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.",  firmaVoBo(),    "Secretario General Municipal"});
             addPdfFooter(doc, logs.size(), folio);
         }
         return file;
@@ -249,8 +249,8 @@ public class ReporteAuditoriaService extends ReporteService {
             }
 
             addFirmasBlock(doc,
-                new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"VO.BO.",  "_______________",    "Secretario General Municipal"});
+                new String[]{"ELABORÓ", firmaElabora(), "Director de Recursos Materiales"},
+                new String[]{"VO.BO.",  firmaVoBo(),    "Secretario General Municipal"});
             doc.add(new com.itextpdf.layout.element.Paragraph(
                 "Folio: " + folio + "   |   Generado por SIBIM · " + orgName + " · " + java.time.LocalDate.now().format(fmtD))
                 .setFont(regular).setFontSize(7).setFontColor(colorMuted)

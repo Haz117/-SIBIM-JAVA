@@ -10,8 +10,9 @@ package com.sibim.session;
  *   <li>Movimientos, comodatos, préstamos and resguardos: only Patrimonio
  *       (administrator). Secretarios and direcciones neither register them nor
  *       have those screens.</li>
- *   <li>The áreas do not send requests through SIBIM: what they need is asked
- *       of Finanzas, outside the system.</li>
+ *   <li>The áreas do not send requests for préstamos or resguardos through
+ *       SIBIM: what they need is asked of Finanzas, outside the system. A baja
+ *       they do ask for here (5-nov-2026): Patrimonio gets the notice and decides.</li>
  *   <li>The áreas keep four things of a bien current — ubicación, descripción,
  *       estado físico and its photos; the rest of the record is Patrimonio's.</li>
  *   <li>Control reports, spreadsheet exports (Excel/CSV), the Movimientos and

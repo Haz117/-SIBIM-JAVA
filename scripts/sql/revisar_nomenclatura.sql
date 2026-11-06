@@ -3,10 +3,10 @@
 -- ============================================================================
 --
 -- Cada bien activo debe llevar el código PREFIJO/NN de su área (tabla areas),
--- sin repetirse entre los activos. Al transferir, el bien toma el siguiente
--- número libre del área de destino y deja libre el suyo en la de origen; al
--- darlo de baja conserva su código (para el acta) y ese número queda libre
--- para el siguiente bien nuevo del área.
+-- sin repetirse entre los activos. Al transferir, el bien toma el número
+-- siguiente al más alto que haya usado el área de destino, y al darlo de baja
+-- conserva su código (para el acta). Desde la 1.0.21 (V34) un número que ya
+-- se usó no se vuelve a dar a otro bien, aunque haya quedado libre.
 --
 -- Ejecútalo en el SQL Editor de Supabase. Solo hace SELECT: no cambia nada.
 -- Las consultas 1 a 6 deben salir vacías; la 7 es el resumen por área.
@@ -67,8 +67,8 @@ SELECT codigo, nombre, area, fecha_baja, motivo_baja
    AND (motivo_baja IS NULL OR btrim(motivo_baja) = '' OR fecha_baja > CURRENT_DATE);
 
 -- 7. Resumen por área: activos, dados de baja, número más alto en uso y
---    huecos (números libres por bajas o transferencias; el próximo bien
---    nuevo del área toma el más bajo de ellos).
+--    huecos (números sin bien activo por bajas o transferencias; desde la
+--    1.0.21 ya no se vuelven a usar: el próximo bien sigue al más alto).
 SELECT a.prefijo, a.nombre,
        count(p.id) FILTER (WHERE p.fecha_baja IS NULL)     AS activos,
        count(p.id) FILTER (WHERE p.fecha_baja IS NOT NULL) AS de_baja,

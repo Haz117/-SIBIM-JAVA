@@ -39,7 +39,7 @@ final class MiAreaPanel {
         new Pendiente("mdi2c-clipboard-alert-outline", "qa-card-icon-violet", "sin estado físico",
             "Registra cómo están", p -> vacio(p.getEstadoFisico())));
 
-    private record Datos(List<Producto> bienes, List<Movimiento> porRecibir) {}
+    private record Datos(List<Producto> bienes, List<Movimiento> porRecibir, List<com.sibim.model.Solicitud> bajas) {}
 
     private final ProductoService productos;
     private final MovimientoService movimientos;
@@ -70,9 +70,28 @@ final class MiAreaPanel {
 
     void cargar() {
         DialogUtil.runAsync(
-            () -> new Datos(productos.getAll(), porRecibir()),
+            () -> new Datos(productos.getAll(), porRecibir(), solicitudesDeBaja()),
             this::mostrar,
             e -> log.warn("No se pudieron cargar los pendientes del área", e));
+    }
+
+    /** The área's solicitudes de baja still waiting or answered in the last 30 days
+     *  (5-nov-2026): Patrimonio's answer is seen here. None offline or in the demo. */
+    private List<com.sibim.model.Solicitud> solicitudesDeBaja() {
+        if (!com.sibim.service.SolicitudService.disponible()) return List.of();
+        java.time.LocalDateTime desde = java.time.LocalDateTime.now().minusDays(30);
+        try {
+            return new com.sibim.service.SolicitudService().deMisAreas().stream()
+                .filter(com.sibim.model.Solicitud::esBaja)
+                .filter(s -> s.isPendiente() || s.resueltoEn() == null || s.resueltoEn().isAfter(desde))
+                .toList();
+        } catch (Exception e) { return List.of(); }
+    }
+
+    /** " · 1 dado de baja · 1 no procede": the área's other requests, after the formatos it owes. */
+    private static String conElResto(List<com.sibim.model.Solicitud> bajas) {
+        List<com.sibim.model.Solicitud> resto = bajas.stream().filter(s -> !s.faltaFormato()).toList();
+        return resto.isEmpty() ? "" : " · " + BajasController.resumenMias(resto);
     }
 
     /** Offline (or with the server unreachable) there is nothing to confirm yet. */
@@ -84,11 +103,39 @@ final class MiAreaPanel {
     private void mostrar(Datos d) {
         tarjetas.getChildren().clear();
         resumen.setText(FormatUtils.plural(d.bienes().size(), "bien", "bienes") + " a tu cargo");
+        // Phases 2 and 3 of the área's avance (Organigrama): review its bienes, confirm the labels.
+        String mia = SessionManager.getAccessibleAreas() != null && SessionManager.getAccessibleAreas().size() == 1
+            ? SessionManager.getAccessibleAreas().iterator().next() : null;
+        long revisados = d.bienes().stream().filter(Producto::isRevisadoPorArea).count();
+        if (!d.bienes().isEmpty() && revisados < d.bienes().size())
+            tarjetas.getChildren().add(tarjeta("mdi2c-clipboard-check-multiple-outline", "qa-card-icon-blue",
+                "Revisa tus bienes: " + revisados + " de " + d.bienes().size(),
+                "Di si cada uno sí es de tu área y llena lo que le falte",
+                () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
+                    com.sibim.controller.dialogs.RevisarBienesDialog.Vista.POR_REVISAR, this::cargar)));
+        long etiquetados = d.bienes().stream().filter(Producto::isEtiquetado).count();
+        if (!d.bienes().isEmpty() && etiquetados < d.bienes().size())
+            tarjetas.getChildren().add(tarjeta("mdi2t-tag-outline", "qa-card-icon-violet",
+                "Confirma tus etiquetas: " + etiquetados + " de " + d.bienes().size(),
+                "Marca los bienes que ya tienen su etiqueta pegada",
+                () -> com.sibim.controller.dialogs.RevisarBienesDialog.show(mia,
+                    com.sibim.controller.dialogs.RevisarBienesDialog.Vista.SIN_ETIQUETA, this::cargar)));
         if (!d.porRecibir().isEmpty()) {
             tarjetas.getChildren().add(tarjeta("mdi2i-inbox-arrow-down-outline", "qa-card-icon-green",
                 FormatUtils.plural(d.porRecibir().size(), "bien", "bienes") + " por recibir",
                 "Confirma cuando los tengas",
                 () -> new PorRecibirDialog(movimientos, this::cargar).show(d.porRecibir())));
+        }
+        if (!d.bajas().isEmpty()) {
+            // A formato not handed in yet is something the área has to do: it says so first.
+            long sinFormato = d.bajas().stream().filter(com.sibim.model.Solicitud::faltaFormato).count();
+            tarjetas.getChildren().add(tarjeta("mdi2f-file-remove-outline", "qa-card-icon-amber",
+                sinFormato > 0 ? "Entrega " + (sinFormato == 1 ? "1 formato de baja" : sinFormato + " formatos de baja")
+                               : "Tus solicitudes de baja",
+                sinFormato > 0 ? "Firmados, en " + com.sibim.model.Solicitud.ENTREGAR_FORMATO_EN + conElResto(d.bajas())
+                               : BajasController.resumenMias(d.bajas()) + " · Ver la respuesta de Patrimonio",
+                () -> com.sibim.controller.dialogs.SolicitudesDialog.show(tarjetas.getScene(),
+                    com.sibim.controller.dialogs.SolicitudesDialog.BAJAS, this::cargar)));
         }
         for (Pendiente p : PENDIENTES) {
             List<Producto> faltan = d.bienes().stream().filter(p.falta()).toList();
@@ -100,7 +147,7 @@ final class MiAreaPanel {
         if (tarjetas.getChildren().isEmpty()) {
             VBox listo = tarjeta("mdi2c-check-circle-outline", "qa-card-icon-green", "Todo al día",
                 d.bienes().isEmpty() ? "Tu área todavía no tiene bienes asignados"
-                    : "Todos tus bienes tienen foto, ubicación y estado físico", null);
+                    : "Revisaste tus bienes, tienen foto, ubicación y estado físico, y ya están etiquetados", null);
             tarjetas.getChildren().add(listo);
         }
     }

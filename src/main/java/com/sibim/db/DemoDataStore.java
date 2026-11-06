@@ -138,6 +138,7 @@ public final class DemoDataStore {
     }
 
     public static void saveProducto(Producto p) {
+        anotarUsado(p.getCodigo());
         PRODUCTOS.removeIf(x -> x.getId().equals(p.getId()));
         PRODUCTOS.add(p.copia());
         if (p.getCategoriaId() != null) {
@@ -165,6 +166,7 @@ public final class DemoDataStore {
     }
 
     public static void cambiarCodigo(String id, String codigo) {
+        anotarUsado(codigo);
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst().ifPresent(p -> p.setCodigo(codigo));
     }
 
@@ -187,10 +189,20 @@ public final class DemoDataStore {
 
     public static void updateProductoArea(String id, String newArea) {
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst()
-            .ifPresent(p -> { p.setArea(newArea); p.setActualizadoEn(LocalDateTime.now()); });
+            .ifPresent(p -> {
+                // In another área the bien is reviewed again (V34's trigger online).
+                if (!java.util.Objects.equals(p.getArea(), newArea)) {
+                    p.setRevisadoAreaEn(null);
+                    p.setRevisadoAreaPor(null);
+                    p.setRevisionAreaNota(null);
+                }
+                p.setArea(newArea);
+                p.setActualizadoEn(LocalDateTime.now());
+            });
     }
 
     public static void updateProductoCodigo(String id, String codigo) {
+        anotarUsado(codigo);
         PRODUCTOS.stream().filter(p -> p.getId().equals(id)).findFirst()
             .ifPresent(p -> { p.setCodigo(codigo); p.setActualizadoEn(LocalDateTime.now()); });
     }
@@ -256,7 +268,7 @@ public final class DemoDataStore {
         synchronized (STOCK_LOCK) {
             Producto p = findProductoById(m.getProductoId()).orElseThrow(() ->
                 new java.sql.SQLException("Bien no encontrado: " + m.getProductoId()));
-            ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosActivos());
+            ReglasLocales.aplicar(m, p, expectedStockAnterior, codigosUsados());
             if (m.getAreaOrigen() != null) {   // transferencia
                 updateProductoArea(m.getProductoId(), m.getAreaDestino());
                 updateProductoCodigo(m.getProductoId(), m.getCodigoNuevo());
@@ -268,6 +280,22 @@ public final class DemoDataStore {
 
     private static List<String> codigosActivos() {
         return PRODUCTOS.stream().filter(x -> !x.isDadoDeBaja()).map(Producto::getCodigo).toList();
+    }
+
+    /** Códigos a bien had at some point, kept after it changes or is deleted —
+     *  the demo's codigos_usados (V34): a número is never handed out twice. */
+    private static final Set<String> USADOS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private static void anotarUsado(String codigo) {
+        if (codigo != null && !codigo.isBlank()) USADOS.add(codigo.trim().toUpperCase(java.util.Locale.ROOT));
+    }
+
+    /** Every código ever used: the bienes' (active or de baja), those of the transfers and those noted. */
+    public static List<String> codigosUsados() {
+        List<String> todos = new ArrayList<>(USADOS);
+        PRODUCTOS.forEach(p -> todos.add(p.getCodigo()));
+        MOVIMIENTOS.forEach(m -> { todos.add(m.getCodigoAnterior()); todos.add(m.getCodigoNuevo()); });
+        return todos;
     }
 
     /** A transferencia registered by a non-Admin doesn't move stock/area
@@ -310,7 +338,7 @@ public final class DemoDataStore {
                 throw new ReglaIncumplida("El bien ya no está en " + m.getAreaOrigen() + " (ahora está en "
                     + p.getArea() + "): rechaza esta solicitud y registra una nueva si sigue siendo necesaria.");
             String codigo = com.sibim.config.AreaCodigos.tienePrefijo(m.getAreaDestino())
-                ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosActivos())
+                ? com.sibim.config.AreaCodigos.siguienteCodigo(m.getAreaDestino(), codigosUsados())
                 : p.getCodigo();
             m.setEstado(Movimiento.ESTADO_APROBADO);
             m.setStockAnterior(p.getStockActual());
@@ -361,7 +389,7 @@ public final class DemoDataStore {
             Optional<Producto> p = findProductoById(m.getProductoId());
             MOVIMIENTOS.remove(m);
             if (ReglasLocales.aplicado(m) && p.isPresent()) {
-                ReglasLocales.Deshacer r = ReglasLocales.deshacer(m, p.get(), codigosActivos());
+                ReglasLocales.Deshacer r = ReglasLocales.deshacer(m, p.get(), codigosActivos(), codigosUsados());
                 updateProductoStock(m.getProductoId(), r.stock());
                 updateProductoArea(m.getProductoId(), r.area());
                 updateProductoCodigo(m.getProductoId(), r.codigo());

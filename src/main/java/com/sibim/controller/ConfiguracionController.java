@@ -70,6 +70,8 @@ public class ConfiguracionController {
     @FXML private TextField                               tfDomicilio;
     @FXML private TextField                               tfFirmaElabora;
     @FXML private TextField                               tfFirmaVoBo;
+    @FXML private TextField                               tfFirmaSindico, tfFirmaJefeInventarios, tfFirmaTesorero,
+                                                          tfFirmaContador, tfFirmaPresidente;
     @FXML private TextField                               tfLogoPath;
     @FXML private Button                                  btnLogoPath;
     @FXML private Button                                  btnGuardarConfig;
@@ -338,6 +340,7 @@ public class ConfiguracionController {
                 if (tfDomicilio         != null) tfDomicilio.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_DOMICILIO, ""));
                 if (tfFirmaElabora      != null) tfFirmaElabora.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_ELABORA, ""));
                 if (tfFirmaVoBo         != null) tfFirmaVoBo.setText(cfg.getOrDefault(com.sibim.service.ReporteResguardoVehicularService.CLAVE_VOBO, ""));
+                firmantes().forEach((tf, clave) -> tf.setText(cfg.getOrDefault(clave, "")));
                 if (tfLogoPath          != null) tfLogoPath.setText(cfg.getOrDefault("logo_path", ""));
                 if (spInactividadTimeout != null) {
                     try { spInactividadTimeout.getValueFactory().setValue(
@@ -359,6 +362,7 @@ public class ConfiguracionController {
                 if (tfLogoPath          != null) tfLogoPath.setEditable(isAdmin);
                 for (javafx.scene.control.TextField tf : new javafx.scene.control.TextField[]{tfRfc, tfDomicilio, tfFirmaElabora, tfFirmaVoBo})
                     if (tf != null) tf.setEditable(isAdmin);
+                firmantes().keySet().forEach(tf -> tf.setEditable(isAdmin));
                 if (btnLogoPath         != null) btnLogoPath.setDisable(!isAdmin);
                 if (lblConfigHint != null)
                     lblConfigHint.setText(isAdmin ? "Los cambios afectan reportes y documentos" : "Solo el administrador puede guardar cambios");
@@ -370,12 +374,24 @@ public class ConfiguracionController {
                             tfRfc, tfDomicilio, tfFirmaElabora, tfFirmaVoBo}) {
                         if (tf != null) tf.textProperty().addListener((o, a, b) -> markConfigDirty());
                     }
+                    firmantes().keySet().forEach(tf -> tf.textProperty().addListener((o, a, b) -> markConfigDirty()));
                     if (spInactividadTimeout != null)
                         spInactividadTimeout.valueProperty().addListener((o, a, b) -> markConfigDirty());
                 });
             },
             e -> {}
         );
+    }
+
+    /** The other signers of the formats (6-nov-2026), each field with its configuracion key. */
+    private java.util.Map<TextField, String> firmantes() {
+        java.util.Map<TextField, String> m = new java.util.LinkedHashMap<>();
+        if (tfFirmaSindico != null)         m.put(tfFirmaSindico,         com.sibim.service.ReporteService.FIRMA_SINDICO);
+        if (tfFirmaJefeInventarios != null) m.put(tfFirmaJefeInventarios, com.sibim.service.ReporteService.FIRMA_JEFE_INVENTARIOS);
+        if (tfFirmaTesorero != null)        m.put(tfFirmaTesorero,        com.sibim.service.ReporteService.FIRMA_TESORERO);
+        if (tfFirmaContador != null)        m.put(tfFirmaContador,        com.sibim.service.ReporteService.FIRMA_CONTADOR);
+        if (tfFirmaPresidente != null)      m.put(tfFirmaPresidente,      com.sibim.service.ReporteService.FIRMA_PRESIDENTE);
+        return m;
     }
 
     private void markConfigDirty() {
@@ -403,6 +419,8 @@ public class ConfiguracionController {
         String elabora   = tfFirmaElabora != null ? tfFirmaElabora.getText().strip() : "";
         String vobo      = tfFirmaVoBo != null ? tfFirmaVoBo.getText().strip() : "";
         String logoPath  = tfLogoPath != null ? tfLogoPath.getText().strip() : "";
+        java.util.Map<String, String> otrasFirmas = new java.util.LinkedHashMap<>();
+        firmantes().forEach((tf, clave) -> otrasFirmas.put(clave, tf.getText().strip()));
         int inactividadMin = spInactividadTimeout != null && spInactividadTimeout.getValue() != null
             ? Math.max(6, spInactividadTimeout.getValue()) : 30;
         DialogUtil.runAsync(
@@ -415,6 +433,7 @@ public class ConfiguracionController {
                 configRepo.set(com.sibim.service.ReporteResguardoVehicularService.CLAVE_DOMICILIO, domicilio);
                 configRepo.set(com.sibim.service.ReporteResguardoVehicularService.CLAVE_ELABORA,   elabora);
                 configRepo.set(com.sibim.service.ReporteResguardoVehicularService.CLAVE_VOBO,      vobo);
+                for (var f : otrasFirmas.entrySet()) configRepo.set(f.getKey(), f.getValue());
                 configRepo.set("logo_path",                  logoPath);
                 // The image itself goes to the database so every PC prints the
                 // same logo (logo_path alone only exists on this PC). A path

@@ -9,6 +9,8 @@
 -- sibim_areas puede lo mismo que hace un área en SIBIM, nada más:
 --   * leer (como hoy),
 --   * actualizar ubicación, descripción, estado físico y fotos de un bien,
+--   * revisar sus bienes y confirmar sus etiquetas (fases 2 y 3 del avance, V34),
+--   * pedir a Patrimonio la baja de sus bienes (solicitudes de baja, V35),
 --   * confirmar que recibió un bien transferido (acuse),
 --   * cambiar la contraseña de una cuenta que no sea de administrador,
 --   * guardar los resguardos por área (PDF) y los folios de sus reportes,
@@ -62,7 +64,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO si
 
 -- Lo que escribe un área. Las columnas que no aparecen no se pueden cambiar
 -- (PostgreSQL rechaza el UPDATE completo, no solo la columna).
-GRANT UPDATE (ubicacion, descripcion, estado_fisico, foto_url, factura_url, updated_at) ON products TO sibim_areas;
+GRANT UPDATE (ubicacion, descripcion, estado_fisico, foto_url, factura_url, updated_at,
+               etiquetado, revisado_area_en, revisado_area_por, revision_area_nota) ON products TO sibim_areas;
 GRANT INSERT, UPDATE, DELETE ON product_fotos TO sibim_areas;
 GRANT UPDATE (recibido_por, recibido_en) ON movements TO sibim_areas;
 GRANT UPDATE (password, debe_cambiar_password) ON users TO sibim_areas;
@@ -72,6 +75,7 @@ GRANT INSERT ON audit_log TO sibim_areas;
 GRANT INSERT, UPDATE, DELETE ON login_attempts TO sibim_areas;
 GRANT INSERT, UPDATE ON accesos_equipo TO sibim_areas;
 GRANT INSERT ON errores_equipo TO sibim_areas;
+GRANT INSERT ON solicitudes TO sibim_areas;
 
 -- Seguridad por filas (la activó rol_app_minimo.sql en cada tabla): sin una
 -- política, sibim_areas no vería ni una fila. Lee todas; escribe en las tablas
@@ -89,7 +93,7 @@ BEGIN
         EXECUTE format('CREATE POLICY sibim_areas_leer ON public.%I FOR SELECT TO sibim_areas USING (true)', t);
     END LOOP;
     FOREACH t IN ARRAY ARRAY['product_fotos', 'area_resguardos', 'folios', 'audit_log',
-                             'login_attempts', 'accesos_equipo', 'errores_equipo'] LOOP
+                             'login_attempts', 'accesos_equipo', 'errores_equipo', 'solicitudes'] LOOP
         IF to_regclass('public.' || t) IS NOT NULL THEN
             EXECUTE format('CREATE POLICY sibim_areas_agregar ON public.%I FOR INSERT TO sibim_areas WITH CHECK (true)', t);
         END IF;

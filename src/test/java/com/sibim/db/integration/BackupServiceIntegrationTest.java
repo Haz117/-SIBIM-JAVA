@@ -100,6 +100,26 @@ class BackupServiceIntegrationTest extends IntegrationTestBase {
             "la bitácora nunca se borra al restaurar");
     }
 
+    /** V34: a número used is never handed out again, not even after going back to an older backup. */
+    @Test
+    void losNumerosUsados_seRespaldan_yRestaurarNoOlvidaLosNuevos() throws Exception {
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("INSERT INTO codigos_usados (codigo, producto_id) VALUES ('SGM/07', 'ya-borrado') ON CONFLICT DO NOTHING");
+        }
+        File archivo = tmp.resolve("respaldo-codigos.sibim").toFile();
+        service.backup(archivo, PASSWORD);
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            st.execute("DELETE FROM codigos_usados WHERE codigo = 'SGM/07'");
+            st.execute("INSERT INTO codigos_usados (codigo, producto_id) VALUES ('SGM/08', 'despues') ON CONFLICT DO NOTHING");
+        }
+
+        service.restore(archivo, PASSWORD);
+
+        assertEquals(1, count("codigos_usados WHERE codigo = 'SGM/07'"), "vuelve el del respaldo");
+        assertEquals(1, count("codigos_usados WHERE codigo = 'SGM/08'"), "y no se olvida el que se usó después");
+        assertEquals(1, count("codigos_usados WHERE codigo = 'SGM/01'"), "el del bien restaurado");
+    }
+
     @Test
     void lasSolicitudesDeLasAreasSeRespaldanYSeRestauran() throws Exception {
         try (Connection c = getConnection(); Statement st = c.createStatement()) {

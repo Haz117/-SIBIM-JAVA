@@ -35,6 +35,6 @@ public final class TitularesArea {
 
     /** Patrimonio only (ConfiguracionRepository#set); empty clears it. */
     public static void guardar(ConfiguracionRepository config, String area, String titular) throws SQLException {
-        config.set(PREFIJO + area, titular == null ? "" : titular.trim());
+        config.set(PREFIJO + area, titular == null ? "" : com.sibim.util.NombrePersona.sinTitulos(titular.trim()));
     }
 }

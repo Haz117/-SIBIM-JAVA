@@ -36,8 +36,8 @@ public class ReporteBajasService extends ReporteService {
              Document doc = new Document(pdfDoc, PageSize.A4.rotate())) {
             String folio = generateFolio("BAJ");
             addPdfHeader(doc, "Bienes Dados de Baja", null, null, folio);
-            String[] headers = {"Nombre", "Código", "Área", "Categoría", "Fecha baja", "Motivo"};
-            float[] widths  = {3f, 1.5f, 2f, 1.5f, 1.5f, 3f};
+            String[] headers = {"Nombre", "Código", "Área", "Categoría", "Fecha baja", "Motivo", "Baja definitiva"};
+            float[] widths  = {3f, 1.5f, 2f, 1.5f, 1.5f, 3f, 2.2f};
             Table table = createPdfTable(headers, widths);
             for (Producto p : bajas) {
                 table.addCell(cell(p.getNombre()));
@@ -46,12 +46,13 @@ public class ReporteBajasService extends ReporteService {
                 table.addCell(cell(p.getCategoriaNombre() != null ? p.getCategoriaNombre() : ""));
                 table.addCell(cell(p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : ""));
                 table.addCell(cell(p.getMotivoBaja() != null ? p.getMotivoBaja() : ""));
+                table.addCell(cell(definitiva(p)));
             }
             doc.add(table);
             addFirmasBlock(doc,
-                new String[]{"ELABORÓ",    getCurrentUserName(), "Director de Recursos Materiales"},
-                new String[]{"JEFE DE INVENTARIOS", "_______________", "Jefe de Inventarios y Patrimonio"},
-                new String[]{"VO.BO.",     "_______________", "Secretario General Municipal"});
+                new String[]{"ELABORÓ",    firmaElabora(), "Director de Recursos Materiales"},
+                new String[]{"REVISÓ",     firma(FIRMA_JEFE_INVENTARIOS), "Jefe de Inventarios y Patrimonio"},
+                new String[]{"VO.BO.",     firmaVoBo(), "Secretario General Municipal"});
             addPdfFooter(doc, bajas.size(), folio);
         }
         return file;
@@ -60,7 +61,7 @@ public class ReporteBajasService extends ReporteService {
     public File exportBajasExcel(List<Producto> bajas) throws Exception {
         if (bajas.isEmpty()) return null;
         String[] headers = {"Nombre", "Código", "Área", "Categoría", "Resguardante",
-                            "Precio compra", "Fecha baja", "Motivo"};
+                            "Precio compra", "Fecha baja", "Motivo", "Baja definitiva", "Documento"};
         File file = tempFile("bienes_baja", ".xlsx");
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = createSheet(wb, "Dados de Baja");
@@ -76,6 +77,8 @@ public class ReporteBajasService extends ReporteService {
                 r.createCell(5).setCellValue(p.getPrecioCompra() != null ? p.getPrecioCompra().doubleValue() : 0);
                 r.createCell(6).setCellValue(p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : "");
                 r.createCell(7).setCellValue(p.getMotivoBaja() != null ? p.getMotivoBaja() : "");
+                r.createCell(8).setCellValue(p.getBajaDefinitivaFecha() != null ? p.getBajaDefinitivaFecha().format(FMT) : "En proceso");
+                r.createCell(9).setCellValue(p.getBajaDefinitivaDocumento() != null ? p.getBajaDefinitivaDocumento() : "");
             }
             autosizeColumns(sheet, headers.length);
             addExcelInfoSheet(wb, "Bienes Dados de Baja", null, null);
@@ -88,18 +91,27 @@ public class ReporteBajasService extends ReporteService {
         if (bajas.isEmpty()) return null;
         File file = tempFile("bienes_baja", ".csv");
         try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-            pw.println("Nombre,Código,Área,Categoría,Resguardante,Precio compra,Fecha baja,Motivo");
+            pw.println("Nombre,Código,Área,Categoría,Resguardante,Precio compra,Fecha baja,Motivo,Baja definitiva,Documento");
             for (Producto p : bajas) {
-                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%.2f,\"%s\",\"%s\"%n",
+                pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%.2f,\"%s\",\"%s\",\"%s\",\"%s\"%n",
                     esc(p.getNombre()), esc(p.getCodigo()),
                     esc(p.getArea()), esc(p.getCategoriaNombre()),
                     esc(p.getResguardante()),
                     p.getPrecioCompra() != null ? p.getPrecioCompra() : java.math.BigDecimal.ZERO,
                     p.getFechaBaja() != null ? p.getFechaBaja().format(FMT) : "",
-                    esc(p.getMotivoBaja()));
+                    esc(p.getMotivoBaja()),
+                    p.getBajaDefinitivaFecha() != null ? p.getBajaDefinitivaFecha().format(FMT) : "En proceso",
+                    esc(p.getBajaDefinitivaDocumento()));
             }
         }
         return file;
+    }
+
+    /** "05/11/2026 · Acta de destrucción 12", or "En proceso" while its destino final is pending. */
+    static String definitiva(Producto p) {
+        if (p.getBajaDefinitivaFecha() == null) return "En proceso";
+        String doc = p.getBajaDefinitivaDocumento();
+        return p.getBajaDefinitivaFecha().format(FMT) + (doc != null && !doc.isBlank() ? " · " + doc : "");
     }
 
     // ── Acta de Baja Patrimonial ─────────────────────────────────────────────
@@ -196,10 +208,10 @@ public class ReporteBajasService extends ReporteService {
 
             // 4. Firmas block
             addFirmasBlock(doc,
-                new String[]{"Elaboró",                getCurrentUserName(), ""},
-                new String[]{"Jefe de Inventarios",    "_______________",    ""},
-                new String[]{"Vo.Bo. Secretario General", "_______________", ""},
-                new String[]{"Presidente Municipal",   "_______________",    ""}
+                new String[]{"ELABORÓ",  firmaElabora(), "Director de Recursos Materiales"},
+                new String[]{"REVISÓ",   firma(FIRMA_JEFE_INVENTARIOS), "Jefe de Inventarios"},
+                new String[]{"VO.BO.",   firmaVoBo(),    "Secretario General Municipal"},
+                new String[]{"AUTORIZÓ", firma(FIRMA_PRESIDENTE), "Presidente Municipal"}
             );
 
             // 5. Footer

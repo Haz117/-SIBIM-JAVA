@@ -5,11 +5,13 @@ package com.sibim.config;
  *
  * Cada área real del municipio (ver {@link Areas}) tiene un prefijo corto y
  * único, guardado junto al área en la tabla {@code areas} ({@link AreaCatalog}).
- * El número dentro de cada prefijo se calcula dinámicamente como el
- * menor entero positivo no usado por ningún bien activo con ese prefijo
- * (ver ProductoService#asignarCodigo) — no se guarda un contador aparte, así
- * que cuando un bien se transfiere o se da de baja, su número queda libre
- * para el siguiente bien nuevo en esa área.
+ * El número dentro de cada prefijo es el siguiente al más alto que se haya
+ * usado alguna vez con ese prefijo (ver ProductoService#asignarCodigo): un
+ * número que ya tuvo un bien —activo, dado de baja, transferido a otra área o
+ * borrado— no se vuelve a dar a otro bien. Reutilizarlos confundía etiquetas,
+ * resguardos y actas impresas con el número viejo (decisión del 5-nov-2026;
+ * antes el siguiente bien tomaba el menor número libre). La base guarda cada
+ * código usado en la tabla {@code codigos_usados} (V34).
  */
 public final class AreaCodigos {
 
@@ -25,34 +27,37 @@ public final class AreaCodigos {
         return area != null && Areas.catalogo().buscar(area).isPresent();
     }
 
-    /** Menor número positivo no usado entre {@code codigosActivos} con el
-     *  prefijo de {@code area}, formateado "PREF/NN". Única implementación de
-     *  la regla — quien la llame solo decide de dónde salen los códigos
-     *  (una consulta dentro de su transacción, o el almacén local). Los
+    /** El número siguiente al más alto de {@code codigosUsados} con el prefijo
+     *  de {@code area}, formateado "PREF/NN": los huecos no se rellenan, un
+     *  número que ya se usó no vuelve a salir. Única implementación de la
+     *  regla — quien la llame solo decide de dónde salen los códigos usados
+     *  (los bienes activos y dados de baja más los que ya no tiene ningún
+     *  bien: una consulta dentro de su transacción, o el almacén local). Los
      *  códigos con sufijo no numérico (datos heredados) se ignoran. */
-    public static String siguienteCodigo(String area, Iterable<String> codigosActivos) {
-        String prefijo = prefijo(area);
-        String inicio = prefijo + "/";
-        java.util.Set<Integer> usados = new java.util.HashSet<>();
-        for (String codigo : codigosActivos) {
+    public static String siguienteCodigo(String area, Iterable<String> codigosUsados) {
+        String inicio = prefijo(area) + "/";
+        int mayor = 0;
+        for (String codigo : codigosUsados) {
             // Sin distinguir mayúsculas, como la validación de código repetido:
             // un "sgm/01" capturado a mano también ocupa el 01.
             if (codigo == null || !codigo.regionMatches(true, 0, inicio, 0, inicio.length())) continue;
-            try { usados.add(Integer.parseInt(codigo.substring(inicio.length()).trim())); }
+            try { mayor = Math.max(mayor, Integer.parseInt(codigo.substring(inicio.length()).trim())); }
             catch (NumberFormatException ignored) { /* código heredado sin número */ }
         }
-        int numero = 1;
-        while (usados.contains(numero)) numero++;
-        return inicio + String.format("%02d", numero);
+        return inicio + String.format("%02d", mayor + 1);
     }
 
     /** {@code preferido} si ningún bien activo lo tiene, si no {@link #siguienteCodigo}:
-     *  un bien cuya transferencia se deshace recupera su número mientras siga libre. */
-    public static String codigoPreferido(String area, String preferido, Iterable<String> codigosActivos) {
-        if (preferido == null || preferido.isBlank()) return siguienteCodigo(area, codigosActivos);
+     *  un bien cuya transferencia se deshace, o que se reactiva, recupera su
+     *  propio número (no es reutilizarlo: sigue siendo el mismo bien).
+     *  @param codigosActivos los de los bienes activos, para ver si otro lo tiene
+     *  @param codigosUsados todos los que se han usado, para el siguiente */
+    public static String codigoPreferido(String area, String preferido, Iterable<String> codigosActivos,
+                                         Iterable<String> codigosUsados) {
+        if (preferido == null || preferido.isBlank()) return siguienteCodigo(area, codigosUsados);
         String buscado = preferido.trim();
         for (String codigo : codigosActivos)
-            if (codigo != null && codigo.trim().equalsIgnoreCase(buscado)) return siguienteCodigo(area, codigosActivos);
+            if (codigo != null && codigo.trim().equalsIgnoreCase(buscado)) return siguienteCodigo(area, codigosUsados);
         return buscado;
     }
 

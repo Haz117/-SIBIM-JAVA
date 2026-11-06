@@ -29,7 +29,8 @@ import java.util.Set;
  *  there was anything to do in them. The áreas have "Pendientes de tu área" instead. */
 final class PorHacerPanel {
 
-    private record Datos(List<Producto> bienes, List<Resguardo> resguardos, Set<String> distintas, Map<String, String> config) {}
+    private record Datos(List<Producto> bienes, List<Resguardo> resguardos, Set<String> distintas, Map<String, String> config,
+                         int solicitudesBaja) {}
 
     private final VBox seccion;
 
@@ -38,9 +39,29 @@ final class PorHacerPanel {
         CalidadDatosService calidad = new CalidadDatosService();
         DialogUtil.runAsync(
             () -> new Datos(new ProductoService().getAll(), new ResguardoService().getAll(),
-                calidad.personasDistintas(), new ConfiguracionRepository().findAll()),
-            d -> pintar(CalidadDatosService.porHacer(d.bienes(), d.resguardos(), d.distintas(), d.config())),
+                calidad.personasDistintas(), new ConfiguracionRepository().findAll(), solicitudesBaja()),
+            d -> pintar(conSolicitudes(d.solicitudesBaja(),
+                CalidadDatosService.porHacer(d.bienes(), d.resguardos(), d.distintas(), d.config()))),
             e -> { /* It is a shortcut: without it, Inicio is what it was. */ });
+    }
+
+    /** The solicitudes de baja the áreas sent (5-nov-2026); 0 offline, in the demo or if they can't be counted. */
+    private static int solicitudesBaja() {
+        try {
+            return new com.sibim.service.SolicitudService().countPendientes(com.sibim.model.Solicitud.TIPO_BAJA);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** An área waiting for an answer goes first. */
+    static List<PorHacer> conSolicitudes(int n, List<PorHacer> resto) {
+        if (n <= 0) return resto;
+        List<PorHacer> todo = new java.util.ArrayList<>();
+        todo.add(new PorHacer(n, n == 1 ? "solicitud de baja de un área por revisar" : "solicitudes de baja de las áreas por revisar",
+            "Revisar solicitudes", "bajas", "solicitudes"));
+        todo.addAll(resto);
+        return todo;
     }
 
     private void pintar(List<PorHacer> lista) {

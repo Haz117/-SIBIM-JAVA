@@ -32,8 +32,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * failing in one class and passing in the others.
  *
  * <p>Demo data can't be reset between tests, so the assertions are relations
- * that must hold on any data ("the código is the next free one", "the counter
- * matches the list"), never absolute counts.
+ * that must hold on any data ("the código is the one after the highest used",
+ * "the counter matches the list"), never absolute counts.
  */
 public interface ContratoInventario {
 
@@ -71,11 +71,16 @@ public interface ContratoInventario {
         return productos().getAll().stream().map(Producto::getCodigo).toList();
     }
 
+    /** Every código ever used, as the store keeps it (V34: they are never reused). */
+    default List<String> codigosUsados() throws Exception {
+        return new ProductoRepository().codigosUsados();
+    }
+
     // ── Alta ────────────────────────────────────────────────────────────────
 
     @Test
-    default void alta_asignaElSiguienteCodigoLibreDelArea() throws Exception {
-        String esperado = AreaCodigos.siguienteCodigo(AREA_A, codigosActivos());
+    default void alta_asignaElSiguienteAlMasAltoUsadoDelArea() throws Exception {
+        String esperado = AreaCodigos.siguienteCodigo(AREA_A, codigosUsados());
         Producto p = alta(AREA_A, 5, 1);
         assertEquals(esperado, p.getCodigo());
         assertEquals(esperado, releer(p.getId()).getCodigo(), "el código se guarda tal cual");
@@ -124,9 +129,9 @@ public interface ContratoInventario {
     // ── Transferencia (admin: se aplica directo) ────────────────────────────
 
     @Test
-    default void transferencia_cambiaAreaYCodigoAlSiguienteLibreDelDestino() throws Exception {
+    default void transferencia_cambiaAreaYCodigoAlSiguienteDelDestino() throws Exception {
         Producto p = alta(AREA_A, 1, 0);
-        String esperado = AreaCodigos.siguienteCodigo(AREA_B, codigosActivos());
+        String esperado = AreaCodigos.siguienteCodigo(AREA_B, codigosUsados());
         movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B);
 
         Producto t = releer(p.getId());
@@ -135,14 +140,18 @@ public interface ContratoInventario {
         assertEquals(1, t.getStockActual(), "una transferencia no cambia la existencia");
     }
 
+    /** 5-nov-2026: the número a bien leaves behind is not handed to another one. */
     @Test
-    default void transferencia_liberaElNumeroEnElOrigen() throws Exception {
+    default void transferencia_noLeDaSuNumeroAOtroBien() throws Exception {
         Producto p = alta(AREA_A, 1, 0);
         String codigoOrigen = p.getCodigo();
         movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B);
         assertFalse(codigosActivos().contains(codigoOrigen));
-        assertEquals(AreaCodigos.siguienteCodigo(AREA_A, codigosActivos()), alta(AREA_A, 1, 0).getCodigo());
+        Producto nuevo = alta(AREA_A, 1, 0);
+        assertNotEquals(codigoOrigen, nuevo.getCodigo(), "el número que dejó no se reutiliza");
+        assertTrue(AreaCodigos.normalizar(AREA_A, nuevo.getCodigo()).isPresent());
     }
+
 
     /** Runs {@code accion} as a Dirección user of {@code area} (same id as the
      *  admin, so the SQL store's usuario_id foreign key is satisfied). */
@@ -185,19 +194,19 @@ public interface ContratoInventario {
         assertEquals(1, r.getStockActual());
     }
 
-    /** Deshacer in Transferir arrastrando: same rule, and Auditoría keeps it. */
+    /** Deshacer in Transferir arrastrando: a bien registered meanwhile took another
+     *  número, so this one gets its own back; Auditoría keeps it. */
     @Test
-    default void deshacerUnaTransferencia_siSuNumeroYaLoTieneOtro_tomaElSiguienteLibre() throws Exception {
+    default void deshacerUnaTransferencia_conOtroBienNuevoEnMedio_recuperaSuMismoNumero() throws Exception {
         Producto p = alta(AREA_A, 1, 0);
         Movimiento t = movimientos().registrar(p.getId(), TipoMovimiento.TRANSFERENCIA, 1, "contrato", null, AREA_B);
         Producto otro = alta(AREA_A, 1, 0);
-        assertEquals(p.getCodigo(), otro.getCodigo(), "el número que dejó libre lo tomó un bien nuevo");
+        assertNotEquals(p.getCodigo(), otro.getCodigo(), "el número que dejó no se le da al bien nuevo");
 
-        String esperado = AreaCodigos.siguienteCodigo(AREA_A, codigosActivos());
-        assertEquals(esperado, movimientos().deshacerTransferencia(t));
+        assertEquals(p.getCodigo(), movimientos().deshacerTransferencia(t));
         Producto r = releer(p.getId());
         assertEquals(AREA_A, r.getArea());
-        assertEquals(esperado, r.getCodigo());
+        assertEquals(p.getCodigo(), r.getCodigo());
         assertTrue(movimientos().getByProducto(p.getId()).isEmpty(), "la transferencia ya no está en su historial");
     }
 

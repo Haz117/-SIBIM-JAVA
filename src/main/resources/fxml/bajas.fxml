@@ -40,6 +40,14 @@
         <Label fx:id="lblProceso" wrapText="true" HBox.hgrow="ALWAYS" styleClass="muted-sm"/>
     </HBox>
 
+    <!-- ══ SOLICITUDES DE BAJA (las piden las áreas; Patrimonio decide) ══ -->
+    <HBox fx:id="avisoSolicitudes" alignment="CENTER_LEFT" spacing="10" styleClass="cnt-aviso"
+          visible="false" managed="false">
+        <FontIcon iconLiteral="mdi2f-file-remove-outline" iconSize="18"/>
+        <Label fx:id="lblSolicitudes" wrapText="true" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnSolicitudes" text="Revisar" onAction="#onSolicitudes" styleClass="btn-primary" minWidth="-Infinity"/>
+    </HBox>
+
     <!-- ══ STAT CARDS ═══════════════════════════════════════════════ -->
     <HBox spacing="12">
         <VBox styleClass="rich-stat-card, rich-stat-indigo" HBox.hgrow="ALWAYS" spacing="5" alignment="CENTER_LEFT">
@@ -90,6 +98,17 @@
 
     <!-- ══ FILTROS ══════════════════════════════════════════════════ -->
     <HBox alignment="CENTER_LEFT" spacing="10">
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <ToggleButton fx:id="chipTodas" text="Todas" styleClass="filter-chip" selected="true">
+                <tooltip><Tooltip text="Todos los bienes dados de baja"/></tooltip>
+            </ToggleButton>
+            <ToggleButton fx:id="chipProceso" text="En proceso" styleClass="filter-chip, filter-chip-amber">
+                <tooltip><Tooltip text="Dados de baja cuyo destino final (destrucción, donación, subasta…) todavía no se ejecuta"/></tooltip>
+            </ToggleButton>
+            <ToggleButton fx:id="chipDefinitivas" text="Definitivas" styleClass="filter-chip, filter-chip-teal">
+                <tooltip><Tooltip text="Bajas definitivas: el destino final ya se ejecutó con su documento; ya no se pueden reactivar"/></tooltip>
+            </ToggleButton>
+        </HBox>
         <TextField fx:id="searchField" promptText="Buscar por bien, código, motivo, folio o dictamen…"
                    styleClass="search-field" HBox.hgrow="ALWAYS"/>
         <ComboBox fx:id="areaFilter" promptText="Todas las áreas" prefWidth="260"/>
@@ -110,6 +129,7 @@
             <TableColumn fx:id="colDictamen" text="Dictamen" prefWidth="140"/>
             <TableColumn fx:id="colActa" text="No. acta" prefWidth="100" minWidth="95"/>
             <TableColumn fx:id="colValor" text="Valor" prefWidth="110"/>
+            <TableColumn fx:id="colDefinitiva" text="Baja definitiva" prefWidth="170"/>
         </columns>
         <placeholder><Label fx:id="lblVacio" text="No hay bienes dados de baja" styleClass="muted"/></placeholder>
     </TableView>
@@ -125,6 +145,10 @@
         <Button fx:id="btnFicha" text="Ficha" onAction="#onFicha" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2f-file-document-outline" styleClass="btn-icon"/></graphic>
             <tooltip><Tooltip text="Ficha técnica del bien seleccionado"/></tooltip>
+        </Button>
+        <Button fx:id="btnDefinitiva" text="Baja definitiva" onAction="#onDefinitiva" styleClass="btn-secondary" contentDisplay="LEFT" graphicTextGap="6">
+            <graphic><FontIcon iconLiteral="mdi2l-lock-check-outline" styleClass="btn-icon"/></graphic>
+            <tooltip><Tooltip text="Registra que el destino final de los bienes seleccionados ya se ejecutó, con su documento (solo administrador)"/></tooltip>
         </Button>
         <Button fx:id="btnReactivar" text="Reactivar" onAction="#onReactivar" styleClass="btn-primary" contentDisplay="LEFT" graphicTextGap="6">
             <graphic><FontIcon iconLiteral="mdi2r-restore" styleClass="btn-icon"/></graphic>

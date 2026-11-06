@@ -87,7 +87,7 @@ public class ResguardoService {
                     + folio + "; quítalo primero de ese resguardo para reasignarlo");
         }
         Resguardo r = new Resguardo();
-        r.setResguardanteNombre(resguardanteNombre.trim());
+        r.setResguardanteNombre(com.sibim.util.NombrePersona.sinTitulos(resguardanteNombre.trim()));
         r.setResguardanteCargo(resguardanteCargo != null ? resguardanteCargo.trim() : null);
         r.setResguardanteArea(resguardanteArea != null ? resguardanteArea.trim() : null);
         r.setObservaciones(observaciones != null ? observaciones.trim() : null);
@@ -246,7 +246,7 @@ public class ResguardoService {
         String cargo = enOrden.stream().map(Resguardo::getResguardanteCargo)
             .filter(c -> c != null && !c.isBlank()).reduce((a, b) -> b).orElse(null);
         Resguardo nuevo = new Resguardo();
-        nuevo.setResguardanteNombre(nuevoMas.getResguardanteNombre().trim());
+        nuevo.setResguardanteNombre(com.sibim.util.NombrePersona.sinTitulos(nuevoMas.getResguardanteNombre().trim()));
         nuevo.setResguardanteCargo(cargo != null ? cargo.trim() : null);
         nuevo.setResguardanteArea(uno.getResguardanteArea());
         nuevo.setObservaciones("Junta los resguardos " + folios + " de la misma persona (" + hoy + ").");
@@ -552,13 +552,10 @@ public class ResguardoService {
             doc.add(new Paragraph("\n\n"));
             Table firmasTable = new Table(UnitValue.createPercentArray(new float[]{1, 0.3f, 1}))
                 .useAllAvailableWidth().setMarginTop(20);
-            addFirmaCol(firmasTable, bold, regular,
-                "ENTREGA", "Nombre y cargo de quien entrega");
+            addFirmaCol(firmasTable, bold, regular, "ENTREGA", null, "Recursos Materiales y Patrimonio");
             firmasTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null));
-            addFirmaCol(firmasTable, bold, regular,
-                "RECIBE / RESGUARDANTE",
-                r.getResguardanteNombre() + (r.getResguardanteCargo() != null
-                    ? "\n" + r.getResguardanteCargo() : ""));
+            addFirmaCol(firmasTable, bold, regular, "RECIBE / RESGUARDANTE",
+                r.getResguardanteNombre(), r.getResguardanteCargo());
             doc.add(firmasTable);
 
             // ── Footer ──
@@ -593,14 +590,21 @@ public class ResguardoService {
         }
     }
 
-    private void addFirmaCol(Table t, PdfFont bold, PdfFont regular, String titulo, String nombre) {
+    /** One signature: the rol over the space to sign, the line, the name and the cargo
+     *  under it — always the name first and the cargo below (6-nov-2026). Without a
+     *  name it says "Nombre y firma", to write it by hand. */
+    private void addFirmaCol(Table t, PdfFont bold, PdfFont regular, String rol, String nombre, String cargo) {
+        boolean conNombre = nombre != null && !nombre.isBlank();
         com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
-            .add(new Paragraph("\n\n\n")
+            .add(new Paragraph(rol).setFont(bold).setFontSize(8)
+                .setTextAlignment(TextAlignment.CENTER).setMargin(0))
+            .add(new Paragraph("\n\n")
                 .setBorderBottom(new SolidBorder(new DeviceRgb(15, 23, 42), 1)))
-            .add(new Paragraph(titulo).setFont(bold).setFontSize(8)
-                .setTextAlignment(TextAlignment.CENTER).setMarginTop(4))
-            .add(new Paragraph(nombre).setFont(regular).setFontSize(7)
-                .setFontColor(COLOR_MUTED).setTextAlignment(TextAlignment.CENTER))
+            .add(new Paragraph(conNombre ? nombre.trim() : "Nombre y firma").setFont(conNombre ? bold : regular)
+                .setFontSize(conNombre ? 8 : 7).setFontColor(conNombre ? new DeviceRgb(15, 23, 42) : COLOR_MUTED)
+                .setTextAlignment(TextAlignment.CENTER).setMarginTop(4).setMarginBottom(0))
+            .add(new Paragraph(cargo != null ? cargo : "").setFont(regular).setFontSize(7)
+                .setFontColor(COLOR_MUTED).setTextAlignment(TextAlignment.CENTER).setMargin(0))
             .setBorder(null);
         t.addCell(c);
     }

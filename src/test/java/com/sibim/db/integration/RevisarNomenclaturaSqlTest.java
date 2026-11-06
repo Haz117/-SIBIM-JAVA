@@ -61,7 +61,7 @@ class RevisarNomenclaturaSqlTest extends IntegrationTestBase {
         new MovimientoService().registrar(uno.getId(), TipoMovimiento.TRANSFERENCIA, 1, "revisión", null, PARQUE);
         new ProductoService().darDeBaja(dos.getId(), "Obsoleto");
         Producto nuevo = alta(CANINO, cat);
-        assertEquals("CCAN/01", nuevo.getCodigo(), "toma el número más bajo que quedó libre");
+        assertEquals("CCAN/04", nuevo.getCodigo(), "un número ya usado no se repite: sigue al más alto (V34)");
 
         List<String> q = consultas();
         assertEquals(7, q.size(), "siete consultas en el script");
@@ -77,8 +77,8 @@ class RevisarNomenclaturaSqlTest extends IntegrationTestBase {
                     visto = true;
                     assertEquals(2, rs.getInt("activos"));
                     assertEquals(1, rs.getInt("de_baja"));
-                    assertEquals(3, rs.getInt("numero_mas_alto"));
-                    assertEquals(1, rs.getInt("huecos"), "el 02 quedó libre por la baja");
+                    assertEquals(4, rs.getInt("numero_mas_alto"));
+                    assertEquals(2, rs.getInt("huecos"), "el 01 (transferido) y el 02 (de baja) ya no se vuelven a usar");
                 }
                 assertTrue(visto);
             }

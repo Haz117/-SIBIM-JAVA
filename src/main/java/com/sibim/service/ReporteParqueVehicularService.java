@@ -162,9 +162,9 @@ public class ReporteParqueVehicularService extends ReporteService {
 
         // ── Firmas ────────────────────────────────────────────────────
         addFirmasBlock(doc,
-            new String[]{"ELABORÓ", getCurrentUserName(), "Director de Recursos Materiales"},
+            new String[]{"ELABORÓ", firmaElabora(), "Director de Recursos Materiales"},
             new String[]{"RECIBIÓ", null, "Resguardante / Titular"},
-            new String[]{"VO.BO.", null, "Secretario General Municipal"});
+            new String[]{"VO.BO.", firmaVoBo(), "Secretario General Municipal"});
     }
 
     private Cell buildFotoCell(Producto p, PdfFont reg) {

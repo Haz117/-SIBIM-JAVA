@@ -16,6 +16,8 @@ public interface LocalDataStore {
     void saveProducto(Producto p) throws SQLException;
     void darDeBajaProducto(String id, String motivo) throws SQLException;
     void reactivarProducto(String id) throws SQLException;
+    /** Every código a bien has had (see AreaCodigos#siguienteCodigo). */
+    List<String> codigosUsados() throws SQLException;
 
     // Movimientos
     List<Movimiento> findAllMovimientos(Set<String> areas) throws SQLException;

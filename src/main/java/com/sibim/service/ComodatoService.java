@@ -101,7 +101,7 @@ public class ComodatoService {
         c.setProductoNombre(producto.getNombre());
         c.setProductoCodigo(producto.getCodigo());
         c.setEntidadReceptora(entidadReceptora.trim());
-        c.setContactoNombre(contactoNombre.trim());
+        c.setContactoNombre(com.sibim.util.NombrePersona.sinTitulos(contactoNombre.trim()));
         c.setContactoCargo(contactoCargo != null ? contactoCargo.trim() : null);
         c.setDomicilio(domicilio != null ? domicilio.trim() : null);
         c.setMotivo(motivo != null ? motivo.trim() : null);
@@ -281,13 +281,11 @@ public class ComodatoService {
             doc.add(new Paragraph("\n\n"));
             Table firmas = new Table(UnitValue.createPercentArray(new float[]{1, 0.4f, 1}))
                 .useAllAvailableWidth().setMarginTop(20);
-            addFirmaCol(firmas, bold, regular, "ENTREGA POR EL MUNICIPIO", orgName());
+            addFirmaCol(firmas, bold, regular, "ENTREGA POR EL MUNICIPIO", null, orgName());
             firmas.addCell(new com.itextpdf.layout.element.Cell().setBorder(null));
             addFirmaCol(firmas, bold, regular,
                 "RECIBE POR " + c.getEntidadReceptora().toUpperCase(),
-                c.getContactoNombre()
-                + (c.getContactoCargo() != null && !c.getContactoCargo().isBlank()
-                    ? "\n" + c.getContactoCargo() : ""));
+                c.getContactoNombre(), c.getContactoCargo());
             doc.add(firmas);
 
             // Footer
@@ -319,16 +317,23 @@ public class ComodatoService {
             .setBorderTop(null).setBorderLeft(null).setBorderRight(null));
     }
 
-    private void addFirmaCol(Table t, PdfFont bold, PdfFont regular, String titulo, String nombre) {
-        com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
-            .add(new Paragraph("\n\n\n")
+    /** One signature: the rol over the space to sign, the line, the name and the cargo
+     *  under it — always the name first and the cargo below (6-nov-2026). Without a
+     *  name it says "Nombre y firma", to write it by hand. */
+    private void addFirmaCol(Table t, PdfFont bold, PdfFont regular, String rol, String nombre, String cargo) {
+        boolean conNombre = nombre != null && !nombre.isBlank();
+        com.itextpdf.layout.element.Cell c = new com.itextpdf.layout.element.Cell()
+            .add(new Paragraph(rol).setFont(bold).setFontSize(8)
+                .setTextAlignment(TextAlignment.CENTER).setMargin(0))
+            .add(new Paragraph("\n\n")
                 .setBorderBottom(new SolidBorder(new DeviceRgb(15, 23, 42), 1)))
-            .add(new Paragraph(titulo).setFont(bold).setFontSize(8)
-                .setTextAlignment(TextAlignment.CENTER).setMarginTop(4))
-            .add(new Paragraph(nombre).setFont(regular).setFontSize(7)
-                .setFontColor(COLOR_MUTED).setTextAlignment(TextAlignment.CENTER))
+            .add(new Paragraph(conNombre ? nombre.trim() : "Nombre y firma").setFont(conNombre ? bold : regular)
+                .setFontSize(conNombre ? 8 : 7).setFontColor(conNombre ? new DeviceRgb(15, 23, 42) : COLOR_MUTED)
+                .setTextAlignment(TextAlignment.CENTER).setMarginTop(4).setMarginBottom(0))
+            .add(new Paragraph(cargo != null ? cargo : "").setFont(regular).setFontSize(7)
+                .setFontColor(COLOR_MUTED).setTextAlignment(TextAlignment.CENTER).setMargin(0))
             .setBorder(null);
-        t.addCell(cell);
+        t.addCell(c);
     }
 
     private String orDash(String v) { return (v != null && !v.isBlank()) ? v : "—"; }

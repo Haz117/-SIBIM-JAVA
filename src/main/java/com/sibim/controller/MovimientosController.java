@@ -401,12 +401,9 @@ public class MovimientosController {
                 table.setPlaceholder(emptyStatePlaceholder);
 
                 if (categoriaFilter != null) {
-                    String prev = categoriaFilter.getValue();
-                    categoriaFilter.getItems().setAll(new ArrayList<>());
-                    categoriaFilter.getItems().add(null);
-                    categoriaFilter.getItems().addAll(r.categorias());
-                    if (prev != null && categoriaFilter.getItems().contains(prev))
-                        categoriaFilter.setValue(prev);
+                    // Type to find one (FiltroEscribible); the chosen one stays if it is still there.
+                    categoriaFilter.getItems().setAll(r.categorias());
+                    com.sibim.util.FiltroEscribible.instalar(categoriaFilter, "Categoría…");
                 }
 
                 totalFiltered = r.count();

@@ -50,7 +50,14 @@ final class ProductoExtras {
         new Campo("tipo_destino_baja", Producto::getTipoDestinoBaja, Producto::setTipoDestinoBaja),
         new Campo("dictamen_baja", Producto::getDictamenBaja, Producto::setDictamenBaja),
         new Campo("numero_acta_baja", Producto::getNumeroActaBaja, Producto::setNumeroActaBaja),
-        new Campo("fecha_dictamen", Producto::getFechaDictamen, (p, v) -> p.setFechaDictamen(fecha(v))));
+        new Campo("fecha_dictamen", Producto::getFechaDictamen, (p, v) -> p.setFechaDictamen(fecha(v))),
+        new Campo("baja_definitiva_fecha", Producto::getBajaDefinitivaFecha, (p, v) -> p.setBajaDefinitivaFecha(fecha(v))),
+        new Campo("baja_definitiva_documento", Producto::getBajaDefinitivaDocumento, Producto::setBajaDefinitivaDocumento),
+        new Campo("revisado_area_en", Producto::getRevisadoAreaEn,
+            (p, v) -> p.setRevisadoAreaEn(v == null || v.isBlank() ? null
+                : java.time.LocalDateTime.parse(v.trim().replace(' ', 'T')))),
+        new Campo("revisado_area_por", Producto::getRevisadoAreaPor, Producto::setRevisadoAreaPor),
+        new Campo("revision_area_nota", Producto::getRevisionAreaNota, Producto::setRevisionAreaNota));
 
     private ProductoExtras() {}
 

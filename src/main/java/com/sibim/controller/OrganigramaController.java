@@ -81,6 +81,8 @@ public class OrganigramaController {
     private Map<String, List<com.sibim.model.Resguardo>> resguardosPorArea = new HashMap<>();
     private Map<String, List<Prestamo>>                  prestamosPorArea  = new HashMap<>();
     private Map<String, List<Comodato>>                  comodatosPorArea  = new HashMap<>();
+    private Map<String, com.sibim.service.AvanceAreasService.Avance> avancePorArea = new HashMap<>();
+    @FXML private VBox avanceCard;
     private boolean soloAlertas = false;
 
     private enum ViewMode { ARBOL, CARDS, TABLA, ACOMODO }
@@ -196,6 +198,8 @@ public class OrganigramaController {
                 resguardosPorArea = data.resguardosPorArea();
                 prestamosPorArea  = data.prestamosPorArea();
                 comodatosPorArea  = data.comodatosPorArea();
+                avancePorArea     = data.avance();
+                if (avanceCard != null) AvanceAreaView.llenarTarjeta(avanceCard, avancePorArea, this::onAvanceAreas);
                 spinner.setVisible(false); spinner.setManaged(false);
                 rebuildCurrentView();
                 updateStats();
@@ -218,7 +222,12 @@ public class OrganigramaController {
             (name, rsgs)   -> dialogs.showResguardosAreaDialog(name, rsgs, searchField.getScene()),
             (name, prests) -> dialogs.showPrestamosAreaDialog(name, prests, searchField.getScene()),
             (name, comods) -> dialogs.showComodatosAreaDialog(name, comods, searchField.getScene())
-        ).build(orgTree, filter);
+        ).conAvance(avancePorArea, () -> loadData(false)).build(orgTree, filter);
+    }
+
+    /** Every área's three phases (1 sesión, 2 revisión, 3 etiquetas). */
+    @FXML private void onAvanceAreas() {
+        AvanceAreaView.mostrarTodas(avancePorArea, () -> loadData(false));
     }
 
     private void buildCardView(String filter) {

@@ -58,6 +58,8 @@ public final class TransferenciaArrastreDialog {
     private final Runnable alTransferir;
 
     private Map<String, List<Producto>> porArea = Map.of();
+    /** Every código ever used, so the confirmation says the número each bien will really take. */
+    private List<String> codigosUsados = List.of();
     private final ComboBox<String> origen = new ComboBox<>();
     /** The áreas with bienes, to pick the origen with one click. */
     private final ListView<String> areasOrigen = new ListView<>();
@@ -370,6 +372,7 @@ public final class TransferenciaArrastreDialog {
             cargos = cargosDe(r);
             vigentes = r.stream().filter(Resguardo::isActivo).toList();
         }, ex -> { });
+        DialogUtil.runAsync(productoService::codigosUsados, u -> codigosUsados = u, ex -> { });
     }
 
     /** The resguardos in force of {@code persona} in {@code area}: written the same but for
@@ -574,9 +577,10 @@ public final class TransferenciaArrastreDialog {
             AppColors.PRIMARY, AppColors.PRIMARY_D);
 
         // The número each one will take there, as the transfer will pick it: the
-        // lowest free one, one after the other.
+        // one after the highest ever used, one after the other.
         List<String> ocupados = porArea.values().stream().flatMap(List::stream).map(Producto::getCodigo)
             .collect(Collectors.toCollection(ArrayList::new));
+        ocupados.addAll(codigosUsados);
         VBox lista = new VBox(5);
         for (int i = 0; i < bienes.size(); i++) {
             Producto p = bienes.get(i);
@@ -614,6 +618,7 @@ public final class TransferenciaArrastreDialog {
             porArea.getOrDefault(destino, List.of()).stream().map(Producto::getResguardante)
                 .filter(r -> r != null && !r.isBlank()).distinct().sorted().toList()));
         resguardante.setEditable(true);
+        com.sibim.util.FiltroEscribible.sugerirAlEscribir(resguardante);
         resguardante.setPromptText("Quién los recibe (opcional)");
         resguardante.setMaxWidth(Double.MAX_VALUE);
         resguardante.getStyleClass().add("form-input");

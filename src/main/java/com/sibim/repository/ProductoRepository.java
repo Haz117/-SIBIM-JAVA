@@ -154,6 +154,36 @@ public class ProductoRepository {
         return queryDynamic(BASE_SELECT + where + " ORDER BY p.nombre", params);
     }
 
+    /** The área's review of these bienes (see Producto#isRevisadoPorArea): {@code en}
+     *  null takes it back. updated_at stays: it isn't the bien's data, and an
+     *  "Actualizar datos" opened right after must not say someone else changed it. */
+    public void marcarRevision(List<String> ids, LocalDateTime en, String por, String nota) throws SQLException {
+        if (ids == null || ids.isEmpty()) return;
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            for (String id : ids) {
+                var opt = local.findProductoById(id);
+                if (opt.isEmpty()) continue;
+                Producto p = opt.get();
+                p.setRevisadoAreaEn(en);
+                p.setRevisadoAreaPor(en == null ? null : por);
+                p.setRevisionAreaNota(en == null ? null : nota);
+                local.saveProducto(p);
+            }
+            return;
+        }
+        String sql = "UPDATE products SET revisado_area_en = ?, revisado_area_por = ?, revision_area_nota = ? "
+                   + "WHERE id = ANY(?)";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, en);
+            ps.setString(2, en == null ? null : por);
+            ps.setString(3, en == null ? null : nota);
+            ps.setArray(4, conn.createArrayOf("text", ids.toArray(new String[0])));
+            ps.executeUpdate();
+        }
+    }
+
     /** Marks the given product IDs as etiquetado = {@code valor} in one round-trip. */
     public void marcarEtiquetado(List<String> ids, boolean valor) throws SQLException {
         if (ids == null || ids.isEmpty()) return;
@@ -660,6 +690,45 @@ public class ProductoRepository {
         }
     }
 
+    /** Baja definitiva of bienes already dados de baja (or, with {@code fecha}
+     *  null, takes it back). Online only: every PC must see it at once.
+     *  @return how many changed */
+    public int marcarBajaDefinitiva(List<String> ids, LocalDate fecha, String documento, String tipoDestino) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) {
+            if (DatabaseConfig.isOfflineMode())
+                throw new SQLException("La baja definitiva requiere conexión con el servidor");
+            int n = 0;
+            for (String id : ids) {
+                Optional<Producto> p = local.findProductoById(id);
+                if (p.isEmpty() || !p.get().isDadoDeBaja() || (fecha != null) == p.get().isBajaDefinitiva()) continue;
+                p.get().setBajaDefinitivaFecha(fecha);
+                p.get().setBajaDefinitivaDocumento(fecha == null ? null : documento);
+                if (fecha != null && tipoDestino != null) p.get().setTipoDestinoBaja(tipoDestino);
+                local.saveProducto(p.get());
+                n++;
+            }
+            return n;
+        }
+        String sql = fecha != null
+            ? "UPDATE products SET baja_definitiva_fecha = ?, baja_definitiva_documento = ?, "
+              + "tipo_destino_baja = COALESCE(?, tipo_destino_baja), updated_at = NOW() "
+              + "WHERE id = ANY(?) AND fecha_baja IS NOT NULL AND baja_definitiva_fecha IS NULL"
+            : "UPDATE products SET baja_definitiva_fecha = NULL, baja_definitiva_documento = NULL, updated_at = NOW() "
+              + "WHERE id = ANY(?) AND baja_definitiva_fecha IS NOT NULL";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int i = 1;
+            if (fecha != null) {
+                ps.setObject(i++, fecha);
+                ps.setString(i++, documento);
+                ps.setString(i++, tipoDestino);
+            }
+            ps.setArray(i, conn.createArrayOf("text", ids.toArray(new String[0])));
+            return ps.executeUpdate();
+        }
+    }
+
     /** Reverses a baja patrimonial — puts the bien back into active
      *  inventory. Kept separate from {@link #save} so it can't accidentally
      *  be triggered by an unrelated edit. */
@@ -674,25 +743,26 @@ public class ProductoRepository {
 
     /** Replay target for SyncService — see {@link #saveOnline}. */
     public void reactivarOnline(String id) throws SQLException {
-        // While it was de baja its número was free for another bien, so it
-        // comes back with the next free one of its área — picked here, in the
-        // same transaction that reactivates it. (A reactivation replayed from
-        // an offline PC used to keep the old número and was thrown away when
-        // another bien already had it.)
+        // It comes back with its own número — números are never handed to
+        // another bien (V34) — unless an active bien has it (only data from
+        // before that rule) or it isn't one of its área: then the next one,
+        // picked here, in the same transaction that reactivates it.
         try (Connection conn = DatabaseConfig.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                String area;
+                String area, propio;
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "SELECT area FROM products WHERE id = ? AND fecha_baja IS NOT NULL FOR UPDATE")) {
+                        "SELECT area, codigo FROM products WHERE id = ? AND fecha_baja IS NOT NULL FOR UPDATE")) {
                     ps.setString(1, id);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next())
                             throw new SQLException("El bien no existe o no estaba dado de baja (id=" + id + ")");
                         area = rs.getString("area");
+                        propio = rs.getString("codigo");
                     }
                 }
-                String codigo = AreaCodigos.tienePrefijo(area) ? siguienteCodigo(conn, area) : null;
+                String codigo = AreaCodigos.tienePrefijo(area)
+                    ? codigoPreferido(conn, area, AreaCodigos.normalizar(area, propio).orElse(null)) : null;
                 try (PreparedStatement ps = conn.prepareStatement(
                         "UPDATE products SET fecha_baja = NULL, motivo_baja = NULL, codigo = COALESCE(?, codigo), "
                         + "updated_at = NOW() WHERE id = ?")) {
@@ -710,12 +780,9 @@ public class ProductoRepository {
         }
     }
 
-    /** Same as {@link #reactivar}, but also assigns {@code nuevoCodigo} in the
-     *  same statement — the bien's old código may since have been claimed by
-     *  another bien in its área while it was dado de baja (see AreaCodigos),
-     *  so doing both in one UPDATE avoids a moment where this row is active
-     *  with a código another active row already holds. Online-only, like the
-     *  rest of the área-nomenclature feature (see ProductoService#asignarCodigo). */
+    /** Same as {@link #reactivar}, but also assigns {@code nuevoCodigo} (from
+     *  {@link #codigoAlReactivar}) in demo and offline. Online the código is
+     *  picked inside the reactivation's own transaction. */
     public void reactivarConCodigo(String id, String nuevoCodigo) throws SQLException {
         if (DatabaseConfig.getLocalDataStore() != null) {
             // Demo and offline follow the same rule: without this the bien
@@ -729,15 +796,14 @@ public class ProductoRepository {
         reactivarOnline(id);
     }
 
-    /** Next free código for {@code area} among active bienes (the rule itself
-     *  lives in AreaCodigos#siguienteCodigo). Online it reads every active
-     *  bien with that prefix — not only the caller's áreas — straight from
-     *  SQL instead of loading the whole inventory. */
+    /** Next código for {@code area}: the one after the highest ever used
+     *  there (the rule itself lives in AreaCodigos#siguienteCodigo). Online it
+     *  reads every código with that prefix — of any bien, active or not, and
+     *  those no bien has any more — straight from SQL instead of loading the
+     *  whole inventory. */
     public String siguienteCodigo(String area) throws SQLException {
-        if (DatabaseConfig.getLocalDataStore() != null) {
-            return AreaCodigos.siguienteCodigo(area,
-                findAll(false).stream().map(Producto::getCodigo).toList());
-        }
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return AreaCodigos.siguienteCodigo(area, local.codigosUsados());
         try (Connection conn = DatabaseConfig.getConnection()) {
             return siguienteCodigo(conn, area);
         }
@@ -749,6 +815,32 @@ public class ProductoRepository {
         try (Connection conn = DatabaseConfig.getConnection()) {
             return siguienteCodigo(conn, area);
         }
+    }
+
+    /** Every código ever used (bienes active or de baja, and table codigos_usados):
+     *  the transfer board shows with it which número each bien will take. */
+    public List<String> codigosUsados() throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null) return local.codigosUsados();
+        List<String> codigos = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 "SELECT codigo FROM products UNION SELECT codigo FROM codigos_usados");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) codigos.add(rs.getString(1));
+        }
+        return codigos;
+    }
+
+    /** The código a bien de baja gets back on reactivation, in demo and offline:
+     *  its own unless an active bien has it, else the next never used. */
+    public String codigoAlReactivar(Producto p) throws SQLException {
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local == null || !AreaCodigos.tienePrefijo(p.getArea())) return null;
+        List<String> activos = local.findAllProductos(null).stream().filter(x -> !x.isDadoDeBaja())
+            .filter(x -> !x.getId().equals(p.getId())).map(Producto::getCodigo).toList();
+        return AreaCodigos.codigoPreferido(p.getArea(), AreaCodigos.normalizar(p.getArea(), p.getCodigo()).orElse(null),
+            activos, local.codigosUsados());
     }
 
     /** Same as {@link #siguienteCodigo(String)}, on the caller's connection —
@@ -764,9 +856,13 @@ public class ProductoRepository {
             }
         }
         List<String> codigos = new ArrayList<>();
+        // Bienes de baja too, and the códigos no bien has any more (a transfer
+        // changed them, or the bien was deleted): a número is never reused.
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT codigo FROM products WHERE UPPER(codigo) LIKE ? AND fecha_baja IS NULL")) {
+                "SELECT codigo FROM products WHERE UPPER(codigo) LIKE ? "
+                + "UNION SELECT codigo FROM codigos_usados WHERE codigo LIKE ?")) {
             ps.setString(1, AreaCodigos.prefijo(area) + "/%");
+            ps.setString(2, AreaCodigos.prefijo(area).toUpperCase(java.util.Locale.ROOT) + "/%");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) codigos.add(rs.getString(1));
             }
@@ -813,6 +909,35 @@ public class ProductoRepository {
     /** Only counts active bienes — a bien dado de baja keeps its historical
      *  codigo on record, but that value is free for a new/reactivated bien
      *  to reuse (see V14, idx_products_codigo_activo). */
+    /** Whether another bien had {@code codigo} at some point (V34: números are not
+     *  reused). The bien's own former códigos (its transfers) don't count. */
+    public boolean codigoUsadoPorOtro(String codigo, String id) throws SQLException {
+        if (codigo == null || codigo.isBlank()) return false;
+        LocalDataStore local = DatabaseConfig.getLocalDataStore();
+        if (local != null)
+            return local.findAllProductos(null).stream().anyMatch(p -> !p.getId().equals(id)
+                && p.getCodigo() != null && p.getCodigo().trim().equalsIgnoreCase(codigo.trim()));
+        String sql = """
+            SELECT 1 FROM codigos_usados u
+             WHERE u.codigo = UPPER(TRIM(?)) AND u.producto_id IS DISTINCT FROM ?
+               AND NOT EXISTS (SELECT 1 FROM movements m WHERE m.producto_id = ?
+                                 AND UPPER(TRIM(?)) IN (UPPER(TRIM(m.codigo_anterior)), UPPER(TRIM(m.codigo_nuevo))))
+            UNION ALL
+            SELECT 1 FROM products p WHERE UPPER(TRIM(p.codigo)) = UPPER(TRIM(?)) AND p.id IS DISTINCT FROM ?
+            LIMIT 1
+            """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, codigo);
+            ps.setString(2, id);
+            ps.setString(3, id);
+            ps.setString(4, codigo);
+            ps.setString(5, codigo);
+            ps.setString(6, id);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        }
+    }
+
     public boolean existsByCodigo(String codigo, String excludeId) throws SQLException {
         LocalDataStore local = DatabaseConfig.getLocalDataStore();
         if (local != null) return local.existsByCodigo(codigo, excludeId);
@@ -1202,6 +1327,17 @@ public class ProductoRepository {
             p.setFolioFiscal(rs.getString("folio_fiscal"));
         } catch (SQLException ignored) {
             // Column added in V33 — ignore gracefully on older schemas
+        }
+        try {
+            java.sql.Date bd = rs.getDate("baja_definitiva_fecha");
+            if (bd != null) p.setBajaDefinitivaFecha(bd.toLocalDate());
+            p.setBajaDefinitivaDocumento(rs.getString("baja_definitiva_documento"));
+            Timestamp rv = rs.getTimestamp("revisado_area_en");
+            if (rv != null) p.setRevisadoAreaEn(rv.toLocalDateTime());
+            p.setRevisadoAreaPor(rs.getString("revisado_area_por"));
+            p.setRevisionAreaNota(rs.getString("revision_area_nota"));
+        } catch (SQLException ignored) {
+            // Columns added in V34 — ignore gracefully on older schemas
         }
         return p;
     }

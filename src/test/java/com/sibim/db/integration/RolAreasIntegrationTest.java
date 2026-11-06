@@ -204,6 +204,44 @@ class RolAreasIntegrationTest extends IntegrationTestBase {
         assertEquals("42501", ex.getSQLState());
     }
 
+    /** Phases 2 and 3 of the área's avance (Organigrama), from an área's PC. */
+    @Test
+    void revisarSusBienes_yConfirmarEtiquetas() throws Exception {
+        comoDireccion();
+        ProductoService service = new ProductoService();
+        Producto p = new ProductoRepository().findById(BIEN).orElseThrow();
+        service.revisarComoArea(List.of(p), "No está en la oficina");
+        service.confirmarEtiquetas(List.of(p), true);
+        try (Connection c = getConnection(); Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery("SELECT revisado_area_en, revision_area_nota, etiquetado FROM products WHERE id = '" + BIEN + "'")) {
+            assertTrue(rs.next());
+            assertNotNull(rs.getTimestamp("revisado_area_en"));
+            assertEquals("No está en la oficina", rs.getString("revision_area_nota"));
+            assertTrue(rs.getBoolean("etiquetado"));
+        }
+    }
+
+    /** Solicitud de baja (V35), from an área's PC: it reaches Patrimonio, and the
+     *  área can neither answer it itself nor touch the other requests. */
+    @Test
+    void pedirLaBajaDeUnBien_yNoResolverla() throws Exception {
+        comoDireccion();
+        Producto p = new ProductoRepository().findById(BIEN).orElseThrow();
+        var envio = new com.sibim.service.SolicitudService().solicitarBaja(List.of(p), "Obsoleto", "Ya no enciende");
+        assertEquals(1, envio.enviadas().size());
+        try (Connection c = comoAreas.getConnection(); Statement st = c.createStatement()) {
+            for (String sql : List.of(
+                    "UPDATE solicitudes SET estado = 'APROBADA'",
+                    "DELETE FROM solicitudes")) {
+                SQLException ex = assertThrows(SQLException.class, () -> st.execute(sql), sql);
+                assertEquals("42501", ex.getSQLState(), sql + ": " + ex.getMessage());
+            }
+        }
+        try (Connection c = getConnection(); Statement st = c.createStatement()) {
+            assertEquals(1, contar(st, "SELECT count(*) FROM solicitudes WHERE tipo = 'baja' AND estado = 'PENDIENTE'"));
+        }
+    }
+
     // ── Straight SQL: what the user can and can't do, whatever the app does ─
 
     @Test

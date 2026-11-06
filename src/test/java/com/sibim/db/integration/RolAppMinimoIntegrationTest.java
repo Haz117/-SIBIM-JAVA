@@ -151,6 +151,38 @@ class RolAppMinimoIntegrationTest extends IntegrationTestBase {
         }
     }
 
+    /** Production order: this script ran (14-oct) before V34 made codigos_usados.
+     *  V34 has to leave its table with RLS and sibim_app's policy by itself, and
+     *  a bien sibim_app saves still gets its código written down (by the trigger). */
+    @Test
+    void v34DespuesDelRol_codigosUsadosConRls_yLaAppLaLee() throws Exception {
+        Path base = Path.of(System.getProperty("basedir", ".."));
+        String v34 = Files.readString(base.resolve(
+            "src/main/resources/db/migration/V34__numeros_sin_repetir_bajas_definitivas_revision.sql"),
+            StandardCharsets.UTF_8);
+        try (Connection c = dataSource.getConnection(); Statement st = c.createStatement()) {
+            // As it was before V34: the table without RLS nor policy.
+            st.execute("DROP POLICY IF EXISTS sibim_app_todo ON codigos_usados");
+            st.execute("ALTER TABLE codigos_usados DISABLE ROW LEVEL SECURITY");
+            st.execute(v34);   // idempotent: running it again only adds what is missing
+            try (ResultSet rs = st.executeQuery(
+                    "SELECT rowsecurity FROM pg_tables WHERE tablename = 'codigos_usados'")) {
+                assertTrue(rs.next());
+                assertTrue(rs.getBoolean(1), "codigos_usados con RLS");
+            }
+        }
+        try (Connection c = comoApp(); Statement st = c.createStatement()) {
+            st.execute("INSERT INTO categories (id, nombre, color) VALUES ('c-v34', 'Cat V34', '#000000')");
+            st.execute("INSERT INTO products (id, nombre, codigo, categoria_id, area, unidad) "
+                + "VALUES ('p-v34', 'Bien', 'V34/07', 'c-v34', 'Área', 'pieza')");
+            st.execute("DELETE FROM products WHERE id = 'p-v34'");
+            try (ResultSet rs = st.executeQuery("SELECT producto_id FROM codigos_usados WHERE codigo = 'V34/07'")) {
+                assertTrue(rs.next(), "la app ve el código usado aunque el bien ya no esté");
+                assertEquals("p-v34", rs.getString(1));
+            }
+        }
+    }
+
     @Test
     void laApiRestDeSupabaseYaNoVeLasTablas() throws Exception {
         try (Connection c = dataSource.getConnection(); Statement st = c.createStatement();
