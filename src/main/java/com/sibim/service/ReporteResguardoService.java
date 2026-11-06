@@ -281,15 +281,18 @@ public class ReporteResguardoService extends ReporteService {
                 .setBorder(new SolidBorder(GRAY_300, 0.5f))
                 .setPadding(6)));
 
-        // TIPO BIEN wide enough for "EQUIPO AUDIOVISUAL" on one line: half the rows used to take two.
-        // The general one's 5th column holds a full name, not a date: it takes room from CONCEPTO.
-        float[] cw = general ? new float[]{0.55f, 1.35f, 2.35f, 1.6f, 1.9f, 1.0f}
-                             : new float[]{0.55f, 1.4f, 2.95f, 1.8f, 1.1f, 1.2f};
+        // 6-nov-2026: no TIPO BIEN, ASIGNACIÓN or COLOR; the PRECIO instead. The áreas
+        // (direcciones) don't see amounts, so for them the column isn't there at all.
+        // The general one keeps who holds each bien (its individual resguardo).
+        boolean conPrecio = com.sibim.session.Permisos.veValores();
+        List<String> hdrs = new ArrayList<>(List.of("NO.", "INVENTARIO", "CONCEPTO"));
+        List<Float> anchos = new ArrayList<>(List.of(0.55f, 1.4f, general ? 3.6f : 5.2f));
+        if (general) { hdrs.add("RESGUARDANTE"); anchos.add(2.3f); }
+        if (conPrecio) { hdrs.add("PRECIO"); anchos.add(1.6f); }
+        float[] cw = new float[anchos.size()];
+        for (int k = 0; k < cw.length; k++) cw[k] = anchos.get(k);
         // Fixed: a long word in a column ("ADMINISTRACIÓN") pushed the table past the margin.
         Table t = new Table(UnitValue.createPercentArray(cw)).useAllAvailableWidth().setFixedLayout();
-
-        // The general one says who holds each bien (its individual resguardo) instead of the date.
-        String[] hdrs = {"NO.", "INVENTARIO", "CONCEPTO", "TIPO BIEN", general ? "RESGUARDANTE" : "ASIGNACION", "COLOR"};
         for (String h : hdrs) {
             t.addHeaderCell(cell()
                 .add(para(h, bold, 8).setFontColor(ColorConstants.WHITE).setTextAlignment(TextAlignment.CENTER))
@@ -297,6 +300,8 @@ public class ReporteResguardoService extends ReporteService {
         }
 
         List<ResguardoItem> items = r.getItems();
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        boolean faltaPrecio = false;
         for (int i = 0; i < items.size(); i++) {
             ResguardoItem item = items.get(i);
             DeviceRgb rowBg = (i % 2 == 1) ? ROW_ALT : new DeviceRgb(255, 255, 255);
@@ -306,34 +311,40 @@ public class ReporteResguardoService extends ReporteService {
             String concepto = (item.getCantidad() > 1 ? item.getCantidad() + " PIEZAS: " : "")
                 + concepto(item.getProductoNombre(), item.getDescripcion());
 
-            String tipoBien   = p != null && p.getCategoriaNombre() != null ? upper(p.getCategoriaNombre()) : "MUEBLES";
-            String asignacion = general
-                ? (p != null && p.getResguardante() != null && !p.getResguardante().isBlank()
-                    ? upper(p.getResguardante()) : "SIN RESGUARDO INDIVIDUAL")
-                : p != null && p.getFechaAdquisicion() != null
-                    ? p.getFechaAdquisicion().format(DATE_FMT) : fechaResguardo;
-            String colorVal   = "—";
-            if (p != null && p.getColor() != null && !p.getColor().isBlank()) {
-                colorVal = upper(p.getColor());
-            } else if (p != null) {
-                String m = join(" ", p.getMarca(), p.getModelo());
-                if (!m.isBlank()) colorVal = upper(m);
+            List<String> vals = new ArrayList<>(List.of(String.valueOf(i + 1), nvl(item.getProductoCodigo()), concepto));
+            if (general)
+                vals.add(p != null && p.getResguardante() != null && !p.getResguardante().isBlank()
+                    ? upper(p.getResguardante()) : "SIN RESGUARDO INDIVIDUAL");
+            if (conPrecio) {
+                // The bien's cost as it is now (a lote's cost may have been corrected since).
+                java.math.BigDecimal pieza = p != null && p.getPrecioCompra() != null ? p.getPrecioCompra() : item.getValorUnitario();
+                if (pieza == null || pieza.signum() <= 0) {
+                    vals.add("—");
+                    faltaPrecio = true;
+                } else {
+                    int n = Math.max(1, item.getCantidad());
+                    java.math.BigDecimal renglon = pieza.multiply(java.math.BigDecimal.valueOf(n));
+                    total = total.add(renglon);
+                    vals.add(com.sibim.util.FormatUtils.formatCurrency(renglon)
+                        + (n > 1 ? "\n" + n + " × " + com.sibim.util.FormatUtils.formatCurrency(pieza) : ""));
+                }
             }
-
-            String[] vals = {
-                String.valueOf(i + 1),
-                nvl(item.getProductoCodigo()),
-                concepto,
-                tipoBien,
-                asignacion,
-                colorVal
-            };
-            for (int c = 0; c < vals.length; c++) {
-                t.addCell(cell().add(para(vals[c], reg, 7.5f)
-                        .setTextAlignment(c == 2 ? TextAlignment.LEFT : TextAlignment.CENTER))
+            for (int c = 0; c < vals.size(); c++) {
+                boolean precio = conPrecio && c == vals.size() - 1;
+                t.addCell(cell().add(para(vals.get(c), reg, 7.5f)
+                        .setTextAlignment(c == 2 ? TextAlignment.LEFT : precio ? TextAlignment.RIGHT : TextAlignment.CENTER))
                     .setBackgroundColor(rowBg).setBorder(brd(GRAY_300)).setPadding(3.5f)
                     .setVerticalAlignment(VerticalAlignment.MIDDLE));
             }
+        }
+        if (conPrecio && !items.isEmpty()) {
+            t.addCell(new Cell(1, cw.length - 1)
+                .add(para("TOTAL" + (faltaPrecio ? "  (hay bienes sin precio capturado)" : ""), bold, 8)
+                    .setTextAlignment(TextAlignment.RIGHT))
+                .setBackgroundColor(GUINDA_LIGHT).setBorder(brd(GRAY_300)).setPadding(4));
+            t.addCell(cell().add(para(com.sibim.util.FormatUtils.formatCurrency(total), bold, 8)
+                    .setTextAlignment(TextAlignment.RIGHT))
+                .setBackgroundColor(GUINDA_LIGHT).setBorder(brd(GRAY_300)).setPadding(4));
         }
         doc.add(t);
     }

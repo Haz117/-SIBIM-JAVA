@@ -102,6 +102,43 @@ class ReporteResguardoServiceTest {
         assertFalse(texto.contains("RSG-"), "no consume un folio RSG");
     }
 
+    /** 6-nov-2026: the list of bienes is NO., INVENTARIO, CONCEPTO and PRECIO (a lote's
+     *  total with its pieces × cost) with the TOTAL; no TIPO BIEN, ASIGNACION or COLOR.
+     *  An área (dirección) doesn't see amounts: no PRECIO column for it. */
+    @Test void listaDeBienes_conPrecioYTotal_sinTipoNiColor_yUnAreaNoVeElPrecio() throws Exception {
+        java.util.function.Supplier<String> texto = () -> {
+            try {
+                File pdf = service.exportarResguardoPdf("Juan Pérez", "Sala de cómputo", List.of(activo, sinExtras));
+                try (var doc = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+                    return com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor.getTextFromPage(doc.getPage(1))
+                        .replaceAll("\\s+", " ");
+                } finally { pdf.delete(); }
+            } catch (Exception e) { throw new RuntimeException(e); }
+        };
+        try {
+            com.sibim.model.Usuario admin = new com.sibim.model.Usuario();
+            admin.setId("u-adm"); admin.setNombre("Patrimonio"); admin.setRol(com.sibim.model.enums.Rol.ADMIN);
+            com.sibim.session.SessionManager.setCurrentUser(admin);
+            String t = texto.get();
+            assertTrue(t.contains("PRECIO"), t);
+            assertTrue(t.contains("$75,000.00"), "el lote: 5 piezas × $15,000");
+            assertTrue(t.contains("5 × $15,000.00"), t);
+            assertTrue(t.contains("TOTAL"), t);
+            for (String fuera : List.of("TIPO BIEN", "ASIGNACION", "COLOR"))
+                assertFalse(t.contains(fuera), "ya no va la columna " + fuera);
+
+            com.sibim.model.Usuario area = new com.sibim.model.Usuario();
+            area.setId("u-dir"); area.setNombre("Sala de cómputo"); area.setRol(com.sibim.model.enums.Rol.DIRECCION);
+            area.setArea("Sala de cómputo");
+            com.sibim.session.SessionManager.setCurrentUser(area);
+            String deArea = texto.get();
+            assertFalse(deArea.contains("PRECIO"), "un área no ve importes");
+            assertFalse(deArea.contains("15,000"), "un área no ve importes");
+        } finally {
+            com.sibim.session.SessionManager.logout();
+        }
+    }
+
     /** The área's GENERAL resguardo: titled as such, its own folio series, and for each
      *  bien who holds it individually — or that nobody does yet. */
     @Test void resguardoGeneralArea_listaElResguardanteDeCadaBienYSuFolioPropio() throws Exception {
