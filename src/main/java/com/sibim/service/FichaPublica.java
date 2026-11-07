@@ -15,9 +15,16 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * The ficha of a bien that its QR downloads. Scanning a label with any phone
@@ -48,7 +55,11 @@ public final class FichaPublica {
 
     /** Where the ficha of {@code p} lives once published. */
     static String url(Producto p) {
-        return SupabaseStorage.publicUrl("fichas/" + p.getId() + ".pdf");
+        return url(p.getId());
+    }
+
+    private static String url(String productoId) {
+        return SupabaseStorage.publicUrl("fichas/" + productoId + ".pdf");
     }
 
     /**
@@ -112,24 +123,78 @@ public final class FichaPublica {
     /** The same after a change made anywhere but the form — a transfer, a
      *  baja, a resguardo: the label still downloads the ficha, and it went on
      *  showing the old área, código or resguardante. Off the caller's thread
-     *  and never its problem; nothing happens on a PC without Storage. */
+     *  and never its problem; nothing happens on a PC without Storage.
+     *
+     *  <p>They wait in line, {@link #AL_FONDO} at a time: Quitar títulos,
+     *  Unir personas or Juntar resguardos change hundreds of bienes at once,
+     *  and one thread per bien (up to 1.0.22) asked the database for
+     *  hundreds of connections at the same moment — on 2026-11-06 Quitar
+     *  títulos left 957 fichas showing the old name, and every other screen
+     *  waited behind them. */
     public static void actualizarLuego(String productoId) {
         if (productoId == null || !SupabaseStorage.isAvailable()) return;
-        com.sibim.util.AppExecutor.submit(() -> {
-            try {
-                new com.sibim.repository.ProductoRepository().findByIdOnline(productoId)
-                    .ifPresent(FichaPublica::actualizarSiPublicada);
-            } catch (Exception e) {
-                log.warn("No se pudo actualizar la ficha publicada del bien {}: {}", productoId, e.getMessage());
-            }
-        });
+        COLA.encolar(productoId);
+    }
+
+    /** Fichas brought up to date at the same time in the background: the
+     *  database lets the PC hold 6 connections, and the screens need the rest. */
+    private static final int AL_FONDO = 2;
+
+    private static final Cola COLA = new Cola(AL_FONDO, FichaPublica::actualizarAhora);
+
+    /** Asks Storage first (no database): most bienes have no published ficha
+     *  until their label is printed, and those need nothing else. */
+    private static void actualizarAhora(String productoId) {
+        try {
+            if (!publicada(productoId)) return;
+            new com.sibim.repository.ProductoRepository().findByIdOnline(productoId)
+                .ifPresent(FichaPublica::publicar);
+        } catch (Exception e) {
+            log.warn("No se pudo actualizar la ficha publicada del bien {}: {}", productoId, e.getMessage());
+        }
+    }
+
+    /** A line of bienes whose ficha must be written again, worked by a fixed
+     *  number of threads. A bien already waiting is not added twice: when its
+     *  turn comes it is read as it is by then, with every change made to it. */
+    static final class Cola {
+        private final ThreadPoolExecutor hilos;
+        private final Set<String> esperando = ConcurrentHashMap.newKeySet();
+        private final Consumer<String> trabajo;
+
+        Cola(int cuantos, Consumer<String> trabajo) {
+            AtomicInteger numero = new AtomicInteger();
+            this.hilos = new ThreadPoolExecutor(cuantos, cuantos, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> {
+                Thread t = new Thread(r, "sibim-fichas-" + numero.incrementAndGet());
+                t.setDaemon(true);
+                return t;
+            });
+            this.hilos.allowCoreThreadTimeOut(true);   // no threads left over while nothing waits
+            this.trabajo = trabajo;
+        }
+
+        void encolar(String id) {
+            if (!esperando.add(id)) return;
+            hilos.execute(() -> {
+                esperando.remove(id);   // a change from here on needs its own turn
+                try {
+                    trabajo.accept(id);
+                } catch (RuntimeException e) {
+                    log.warn("No se pudo actualizar la ficha publicada del bien {}: {}", id, e.getMessage());
+                }
+            });
+        }
     }
 
     private static boolean publicada(Producto p) {
-        if (p.getId() == null || !SupabaseStorage.isAvailable()) return false;
+        return p.getId() != null && publicada(p.getId());
+    }
+
+    private static boolean publicada(String productoId) {
+        if (!SupabaseStorage.isAvailable()) return false;
         try {
             HttpResponse<Void> r = HTTP.send(
-                HttpRequest.newBuilder(URI.create(url(p))).timeout(Duration.ofSeconds(5))
+                HttpRequest.newBuilder(URI.create(url(productoId))).timeout(Duration.ofSeconds(5))
                     .method("HEAD", HttpRequest.BodyPublishers.noBody()).build(),
                 HttpResponse.BodyHandlers.discarding());
             return r.statusCode() == 200;

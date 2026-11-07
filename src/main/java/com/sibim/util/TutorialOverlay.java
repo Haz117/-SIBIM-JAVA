@@ -58,7 +58,7 @@ public final class TutorialOverlay {
     /** On signing in: the guides the first time; once per version, what changed. */
     public static void showIfFirstTime(StackPane outerStack) {
         String key = "tutorial.v6." + usuario();
-        String keyVersion = "novedades." + UpdateChecker.currentVersion() + "." + usuario();
+        String keyVersion = "novedades." + TutorialGuias.VERSION_NOVEDADES + "." + usuario();
         if (!PREFS.getBoolean(key, false)) {
             PREFS.putBoolean(key, true);
             // Somebody new doesn't need what changed: all of it is new.

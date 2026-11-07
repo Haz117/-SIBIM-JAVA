@@ -58,6 +58,13 @@ final class TutorialGuias {
 
     static final String NUEVO = "Nuevo en esta versión", ANTERIOR = "De la versión anterior", ANTES = "De versiones anteriores";
 
+    /** The version whose changes {@link #novedades()} tells. Novedades open by
+     *  themselves once per user for this version, not for every version: a
+     *  version that only fixes things (1.0.23) would open the same steps
+     *  again, now labelled as new. Move it when {@link #novedades()} gets new
+     *  steps. */
+    public static final String VERSION_NOVEDADES = "1.0.22";
+
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
         return () -> {
