@@ -92,11 +92,42 @@ public class ConfirmacionUtil {
         return Optional.empty();
     }
 
+    /** {@link #confirmar(String, String)} with the button saying what it does
+     *  ("Reactivar", "Juntar en uno"): "Confirmar" makes the person reread
+     *  the question to know what the button will do. */
+    public static boolean confirmar(String titulo, String mensaje, String accion) {
+        return showDialog("mdi2h-help-circle-outline", titulo, mensaje, accion, "Cancelar", false);
+    }
+
+    /** For what can't be undone or loses work (restore, delete, discard): the
+     *  button says it, in red, and Enter doesn't press it. */
+    public static boolean confirmarPeligro(String titulo, String mensaje, String accion) {
+        return showDialog("mdi2a-alert-outline", titulo, mensaje, accion, "Cancelar", true);
+    }
+
+    /** Two named ways out, when "Cancelar" would be ambiguous — "¿Cancelar
+     *  el resguardo?" with a "Cancelar" button, or a draft that "Cancelar"
+     *  threw away. True for {@code accion}; closing the window counts as
+     *  {@code alternativa}. */
+    public static boolean elegir(String titulo, String mensaje, String accion, String alternativa) {
+        return showDialog("mdi2h-help-circle-outline", titulo, mensaje, accion, alternativa, false);
+    }
+
+    /** {@link #elegir} for an action that can't be undone. */
+    public static boolean elegirPeligro(String titulo, String mensaje, String accion, String alternativa) {
+        return showDialog("mdi2a-alert-outline", titulo, mensaje, accion, alternativa, true);
+    }
+
     private static boolean showDialog(String icon, String title, String message,
             String confirmLabel, boolean danger) {
+        return showDialog(icon, title, message, confirmLabel, "Cancelar", danger);
+    }
+
+    private static boolean showDialog(String icon, String title, String message,
+            String confirmLabel, String cancelLabel, boolean danger) {
 
         ButtonType btnConfirm = new ButtonType(confirmLabel, ButtonBar.ButtonData.OK_DONE);
-        ButtonType btnCancel  = new ButtonType("Cancelar",   ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType btnCancel  = new ButtonType(cancelLabel,  ButtonBar.ButtonData.CANCEL_CLOSE);
 
         Dialog<ButtonType> dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
@@ -144,6 +175,19 @@ public class ConfirmacionUtil {
         }
         Node cancelBtn = dialog.getDialogPane().lookupButton(btnCancel);
         if (cancelBtn != null) cancelBtn.getStyleClass().add("confirm-cancel-btn");
+        // Buttons that say what they do ("Cancelar el resguardo") are longer than
+        // "Confirmar": each one as wide as its words, never cut with "…".
+        for (Node n : new Node[]{confirmBtn, cancelBtn})
+            if (n instanceof javafx.scene.control.Button b) {
+                ButtonBar.setButtonUniformSize(b, false);
+                b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            }
+        // A red action is never the one an Enter pressed out of habit triggers.
+        if (danger && confirmBtn instanceof javafx.scene.control.Button b && cancelBtn instanceof javafx.scene.control.Button c) {
+            b.setDefaultButton(false);
+            c.setDefaultButton(true);
+            dialog.setOnShown(e -> c.requestFocus());
+        }
 
         Optional<ButtonType> result = dialog.showAndWait();
         return result.isPresent() && result.get() == btnConfirm;

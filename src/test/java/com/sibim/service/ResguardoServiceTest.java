@@ -91,6 +91,77 @@ class ResguardoServiceTest {
         verify(mockAudit).log(eq("resguardo"), eq("r-nuevo"), any(), eq("crear"), argThat(d -> d.contains("4 bienes")));
     }
 
+    /** Somebody left (7-nov-2026): their two resguardos in the área pass to somebody
+     *  else in one new resguardo; the old ones are cancelled with a note of where to. */
+    @Test
+    void pasarAOtraPersona_unoNuevoConSusBienes() throws Exception {
+        Resguardo a = deAna("r-a", "RSG-2026-000149", "Despacho de Presidencia", 1, "Asesora", "p1", "p2");
+        Resguardo b = deAna("r-b", "RSG-2026-000156", "Despacho de Presidencia", 2, "Asesora", "p3");
+        when(mockRepo.findAll()).thenReturn(List.of(a, b));
+        when(mockRepo.juntar(any(), any(), any())).thenAnswer(inv -> {
+            Resguardo n = inv.getArgument(0);
+            n.setId("r-nuevo"); n.setNumero("RSG-2026-000400");
+            return n;
+        });
+
+        Resguardo nuevo = service.pasarAOtraPersona(List.of(b, a), "Ing.  Mario  Ruiz Lara", "Asesor técnico", "Se dio de baja");
+
+        @SuppressWarnings("unchecked") org.mockito.ArgumentCaptor<List<String>> ids = org.mockito.ArgumentCaptor.forClass(List.class);
+        org.mockito.ArgumentCaptor<String> nota = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(mockRepo).juntar(same(nuevo), ids.capture(), nota.capture());
+        assertEquals(List.of("r-a", "r-b"), ids.getValue(), "se cancelan los dos, del más viejo al más nuevo");
+        assertTrue(nota.getValue().contains("Mario Ruiz Lara") && nota.getValue().contains("{folio}")
+            && nota.getValue().contains("Se dio de baja"), nota.getValue());
+        assertEquals("Mario Ruiz Lara", nuevo.getResguardanteNombre(), "sin título ni espacios de más");
+        assertEquals("Asesor técnico", nuevo.getResguardanteCargo());
+        assertEquals("Despacho de Presidencia", nuevo.getResguardanteArea(), "los bienes se quedan en el área");
+        assertEquals(List.of("p1", "p2", "p3"), nuevo.getItems().stream().map(ResguardoItem::getProductoId).toList());
+        assertTrue(nuevo.getObservaciones().contains("RSG-2026-000149, RSG-2026-000156"), nuevo.getObservaciones());
+        verify(mockAudit, times(2)).log(eq("resguardo"), any(), any(), eq("cancelar"), argThat(d -> d.contains("RSG-2026-000400")));
+        verify(mockAudit).log(eq("resguardo"), eq("r-nuevo"), any(), eq("crear"), argThat(d -> d.contains("3 bienes")));
+    }
+
+    /** Whoever receives already has a resguardo in that área: theirs goes into the new
+     *  one too (one per person and área), and its cargo is kept when none is typed. */
+    @Test
+    void pasarAOtraPersona_juntaElQueYaTeniaQuienRecibe() throws Exception {
+        Resguardo deEl = deAna("r-a", "RSG-1", "Despacho de Presidencia", 1, null, "p1");
+        Resguardo delQueRecibe = deAna("r-m", "RSG-2", "Despacho de Presidencia", 2, "Asesor técnico", "p9");
+        delQueRecibe.setResguardanteNombre("MARIO RUIZ LARA");
+        Resguardo enOtraArea = deAna("r-o", "RSG-3", "Contraloría Municipal", 2, null, "p8");
+        enOtraArea.setResguardanteNombre("MARIO RUIZ LARA");
+        when(mockRepo.findAll()).thenReturn(List.of(deEl, delQueRecibe, enOtraArea));
+        when(mockRepo.juntar(any(), any(), any())).thenAnswer(inv -> {
+            Resguardo n = inv.getArgument(0); n.setId("r-n"); n.setNumero("RSG-9"); return n;
+        });
+
+        Resguardo nuevo = service.pasarAOtraPersona(List.of(deEl), "Ruiz Lara Mario", " ", "Renuncia");
+
+        @SuppressWarnings("unchecked") org.mockito.ArgumentCaptor<List<String>> ids = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(mockRepo).juntar(same(nuevo), ids.capture(), any());
+        assertEquals(List.of("r-a", "r-m"), ids.getValue(), "el de otra área no se toca");
+        assertEquals(List.of("p1", "p9"), nuevo.getItems().stream().map(ResguardoItem::getProductoId).toList());
+        assertEquals("Asesor técnico", nuevo.getResguardanteCargo());
+        assertTrue(nuevo.getObservaciones().contains("Junta también RSG-2"), nuevo.getObservaciones());
+    }
+
+    /** The same person, no motivo, nobody chosen, one not in force or the área's
+     *  people only: nothing is passed. */
+    @Test
+    void pasarAOtraPersona_loQueNoSePuede() throws Exception {
+        Resguardo a = deAna("r-a", "RSG-1", "Despacho de Presidencia", 1, null, "p1");
+        assertThrows(IllegalArgumentException.class, () -> service.pasarAOtraPersona(List.of(a), "Ana Prueba Soto", null, "Renuncia"));
+        assertThrows(IllegalArgumentException.class, () -> service.pasarAOtraPersona(List.of(a), "Mario Ruiz", null, " "));
+        assertThrows(IllegalArgumentException.class, () -> service.pasarAOtraPersona(List.of(a), " ", null, "Renuncia"));
+        assertThrows(IllegalArgumentException.class, () -> service.pasarAOtraPersona(List.of(), "Mario Ruiz", null, "Renuncia"));
+        Resguardo cancelado = deAna("r-c", "RSG-2", "Despacho de Presidencia", 2, null, "p2");
+        cancelado.setEstado(Resguardo.ESTADO_CANCELADO);
+        assertThrows(IllegalArgumentException.class, () -> service.pasarAOtraPersona(List.of(cancelado), "Mario Ruiz", null, "Renuncia"));
+        entrarComo(com.sibim.model.enums.Rol.DIRECCION);
+        assertThrows(SecurityException.class, () -> service.pasarAOtraPersona(List.of(a), "Mario Ruiz", null, "Renuncia"));
+        verify(mockRepo, never()).juntar(any(), any(), any());
+    }
+
     /** Only the same person in the same área, in force, and Patrimonio. */
     @Test
     void juntar_soloDeLaMismaPersonaYArea() throws Exception {

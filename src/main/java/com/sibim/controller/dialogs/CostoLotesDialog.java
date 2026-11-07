@@ -149,7 +149,7 @@ public final class CostoLotesDialog {
                 + "Piezas: " + p.getStockActual() + "\n"
                 + "Costo por pieza: " + FormatUtils.formatCurrency(pieza) + "\n\n"
                 + "El total del lote queda en " + FormatUtils.formatCurrency(pieza.multiply(BigDecimal.valueOf(p.getStockActual())))
-                + " en lugar de " + FormatUtils.formatCurrency(p.getValorTotal()) + ". ¿Lo dividimos?")) return;
+                + " en lugar de " + FormatUtils.formatCurrency(p.getValorTotal()) + ". ¿Lo dividimos?", "Dividir el costo")) return;
         cambiarCosto(p, p.getPrecioCompra(), pieza, true);
     }
 
@@ -173,7 +173,7 @@ public final class CostoLotesDialog {
             e -> {
                 p.setPrecioCompra(anterior);
                 tabla.refresh();
-                NotificacionUtil.error(tabla.getScene(), "No se pudo guardar el costo de " + p.getCodigo() + ": " + e.getMessage());
+                NotificacionUtil.error(tabla.getScene(), "No se pudo guardar el costo de " + p.getCodigo() + ": " + com.sibim.util.MensajeError.de(e));
             });
     }
 }

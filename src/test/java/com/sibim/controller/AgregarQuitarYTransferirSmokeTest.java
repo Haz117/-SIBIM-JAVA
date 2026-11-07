@@ -166,7 +166,8 @@ class AgregarQuitarYTransferirSmokeTest extends ControllerSmokeTestBase {
                 n instanceof javafx.scene.control.Button b && "Deshacer".equals(b.getText())).query();
             Platform.runLater(deshacer::fire);
             javafx.scene.control.Button si = (javafx.scene.control.Button) esperar(n ->
-                n instanceof javafx.scene.control.Button b && "Confirmar".equals(b.getText()));
+                n instanceof javafx.scene.control.Button b && b.getStyleClass().contains("confirm-ok-btn"));
+            assertEquals("Deshacer", si.getText(), "la confirmación dice lo que hace su botón");
             Platform.runLater(si::fire);
             esperar(n -> n instanceof javafx.scene.control.Label l && "Deshecho".equals(l.getText()));
             assertEquals("Transferidos en esta ventana: 0 bienes", titulo.getText());

@@ -83,7 +83,7 @@ public final class ErroresEquipoDialog {
             Button borrar = new Button("Borrar todos");
             borrar.getStyleClass().add("btn-ghost");
             borrar.setOnAction(ev -> {
-                if (!ConfirmacionUtil.confirmar("Borrar reportes", "¿Borrar todos los errores reportados?")) return;
+                if (!ConfirmacionUtil.confirmarPeligro("Borrar reportes", "¿Borrar todos los errores reportados?", "Borrar todos")) return;
                 DialogUtil.runAsync(
                     () -> { new ErroresEquipoService().borrarTodos(); return null; },
                     ok -> dialog.close(),

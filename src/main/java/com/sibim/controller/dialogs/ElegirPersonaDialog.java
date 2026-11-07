@@ -155,8 +155,8 @@ public final class ElegirPersonaDialog {
         Optional<Resguardante> igual = personas.stream()
             .filter(p -> ResguardoService.mismasPalabras(p.nombre(), nombre)).findFirst();
         if (igual.isEmpty()) return nombre;
-        return ConfirmacionUtil.confirmar("Nombre parecido",
-            "Ya existe «" + igual.get().nombre() + "», con las mismas palabras.\n¿Es la misma persona? Se usará ese nombre.")
+        return ConfirmacionUtil.elegir("Nombre parecido",
+            "Ya existe «" + igual.get().nombre() + "», con las mismas palabras.\n¿Es la misma persona? Se usará ese nombre.", "Sí, es la misma", "No, es otra persona")
             ? igual.get().nombre() : nombre;
     }
 }

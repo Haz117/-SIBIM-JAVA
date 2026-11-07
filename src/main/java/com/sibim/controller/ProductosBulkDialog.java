@@ -108,7 +108,7 @@ final class ProductosBulkDialog {
             ? "¿Marcar " + sel.size() + " bienes como etiquetados?"
             : "De los " + sel.size() + " seleccionados, " + sinEtiq
                 + " aún no están etiquetados. ¿Marcar todos como etiquetados?";
-        if (!ConfirmacionUtil.confirmar("Marcar como etiquetado", msg)) return;
+        if (!ConfirmacionUtil.confirmar("Marcar como etiquetado", msg, "Marcar como etiquetado")) return;
         table.lookupAll(".table-row-cell:selected")
              .forEach(r -> AnimationUtils.flashClass(r, "row-success", 400));
         marcarEtiquetados(sel.stream().map(Producto::getId).toList(), scene, service, onSuccess, onRetry);
@@ -127,10 +127,10 @@ final class ProductosBulkDialog {
         List<String> ids = impresos.stream().filter(p -> !p.isEtiquetado()).map(Producto::getId).toList();
         if (ids.isEmpty()) return;
         String cuales = ids.size() == 1 ? "este bien" : "estos " + ids.size() + " bienes";
-        if (!ConfirmacionUtil.confirmar("¿Marcar como etiquetados?",
+        if (!ConfirmacionUtil.elegir("¿Marcar como etiquetados?",
                 "Cuando las etiquetas de " + cuales + " ya estén pegadas, márcalos como etiquetados "
                 + "para que dejen de contar en Alertas como \"Sin etiquetar\".\n\n"
-                + "Si todavía no se pegan, puedes hacerlo después desde Bienes › Marcar como etiquetado.")) return;
+                + "Si todavía no se pegan, puedes hacerlo después desde Bienes › Marcar como etiquetado.", "Sí, ya están pegadas", "Todavía no")) return;
         marcarEtiquetados(ids, scene, service, onSuccess,
             () -> ofrecerMarcarEtiquetados(impresos, scene, service, onSuccess));
     }

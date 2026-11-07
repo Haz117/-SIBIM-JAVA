@@ -371,7 +371,7 @@ public final class ConteoFisicoDialog {
             } catch (java.io.IOException ex) {
                 log.error("No se pudo guardar el borrador del conteo al cerrar", ex);
                 Scene principal = escenaPrincipal();
-                if (principal != null) NotificacionUtil.error(principal, "No se pudo guardar el avance del conteo: " + ex.getMessage());
+                if (principal != null) NotificacionUtil.error(principal, "No se pudo guardar el avance del conteo: " + com.sibim.util.MensajeError.de(ex));
             }
         });
         // A handheld scanner works right here, without opening "Escanear": each
@@ -399,9 +399,12 @@ public final class ConteoFisicoDialog {
         Set<String> ids = filas.stream().map(f -> f.producto.getId()).collect(Collectors.toSet());
         guardadas.keySet().retainAll(ids);
         if (guardadas.isEmpty()) return;
-        boolean retomar = ConfirmacionUtil.confirmar("Reanudar borrador",
+        // "Cancelar" used to throw the draft away; now that is a red button of its
+        // own, and Enter, Esc or closing the window keep it.
+        boolean retomar = !ConfirmacionUtil.elegirPeligro("Reanudar borrador",
             "Hay un borrador guardado el " + borrador[0] + " con " + FormatUtils.plural(guardadas.size(), "bien", "bienes") + " de este conteo.\n"
-            + "¿Deseas retomarlo? (Cancelar = empezar desde cero)");
+            + "¿Lo retomas? Empezar de cero borra el borrador.",
+            "Empezar de cero", "Retomar");
         if (!retomar) { clearDraft(ids); return; }
         for (Fila f : filas) {
             DraftValues dv = guardadas.get(f.producto.getId());

@@ -168,7 +168,7 @@ public final class AreaResguardosDialog {
                         NotificacionUtil.exito(scene, "Resguardo guardado correctamente");
                     });
                 } catch (IllegalStateException | IllegalArgumentException | SecurityException e) {
-                    Platform.runLater(() -> NotificacionUtil.error(scene, e.getMessage()));
+                    Platform.runLater(() -> NotificacionUtil.error(scene, com.sibim.util.MensajeError.de(e)));
                 } catch (Exception e) {
                     log.error("Error guardando resguardo", e);
                     Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo guardar el resguardo"));
@@ -262,7 +262,7 @@ public final class AreaResguardosDialog {
                 }
                 com.sibim.util.ArchivoUtil.abrir(archivo, scene);
             } catch (IllegalStateException e) {   // offline, never opened on this PC
-                Platform.runLater(() -> NotificacionUtil.advertencia(scene, e.getMessage()));
+                Platform.runLater(() -> NotificacionUtil.advertencia(scene, com.sibim.util.MensajeError.de(e)));
             } catch (Exception e) {
                 log.error("Error abriendo resguardo", e);
                 Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo abrir el PDF"));
@@ -274,8 +274,8 @@ public final class AreaResguardosDialog {
         btnElim.getStyleClass().add("btn-secondary");
         Tooltip.install(btnElim, new Tooltip("Eliminar resguardo (borra también el PDF)"));
         btnElim.setOnAction(ev -> {
-            if (ConfirmacionUtil.confirmar("Eliminar resguardo",
-                    "¿Eliminar el resguardo \"" + desc + "\"? El archivo PDF también se eliminará.")) {
+            if (ConfirmacionUtil.confirmarPeligro("Eliminar resguardo",
+                    "¿Eliminar el resguardo \"" + desc + "\"? El archivo PDF también se eliminará.", "Eliminar")) {
                 AppExecutor.submit(() -> {
                     try {
                         repo.delete(r.id());
@@ -283,7 +283,7 @@ public final class AreaResguardosDialog {
                         if (r.pdfUrl() != null) Files.deleteIfExists(Path.of(r.pdfUrl()));
                         Platform.runLater(reload);
                     } catch (IllegalStateException e) {
-                        Platform.runLater(() -> NotificacionUtil.error(scene, e.getMessage()));
+                        Platform.runLater(() -> NotificacionUtil.error(scene, com.sibim.util.MensajeError.de(e)));
                     } catch (Exception e) {
                         log.error("Error eliminando resguardo", e);
                         Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo eliminar el resguardo"));

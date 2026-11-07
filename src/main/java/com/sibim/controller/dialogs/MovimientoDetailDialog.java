@@ -160,7 +160,7 @@ public final class MovimientoDetailDialog {
                             "Se creará una " + tipoInverso + " de " + m.getCantidad()
                             + " uds para \"" + m.getProductoNombre() + "\".\n"
                             + "Este movimiento no se elimina — quedará como comprobante en el historial.\n\n"
-                            + "¿Continuar?")) return;
+                            + "¿Continuar?", "Revertir")) return;
                     dialog.close();
                     AppExecutor.submit(() -> {
                         try {
@@ -170,7 +170,7 @@ public final class MovimientoDetailDialog {
                                 onReload.run();
                             });
                         } catch (MovimientoService.ValidationException ex) {
-                            Platform.runLater(() -> NotificacionUtil.advertencia(scene, ex.getMessage()));
+                            Platform.runLater(() -> NotificacionUtil.advertencia(scene, com.sibim.util.MensajeError.de(ex)));
                         } catch (Exception ex) {
                             log.error("Error al revertir movimiento {}", m.getId(), ex);
                             Platform.runLater(() -> NotificacionUtil.error(scene, "No se pudo revertir el movimiento"));

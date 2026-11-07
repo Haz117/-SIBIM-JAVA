@@ -103,9 +103,9 @@ class MainStartupChecks {
     private void instalar(com.sibim.service.ActualizacionService servicio,
                           com.sibim.service.ActualizacionService.Version v, Scene scene) {
         String notas = v.notas() != null && !v.notas().isBlank() ? "\n\nNovedades:\n" + v.notas() : "";
-        if (!com.sibim.util.ConfirmacionUtil.confirmar("Actualizar SIBIM",
+        if (!com.sibim.util.ConfirmacionUtil.elegir("Actualizar SIBIM",
                 "Se descargará la versión " + v.version() + " (" + (v.tamano() / (1024 * 1024)) + " MB) y se abrirá "
-                + "su instalador. SIBIM se cerrará: guarda lo que estés capturando." + notas)) return;
+                + "su instalador. SIBIM se cerrará: guarda lo que estés capturando." + notas, "Actualizar ahora", "Más tarde")) return;
         File destino = new File(System.getProperty("java.io.tmpdir"),
             com.sibim.service.ActualizacionService.nombreLocal(v));
         DialogUtil.runAsyncWithProgress(scene, "Descargando la versión " + v.version() + "…",
@@ -121,6 +121,6 @@ class MainStartupChecks {
                     NotificacionUtil.error(scene, "No se pudo abrir el instalador. Está en " + instalador.getAbsolutePath());
                 }
             },
-            e -> NotificacionUtil.error(scene, "No se pudo descargar la actualización: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "No se pudo descargar la actualización: " + com.sibim.util.MensajeError.de(e)));
     }
 }

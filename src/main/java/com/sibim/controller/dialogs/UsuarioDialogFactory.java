@@ -228,7 +228,7 @@ public final class UsuarioDialogFactory {
                     },
                     e -> {
                         if (e instanceof IllegalStateException) {
-                            NotificacionUtil.advertencia(ownerScene, e.getMessage());
+                            NotificacionUtil.advertencia(ownerScene, com.sibim.util.MensajeError.de(e));
                         } else {
                             NotificacionUtil.error(ownerScene, "No se pudo guardar el usuario");
                         }

@@ -736,9 +736,9 @@ public final class TransferenciaArrastreDialog {
             a.showAndWait();
         }
         if (alTransferir != null) alTransferir.run();
-        if (r.resguardo() != null && ConfirmacionUtil.confirmar("Resguardo " + r.resguardo().getNumero(),
+        if (r.resguardo() != null && ConfirmacionUtil.elegir("Resguardo " + r.resguardo().getNumero(),
                 r.agregado() ? "¿Abrir el PDF del resguardo, ya con los bienes agregados, para volverlo a firmar?"
-                             : "¿Abrir el PDF del resguardo nuevo para firmarlo?"))
+                             : "¿Abrir el PDF del resguardo nuevo para firmarlo?", "Abrir el PDF", "Ahora no"))
             abrirResguardo(r.resguardo(), scene);
         // The list first; the resguardos (who already holds one where) after it.
         DialogUtil.runAsync(productoService::getAll, lista -> { cargar(lista); cargarResguardos(); },
@@ -810,7 +810,7 @@ public final class TransferenciaArrastreDialog {
                 + (lote.resguardo() == null ? "" : lote.agregado()
                     ? "\n\nSalen del resguardo " + lote.resguardo().getNumero() + "; lo demás de ese resguardo se queda."
                     : "\n\nSe cancela el resguardo " + lote.resguardo().getNumero() + ".")
-                + (lote.salidas().isEmpty() ? "" : "\nCada bien vuelve al resguardo en el que estaba.")))
+                + (lote.salidas().isEmpty() ? "" : "\nCada bien vuelve al resguardo en el que estaba."), "Deshacer"))
             return;
         // Not twice: a second click while the first runs would try it again.
         fila.getChildren().forEach(nodo -> { if (nodo instanceof Button b) b.setDisable(true); });

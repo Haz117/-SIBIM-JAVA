@@ -70,6 +70,14 @@ class ConfigEmailSectionBuilder {
         tfDest.setPromptText("alertas@municipio.gob.mx");
         GridPane.setHgrow(tfDest, Priority.ALWAYS);
 
+        // Built after the screen loaded, so the pass that names a form's fields
+        // (AccessibilityUtils) never saw them: a screen reader said "campo de texto".
+        lSmtpHost.setLabelFor(tfSmtpHost); tfSmtpHost.setAccessibleText("Servidor SMTP");
+        lSmtpPort.setLabelFor(tfSmtpPort); tfSmtpPort.setAccessibleText("Puerto SMTP");
+        lSmtpUser.setLabelFor(tfSmtpUser); tfSmtpUser.setAccessibleText("Usuario SMTP");
+        lSmtpPass.setLabelFor(tfSmtpPass); tfSmtpPass.setAccessibleText("Contraseña SMTP");
+        lDest.setLabelFor(tfDest);         tfDest.setAccessibleText("Correo destino");
+
         grid.add(lSmtpHost, 0, 0); grid.add(tfSmtpHost, 1, 0);
         grid.add(lSmtpPort, 2, 0); grid.add(tfSmtpPort, 3, 0);
         grid.add(lSmtpUser, 0, 1); grid.add(tfSmtpUser, 1, 1);

@@ -346,4 +346,34 @@ class ResguardoRepositoryIntegrationTest extends IntegrationTestBase {
         assertEquals(Integer.parseInt(hecho.getNumero().replaceAll(".*-", "")) + 1,
             Integer.parseInt(siguiente.getNumero().replaceAll(".*-", "")), "el folio del intento fallido no se gastó");
     }
+
+    /** Somebody left: their two resguardos pass to another person in one new resguardo,
+     *  the bienes stay in the área and now name the new person (7-nov-2026). */
+    @Test
+    void pasarAOtraPersona_losBienesQuedanANombreDeQuienRecibe() throws Exception {
+        try (Connection c = getConnection()) { insertCategoria(c, CAT_ID); }
+        String p1 = UUID.randomUUID().toString(), p2 = UUID.randomUUID().toString(), p3 = UUID.randomUUID().toString();
+        for (String p : List.of(p1, p2, p3)) productoRepo.saveOnline(buildProducto(p));
+        com.sibim.service.ResguardoService servicio = new com.sibim.service.ResguardoService();
+        Resguardo a = repo.save(buildResguardo("Marco Prueba Ríos", List.of(buildItem(p1, "Silla"), buildItem(p2, "Mesa"))));
+        Resguardo b = repo.save(buildResguardo("MARCO PRUEBA RIOS", List.of(buildItem(p3, "Archivero"))));
+
+        Resguardo nuevo = servicio.pasarAOtraPersona(List.of(a, b), "Laura Ficticia Mora", "Asesora", "Se dio de baja");
+
+        Resguardo leido = repo.findById(nuevo.getId());
+        assertEquals(Resguardo.ESTADO_ACTIVO, leido.getEstado());
+        assertEquals("Laura Ficticia Mora", leido.getResguardanteNombre());
+        assertEquals(AREA, leido.getResguardanteArea(), "los bienes se quedan en el área");
+        assertEquals(3, leido.getItems().size());
+        for (String p : List.of(p1, p2, p3)) {
+            assertEquals("Laura Ficticia Mora", productoRepo.findById(p).orElseThrow().getResguardante());
+            assertEquals(nuevo.getNumero(), repo.findActivoByProductoId(p).map(Resguardo::getNumero).orElseThrow());
+        }
+        for (Resguardo viejo : List.of(a, b)) {
+            Resguardo v = repo.findById(viejo.getId());
+            assertEquals(Resguardo.ESTADO_CANCELADO, v.getEstado());
+            assertTrue(v.getObservaciones().contains("pasaron a Laura Ficticia Mora en el resguardo " + nuevo.getNumero())
+                && v.getObservaciones().contains("Se dio de baja"), v.getObservaciones());
+        }
+    }
 }

@@ -676,7 +676,7 @@ public class ConfiguracionController {
             (DialogUtil.TareaConAvance<String>) avance ->
                 new com.sibim.service.ActualizacionService().publicar(exe, notas, avance),
             v -> NotificacionUtil.exito(scene, "Versión " + v + " publicada: las PCs la verán al abrir SIBIM"),
-            e -> NotificacionUtil.error(scene, "No se pudo publicar: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "No se pudo publicar: " + com.sibim.util.MensajeError.de(e)));
     }
 
     /** What has been failing on the áreas' PCs (see ErroresEquipoAppender). */
@@ -705,7 +705,7 @@ public class ConfiguracionController {
                 + "• Presidencia y secretarías: ven su secretaría y sus direcciones.\n"
                 + "• Direcciones y organismos autónomos: solo su área.\n\n"
                 + "Las cuentas que ya existen no se modifican. Al terminar se abre un PDF con los usuarios "
-                + "y contraseñas nuevos para entregar a cada área.")) return;
+                + "y contraseñas nuevos para entregar a cada área.", "Crear las cuentas")) return;
         DialogUtil.runAsyncWithProgress(scene, "Creando cuentas por área…",
             () -> {
                 var cuentas = new com.sibim.service.CuentasAreaService().crearFaltantes();
@@ -724,7 +724,7 @@ public class ConfiguracionController {
                     + "(solo restablecer una por una).");
                 DialogUtil.showExportResultDialog(scene, r.getValue());
             },
-            e -> NotificacionUtil.error(scene, "No se pudieron crear las cuentas: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "No se pudieron crear las cuentas: " + com.sibim.util.MensajeError.de(e)));
     }
 
     @FXML
@@ -787,7 +787,7 @@ public class ConfiguracionController {
                     // FK violation — user has associated records; offer soft-delete instead
                     if (ConfirmacionUtil.confirmar("No se puede eliminar",
                             sel.getNombre() + " tiene movimientos u operaciones registradas a su nombre.\n"
-                            + "¿Desactivar la cuenta para que no pueda iniciar sesión?")) {
+                            + "¿Desactivar la cuenta para que no pueda iniciar sesión?", "Desactivar la cuenta")) {
                         DialogUtil.runAsync(
                             () -> { usuarioRepo.setActivo(sel.getId(), false); return null; },
                             v2 -> { loadUsers(); NotificacionUtil.info(usersTable.getScene(), "Cuenta de \"" + sel.getNombre() + "\" desactivada"); },

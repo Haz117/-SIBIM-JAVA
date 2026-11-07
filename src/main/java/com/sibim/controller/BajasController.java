@@ -354,7 +354,7 @@ public class BajasController {
                     FormatUtils.plural(n, "baja definitiva registrada", "bajas definitivas registradas"),
                     "Deshacer", () -> DialogUtil.runAsync(() -> productoService.quitarBajaDefinitiva(elegidos),
                         this::cargar,
-                        e -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer: " + e.getMessage())));
+                        e -> NotificacionUtil.error(table.getScene(), "No se pudo deshacer: " + com.sibim.util.MensajeError.de(e))));
             },
             e -> NotificacionUtil.error(table.getScene(),
                 e instanceof ProductoService.ValidationException ? e.getMessage() : "No se pudo registrar la baja definitiva")));
@@ -376,7 +376,7 @@ public class BajasController {
         if (p == null || !SessionManager.isAdmin()) return;
         if (!ConfirmacionUtil.confirmar("Reactivar bien",
                 "¿Regresar \"" + p.getNombre() + "\" al inventario activo? Vuelve con su mismo código ("
-                    + p.getCodigo() + "): los números no se le dan a otro bien."))
+                    + p.getCodigo() + "): los números no se le dan a otro bien.", "Reactivar"))
             return;
         DialogUtil.runAsync(() -> productoService.reactivar(p.getId()),
             () -> { NotificacionUtil.exito(table.getScene(), "\"" + p.getNombre() + "\" reactivado"); cargar(); },

@@ -53,6 +53,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
     @FXML private Button     btnNuevo;
     @FXML private MenuItem   btnLote;
     @FXML private MenuItem   btnJuntar;
+    @FXML private MenuItem   btnPasar;
     @FXML private Button     btnCancelar;
     @FXML private Button     btnDetalle;
     @FXML private Button     btnPersona;
@@ -101,6 +102,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         if (btnNuevo != null) { btnNuevo.setVisible(canCreate); btnNuevo.setManaged(canCreate); }
         if (btnLote != null) btnLote.setVisible(canCreate);
         if (btnJuntar != null) btnJuntar.setVisible(com.sibim.session.Permisos.gestionaDocumentos());
+        if (btnPasar != null) btnPasar.setVisible(com.sibim.session.Permisos.gestionaDocumentos());
         actualizarSolicitudes();
         setupDateFilterBar(
             () -> com.sibim.service.ReporteService.getInstance().exportResguardosExcel(exportTarget()),
@@ -290,8 +292,11 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             Resguardo sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) FichaPersona.abrir(sel.getResguardanteNombre(), table.getScene());
         });
+        MenuItem miPasar = new MenuItem("Pasar a otra persona…");
+        miPasar.setGraphic(new FontIcon("mdi2a-account-switch-outline"));
+        miPasar.setOnAction(e -> onPasarAOtraPersona());
         cm.getItems().addAll(miDetalle, miPersona, miPdf);
-        if (com.sibim.session.Permisos.gestionaDocumentos()) cm.getItems().addAll(new SeparatorMenuItem(), miCancelar);
+        if (com.sibim.session.Permisos.gestionaDocumentos()) cm.getItems().addAll(new SeparatorMenuItem(), miPasar, miCancelar);
         addLoteExportItem(cm);
         return cm;
     }
@@ -344,7 +349,7 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
             () -> productoService.getAll(),
             productos -> com.sibim.controller.dialogs.NuevoResguardoDialog.show(productos, allData, null, scene, resguardo -> {
                 loadData();
-                if (ConfirmacionUtil.confirmar("Exportar PDF", "¿Deseas abrir el PDF del resguardo ahora?"))
+                if (ConfirmacionUtil.elegir("Exportar PDF", "¿Deseas abrir el PDF del resguardo ahora?", "Abrir el PDF", "Ahora no"))
                     exportarPdfAsync(resguardo, scene);
             }),
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
@@ -356,6 +361,57 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         DialogUtil.runAsyncWithProgress(scene, "Cargando bienes…",
             () -> java.util.Map.entry(productoService.getAll(), service.getAll()),
             datos -> com.sibim.controller.dialogs.ResguardosEnLoteDialog.show(datos.getKey(), datos.getValue(), scene, n -> loadData()),
+            e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
+    }
+
+    /** Somebody left and their bienes stay in the área with somebody else: all their
+     *  resguardos in force there pass, in one new resguardo, to whoever is chosen. */
+    @FXML
+    private void onPasarAOtraPersona() {
+        javafx.scene.Scene scene = rootPane.getScene();
+        Resguardo sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            NotificacionUtil.advertencia(scene, "Selecciona el resguardo de la persona que entrega los bienes");
+            return;
+        }
+        if (!sel.isActivo()) {
+            NotificacionUtil.advertencia(scene, "El resguardo " + sel.getNumero() + " ya no está vigente");
+            return;
+        }
+        record Carga(List<com.sibim.model.Producto> inventario, List<Resguardo> resguardos) {}
+        DialogUtil.runAsyncWithProgress(scene, "Cargando personas…",
+            () -> new Carga(productoService.getAll(), service.getAll()),
+            c -> {
+                // All of theirs in this área, however their name was written on each.
+                List<Resguardo> suyos = c.resguardos().stream()
+                    .filter(r -> r.isActivo() && java.util.Objects.equals(r.getResguardanteArea(), sel.getResguardanteArea())
+                        && ResguardoService.mismaPersona(r.getResguardanteNombre(), sel.getResguardanteNombre()))
+                    .toList();
+                int bienes = suyos.stream().mapToInt(r -> r.getItems() == null ? 0 : r.getItems().size()).sum();
+                java.util.Optional<String> aQuien = com.sibim.controller.dialogs.ElegirPersonaDialog.show(c.inventario(), bienes);
+                if (aQuien.isEmpty()) return;
+                if (ResguardoService.mismaPersona(aQuien.get(), sel.getResguardanteNombre())) {
+                    NotificacionUtil.advertencia(scene, "Es la misma persona: elige a quien recibe los bienes");
+                    return;
+                }
+                List<Resguardo> delQueRecibe = c.resguardos().stream()
+                    .filter(r -> r.isActivo() && java.util.Objects.equals(r.getResguardanteArea(), sel.getResguardanteArea())
+                        && !suyos.contains(r) && ResguardoService.mismaPersona(r.getResguardanteNombre(), aQuien.get()))
+                    .toList();
+                com.sibim.controller.dialogs.PasarResguardoDialog.pedir(suyos, aQuien.get(), delQueRecibe).ifPresent(d ->
+                    DialogUtil.runAsyncWithProgress(scene, "Pasando los bienes…",
+                        () -> service.pasarAOtraPersona(suyos, aQuien.get(), d.cargo(), d.motivo()),
+                        nuevo -> {
+                            loadData();
+                            int n = nuevo.getItems() == null ? bienes : nuevo.getItems().size();
+                            NotificacionUtil.exito(scene, FormatUtils.plural(n, "bien pasó", "bienes pasaron") + " a "
+                                + nuevo.getResguardanteNombre() + " en el resguardo " + nuevo.getNumero());
+                            if (ConfirmacionUtil.elegir("Resguardo " + nuevo.getNumero(),
+                                    "¿Abrir el PDF para que " + nuevo.getResguardanteNombre() + " lo firme?", "Abrir el PDF", "Ahora no"))
+                                exportarPdfAsync(nuevo, scene);
+                        },
+                        e -> NotificacionUtil.error(scene, "No se pasaron los bienes: " + com.sibim.util.MensajeError.de(e))));
+            },
             e -> NotificacionUtil.error(scene, "No se pudo cargar el inventario"));
     }
 
@@ -653,8 +709,8 @@ public class ResguardosController extends BaseDocumentController<Resguardo> {
         Resguardo sel = table.getSelectionModel().getSelectedItem();
         if (sel == null) return;
         if (!sel.isActivo()) { NotificacionUtil.advertencia(rootPane.getScene(), "El resguardo ya está cancelado"); return; }
-        if (!ConfirmacionUtil.confirmar("Cancelar resguardo",
-                "¿Cancelar el resguardo " + sel.getNumero() + "?\nEsta acción no se puede deshacer."))
+        if (!ConfirmacionUtil.elegirPeligro("Cancelar resguardo",
+                "¿Cancelar el resguardo " + sel.getNumero() + "?\nEsta acción no se puede deshacer.", "Cancelar el resguardo", "No, volver"))
             return;
         DialogUtil.runAsync(
             () -> { service.cancelar(sel.getId()); return null; },

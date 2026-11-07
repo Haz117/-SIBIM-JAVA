@@ -118,7 +118,7 @@ public final class QuitarTitulosDialog {
                 NotificacionUtil.exitoConAccion(scene, "Títulos quitados de " + FormatUtils.plural(hecho.size(), "nombre", "nombres"),
                     "Deshacer", () -> DialogUtil.runAsync(() -> calidad.ponerTitulos(hecho),
                         () -> { if (alCambiar != null) alCambiar.run(); NotificacionUtil.info(scene, "Regresaron los nombres como estaban"); },
-                        ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + ex.getMessage())));
+                        ex -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(ex))));
             },
             ex -> {
                 aplicar.setDisable(false);

@@ -421,8 +421,8 @@ public final class ProductoDialogFactory {
         javafx.scene.Node cancelBtn = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         if (cancelBtn != null) {
             cancelBtn.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
-                if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar cambios",
-                        "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?"))
+                if (dirty[0] && !ConfirmacionUtil.elegirPeligro("Descartar cambios",
+                        "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?", "Descartar cambios", "Seguir editando"))
                     e.consume();
             });
             // The visible Cancelar goes through the dialog's own (same confirmation, same result).
@@ -439,8 +439,8 @@ public final class ProductoDialogFactory {
             buttonBar.setPadding(Insets.EMPTY);
         }
         dialog.setOnCloseRequest(e -> {
-            if (!savingNow[0] && dirty[0] && !ConfirmacionUtil.confirmar("Descartar cambios",
-                    "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?"))
+            if (!savingNow[0] && dirty[0] && !ConfirmacionUtil.elegirPeligro("Descartar cambios",
+                    "Tienes cambios sin guardar.\n¿Seguro que deseas descartarlos?", "Descartar cambios", "Seguir editando"))
                 e.consume();
         });
 
@@ -698,9 +698,9 @@ public final class ProductoDialogFactory {
         if (precio.compareTo(PRECIO_A_CONFIRMAR) < 0) return true;
         if (existing != null && existing.getPrecioCompra() != null && existing.getPrecioCompra().compareTo(precio) == 0)
             return true;
-        return ConfirmacionUtil.confirmar("Costo muy alto",
+        return ConfirmacionUtil.elegir("Costo muy alto",
             "El costo de adquisición es de " + com.sibim.util.FormatUtils.formatCurrency(precio) + " por pieza, más de diez millones. "
-                + "Revisa que no le sobren ceros.\n\n¿Es correcto?");
+                + "Revisa que no le sobren ceros.\n\n¿Es correcto?", "Sí, es correcto", "Corregirlo");
     }
 
     private static String nombreUnico() {

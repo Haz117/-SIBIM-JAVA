@@ -414,7 +414,7 @@ public class OrganigramaController {
                     : "\"" + direccion + "\" dejará de depender de \"" + actual.padre() + "\" y pasará a \"" + destino + "\".\n\n")
                 + (bienes == 0 ? "No tiene bienes registrados." : susBienes + " se contarán en \"" + destino
                     + "\" y los verá la cuenta de esa área.");
-        if (!com.sibim.util.ConfirmacionUtil.confirmar("¿Mover esta área?", cambio + " Los códigos y resguardos no cambian."))
+        if (!com.sibim.util.ConfirmacionUtil.confirmar("¿Mover esta área?", cambio + " Los códigos y resguardos no cambian.", "Mover"))
             return;
         DialogUtil.runAsync(() -> areaService.moverDireccion(direccion, aAutonomos ? null : destino),
             () -> {
@@ -424,7 +424,7 @@ public class OrganigramaController {
                     ? "\"" + direccion + "\" ahora es un organismo autónomo"
                     : "\"" + direccion + "\" ahora depende de \"" + destino + "\"");
             },
-            ex -> NotificacionUtil.error(scene, "No se pudo mover el área: " + ex.getMessage()));
+            ex -> NotificacionUtil.error(scene, "No se pudo mover el área: " + com.sibim.util.MensajeError.de(ex)));
     }
 
     private List<String> getChildrenForTopLevel(String areaName) {

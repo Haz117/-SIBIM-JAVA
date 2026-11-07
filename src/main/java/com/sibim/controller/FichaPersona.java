@@ -48,7 +48,7 @@ public final class FichaPersona {
             (persona, elegidos, sueltos) -> generar(persona, elegidos, sueltos, scene),
             !Permisos.creaResguardos() ? null : persona ->
                 NuevoResguardoDialog.show(bienes, resguardos, persona.nombre(), scene, resguardo -> {
-                    if (ConfirmacionUtil.confirmar("Exportar PDF", "¿Deseas abrir el PDF del resguardo ahora?"))
+                    if (ConfirmacionUtil.elegir("Exportar PDF", "¿Deseas abrir el PDF del resguardo ahora?", "Abrir el PDF", "Ahora no"))
                         generarUno(resguardo, scene);
                 }),
             persona -> verSusBienes(persona.nombre()),
@@ -84,10 +84,10 @@ public final class FichaPersona {
                             + com.sibim.util.FormatUtils.plural(c.cuantosResguardos(), "resguardo", "resguardos"),
                         "Deshacer", () -> DialogUtil.runAsync(() -> { calidad.deshacerCorreccion(c); return null; },
                             r -> NotificacionUtil.exito(scene, "Se regresó el nombre «" + persona.nombre() + "»"),
-                            e -> NotificacionUtil.error(scene, "No se pudo deshacer: " + e.getMessage())));
+                            e -> NotificacionUtil.error(scene, "No se pudo deshacer: " + com.sibim.util.MensajeError.de(e))));
                     abrir(nombre, scene);
                 },
-                e -> NotificacionUtil.error(scene, "No se pudo corregir el nombre: " + e.getMessage()));
+                e -> NotificacionUtil.error(scene, "No se pudo corregir el nombre: " + com.sibim.util.MensajeError.de(e)));
         });
     }
 
@@ -95,14 +95,14 @@ public final class FichaPersona {
         DialogUtil.runAsyncWithProgress(scene, "Generando reporte…",
             () -> new ResguardoService().exportarDePersona(persona, elegidos, sueltos),
             file -> DialogUtil.showExportResultDialog(scene, file),
-            e -> NotificacionUtil.error(scene, "No se pudo generar el PDF: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "No se pudo generar el PDF: " + com.sibim.util.MensajeError.de(e)));
     }
 
     private static void generarUno(Resguardo r, Scene scene) {
         DialogUtil.runAsyncWithProgress(scene, "Generando reporte…",
             () -> new ResguardoService().exportarPdf(r),
             file -> DialogUtil.showExportResultDialog(scene, file),
-            e -> NotificacionUtil.error(scene, "No se pudo generar el PDF: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "No se pudo generar el PDF: " + com.sibim.util.MensajeError.de(e)));
     }
 
     /** Bienes, opened on a search of that name. */

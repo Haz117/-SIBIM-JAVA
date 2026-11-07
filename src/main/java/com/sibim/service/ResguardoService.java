@@ -221,25 +221,7 @@ public class ResguardoService {
         enOrden.sort(java.util.Comparator.comparing(Resguardo::getCreadoEn,
             java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())));
         Resguardo nuevoMas = enOrden.get(enOrden.size() - 1);
-        List<ResguardoItem> items = new java.util.ArrayList<>();
-        java.util.Set<String> vistos = new java.util.HashSet<>();
-        for (Resguardo r : enOrden) {
-            Resguardo completo = r.getItems() != null ? r : repo.findById(r.getId());
-            if (completo == null || completo.getItems() == null) continue;
-            for (ResguardoItem it : completo.getItems()) {
-                if (it.getProductoId() == null || !vistos.add(it.getProductoId())) continue;
-                ResguardoItem copia = new ResguardoItem();
-                copia.setProductoId(it.getProductoId());
-                copia.setProductoNombre(it.getProductoNombre());
-                copia.setProductoCodigo(it.getProductoCodigo());
-                copia.setArea(it.getArea());
-                copia.setCantidad(it.getCantidad());
-                copia.setDescripcion(it.getDescripcion());
-                copia.setNumeroSerie(it.getNumeroSerie());
-                copia.setValorUnitario(it.getValorUnitario());
-                items.add(copia);
-            }
-        }
+        List<ResguardoItem> items = renglonesDe(enOrden);
         if (items.isEmpty()) throw new IllegalArgumentException("Esos resguardos no tienen bienes que juntar");
         String folios = enOrden.stream().map(Resguardo::getNumero).collect(java.util.stream.Collectors.joining(", "));
         String hoy = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
@@ -262,6 +244,113 @@ public class ResguardoService {
             "Resguardo " + saved.getNumero() + " · " + items.size() + (items.size() == 1 ? " bien" : " bienes")
                 + (saved.getResguardanteArea() != null ? " · Área: " + saved.getResguardanteArea() : "")
                 + " · junta " + folios);
+        return saved;
+    }
+
+    /** Fresh renglones (no id: the old ones stay with their signed paper) for every
+     *  bien of {@code enOrden}, each bien once, in that order. */
+    private List<ResguardoItem> renglonesDe(List<Resguardo> enOrden) throws SQLException {
+        List<ResguardoItem> items = new java.util.ArrayList<>();
+        java.util.Set<String> vistos = new java.util.HashSet<>();
+        for (Resguardo r : enOrden) {
+            Resguardo completo = r.getItems() != null ? r : repo.findById(r.getId());
+            if (completo == null || completo.getItems() == null) continue;
+            for (ResguardoItem it : completo.getItems()) {
+                if (it.getProductoId() == null || !vistos.add(it.getProductoId())) continue;
+                ResguardoItem copia = new ResguardoItem();
+                copia.setProductoId(it.getProductoId());
+                copia.setProductoNombre(it.getProductoNombre());
+                copia.setProductoCodigo(it.getProductoCodigo());
+                copia.setArea(it.getArea());
+                copia.setCantidad(it.getCantidad());
+                copia.setDescripcion(it.getDescripcion());
+                copia.setNumeroSerie(it.getNumeroSerie());
+                copia.setValorUnitario(it.getValorUnitario());
+                items.add(copia);
+            }
+        }
+        return items;
+    }
+
+    /**
+     * Somebody leaves (dado de baja, renuncia, otro puesto) and their bienes stay in
+     * the área with somebody else (7-nov-2026). Their resguardos in force there are
+     * cancelled — as they were signed, with a note saying to whom and in which folio
+     * the bienes went — and one new resguardo for the new person holds them, to sign.
+     * If the new person already has resguardos in force in that área, theirs go into
+     * the new one too: one document per person and área, as Juntar leaves it.
+     *
+     * @param suyos   the resguardos of the person who leaves: same person, same área, in force
+     * @param cargo   of whoever receives; blank takes the one of their own resguardo there
+     * @param motivo  why ("Se dio de baja"), written on the cancelled ones and the new one
+     * @return the new resguardo
+     */
+    public Resguardo pasarAOtraPersona(List<Resguardo> suyos, String nuevoNombre, String cargo, String motivo)
+            throws SQLException {
+        soloAdministrador();
+        if (suyos == null || suyos.isEmpty())
+            throw new IllegalArgumentException("Elige el resguardo de la persona que entrega los bienes");
+        if (nuevoNombre == null || nuevoNombre.isBlank())
+            throw new IllegalArgumentException("Elige a la persona que recibe los bienes");
+        if (motivo == null || motivo.isBlank())
+            throw new IllegalArgumentException("Escribe el motivo del cambio (por ejemplo, se dio de baja)");
+        Resguardo uno = suyos.get(0);
+        String area = uno.getResguardanteArea();
+        for (Resguardo r : suyos) {
+            if (!r.isActivo())
+                throw new IllegalArgumentException("El resguardo " + r.getNumero() + " ya no está vigente");
+            if (!mismaPersona(r.getResguardanteNombre(), uno.getResguardanteNombre())
+                    || !java.util.Objects.equals(r.getResguardanteArea(), area))
+                throw new IllegalArgumentException("Solo se pasan juntos resguardos de la misma persona en la misma área");
+        }
+        String nombre = com.sibim.util.NombrePersona.sinTitulos(nuevoNombre.trim().replaceAll("\\s+", " "));
+        if (mismaPersona(nombre, uno.getResguardanteNombre()))
+            throw new IllegalArgumentException("Es la misma persona: elige a quien recibe los bienes");
+
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        suyos.forEach(r -> ids.add(r.getId()));
+        List<Resguardo> delQueRecibe = repo.findAll().stream()
+            .filter(r -> r.isActivo() && !ids.contains(r.getId()) && java.util.Objects.equals(r.getResguardanteArea(), area)
+                && mismaPersona(r.getResguardanteNombre(), nombre))
+            .sorted(java.util.Comparator.comparing(Resguardo::getCreadoEn,
+                java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())))
+            .toList();
+        List<Resguardo> deEl = new java.util.ArrayList<>(suyos);
+        deEl.sort(java.util.Comparator.comparing(Resguardo::getCreadoEn,
+            java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())));
+        List<Resguardo> todos = new java.util.ArrayList<>(deEl);
+        todos.addAll(delQueRecibe);
+        List<ResguardoItem> items = renglonesDe(todos);
+        if (items.isEmpty()) throw new IllegalArgumentException("Ese resguardo no tiene bienes que pasar");
+
+        String hoy = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String quienEntrega = deEl.get(deEl.size() - 1).getResguardanteNombre().trim();
+        String folios = deEl.stream().map(Resguardo::getNumero).collect(java.util.stream.Collectors.joining(", "));
+        String suCargo = cargo != null && !cargo.isBlank() ? cargo.trim()
+            : delQueRecibe.stream().map(Resguardo::getResguardanteCargo).filter(c -> c != null && !c.isBlank())
+                .reduce((a, b) -> b).map(String::trim).orElse(null);
+        Resguardo nuevo = new Resguardo();
+        nuevo.setResguardanteNombre(nombre);
+        nuevo.setResguardanteCargo(suCargo);
+        nuevo.setResguardanteArea(area);
+        nuevo.setObservaciones("Recibe los bienes de " + quienEntrega + " (" + folios + ") el " + hoy + ". Motivo: "
+            + motivo.trim() + "."
+            + (delQueRecibe.isEmpty() ? "" : " Junta también "
+                + delQueRecibe.stream().map(Resguardo::getNumero).collect(java.util.stream.Collectors.joining(", "))
+                + ", que ya tenía en esta área."));
+        nuevo.setItems(items);
+        Resguardo saved = repo.juntar(nuevo, todos.stream().map(Resguardo::getId).toList(),
+            hoy + ": sus bienes pasaron a " + nombre + " en el resguardo {folio}. Motivo: " + motivo.trim() + ".");
+        ProductosEnMemoria.invalidar();
+        actualizarFichas(items);
+        for (Resguardo r : todos)
+            auditRepo.log("resguardo", r.getId(), r.getResguardanteNombre(), "cancelar",
+                "Resguardo " + r.getNumero() + " cancelado: sus bienes pasaron a " + nombre + " en " + saved.getNumero()
+                    + " · " + motivo.trim());
+        auditRepo.log("resguardo", saved.getId(), saved.getResguardanteNombre(), "crear",
+            "Resguardo " + saved.getNumero() + " · " + items.size() + (items.size() == 1 ? " bien" : " bienes")
+                + (area != null ? " · Área: " + area : "") + " · recibe de " + quienEntrega + " (" + folios + ")"
+                + " · " + motivo.trim());
         return saved;
     }
 
@@ -394,6 +483,14 @@ public class ResguardoService {
                     .toList()))
             .sorted(java.util.Comparator.comparing(Resguardante::nombre, orden))
             .toList();
+    }
+
+    /** One person however written: with or without title, accents, extra spaces, or
+     *  the same words in another order ("LIC. ANA RUIZ" and "Ruiz Ana"). */
+    public static boolean mismaPersona(String a, String b) {
+        if (a == null || b == null || a.isBlank() || b.isBlank()) return false;
+        String x = com.sibim.util.NombrePersona.sinTitulos(a), y = com.sibim.util.NombrePersona.sinTitulos(b);
+        return clavePersona(x).equals(clavePersona(y)) || mismasPalabras(x, y);
     }
 
     public static String clavePersona(String nombre) {

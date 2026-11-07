@@ -213,7 +213,7 @@ public final class SeriesRepetidasDialog {
         int n = g.bienes().size();
         if (!com.sibim.util.ConfirmacionUtil.confirmar("Dejar sin serie",
                 "¿Quitar la serie «" + g.serie() + "» a " + (n == 1 ? "1 bien" : "los " + n + " bienes") + "?\n\n"
-                    + "Si alguno sí la lleva, corrígelo primero en su renglón. Lo que se quita queda anotado en Auditoría."))
+                    + "Si alguno sí la lleva, corrígelo primero en su renglón. Lo que se quita queda anotado en Auditoría.", "Quitar la serie"))
             return;
         Scene scene = dialog.getDialogPane().getScene();
         sinSerieTodos.setDisable(true);
@@ -228,7 +228,7 @@ public final class SeriesRepetidasDialog {
             },
             e -> {
                 sinSerieTodos.setDisable(false);
-                NotificacionUtil.error(scene, "No se pudo quitar la serie: " + (e.getMessage() != null ? e.getMessage() : "error desconocido"));
+                NotificacionUtil.error(scene, "No se pudo quitar la serie: " + com.sibim.util.MensajeError.de(e));
             });
     }
 

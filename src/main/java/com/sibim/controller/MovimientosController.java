@@ -790,12 +790,12 @@ public class MovimientosController {
                 // A bien of one piece has its own número and label: another one like it
                 // is a Nuevo bien, not a piece added to this one (that makes it a lote).
                 if (r.tipo() == TipoMovimiento.ENTRADA && r.producto().getStockActual() == 1
-                        && !ConfirmacionUtil.confirmar("Es un bien de una sola pieza",
+                        && !ConfirmacionUtil.elegir("Es un bien de una sola pieza",
                             "«" + r.producto().getCodigo() + " " + r.producto().getNombre()
                                 + "» tiene su propio número de inventario.\n\n"
                                 + "Si llegó otro igual, dalo de alta con «Nuevo bien» en Bienes para que tenga "
                                 + "su número y su etiqueta.\n\n¿Agregarle piezas de todos modos? Quedará como un lote de "
-                                + (1 + r.cantidad()) + " piezas con un solo número."))
+                                + (1 + r.cantidad()) + " piezas con un solo número.", "Agregar piezas", "No agregar"))
                     return;
                 registrar(r, preProductoId, preTipo);
             }),

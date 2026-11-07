@@ -243,7 +243,7 @@ public final class ResguardosEnLoteDialog {
         if (e.isEmpty()) return;
         if (!ConfirmacionUtil.confirmar("Registrar resguardos",
                 "Se registran " + FormatUtils.plural(e.size(), "resguardo", "resguardos") + ", cada uno con su folio RSG, y quedan vigentes.\n\n"
-                    + "Después se genera un solo PDF para imprimir y firmar.\n\n¿Continuar?")) return;
+                    + "Después se genera un solo PDF para imprimir y firmar.\n\n¿Continuar?", "Registrar")) return;
         registrar.setDisable(true);
         lista.setDisable(true);
         Scene propia = dialog.getDialogPane().getScene();
@@ -264,7 +264,7 @@ public final class ResguardosEnLoteDialog {
             },
             r -> terminar(r.getKey(), r.getValue()),
             ex -> {
-                NotificacionUtil.error(propia, "No se pudo registrar: " + ex.getMessage());
+                NotificacionUtil.error(propia, "No se pudo registrar: " + com.sibim.util.MensajeError.de(ex));
                 registrar.setDisable(false);
                 lista.setDisable(false);
             });
@@ -297,7 +297,7 @@ public final class ResguardosEnLoteDialog {
                 return partes.size() == 1 ? partes.get(0) : ReporteService.unirPdfs(partes, "resguardos");
             },
             file -> DialogUtil.showExportResultDialog(scene, file),
-            e -> NotificacionUtil.error(scene, "Los resguardos quedaron registrados, pero no se pudo generar el PDF: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "Los resguardos quedaron registrados, pero no se pudo generar el PDF: " + com.sibim.util.MensajeError.de(e)));
     }
 
     private static void ver(Node n, boolean visible) {

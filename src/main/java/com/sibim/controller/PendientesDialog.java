@@ -101,8 +101,8 @@ class PendientesDialog {
             });
 
             btnRechazar.setOnAction(e -> {
-                if (!ConfirmacionUtil.confirmar("Rechazar transferencia",
-                        "¿Rechazar la transferencia de \"" + m.getProductoNombre() + "\"?")) return;
+                if (!ConfirmacionUtil.confirmarPeligro("Rechazar transferencia",
+                        "¿Rechazar la transferencia de \"" + m.getProductoNombre() + "\"?", "Rechazar")) return;
                 btnAprobar.setDisable(true); btnRechazar.setDisable(true);
                 DialogUtil.runAsync(
                     () -> service.rechazarTransferencia(m.getId()),

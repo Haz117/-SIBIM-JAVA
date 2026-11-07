@@ -503,14 +503,14 @@ public final class MovimientoDialogFactory {
         Node cancelBtnNode = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         if (cancelBtnNode != null) {
             cancelBtnNode.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
-                if (dirty[0] && !ConfirmacionUtil.confirmar("Descartar movimiento",
-                        "Tienes datos ingresados.\n¿Seguro que deseas cancelar el movimiento?"))
+                if (dirty[0] && !ConfirmacionUtil.elegirPeligro("Descartar movimiento",
+                        "Tienes datos ingresados.\n¿Seguro que deseas cancelar el movimiento?", "Descartar", "Seguir capturando"))
                     e.consume();
             });
         }
         dialog.setOnCloseRequest(e -> {
-            if (!saving[0] && dirty[0] && !ConfirmacionUtil.confirmar("Descartar movimiento",
-                    "Tienes datos ingresados.\n¿Seguro que deseas cancelar el movimiento?"))
+            if (!saving[0] && dirty[0] && !ConfirmacionUtil.elegirPeligro("Descartar movimiento",
+                    "Tienes datos ingresados.\n¿Seguro que deseas cancelar el movimiento?", "Descartar", "Seguir capturando"))
                 e.consume();
         });
 

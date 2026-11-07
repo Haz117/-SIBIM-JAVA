@@ -76,10 +76,10 @@ public final class OutboxErrorsDialog {
         dialog.setResultConverter(bt -> bt);
         dialog.showAndWait().ifPresent(bt -> {
             if (bt == limpiarType) {
-                boolean ok = ConfirmacionUtil.confirmar(
+                boolean ok = ConfirmacionUtil.confirmarPeligro(
                     "¿Limpiar todos los errores?",
                     "Se eliminarán " + FormatUtils.plural(entries.size(), "registro", "registros") + " de la cola local. "
-                    + "Esta acción no se puede deshacer.");
+                    + "Esta acción no se puede deshacer.", "Limpiar todos");
                 if (ok) SyncService.clearDiscarded();
             }
         });

@@ -112,7 +112,7 @@ class PorRecibirDialog {
                 if (!ConfirmacionUtil.confirmar("Confirmar recepción",
                         "¿" + area + " ya firmó de recibido " + (lote.size() == 1 ? "el bien" : "los " + lote.size() + " bienes")
                         + "?\n\nÚsalo cuando tengas su acuse firmado en papel. Queda registrado con tu nombre, "
-                        + "«acuse en papel» y la fecha de hoy.")) return;
+                        + "«acuse en papel» y la fecha de hoy.", "Confirmar recepción")) return;
                 todas.setDisable(true);
                 DialogUtil.runAsync(() -> {
                     List<Movimiento> hechos = new ArrayList<>();
@@ -172,7 +172,7 @@ class PorRecibirDialog {
             if (!ConfirmacionUtil.confirmar("Confirmar recepción",
                     "¿Confirmas que " + m.getAreaDestino() + " ya tiene \"" + m.getProductoNombre() + "\"?\n\n"
                     + (enPapel ? "Úsalo cuando tengas su acuse firmado en papel. Queda registrado con tu nombre, «acuse en papel» y la fecha de hoy."
-                               : "Quedará registrado con tu nombre y la fecha de hoy."))) return;
+                               : "Quedará registrado con tu nombre y la fecha de hoy."), "Confirmar recepción")) return;
             btnRecibir.setDisable(true);
             DialogUtil.runAsync(
                 () -> service.confirmarRecepcion(m, enPapel),

@@ -334,7 +334,7 @@ public final class CompletarDatosDialog {
                     + "\n\nCambia la depreciación y el valor en libros de esos bienes."
                     + (otraConac > 0 ? "\n" + (otraConac == 1 ? "1 tiene" : otraConac + " tienen")
                         + " otra según el CONAC: «Revisar y aplicar» les pone esa." : "")
-                    + "\n\n¿Aplicar?")) return;
+                    + "\n\n¿Aplicar?", "Poner a todos")) return;
         DialogUtil.runAsyncWithProgress(dialog.getDialogPane().getScene(), "Aplicando vida útil…",
             () -> calidad.asignarVidaUtil(anios, bienes),
             n -> {
@@ -347,7 +347,7 @@ public final class CompletarDatosDialog {
                 actualizarConteos();
                 lista.refresh();
             },
-            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + e.getMessage()));
+            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + com.sibim.util.MensajeError.de(e)));
     }
 
     private void actualizarConteos() {
@@ -379,7 +379,7 @@ public final class CompletarDatosDialog {
                 "Se asigna a los bienes que no tienen:\n\n" + detalle
                     + "\n\nCambia la depreciación y el valor en libros de esos bienes."
                     + (quedan > 0 ? "\nQuedan " + FormatUtils.plural(quedan, "bien", "bienes") + " sin valor en CONAC (por ejemplo, equipo de defensa): los decide el municipio; varios iguales se capturan juntos con «Poner a todos»." : "")
-                    + "\n\n¿Aplicar?")) return;
+                    + "\n\n¿Aplicar?", "Asignar")) return;
         DialogUtil.runAsyncWithProgress(dialog.getDialogPane().getScene(), "Aplicando vida útil…",
             () -> calidad.aplicarVidaUtil(propuesta),
             n -> {
@@ -390,7 +390,7 @@ public final class CompletarDatosDialog {
                 refiltrar();
                 actualizarConteos();
             },
-            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + e.getMessage()));
+            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo aplicar: " + com.sibim.util.MensajeError.de(e)));
     }
 
     // ── Guardar una fila ──────────────────────────────────────────────────────

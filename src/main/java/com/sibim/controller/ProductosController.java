@@ -1219,7 +1219,7 @@ public class ProductosController {
                 e -> {
                     if (e instanceof ProductoService.ModificadoPorOtroException) {
                         // Reopening with the same object would fail the same way.
-                        NotificacionUtil.advertencia(table.getScene(), e.getMessage());
+                        NotificacionUtil.advertencia(table.getScene(), com.sibim.util.MensajeError.de(e));
                         loadData();
                         return;
                     }

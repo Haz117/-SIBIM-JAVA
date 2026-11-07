@@ -49,7 +49,7 @@ class ConfiguracionBackupManager {
         if (!ConfirmacionUtil.confirmar("Información sensible en el respaldo",
                 "El archivo generado contendrá todos los datos del sistema: bienes, movimientos, "
                 + "usuarios y auditoría.\n\nSe cifrará con la contraseña que definas a continuación — "
-                + "sin ella, el respaldo no podrá restaurarse. ¿Continuar?"))
+                + "sin ella, el respaldo no podrá restaurarse. ¿Continuar?", "Crear el respaldo"))
             return;
 
         Optional<char[]> passwordOpt = promptBackupPassword(true);
@@ -87,10 +87,10 @@ class ConfiguracionBackupManager {
         File origen = chooser.showOpenDialog(MainApp.getPrimaryStage());
         if (origen == null) return;
 
-        if (!ConfirmacionUtil.confirmar("Restaurar base de datos",
+        if (!ConfirmacionUtil.confirmarPeligro("Restaurar base de datos",
                 "Esto reemplaza TODOS los datos actuales (bienes, movimientos, usuarios, categorías, "
                 + "auditoría y conteos) con el contenido de \"" + origen.getName() + "\". "
-                + "Esta acción no se puede deshacer. ¿Continuar?"))
+                + "Esta acción no se puede deshacer. ¿Continuar?", "Restaurar y reemplazar"))
             return;
 
         Optional<char[]> passwordOpt = promptBackupPassword(false);
@@ -133,15 +133,15 @@ class ConfiguracionBackupManager {
         String carpeta = com.sibim.service.RespaldoAutomatico.carpeta().toString();
         if (com.sibim.service.RespaldoAutomatico.activado()) {
             File ultimo = com.sibim.service.RespaldoAutomatico.ultimo();
-            if (!ConfirmacionUtil.confirmar("Respaldo automático activo",
+            if (!ConfirmacionUtil.elegir("Respaldo automático activo",
                     "Esta computadora guarda un respaldo cifrado cada día en:\n" + carpeta
                     + "\n\nÚltimo: " + (ultimo != null ? ultimo.getName() : "todavía ninguno")
-                    + "\n\n¿Quieres DESACTIVARLO? (los respaldos ya hechos se conservan)")) return;
+                    + "\n\n¿Quieres DESACTIVARLO? (los respaldos ya hechos se conservan)", "Desactivar", "Dejarlo activo")) return;
             try {
                 com.sibim.service.RespaldoAutomatico.desactivar();
                 NotificacionUtil.info(scene(), "Respaldo automático desactivado");
             } catch (java.io.IOException e) {
-                NotificacionUtil.error(scene(), "No se pudo desactivar: " + e.getMessage());
+                NotificacionUtil.error(scene(), "No se pudo desactivar: " + com.sibim.util.MensajeError.de(e));
             }
             return;
         }
@@ -149,14 +149,14 @@ class ConfiguracionBackupManager {
                 "Cada día, con una sesión de administrador abierta en esta computadora, SIBIM guardará un "
                 + "respaldo cifrado en:\n" + carpeta + "\n\nSe conservan los últimos 30. A continuación define la "
                 + "contraseña con la que se cifran: la necesitarás para restaurar, así que anótala en un lugar "
-                + "seguro. Copia esa carpeta de vez en cuando a una memoria o a otro equipo.")) return;
+                + "seguro. Copia esa carpeta de vez en cuando a una memoria o a otro equipo.", "Activar")) return;
         Optional<char[]> passwordOpt = promptBackupPassword(true);
         if (passwordOpt.isEmpty()) return;
         char[] password = passwordOpt.get();
         try {
             com.sibim.service.RespaldoAutomatico.activar(password);
         } catch (java.io.IOException e) {
-            NotificacionUtil.error(scene(), "No se pudo activar: " + e.getMessage());
+            NotificacionUtil.error(scene(), "No se pudo activar: " + com.sibim.util.MensajeError.de(e));
             return;
         } finally {
             Arrays.fill(password, '\0');
@@ -167,7 +167,7 @@ class ConfiguracionBackupManager {
             archivo -> NotificacionUtil.exito(scene(), archivo != null
                 ? "Respaldo automático activado. Primer respaldo: " + archivo.getName()
                 : "Respaldo automático activado; el primero se hará en la próxima hora"),
-            e -> NotificacionUtil.error(scene(), "Activado, pero el primer respaldo falló: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene(), "Activado, pero el primer respaldo falló: " + com.sibim.util.MensajeError.de(e)));
     }
 
     private Optional<char[]> promptBackupPassword(boolean confirmar) {

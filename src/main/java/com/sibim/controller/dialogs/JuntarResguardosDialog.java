@@ -252,7 +252,7 @@ public final class JuntarResguardosDialog {
         if (!ConfirmacionUtil.confirmar("Juntar en uno",
                 "Se cancelan " + e.size() + " resguardos de " + g.nombre() + " (" + folios + ") y se hace uno nuevo con "
                 + FormatUtils.plural(e.stream().mapToInt(r -> r.getItems() == null ? 0 : r.getItems().size()).sum(), "bien", "bienes")
-                + ".\n\nLos cancelados quedan como se firmaron. Imprime el nuevo para que lo firme.\n\n¿Continuar?")) return;
+                + ".\n\nLos cancelados quedan como se firmaron. Imprime el nuevo para que lo firme.\n\n¿Continuar?", "Juntar en uno")) return;
         juntar.setDisable(true);
         Scene propia = dialog.getDialogPane().getScene();
         DialogUtil.runAsyncWithProgress(propia, "Juntando resguardos…",
@@ -270,7 +270,7 @@ public final class JuntarResguardosDialog {
                 refiltrar();
                 mostrar(null);
                 if (alJuntar != null) alJuntar.accept(nuevo);
-                if (ConfirmacionUtil.confirmar("Resguardo " + nuevo.getNumero(), "¿Abrir el PDF del resguardo nuevo para firmarlo?"))
+                if (ConfirmacionUtil.elegir("Resguardo " + nuevo.getNumero(), "¿Abrir el PDF del resguardo nuevo para firmarlo?", "Abrir el PDF", "Ahora no"))
                     DialogUtil.runAsyncWithProgress(propia, "Generando PDF…",
                         () -> new ResguardoService().exportarPdf(nuevo),
                         file -> DialogUtil.showExportResultDialog(propia, file),
@@ -278,7 +278,7 @@ public final class JuntarResguardosDialog {
             },
             ex -> {
                 juntar.setDisable(false);
-                NotificacionUtil.error(propia, "No se juntaron: " + (ex.getMessage() != null ? ex.getMessage() : "error desconocido"));
+                NotificacionUtil.error(propia, "No se juntaron: " + com.sibim.util.MensajeError.de(ex));
             });
     }
 

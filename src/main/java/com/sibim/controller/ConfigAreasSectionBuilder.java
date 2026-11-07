@@ -104,7 +104,7 @@ class ConfigAreasSectionBuilder {
                     alGuardarTitular.run();
                 },
                 e -> {
-                    NotificacionUtil.error(table.getScene(), "No se pudo guardar el titular: " + e.getMessage());
+                    NotificacionUtil.error(table.getScene(), "No se pudo guardar el titular: " + com.sibim.util.MensajeError.de(e));
                     table.refresh();
                 });
         });
@@ -277,7 +277,7 @@ class ConfigAreasSectionBuilder {
             if (!titular.equals(titulares.getOrDefault(e.nombre(), "")))
                 DialogUtil.runAsync(() -> { com.sibim.service.TitularesArea.guardar(config, e.nombre(), titular); return null; },
                     v -> refrescar(),
-                    ex -> NotificacionUtil.error(scene, "No se pudo guardar el titular: " + ex.getMessage()));
+                    ex -> NotificacionUtil.error(scene, "No se pudo guardar el titular: " + com.sibim.util.MensajeError.de(ex)));
             boolean sinCambiosDeArea = actual != null && actual.equals(e);
             if (sinCambiosDeArea) return;
             boolean cambioPrefijo = actual != null && !actual.prefijo().equals(e.prefijo());
@@ -287,7 +287,7 @@ class ConfigAreasSectionBuilder {
                     Boolean renumerar = n == 0 ? Boolean.FALSE : preguntarRenumerar(actual, e, n);
                     if (renumerar != null) guardar(scene, e, renumerar);
                 },
-                ex -> NotificacionUtil.error(scene, "No se pudo revisar los bienes del área: " + ex.getMessage()));
+                ex -> NotificacionUtil.error(scene, "No se pudo revisar los bienes del área: " + com.sibim.util.MensajeError.de(ex)));
         });
     }
 
@@ -298,7 +298,7 @@ class ConfigAreasSectionBuilder {
                 NotificacionUtil.exito(scene, "Área \"" + e.nombre() + "\" guardada"
                     + (n > 0 ? " · " + n + (n == 1 ? " bien renumerado" : " bienes renumerados") : ""));
             },
-            ex -> NotificacionUtil.error(scene, "No se pudo guardar el área: " + ex.getMessage()));
+            ex -> NotificacionUtil.error(scene, "No se pudo guardar el área: " + com.sibim.util.MensajeError.de(ex)));
     }
 
     /** @return true = renumber, false = only new bienes, null = cancel */

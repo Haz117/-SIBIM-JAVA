@@ -352,7 +352,7 @@ public class MainController {
 
     @FXML
     private void onLogout() {
-        if (!ConfirmacionUtil.confirmar("Cerrar sesión", "¿Deseas cerrar tu sesión?")) return;
+        if (!ConfirmacionUtil.confirmar("Cerrar sesión", "¿Deseas cerrar tu sesión?", "Cerrar sesión")) return;
         stopTimers();
         instance = null;
         auditRepo.logEnFondo("sesion", SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null,

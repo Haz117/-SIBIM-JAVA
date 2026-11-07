@@ -263,16 +263,16 @@ public final class EtiquetasAreaDialog {
                 DialogUtil.showExportResultDialog(scene, file);
                 preguntarYMarcar(hoja);
             },
-            e -> NotificacionUtil.error(scene, "No se pudieron generar las etiquetas: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "No se pudieron generar las etiquetas: " + com.sibim.util.MensajeError.de(e)));
     }
 
     /** Asks first because printing is not sticking them on. */
     private void preguntarYMarcar(List<Producto> hoja) {
         List<Producto> pendientes = hoja.stream().filter(p -> !p.isEtiquetado()).toList();
         if (pendientes.isEmpty()) return;
-        if (!ConfirmacionUtil.confirmar("¿Marcar como etiquetados?",
+        if (!ConfirmacionUtil.elegir("¿Marcar como etiquetados?",
                 "Cuando las etiquetas de " + FormatUtils.plural(pendientes.size(), "bien", "bienes") + " ya estén pegadas, "
-                    + "márcalos para que dejen de contar en Alertas como «Sin etiquetar».\n\n¿Ya están pegadas?")) return;
+                    + "márcalos para que dejen de contar en Alertas como «Sin etiquetar».\n\n¿Ya están pegadas?", "Sí, ya están pegadas", "Todavía no")) return;
         Scene scene = dialog.getDialogPane().getScene();
         List<String> ids = pendientes.stream().map(Producto::getId).collect(Collectors.toList());
         DialogUtil.runAsyncWithProgress(scene, "Actualizando etiquetado…",
@@ -286,7 +286,7 @@ public final class EtiquetasAreaDialog {
                 refiltrar();
                 actualizar();
             },
-            e -> NotificacionUtil.error(scene, "No se pudo actualizar el etiquetado: " + e.getMessage()));
+            e -> NotificacionUtil.error(scene, "No se pudo actualizar el etiquetado: " + com.sibim.util.MensajeError.de(e)));
     }
 
     private static void ver(Node n, boolean visible) {

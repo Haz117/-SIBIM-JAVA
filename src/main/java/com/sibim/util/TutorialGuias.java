@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.22";
+    public static final String VERSION_NOVEDADES = "1.0.24";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -113,9 +113,19 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: el resguardo con marca, serie y precio, el resguardo de un vehículo y las firmas con nombre y cargo",
+                "Primero lo más nuevo: pasar un resguardo a otra persona y avisos más claros",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+            p.add(paso("mdi2a-account-switch-outline", GUINDA, GUINDA_D, "Pasar un resguardo a otra persona", "resguardos", "#btnMasResguardos",
+                "Si alguien se da de baja y sus bienes se quedan en el área: selecciona su resguardo y ve a Más › Pasar a otra persona",
+                "Elige a quien los recibe y escribe el motivo; también funciona con clic derecho sobre el resguardo",
+                "Se cancelan todos sus resguardos de esa área, con una nota de a quién pasaron, y sale uno nuevo para firmar",
+                "Si quien recibe ya tenía resguardo en esa área, queda todo en uno solo"));
+            p.add(paso("mdi2g-gesture-tap-button", VERDE, VERDE_D, "Botones que dicen lo que hacen", null, null,
+                "Al confirmar, el botón dice la acción: «Cancelar el resguardo», «Descartar cambios», «Abrir el PDF»",
+                "Lo que no tiene vuelta sale en rojo, y Enter no lo aprieta por costumbre",
+                "Si algo falla, el aviso lo dice en palabras: sin conexión, dato repetido, sin permiso",
+                "El «Deshacer» de los avisos también funciona con Ctrl+Z, y el aviso espera mientras tengas el mouse encima"));
             p.add(paso("mdi2f-file-document-outline", GUINDA, GUINDA_D, "Resguardo con marca, serie y precio", "productos", "#searchField",
                 "La lista de bienes del resguardo trae Marca, Serie y Precio, con el Total al final",
                 "Ya no lleva Tipo de bien, Asignación ni Color",
@@ -254,8 +264,9 @@ final class TutorialGuias {
                 "Resguardos › Más › Resguardos en lote: varias personas a la vez, un solo PDF para firmar; avisa si un nombre trae a dos personas",
                 "Cambiar resguardante y los formatos de baja ahora eligen de una lista, no a mano"),
                 "Abrir Etiquetas por área", abrir("productos", "etiquetas")));
-            // After the intro: 1.0.22 (resguardo … corregir nombre), then 1.0.21 (avance … activos biológicos).
-            int anterior = indice(p, "Avance de las áreas"), antes = indice(p, "«Por hacer» en Inicio");
+            // After the intro: 1.0.24 (pasar a otra persona, botones), then 1.0.22 (resguardo … corregir nombre),
+            // then everything before (1.0.21: avance … activos biológicos, and older).
+            int anterior = indice(p, "Resguardo con marca, serie y precio"), antes = indice(p, "Avance de las áreas");
             enGrupo(p, 1, anterior, NUEVO);
             enGrupo(p, anterior, antes, ANTERIOR);
             enGrupo(p, antes, p.size(), ANTES);

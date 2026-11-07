@@ -318,7 +318,7 @@ public final class UnirPersonasDialog {
         if (!ConfirmacionUtil.confirmar("Unir personas",
                 "Va a quedar todo a nombre de:\n" + nombre + "\n\nSe reemplaza:\n" + otros
                     + "\n\nCambia en sus bienes y en sus resguardos vigentes; los PDF nuevos saldrán con este nombre. "
-                    + "Mientras esta ventana siga abierta puedes deshacerlo.")) return;
+                    + "Mientras esta ventana siga abierta puedes deshacerlo.", "Unir")) return;
         unir.setDisable(true);
         distintas.setDisable(true);
         DialogUtil.runAsync(() -> service.unirPersonas(nombre, grupo, bienes),
@@ -332,7 +332,7 @@ public final class UnirPersonasDialog {
                 quitar(grupo);
             },
             e -> {
-                NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo unir: " + e.getMessage());
+                NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo unir: " + com.sibim.util.MensajeError.de(e));
                 unir.setDisable(false);
                 distintas.setDisable(false);
             });
@@ -355,7 +355,7 @@ public final class UnirPersonasDialog {
             },
             e -> {
                 deshacer.setDisable(false);
-                NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo deshacer: " + e.getMessage());
+                NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo deshacer: " + com.sibim.util.MensajeError.de(e));
             });
     }
 
@@ -364,7 +364,7 @@ public final class UnirPersonasDialog {
         if (grupo == null) return;
         DialogUtil.runAsync(() -> { service.marcarDistintas(grupo); },
             () -> quitar(grupo),
-            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo guardar: " + e.getMessage()));
+            e -> NotificacionUtil.error(dialog.getDialogPane().getScene(), "No se pudo guardar: " + com.sibim.util.MensajeError.de(e)));
     }
 
     /** The case is done: on to the next, the one that took its place. */

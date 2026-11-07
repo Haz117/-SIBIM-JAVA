@@ -72,7 +72,12 @@ public class NotificacionUtil {
         Platform.runLater(() -> showConAccion(scene.getWindow(), mensaje, btnLabel, onAction, Tipo.EXITO));
     }
 
-    /** Toast de éxito con botón de acción Y una barra de cuenta regresiva visible de 5 segundos.
+    /** Seconds the countdown toast offers its Deshacer (it waits while the
+     *  mouse is over it). Five was too short to read the message and reach it. */
+    static final int SEGUNDOS_PARA_DESHACER = 8;
+
+    /** Toast de éxito con botón de acción Y una barra de cuenta regresiva visible de
+     *  {@link #SEGUNDOS_PARA_DESHACER} segundos.
      *  Úsalo para acciones "deshacer" donde el usuario necesita ver cuánto tiempo le queda. */
     public static void exitoConAccionCountdown(Scene scene, String mensaje, String btnLabel, Runnable onAction) {
         if (scene == null) return;
@@ -513,7 +518,7 @@ public class NotificacionUtil {
 
         Timeline countdown = new Timeline(
             new KeyFrame(Duration.ZERO,      new KeyValue(countdownBar.progressProperty(), 1.0)),
-            new KeyFrame(Duration.seconds(5), new KeyValue(countdownBar.progressProperty(), 0.0, Interpolator.LINEAR))
+            new KeyFrame(Duration.seconds(SEGUNDOS_PARA_DESHACER), new KeyValue(countdownBar.progressProperty(), 0.0, Interpolator.LINEAR))
         );
 
         TranslateTransition slideOut = new TranslateTransition(AnimationUtils.duracion(260), box);
@@ -525,6 +530,7 @@ public class NotificacionUtil {
         dismissAnim.setOnFinished(e -> { popup.hide(); releaseSlot(); });
         countdown.setOnFinished(e -> dismissAnim.play());
         countdown.play();
+        pausarConElMouse(box, countdown);
 
         boolean[] closing = { false };
         Runnable dismiss = () -> {
@@ -540,9 +546,12 @@ public class NotificacionUtil {
             qd.play();
         };
 
-        actionBtn.setOnAction(e -> { dismiss.run(); onAction.run(); });
+        Runnable accion = () -> { dismiss.run(); onAction.run(); };
+        actionBtn.setOnAction(e -> accion.run());
         closeIcon.setOnMouseClicked(e -> dismiss.run());
         AccessibilityUtils.asButton(closeIcon, "Cerrar notificación");
+        ofrecerDeshacer(owner, btnLabel, actionBtn, accion);
+        popup.setOnHidden(e -> retirarDeshacer(accion));
     }
 
     private static void showConAccion(Window owner, String mensaje, String btnLabel, Runnable onAction, Tipo tipo) {
@@ -615,6 +624,7 @@ public class NotificacionUtil {
         SequentialTransition seq = new SequentialTransition(
             new ParallelTransition(fadeIn, slideIn), pause, dismissAnim);
         seq.play();
+        pausarConElMouse(box, seq);
 
         Runnable dismiss = () -> {
             seq.stop();
@@ -627,8 +637,48 @@ public class NotificacionUtil {
             qd.play();
         };
 
-        actionBtn.setOnAction(e -> { dismiss.run(); onAction.run(); });
+        Runnable accion = () -> { dismiss.run(); onAction.run(); };
+        actionBtn.setOnAction(e -> accion.run());
         closeBtn.setOnMouseClicked(e -> dismiss.run());
         AccessibilityUtils.asButton(closeBtn, "Cerrar notificación");
+        ofrecerDeshacer(owner, btnLabel, actionBtn, accion);
+        popup.setOnHidden(e -> retirarDeshacer(accion));
+    }
+
+    // ── Deshacer from the keyboard, and time to read ───────────────────────
+    // A toast lives in a popup that never takes the keyboard focus, so its
+    // "Deshacer" could only be clicked. Ctrl+Z runs the newest one still on
+    // screen (inside a text field Ctrl+Z keeps undoing the typing: the field
+    // consumes it first). And a toast waits while the mouse is over it, so
+    // whoever goes for the button doesn't see it leave under the pointer.
+
+    private static Runnable deshacerVigente;
+
+    private static void ofrecerDeshacer(Window owner, String btnLabel, javafx.scene.control.Button boton, Runnable accion) {
+        if (btnLabel == null || !btnLabel.toLowerCase(java.util.Locale.ROOT).contains("deshacer")) return;
+        Scene escena = owner.getScene();
+        if (escena == null) return;
+        deshacerVigente = accion;
+        boton.setTooltip(new javafx.scene.control.Tooltip("Ctrl+Z"));
+        boton.setAccessibleHelp("También con Ctrl+Z");
+        if (escena.getProperties().putIfAbsent("sibim.toast.deshacer", Boolean.TRUE) != null) return;
+        escena.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() != javafx.scene.input.KeyCode.Z || !e.isShortcutDown() || e.isShiftDown() || e.isAltDown()) return;
+            Runnable r = deshacerVigente;
+            if (r == null) return;
+            deshacerVigente = null;
+            e.consume();
+            r.run();
+        });
+    }
+
+    private static void retirarDeshacer(Runnable accion) {
+        if (deshacerVigente == accion) deshacerVigente = null;
+    }
+
+    private static void pausarConElMouse(javafx.scene.Node caja, Animation reloj) {
+        // Only while it is fully shown: caught half-way out it would stay half-faded.
+        caja.setOnMouseEntered(e -> { if (reloj.getStatus() == Animation.Status.RUNNING && caja.getOpacity() > 0.99) reloj.pause(); });
+        caja.setOnMouseExited(e -> { if (reloj.getStatus() == Animation.Status.PAUSED) reloj.play(); });
     }
 }
