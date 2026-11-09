@@ -268,3 +268,51 @@
 }
 .formatos-sugerencia:hover { -fx-border-color: #A2232D; -fx-text-fill: #A2232D; -fx-background-color: #FCF0F1; }
 .formatos-sugerencia:focused { -fx-border-color: #A2232D; }
+
+/* ── «Revisar mis bienes» (rediseño 9-nov-2026) ──────────────────────────────────
+   Para quien no usa la computadora a diario: cada renglón se responde con sus
+   botones, las casillas marcan varios, y los pasos 2 y 3 llevan su color. */
+.revisar-paso {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 10;
+    -fx-padding: 10 14 10 14;
+}
+.revisar-paso .avance-pista { -fx-background-color: sibim-slate-100; }
+.revisar-codigo { -fx-font-family: "Consolas", "Courier New", monospace; -fx-font-size: 12px; -fx-text-fill: sibim-slate-700; }
+.revisar-bien-nombre { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
+.revisar-bien-detalle { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
+.revisar-tabla .table-row-cell.revisar-fila-marcada { -fx-background-color: #FCF0F1; }
+.revisar-tabla .table-row-cell.revisar-fila-marcada:selected { -fx-background-color: #F8E1E3; }
+.revisar-boton {
+    -fx-background-color: white;
+    -fx-background-radius: 99;
+    -fx-border-color: sibim-slate-300;
+    -fx-border-radius: 99;
+    -fx-padding: 3 10 3 8;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: sibim-slate-700;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 4;
+    -fx-effect: null;
+}
+.revisar-boton-icono { -fx-icon-size: 14; -fx-icon-color: sibim-slate-600; }
+.revisar-si { -fx-border-color: #7FB3A5; -fx-text-fill: #1B4A3F; }
+.revisar-si .revisar-boton-icono { -fx-icon-color: #235B4E; }
+.revisar-si:hover { -fx-background-color: #EEF5F2; -fx-border-color: #235B4E; }
+.revisar-no:hover { -fx-background-color: #FDF6E7; -fx-border-color: #C98A1B; -fx-text-fill: #8A5A12; }
+.revisar-etiqueta { -fx-border-color: #DCC8A6; -fx-text-fill: #6E5118; }
+.revisar-etiqueta .revisar-boton-icono { -fx-icon-color: #9C7A3C; }
+.revisar-etiqueta:hover { -fx-background-color: #F7F1E6; -fx-border-color: #9C7A3C; }
+.revisar-completar { -fx-border-color: #F2BCC0; -fx-text-fill: #891D26; -fx-padding: 1 9 1 7; -fx-font-size: 11px; }
+.revisar-completar .revisar-boton-icono { -fx-icon-color: #A2232D; -fx-icon-size: 12; }
+.revisar-completar:hover { -fx-background-color: #FCF0F1; -fx-border-color: #A2232D; }
+.revisar-estado { -fx-font-size: 12px; -fx-font-weight: bold; -fx-graphic-text-gap: 5; }
+.revisar-estado-si { -fx-text-fill: #235B4E; }
+.revisar-estado-si .ikonli-font-icon { -fx-icon-color: #235B4E; -fx-icon-size: 15; }
+.revisar-estado-no { -fx-text-fill: #8A5A12; }
+.revisar-estado-no .ikonli-font-icon { -fx-icon-color: #C98A1B; -fx-icon-size: 15; }
+.revisar-cambiar { -fx-font-size: 11px; -fx-padding: 0 2; }
+.revisar-acciones .btn-primary .revisar-boton-icono { -fx-icon-color: white; }

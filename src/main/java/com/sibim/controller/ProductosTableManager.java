@@ -161,6 +161,9 @@ class ProductosTableManager {
             exportarEtiquetaFisica, onEdit, onDelete));
         setupEmptyState();
         setupPagination();
+        // A dirección sees only its own área: the column said the same on every row and
+        // took the room of the name. Hidden by default; the header menu shows it again.
+        if (com.sibim.session.SessionManager.isDireccion()) colArea.setVisible(false);
         // Right-click on header → toggle secondary columns
         DialogUtil.setupColumnVisibilityMenu("bienes.cols", table,
             List.of(colFoto, colNombre, colStock, colEstado));

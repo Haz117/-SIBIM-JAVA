@@ -128,6 +128,11 @@ final class TutorialGuias {
                 "Debajo de cada campo salen sugerencias de quién firma resguardos ahí como director o titular: un clic lo escribe",
                 "Guarda las veces que quieras sin cerrar; también se abre desde «Por hacer» del Inicio"),
                 "Abrir Datos de los formatos", abrir("configuracion", "formatos")));
+            p.add(paso("mdi2c-clipboard-check-multiple-outline", DORADO, DORADO_D, "Revisar bienes, más fácil para las áreas", "organigrama", "#btnAvanceAreas",
+                "Cuando un área revisa sus bienes, cada renglón tiene «Sí es» / «No es», «Ya la tiene» y «Completar»",
+                "Ya no hace falta Ctrl ni Shift: varios se marcan con su casilla",
+                "Debajo del nombre sale marca, modelo, serie y ubicación, para reconocerlo",
+                "Cada respuesta se puede deshacer; tú lo ves desde el detalle de cada área en «Avance de las áreas»"));
             p.add(paso("mdi2a-account-switch-outline", GUINDA, GUINDA_D, "Pasar un resguardo a otra persona", "resguardos", "#btnMasResguardos",
                 "Si alguien se da de baja y sus bienes se quedan en el área: selecciona su resguardo y ve a Más › Pasar a otra persona",
                 "Elige a quien los recibe y escribe el motivo; también funciona con clic derecho sobre el resguardo",
@@ -289,7 +294,8 @@ final class TutorialGuias {
             p.add(paso("mdi2c-clipboard-check-multiple-outline", VERDE, VERDE_D, "Tu avance, en tres pasos", "dashboard", "#miAreaSection",
                 "En tu Inicio ves tus tres pasos: entrar a SIBIM, revisar tus bienes y confirmar sus etiquetas",
                 "El paso que toca tiene su botón: «Revisar mis bienes» y después «Confirmar etiquetas»",
-                "Al revisar, selecciona los que sí tienes y da «Sí son de mi área»; los que no, «No son de mi área» y escribe por qué",
+                "Al revisar, cada bien tiene sus botones: «Sí es» o «No es» (y escribes por qué); «Ya la tiene» para la etiqueta",
+                "Para responder varios a la vez, márcalos con su casilla y usa los botones de abajo; cada respuesta se puede deshacer",
                 "Ahí mismo «Actualizar datos» les pone foto, ubicación y estado físico",
                 "Patrimonio ve en el organigrama cómo va tu área"));
             p.add(paso("mdi2f-file-remove-outline", GUINDA, GUINDA_D, "Pide una baja", "productos", "#btnEliminar",
