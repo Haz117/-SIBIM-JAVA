@@ -120,7 +120,8 @@ final class TutorialGuias {
                 "Arriba, cinco tarjetas: cuántas áreas faltan por entrar, cuántas revisan sus bienes, cuántas ponen etiquetas y cuántas terminaron; un clic filtra",
                 "Las áreas van agrupadas por secretaría, cada una con sus tres pasos en una sola barra",
                 "Cada área dice si ya tiene cuenta: sin cuenta no puede entrar; «Crear las cuentas» te lleva a hacerlo",
-                "Un clic en un área abre su detalle, con el botón del paso que le toca resaltado"),
+                "Un clic en un área abre su detalle, con el botón del paso que le toca resaltado",
+                "En el detalle, el paso 3 abre «Etiquetas por área» ya en esa área: imprimes sus etiquetas y marcas las pegadas"),
                 "Abrir el avance", abrir("organigrama", "avance")));
             p.add(probar(paso("mdi2f-file-document-edit-outline", GUINDA, GUINDA_D, "Los datos de los formatos, en un solo lugar", "configuracion", null,
                 "RFC, domicilio, quién firma cada formato y el titular de cada área, en una sola ventana con tres tarjetas",
@@ -131,7 +132,8 @@ final class TutorialGuias {
             p.add(paso("mdi2a-account-multiple-outline", GUINDA, GUINDA_D, "Cuentas de las áreas, antes de crearlas", "configuracion", null,
                 "Configuración › Usuarios › «Cuentas por área» (o «Crear las cuentas» en el Avance) ahora abre una lista",
                 "Cada área dice qué usuario le toca, qué podrá ver y si ya entró",
-                "Marca con su casilla cuáles crear: todas de una vez o unas cuantas; sale el PDF solo con las nuevas",
+                "Marca con su casilla cuáles crear: todas de una vez o unas cuantas",
+                "Sale un PDF con una hoja para entregar a cada área: su usuario, su contraseña y qué hacer el primer día; la primera es tu control",
                 "Si un área pierde su contraseña, «Contraseña nueva» le da otra con su propia hoja"));
             p.add(paso("mdi2c-clipboard-check-multiple-outline", DORADO, DORADO_D, "Revisar bienes, más fácil para las áreas", "organigrama", "#btnAvanceAreas",
                 "Cuando un área revisa sus bienes, cada renglón tiene «Sí es» / «No es», «Ya la tiene» y «Completar»",

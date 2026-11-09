@@ -208,4 +208,30 @@ class CuentasAreaServiceTest {
             pdf.delete();
         }
     }
+
+    /** 9-nov-2026: one page per área to hand out as it is, and a first page for Patrimonio's
+     *  control; before, one table with every password and "entrega a cada área solo su renglón". */
+    @Test
+    void pdf_unaHojaPorArea_conSoloSuContrasena_yLaDeControlPrimero() throws Exception {
+        List<CuentasAreaService.Cuenta> r = new CuentasAreaService().crear(List.of("Dirección de Catastro", "Tesorería Municipal"));
+        List<CuentasAreaService.Cuenta> nuevas = r.stream().filter(c -> c.contrasena() != null).toList();
+        assertEquals(2, nuevas.size());
+        File pdf = new ReporteCuentasService().exportCuentas(r);
+        try (PdfDocument doc = new PdfDocument(new PdfReader(pdf))) {
+            assertEquals(3, doc.getNumberOfPages(), "control + una por área");
+            String control = PdfTextExtractor.getTextFromPage(doc.getPage(1));
+            assertTrue(control.contains("control de Patrimonio") && control.contains("Recibió"));
+            for (CuentasAreaService.Cuenta c : nuevas) assertTrue(control.contains(c.contrasena()));
+            for (int pag = 2; pag <= 3; pag++) {
+                String hoja = PdfTextExtractor.getTextFromPage(doc.getPage(pag));
+                CuentasAreaService.Cuenta suya = nuevas.stream().filter(c -> hoja.contains(c.usuario())).findFirst().orElseThrow();
+                assertTrue(hoja.contains(suya.contrasena()));
+                assertTrue(hoja.contains("Tu cuenta de SIBIM") && hoja.contains("Revisar mis bienes"), "con qué hacer el primer día");
+                nuevas.stream().filter(c -> c != suya)
+                    .forEach(otra -> assertFalse(hoja.contains(otra.contrasena()), "la hoja de un área no trae la contraseña de otra"));
+            }
+        } finally {
+            pdf.delete();
+        }
+    }
 }

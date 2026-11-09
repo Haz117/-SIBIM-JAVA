@@ -64,10 +64,15 @@ public final class EtiquetasAreaDialog {
 
     /** @param alCambiar run on closing when something was marked */
     public static void show(List<Producto> bienes, Runnable alCambiar) {
-        new EtiquetasAreaDialog(bienes, alCambiar).abrir();
+        new EtiquetasAreaDialog(bienes, alCambiar).abrir(null);
     }
 
-    private void abrir() {
+    /** Opened on {@code area} already chosen (step 3 of «Avance de las áreas», 9-nov-2026). */
+    public static void show(List<Producto> bienes, String area, Runnable alCambiar) {
+        new EtiquetasAreaDialog(bienes, alCambiar).abrir(area);
+    }
+
+    private void abrir(String inicial) {
         dialog = new Dialog<>();
         DialogUtil.applyOwner(dialog);
         dialog.setTitle("Etiquetas por área");
@@ -98,6 +103,10 @@ public final class EtiquetasAreaDialog {
 
         dialog.setOnHidden(e -> { if (cambio && alCambiar != null) alCambiar.run(); });
         cargarAreas();
+        if (inicial != null && areas.getItems().contains(inicial)) {
+            areas.getSelectionModel().select(inicial);
+            areas.scrollTo(inicial);
+        }
         elegir();
         Platform.runLater(areas::requestFocus);
         dialog.showAndWait();

@@ -125,9 +125,22 @@ final class AvanceAreaView {
                 () -> { dlg.close(); RevisarBienesDialog.show(a.area(),
                     a.observados() > 0 && SessionManager.isAdmin() ? RevisarBienesDialog.Vista.OBSERVADOS
                         : RevisarBienesDialog.Vista.POR_REVISAR, alCambiar); }),
+            // Patrimonio prints the labels before the área can stick them: its step 3 opens
+            // «Etiquetas por área» on this área (print, and mark the ones already stuck).
             pasoDetalle(a, 3, a.bienes() == 0 ? "No tiene bienes que etiquetar" : mayuscula(paso3(a)), null,
-                puede && a.bienes() > 0 ? "Confirmar etiquetas" : null,
-                () -> { dlg.close(); RevisarBienesDialog.show(a.area(), RevisarBienesDialog.Vista.SIN_ETIQUETA, alCambiar); }));
+                puede && a.bienes() > 0 ? (SessionManager.isAdmin() ? "Imprimir y marcar sus etiquetas" : "Confirmar etiquetas") : null,
+                () -> {
+                    javafx.scene.Scene escena = dlg.getDialogPane().getScene();
+                    dlg.close();
+                    if (!SessionManager.isAdmin()) {
+                        RevisarBienesDialog.show(a.area(), RevisarBienesDialog.Vista.SIN_ETIQUETA, alCambiar);
+                        return;
+                    }
+                    DialogUtil.runAsync(() -> new com.sibim.service.ProductoService().getAll(),
+                        bienes -> com.sibim.controller.dialogs.EtiquetasAreaDialog.show(bienes, a.area(), alCambiar),
+                        e -> com.sibim.util.NotificacionUtil.error(escena, "No se pudieron cargar los bienes: "
+                            + com.sibim.util.MensajeError.de(e)));
+                }));
         pasos.getStyleClass().add("avance-detalle");
         Label ayuda = new Label(a.entro() == null
             ? "Cada área entra a SIBIM con su propia cuenta; «Crear su cuenta» abre «Cuentas de las áreas» con esta ya marcada."

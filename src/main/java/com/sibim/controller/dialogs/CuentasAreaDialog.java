@@ -142,8 +142,8 @@ public final class CuentasAreaDialog {
         crear.setMinWidth(Region.USE_PREF_SIZE);
         crear.setOnAction(e -> crearMarcadas());
         cuantas.getStyleClass().add("muted-sm");
-        Label nota = new Label("Al crearlas sale un PDF con el usuario y la contraseña de cada una: guárdalo, "
-            + "las contraseñas no se vuelven a ver.");
+        Label nota = new Label("Al crearlas sale un PDF con una hoja para entregar a cada área (su usuario, su contraseña "
+            + "y qué hacer el primer día) y una de control para ti: guárdalo, las contraseñas no se vuelven a ver.");
         nota.getStyleClass().add("muted-sm");
         nota.setWrapText(true);
         HBox.setHgrow(nota, Priority.ALWAYS);
@@ -337,7 +337,9 @@ public final class CuentasAreaDialog {
                 NotificacionUtil.importanteYEspera("Guarda el PDF de contraseñas", FormatUtils.plural(r.getKey(), "cuenta creada", "cuentas creadas") + ".\n\n"
                     + "En la siguiente ventana usa «Guardar como…» y guárdalo en un lugar seguro: es un archivo "
                     + "temporal que se borra al cerrar SIBIM, y las contraseñas no se pueden volver a ver "
-                    + "(si un área pierde la suya, aquí mismo le das una nueva).");
+                    + "(si un área pierde la suya, aquí mismo le das una nueva).\n\n"
+                    + "Imprímelo: la primera hoja es tu control (anota quién recibió cada una) y después viene una hoja "
+                    + "para cada área, lista para entregar.");
                 DialogUtil.showExportResultDialog(escena, r.getValue());
                 cargar(escena, this::pintar);
             },

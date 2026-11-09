@@ -91,7 +91,7 @@ public class ReporteGuiaRapidaService extends ReporteService {
         {"Configuración",
             "RFC, domicilio, Elaboró y Vo. Bo.: los usa la hoja de resguardo de cada vehículo.",
             "Áreas y prefijos > doble clic en la celda Titular: es el responsable en el Anexo V.4 y lo propone el Resguardo general.",
-            "Usuarios > \"Cuentas por área\": ves el usuario de cada área, marcas cuáles crear y sale el PDF con contraseñas; a un área que perdió la suya le das una nueva ahí mismo. \"Equipos por cuenta\": qué cuentas aún no entran en ninguna computadora.",
+            "Usuarios > \"Cuentas por área\": ves el usuario de cada área, marcas cuáles crear y sale un PDF con una hoja para entregar a cada área (su usuario, su contraseña y qué hacer el primer día); a un área que perdió la suya le das una nueva ahí mismo. \"Equipos por cuenta\": qué cuentas aún no entran en ninguna computadora.",
             "\"Errores de equipos\": los errores que SIBIM ha tenido en las computadoras de las áreas.",
             "\"Respaldo automático\": un respaldo cifrado diario en esta computadora; anota la contraseña.",
             "\"Publicar actualización\": sube el instalador de una versión nueva, generado en esta PC."},
