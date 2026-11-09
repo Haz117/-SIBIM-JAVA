@@ -9,6 +9,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -52,6 +53,22 @@ public class MainApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+        // Opened again while it runs: the running one comes to the front, this one closes
+        // (two of them fought over the computer's offline copy).
+        com.sibim.util.InstanciaUnica.Resultado instancia =
+            com.sibim.util.InstanciaUnica.adquirir(() -> Platform.runLater(MainApp::traerAlFrente));
+        if (instancia != com.sibim.util.InstanciaUnica.Resultado.UNICA) {
+            if (instancia == com.sibim.util.InstanciaUnica.Resultado.LA_OTRA_NO_CONTESTO) {
+                javafx.scene.control.Dialog<javafx.scene.control.ButtonType> d = com.sibim.util.DialogUtil.styledMessage(
+                    "mdi2a-alert-circle-outline", "SIBIM ya está abierto", "Ya hay un SIBIM abierto en esta computadora",
+                    "#DC2626", "#991B1B",
+                    "Búscalo en la barra de tareas. Si no aparece, reinicia la computadora y vuelve a abrirlo.");
+                d.getDialogPane().getButtonTypes().setAll(javafx.scene.control.ButtonType.OK);
+                d.showAndWait();
+            }
+            Platform.exit();
+            return;
+        }
         primaryStage = stage;
         applyAppIcon(primaryStage);
         com.sibim.util.VentanaWindows.instalar();
@@ -59,6 +76,20 @@ public class MainApp extends Application {
         com.sibim.util.ModoLigero.instalar();
         com.sibim.service.TrayService.install(primaryStage);
         showSplash();
+    }
+
+    /** Another launch asked for this window: out of the taskbar and in front. */
+    static void traerAlFrente() {
+        Stage s = primaryStage;
+        if (s == null) return;
+        if (s.isIconified()) s.setIconified(false);
+        if (!s.isShowing()) s.show();
+        s.toFront();
+        s.requestFocus();
+        // Windows doesn't let a window take the focus from another app with toFront() alone.
+        boolean arriba = s.isAlwaysOnTop();
+        s.setAlwaysOnTop(true);
+        s.setAlwaysOnTop(arriba);
     }
 
     public static void showSplash() throws Exception {

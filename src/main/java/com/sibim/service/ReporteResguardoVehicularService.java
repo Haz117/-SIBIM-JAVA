@@ -121,7 +121,10 @@ public class ReporteResguardoVehicularService extends ReporteService {
         if (!d.rfc().isBlank()) titulos.add(linea("RFC: " + d.rfc().toUpperCase(ES), bold, 9.5f));
         if (!d.domicilio().isBlank()) titulos.add(linea(d.domicilio().toUpperCase(ES), bold, 9.5f));
         enc.addCell(titulos);
-        enc.addCell(imagenCelda("gobierno-municipal-2024-2027.png", 160, 52));
+        // 150 wide: its column leaves ~157 points inside the padding, and at 160 the logo didn't fit —
+        // iText forced it in and logged "Element does not fit current area" once per vehicle
+        // (131 times printing the parque vehicular on 7-nov-2026).
+        enc.addCell(imagenCelda("gobierno-municipal-2024-2027.png", 150, 52));
         doc.add(enc);
 
         Table t1 = tabla(1.6f, 1.9f, 1.3f, 1.9f, 1.6f).setMarginTop(3);

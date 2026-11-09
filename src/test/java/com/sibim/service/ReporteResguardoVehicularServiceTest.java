@@ -95,4 +95,28 @@ class ReporteResguardoVehicularServiceTest {
         }
         assertNull(new ReporteResguardoVehicularService().exportar(List.of()));
     }
+
+    /** 7-nov-2026: printing the parque vehicular logged "Element does not fit current area"
+     *  131 times, once per vehicle — the government logo was wider than its cell and iText
+     *  forced it in. Whatever doesn't fit gets forced or dropped: none may. */
+    @Test
+    void cadaHoja_cabeEnSuPagina_sinQueITextFuerceNada() throws Exception {
+        ch.qos.logback.classic.Logger itext = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("com.itextpdf");
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> avisos = new ch.qos.logback.core.read.ListAppender<>();
+        avisos.start();
+        itext.addAppender(avisos);
+        try {
+            Producto otro = frontier();
+            otro.setId("rv-2"); otro.setCodigo("PRES/74");
+            File pdf = new ReporteResguardoVehicularService().exportar(List.of(frontier(), otro));
+            try (var doc = new com.itextpdf.kernel.pdf.PdfDocument(new com.itextpdf.kernel.pdf.PdfReader(pdf))) {
+                assertEquals(2, doc.getNumberOfPages(), "una hoja por vehículo");
+            }
+            List<String> malos = avisos.list.stream().map(e -> e.getFormattedMessage())
+                .filter(m -> m.contains("does not fit") || m.contains("clipped")).toList();
+            assertTrue(malos.isEmpty(), "iText tuvo que forzar o recortar: " + malos);
+        } finally {
+            itext.detachAppender(avisos);
+        }
+    }
 }
