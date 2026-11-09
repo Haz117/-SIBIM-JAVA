@@ -128,6 +128,11 @@ final class TutorialGuias {
                 "Debajo de cada campo salen sugerencias de quién firma resguardos ahí como director o titular: un clic lo escribe",
                 "Guarda las veces que quieras sin cerrar; también se abre desde «Por hacer» del Inicio"),
                 "Abrir Datos de los formatos", abrir("configuracion", "formatos")));
+            p.add(paso("mdi2a-account-multiple-outline", GUINDA, GUINDA_D, "Cuentas de las áreas, antes de crearlas", "configuracion", null,
+                "Configuración › Usuarios › «Cuentas por área» (o «Crear las cuentas» en el Avance) ahora abre una lista",
+                "Cada área dice qué usuario le toca, qué podrá ver y si ya entró",
+                "Marca con su casilla cuáles crear: todas de una vez o unas cuantas; sale el PDF solo con las nuevas",
+                "Si un área pierde su contraseña, «Contraseña nueva» le da otra con su propia hoja"));
             p.add(paso("mdi2c-clipboard-check-multiple-outline", DORADO, DORADO_D, "Revisar bienes, más fácil para las áreas", "organigrama", "#btnAvanceAreas",
                 "Cuando un área revisa sus bienes, cada renglón tiene «Sí es» / «No es», «Ya la tiene» y «Completar»",
                 "Ya no hace falta Ctrl ni Shift: varios se marcan con su casilla",

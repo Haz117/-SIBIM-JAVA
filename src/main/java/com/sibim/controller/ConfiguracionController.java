@@ -731,33 +731,8 @@ public class ConfiguracionController {
      *  the credentials to hand out (see CuentasAreaService). */
     @FXML
     private void onCuentasPorArea() {
-        var scene = usersTable.getScene();
-        if (!com.sibim.util.ConfirmacionUtil.confirmar("Cuentas por área",
-                "Se creará una cuenta para cada área del organigrama que todavía no tenga.\n\n"
-                + "• Recursos Materiales y Patrimonio: administrador.\n"
-                + "• Presidencia y secretarías: ven su secretaría y sus direcciones.\n"
-                + "• Direcciones y organismos autónomos: solo su área.\n\n"
-                + "Las cuentas que ya existen no se modifican. Al terminar se abre un PDF con los usuarios "
-                + "y contraseñas nuevos para entregar a cada área.", "Crear las cuentas")) return;
-        DialogUtil.runAsyncWithProgress(scene, "Creando cuentas por área…",
-            () -> {
-                var cuentas = new com.sibim.service.CuentasAreaService().crearFaltantes();
-                long nuevas = cuentas.stream().filter(com.sibim.service.CuentasAreaService.Cuenta::nueva).count();
-                return java.util.Map.entry(nuevas, new com.sibim.service.ReporteCuentasService().exportCuentas(cuentas));
-            },
-            r -> {
-                loadUsers();
-                // The PDF is a temporary file, deleted when SIBIM closes, and
-                // the passwords are stored only as hashes: it is their one copy.
-                // Read before the PDF's window, where "Guardar como…" is.
-                if (r.getKey() == 0) NotificacionUtil.exito(scene, "Todas las áreas ya tenían cuenta");
-                else NotificacionUtil.importanteYEspera("Guarda el PDF de contraseñas", FormatUtils.plural(r.getKey(), "cuenta creada", "cuentas creadas") + ".\n\n"
-                    + "En la siguiente ventana usa «Guardar como…» y guárdalo en un lugar seguro: es un archivo "
-                    + "temporal que se borra al cerrar SIBIM, y las contraseñas no se pueden volver a ver "
-                    + "(solo restablecer una por una).");
-                DialogUtil.showExportResultDialog(scene, r.getValue());
-            },
-            e -> NotificacionUtil.error(scene, "No se pudieron crear las cuentas: " + com.sibim.util.MensajeError.de(e)));
+        // «Cuentas de las áreas» (9-nov-2026): see them first, create the ones ticked.
+        com.sibim.controller.dialogs.CuentasAreaDialog.abrir(usersTable.getScene(), null, this::loadUsers);
     }
 
     @FXML

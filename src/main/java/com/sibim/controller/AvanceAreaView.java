@@ -108,13 +108,16 @@ final class AvanceAreaView {
                 + " · " + (a.bienes() == 0 ? "sin bienes" : cuantos(a.bienes(), "bien", "bienes")),
             AppColors.PRIMARY, AppColors.PRIMARY_D);
         boolean puede = SessionManager.isAreaAccessible(a.area());
-        MainController main = MainController.getInstance();
-        boolean crearCuenta = a.sinCuenta() && SessionManager.isAdmin() && main != null;
+        boolean crearCuenta = a.sinCuenta() && SessionManager.isAdmin();
         String observados = a.observados() > 0
             ? "El área dice que " + (a.observados() == 1 ? "1 no es suyo" : a.observados() + " no son suyos") : null;
         VBox pasos = new VBox(
             pasoDetalle(a, 1, mayuscula(paso1(a)), null, crearCuenta ? "Crear su cuenta" : null,
-                () -> { dlg.close(); main.navigateToView("configuracion"); }),
+                () -> {
+                    javafx.scene.Scene escena = dlg.getDialogPane().getScene();
+                    dlg.close();
+                    com.sibim.controller.dialogs.CuentasAreaDialog.abrir(escena, java.util.Set.of(a.area()), alCambiar);
+                }),
             pasoDetalle(a, 2, a.bienes() == 0 ? "No tiene bienes que revisar"
                     : a.revisados() + " de " + a.bienes() + " revisados · " + a.conDatos() + " con foto, ubicación y estado físico",
                 observados, puede && a.bienes() > 0
@@ -127,7 +130,7 @@ final class AvanceAreaView {
                 () -> { dlg.close(); RevisarBienesDialog.show(a.area(), RevisarBienesDialog.Vista.SIN_ETIQUETA, alCambiar); }));
         pasos.getStyleClass().add("avance-detalle");
         Label ayuda = new Label(a.entro() == null
-            ? "Cada área entra a SIBIM con su propia cuenta (Configuración › Usuarios › «Cuentas por área»)."
+            ? "Cada área entra a SIBIM con su propia cuenta; «Crear su cuenta» abre «Cuentas de las áreas» con esta ya marcada."
             : "Los pasos 2 y 3 los hace el área desde su Inicio («Tu avance»); Patrimonio puede verlos y corregirlos aquí.");
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);
@@ -430,7 +433,7 @@ final class AvanceAreaView {
         ayuda.getStyleClass().add("muted-sm");
         ayuda.setWrapText(true);
         VBox cuerpo = new VBox(12, tarjetas);
-        Node aviso = aviso(filas, dlg);
+        Node aviso = aviso(filas, dlg, alCambiar);
         if (aviso != null) cuerpo.getChildren().add(aviso);
         cuerpo.getChildren().addAll(barra, marco, ayuda);
         // Maximized on a wide screen the rows stretched until the name and its steps
@@ -491,7 +494,7 @@ final class AvanceAreaView {
 
     /** When no área has entered, or some have no account: say it once, at the top, with
      *  the way to start — each área enters with its own account. */
-    private static Node aviso(List<Avance> filas, Dialog<?> dlg) {
+    private static Node aviso(List<Avance> filas, Dialog<?> dlg, Runnable alCambiar) {
         if (filas.isEmpty()) return null;
         long sinCuenta = filas.stream().filter(Avance::sinCuenta).count();
         boolean nadieEntro = filas.stream().noneMatch(Avance::fase1);
@@ -524,16 +527,19 @@ final class AvanceAreaView {
         HBox caja = new HBox(12, icono, textos);
         caja.setAlignment(Pos.CENTER_LEFT);
         caja.getStyleClass().addAll("cnt-aviso", "avance-aviso");
-        MainController main = MainController.getInstance();
-        if (SessionManager.isAdmin() && main != null && sinCuenta > 0) {
+        if (SessionManager.isAdmin() && sinCuenta > 0) {
             Button cuentas = new Button(sinCuenta == filas.size() ? "Crear las cuentas" : "Crear las que faltan");
             cuentas.getStyleClass().addAll("btn-primary", "btn-sm");
             FontIcon mas = new FontIcon("mdi2a-account-multiple-plus-outline");
             mas.getStyleClass().add("avance-aviso-boton-icono");
             cuentas.setGraphic(mas);
             cuentas.setMinWidth(Region.USE_PREF_SIZE);
-            cuentas.setTooltip(new Tooltip("Abre Configuración › Usuarios, donde está el botón «Cuentas por área»"));
-            cuentas.setOnAction(e -> { dlg.close(); main.navigateToView("configuracion"); });
+            cuentas.setTooltip(new Tooltip("Abre «Cuentas de las áreas»: ves el usuario de cada una y creas las que marques"));
+            cuentas.setOnAction(e -> {
+                javafx.scene.Scene escena = dlg.getDialogPane().getScene();
+                dlg.close();
+                com.sibim.controller.dialogs.CuentasAreaDialog.abrir(escena, null, alCambiar);
+            });
             caja.getChildren().add(cuentas);
         }
         return caja;

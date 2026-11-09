@@ -65,18 +65,22 @@ public class CuentasAreaService {
         this.audit = audit;
     }
 
-    /** Creates the accounts that don't exist yet; returns every área's account,
-     *  with the password only for the ones just created. */
-    public List<Cuenta> crearFaltantes() throws SQLException {
-        if (!SessionManager.isAdmin()) throw new SecurityException("Solo el administrador crea cuentas");
-        if (DatabaseConfig.isOfflineMode())
-            throw new IllegalStateException("Crear cuentas requiere conexión con el servidor");
-        List<Cuenta> resultado = new ArrayList<>();
+    /** What an área's account is, or would be: its user name, its role, the account
+     *  when it exists, and why it can't be created when something is in the way. */
+    public record Plan(String area, String usuario, Rol rol, Usuario existente, String problema) {
+        public boolean tieneCuenta() { return existente != null; }
+    }
+
+    /** Every área's account as it is or would be, without creating anything — what
+     *  «Cuentas de las áreas» shows before creating them (9-nov-2026). */
+    public List<Plan> planear() throws SQLException {
+        List<Plan> out = new ArrayList<>();
         Set<String> tomados = new HashSet<>();
         for (AreaCatalog.Entrada e : Areas.catalogo().entradas()) {
             String usuario = nombreUsuario(e.nombre());
             Rol rol = rolDe(e);
             Optional<Usuario> existente = usuarios.findByUsername(usuario);
+            String problema = null;
             // Two áreas can shorten alike, and a personal account may already
             // have the name: then it isn't this área's account. The prefix
             // tells them apart (it is unique per área).
@@ -84,33 +88,71 @@ public class CuentasAreaService {
                 usuario = usuario + "." + e.prefijo().toLowerCase(Locale.ROOT);
                 tomados.add(usuario);
                 existente = usuarios.findByUsername(usuario);
-                if (existente.filter(u -> !e.nombre().equals(u.getArea())).isPresent())
-                    throw new IllegalStateException("El usuario \"" + usuario + "\" ya es de otra área ("
-                        + existente.get().getArea() + "); cámbiale el nombre de usuario y vuelve a intentarlo");
+                if (existente.filter(u -> !e.nombre().equals(u.getArea())).isPresent()) {
+                    problema = "El usuario \"" + usuario + "\" ya es de otra área (" + existente.get().getArea()
+                        + "); cámbiale el nombre de usuario y vuelve a intentarlo";
+                    existente = Optional.empty();
+                }
             }
-            if (existente.isPresent()) {
-                resultado.add(new Cuenta(e.nombre(), usuario, null, existente.get().getRol(), false));
+            out.add(new Plan(e.nombre(), usuario, existente.map(Usuario::getRol).orElse(rol), existente.orElse(null), problema));
+        }
+        return out;
+    }
+
+    /** Creates the accounts that don't exist yet; returns every área's account,
+     *  with the password only for the ones just created. */
+    public List<Cuenta> crearFaltantes() throws SQLException {
+        return crear(null);
+    }
+
+    /** Creates the accounts of {@code areas} (null: every área) that don't exist yet.
+     *  Returns the accounts that exist plus the ones created, these with their password. */
+    public List<Cuenta> crear(java.util.Collection<String> areas) throws SQLException {
+        if (!SessionManager.isAdmin()) throw new SecurityException("Solo el administrador crea cuentas");
+        if (DatabaseConfig.isOfflineMode())
+            throw new IllegalStateException("Crear cuentas requiere conexión con el servidor");
+        List<Cuenta> resultado = new ArrayList<>();
+        for (Plan p : planear()) {
+            if (p.tieneCuenta()) {
+                resultado.add(new Cuenta(p.area(), p.usuario(), null, p.rol(), false));
                 continue;
             }
-            String contrasena = contrasena(usuario);
+            if (areas != null && !areas.contains(p.area())) continue;
+            if (p.problema() != null) throw new IllegalStateException(p.problema());
+            String contrasena = contrasena(p.usuario());
             Usuario u = new Usuario();
-            u.setUsername(usuario);
-            u.setNombre(e.nombre());
+            u.setUsername(p.usuario());
+            u.setNombre(p.area());
             u.setCargo(CARGO_COMPARTIDA);
-            u.setRol(rol);
-            u.setArea(e.nombre());
+            u.setRol(p.rol());
+            u.setArea(p.area());
             u.setActivo(true);
             // Shared by several people: forcing a change at first login would
             // lock out everyone else who was handed the original password.
             u.setDebeCambiarPassword(false);
             u.setPasswordHash(BCrypt.withDefaults().hashToString(12, contrasena.toCharArray()));
             usuarios.save(u);
-            resultado.add(new Cuenta(e.nombre(), usuario, contrasena, rol, true));
+            resultado.add(new Cuenta(p.area(), p.usuario(), contrasena, p.rol(), true));
         }
         long nuevas = resultado.stream().filter(Cuenta::nueva).count();
         if (nuevas > 0)
             audit.log("usuario", null, "Cuentas por área", "crear", FormatUtils.plural(nuevas, "cuenta de área creada", "cuentas de área creadas"));
         return resultado;
+    }
+
+    /** A new password for an área's account (it lost the paper, or someone who left
+     *  had it): the old one stops working at once. Returned with its password, for
+     *  the PDF; UsuarioRepository#updatePassword leaves it in the Auditoría. */
+    public Cuenta nuevaContrasena(String area) throws SQLException {
+        if (!SessionManager.isAdmin()) throw new SecurityException("Solo el administrador cambia contraseñas");
+        if (DatabaseConfig.isOfflineMode())
+            throw new IllegalStateException("Cambiar la contraseña requiere conexión con el servidor");
+        Plan p = planear().stream().filter(x -> x.area().equals(area)).findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("No existe el área " + area));
+        if (!p.tieneCuenta()) throw new IllegalStateException(area + " todavía no tiene cuenta");
+        String contrasena = contrasena(p.usuario());
+        usuarios.updatePassword(p.existente().getId(), BCrypt.withDefaults().hashToString(12, contrasena.toCharArray()));
+        return new Cuenta(p.area(), p.usuario(), contrasena, p.rol(), true);
     }
 
     static Rol rolDe(AreaCatalog.Entrada e) {

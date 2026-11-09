@@ -316,3 +316,24 @@
 .revisar-estado-no .ikonli-font-icon { -fx-icon-color: #C98A1B; -fx-icon-size: 15; }
 .revisar-cambiar { -fx-font-size: 11px; -fx-padding: 0 2; }
 .revisar-acciones .btn-primary .revisar-boton-icono { -fx-icon-color: white; }
+
+/* ── «Cuentas de las áreas» (9-nov-2026) ──────────────────────────────────────── */
+.cuentas-renglon {
+    -fx-padding: 9 14 9 14;
+    -fx-background-color: white;
+}
+.cuentas-renglon:hover { -fx-background-color: sibim-surface; }
+.cuentas-renglon-marcado, .cuentas-renglon-marcado:hover { -fx-background-color: #FDF7F8; }
+.cuentas-usuario { -fx-font-family: "Consolas", "Courier New", monospace; -fx-font-size: 11.5px; -fx-text-fill: sibim-slate-600; }
+.cuentas-estado {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 99;
+    -fx-padding: 2 9;
+    -fx-graphic-text-gap: 5;
+}
+.cuentas-estado-sin      { -fx-background-color: #FCF0F1; -fx-text-fill: #A2232D; -fx-border-color: #F2BCC0; -fx-border-radius: 99; }
+.cuentas-estado-nunca    { -fx-background-color: #FDF3DC; -fx-text-fill: #8A5A12; }
+.cuentas-estado-entro    { -fx-background-color: #EEF5F2; -fx-text-fill: #235B4E; }
+.cuentas-estado-entro .ikonli-font-icon { -fx-icon-color: #235B4E; -fx-icon-size: 13; }
+.cuentas-estado-problema { -fx-background-color: #FEF2F2; -fx-text-fill: #B91C1C; }

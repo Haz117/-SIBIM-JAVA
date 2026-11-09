@@ -28,14 +28,17 @@ public class ReporteCuentasService extends ReporteService {
                 .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA)).setFontSize(9f).setMarginBottom(8));
             Table t = createPdfTable(new String[]{"Área", "Usuario", "Contraseña", "Permisos"},
                 new float[]{2.7f, 1.7f, 2.6f, 1.8f});   // the password must fit on one line
-            for (CuentasAreaService.Cuenta c : cuentas) {
+            // Only the accounts with a password to hand out (created or changed now):
+            // the ones that already existed only filled the sheet with "(ya existía)".
+            List<CuentasAreaService.Cuenta> conContrasena = cuentas.stream().filter(c -> c.contrasena() != null).toList();
+            for (CuentasAreaService.Cuenta c : conContrasena) {
                 t.addCell(cell(c.area()));
                 t.addCell(cell(c.usuario()));
-                t.addCell(cell(c.contrasena() != null ? c.contrasena() : "(ya existía)"));
+                t.addCell(cell(c.contrasena()));
                 t.addCell(cell(permisos(c.rol())));
             }
             doc.add(t);
-            addPdfFooter(doc, cuentas.size());
+            addPdfFooter(doc, conContrasena.size());
         }
         return file;
     }

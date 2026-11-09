@@ -62,6 +62,7 @@ public final class CostoLotesDialog {
         icono.setIconSize(18);
         Label aviso = new Label("Revisa cada lote contra su factura. Si el costo capturado es el TOTAL de la factura "
             + "(no el de una pieza), pulsa «Es el total del lote»: el costo queda dividido entre las piezas. "
+            + "«Si fuera el total» dice cuánto saldría cada pieza, para comparar. "
             + "Los lotes van de mayor a menor total, así salen primero los que más pesan en el inventario.");
         aviso.setWrapText(true);
         aviso.setMinHeight(Region.USE_PREF_SIZE);
@@ -91,6 +92,14 @@ public final class CostoLotesDialog {
         tabla.getColumns().add(texto("Piezas", 80, p -> String.valueOf(p.getStockActual())));
         tabla.getColumns().add(texto("Costo por pieza", 135, p -> FormatUtils.formatCurrency(p.getPrecioCompra())));
         tabla.getColumns().add(texto("Total del lote", 130, p -> FormatUtils.formatCurrency(p.getValorTotal())));
+        // What each piece would cost if the captured cost were the factura's total
+        // (9-nov-2026): $24,924.25 a speaker, or $1,384.68 — side by side, the right
+        // reading is usually plain.
+        tabla.getColumns().add(texto("Si fuera el total", 150, p -> {
+            if (antes.containsKey(p.getId())) return "—";
+            java.math.BigDecimal c = com.sibim.service.CalidadDatosService.costoPorPieza(p.getPrecioCompra(), p.getStockActual());
+            return c == null ? "—" : FormatUtils.formatCurrency(c) + " c/u";
+        }));
         tabla.getColumns().add(columnaAccion());
         VBox.setVgrow(tabla, Priority.ALWAYS);
 

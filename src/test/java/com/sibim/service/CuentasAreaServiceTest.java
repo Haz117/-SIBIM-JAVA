@@ -156,4 +156,56 @@ class CuentasAreaServiceTest {
         assertEquals("catastro.dcat", catastro.usuario());
         assertEquals(Rol.DIRECCION, new UsuarioRepository().findByUsername("catastro.dcat").orElseThrow().getRol());
     }
+
+    // ── «Cuentas de las áreas» (9-nov-2026) ───────────────────────────────────
+
+    @Test
+    void planear_diceElUsuarioDeCadaArea_sinCrearNada() throws Exception {
+        List<CuentasAreaService.Plan> plan = new CuentasAreaService().planear();
+        assertEquals(Areas.catalogo().entradas().size(), plan.size());
+        assertTrue(plan.stream().noneMatch(CuentasAreaService.Plan::tieneCuenta));
+        assertEquals("catastro", plan.stream().filter(p -> p.area().equals("Dirección de Catastro")).findFirst().orElseThrow().usuario());
+        assertTrue(new UsuarioRepository().findByUsername("catastro").isEmpty(), "planear no crea cuentas");
+    }
+
+    @Test
+    void crear_soloLasAreasElegidas() throws Exception {
+        List<CuentasAreaService.Cuenta> r = new CuentasAreaService().crear(List.of("Dirección de Catastro", "Tesorería Municipal"));
+        assertEquals(2, r.stream().filter(CuentasAreaService.Cuenta::nueva).count());
+        assertTrue(new UsuarioRepository().findByUsername("catastro").isPresent());
+        assertTrue(new UsuarioRepository().findByUsername("patrimonio").isEmpty(), "las no elegidas se quedan sin cuenta");
+        // Next time those two show as existing, the rest can be created later.
+        var plan = new CuentasAreaService().planear();
+        assertEquals(2, plan.stream().filter(CuentasAreaService.Plan::tieneCuenta).count());
+    }
+
+    @Test
+    void nuevaContrasena_cambiaLaDeEsaCuenta() throws Exception {
+        CuentasAreaService s = new CuentasAreaService();
+        s.crear(List.of("Dirección de Catastro"));
+        String antes = new UsuarioRepository().findByUsername("catastro").orElseThrow().getPasswordHash();
+        CuentasAreaService.Cuenta nueva = s.nuevaContrasena("Dirección de Catastro");
+        assertNotNull(nueva.contrasena());
+        Usuario despues = new UsuarioRepository().findByUsername("catastro").orElseThrow();
+        assertNotEquals(antes, despues.getPasswordHash());
+        assertTrue(at.favre.lib.crypto.bcrypt.BCrypt.verifyer().verify(nueva.contrasena().toCharArray(), despues.getPasswordHash()).verified);
+        assertFalse(despues.isDebeCambiarPassword(), "compartida: no obliga a cambiarla");
+        assertThrows(IllegalStateException.class, () -> s.nuevaContrasena("Tesorería Municipal"), "sin cuenta no hay qué cambiar");
+    }
+
+    @Test
+    void pdf_soloLasQueTienenContrasena() throws Exception {
+        CuentasAreaService s = new CuentasAreaService();
+        s.crear(List.of("Tesorería Municipal"));
+        List<CuentasAreaService.Cuenta> r = s.crear(List.of("Dirección de Catastro"));
+        File pdf = new ReporteCuentasService().exportCuentas(r);
+        try (PdfDocument doc = new PdfDocument(new PdfReader(pdf))) {
+            String texto = PdfTextExtractor.getTextFromPage(doc.getPage(1));
+            assertTrue(texto.contains("catastro"));
+            assertFalse(texto.contains("ya existía"), "la de Tesorería ya existía: no va en la hoja");
+            assertFalse(texto.contains("Tesorería Municipal"));
+        } finally {
+            pdf.delete();
+        }
+    }
 }

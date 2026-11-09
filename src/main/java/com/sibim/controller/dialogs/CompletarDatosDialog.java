@@ -162,7 +162,8 @@ public final class CompletarDatosDialog {
         // Only if it changed: replacing the items drops the selection, which restarts the area.
         if (!areas.getItems().equals(orden)) {
             areas.getItems().setAll(orden);
-            if (elegida != null) areas.getSelectionModel().select(elegida);
+            // Opens on «Todas las áreas» (9-nov-2026): the right half was empty until a click.
+            areas.getSelectionModel().select(elegida != null ? elegida : TODAS);
         }
         areas.refresh();
     }
