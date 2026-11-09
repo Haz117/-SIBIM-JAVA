@@ -82,6 +82,7 @@ public class OrganigramaController {
     private Map<String, List<Prestamo>>                  prestamosPorArea  = new HashMap<>();
     private Map<String, List<Comodato>>                  comodatosPorArea  = new HashMap<>();
     private Map<String, com.sibim.service.AvanceAreasService.Avance> avancePorArea = new HashMap<>();
+    private boolean abrirAvanceAlCargar;
     @FXML private VBox avanceCard;
     private boolean soloAlertas = false;
 
@@ -173,6 +174,8 @@ public class OrganigramaController {
             searchField.textProperty().addListener((obs, o, n) -> btnClearSearch.setVisible(!n.isBlank()));
             btnClearSearch.setOnAction(e -> { searchField.clear(); STICKY.put("search", ""); searchField.requestFocus(); });
         }
+        // «Probarlo ahora» in Novedades: the avance window, once the data is in.
+        abrirAvanceAlCargar = "avance".equals(com.sibim.session.NavigationContext.consumePendingAbrir());
         loadData(false);
         AnimationUtils.staggeredFadeInUp(
             List.of(statCardAreas, statCardBienes, statCardTop, statCardValor), 300, 55);
@@ -205,6 +208,10 @@ public class OrganigramaController {
                 updateStats();
                 if (showSuccessToast)
                     NotificacionUtil.info(searchField.getScene(), "Organigrama actualizado");
+                if (abrirAvanceAlCargar) {
+                    abrirAvanceAlCargar = false;
+                    Platform.runLater(this::onAvanceAreas);
+                }
             },
             e -> {
                 log.error("No se pudo cargar el organigrama", e);

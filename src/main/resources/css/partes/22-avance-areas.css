@@ -59,18 +59,7 @@
     -fx-background-radius: 99;
 }
 
-/* Tabla «Avance de las áreas» (6-nov-2026): los tres pasos unidos por una
-   línea, dónde va el área en palabras y conteos cortos. */
-.avance-paso-grande {
-    -fx-min-width: 22; -fx-pref-width: 22; -fx-max-width: 22;
-    -fx-min-height: 22; -fx-pref-height: 22; -fx-max-height: 22;
-    -fx-font-size: 11px;
-}
-.avance-linea {
-    -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12;
-    -fx-min-height: 2; -fx-pref-height: 2; -fx-max-height: 2;
-    -fx-background-color: sibim-slate-200;
-}
+/* Textos de avance (ventana «Avance de las áreas» y «Tu avance» del Inicio). */
 .avance-linea-hecha { -fx-background-color: #235B4E; }
 .avance-estado { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
 .avance-estado-curso { -fx-text-fill: #8A5A12; -fx-font-weight: bold; }
@@ -86,9 +75,6 @@
     -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
-/* En la tabla la pista vacía va más clara: con casi todo en cero no debe pesar. */
-.avance-tabla .avance-pista { -fx-background-color: sibim-slate-100; }
-
 /* ── «Tu avance» at the top of an área's Inicio (MiAreaPanel) ─────────────────────── */
 .mi-avance { -fx-padding: 16 20 16 20; }
 .mi-avance-paso {
@@ -104,3 +90,138 @@
 }
 .mi-avance-linea.avance-linea-hecha { -fx-background-color: #235B4E; }
 .mi-avance-fin { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #235B4E; -fx-padding: 4 0 0 0; }
+
+/* ── Ventana «Avance de las áreas» (rediseño 9-nov-2026) ─────────────────────────
+   Cinco tarjetas que resumen y filtran por paso, y la lista agrupada por dependencia.
+   Un color por paso, el mismo en tarjeta, insignia y barra:
+   entrar = guinda · revisar = ámbar · etiquetas = dorado · terminaron = verde. */
+.avance-tarjeta {
+    -fx-background-color: white;
+    -fx-background-insets: 0;
+    -fx-background-radius: 10;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-padding: 12 14 12 14;
+    -fx-alignment: top-left;
+    -fx-cursor: hand;
+    -fx-effect: null;
+}
+.avance-tarjeta:hover   { -fx-border-color: sibim-slate-300; -fx-background-color: sibim-surface; }
+.avance-tarjeta:focused { -fx-border-color: sibim-indigo-300; }
+.avance-tarjeta:selected { -fx-border-width: 2; -fx-padding: 11 13 11 13; }
+.avance-tarjeta.avance-todas:selected      { -fx-border-color: sibim-slate-700; -fx-background-color: sibim-surface; }
+.avance-tarjeta.avance-entrar:selected     { -fx-border-color: #A2232D; -fx-background-color: #FCF0F1; }
+.avance-tarjeta.avance-revisar:selected    { -fx-border-color: #C98A1B; -fx-background-color: #FDF6E7; }
+.avance-tarjeta.avance-etiquetar:selected  { -fx-border-color: #9C7A3C; -fx-background-color: #F7F1E6; }
+.avance-tarjeta.avance-terminaron:selected { -fx-border-color: #235B4E; -fx-background-color: #EEF5F2; }
+.avance-tarjeta-titulo  { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-700; }
+.avance-tarjeta-cifra   { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
+.avance-tarjeta-unidad  { -fx-font-size: 12px; -fx-text-fill: sibim-slate-500; }
+.avance-tarjeta-detalle { -fx-font-size: 11px; -fx-text-fill: sibim-slate-600; }
+.avance-tarjeta-icono   { -fx-icon-color: sibim-slate-500; -fx-icon-size: 16; }
+.avance-tarjeta .avance-pista,
+.avance-tarjeta .avance-relleno { -fx-min-height: 5; -fx-pref-height: 5; -fx-max-height: 5; }
+.avance-tarjeta .avance-pista { -fx-background-color: sibim-slate-100; }
+.avance-entrar .avance-relleno     { -fx-background-color: #A2232D; }
+.avance-revisar .avance-relleno    { -fx-background-color: #D9A441; }
+.avance-etiquetar .avance-relleno  { -fx-background-color: #9C7A3C; }
+.avance-terminaron .avance-relleno { -fx-background-color: #235B4E; }
+
+/* Insignia: el paso en que va (o ✓), del color de ese paso. */
+.avance-insignia {
+    -fx-min-width: 30; -fx-pref-width: 30; -fx-max-width: 30;
+    -fx-min-height: 30; -fx-pref-height: 30; -fx-max-height: 30;
+    -fx-background-radius: 99;
+    -fx-border-radius: 99;
+    -fx-border-width: 1;
+    -fx-alignment: center;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.avance-insignia-chica {
+    -fx-min-width: 20; -fx-pref-width: 20; -fx-max-width: 20;
+    -fx-min-height: 20; -fx-pref-height: 20; -fx-max-height: 20;
+    -fx-font-size: 11px;
+}
+.avance-entrar .avance-insignia     { -fx-background-color: #FCF0F1; -fx-border-color: #F2BCC0; -fx-text-fill: #A2232D; }
+.avance-revisar .avance-insignia    { -fx-background-color: #FDF3DC; -fx-border-color: #E9C77E; -fx-text-fill: #8A5A12; }
+.avance-etiquetar .avance-insignia  { -fx-background-color: #F6EFE2; -fx-border-color: #DCC8A6; -fx-text-fill: #7D6230; }
+.avance-terminaron .avance-insignia { -fx-background-color: #235B4E; -fx-border-color: #235B4E; -fx-text-fill: white; }
+
+/* La lista: cabecera de columnas, grupos por dependencia y un renglón por área. */
+.avance-marco {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: sibim-slate-200;
+    -fx-border-radius: 10;
+}
+.avance-lista-scroll,
+.avance-lista-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+.avance-lista { -fx-background-color: white; -fx-background-radius: 0 0 10 10; }
+.avance-lista-cabeza {
+    -fx-background-color: sibim-surface;
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-color: transparent transparent sibim-slate-200 transparent;
+}
+.avance-lista-cabeza .label { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-600; }
+.avance-grupo {
+    -fx-padding: 14 14 6 14;
+    -fx-border-color: sibim-slate-100 transparent transparent transparent;
+}
+.avance-grupo-nombre  { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: sibim-indigo-dark; }
+.avance-grupo-detalle { -fx-font-size: 11px; -fx-text-fill: sibim-slate-500; }
+.avance-renglon {
+    -fx-padding: 9 14 9 14;
+    -fx-background-color: white;
+    -fx-cursor: hand;
+}
+.avance-renglon:hover   { -fx-background-color: sibim-surface; }
+/* Con el teclado: fondo guinda claro y una raya a la izquierda, no el halo de
+   .a11y-focusable, que en un renglón a todo lo ancho pesa demasiado. */
+.avance-renglon.a11y-focusable:focused {
+    -fx-effect: null;
+    -fx-background-color: #FCF0F1;
+    -fx-border-color: #A2232D;
+    -fx-border-width: 0 0 0 3;
+    -fx-padding: 9 14 9 11;
+}
+.avance-renglon .avance-area-nombre { -fx-font-weight: bold; }
+.avance-renglon .avance-pista,
+.avance-renglon .avance-relleno { -fx-min-height: 6; -fx-pref-height: 6; -fx-max-height: 6; }
+.avance-renglon .avance-pista { -fx-background-color: sibim-slate-100; }
+.avance-renglon .avance-segmento-1 .avance-relleno { -fx-background-color: #A2232D; }
+.avance-renglon .avance-segmento-2 .avance-relleno { -fx-background-color: #D9A441; }
+.avance-renglon .avance-segmento-3 .avance-relleno { -fx-background-color: #9C7A3C; }
+.avance-renglon.avance-terminaron .avance-relleno  { -fx-background-color: #235B4E; }
+.avance-renglon .avance-segmento-nada { -fx-opacity: 0.45; }
+.avance-renglon .avance-estado { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
+.avance-renglon.avance-revisar .avance-estado    { -fx-text-fill: #8A5A12; -fx-font-weight: bold; }
+.avance-renglon.avance-etiquetar .avance-estado  { -fx-text-fill: #7D6230; -fx-font-weight: bold; }
+.avance-renglon.avance-terminaron .avance-estado { -fx-text-fill: #235B4E; -fx-font-weight: bold; }
+.avance-flecha { -fx-icon-color: sibim-slate-300; -fx-icon-size: 18; }
+.avance-renglon:hover .avance-flecha,
+.avance-renglon:focused .avance-flecha { -fx-icon-color: #A2232D; }
+.avance-aviso-icono { -fx-icon-color: #8A5A12; }
+.avance-aviso-boton-icono { -fx-icon-color: white; -fx-icon-size: 15; }
+
+/* Detalle de un área: los tres pasos en vertical, unidos por una línea. */
+.avance-pendiente .avance-insignia { -fx-background-color: sibim-slate-100; -fx-border-color: sibim-slate-200; -fx-text-fill: sibim-slate-500; }
+.avance-detalle-linea {
+    -fx-min-width: 2; -fx-pref-width: 2; -fx-max-width: 2;
+    -fx-background-color: sibim-slate-200;
+}
+.avance-detalle-linea-hecha { -fx-background-color: #235B4E; }
+.avance-detalle-titulo { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: sibim-slate-950; }
+.avance-detalle-estado { -fx-font-size: 12px; -fx-text-fill: sibim-slate-600; }
+.avance-detalle-hecho  { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #235B4E; }
+.avance-detalle .avance-pista { -fx-background-color: sibim-slate-100; }
+.avance-detalle .avance-segmento-1 .avance-relleno { -fx-background-color: #A2232D; }
+.avance-detalle .avance-segmento-2 .avance-relleno { -fx-background-color: #D9A441; }
+.avance-detalle .avance-segmento-3 .avance-relleno { -fx-background-color: #9C7A3C; }
+.avance-detalle .avance-paso-terminado .avance-relleno { -fx-background-color: #235B4E; }

@@ -77,6 +77,20 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"   # la barra de Invoke-WebRequest lo hace 10 veces más lento
 . (Join-Path $PSScriptRoot "comun.ps1")
 
+# Registro de cada corrida en %APPDATA%\SIBIM\logs\respaldo.log: la tarea corre
+# con la ventana oculta y, cuando algo la corta (0xC000013A el 9-nov-2026), sin
+# esto no queda rastro de en qué paso iba.
+$registro = Join-Path $env:APPDATA "SIBIM\logs\respaldo.log"
+try {
+    New-Item -ItemType Directory -Force -Path (Split-Path $registro) | Out-Null
+    if ((Test-Path $registro) -and (Get-Item $registro).Length -gt 512KB) {
+        Move-Item $registro "$registro.1" -Force
+    }
+    Start-Transcript -Path $registro -Append | Out-Null
+} catch {
+    Write-Warning "No se pudo abrir el registro ${registro}: $($_.Exception.Message)"
+}
+
 if ($Registrar) {
     # Ventana oculta: visible, quien la veía aparecer al iniciar sesión la cerraba
     # y el respaldo quedaba cortado (0xC000013A, dos veces el 3-nov-2026).
@@ -110,6 +124,7 @@ $temporal = "$archivo.parcial"
 # La contraseña solo vive en el entorno de este proceso.
 $env:PGPASSWORD = $con.Contrasena
 $env:PGSSLMODE  = $con.Ssl
+Write-Host "Respaldando la base de $($con.Host) en $archivo..."
 try {
     & $pgDump --host $con.Host --port $con.Puerto --username $con.Usuario --dbname $con.Base `
         --format custom --no-owner --no-privileges --schema public `

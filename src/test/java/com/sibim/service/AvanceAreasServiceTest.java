@@ -48,7 +48,7 @@ class AvanceAreasServiceTest {
         assertEquals(1, cat.faseActual(), "no ha entrado: sigue en la fase 1 aunque ya revisó algunos");
         assertEquals(0.5, cat.avance(2), 1e-9);
         assertEquals(0.25, cat.avance(3), 1e-9);
-        assertEquals("Fase 1 · sin entrar", cat.resumen());
+        assertEquals("Paso 1 · sin entrar", cat.resumen());
 
         Avance con = avance.get("Contraloría Municipal");
         assertEquals(4, con.faseActual());
@@ -67,9 +67,32 @@ class AvanceAreasServiceTest {
             Map.of("Catastro", LocalDateTime.now(), "DIF", LocalDateTime.now(), "Sin Bienes", LocalDateTime.now()),
             List.of("Catastro", "DIF", "Sin Bienes"));
         assertEquals(2, avance.get("Catastro").faseActual());
-        assertEquals("Fase 2 · 50 %", avance.get("Catastro").resumen());
+        assertEquals("Paso 2 · 50 %", avance.get("Catastro").resumen());
         assertEquals(3, avance.get("DIF").faseActual());
-        assertEquals("Fase 3 · 33 %", avance.get("DIF").resumen());
+        assertEquals("Paso 3 · 33 %", avance.get("DIF").resumen());
         assertEquals("Sin bienes", avance.get("Sin Bienes").resumen());
+    }
+
+    @Test
+    void conCuenta_seSabeQuienTieneCuentaYQuienNo() {
+        Map<String, Avance> avance = AvanceAreasService.calcular(List.of(bien("Catastro", false, null, false, false)),
+            Map.of("DIF", LocalDateTime.now()), java.util.Set.of("Catastro"), List.of("Catastro", "DIF", "Archivo"));
+        Avance cat = avance.get("Catastro"), dif = avance.get("DIF"), arch = avance.get("Archivo");
+        assertEquals(Boolean.TRUE, cat.conCuenta());
+        assertFalse(cat.sinCuenta(), "tiene cuenta aunque no ha entrado");
+        assertEquals("Paso 1 · sin entrar", cat.resumen());
+        assertEquals(Boolean.TRUE, dif.conCuenta(), "si entró, tiene cuenta aunque no venga en la lista");
+        assertFalse(dif.sinCuenta());
+        assertEquals(Boolean.FALSE, arch.conCuenta());
+        assertTrue(arch.sinCuenta());
+        assertEquals("Paso 1 · sin cuenta", arch.resumen());
+    }
+
+    @Test
+    void sinSaberLasCuentas_noDiceQueFalten() {
+        Avance a = AvanceAreasService.calcular(List.of(), Map.of(), List.of("Catastro")).get("Catastro");
+        assertNull(a.conCuenta(), "fuera de línea no se sabe");
+        assertFalse(a.sinCuenta());
+        assertEquals("Paso 1 · sin entrar", a.resumen());
     }
 }

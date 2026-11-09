@@ -25,9 +25,20 @@ import java.util.*;
  */
 public class AvanceAreasService {
 
-    /** The three phases of one área, counted over its active bienes. */
+    /** The three phases of one área, counted over its active bienes.
+     *  @param conCuenta whether the área has an account of its own to enter with
+     *                   (9-nov-2026: none had one, and that is why none had entered);
+     *                   null when it can't be known (offline, or no permission) */
     public record Avance(String area, LocalDateTime entro, int bienes, int revisados, int observados,
-                         int conDatos, int etiquetados) {
+                         int conDatos, int etiquetados, Boolean conCuenta) {
+
+        public Avance(String area, LocalDateTime entro, int bienes, int revisados, int observados,
+                      int conDatos, int etiquetados) {
+            this(area, entro, bienes, revisados, observados, conDatos, etiquetados, null);
+        }
+
+        /** It is known that the área has no account of its own yet (one that entered has one). */
+        public boolean sinCuenta() { return entro == null && Boolean.FALSE.equals(conCuenta); }
 
         public boolean fase1() { return entro != null; }
         public boolean fase2() { return revisados >= bienes; }
@@ -51,12 +62,12 @@ public class AvanceAreasService {
             return 4;
         }
 
-        /** "Fase 2 · 35 %", "Terminó". */
+        /** "Paso 2 · 35 %", "Terminó". */
         public String resumen() {
             int f = faseActual();
             if (f == 4) return bienes == 0 && fase1() ? "Sin bienes" : "Terminó";
-            if (f == 1) return "Fase 1 · sin entrar";
-            return "Fase " + f + " · " + Math.round(avance(f) * 100) + " %";
+            if (f == 1) return sinCuenta() ? "Paso 1 · sin cuenta" : "Paso 1 · sin entrar";
+            return "Paso " + f + " · " + Math.round(avance(f) * 100) + " %";
         }
     }
 
@@ -70,6 +81,12 @@ public class AvanceAreasService {
     /** Each área's avance; every área named in {@code areas} is there, even without bienes. */
     public static Map<String, Avance> calcular(Collection<Producto> bienes, Map<String, LocalDateTime> accesos,
                                                Collection<String> areas) {
+        return calcular(bienes, accesos, null, areas);
+    }
+
+    /** @param conCuenta the áreas with an account of their own; null when unknown */
+    public static Map<String, Avance> calcular(Collection<Producto> bienes, Map<String, LocalDateTime> accesos,
+                                               Set<String> conCuenta, Collection<String> areas) {
         Map<String, int[]> cuentas = new LinkedHashMap<>();
         for (String a : areas) cuentas.put(a, new int[5]);
         for (Producto p : bienes) {
@@ -82,7 +99,28 @@ public class AvanceAreasService {
             if (p.isEtiquetado()) c[4]++;
         }
         Map<String, Avance> out = new LinkedHashMap<>();
-        cuentas.forEach((a, c) -> out.put(a, new Avance(a, accesos.get(a), c[0], c[1], c[2], c[3], c[4])));
+        cuentas.forEach((a, c) -> out.put(a, new Avance(a, accesos.get(a), c[0], c[1], c[2], c[3], c[4],
+            conCuenta == null ? null : conCuenta.contains(a) || accesos.containsKey(a))));
+        return out;
+    }
+
+    /** The áreas with an active account of their own (Configuración › Cuentas por área
+     *  makes one per área); null offline, where it can't be known. */
+    public Set<String> areasConCuenta() throws SQLException {
+        if (DatabaseConfig.isDemoMode()) {
+            Set<String> out = new HashSet<>();
+            for (var u : com.sibim.db.DemoDataStore.findAllUsers())
+                if (u.getArea() != null && u.isActivo()) out.add(u.getArea());
+            return out;
+        }
+        if (DatabaseConfig.isOfflineMode()) return null;
+        Set<String> out = new HashSet<>();
+        try (Connection c = DatabaseConfig.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                 "SELECT DISTINCT area FROM users WHERE area IS NOT NULL AND activo IS NOT FALSE");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) out.add(rs.getString(1));
+        }
         return out;
     }
 

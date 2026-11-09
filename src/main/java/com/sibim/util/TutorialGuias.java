@@ -63,7 +63,7 @@ final class TutorialGuias {
      *  version that only fixes things (1.0.23) would open the same steps
      *  again, now labelled as new. Move it when {@link #novedades()} gets new
      *  steps. */
-    public static final String VERSION_NOVEDADES = "1.0.24";
+    public static final String VERSION_NOVEDADES = "1.0.25";
 
     /** Goes to the screen and opens one of its windows (read by its controller on loading). */
     private static Runnable abrir(String vista, String accion) {
@@ -113,9 +113,15 @@ final class TutorialGuias {
         List<Paso> p = new ArrayList<>();
         if (SessionManager.isAdmin()) {
             p.add(paso("mdi2s-star-outline", GUINDA, GUINDA_D, "Lo nuevo en esta versión", null, null,
-                "Primero lo más nuevo: pasar un resguardo a otra persona y avisos más claros",
+                "Primero lo más nuevo: el avance de las áreas, más claro; luego pasar un resguardo a otra persona y avisos más claros",
                 "Cada paso te lleva a la pantalla y marca el botón; con «Probarlo ahora» la abres ya",
                 "Nada se guarda hasta que tú lo confirmas dentro de cada ventana"));
+            p.add(probar(paso("mdi2s-stairs-up", VERDE, VERDE_D, "El avance de las áreas, más claro", "organigrama", "#btnAvanceAreas",
+                "Arriba, cinco tarjetas: cuántas áreas faltan por entrar, cuántas revisan sus bienes, cuántas ponen etiquetas y cuántas terminaron; un clic filtra",
+                "Las áreas van agrupadas por secretaría, cada una con sus tres pasos en una sola barra",
+                "Cada área dice si ya tiene cuenta: sin cuenta no puede entrar; «Crear las cuentas» te lleva a hacerlo",
+                "Un clic en un área abre su detalle, con el botón del paso que le toca resaltado"),
+                "Abrir el avance", abrir("organigrama", "avance")));
             p.add(paso("mdi2a-account-switch-outline", GUINDA, GUINDA_D, "Pasar un resguardo a otra persona", "resguardos", "#btnMasResguardos",
                 "Si alguien se da de baja y sus bienes se quedan en el área: selecciona su resguardo y ve a Más › Pasar a otra persona",
                 "Elige a quien los recibe y escribe el motivo; también funciona con clic derecho sobre el resguardo",
@@ -167,10 +173,10 @@ final class TutorialGuias {
                 "Al terminar, «Deshacer» lo regresa"),
                 "Abrir el reporte", abrir("reportes", "resguardante")));
             p.add(paso("mdi2s-stairs-up", VERDE, VERDE_D, "Avance de las áreas", "organigrama", "#btnAvanceAreas",
-                "Cada área tiene tres fases: 1 entrar a SIBIM, 2 revisar sus bienes y llenar lo que falte, 3 confirmar sus etiquetas",
+                "Cada área da tres pasos: 1 entrar a SIBIM, 2 revisar sus bienes y llenar lo que falte, 3 confirmar sus etiquetas",
                 "En el organigrama cada área lleva sus pasos 1·2·3; verde es hecho, dorado es a medias",
-                "Un clic en los pasos de un área abre su detalle; «Avance de las áreas» las muestra todas en una tabla",
-                "En esa tabla filtras por fase, buscas un área y ves cuáles todavía no entran",
+                "Un clic en los pasos de un área abre su detalle; «Avance de las áreas» las muestra todas, por dependencia",
+                "Arriba, cinco tarjetas dicen cuántas van en cada paso (un clic filtra); cada área dice si ya tiene cuenta",
                 "Si un área dice que un bien no es suyo, aparece en «Por hacer» para que lo revises"));
             p.add(paso("mdi2n-numeric", GUINDA, GUINDA_D, "Los números ya no se repiten", "productos", "#searchField",
                 "El número de un bien dado de baja, transferido o borrado ya no se le da a otro bien",
@@ -264,9 +270,9 @@ final class TutorialGuias {
                 "Resguardos › Más › Resguardos en lote: varias personas a la vez, un solo PDF para firmar; avisa si un nombre trae a dos personas",
                 "Cambiar resguardante y los formatos de baja ahora eligen de una lista, no a mano"),
                 "Abrir Etiquetas por área", abrir("productos", "etiquetas")));
-            // After the intro: 1.0.24 (pasar a otra persona, botones), then 1.0.22 (resguardo … corregir nombre),
-            // then everything before (1.0.21: avance … activos biológicos, and older).
-            int anterior = indice(p, "Resguardo con marca, serie y precio"), antes = indice(p, "Avance de las áreas");
+            // After the intro: 1.0.25 (el avance de las áreas), then 1.0.24 (pasar a otra persona, botones),
+            // then everything before (1.0.22: resguardo … corregir nombre; 1.0.21 and older).
+            int anterior = indice(p, "Pasar un resguardo a otra persona"), antes = indice(p, "Resguardo con marca, serie y precio");
             enGrupo(p, 1, anterior, NUEVO);
             enGrupo(p, anterior, antes, ANTERIOR);
             enGrupo(p, antes, p.size(), ANTES);

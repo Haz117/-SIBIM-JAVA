@@ -48,19 +48,21 @@ class OrganigramaDataLoader {
         DialogUtil.runAsync(
             () -> {
                 long inicio = System.nanoTime();
-                // The four reads are independent: at the same time, the screen
+                // The five reads are independent: at the same time, the screen
                 // waits for the slowest instead of their sum.
                 java.util.concurrent.CompletableFuture<List<Resguardo>> resguardos;
                 java.util.concurrent.CompletableFuture<List<Prestamo>> prestamos;
                 java.util.concurrent.CompletableFuture<List<Comodato>> comodatos;
                 java.util.concurrent.CompletableFuture<Map<String, java.time.LocalDateTime>> accesos;
+                java.util.concurrent.CompletableFuture<java.util.Set<String>> cuentas;
                 Map<String, List<Producto>> porArea;
                 List<Producto> todos;
-                try (var paralelo = java.util.concurrent.Executors.newFixedThreadPool(4)) {
+                try (var paralelo = java.util.concurrent.Executors.newFixedThreadPool(5)) {
                     resguardos = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(resguardoService::getAll, "resguardos"), paralelo);
                     prestamos  = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(prestamoService::getActivos, "préstamos"), paralelo);
                     comodatos  = java.util.concurrent.CompletableFuture.supplyAsync(() -> leer(comodatoService::getVigentes, "comodatos"), paralelo);
                     accesos    = java.util.concurrent.CompletableFuture.supplyAsync(this::accesos, paralelo);
+                    cuentas    = java.util.concurrent.CompletableFuture.supplyAsync(this::cuentas, paralelo);
                     todos = productoService.getAll();
                     porArea = todos.stream()
                         .filter(p -> p.getArea() != null && !p.getArea().isBlank())
@@ -104,7 +106,7 @@ class OrganigramaDataLoader {
                 log.info("Organigrama cargado: {} bienes en {} áreas, {} ms",
                     productoIdToArea.size(), porArea.size(), (System.nanoTime() - inicio) / 1_000_000);
                 var avance = com.sibim.service.AvanceAreasService.calcular(todos, accesos.join(),
-                    com.sibim.config.Areas.getAllAreaNames());
+                    cuentas.join(), com.sibim.config.Areas.getAllAreaNames());
                 return new OrganigramaData(porArea, rsgPorArea, prestPorArea, comodPorArea, avance);
             },
             onSuccess,
@@ -119,6 +121,16 @@ class OrganigramaDataLoader {
         } catch (Exception e) {
             log.debug("No se pudieron leer los accesos por área para el organigrama", e);
             return Map.of();
+        }
+    }
+
+    /** Which áreas have an account of their own, for phase 1; null when it can't be read. */
+    private java.util.Set<String> cuentas() {
+        try {
+            return new com.sibim.service.AvanceAreasService().areasConCuenta();
+        } catch (Exception e) {
+            log.debug("No se pudieron leer las cuentas por área para el organigrama", e);
+            return null;
         }
     }
 
